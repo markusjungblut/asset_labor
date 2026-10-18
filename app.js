@@ -27,7 +27,8 @@ function typeOfCell(c){
  // Dschungel ist die logische Geländeart; eine ersatzweise dargestellte Boden-PNG
  // (z.B. Waldboden) ändert NICHT das für die Vegetation relevante Biom.
  const material=catalog.terrainTypes.find(t=>t.id===terrain)?.materialClass;
- return marked&&material!=='water'&&material!=='shoreline'?'jungle':terrain||c.terrainTypeId||null;
+ const declared=catalog.terrainTypes.find(t=>t.id===c.terrainTypeId)?.materialClass;
+ return marked&&!['water','shoreline'].includes(material)&&!['water','shoreline'].includes(declared)?'jungle':terrain||c.terrainTypeId||null;
 }
 function forestCells(){
  return window.VedrasForest.generate(worldCells,catalog,state.forest,c=>typeOfCell(c));
@@ -72,7 +73,8 @@ function findAsset(category,stem){return assets.find(a=>a.category===category&&(
 function imageForBiome(c){
  if(state.hexTerrain[key(c.q,c.r)]){const a=useAsset(state.hexTerrain[key(c.q,c.r)]);if(isTerrainValid(a)&&typeOfAsset(a))return a;}
  const chosen=state.biomeTerrain[c.biome];if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a))return a;}
- const jungle=state.forest?.jungleHexes?.[key(c.q,c.r)]===true;
+ const original=catalog.terrainTypes.find(t=>t.id===c.terrainTypeId);
+ const jungle=state.forest?.jungleHexes?.[key(c.q,c.r)]===true&&!['water','shoreline'].includes(original?.materialClass);
  const typeId=jungle?'jungle':c.terrainTypeId||demoTypes[c.biome];
  let matches=assets.filter(a=>isTerrainValid(a)&&typeOfAsset(a)===typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
