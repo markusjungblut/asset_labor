@@ -1990,27 +1990,27 @@
     {
       "id": "existing_palme_01",
       "path": "assets/nature/palme_01.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (kleinere Variante)",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 174,
+      "targetHeight": 126,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2018,27 +2018,27 @@
     {
       "id": "existing_palme_02",
       "path": "assets/nature/palme_02.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (kleinere Variante)",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 174,
+      "targetHeight": 126,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2046,27 +2046,27 @@
     {
       "id": "existing_palme_03",
       "path": "assets/nature/palme_03.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (kleinere Variante)",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 174,
+      "targetHeight": 126,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2074,27 +2074,27 @@
     {
       "id": "existing_palme_04",
       "path": "assets/nature/palme_04.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (kleinere Variante)",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 174,
+      "targetHeight": 126,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2102,27 +2102,27 @@
     {
       "id": "existing_palme_05",
       "path": "assets/nature/palme_05.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (kleinere Variante)",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 174,
+      "targetHeight": 126,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2130,7 +2130,7 @@
     {
       "id": "existing_palme_06",
       "path": "assets/nature/palme_06.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2138,19 +2138,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2158,7 +2158,7 @@
     {
       "id": "existing_palme_07",
       "path": "assets/nature/palme_07.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2166,19 +2166,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2186,7 +2186,7 @@
     {
       "id": "existing_palme_08",
       "path": "assets/nature/palme_08.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2194,19 +2194,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2214,7 +2214,7 @@
     {
       "id": "existing_palme_09",
       "path": "assets/nature/palme_09.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2222,19 +2222,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2242,7 +2242,7 @@
     {
       "id": "existing_palme_10",
       "path": "assets/nature/palme_10.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2250,19 +2250,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2270,7 +2270,7 @@
     {
       "id": "existing_palme_11",
       "path": "assets/nature/palme_11.png",
-      "name": "Palme (Art offen)",
+      "name": "Palme (größere Variante)",
       "family": "palms",
       "kind": "tree",
       "sizeClass": "large",
@@ -2278,19 +2278,19 @@
       "targetHeight": 174,
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "placement": {
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
