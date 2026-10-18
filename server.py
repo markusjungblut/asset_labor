@@ -65,7 +65,9 @@ def validate_nature_catalog(c):
         terrains = {t['id'] for t in tc['terrainTypes']}
     except (ValueError, OSError, KeyError):
         pass
-    categories = set()
+    # Initialer Nature-Import darf vor der ersten Terrain-Katalogspeicherung stattfinden.
+    # Nur die sieben stabilen Startkategorien sind ohne eigenen Terrain-Katalog zulässig.
+    categories = {'water_coast', 'cold_regions', 'grass_pasture', 'warm_regions', 'wetlands', 'arid_regions', 'demo_regions'}
     try:
         categories = {c['id'] for c in tc['categories']}
     except (KeyError, TypeError, NameError):
