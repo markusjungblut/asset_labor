@@ -197,6 +197,17 @@ class Handler(SimpleHTTPRequestHandler):
                 'serverRoot': str(BASE),
             })
             return
+        if parsed.path == '/api/journal-trees':
+            # Journal assets are addressable by a stable API identifier, never map sprites.
+            # Report only actual files; no placeholder data or synthetic images.
+            items = []
+            for number in range(12, 20):
+                name = f'tree_{number}.png'
+                if (ASSETS / 'nature' / name).is_file():
+                    items.append({'id': f'journal_tree_{number}', 'path': 'assets/nature/' + name,
+                                  'family': 'journal_trees', 'kind': 'special', 'spawnable': False})
+            self._send_json({'schemaVersion': 1, 'count': len(items), 'items': items})
+            return
         if parsed.path == '/api/nature-catalog-backup':
             try:
                 self._send_json(json.loads((ASSETS / 'nature' / 'nature_catalog.json.bak').read_text('utf-8')))
