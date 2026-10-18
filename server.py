@@ -205,7 +205,7 @@ class Handler(SimpleHTTPRequestHandler):
                 name = f'tree_{number}.png'
                 if (ASSETS / 'nature' / name).is_file():
                     items.append({'id': f'journal_tree_{number}', 'path': 'assets/nature/' + name,
-                                  'family': 'journal_trees', 'kind': 'special', 'spawnable': False})
+                                  'family': 'jungle_trees', 'legacyGroup': 'journal_trees', 'species': 'kapok', 'kind': 'special', 'spawnable': False})
             self._send_json({'schemaVersion': 1, 'count': len(items), 'items': items})
             return
         if parsed.path == '/api/nature-catalog-backup':
