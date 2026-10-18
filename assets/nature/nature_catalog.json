@@ -6120,14 +6120,14 @@
       "targetHeight": 10
     },
     "nature/tree_12.png": {
-      "id": "journal_tree_12",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_12",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_12.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6135,7 +6135,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6144,11 +6144,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6162,21 +6164,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_13.png": {
-      "id": "journal_tree_13",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_13",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_13.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6184,7 +6185,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6193,11 +6194,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6211,21 +6214,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_14.png": {
-      "id": "journal_tree_14",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_14",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_14.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6233,7 +6235,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6242,11 +6244,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6260,21 +6264,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_15.png": {
-      "id": "journal_tree_15",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_15",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_15.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6282,7 +6285,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6291,11 +6294,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6309,21 +6314,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_16.png": {
-      "id": "journal_tree_16",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_16",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_16.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6331,7 +6335,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6340,11 +6344,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6358,21 +6364,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_17.png": {
-      "id": "journal_tree_17",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_17",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_17.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6380,7 +6385,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6389,11 +6394,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6407,21 +6414,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_18.png": {
-      "id": "journal_tree_18",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_18",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_18.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6429,7 +6435,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6438,11 +6444,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6456,21 +6464,20 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
     },
     "nature/tree_19.png": {
-      "id": "journal_tree_19",
-      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
+      "id": "kapok_tree_19",
+      "description": "Kapokbaum – vorhandene Dschungelbaum-Variante; normaler Baum für Dschungel-Hexfelder.",
       "sourceReference": "Bestandsdatei: tree_19.png",
       "family": "jungle_trees",
-      "kind": "special",
+      "kind": "tree",
       "sizeClass": "giant",
-      "sizeMode": "manual",
-      "logicalWidth": 52,
+      "sizeMode": "class",
+      "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -6478,7 +6485,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_medium_round",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -6487,11 +6494,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
-        "weight": 0,
-        "density": 0,
+        "weight": 1,
+        "density": 0.06,
         "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
@@ -6505,8 +6514,7 @@
       "artStatus": "candidate",
       "tags": [
         "existing",
-        "journal_api",
-        "no_auto_spawn",
+        "needs_art_review",
         "kapok"
       ],
       "targetHeight": 225
