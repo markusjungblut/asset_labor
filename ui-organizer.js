@@ -47,15 +47,15 @@
  function renderPlan(){if(!P||!planList)return;const q=(input?.value||'').trim().toLowerCase();planList.replaceChildren();let available=0;
   const assets=window.VedrasAssetLabor?.assets?.()||[];
   for(const item of P.entries.filter(i=>!q||[i.id,i.name,i.family,i.kind].some(v=>v.toLowerCase().includes(q)))){
-   const hasAsset=assets.find(a=>a.category==='nature'&&a.name.toLowerCase()===item.filename.toLowerCase());
-   const saved=hasAsset&&natural()[hasAsset.relPath];if(hasAsset)available++;
+   const matches=assets.filter(a=>a.category==='nature'&&P.matches(item,a));const hasAsset=matches[0];
+   const saved=matches.length&&matches.every(a=>natural()[a.relPath]);if(matches.length)available++;
    const row=document.createElement('div');row.className='plan-item';
-   const text=document.createElement('div');text.innerHTML=`<strong>${escape(item.name)}</strong><small>${escape(item.filename)} · ${escape(item.kind)} · ${escape(item.sizeClass)} · ${item.targetHeight} WE Höhe</small><small>${saved?'Eingepflegt':hasAsset?'Datei vorhanden':'Geplant'} · ${escape(item.allowedTerrainCategories.join(', '))}</small>`;
+   const text=document.createElement('div');text.innerHTML=`<strong>${escape(item.name)}</strong><small>${escape(item.filename)} · ${escape(item.kind)} · ${escape(item.sizeClass)} · ${item.targetHeight} WE Höhe</small><small>${saved?'Eingepflegt':hasAsset?'Grafik vorhanden':'Noch zu erstellen'} · ${matches.length} Varianten · ${escape((item.allowedTerrainTypes?.length?item.allowedTerrainTypes:item.allowedTerrainCategories).join(', '))}</small>`;
    const button=document.createElement('button');button.className='plan-action';button.textContent='Sidecar';button.title='Vollständige Metadaten als Sidecar-JSON';
-   button.addEventListener('click',()=>{const name=item.filename.replace(/\.[^.]+$/,'');const meta=P.metadata(item,window.VedrasNatureCatalog.template());download(name+'.json',{assetType:'nature_sprite',relPath:'nature/'+item.filename,data:meta});feedback.textContent=item.name+' · Sidecar exportiert. PNG muss denselben geplanten Dateinamen erhalten.';});
+   button.addEventListener('click',()=>{const name=item.filename.replace(/\.[^.]+$/,'');const meta=P.metadata(item,window.VedrasNatureCatalog.template());download(name+'.json',{assetType:'nature_sprite',relPath:'nature/'+(item.folder?item.folder+'/':'')+item.filename,data:meta});feedback.textContent=item.name+' · Metadaten exportiert. Neue PNG in den angezeigten Zielordner kopieren.';});
    row.append(text,button);planList.append(row);
   }
-  if($('spritePlanCount'))$('spritePlanCount').textContent=`${available}/${P.entries.length} Bilddateien`;
+  if($('spritePlanCount'))$('spritePlanCount').textContent=`${available}/${P.entries.length} Arten mit Grafik`;
  }
  $('spritePlanSearch')?.addEventListener('input',renderPlan);$('spritePlanExport')?.addEventListener('click',()=>download('sprite_catalog_plan.json',{schemaVersion:1,items:P.entries}));
  window.addEventListener('vedras:assets-loaded',renderPlan);window.addEventListener('vedras:nature-catalog-changed',renderPlan);renderPlan();
