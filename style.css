@@ -79,3 +79,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .plan-item>div{min-width:0}.plan-item strong{display:block;font-size:11px}.plan-item small{display:block;color:#aec5b2;font-size:9px;margin:3px 0;overflow-wrap:anywhere}
 .plan-action{font-size:10px;padding:5px}.asset-group{border-bottom:1px solid #3c5551;padding:4px 5px}.asset-group>summary{cursor:pointer;color:#c9dfb5;font-size:10px;font-weight:750;padding:7px 4px}.asset-group-content{display:flex;flex-direction:column;gap:4px}
 .size-preview{margin:3px 0!important;padding:9px;font-size:11px}
+/* Wald-/Dschungel-Editor – unabhängig von Terrain-Material und Sprite-Inventar. */
+.forest-tools{margin:12px 0;padding:10px;border:1px solid #64836b;border-radius:7px;background:#1c3630}
+.forest-tools>summary{font-size:12px;font-weight:750;color:#d8efc8;cursor:pointer;margin:0 0 5px}
+.forest-tools[open]>summary{padding-bottom:8px;border-bottom:1px solid #496458;margin-bottom:11px}
+.forest-tools>label{display:flex;flex-direction:column;gap:5px;margin:9px 0;font-size:11px}
+.forest-tools>label.checkbox{flex-direction:row;align-items:center}
+.forest-tools input[type=range]{width:100%}
+.forest-tools .forest-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}
+.forest-tools .forest-buttons button{white-space:normal;font-size:11px;min-height:37px}
+.forest-tools #forestStatus{margin-top:11px;line-height:1.45}
