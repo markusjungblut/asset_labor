@@ -11,12 +11,12 @@ window.VedrasShoreline=(()=>{
  const pos=c=>({x:HEX*(c.q+c.r/2),y:1.5*R*c.r});
  const key=c=>`${c.q},${c.r}`;
  const vertices=c=>{const p=pos(c);return Array.from({length:6},(_,i)=>{const a=-Math.PI/2+i*Math.PI/3;return {x:p.x+R*Math.cos(a),y:p.y+R*Math.sin(a)};});};
- function segments(cells,isWet){
+ function segments(cells,isWet,skipEdges=new Set()){
   const lookup=new Map(cells.map(c=>[key(c),c])),out=[];
   for(const c of cells){if(isWet(c))continue;
    for(let side=0;side<6;side++){
     const [dq,dr]=DIRS[side],n=lookup.get(`${c.q+dq},${c.r+dr}`);
-    if(n&&isWet(n)){
+    if(n&&isWet(n)&&!skipEdges.has(key(c)+':'+side)){
      const v=vertices(c),a=v[side],b=v[(side+1)%6],u=pos(c),w=pos(n);
      // The shared edge's midpoint is the midpoint of the land/water centres.
      out.push({cell:c,water:n,side,a,b,mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},center:u,waterCenter:w});
@@ -39,7 +39,7 @@ window.VedrasShoreline=(()=>{
   stroke(0,3,'rgba(253,249,231,0.88)');
  }
  function build(cells,isWet,images,options={}){
-  const segs=segments(cells,isWet),density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
+  const segs=segments(cells,isWet,new Set(options.skipEdges||[])),density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
   if(!segs.length)return {segments:segs,canvas:null,missing:0};
   // The large full-hex+bleed square can overrun outer map edges.
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;

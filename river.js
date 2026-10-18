@@ -72,35 +72,47 @@ window.VedrasRivers=(()=>{
   }
   return set;
  }
- function trace(ctx,route,cells,isWet){
+ function trace(ctx,route,cells,isWet,groundY=null){
   const segments=sections(route,cells,isWet);
   if(!segments.length)return null;
   const start=segments[0].start,water=pos(norm(route.hexes[route.hexes.length-1]));
-  ctx.moveTo(start.x,start.y);
+  const height=(x,y)=>groundY?groundY(x,y):y;
+  ctx.moveTo(start.x,height(start.x,start.y));
   for(const s of segments){
-   // Two quadratic halves meet at the exact shared edge midpoint.
-   // The tangent there points along the normal between hex centers.
-   ctx.quadraticCurveTo(s.center.x,s.center.y,s.end.x,s.end.y);
+   // Each segment meets its neighbor at the EXACT shared edge midpoint.
+   // Relief follows the same height sample on both sides of a shared edge.
+   if(groundY){
+    for(let i=1;i<=16;i++){
+     const t=i/16,a=1-t,x=a*a*s.start.x+2*a*t*s.center.x+t*t*s.end.x;
+     const y=a*a*s.start.y+2*a*t*s.center.y+t*t*s.end.y;
+     ctx.lineTo(x,height(x,y));
+    }
+   }else ctx.quadraticCurveTo(s.center.x,s.center.y,s.end.x,s.end.y);
   }
-  // Only a short mouth extension into the WATER tile; no dead end on land.
+  // A short extension into the actual water tile; fade its alpha there.
   const exit=segments[segments.length-1].end;
-  ctx.lineTo(exit.x+(water.x-exit.x)*.52,exit.y+(water.y-exit.y)*.52);
+  const mouth={x:exit.x+(water.x-exit.x)*.52,y:exit.y+(water.y-exit.y)*.52};
+  if(groundY){
+   for(let i=1;i<=8;i++){const k=i/8,x=exit.x+(mouth.x-exit.x)*k,y=exit.y+(mouth.y-exit.y)*k;ctx.lineTo(x,height(x,y));}
+  }else ctx.lineTo(mouth.x,mouth.y);
   return {segments,start,end:exit,water};
  }
  function render(ctx,route,cells,isWet,waterImage,options={}){
   if(!valid(route,cells,isWet))return null;
   const segments=sections(route,cells,isWet),width=Math.max(12,Math.min(70,Number(options.width)||32));
   const wpos=pos(norm(route.hexes.at(-1)));
+  const groundY=typeof options.groundY==='function'?options.groundY:null;
   const points=[...segments.flatMap(s=>[s.start,s.center,s.end]),wpos];
-  const pad=width+28,x=Math.floor(Math.min(...points.map(p=>p.x))-pad),y=Math.floor(Math.min(...points.map(p=>p.y))-pad);
-  const xmax=Math.ceil(Math.max(...points.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...points.map(p=>p.y))+pad);
+  const pad=width+34,x=Math.floor(Math.min(...points.map(p=>p.x))-pad);
+  const y=Math.floor(Math.min(...points.map(p=>groundY?groundY(p.x,p.y):p.y))-pad);
+  const xmax=Math.ceil(Math.max(...points.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...points.map(p=>groundY?groundY(p.x,p.y):p.y))+pad);
   const dw=xmax-x,dh=ymax-y;
   // Preview remains bounded; the source-to-water hex path stays in world units.
   const scale=Math.min(1.55,2500/Math.max(dw,dh)),canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d');g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
   const traceStroke=(strokeWidth,alpha)=>{
-   g.beginPath();trace(g,route,cells,isWet);g.lineJoin='round';g.lineCap='round';
+   g.beginPath();trace(g,route,cells,isWet,groundY);g.lineJoin='round';g.lineCap='round';
    g.strokeStyle='rgba(255,255,255,'+alpha+')';g.lineWidth=strokeWidth;g.stroke();
   };
   // All bands are WATER ALPHA only: no sand, beach, bank or border material.
@@ -120,8 +132,17 @@ window.VedrasRivers=(()=>{
    g.fillStyle=pattern;
   }else g.fillStyle='#4397b2';
   g.fillRect(x,y,dw,dh);g.restore();
+  // River becomes indistinguishable from WATER within the receiving tile:
+  // smoothly remove the overlay; never place a flat color cap in the sea.
+  const last=segments[segments.length-1].end;
+  const mouth={x:last.x+(wpos.x-last.x)*.52,y:last.y+(wpos.y-last.y)*.52};
+  g.save();g.globalCompositeOperation='destination-out';
+  g.beginPath();g.moveTo(last.x,groundY?groundY(last.x,last.y):last.y);g.lineTo(mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
+  const grad=g.createLinearGradient(last.x,groundY?groundY(last.x,last.y):last.y,mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
+  grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,'rgba(0,0,0,1)');
+  g.strokeStyle=grad;g.lineCap='butt';g.lineWidth=width+28;g.stroke();g.restore();
   ctx.drawImage(canvas,x,y,dw,dh);
-  return {segments,width,x,y,canvas};
+  return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh};
  }
  function normalizeRoutes(routes,cells,isWet){
   return (Array.isArray(routes)?routes:[]).slice(0,50).filter(x=>valid(x,cells,isWet)).map(route=>({

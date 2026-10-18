@@ -40,7 +40,7 @@ assert(F.treeTarget({forestClass:'light_forest',suitability:1})>F.treeTarget({fo
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const required of ['forest:state.forest','forestByHex:','state.forest=window.VedrasForest.valid(scene.forest)','forestCells,invalidateTerrain']){
+for(const required of ['forest:state.forest','forestByHex:','state.forest=window.VedrasForest.valid(scene.forest)','forestCells','riverRoutes','invalidateTerrain']){
  assert(app.includes(required),'missing scene forest integration: '+required);
 }
 for(const required of ['F.treeTarget(f)','F.maxObjects(f)','F.preferredFamily(m.family,f)','vedras:forest-changed']){

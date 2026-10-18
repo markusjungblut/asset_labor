@@ -7,10 +7,11 @@ from playwright.sync_api import sync_playwright
 B=Path(__file__).resolve().parents[1]
 html=(B/'index.html').read_text()
 html=html.replace('<link rel="stylesheet" href="style.css?v=0.12.0">','<style>'+(B/'style.css').read_text()+'</style>')
-for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','forest','relief','shoreline','mountain','app','nature-ui','ui-organizer','forest-ui']:
+for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','forest','relief','shoreline','river','mountain','app','nature-ui','ui-organizer','forest-ui','river-ui']:
     html=html.replace(f'<script src="{f}.js?v=0.11.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.12.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.12.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.14.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
@@ -71,6 +72,38 @@ with sync_playwright() as pw:
  assert count_in_forest>0, {'forestInstanceCount':count_in_forest}
  assert all(x=='candidate' for x in distribution['statuses']),distribution
  assert page.locator('#forestTools').count()==1
+ assert page.locator('#riverPanel').count()==1
+ assert page.locator('#riverAdd').count()==1
+ assert page.locator('#riverClear').count()==1
+ # With no WATER hex, adding a river must fail rather than invent a land mouth.
+ page.evaluate("document.getElementById('riverAdd').click()")
+ assert page.evaluate("VedrasAssetLabor.state.riverPaths.length")==0
+ assert 'Kein erreichbares Wasserhex' in page.locator('#riverStats').inner_text()
+ # Make exactly one of the already-loaded mock terrain sprites a WATER tile;
+ # non-overridden cells retain their demo ground type.
+ route=page.evaluate("""() => {
+  const core=VedrasAssetLabor;
+  const previous=core.catalog().assets['terrain/test_grass.png'];
+  core.catalog().assets['terrain/test_grass.png']={terrainTypeId:'ocean',variantFamilyId:'mock_water'};
+  core.state.hexTerrain['2,0']='assets/terrain/test_grass.png';
+  core.state.selected='0,0';
+  document.getElementById('riverAdd').click();
+  const route=core.riverRoutes()[0];
+  const result={
+   route:route?.hexes,
+   segments:VedrasRivers.sections(route,core.cells(),
+    c=>['water','shoreline'].includes(core.catalog().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass)),
+   state:core.state.riverPaths.length
+  };
+  // Restore terrain within this event turn, before the next renderer frame.
+  core.catalog().assets['terrain/test_grass.png']=previous;
+  delete core.state.hexTerrain['2,0'];
+  core.state.riverPaths=[];
+  core.persistScene();
+  return result;
+ }""")
+ assert route['state']==1 and route['route'][-1]==[2,0],route
+ assert route['segments'][0]['corner'] is not None,route
  before=page.evaluate("""() => ({
   forest:VedrasAssetLabor.forestCells(),
   terrain:VedrasAssetLabor.cells().map(c=>VedrasAssetLabor.effectiveBiome(c))

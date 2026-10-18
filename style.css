@@ -95,3 +95,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #floraV2List .flora-row{padding:8px 5px;border-bottom:1px solid #3a5451}
 #floraV2List .flora-row strong{display:block;font-size:11px}
 #floraV2List .flora-row small{display:block;font-size:10px;color:#aec5b2;margin-top:3px;overflow-wrap:anywhere}
+
+/* Flusseditor: nutzt dieselben ausklappbaren Panels wie Küsten und Biome. */
+#riverPanel{border-left:3px solid #4b9da9;padding-left:10px}
+#riverPanel .infobox{line-height:1.5;white-space:normal}
+#riverPanel .inline-row input[type=range]{flex:1;min-width:90px}
