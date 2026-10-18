@@ -10,11 +10,15 @@ window.VedrasNature=(()=>{
  function status(){ const values=Object.values(catalog.entries);if($('nSizeAudit'))$('nSizeAudit').textContent=`${values.filter(e=>e.kind!=='mountain'&&e.sizeMode==='class').length} von ${values.filter(e=>e.kind!=='mountain').length} vorhandenen nicht-Berg-Sprites verwenden bereits die normierte sichtbare Höhe. Bisherige manuelle Breiten bleiben erhalten.`; $('nCatalogState').textContent=`${Object.keys(catalog.entries).length} Sprites · ${Object.keys(catalog.presets||{}).length} Presets · ${dirty?(serverWritable?'Speichern offen':'Export nötig'):(serverWritable?'gespeichert':'nur lokal')}`;}
  const slug=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,55);
  function suggest(a){const m=(a?.meta?.assetType==='nature_sprite'&&a.meta.data)?a.meta.data:(a?.meta||{}),r={...N.template(),...m};r.id=N.idOK(m.id)?m.id:(slug(a.name.replace(/\.[^.]+$/,''))||'asset')+'_01';
-  r.family=N.idOK(m.family)?m.family:(a.name.toLowerCase().includes('rock')?'rocks':'temperate_bushes');
   const plan=window.VedrasSpritePlanner?.match(a);if(plan)return window.VedrasSpritePlanner.metadata(plan,N.template());
   const existing=window.VedrasExistingAssets?.classify(a);if(existing)return window.VedrasExistingAssets.metadata(existing,N.template(),a.name);
-  // Old placeholder graphics remain explicit test candidates; never claim production approval.
-  r.artStatus=['candidate','test','approved','deprecated'].includes(m.artStatus)?m.artStatus:'test';
+  // Bei unbenannten PNGs niemals raten: generische, nicht spawnende Kategorie.
+  r.family=N.idOK(m.family)?m.family:'unclassified';
+  if(!N.kinds.includes(m.kind))r.kind='special';
+  if(!m.placement)r.placement={...r.placement,weight:0,density:0};
+  if(!Array.isArray(m.tags))r.tags=['needs_classification'];
+  // Alte explizite Testnamen (pine_, rock_, mountain) behalten ihre Vorschau-Sonderregeln.
+  r.artStatus=['candidate','test','approved','deprecated'].includes(m.artStatus)?m.artStatus:'candidate';
   if(a.name.startsWith('pine_')){r.kind='tree';r.family='conifers';r.sizeClass='medium';r.logicalWidth=65;r.shadow={mode:'generic_medium_round',path:''};}
   if(/(?:mountain|berg|snow_peak)/i.test(a.name)){r.kind='mountain';r.family='snowy_mountains';r.sizeClass='giant';r.logicalWidth=360;r.anchor={x:.5,y:.67};r.shadow={mode:'none',path:'',offsetX:-.24,offsetY:0,widthScale:.7,depthScale:.18};r.mountain={radius:1,coreRadius:0,shadowOpacity:.23,flatten:true};}
   if(a.name.startsWith('rock_')){r.kind='rock';r.family='rocks';r.shadow={mode:'generic_small_wide',path:''};}
