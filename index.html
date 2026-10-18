@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vedras Reiche – Asset-Labor v0.11.0</title><link rel="stylesheet" href="style.css?v=0.11.0"></head>
+<title>Vedras Reiche – Asset-Labor v0.12.0</title><link rel="stylesheet" href="style.css?v=0.12.0"></head>
 <body>
 <div class="app">
-<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.11.0</small></h1></div></div>
+<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.12.0</small></h1></div></div>
 <div class="toptools"><span class="status" id="serverStatus">Lade Asset-Bibliothek…</span><button id="reloadBtn" title="Ordner erneut einlesen">↻ Neu einlesen</button><label class="button outline" for="folderInput">Ordner importieren</label><input id="folderInput" type="file" webkitdirectory multiple hidden accept="image/*,.svg,.json"/></div></header>
 <div class="layout">
 <aside class="library"><div class="paneheader"><h2>Grafikbibliothek</h2><div class="subtle">Dateien in <code>assets/</code> ablegen</div></div>
@@ -72,7 +72,7 @@
 <label class="checkbox"><input type="checkbox" id="nCluster"> In Gruppen platzierbar</label>
 <label>Tags (Komma getrennt)<input id="nTags" placeholder="temperate, evergreen"></label>
 </div>
-<div id="nMountainFields" class="nature-rules hidden"><strong>Bergplatzierung · v0.11.0</strong>
+<div id="nMountainFields" class="nature-rules hidden"><strong>Bergplatzierung · v0.12.0</strong>
 <label>Standflächenradius (Hexringe)<select id="nMountainRadius"><option value="1">1 Ring – 7 Hexfelder</option><option value="2">2 Ringe – 19 Hexfelder</option></select></label>
 <label>Gesperrte Kernzone<select id="nMountainCoreRadius"><option value="0">Nur Anker-Hex (empfohlen)</option><option value="1">7 Hexfelder (massiver Berg)</option></select></label>
 <button id="nMountainAnchor067" type="button" class="button outline block">Berganker Y auf 0,67 setzen</button>
@@ -98,7 +98,7 @@
 </select></label><label>Walddichte<select id="forestDensityStage"><option value="edge">Lichter Waldrand</option><option value="core" selected>Dichter Waldkern</option><option value="jungle">Geschlossener Urwald</option></select></label>
 <button id="nForestPatch" type="button" class="button outline block">Waldboden-Testfläche: 7 Hexfelder</button></div>
 <button id="nPopulate" class="button outline block">Nature-Sprites auf Testkarte verteilen</button>
-<div id="mountainTools" class="control-section"><h3>Große Berge · v0.11.0</h3>
+<div id="mountainTools" class="control-section"><h3>Große Berge · v0.12.0</h3>
 <label>Platzierungsmodus<select id="mountainMode"><option value="single">Einzelberg – Abstand zu anderen Bergen</option><option value="chain">Bergkette – gemeinsame Einflusszone</option></select></label>
 <label>Bergketten-ID <input id="mountainChainId" maxlength="50" value="alpen_01" placeholder="z. B. nordkette_01"></label>
 <label>Kettenabstand<select id="mountainSpacing"><option value="tight">Eng – mehr Überdeckung</option><option value="normal" selected>Normal – ausgeglichen</option><option value="wide">Weit – wenig Überdeckung</option></select></label>
@@ -152,7 +152,7 @@
 <button id="reliefBiomesTest" class="button outline block">19 Hexe: Hügel über Biomgrenzen</button>
 <div class="infobox" id="reliefStats">Relief wird geprüft…</div><div class="infobox" id="buildingPadStats">Bauplatz wird geprüft…</div>
 <p class="muted">Teststand: Keine frei drehbare 3D-Kamera. Steile Hänge, Wasserphysik und echte Gebäudefundamente sind noch nicht final.</p></div>
-<div class="control-section shoreline-panel" id="shorelinePanel"><h3>Ufer-Overlay · v0.11.0</h3>
+<div class="control-section shoreline-panel" id="shorelinePanel"><h3>Ufer-Overlay · v0.12.0</h3>
 <p class="muted">Land/Wasser wird nicht weich vermischt. Stattdessen erhalten Landhexfelder an Wasserkanten ein Ufer-Overlay. Wasserarten mischen weiter weich untereinander.</p>
 <label class="checkbox"><input type="checkbox" id="shorelineToggle" checked> Ufer-Overlays aktivieren</label>
 <div class="inline-row"><label>Modus</label><select id="shorelineMode"><option value="art" selected>6 Ufergrafiken</option><option value="temp">Temporäre Kanten</option></select></div>
@@ -174,5 +174,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="terrain-plan.js?v=0.12.0"></script><script src="flora-plan.js?v=0.12.0"></script><script src="catalog.js?v=0.11.0"></script><script src="autotile.js?v=0.11.0"></script><script src="nature_catalog.js?v=0.11.0"></script><script src="sprite-planner.js?v=0.11.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.11.0"></script><script src="mountain.js?v=0.11.0"></script><script src="app.js?v=0.11.0"></script><script src="nature-ui.js?v=0.11.0"></script><script src="flora-workspace.js?v=0.12.0"></script><script src="ui-organizer.js?v=0.11.0"></script>
+<script src="terrain-plan.js?v=0.12.0"></script><script src="flora-plan.js?v=0.12.0"></script><script src="catalog.js?v=0.12.0"></script><script src="autotile.js?v=0.12.0"></script><script src="nature_catalog.js?v=0.12.0"></script><script src="sprite-planner.js?v=0.12.0"></script><script src="relief.js?v=0.12.0"></script><script src="shoreline.js?v=0.12.0"></script><script src="mountain.js?v=0.12.0"></script><script src="app.js?v=0.12.0"></script><script src="nature-ui.js?v=0.12.0"></script><script src="flora-workspace.js?v=0.12.0"></script><script src="ui-organizer.js?v=0.12.0"></script>
 </body></html>
