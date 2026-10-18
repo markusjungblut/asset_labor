@@ -12,16 +12,18 @@ for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-p
     html=html.replace(f'<script src="{f}.js?v=0.12.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.12.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.14.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.14.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
+water=Image.new('RGB',(80,80),(45,115,155))
 tree=Image.new('RGBA',(96,160),(0,0,0,0));d=ImageDraw.Draw(tree);d.polygon([(49,4),(85,103),(60,142),(24,137),(10,91)],fill=(37,117,55,255))
 shrub=Image.new('RGBA',(90,90),(0,0,0,0));ImageDraw.Draw(shrub).ellipse((6,6,83,84),fill=(62,110,49,255))
-assets=[dict(path='assets/'+path,relPath=path,name=path.split('/')[-1],category=cat,meta={},bytes=150,mtime=1,url=png(img)) for path,cat,img in [('terrain/test_grass.png','terrain',land),('nature/birke1.png','nature',tree),('nature/thymian_01.png','nature',shrub)]]
+assets=[dict(path='assets/'+path,relPath=path,name=path.split('/')[-1],category=cat,meta={},bytes=150,mtime=1,url=png(img)) for path,cat,img in [('terrain/test_grass.png','terrain',land),('terrain/test_water.png','terrain',water),('nature/birke1.png','nature',tree),('nature/thymian_01.png','nature',shrub)]]
 mock='''<script>
 const TEST_ASSETS=ASSETS;
 window.fetch=async(path,opts={})=>{
-const T=VedrasCatalog.starter();T.assets['terrain/test_grass.png']={terrainTypeId:'grassland',variantFamilyId:'grassland_base'};
+const T=VedrasCatalog.starter();T.assets['terrain/test_grass.png']={terrainTypeId:'grassland',variantFamilyId:'grassland_base'};T.assets['terrain/test_water.png']={terrainTypeId:'ocean',variantFamilyId:'ocean_base'};
 const N={schemaVersion:1,revision:0,presets:{},entries:{}};
 let o={};if(path==='/api/assets')o={assets:TEST_ASSETS,version:'0.11.0'};
 else if(path==='/api/terrain-catalog')o=T;
@@ -42,7 +44,7 @@ with sync_playwright() as pw:
  try: page.wait_for_function('window.VedrasAssetLabor && window.VedrasNature && window.VedrasSpritePlanner',timeout=5000)
  except Exception as e:
   print('INIT ERR',errors,'scriptCount=',page.evaluate('document.scripts.length'),'loaded=',page.evaluate('Object.keys(window).filter(x=>x.startsWith(\"Vedras\"))'));raise
- page.wait_for_function('VedrasAssetLabor.assets().length===3 && VedrasNature.entryFor(VedrasAssetLabor.assets().find(a=>a.name==="birke1.png"))',timeout=45000)
+ page.wait_for_function('VedrasAssetLabor.assets().length===4 && VedrasNature.entryFor(VedrasAssetLabor.assets().find(a=>a.name==="birke1.png"))',timeout=45000)
  s=page.evaluate('''()=>({cells:VedrasAssetLabor.cells().length,section:!!document.getElementById('drawer_natureLabTools'),planner:VedrasSpritePlanner.entries.length,imported:Object.keys(VedrasNature.catalog().entries).length})''')
  assert s['cells']==37,s
  assert s['section'] and s['planner']==11 and s['imported']==2,s
@@ -74,36 +76,53 @@ with sync_playwright() as pw:
  assert page.locator('#forestTools').count()==1
  assert page.locator('#riverPanel').count()==1
  assert page.locator('#riverAdd').count()==1
+ assert page.locator('#riverQuickStart').count()==1
+ assert page.locator('#riverPaint').count()==1
  assert page.locator('#riverClear').count()==1
  # With no WATER hex, adding a river must fail rather than invent a land mouth.
  page.evaluate("document.getElementById('riverAdd').click()")
  assert page.evaluate("VedrasAssetLabor.state.riverPaths.length")==0
  assert 'Kein erreichbares Wasserhex' in page.locator('#riverStats').inner_text()
- # Make exactly one of the already-loaded mock terrain sprites a WATER tile;
- # non-overridden cells retain their demo ground type.
- route=page.evaluate("""() => {
+ # The one-click test works on a virgin map: it must assign a real
+ # water PNG at the edge, not silently fail or create a pretend river.
+ demo=page.evaluate("""() => {
   const core=VedrasAssetLabor;
-  const previous=core.catalog().assets['terrain/test_grass.png'];
-  core.catalog().assets['terrain/test_grass.png']={terrainTypeId:'ocean',variantFamilyId:'mock_water'};
-  core.state.hexTerrain['2,0']='assets/terrain/test_grass.png';
   core.state.selected='0,0';
-  document.getElementById('riverAdd').click();
+  document.getElementById('riverQuickStart').click();
   const route=core.riverRoutes()[0];
+  const last=route?.hexes.at(-1).join(',');
   const result={
-   route:route?.hexes,
-   segments:VedrasRivers.sections(route,core.cells(),
-    c=>['water','shoreline'].includes(core.catalog().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass)),
-   state:core.state.riverPaths.length
+   count:core.state.riverPaths.length,
+   mouth:last,
+   file:core.state.hexTerrain[last],
+   sourceCorner:VedrasRivers.sections(route,core.cells(),
+    c=>core.effectiveBiome(c)==='ocean')[0]?.corner
   };
-  // Restore terrain within this event turn, before the next renderer frame.
-  core.catalog().assets['terrain/test_grass.png']=previous;
-  delete core.state.hexTerrain['2,0'];
   core.state.riverPaths=[];
+  delete core.state.hexTerrain[last];
+  core.invalidateTerrain();
   core.persistScene();
   return result;
  }""")
- assert route['state']==1 and route['route'][-1]==[2,0],route
- assert route['segments'][0]['corner'] is not None,route
+ assert demo['count']==1 and demo['file']=='assets/terrain/test_water.png',demo
+ assert demo['sourceCorner'] is not None,demo
+ # Manual drawing: source -> adjacent land -> actual ocean.
+ route=page.evaluate("""() => {
+  const core=VedrasAssetLabor;
+  core.state.hexTerrain['2,0']='assets/terrain/test_water.png';
+  core.state.selected='0,0';
+  document.getElementById('riverPaint').click();
+  core.state.selected='1,0';window.dispatchEvent(new Event('vedras:hex-selected'));
+  const preview=core.state.riverDraft.length;
+  core.state.selected='2,0';window.dispatchEvent(new Event('vedras:hex-selected'));
+  const route=core.riverRoutes()[0];
+  const result={count:core.state.riverPaths.length,route:route?.hexes,preview,draft:core.state.riverDraft};
+  core.state.riverPaths=[];
+  delete core.state.hexTerrain['2,0'];
+  core.invalidateTerrain();core.persistScene();
+  return result;
+ }""")
+ assert route['count']==1 and route['route']==[[0,0],[1,0],[2,0]] and route['preview']==2 and route['draft'] is None,route
  before=page.evaluate("""() => ({
   forest:VedrasAssetLabor.forestCells(),
   terrain:VedrasAssetLabor.cells().map(c=>VedrasAssetLabor.effectiveBiome(c))

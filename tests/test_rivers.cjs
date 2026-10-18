@@ -75,7 +75,7 @@ assert(!calls.some(x=>typeof x[3]==='string'&&/sand|beach|rgba\(212,190,143|#dac
 assert(calls.some(x=>x[0]==='fill'&&x[1]==='source-in'),'water fills soft alpha mask only');
 assert(calls.some(x=>x[0]==='stroke'&&x[1]==='butt'),'mouth fades inside receiving water tile');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const s of ['river.js?v=0.14.0','river-ui.js?v=0.14.0','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
+for(const s of ['river.js?v=0.14.1','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('skipEdges'));assert(app.includes('riverRasterCache'));
 console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mouths, shoreline exclusion, persistence.');
