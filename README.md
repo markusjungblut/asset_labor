@@ -1,6 +1,6 @@
-# Vedras Reiche – Asset-Labor v0.11.0
+# Vedras Reiche – Asset-Labor v0.12.0
 
-**Aktueller Stand:** Neu organisierter Workspace mit 37-Hex-Testkarte (Radius 3), einklappbarer UI, 45 geplanten Sprite-Arten und sichtbarer Größenkalibrierung. Neue geplante Dateien erhalten nach exakter Namenszuordnung Metadatenvorschläge; vorhandene Daten bleiben unverändert.
+**FloraV2 v0.12.0:** 148 vorhandene Nature-PNGs werden über ihre ursprünglichen Dateinamen zu 104 Arten-/Objektkategorien zugeordnet; 25 Terrain-Klassen, textbasierte Familienordner ohne Dummy-Bilder, deterministische Biomverteilung und Waldboden-Waldprofile. Siehe [FloraV2-Umsetzung](docs/FLORA_V2_IMPLEMENTATION.md), [Nature-Ordnerübersicht](assets/nature/_FLORA_OVERVIEW.md) und [Terrain-Plan](assets/terrain/_TERRAIN_PLAN.md). Die botanische Einordnung ähnlicher Tannenbilder ist vorläufig.\n\n**Aktueller Stand:** Neu organisierter Workspace mit 37-Hex-Testkarte (Radius 3), einklappbarer UI, 45 geplanten Sprite-Arten und sichtbarer Größenkalibrierung. Neue geplante Dateien erhalten nach exakter Namenszuordnung Metadatenvorschläge; vorhandene Daten bleiben unverändert.
 
 **[Quellcode auf GitHub](https://github.com/markusjungblut/asset_labor)** · **[Verbindliche Grafikentscheidungen](https://github.com/markusjungblut/browsergame/blob/main/docs/graphics/Design.md)** · **[Release-Hinweise](README_V0110_UPDATE.md)**
 
