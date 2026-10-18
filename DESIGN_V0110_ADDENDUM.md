@@ -1,6 +1,6 @@
 # Grafikdesign-Vertrag v0.11.0 – Sprite-Katalog, Größe, Workspace
 
-1. `sprite_catalog_plan.json` ist ein **geplanter Soll-Katalog**, nicht eine Kopie des Nature-Ist-Katalogs. Jedes geplante Objekt hat stabile ID, deutsche Bezeichnung, exakten Dateinamen, Familie, Klasse, Größenklasse, Zielhöhe, Biome, Dichte und Mindestabstand.
+1. `sprite_catalog_plan.json` ist ein **Soll-Katalog nur für offene Produktionsvorhaben**, nicht die Kopie des Nature-Ist-Katalogs. Am 18.10.2026 wurden 45 gemischte Einträge auf 17 tatsächlich offene Vorhaben reduziert; weitere 28 Einträge sind mit Grund unter `resolved` dokumentiert. Varianten und `aliases` dürfen bestehende deutsche Dateinamen referenzieren.
 2. `nature_catalog.json` bleibt der einzige verbindliche Ist-Stand der tatsächlich importierten Nature-Grafiken. Existierende Benutzer-Metadaten werden von automatischen Plandateinamen **niemals** überschrieben.
 3. Für `sizeMode=class` bestimmt die sichtbare Höhen-Sollgröße die Darstellung; nach dem Alphabeschnitt berechnet sich Breite = Zielhöhe × Ausschnittbreite/Ausschnitthöhe. Für `manual` bleibt `logicalWidth` wirksam. Alte Daten ohne `sizeMode` entsprechen **manual**.
 4. Die Zielhöhen in Welteinheiten sind künstlerische **relative Skalen**, keine botanischen Meterangaben. Ein sehr kleiner Busch darf nicht automatisch einen großen Baum überragen. Klassenprofile sind nach Objektklasse getrennt.
