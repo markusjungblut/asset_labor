@@ -301,12 +301,12 @@
         "assets/terrain/stormy_ocean_02.png",
         "assets/terrain/stormy_ocean_03.png",
         "assets/terrain/stormy_ocean_04.png",
-        "assets/terrain/stormy_ocean_051.png",
-        "assets/terrain/stormy_ocean_061.png",
-        "assets/terrain/stormy_ocean_071.png",
-        "assets/terrain/stormy_ocean_081.png"
+        "assets/terrain/stormy_ocean_05.png",
+        "assets/terrain/stormy_ocean_06.png",
+        "assets/terrain/stormy_ocean_07.png",
+        "assets/terrain/stormy_ocean_08.png"
       ],
-      "reviewNotes": "Dateinamen *_051 bis *_081 auf Variantenbenennung prüfen, vor Umbenennung Verweise und Bilder abgleichen."
+      "reviewNotes": "Alle acht Dateien 01–08 sind einheitlich benannt und als Wassertexturen zugeordnet."
     },
     {
       "sourceStem": "sumpf",
@@ -384,10 +384,5 @@
       "reviewNotes": ""
     }
   ],
-  "excludedFrom25": [
-    {
-      "path": "assets/terrain/mountain_01.png",
-      "reason": "Einzelne Berg-/Relief-Testgrafik, nicht Teil der 25 Terrainfamilien."
-    }
-  ]
+  "excludedFrom25": []
 }
