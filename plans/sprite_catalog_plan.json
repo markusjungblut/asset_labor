@@ -664,7 +664,7 @@
       "id": "jungle_tree_01",
       "name": "Dschungelbaum",
       "resolution": "covered_or_deferred",
-      "evidence": "tree_12–19.png – acht Kapokbäume als Journal-Spezialassets, nicht für Weltkarte freigegeben"
+      "evidence": "tree_12.png bis tree_19.png sind acht reguläre Kapokbäume (Familie jungle_trees, normale Wald-/Dschungelplatzierung), deshalb kein zusätzlicher generischer Dschungelbaum nötig."
     },
     {
       "id": "branch_01",
