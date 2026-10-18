@@ -347,7 +347,11 @@ window.VedrasNature=(()=>{
    if(count){change();message(count+' Nature-Asset-Sidecar(s) automatisch zugeordnet.');}
    if(skipped.length)message('Importhinweis: unpassende Sidecars bei '+skipped.join(', '));
  }
- const onLibrary=()=>{importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();if(core.terrainReady?.()&&!dirty)reload();};
+ // Load saved personal edits before adding missing planned sprites.
+ const onLibrary=()=>{
+  if(core.terrainReady?.()&&!dirty){reload();return;}
+  importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();
+ };
  window.addEventListener('vedras:assets-loaded',onLibrary);
  window.addEventListener('vedras:hex-selected',renderPlaced);
  window.addEventListener('vedras:assets-loaded',syncMountainControls);
