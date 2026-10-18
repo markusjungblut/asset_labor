@@ -51,6 +51,24 @@ def validate_catalog(c):
 
 
 
+def terrain_with_plan():
+    """Non-destructive merge: existing assignments always take precedence."""
+    plan = json.loads((BASE / 'plans' / 'terrain_catalog_seed.json').read_text('utf-8'))
+    dest = ASSETS / 'terrain' / 'terrain_catalog.json'
+    if not dest.exists():
+        return plan
+    current = json.loads(dest.read_text('utf-8'))
+    if current.get('schemaVersion') != 2:
+        return current
+    for field in ('categories', 'terrainTypes', 'transitionProfiles'):
+        ids = {row.get('id') for row in current.get(field, [])}
+        current.setdefault(field, []).extend(row for row in plan[field] if row['id'] not in ids)
+    # Never change saved user assignments or delete unknown user assets.
+    for path, meta in plan['assets'].items():
+        current.setdefault('assets', {}).setdefault(path, meta)
+    return current
+
+
 def validate_nature_catalog(c):
     if not isinstance(c, dict) or c.get('schemaVersion') != 1 or not isinstance(c.get('entries'), dict) or len(c['entries']) > 10000:
         raise ValueError('Ungültiger Nature-Katalog v1')
@@ -61,7 +79,7 @@ def validate_nature_catalog(c):
     shadows = {'none', 'generic_small_round', 'generic_small_wide', 'generic_medium_round', 'generic_medium_wide', 'custom'}
     terrains = set()
     try:
-        tc = json.loads((ASSETS / 'terrain' / 'terrain_catalog.json').read_text('utf-8'))
+        tc = terrain_with_plan()
         terrains = {t['id'] for t in tc['terrainTypes']}
     except (ValueError, OSError, KeyError):
         pass
@@ -91,7 +109,7 @@ def validate_nature_catalog(c):
     def num(v, low, high):
         return isinstance(v, (int, float)) and not isinstance(v, bool) and low <= v <= high
     for rel, item in c['entries'].items():
-        if not isinstance(rel, str) or '..' in rel or '\\' in rel or not re.fullmatch(r'nature/[A-Za-z0-9_./-]+\.(?:png|webp|jpg|jpeg|svg|gif|avif)', rel, re.I):
+        if not isinstance(rel, str) or not rel.startswith('nature/') or '..' in rel or '\\' in rel or '//' in rel or not rel.lower().endswith(('.png','.webp','.jpg','.jpeg','.svg','.gif','.avif')) or not all(c.isalnum() or c in '/._-' for c in rel):
             raise ValueError('Unzulässiger Nature-Pfad')
         if not isinstance(item, dict): raise ValueError('Ungültige Nature-Metadaten')
         ident = item.get('id')
@@ -212,7 +230,7 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == '/api/terrain-catalog':
             dest = ASSETS / 'terrain' / 'terrain_catalog.json'
             try:
-                self._send_json(json.loads(dest.read_text('utf-8')))
+                self._send_json(terrain_with_plan())
             except (OSError, ValueError):
                 self._failure(404, 'Kein Gelände-Katalog verfügbar')
             return
