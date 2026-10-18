@@ -1,3 +1,13 @@
+# Vedras Reiche – Asset-Labor v0.11.0
+
+**Aktueller Stand:** Neu organisierter Workspace mit 37-Hex-Testkarte (Radius 3), einklappbarer UI, 45 geplanten Sprite-Arten und sichtbarer Größenkalibrierung. Neue geplante Dateien erhalten nach exakter Namenszuordnung Metadatenvorschläge; vorhandene Daten bleiben unverändert.
+
+**[Quellcode auf GitHub](https://github.com/markusjungblut/asset_labor)** · **[Verbindliche Grafikentscheidungen](https://github.com/markusjungblut/browsergame/blob/main/docs/graphics/Design.md)** · **[Release-Hinweise](README_V0110_UPDATE.md)**
+
+Die historischen Versionsnotizen folgen unten. Für den aktuellen Stand gelten die v0.11.0-Regeln.
+
+---
+
 > **Aktuell v0.10.9:** Gerichtete Bergschlagschatten, live gespeicherte Instanzregler und Kettenabstände. Siehe [README_V0109_UPDATE.md](README_V0109_UPDATE.md) und [DESIGN_V0109_ADDENDUM.md](DESIGN_V0109_ADDENDUM.md).
 
 > **v0.10.9 – Bergketten, Kernzone statt gesperrtem Hexring und Berganker Y=0,67:** Siehe `README_V0108_UPDATE.md`.
