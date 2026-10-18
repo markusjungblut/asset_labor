@@ -13,10 +13,3 @@ Thumbs.db
 .env
 .vscode/
 # Neue lokale Grafikdateien nicht versehentlich öffentlich committen.
-# Bereits versionierte Bilddateien bleiben durch .gitignore unverändert getrackt.
-/assets/**/*.png
-/assets/**/*.webp
-/assets/**/*.jpg
-/assets/**/*.jpeg
-/assets/**/nature_catalog.json
-/assets/**/terrain_catalog.json
