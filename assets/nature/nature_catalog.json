@@ -6127,12 +6127,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6166,8 +6167,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_13.png": {
       "id": "kapok_tree_13",
@@ -6177,12 +6177,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6216,8 +6217,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_14.png": {
       "id": "kapok_tree_14",
@@ -6227,12 +6227,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6266,8 +6267,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_15.png": {
       "id": "kapok_tree_15",
@@ -6277,12 +6277,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6316,8 +6317,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_16.png": {
       "id": "kapok_tree_16",
@@ -6327,12 +6327,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6366,8 +6367,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_17.png": {
       "id": "kapok_tree_17",
@@ -6377,12 +6377,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6416,8 +6417,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_18.png": {
       "id": "kapok_tree_18",
@@ -6427,12 +6427,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6466,8 +6467,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/tree_19.png": {
       "id": "kapok_tree_19",
@@ -6477,12 +6477,13 @@
       "kind": "tree",
       "sizeClass": "giant",
       "sizeMode": "class",
+      "targetHeight": 225,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.8
       },
       "shadow": {
         "mode": "generic_medium_round",
@@ -6516,8 +6517,7 @@
         "existing",
         "needs_art_review",
         "kapok"
-      ],
-      "targetHeight": 225
+      ]
     },
     "nature/wacholder1.png": {
       "id": "existing_wacholder1",
