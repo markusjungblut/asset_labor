@@ -37,3 +37,5 @@ Die Dateien bleiben für den lokalen Betrieb erhalten. Die komplette Demo-Vollve
 ## Sicherheit
 
 Die aktuelle `.gitignore` schließt NICHT mehr PNGs oder echte Kataloge aus, sondern nur `previews/`, Sicherungen und temporäre Dateien. Sie schützt aber keine persönlichen Geheimnisse, die an einem anderen Pfad abgelegt werden: Vor jedem Commit `git status` und `git diff --cached --name-only` prüfen. Die Quelle der Wahrheit für Produktionsgrafiken bleibt vorerst deine **lokale** Bibliothek.
+
+**Aktualisierung 18.10.2026:** Der historisch beschriebene Erstimport von v0.11.0 mit 45 Sollposten war der Ausgangsstand. Nach Bestandsabgleich führt der aktuelle Plan 17 offene Spritearten und 28 erledigte/entfallene Altposten. Die Nature-Gruppen für Büsche, verschneite Kiefern/Tannen und Kapokbäume wurden mit dem echten Nature-Katalog abgeglichen. Die historische v0.11.0-Chromium-Prüfung beschreibt ausdrücklich noch den damaligen Teststand, nicht den aktuellen Plan.
