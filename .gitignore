@@ -1,0 +1,12 @@
+# Local user-generated artwork and live catalogs are not published automatically
+/assets/
+/previews/
+__pycache__/
+*.pyc
+*.log
+*.bak
+*.zip
+.env
+.venv/
+.DS_Store
+Thumbs.db
