@@ -29,7 +29,7 @@ for(const name of assets){
  assert(meta.sizeMode==='class'||meta.kind==='mountain');
  assert(meta.allowedTerrainTypes.length>=1,'No biome '+name);
 }
-assert.deepEqual(N.validate({schemaVersion:1,revision:0,entries,presets:{}},ctx.window.VedrasCatalog.starter()),[]);
+assert.equal(N.validate({schemaVersion:1,revision:0,entries,presets:{}},ctx.window.VedrasCatalog.starter()).length,0);
 assert.equal(P.match({name:'tanne_11.png'}).speciesId,'stone_pine_01');
 assert.equal(P.match({name:'tanne_schnee_08.png'}).speciesId,'snow_pine_01');
 assert.equal(P.match({name:'tree_12.png'}).speciesId,'jungle_tree_01');
