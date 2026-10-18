@@ -2,7 +2,7 @@
 'use strict';
 window.VedrasNatureCatalog=(()=>{
  const idOK=x=>typeof x==='string'&&/^[a-z][a-z0-9_]{0,63}$/.test(x);
- const validPath=x=>typeof x==='string'&&/^nature\/[A-Za-z0-9_./-]+\.(?:png|webp|jpe?g|svg|gif|avif)$/i.test(x)&&!x.includes('..');
+ const validPath=x=>typeof x==='string'&&/^nature\/[\p{L}\p{N}_./-]+\.(?:png|webp|jpe?g|svg|gif|avif)$/iu.test(x)&&!x.includes('..')&&!x.includes('//');
  const kinds=['ground_cover','shrub','cluster','tree','rock','special','mountain'];
  const sizes=['tiny','small','medium','large','giant'];
  const shadows=['none','generic_small_round','generic_small_wide','generic_medium_round','generic_medium_wide','custom'];
