@@ -47,6 +47,22 @@ with sync_playwright() as pw:
  thyme=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='thyme_01.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,height:m.targetHeight}}''')
  assert birch['kind']=='tree' and birch['height']>thyme['height']*5 and thyme['kind']=='ground_cover',(birch,thyme)
  assert 'grass_pasture' in birch['allowed'],birch
+ # A real candidate tagged 'needs_art_review' must be usable in the TEST scene,
+ # without mutating its production artStatus (previously caused 0 instances).
+ page.evaluate("""() => {
+   for(const entry of Object.values(VedrasNature.catalog().entries)){
+     entry.tags.push('needs_art_review');
+     entry.placement.density=1;
+     entry.placement.minSpacing=8;
+   }
+   document.getElementById('nPopulate').click();
+ }""")
+ distribution=page.evaluate("""() => ({
+   count:VedrasAssetLabor.state.natureInstances.length,
+   statuses:Object.values(VedrasNature.catalog().entries).map(x=>x.artStatus)
+ })""")
+ assert distribution['count']>0,distribution
+ assert all(x=='candidate' for x in distribution['statuses']),distribution
  assert page.locator('#nSizeMode').count()==1
  assert page.locator('.lab-accordion').count()>=6
  page.locator('#quick37').click()
