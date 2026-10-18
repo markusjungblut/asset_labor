@@ -129,7 +129,7 @@ window.VedrasNature=(()=>{
  // Simple deterministic, order-independent per asset + hex. Never uses Math.random().
  function hash(seed,q,r,k){let h=(seed|0)^Math.imul(q+97,374761393)^Math.imul(r+513,668265263)^Math.imul(k+11,2246822519);h^=h>>>13;h=Math.imul(h,1274126177);return (h^(h>>>16))>>>0;}
  const random=(seed,q,r,k)=>hash(seed,q,r,k)/4294967296;
- function makeInstance(a,q,r,index,all,seed){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
+ function makeInstance(a,q,r,index,all,seed,spacingFactor=1){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(q+','+r)))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
   const p=pts(q,r);for(let j=0;j<48;j++){
@@ -137,7 +137,7 @@ window.VedrasNature=(()=>{
    if(!inside(dx,dy,margin))continue;
    const x=p.x+dx,y=p.y+dy;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
-   if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const spacing=Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0);
+   if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const spacing=Math.max(20,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
    return {assetPath:a.path,assetId:meta.id,q,r,dx:Math.round(dx*100)/100,dy:Math.round(dy*100)/100,scale:Math.round(scale*1000)/1000};
   }return null;
@@ -151,34 +151,66 @@ window.VedrasNature=(()=>{
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
   state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
- function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
-  const hexes=core.cells();let suitableCells=0;
-  for(const c of hexes){const t=core.effectiveBiome(c);
-   const type=terrainRegistry().terrainTypes?.find(x=>x.id===t);
+ function populate(){
+  const seed=Number($('nSeed').value)||12345;
+  state.natureSeed=seed;
+  state.forest=window.VedrasForest.valid({...state.forest,seed});
+  const F=window.VedrasForest,forest=core.forestCells();
+  const forestByHex=new Map(forest.map(c=>[c.key,c]));
+  const all=[],assets=core.assets();
+  const candidates=assets.filter(a=>F&&window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
+  let suitableCells=0,forestTrees=0;
+  const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
+  for(const c of core.cells()){
+   const terrainType=core.effectiveBiome(c),f=forestByHex.get(c.q+','+c.r);
+   const type=terrainRegistry().terrainTypes?.find(x=>x.id===terrainType);
    const possible=candidates.filter(a=>{
     const m=entryFor(a);
     if(type?.materialClass==='water'&&!['reeds','mangroves'].includes(m.family))return false;
+    if(!F.preferredFamily(m.family,f))return false;
     const allowed=resolveForMeta(m);
-    // forest_floor ist nur ein neutrales Demo-Waldbodenmaterial.
-    // Für die Testszene sind auf Wald-Hexen auch Grasland-Waldarten verwendbar.
-    // Die echte Gelände- und Biomzuordnung wird dadurch nicht verändert.
-    return allowed.has(t)||(t==='forest_floor'&&c.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster'].includes(m.kind));
+    // Waldboden-Testmaterial ist NICHT der Waldtyp: Baumfamilien gehören zum
+    // ursprünglichen Grasland-/Kälte-/Sumpfbiom, unabhängig von der Boden-PNG.
+    return allowed.has(terrainType)||(terrainType==='forest_floor'&&c.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster'].includes(m.kind));
    });
    if(possible.length)suitableCells++;
-   const scored=possible.map(a=>({a,score:random(seed,c.q,c.r,hash(seed,0,0,a.relPath.length)+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0))})).sort((u,v)=>u.score-v.score);
-   for(const {a,score} of scored){const meta=entryFor(a);const limit=meta.placement.canCluster?5:3;
-    if(all.filter(x=>x.q===c.q&&x.r===c.r).length>=limit)break;
-    if(score>meta.placement.density*Math.min(1,meta.placement.weight))continue;
-    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed);if(inst)all.push(inst);
+   const trees=possible.filter(a=>entryFor(a).kind==='tree').sort((a,b)=>rank(a,c,301)-rank(b,c,301));
+   const other=possible.filter(a=>entryFor(a).kind!=='tree').sort((a,b)=>rank(a,c,302)-rank(b,c,302));
+   const wantedTrees=F.treeTarget(f),objectCap=F.maxObjects(f);
+   const spacingFactor=f?.forestClass==='dense_forest'?.67:f?.forestClass==='light_forest'?.82:.95;
+   let count=0,treeCount=0;
+   for(const a of trees){
+    if(treeCount>=wantedTrees||count>=objectCap)break;
+    const meta=entryFor(a);
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor);
+    if(inst){all.push(inst);treeCount++;count++;forestTrees++;}
+   }
+   // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
+   // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
+   if(!wantedTrees&&trees.length&&rank(trees[0],c,311)<.12&&count<objectCap){
+    const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed);
+    if(inst){all.push(inst);count++;forestTrees++;}
+   }
+   for(const a of other){
+    if(count>=objectCap)break;
+    const meta=entryFor(a);
+    const factor=f?.forestClass==='dense_forest'?1.65:f?.forestClass==='light_forest'?1.30:f?.edgeInfluence>.1?1.15:1;
+    const chance=Math.min(0.9,meta.placement.density*Math.min(1,meta.placement.weight)*factor);
+    if(rank(a,c,312)>=chance)continue;
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor);
+    if(inst){all.push(inst);count++;}
    }
   }
-  state.natureInstances=all;state.showLegacyNature=false;$('nShowDemo').checked=false;state.objects=true;$('objectsToggle').checked=true;
-   saved();
-   if(!candidates.length)message('0 Nature-Instanzen: Keine aktiven Nature-Sprites mit passenden Biom- und Dichtewerten. Katalog überprüfen.');
-   else if(!suitableCells)message('0 Nature-Instanzen: Keines der '+candidates.length+' Nature-Sprites passt zu den Geländearten der Testkarte.');
-   else if(!all.length)message('0 Nature-Instanzen trotz passender Biome: Dichte, Abstände und Seed prüfen.');
-   else message(`${all.length} Nature-Instanzen deterministisch auf ${hexes.length} Hexen verteilt · ${candidates.length} Testkandidaten · ${suitableCells} Hexe mit passenden Biomen. Kandidaten wurden nicht auf approved gesetzt.`);
+  state.natureInstances=all;state.showLegacyNature=false;$('nShowDemo').checked=false;
+  state.objects=true;$('objectsToggle').checked=true;
+  saved();window.dispatchEvent(new Event('vedras:forest-changed'));
+  const dense=forest.filter(c=>c.forestClass==='dense_forest').length,light=forest.filter(c=>c.forestClass==='light_forest').length;
+  const edge=forest.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
+  if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
+  else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' Bäume) auf '+core.cells().length+' Hexen · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand · '+candidates.length+' Testkandidaten.');
  }
+
  function mountainGeometry(m){
   const a=core.assets().find(a=>a.path===m.assetPath),meta=entryFor(a);
   return {width:meta?.logicalWidth||360,aspect:a?.img?.naturalWidth?a.img.naturalHeight/a.img.naturalWidth:1,anchorX:meta?.anchor?.x??.5,anchorY:meta?.anchor?.y??.67};
