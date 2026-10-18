@@ -12,3 +12,8 @@ Thumbs.db
 .venv/
 .env
 .vscode/
+# Runtime-specific state: artwork is versioned, but user-edited catalogs stay local
+/assets/nature/nature_catalog.json
+/assets/terrain/terrain_catalog.json
+/assets/nature/nature_catalog.json.tmp
+/assets/terrain/terrain_catalog.json.tmp
