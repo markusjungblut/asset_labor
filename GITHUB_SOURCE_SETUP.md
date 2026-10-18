@@ -13,7 +13,7 @@ git clone https://github.com/markusjungblut/asset_labor.git
 cd asset_labor
 ```
 
-Der Ordner `assets/` ist **nicht** Bestandteil des öffentlichen Repositories. Für lokale Tests den eigenen vorhandenen `assets/`-Ordner in die Arbeitskopie übernehmen. Benutzerkataloge und Nutzergrafiken nicht ins Repository committen.
+**Aktueller Stand:** Seit dem Asset-Import-Commit `2933ec5` enthält das öffentliche Repository bereits echte PNG-Dateien in `assets/`. Bereits getrackte Dateien werden nicht durch `.gitignore` versteckt; nur neue Bilddateien sowie `nature_catalog.json` und `terrain_catalog.json` sind von unbeabsichtigten Commits ausgeschlossen. Benutzerkataloge vor Änderungen und Migrationen lokal sichern. Keine PNGs auf Verdacht löschen oder umbenennen.
 
 ```bash
 python server.py
