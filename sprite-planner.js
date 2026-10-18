@@ -5,15 +5,15 @@ window.VedrasSpritePlanner=(()=>{
  // FloraV2 is the maximal plant registry. Preserve non-flora v0.11 plan entries.
  const flora=window.VedrasFloraPlan?.species||[];
  for(const row of flora){const ix=entries.findIndex(e=>e.id===row.id);if(ix>=0)entries[ix]={...entries[ix],...row};else entries.push(row);}
- const byStem=new Map(entries.map(e=>[e.filename.toLowerCase().replace(/\\.[^.]+$/,''),e]));
+ const byStem=new Map(entries.map(e=>[e.filename.toLowerCase().replace(/\.[^.]+$/,''),e]));
  const aliasMap=new Map();
  for(const e of entries)for(const alias of (e.aliases||[]))aliasMap.set(alias.toLowerCase(),e);
- const safeId=s=>String(s).toLowerCase().replace(/ß/g,'ss').normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,63);
+ const safeId=s=>String(s).toLowerCase().replace(/ß/g,'ss').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,63);
  function matches(item,asset){return (item.aliases||[]).some(x=>x.toLowerCase()===asset?.name?.toLowerCase())||item.filename.toLowerCase()===asset?.name?.toLowerCase();}
 
  const profiles={"ground_cover":{"tiny":10,"small":17,"medium":27},"shrub":{"tiny":22,"small":34,"medium":49,"large":72},"cluster":{"small":38,"medium":69,"large":105},"tree":{"tiny":55,"small":82,"medium":126,"large":174,"giant":225},"rock":{"tiny":12,"small":35,"medium":67,"large":110},"mountain":{"giant":310}};
  function match(asset){if(!asset?.name)return null;
-  const stem=asset.name.toLowerCase().replace(/\\.[^.]+$/,'');
+  const stem=asset.name.toLowerCase().replace(/\.[^.]+$/,'');
   const original=aliasMap.get(asset.name.toLowerCase())||byStem.get(stem);
   if(!original)return null;
   // Existing PNGs retain their original filenames and receive unique per-variant IDs.
