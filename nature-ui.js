@@ -143,7 +143,7 @@ window.VedrasNature=(()=>{
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
   state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
- function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>a.category==='nature'&&!window.VedrasExistingAssets?.isJournal(a)&&entryFor(a)&&entryFor(a).kind!=='mountain'&&resolveForMeta(entryFor(a)).size&&entryFor(a).artStatus!=='deprecated');
+ function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>{if(a.category!=='nature'||window.VedrasExistingAssets?.isJournal(a))return false;const m=entryFor(a);return m&&m.kind!=='mountain'&&resolveForMeta(m).size&&m.artStatus!=='deprecated'&&(!m.tags?.includes('needs_art_review')||m.artStatus==='approved');});
   const hexes=core.cells();for(const c of hexes){const t=core.effectiveBiome(c);const possible=candidates.filter(a=>resolveForMeta(entryFor(a)).has(t));
    const scored=possible.map(a=>({a,score:random(seed,c.q,c.r,hash(seed,0,0,a.relPath.length)+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0))})).sort((u,v)=>u.score-v.score);
    for(const {a,score} of scored){const meta=entryFor(a);const limit=meta.placement.canCluster?5:3;
