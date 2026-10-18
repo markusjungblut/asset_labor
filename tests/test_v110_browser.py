@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 B=Path(__file__).resolve().parents[1]
 html=(B/'index.html').read_text()
 html=html.replace('<link rel="stylesheet" href="style.css?v=0.11.0">','<style>'+(B/'style.css').read_text()+'</style>')
-for f in ['catalog','autotile','nature_catalog','sprite-planner','relief','shoreline','mountain','app','nature-ui','ui-organizer']:
+for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','relief','shoreline','mountain','app','nature-ui','ui-organizer']:
     html=html.replace(f'<script src="{f}.js?v=0.11.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
