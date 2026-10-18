@@ -49,14 +49,14 @@ Ein fixer Seed sorgt dafür, dass Waldkerne, Randwirkung und Sprite-Positionen r
 
 - Laubbäume und Nadelhölzer erscheinen nur auf kompatiblen Terrainarten, z. B. `grassland` oder `snowfields`.
 - Auf `jungle` nutzt die Engine derzeit passende warme Nature-Sprites wie die vorhandenen Palmen. Savannenbäume werden nicht automatisch in geschlossene Dschungel gepflanzt.
-- Die acht `tree_12.png` bis `tree_19.png` sind **Kapokbäume**, aber aus Gründen der aktuellen Journal-API-Verwendung (`kind=special`, `journal_api`) **noch keine automatischen Weltkartenbäume**. Die API-Klassifizierung bleibt stabil; eine spätere eigene Dschungel-Spawn-Freigabe ist getrennt zu entscheiden.
+- Die acht `tree_12.png` bis `tree_19.png` sind **reguläre Kapokbäume** (`kind=tree`, `family=jungle_trees`, IDs `kapok_tree_12` bis `kapok_tree_19`). Sie dürfen im Dschungel manuell und automatisch platziert werden; die irrtümlich eingeführte Journal-API und deren Sperren sind entfernt.
 - Nicht zugeordnete Arten werden nicht zufällig als Wald- oder Dschungelbaum eingesetzt.
 
 ## Tests und Grenzen
 
 `node tests/test_forest.cjs`: deterministische Waldkerne, `light_forest`/`dense_forest`, einen Ring Waldrand, manuelle Overrides, Jungle und Wassersperren.
 
-`node tests/test_forest_integration.cjs`: reale Nature-Familien und Biomverträglichkeit, Baumquota, Journal-Ausnahme, Export/UI-Verknüpfung.
+`node tests/test_forest_integration.cjs`: reale Nature-Familien und Biomverträglichkeit, Baumquote, echte Kapokbäume und Export/UI-Verknüpfung.
 
 `python tests/test_v110_browser.py`: Browser-Test für die 37-Hex-Szene, Wald-Eingriffe und Dschungelerzeugung (benötigt Playwright, Chromium und Pillow).
 
