@@ -1,0 +1,44 @@
+/* Integration regression for actual Vedras Nature entries and forest/jungle semantics. */
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.resolve(__dirname,'..'),window={};const context=vm.createContext({window});
+for(const filename of ['nature_catalog.js','existing-asset-rules.js','forest.js']){
+ vm.runInContext(fs.readFileSync(path.join(root,filename),'utf8'),context,{filename});
+}
+const N=window.VedrasNatureCatalog,E=window.VedrasExistingAssets,F=window.VedrasForest;
+const terrain=JSON.parse(fs.readFileSync(path.join(root,'assets/terrain/terrain_catalog.json'),'utf8'));
+const nature=JSON.parse(fs.readFileSync(path.join(root,'assets/nature/nature_catalog.json'),'utf8'));
+const resources=Object.entries(nature.entries).map(([name,meta])=>({name,meta,asset:{name:path.basename(name),category:'nature'}}));
+const suitable=(type,forestCell)=>resources.filter(x=>
+ E.canAutoPlaceInTest(x.asset,x.meta,N.effectiveTypes(x.meta,terrain,nature)) &&
+ N.effectiveTypes(x.meta,terrain,nature).has(type) &&
+ F.preferredFamily(x.meta.family,forestCell));
+const grassland=suitable('grassland',{jungle:false});
+const wetland=suitable('swamp',{jungle:false});
+const cold=suitable('snowfields',{jungle:false});
+const jungle=suitable('jungle',{jungle:true});
+assert(grassland.some(x=>x.meta.kind==='tree'&&x.meta.family==='deciduous_trees'),'woodland deciduous trees');
+assert(grassland.some(x=>x.meta.kind==='tree'&&x.meta.family==='conifers'),'woodland conifers');
+assert(wetland.some(x=>x.meta.kind==='tree'),'wetland forests');
+assert(cold.some(x=>x.meta.kind==='tree'&&x.meta.family==='snow_conifers'),'snow-covered conifers in cold biomes');
+assert(jungle.some(x=>x.meta.kind==='tree'&&x.meta.family==='palms'),'real palm sprites available for jungle biome');
+assert(!jungle.some(x=>x.meta.family==='savanna_trees'),'savanna tree silhouettes excluded from closed jungle');
+assert(!jungle.some(x=>x.meta.tags.includes('journal_api')),'journal Kapok assets remain API-only');
+assert(F.treeTarget({forestClass:'dense_forest',suitability:1})>F.treeTarget({forestClass:'light_forest',suitability:1}));
+assert(F.treeTarget({forestClass:'light_forest',suitability:1})>F.treeTarget({forestClass:'none',suitability:1,density:.12}));
+const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+const editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+for(const required of ['forest:state.forest','forestByHex:','state.forest=window.VedrasForest.valid(scene.forest)','forestCells,invalidateTerrain']){
+ assert(app.includes(required),'missing scene forest integration: '+required);
+}
+for(const required of ['F.treeTarget(f)','F.maxObjects(f)','F.preferredFamily(m.family,f)','vedras:forest-changed']){
+ assert(editor.includes(required),'missing Nature spawn integration: '+required);
+}
+for(const script of ['forest.js?v=0.12.0','forest-ui.js?v=0.12.0']){
+ assert(html.includes(script),'missing forest browser module: '+script);
+}
+for(const id of ['forestEnabled','forestCoverage','forestEdge','forestHexLight','forestHexDense','forestHexNone','forestHexAuto','forestMakeJungle','forestClearJungle','forestApply']){
+ assert(html.includes('id="'+id+'"'),'missing UI control: '+id);
+}
+console.log('PASS: real woodland, cold and wetland trees, jungle palms, journal Kapok exclusion, independent forest scene export and UI wiring.');
