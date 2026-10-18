@@ -8,7 +8,7 @@ Relevante Dateien: `app.js`, `autotile.js`, `nature-ui.js`, `mountain.js`, `spri
 
 ## Was bewusst noch nicht auf GitHub liegt
 
-- Die ursprünglichen, persönlich gesammelten PNG-Assets, der tatsächliche `assets/nature/nature_catalog.json` und `assets/terrain/terrain_catalog.json`.
+- Die beiden tatsächlichen, individuell bearbeiteten Katalogdateien `assets/nature/nature_catalog.json` und `assets/terrain/terrain_catalog.json` bleiben weiterhin privat/lokal. **Ausnahme beim Bildbestand:** Seit dem späteren Commit `2933ec5` sind bereits 263 echte PNG-Bilder (148 Nature, 105 Terrain, 4 Schatten, 6 Ufer) im Git-Repository versioniert. Nicht davon ausgehen, dass sämtliche PNGs nur lokal existieren.
 - Temporäre Testbilder unter `previews/` und Katalogsicherungen (`*.bak`).
 - Eine produktive 30×30-Weltgenerator-Integration.
 
