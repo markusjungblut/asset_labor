@@ -3882,11 +3882,11 @@
     },
     "nature/palme_01.png": {
       "id": "existing_palme_01",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Kleinere Palme (Variante 1); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_01.png",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 110,
       "scaleMin": 0.85,
@@ -3906,15 +3906,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -3928,17 +3927,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
-      "targetHeight": 174
+      "targetHeight": 126
     },
     "nature/palme_02.png": {
       "id": "existing_palme_02",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Kleinere Palme (Variante 2); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_02.png",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 110,
       "scaleMin": 0.85,
@@ -3958,15 +3958,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -3980,17 +3979,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
-      "targetHeight": 174
+      "targetHeight": 126
     },
     "nature/palme_03.png": {
       "id": "existing_palme_03",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Kleinere Palme (Variante 3); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_03.png",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 110,
       "scaleMin": 0.85,
@@ -4010,15 +4010,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4032,17 +4031,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
-      "targetHeight": 174
+      "targetHeight": 126
     },
     "nature/palme_04.png": {
       "id": "existing_palme_04",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Kleinere Palme (Variante 4); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_04.png",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 110,
       "scaleMin": 0.85,
@@ -4062,15 +4062,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4084,17 +4083,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
-      "targetHeight": 174
+      "targetHeight": 126
     },
     "nature/palme_05.png": {
       "id": "existing_palme_05",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Kleinere Palme (Variante 5); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_05.png",
       "family": "palms",
       "kind": "tree",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 110,
       "scaleMin": 0.85,
@@ -4114,15 +4114,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.17,
+        "minSpacing": 76,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4136,13 +4135,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_small"
       ],
-      "targetHeight": 174
+      "targetHeight": 126
     },
     "nature/palme_06.png": {
       "id": "existing_palme_06",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 6); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_06.png",
       "family": "palms",
       "kind": "tree",
@@ -4166,15 +4166,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4188,13 +4187,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
     "nature/palme_07.png": {
       "id": "existing_palme_07",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 7); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_07.png",
       "family": "palms",
       "kind": "tree",
@@ -4218,15 +4218,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4240,13 +4239,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
     "nature/palme_08.png": {
       "id": "existing_palme_08",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 8); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_08.png",
       "family": "palms",
       "kind": "tree",
@@ -4270,15 +4270,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4292,13 +4291,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
     "nature/palme_09.png": {
       "id": "existing_palme_09",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 9); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_09.png",
       "family": "palms",
       "kind": "tree",
@@ -4322,15 +4322,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4344,13 +4343,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
     "nature/palme_10.png": {
       "id": "existing_palme_10",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 10); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_10.png",
       "family": "palms",
       "kind": "tree",
@@ -4374,15 +4374,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4396,13 +4395,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
     "nature/palme_11.png": {
       "id": "existing_palme_11",
-      "description": "Palme (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Größere Palme (Variante 11); tropisches Kartenobjekt, botanische Art nicht bestimmt.",
       "sourceReference": "Bestandsdatei: palme_11.png",
       "family": "palms",
       "kind": "tree",
@@ -4426,15 +4426,14 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "warm_regions",
-        "water_coast",
         "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.13,
-        "minSpacing": 96,
+        "density": 0.12,
+        "minSpacing": 105,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -4448,7 +4447,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "palm_large"
       ],
       "targetHeight": 174
     },
