@@ -91,7 +91,7 @@ def validate_nature_catalog(c):
     def num(v, low, high):
         return isinstance(v, (int, float)) and not isinstance(v, bool) and low <= v <= high
     for rel, item in c['entries'].items():
-        if not isinstance(rel, str) or '..' in rel or '\\' in rel or not re.fullmatch(r'nature/[A-Za-z0-9_./-]+\.(?:png|webp|jpg|jpeg|svg|gif|avif)', rel, re.I):
+        if not isinstance(rel, str) or '..' in rel or '\\' in rel or not re.fullmatch(r'nature/[\w./-]+\.(?:png|webp|jpg|jpeg|svg|gif|avif)', rel, re.I):
             raise ValueError('Unzulässiger Nature-Pfad')
         if not isinstance(item, dict): raise ValueError('Ungültige Nature-Metadaten')
         ident = item.get('id')
