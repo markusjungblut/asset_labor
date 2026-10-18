@@ -340,7 +340,7 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  const a=findAsset('buildings','mine_lvl01__main');if(a&&!blocked.has('0,0'))objs.push({asset:a,x:0,y:52,w:160,type:'building',cell:'0,0'});
  const army=findAsset('units','expedition');const ep=axialPos(1,0);if(army&&!blocked.has('1,0'))objs.push({asset:army,x:ep.x-35,y:ep.y+50,w:44,type:'unit'});
  for(const [k,values] of Object.entries(state.hexObject)){
-  const [q,r]=k.split(',').map(Number);const c=worldCells.find(c=>c.q===q&&c.r===r);if(!c||blocked.has(k))continue;const a=useAsset(values.path);if(!a)continue;
+  const [q,r]=k.split(',').map(Number);const c=worldCells.find(c=>c.q===q&&c.r===r);if(!c||blocked.has(k))continue;const a=useAsset(values.path);if(!a||window.VedrasExistingAssets?.isJournal(a))continue;
   const p=axialPos(q,r);const obj={asset:a,x:p.x,y:p.y+52,w:values.width??(a.category==='buildings'?160:80),type:a.category==='buildings'?'building':'nature',cell:k};
   if(k==='0,0'){
     const old=objs.findIndex(o=>o.cell==='0,0');if(old>=0)objs.splice(old,1);
@@ -350,7 +350,7 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  // Nature objects are independent per-instance; their picture anchor is stored in the Nature catalog.
 
  for(const n of (state.natureInstances||[])){
-   if(blocked.has(key(n.q,n.r)))continue;const a=useAsset(n.assetPath);if(!a)continue;
+   if(blocked.has(key(n.q,n.r)))continue;const a=useAsset(n.assetPath);if(!a||window.VedrasExistingAssets?.isJournal(a))continue;
    const m=window.VedrasNature?.entryFor(a);if(!m)continue;
    const p=axialPos(n.q,n.r);
    const crop=visibleBounds(a.img);const baseWidth=window.VedrasSpritePlanner?.visualWidth(m,a.img,crop)??m.logicalWidth;
