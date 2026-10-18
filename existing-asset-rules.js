@@ -45,8 +45,8 @@ window.VedrasExistingAssets = (() => {
  function classify(asset) {
   if (asset?.category !== 'nature' || !/\.(?:png|webp|jpe?g|svg|gif|avif)$/i.test(asset.name || '')) return null;
   const base = stem(asset.name);
-  const journal = /^tree_(1[2-9])$/.exec(base);
-  if (journal) return {id:'journal_tree_'+journal[1],name:'Kapokbaum (Journal '+journal[1]+')',family:'jungle_trees',kind:'special',sizeClass:'giant',apiOnly:true,confirmedSpecies:true,group:'kapok'};
+  const kapok = /^tree_(1[2-9])$/.exec(base);
+  if (kapok) return {id:'kapok_tree_'+kapok[1],name:'Kapokbaum',family:'jungle_trees',kind:'tree',sizeClass:'giant',confirmedSpecies:true,group:'kapok'};
   const snowy = /^tanne_schnee_(\d+)$/.exec(base);
   if (snowy && Number(snowy[1])>=1 && Number(snowy[1])<=10) {
    const pine=Number(snowy[1])<=5;
@@ -69,10 +69,10 @@ window.VedrasExistingAssets = (() => {
   }
   return null;
  }
- const isJournal = asset => !!classify(asset)?.apiOnly;
- // Nur Testkarten-Verteilung: Kandidaten und Testgrafiken bleiben ohne Produktionsfreigabe nutzbar.
+ // Normale Kapokbäume sind wie andere Baumarten im Labor platzierbar.
+ // Testkandidaten benötigen keine Produktionsfreigabe.
  const canAutoPlaceInTest = (asset, meta, terrainTypes) =>
-  asset?.category==='nature' && !isJournal(asset) && !!meta &&
+  asset?.category==='nature' && !!meta &&
   meta.kind!=='mountain' && meta.artStatus!=='deprecated' &&
   meta.placement?.density>0 && meta.placement?.weight>0 &&
   terrainTypes?.size>0;
@@ -88,18 +88,16 @@ window.VedrasExistingAssets = (() => {
   const targetHeight=window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75;
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
-   sizeMode:mountain||info.apiOnly?'manual':'class',targetHeight,
+   sizeMode:mountain?'manual':'class',targetHeight,
    logicalWidth:mountain?360:ground?28:tree?110:52,
-   description:info.apiOnly
-    ?'Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.'
-    :info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
+   description:info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
-   shadow:{...tmpl.shadow,mode:mountain||ground||info.apiOnly?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:info.apiOnly?[]:categories,allowedTerrainTypes:[],excludedTerrainTypes:[],
-   placement:{...tmpl.placement,weight:info.apiOnly?0:1,density:info.apiOnly?0:actualDensity,minSpacing:spacing,canCluster:cluster||(!mountain&&!tree&&!info.apiOnly)},
+   shadow:{...tmpl.shadow,mode:mountain||ground?'none':tree?'generic_medium_round':'generic_small_round'},
+   terrainPresetId:'',allowedTerrainCategories:info.group==='kapok'?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:[],excludedTerrainTypes:[],
+   placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:cluster||(!mountain&&!tree)},
    artStatus:'candidate',
-   tags:info.apiOnly?['existing','journal_api','no_auto_spawn','kapok']:[
+   tags:[
     'existing','needs_art_review',...(info.confirmedSpecies?[]:['needs_species_review']),
     ...(info.group?[info.group]:[]),...(info.provisionalSize?['size_provisional']:[]),
     ...(info.family==='palms'?[isSmallPalm?'palm_small':'palm_large']:[]),
@@ -108,5 +106,5 @@ window.VedrasExistingAssets = (() => {
    ...(mountain?{mountain:{radius:1,coreRadius:0,shadowOpacity:.23,flatten:true}}:{})
   };
  }
- return {classify,isJournal,metadata,canAutoPlaceInTest};
+ return {classify,metadata,canAutoPlaceInTest};
 })();
