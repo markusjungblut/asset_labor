@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const window={};vm.runInNewContext(fs.readFileSync(__dirname+'/../mountain.js','utf8'),{window});
+const M=window.VedrasMountains;
+assert.equal(M.cells(0,0,0).length,1);assert.equal(M.cells(0,0,1).length,7);assert.equal(M.cells(0,0,2).length,19);
+const a={q:0,r:0,radius:1,coreRadius:0,mode:'chain',chainId:'alpen'};
+const b={q:1,r:0,radius:1,coreRadius:0,mode:'chain',chainId:'alpen'};
+assert.equal(M.overlaps(a,b),false);assert.equal(M.influenceOverlaps(a,b),true);
+const d={width:360,aspect:1,anchorX:.5,anchorY:.67};
+assert(M.visualOverlap(a,b,d,d)>0.2);assert(M.visualOverlap(a,b,d,d)<.34);
+const scene={cells:M.cells(0,0,2),mountains:[a],nature:[],objects:{}};
+const cand=(spacing,at=[1,0])=>M.candidate(scene,at[0],at[1],1,()=>true,{mode:'chain',chainId:'alpen',coreRadius:0,spacing,visualInfo:d,visualInfoOf:()=>d});
+assert(cand('normal').ok,'Normal allows adjacent peaks');
+assert(!cand('wide').ok,'Wide rejects excessively close peaks');
+assert(!cand('normal',[0,0]).ok,'Core collision always wins');
+assert(M.candidate({...scene,nature:[{q:1,r:0}]},1,0,1,()=>true,{mode:'chain',chainId:'alpen'}).ok===false,'Nature on core blocks placement');
+assert.equal(M.screenBox(a,d).w,360);assert.equal(M.SPACING.wide,.15);
+console.log('PASS v0.10.9 footprint, chain spacing, conservative screen overlap and nature collision');
