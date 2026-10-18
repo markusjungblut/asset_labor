@@ -4897,7 +4897,7 @@
     },
     "nature/tanne_01.png": {
       "id": "existing_tanne_01",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_01.png",
       "family": "conifers",
       "kind": "tree",
@@ -4942,13 +4942,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_02.png": {
       "id": "existing_tanne_02",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_02.png",
       "family": "conifers",
       "kind": "tree",
@@ -4993,13 +4993,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_03.png": {
       "id": "existing_tanne_03",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_03.png",
       "family": "conifers",
       "kind": "tree",
@@ -5044,13 +5044,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_04.png": {
       "id": "existing_tanne_04",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_04.png",
       "family": "conifers",
       "kind": "tree",
@@ -5095,13 +5095,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_05.png": {
       "id": "existing_tanne_05",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_05.png",
       "family": "conifers",
       "kind": "tree",
@@ -5146,13 +5146,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_06.png": {
       "id": "existing_tanne_06",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_06.png",
       "family": "conifers",
       "kind": "tree",
@@ -5197,13 +5197,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_07.png": {
       "id": "existing_tanne_07",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_07.png",
       "family": "conifers",
       "kind": "tree",
@@ -5248,13 +5248,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_08.png": {
       "id": "existing_tanne_08",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_08.png",
       "family": "conifers",
       "kind": "tree",
@@ -5299,13 +5299,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_09.png": {
       "id": "existing_tanne_09",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_09.png",
       "family": "conifers",
       "kind": "tree",
@@ -5350,13 +5350,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_10.png": {
       "id": "existing_tanne_10",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_10.png",
       "family": "conifers",
       "kind": "tree",
@@ -5401,13 +5401,13 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
     "nature/tanne_11.png": {
       "id": "existing_tanne_11",
-      "description": "Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Tanne – vorhandenes Nadelholz; kann bei Bedarf später auch als Kiefer zugeordnet werden.",
       "sourceReference": "Bestandsdatei: tanne_11.png",
       "family": "conifers",
       "kind": "tree",
@@ -5452,7 +5452,7 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "targetHeight": 174
     },
