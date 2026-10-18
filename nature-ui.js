@@ -147,9 +147,7 @@ window.VedrasNature=(()=>{
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
   state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
- function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>{if(a.category!=='nature'||window.VedrasExistingAssets?.isJournal(a))return false;const m=entryFor(a);
-    // Die Testkarte erlaubt candidate/test-Grafiken, ohne deren Produktionsfreigabe zu ändern.
-    return m&&m.kind!=='mountain'&&m.artStatus!=='deprecated'&&m.placement?.density>0&&m.placement?.weight>0&&resolveForMeta(m).size>0;});
+ function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
   const hexes=core.cells();let suitableCells=0;
   for(const c of hexes){const t=core.effectiveBiome(c);
    const type=terrainRegistry().terrainTypes?.find(x=>x.id===t);
