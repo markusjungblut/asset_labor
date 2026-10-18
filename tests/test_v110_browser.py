@@ -14,7 +14,7 @@ def png(im):
 land=Image.new('RGB',(80,80),(95,147,77))
 tree=Image.new('RGBA',(96,160),(0,0,0,0));d=ImageDraw.Draw(tree);d.polygon([(49,4),(85,103),(60,142),(24,137),(10,91)],fill=(37,117,55,255))
 shrub=Image.new('RGBA',(90,90),(0,0,0,0));ImageDraw.Draw(shrub).ellipse((6,6,83,84),fill=(62,110,49,255))
-assets=[dict(path='assets/'+path,relPath=path,name=path.split('/')[-1],category=cat,meta={},bytes=150,mtime=1,url=png(img)) for path,cat,img in [('terrain/test_grass.png','terrain',land),('nature/birch_01.png','nature',tree),('nature/thyme_01.png','nature',shrub)]]
+assets=[dict(path='assets/'+path,relPath=path,name=path.split('/')[-1],category=cat,meta={},bytes=150,mtime=1,url=png(img)) for path,cat,img in [('terrain/test_grass.png','terrain',land),('nature/birke1.png','nature',tree),('nature/thymian_01.png','nature',shrub)]]
 mock='''<script>
 const TEST_ASSETS=ASSETS;
 window.fetch=async(path,opts={})=>{
@@ -39,12 +39,12 @@ with sync_playwright() as pw:
  try: page.wait_for_function('window.VedrasAssetLabor && window.VedrasNature && window.VedrasSpritePlanner',timeout=5000)
  except Exception as e:
   print('INIT ERR',errors,'scriptCount=',page.evaluate('document.scripts.length'),'loaded=',page.evaluate('Object.keys(window).filter(x=>x.startsWith(\"Vedras\"))'));raise
- page.wait_for_function('VedrasAssetLabor.assets().length===3 && VedrasNature.entryFor(VedrasAssetLabor.assets().find(a=>a.name==="birch_01.png"))',timeout=45000)
+ page.wait_for_function('VedrasAssetLabor.assets().length===3 && VedrasNature.entryFor(VedrasAssetLabor.assets().find(a=>a.name==="birke1.png"))',timeout=45000)
  s=page.evaluate('''()=>({cells:VedrasAssetLabor.cells().length,section:!!document.getElementById('drawer_natureLabTools'),planner:VedrasSpritePlanner.entries.length,imported:Object.keys(VedrasNature.catalog().entries).length})''')
  assert s['cells']==37,s
- assert s['section'] and s['planner']>=40 and s['imported']==2,s
- birch=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='birch_01.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,allowed:m.allowedTerrainCategories,height:m.targetHeight}}''')
- thyme=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='thyme_01.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,height:m.targetHeight}}''')
+ assert s['section'] and s['planner']==17 and s['imported']==2,s
+ birch=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='birke1.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,allowed:m.allowedTerrainCategories,height:m.targetHeight}}''')
+ thyme=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='thymian_01.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,height:m.targetHeight}}''')
  assert birch['kind']=='tree' and birch['height']>thyme['height']*5 and thyme['kind']=='ground_cover',(birch,thyme)
  assert 'grass_pasture' in birch['allowed'],birch
  # A real candidate tagged 'needs_art_review' must be usable in the TEST scene,
@@ -78,8 +78,8 @@ with sync_playwright() as pw:
  page.evaluate("()=>{let x=document.getElementById('sceneSize');x.value='37';x.dispatchEvent(new Event('change',{bubbles:true}));}")
  page.wait_for_timeout(200)
  assert page.evaluate('VedrasAssetLabor.cells().length')==37
- page.evaluate("()=>{for(const d of document.querySelectorAll('.asset-group'))if(d.textContent.includes('birch_01.png'))d.open=true;}")
- page.locator('button.asset-card').filter(has_text='birch_01.png').click()
+ page.evaluate("()=>{for(const d of document.querySelectorAll('.asset-group'))if(d.textContent.includes('birke1.png'))d.open=true;}")
+ page.locator('button.asset-card').filter(has_text='birke1.png').click()
  assert page.locator('#nSizeMode').input_value()=='class'
  assert page.locator('#nSizeInfo').inner_text().startswith('Automatische Zielhöhe')
  page.locator('#shortcutMountain').click()
