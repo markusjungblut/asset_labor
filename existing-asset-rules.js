@@ -80,10 +80,10 @@ window.VedrasExistingAssets = (() => {
   const mountain=info.kind==='mountain',ground=info.kind==='ground_cover',tree=info.kind==='tree';
   const [categories,baseDensity,baseSpacing]=habitat[info.family]||[[],0,info.kind==='tree'?90:44];
   const cluster=info.group==='bush_group';
-  const density=cluster?.10:baseDensity;
+  const density=cluster?0.10:baseDensity;
   const groupSpacing=cluster?80:baseSpacing;
   const isSmallPalm=info.family==='palms'&&info.sizeClass==='medium';
-  const actualDensity=info.family==='palms'?(isSmallPalm?.17:.12):density;
+  const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
   const targetHeight=window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75;
   return {
