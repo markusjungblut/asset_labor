@@ -15,6 +15,9 @@ const N = window.VedrasNatureCatalog;
 const E = window.VedrasExistingAssets;
 const T = window.VedrasTerrainSources;
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'plans/terrain_asset_plan.json'),'utf8'));
+const natureManifest = JSON.parse(fs.readFileSync(path.join(root,'plans/nature_asset_inventory.json'),'utf8'));
+assert.equal(natureManifest.entryCount,148);
+assert.equal(natureManifest.entries.length,148);
 const terrainFiles = fs.readdirSync(path.join(root,'assets/terrain')).filter(x=>x.endsWith('.png')).sort();
 const natureFiles = fs.readdirSync(path.join(root,'assets/nature')).filter(x=>x.endsWith('.png')).sort();
 assert.equal(manifest.terrainFamilyCount,25);
@@ -59,6 +62,15 @@ for(const filename of natureFiles){
  entries['nature/'+filename]=E.metadata(classification,N.template(),filename);
 }
 assert.equal(Object.keys(entries).length,148);
+for(const row of natureManifest.entries){
+ const metadata=entries[row.path.slice('assets/'.length)];
+ assert(metadata,'no recorded Nature asset '+row.path);
+ for(const key of ['id','family','kind','sizeClass','sizeMode','targetHeight','artStatus'])assert.equal(row[key],metadata[key],row.path+':'+key);
+ assert.equal(JSON.stringify(row.allowedTerrainCategories),JSON.stringify(Array.from(metadata.allowedTerrainCategories)),row.path+':biomes');
+ assert.equal(row.placement.density,metadata.placement.density,row.path+':density');
+ assert.equal(row.placement.minSpacing,metadata.placement.minSpacing,row.path+':spacing');
+ assert.equal(row.apiOnly,E.isJournal({category:'nature',name:path.basename(row.path)}),row.path+':journal');
+}
 assert.equal(new Set(Object.values(entries).map(x=>x.id)).size,148);
 const errors=N.validate({schemaVersion:1,revision:0,presets:{},entries},catalog);
 assert.deepEqual(Array.from(errors),[],'nature metadata invalid: '+errors.join(', '));
