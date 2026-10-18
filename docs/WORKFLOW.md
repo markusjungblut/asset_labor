@@ -23,3 +23,9 @@
 ## Abgleich 45 → 17 (18.10.2026)
 
 Unter `plans/sprite_catalog_plan.json` enthält `items` ausschließlich noch nicht umgesetzte Produktionsvorhaben; `resolved` hält die früheren 28 Posten einschließlich der ausdrücklich gestrichenen Bodendetails nachvollziehbar fest. Die Grafikbibliothek ist die Übersicht *vorhandener* PNGs; der Sprite-Planungskatalog zeigt *fehlende* PNG-Arten. Deutsche Alternativdateinamen werden als `aliases` akzeptiert. Im Viewer zählt der Plan die fehlenden und bereits gefundenen Dateien innerhalb dieser offenen Liste, statt anhand englischer Bildnamen den ganzen Bestand als fehlend auszuweisen.
+
+## Wald- und Dschungelschicht (v0.12.0)
+
+Waldklassen (`light_forest`, `dense_forest`) und ein ein Hex breiter Waldrand-Einfluss werden getrennt vom Terrain gespeichert. Der eigene Biomtyp `jungle` benötigt keine neue PNG; in der Testkarte kann vorhandener Waldboden vorläufig als **visuelles** Material dienen. Im Nature-Bereich unter **Wälder & Dschungel** Waldanteil, Waldrandstärke, manuelle Hexregeln und Dschungelgebiete einstellen und anschließend die Natur verteilen. Szenenexport und -import erhalten `forest` samt Seed, Overrides und Dschungelhexen; zusätzlich wird `forestByHex` mit den fertigen Ergebnissen exportiert. Siehe [FOREST_SYSTEM.md](FOREST_SYSTEM.md).
+
+**Tests:** `node tests/test_forest.cjs`, `node tests/test_forest_integration.cjs` und `python tests/test_v110_browser.py`. Die Hauptspiel-Generierung liegt außerhalb dieses Repositories und wird nicht stillschweigend geändert.
