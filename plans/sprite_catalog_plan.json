@@ -1,160 +1,8 @@
 {
-  "schemaVersion": 1,
-  "description": "Planungskatalog – keine vorhandenen Nutzer-Metadaten werden überschrieben. Exakte Dateinamen zuordnen.",
+  "schemaVersion": 2,
+  "description": "Offene, tatsächlich noch zu erstellende Sprite-Arten. Bereits vorhandene Äquivalente und bewusst gestrichene Bodendetails sind unter resolved dokumentiert. Dateinamen sind Produktionsvorschläge; Aliasdateien werden erkannt.",
   "heightUnits": "visible cropped sprite height in world units, independent of PNG pixel dimensions",
   "items": [
-    {
-      "id": "thyme_01",
-      "name": "Thymian",
-      "filename": "thyme_01.png",
-      "family": "herbs",
-      "kind": "ground_cover",
-      "sizeClass": "tiny",
-      "targetHeight": 10,
-      "description": "Thymian – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.24,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "herbs"
-      ]
-    },
-    {
-      "id": "heather_01",
-      "name": "Heidekraut",
-      "filename": "heather_01.png",
-      "family": "heath",
-      "kind": "ground_cover",
-      "sizeClass": "small",
-      "targetHeight": 17,
-      "description": "Heidekraut – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.28,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "heath"
-      ]
-    },
-    {
-      "id": "clover_01",
-      "name": "Klee",
-      "filename": "clover_01.png",
-      "family": "herbs",
-      "kind": "ground_cover",
-      "sizeClass": "tiny",
-      "targetHeight": 10,
-      "description": "Klee – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.34,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "herbs"
-      ]
-    },
-    {
-      "id": "moss_01",
-      "name": "Moospolster",
-      "filename": "moss_01.png",
-      "family": "mosses",
-      "kind": "ground_cover",
-      "sizeClass": "tiny",
-      "targetHeight": 10,
-      "description": "Moospolster – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "wetlands",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.38,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "mosses"
-      ]
-    },
-    {
-      "id": "dry_grass_01",
-      "name": "Trockenes Grasbüschel",
-      "filename": "dry_grass_01.png",
-      "family": "grasses",
-      "kind": "ground_cover",
-      "sizeClass": "small",
-      "targetHeight": 17,
-      "description": "Trockenes Grasbüschel – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.33,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "grasses"
-      ]
-    },
-    {
-      "id": "alpine_grass_01",
-      "name": "Alpengras",
-      "filename": "alpine_grass_01.png",
-      "family": "grasses",
-      "kind": "ground_cover",
-      "sizeClass": "tiny",
-      "targetHeight": 10,
-      "description": "Alpengras – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.25,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "grasses"
-      ]
-    },
     {
       "id": "reeds_01",
       "name": "Schilf",
@@ -163,7 +11,7 @@
       "kind": "ground_cover",
       "sizeClass": "medium",
       "targetHeight": 27,
-      "description": "Schilf – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Schilf – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "water_coast"
@@ -178,7 +26,12 @@
       "tags": [
         "planned",
         "reeds"
-      ]
+      ],
+      "aliases": [
+        "schilf_01.png",
+        "schilf1.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "fern_01",
@@ -188,7 +41,7 @@
       "kind": "ground_cover",
       "sizeClass": "small",
       "targetHeight": 17,
-      "description": "Farn – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Farn – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "grass_pasture",
@@ -204,32 +57,12 @@
       "tags": [
         "planned",
         "ferns"
-      ]
-    },
-    {
-      "id": "cotton_grass_01",
-      "name": "Wollgras",
-      "filename": "cotton_grass_01.png",
-      "family": "grasses",
-      "kind": "ground_cover",
-      "sizeClass": "small",
-      "targetHeight": 17,
-      "description": "Wollgras – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "cold_regions"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.18,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "grasses"
-      ]
+      "aliases": [
+        "farn_01.png",
+        "farn1.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "succulent_01",
@@ -239,7 +72,7 @@
       "kind": "ground_cover",
       "sizeClass": "small",
       "targetHeight": 17,
-      "description": "Sukkulente – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Sukkulente – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "arid_regions",
         "warm_regions"
@@ -254,108 +87,12 @@
       "tags": [
         "planned",
         "succulents"
-      ]
-    },
-    {
-      "id": "bush_round_01",
-      "name": "Rundbusch",
-      "filename": "bush_round_01.png",
-      "family": "temperate_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
-      "targetHeight": 34,
-      "description": "Rundbusch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.3,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "temperate_bushes"
-      ]
-    },
-    {
-      "id": "bush_sparse_01",
-      "name": "Lockerer Busch",
-      "filename": "bush_sparse_01.png",
-      "family": "temperate_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
-      "targetHeight": 34,
-      "description": "Lockerer Busch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "arid_regions"
+      "aliases": [
+        "sukkulente_01.png",
+        "sukkulente1.png"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.25,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "temperate_bushes"
-      ]
-    },
-    {
-      "id": "bush_thorn_01",
-      "name": "Dornbusch",
-      "filename": "bush_thorn_01.png",
-      "family": "dry_bushes",
-      "kind": "shrub",
-      "sizeClass": "medium",
-      "targetHeight": 49,
-      "description": "Dornbusch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.22,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "dry_bushes"
-      ]
-    },
-    {
-      "id": "bush_flowering_01",
-      "name": "Blühender Busch",
-      "filename": "bush_flowering_01.png",
-      "family": "flowering_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
-      "targetHeight": 34,
-      "description": "Blühender Busch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.19,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "flowering_bushes"
-      ]
+      "priority": "optional"
     },
     {
       "id": "bush_tundra_01",
@@ -365,7 +102,7 @@
       "kind": "shrub",
       "sizeClass": "tiny",
       "targetHeight": 22,
-      "description": "Tundra-Zwergstrauch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Tundra-Zwergstrauch – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions"
       ],
@@ -379,7 +116,9 @@
       "tags": [
         "planned",
         "cold_bushes"
-      ]
+      ],
+      "aliases": [],
+      "priority": "optional"
     },
     {
       "id": "bush_jungle_01",
@@ -389,7 +128,7 @@
       "kind": "shrub",
       "sizeClass": "medium",
       "targetHeight": 49,
-      "description": "Tropischer Busch – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Tropischer Busch – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "warm_regions",
         "wetlands"
@@ -404,32 +143,12 @@
       "tags": [
         "planned",
         "tropical_bushes"
-      ]
-    },
-    {
-      "id": "bush_group_01",
-      "name": "Buschgruppe",
-      "filename": "bush_group_01.png",
-      "family": "temperate_bushes",
-      "kind": "cluster",
-      "sizeClass": "medium",
-      "targetHeight": 69,
-      "description": "Buschgruppe – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.14,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "temperate_bushes"
-      ]
+      "aliases": [
+        "dschungelbusch_01.png",
+        "tropischer_busch_01.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "mangrove_group_01",
@@ -439,7 +158,7 @@
       "kind": "cluster",
       "sizeClass": "large",
       "targetHeight": 105,
-      "description": "Mangroven-Gruppe – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Mangroven-Gruppe – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "water_coast",
@@ -455,134 +174,11 @@
       "tags": [
         "planned",
         "mangroves"
-      ]
-    },
-    {
-      "id": "juniper_01",
-      "name": "Wacholder",
-      "filename": "juniper_01.png",
-      "family": "conifers",
-      "kind": "shrub",
-      "sizeClass": "medium",
-      "targetHeight": 49,
-      "description": "Wacholder – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.13,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "conifers"
-      ]
-    },
-    {
-      "id": "birch_01",
-      "name": "Birke",
-      "filename": "birch_01.png",
-      "family": "deciduous_trees",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "targetHeight": 126,
-      "description": "Birke – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "wetlands"
+      "aliases": [
+        "mangrovengruppe_01.png"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.17,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deciduous_trees"
-      ]
-    },
-    {
-      "id": "oak_01",
-      "name": "Eiche",
-      "filename": "oak_01.png",
-      "family": "deciduous_trees",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Eiche – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.16,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deciduous_trees"
-      ]
-    },
-    {
-      "id": "beech_01",
-      "name": "Buche",
-      "filename": "beech_01.png",
-      "family": "deciduous_trees",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Buche – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.14,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deciduous_trees"
-      ]
-    },
-    {
-      "id": "maple_01",
-      "name": "Ahorn",
-      "filename": "maple_01.png",
-      "family": "deciduous_trees",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "targetHeight": 126,
-      "description": "Ahorn – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.13,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deciduous_trees"
-      ]
+      "priority": "planned"
     },
     {
       "id": "willow_01",
@@ -592,7 +188,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Weide – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Weide – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "grass_pasture",
@@ -608,7 +204,12 @@
       "tags": [
         "planned",
         "riparian_trees"
-      ]
+      ],
+      "aliases": [
+        "weide_01.png",
+        "weide1.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "alder_01",
@@ -618,7 +219,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "targetHeight": 126,
-      "description": "Erle – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Erle – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "grass_pasture"
@@ -633,205 +234,12 @@
       "tags": [
         "planned",
         "riparian_trees"
-      ]
-    },
-    {
-      "id": "pine_01",
-      "name": "Kiefer",
-      "filename": "pine_01.png",
-      "family": "conifers",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Kiefer – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.19,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "conifers"
-      ]
-    },
-    {
-      "id": "spruce_01",
-      "name": "Fichte",
-      "filename": "spruce_01.png",
-      "family": "conifers",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Fichte – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+      "aliases": [
+        "erle_01.png",
+        "erle1.png"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.2,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "conifers"
-      ]
-    },
-    {
-      "id": "fir_01",
-      "name": "Tanne",
-      "filename": "fir_01.png",
-      "family": "conifers",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Tanne – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.18,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "conifers"
-      ]
-    },
-    {
-      "id": "snow_pine_01",
-      "name": "Verschneite Kiefer",
-      "filename": "snow_pine_01.png",
-      "family": "snow_conifers",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "targetHeight": 126,
-      "description": "Verschneite Kiefer – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.16,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "snow_conifers"
-      ]
-    },
-    {
-      "id": "snow_spruce_01",
-      "name": "Verschneite Fichte",
-      "filename": "snow_spruce_01.png",
-      "family": "snow_conifers",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Verschneite Fichte – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.16,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "snow_conifers"
-      ]
-    },
-    {
-      "id": "acacia_01",
-      "name": "Akazie",
-      "filename": "acacia_01.png",
-      "family": "savanna_trees",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Akazie – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.14,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "savanna_trees"
-      ]
-    },
-    {
-      "id": "baobab_01",
-      "name": "Baobab",
-      "filename": "baobab_01.png",
-      "family": "savanna_trees",
-      "kind": "tree",
-      "sizeClass": "giant",
-      "targetHeight": 225,
-      "description": "Baobab – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.05,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "savanna_trees"
-      ]
-    },
-    {
-      "id": "palm_01",
-      "name": "Palme",
-      "filename": "palm_01.png",
-      "family": "palms",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Palme – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "water_coast"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.14,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "palms"
-      ]
+      "priority": "planned"
     },
     {
       "id": "mangrove_01",
@@ -841,7 +249,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Mangrove – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Mangrove – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "wetlands",
         "water_coast",
@@ -857,32 +265,11 @@
       "tags": [
         "planned",
         "mangroves"
-      ]
-    },
-    {
-      "id": "jungle_tree_01",
-      "name": "Dschungelbaum",
-      "filename": "jungle_tree_01.png",
-      "family": "jungle_trees",
-      "kind": "tree",
-      "sizeClass": "giant",
-      "targetHeight": 225,
-      "description": "Dschungelbaum – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.16,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "jungle_trees"
-      ]
+      "aliases": [
+        "mangrove1.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "cactus_01",
@@ -892,7 +279,7 @@
       "kind": "shrub",
       "sizeClass": "medium",
       "targetHeight": 49,
-      "description": "Kaktus – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Kaktus – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "arid_regions",
         "warm_regions"
@@ -907,7 +294,12 @@
       "tags": [
         "planned",
         "cacti"
-      ]
+      ],
+      "aliases": [
+        "kaktus_01.png",
+        "kaktus1.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "dead_tree_01",
@@ -917,7 +309,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "targetHeight": 126,
-      "description": "Totholzbaum – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Totholzbaum – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions",
         "arid_regions",
@@ -933,7 +325,11 @@
       "tags": [
         "planned",
         "dead_trees"
-      ]
+      ],
+      "aliases": [
+        "toter_baum_01.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "tree_stump_01",
@@ -943,7 +339,7 @@
       "kind": "rock",
       "sizeClass": "small",
       "targetHeight": 35,
-      "description": "Baumstumpf – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Baumstumpf – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "grass_pasture",
         "cold_regions",
@@ -960,7 +356,11 @@
       "tags": [
         "planned",
         "deadwood"
-      ]
+      ],
+      "aliases": [
+        "baumstumpf_01.png"
+      ],
+      "priority": "optional"
     },
     {
       "id": "fallen_log_01",
@@ -970,7 +370,7 @@
       "kind": "cluster",
       "sizeClass": "medium",
       "targetHeight": 69,
-      "description": "Umgestürzter Stamm – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Umgestürzter Stamm – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "grass_pasture",
         "cold_regions",
@@ -986,60 +386,11 @@
       "tags": [
         "planned",
         "deadwood"
-      ]
-    },
-    {
-      "id": "branch_01",
-      "name": "Aststück",
-      "filename": "branch_01.png",
-      "family": "deadwood",
-      "kind": "rock",
-      "sizeClass": "tiny",
-      "targetHeight": 12,
-      "description": "Aststück – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.25,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deadwood"
-      ]
-    },
-    {
-      "id": "pebble_01",
-      "name": "Kiesel",
-      "filename": "pebble_01.png",
-      "family": "stones",
-      "kind": "rock",
-      "sizeClass": "tiny",
-      "targetHeight": 12,
-      "description": "Kiesel – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "arid_regions",
-        "wetlands"
+      "aliases": [
+        "baumstamm_01.png"
       ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.37,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "stones"
-      ]
+      "priority": "optional"
     },
     {
       "id": "boulder_01",
@@ -1049,7 +400,7 @@
       "kind": "rock",
       "sizeClass": "large",
       "targetHeight": 110,
-      "description": "Findling – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Findling – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions",
         "grass_pasture",
@@ -1065,7 +416,11 @@
       "tags": [
         "planned",
         "stones"
-      ]
+      ],
+      "aliases": [
+        "findling_01.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "rock_cluster_01",
@@ -1075,7 +430,7 @@
       "kind": "cluster",
       "sizeClass": "medium",
       "targetHeight": 69,
-      "description": "Felsgruppe – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Felsgruppe – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions",
         "grass_pasture",
@@ -1091,7 +446,11 @@
       "tags": [
         "planned",
         "stones"
-      ]
+      ],
+      "aliases": [
+        "felsgruppe_01.png"
+      ],
+      "priority": "planned"
     },
     {
       "id": "ice_block_01",
@@ -1101,7 +460,7 @@
       "kind": "rock",
       "sizeClass": "medium",
       "targetHeight": 67,
-      "description": "Eisblock – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Eisblock – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions"
       ],
@@ -1115,7 +474,11 @@
       "tags": [
         "planned",
         "ice"
-      ]
+      ],
+      "aliases": [
+        "eisblock_01.png"
+      ],
+      "priority": "optional"
     },
     {
       "id": "snow_mountain_01",
@@ -1125,7 +488,7 @@
       "kind": "mountain",
       "sizeClass": "giant",
       "targetHeight": 310,
-      "description": "Schneeberg – geplantes freigestelltes Kartenobjekt; Licht von rechts, ohne Terrainplatte.",
+      "description": "Schneeberg – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
       "allowedTerrainCategories": [
         "cold_regions"
       ],
@@ -1139,7 +502,181 @@
       "tags": [
         "planned",
         "snowy_mountains"
-      ]
+      ],
+      "aliases": [
+        "schneeberg_01.png"
+      ],
+      "priority": "planned"
+    }
+  ],
+  "resolved": [
+    {
+      "id": "thyme_01",
+      "name": "Thymian",
+      "resolution": "covered_or_deferred",
+      "evidence": "thymian_01.png – drei Thymianvarianten"
+    },
+    {
+      "id": "heather_01",
+      "name": "Heidekraut",
+      "resolution": "covered_or_deferred",
+      "evidence": "besenheide1.png – Besenheide ist vorhanden"
+    },
+    {
+      "id": "clover_01",
+      "name": "Klee",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "moss_01",
+      "name": "Moospolster",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "dry_grass_01",
+      "name": "Trockenes Grasbüschel",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "alpine_grass_01",
+      "name": "Alpengras",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "cotton_grass_01",
+      "name": "Wollgras",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "bush_round_01",
+      "name": "Rundbusch",
+      "resolution": "covered_or_deferred",
+      "evidence": "bush_01–19/bush_30–33.png – mittelgroße/kleine/große Büsche vorhanden"
+    },
+    {
+      "id": "bush_sparse_01",
+      "name": "Lockerer Busch",
+      "resolution": "covered_or_deferred",
+      "evidence": "bush_01–19/bush_30–33.png – konkrete lockere Formen visuell auswählen"
+    },
+    {
+      "id": "bush_thorn_01",
+      "name": "Dornbusch",
+      "resolution": "covered_or_deferred",
+      "evidence": "bush_20–29.png – trockene Buschvarianten vorhanden; Dornen nur nach Bildsichtung bestätigen"
+    },
+    {
+      "id": "bush_flowering_01",
+      "name": "Blühender Busch",
+      "resolution": "covered_or_deferred",
+      "evidence": "ginster, wildrose und weißdorn – blühende Sträucher vorhanden"
+    },
+    {
+      "id": "bush_group_01",
+      "name": "Buschgruppe",
+      "resolution": "covered_or_deferred",
+      "evidence": "bush_34–41.png – acht Buschgruppen"
+    },
+    {
+      "id": "juniper_01",
+      "name": "Wacholder",
+      "resolution": "covered_or_deferred",
+      "evidence": "wacholder1–3.png – Wacholder vorhanden"
+    },
+    {
+      "id": "birch_01",
+      "name": "Birke",
+      "resolution": "covered_or_deferred",
+      "evidence": "birke1–3.png – Birken vorhanden"
+    },
+    {
+      "id": "oak_01",
+      "name": "Eiche",
+      "resolution": "covered_or_deferred",
+      "evidence": "eiche1–3.png – Eichen vorhanden"
+    },
+    {
+      "id": "beech_01",
+      "name": "Buche",
+      "resolution": "covered_or_deferred",
+      "evidence": "buche1–3.png – Buchen vorhanden"
+    },
+    {
+      "id": "maple_01",
+      "name": "Ahorn",
+      "resolution": "covered_or_deferred",
+      "evidence": "ahorn1–3.png – Ahorn vorhanden"
+    },
+    {
+      "id": "pine_01",
+      "name": "Kiefer",
+      "resolution": "covered_or_deferred",
+      "evidence": "tanne_01–11.png – Nadelbaumbestand, bei Bedarf später als Kiefer differenzieren"
+    },
+    {
+      "id": "spruce_01",
+      "name": "Fichte",
+      "resolution": "covered_or_deferred",
+      "evidence": "tanne_01–11.png – Nadelbaumbestand; Fichtenart visuell nicht bestätigt"
+    },
+    {
+      "id": "fir_01",
+      "name": "Tanne",
+      "resolution": "covered_or_deferred",
+      "evidence": "tanne_01–11.png – Tannen vorhanden"
+    },
+    {
+      "id": "snow_pine_01",
+      "name": "Verschneite Kiefer",
+      "resolution": "covered_or_deferred",
+      "evidence": "tanne_schnee_01–05.png – fünf Varianten als Schneekiefer gruppiert"
+    },
+    {
+      "id": "snow_spruce_01",
+      "name": "Verschneite Fichte",
+      "resolution": "covered_or_deferred",
+      "evidence": "tanne_schnee_06–10.png – fünf Varianten als Schneetanne; Schneefichte kein eigener Bedarf"
+    },
+    {
+      "id": "acacia_01",
+      "name": "Akazie",
+      "resolution": "covered_or_deferred",
+      "evidence": "schirmakazie1–3.png – Schirmakazien vorhanden"
+    },
+    {
+      "id": "baobab_01",
+      "name": "Baobab",
+      "resolution": "covered_or_deferred",
+      "evidence": "affenbrotbaum1–3.png – Affenbrotbäume vorhanden"
+    },
+    {
+      "id": "palm_01",
+      "name": "Palme",
+      "resolution": "covered_or_deferred",
+      "evidence": "palme_01–11.png – fünf kleine und sechs große Palmen vorhanden"
+    },
+    {
+      "id": "jungle_tree_01",
+      "name": "Dschungelbaum",
+      "resolution": "covered_or_deferred",
+      "evidence": "tree_12–19.png – acht Kapokbäume als Journal-Spezialassets, nicht für Weltkarte freigegeben"
+    },
+    {
+      "id": "branch_01",
+      "name": "Aststück",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "pebble_01",
+      "name": "Kiesel",
+      "resolution": "terrain_detail",
+      "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
     }
   ]
 }
