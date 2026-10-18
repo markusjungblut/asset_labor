@@ -529,9 +529,14 @@ async function loadLibrary(list,mode){const old=state.asset;
  for(const a of assets)if(a.temporary&&a.url?.startsWith('blob:'))URL.revokeObjectURL(a.url);
  assets=list.map(e=>({...e,img:null,terrainCheck:null,url:e.url||('./'+e.path+(e.mtime?'?v='+e.mtime:''))}));assetByPath=new Map(assets.map(a=>[a.path,a]));stampCache.clear();invalidateTerrain();
  await Promise.all(assets.map(a=>new Promise(res=>{const img=new Image();img.decoding='async';img.onload=()=>{a.img=img;a.terrainCheck=inspectTerrain(a);res();};img.onerror=()=>{a.img=null;res();};img.src=a.url;})));
+ const sourceRules=window.VedrasTerrainSources;
+ const typesAdded=sourceRules?.ensureTypes(catalog)||false;
+ const proposed=sourceRules?.propose(catalog,assets,isTerrainValid)||{assigned:0,skipped:[]};
+ if(typesAdded||proposed.assigned){catalogDirty=true;catalogRevision++;}
+ if(proposed.assigned)$('catalogMessage').textContent=proposed.assigned+' vorhandene Terrainvarianten per eindeutigem Dateinamen zugeordnet; vorhandene Zuweisungen bleiben erhalten.';
  const loaded=allAssets().length;$('serverStatus').textContent=`${loaded}/${assets.length} Grafiken · ${mode}`;
  const categories=[...new Set(assets.map(a=>a.category))].sort(),select=$('categoryFilter'),current=select.value;select.innerHTML='<option value="all">Alle</option>'+categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');select.value=categories.includes(current)?current:'all';
- renderAssetsList();const first=assetByPath.has(old)?old:assets.find(a=>isTerrainValid(a))?.path||assets[0]?.path;if(first)setSelectedAsset(first);resize();window.dispatchEvent(new Event('vedras:assets-loaded'));}
+ renderAssetsList();const first=assetByPath.has(old)?old:assets.find(a=>isTerrainValid(a))?.path||assets[0]?.path;if(first)setSelectedAsset(first);refreshCatalog();resize();window.dispatchEvent(new Event('vedras:assets-loaded'));}
 // "Neu einlesen" must refresh the asset FILE LIST, never discard unsaved catalog assignments.
 // Autosaves are serialized and awaited before reading the server catalog back.
 async function reloadFromServer(){
@@ -549,7 +554,8 @@ async function reloadFromServer(){
    // Do NOT replace an edited or currently changing in-memory catalog with an older file.
    if(!catalogDirty&&catalogRevision===revisionAtStart){catalog=parsed;if(migrated){catalogDirty=true;catalogRevision++;$('catalogMessage').textContent='Küstenwasser und die Legacy-Geländeart Küste werden als mischbares WATER geführt. Zugeordnete Grafiken bleiben erhalten; Sicherung beim Speichern.';}}
   }
-  catalogCanSave=response.ok;
+  // Ein fehlender Erstkatalog (404) ist im lokalen Server neu speicherbar.
+  catalogCanSave=response.ok||response.status===404;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
   if(d.version!=='0.11.0'){
