@@ -1,13 +1,16 @@
-# Unveröffentlichte persönliche Bilder und Nature-/Terrain-Kataloge
+# User-imported production artwork and metadata stay local until explicitly approved
 /assets/
+# Generated test previews and transient files
 /previews/
 __pycache__/
 *.pyc
 *.log
 *.zip
-*.bak
 .DS_Store
 Thumbs.db
+# Never commit personal catalog backups
+*.bak
+# Avoid environment/editor clutter
 .venv/
 .env
 .vscode/

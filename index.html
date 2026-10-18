@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vedras Reiche – Asset-Labor v0.11.0</title><link rel="stylesheet" href="style.css?v=0.11.0"></head>
+<body>
+<div class="app">
+<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.11.0</small></h1></div></div>
+<div class="toptools"><span class="status" id="serverStatus">Lade Asset-Bibliothek…</span><button id="reloadBtn" title="Ordner erneut einlesen">↻ Neu einlesen</button><label class="button outline" for="folderInput">Ordner importieren</label><input id="folderInput" type="file" webkitdirectory multiple hidden accept="image/*,.svg,.json"/></div></header>
+<div class="layout">
+<aside class="library"><div class="paneheader"><h2>Grafikbibliothek</h2><div class="subtle">Dateien in <code>assets/</code> ablegen</div></div>
+<div class="searchrow"><input id="assetSearch" type="search" placeholder="Datei suchen…" aria-label="Asset suchen"><select id="categoryFilter" aria-label="Kategorie"><option value="all">Alle</option></select></div>
+<details class="sprite-plan" id="spritePlanPanel"><summary>Sprite-Planungskatalog <span id="spritePlanCount">45 geplant</span></summary>
+<p class="muted">Geplante Arten, Größen und Biomfreigaben. Exakte Dateinamen werden bei Neueinlesen zugeordnet – bestehende Metadaten bleiben erhalten.</p>
+<input type="search" id="spritePlanSearch" placeholder="Thymian, Birke, Mangrove …">
+<div id="spritePlanList" class="sprite-plan-list"></div>
+<button id="spritePlanExport" class="button outline block" type="button">Planungskatalog als JSON exportieren</button>
+<div class="muted" id="spritePlanFeedback">Noch nicht angelegte Grafiken sind als „geplant“ markiert.</div>
+</details>
+<div class="catalog-panel">
+  <div class="catalog-heading"><strong>Gelände-Katalog</strong> <span id="catalogStatus">Katalog lädt…</span></div>
+  <details><summary>Neue Kategorie anlegen</summary><input id="newCategoryName" placeholder="Kategoriename, z. B. Vulkanisch"><input id="newCategoryId" placeholder="ID: volcanic_regions"><button class="block" id="newCategoryBtn">Kategorie erstellen</button></details>
+  <details><summary>Neue Geländeart anlegen</summary><select id="newTypeCategory"></select><input id="newTypeName" placeholder="Geländeart, z. B. Lavafeld"><input id="newTypeId" placeholder="ID: lava_field"><label>Materialklasse<select id="newTypeMaterialClass"><option value="ground">Land – normales Gelände</option><option value="water">Wasser – flache Wasseroberfläche</option><option value="shoreline">Ufer-Sonderfläche (nicht Küstenwasser)</option></select></label><button class="block" id="newTypeBtn">Geländeart erstellen</button></details>
+  <details><summary>Bestehende Kategorie bearbeiten</summary>
+<select id="editCategorySelect"></select><input id="editCategoryName" placeholder="Neuer Anzeigename"><button id="renameCategoryBtn" class="block">Kategorie umbenennen</button><button id="archiveCategoryBtn" class="block outline">Archivierung umschalten</button></details>
+<details><summary>Geländeart bearbeiten / verschieben</summary>
+<select id="editTypeSelect"></select><input id="editTypeName" placeholder="Neuer Anzeigename"><select id="editTypeCategory"></select><label>Materialklasse<select id="editTypeMaterialClass"><option value="ground">Land – Relief erlaubt</option><option value="water">Wasser – niemals Hügel</option><option value="shoreline">Ufer-Sonderfläche (nicht Küstenwasser)</option></select></label><button id="updateTypeBtn" class="block">Geländeart aktualisieren</button><button id="archiveTypeBtn" class="block outline">Archivierung umschalten</button></details>
+<div class="catalog-actions"><button id="catalogSave">Katalog speichern</button><button id="catalogReload">↻</button><button id="catalogExport">Export</button></div>
+  <label for="catalogImportInput" class="button outline block">Katalog importieren</label><input id="catalogImportInput" type="file" accept=".json" hidden>
+  <p id="catalogMessage" class="muted">Grafikvarianten werden erst nach expliziter Zuordnung einer Geländeart verwendet.</p>
+</div>
+<div id="assetList" class="asset-list"></div>
+<div class="tip"><strong>Ordner-Prinzip</strong><p>Terrain zuerst: Bilder nach <code>assets/terrain/</code> kopieren, dann „Neu einlesen“. Jede Grafik kann einzeln geprüft oder in die Karte eingesetzt werden.</p></div>
+</aside>
+<section class="workarea"><div class="map-toolbar"><div class="segmented"><button id="viewMap" class="active">Kartenansicht</button><button id="viewSolo">Einzelgrafik</button><button id="viewCompare">A/B-Vergleich</button></div><div class="quick-actions"><button id="quickPopulate" title="Nature-Sprites automatisch auf der Testkarte verteilen">Natur verteilen</button><button id="quickMountains" title="Bergketten-Optionen öffnen">Bergketten</button><button id="quick37" title="Testkarte auf 37 Hexfelder setzen">37 Hexe</button></div><div class="toolcluster"><label>Zoom <input id="zoomSlider" type="range" min="30" max="240" step="1" value="95"></label><strong id="zoomText">95 %</strong><button id="zoomOut" title="Herauszoomen">−</button><button id="zoomIn" title="Hineinzoomen">+</button><button id="home" title="Ansicht zurücksetzen">⌖</button></div></div>
+<div class="canvas-outer" id="canvasOuter"><canvas id="mapCanvas" aria-label="Interaktive Hex-Testkarte"></canvas>
+<div id="soloPane" class="solo-pane hidden"><div class="solo-stage checker"><img id="soloImage" alt="Ausgewählte freigestellte Grafik"/><span id="soloEmpty">Grafik in der Bibliothek auswählen</span></div><div class="solo-meta" id="soloMeta"></div></div>
+<div id="comparePane" class="compare-pane hidden"><div class="compare-item"><span>A</span><div class="checker compare-image"><img id="compareA" alt="Asset A"></div><div id="compareALabel">Noch nicht zugewiesen</div></div><div class="compare-item"><span>B</span><div class="checker compare-image"><img id="compareB" alt="Asset B"></div><div id="compareBLabel">Noch nicht zugewiesen</div></div></div>
+<div id="mapLegend" class="maplegend"><span>POINTY-TOP · 256</span><span>FESTE PROJEKTION · 0,85</span><span id="modeBadge">NORMAL</span></div><div class="mapfooter" id="mapFooter">Hex (0, 0) · Mit der Maus ziehen, Mausrad zum Zoomen</div></div>
+<div class="lowerbar"><span id="renderStats">Renderauflösung wird geprüft…</span><span id="selectedHex">Ausgewählt: Hex (0,0)</span></div></section>
+<aside class="inspector"><div class="paneheader"><div class="overline">ASSET-INSPEKTOR</div><h2 id="selectedName">Noch kein Asset</h2><p id="selectedPath">Wähle links eine Grafik</p></div>
+<div class="previewbox checker"><img id="previewImg" alt="Grafikvorschau"/></div>
+<div class="control-section hidden" id="assetTerrainTypeRow"><h3>Geländeart der Grafik</h3><select id="assetTerrainType"></select><p class="muted">Ohne eindeutige Zuordnung bleibt ein Terrain-Asset im Viewer gesperrt. Kategorien dienen nur der Navigation.</p></div>
+<section id="natureInspector" class="control-section hidden">
+<h3>Nature-Sprite · Produktionsvertrag</h3><p class="muted">Eine freigestellte Grafik, unabhängig vom Terrain. Daten werden im Nature-Katalog gespeichert.</p>
+<div class="nature-form">
+<label>Stabile Sprite-ID<input id="nId" placeholder="bush_temperate_soft_01"></label>
+<label>Beschreibung<textarea id="nDescription" rows="2" placeholder="Form, Material, Silhouette …"></textarea></label>
+<label>Referenz / Ursprung<input id="nSource" placeholder="Büsche1.jpg · obere Reihe, links"></label>
+<label>Familie (frei erweiterbar)<input id="nFamily" placeholder="temperate_bushes" list="nFamilySuggestions"><datalist id="nFamilySuggestions"></datalist></label>
+<label>Objektklasse<select id="nKind"><option value="ground_cover">Bodenvegetation</option><option value="shrub">Busch</option><option value="cluster">Vegetationsgruppe</option><option value="tree">Baum</option><option value="rock">Fels / Stein</option><option value="special">Sonstiges Objekt</option><option value="mountain">Berg (Mehrhex-Formation)</option></select></label>
+<label>Größenklasse<select id="nSize"><option value="tiny">Winzig</option><option value="small">Klein</option><option value="medium">Mittel</option><option value="large">Groß</option><option value="giant">Sehr groß</option></select></label>
+<label>Darstellungsgröße<select id="nSizeMode"><option value="manual">Manuell – bestehende Breite verwenden</option><option value="class">Automatisch – Größenklasse bestimmt sichtbare Höhe</option></select></label>
+<div class="infobox size-preview" id="nSizeInfo">Größenprofil wird berechnet…</div>
+<div class="nature-two"><label>Basisbreite (Welteinheiten)<input id="nWidth" type="number" min="4" max="400" step="1"></label><label>Variantengewicht<input id="nWeight" type="number" min="0" max="100" step=".1"></label></div>
+<div class="nature-two"><label>Skalierung min.<input id="nScaleMin" type="number" min=".2" max="3" step=".05"></label><label>max.<input id="nScaleMax" type="number" min=".2" max="3" step=".05"></label></div>
+<div class="nature-two"><label>Anker X (0–1)<input id="nAnchorX" type="number" min="0" max="1" step=".01"></label><label>Anker Y (0–1)<input id="nAnchorY" type="number" min="0" max="1" step=".01"></label></div>
+<label>Schattenregel<select id="nShadowMode"><option value="none">Kein separater Schatten</option><option value="generic_small_round">Standard · klein, rundlich</option><option value="generic_small_wide">Standard · klein, breit</option><option value="generic_medium_round">Standard · mittel, rundlich</option><option value="generic_medium_wide">Standard · mittel, breit</option><option value="custom">Eigener Schatten (separate PNG)</option></select></label>
+<label>Eigener Schattenpfad (nur custom)<input id="nShadowPath" placeholder="shadows/tree_oak_01.png"></label><div class="nature-two"><label>Schatten seitlich (− = links)<input id="nShadowX" type="number" min="-1" max="1" step="0.02"></label><label>Schatten Tiefe/Vertikale<input id="nShadowY" type="number" min="-0.6" max="0.6" step="0.02"></label></div>
+<div class="nature-two"><label>Schattenbreite (× Sprite)<input id="nShadowWidth" type="number" min="0.1" max="2" step="0.05"></label><label>Schattentiefe (× Sprite)<input id="nShadowDepth" type="number" min="0.03" max="1" step="0.02"></label></div>
+<label class="checkbox"><input id="nShadowDebug" type="checkbox"> Bodenanker und Schattenkontakt auf Karte markieren</label>
+<div class="nature-rules">
+<strong>Gelände-Freigabe · Kategorien, Presets und Ausnahmen</strong>
+<p class="muted">Kategorie aktiviert = automatisch auch alle künftig darin angelegten Geländearten. Einzelarten: Automatisch, zusätzlich erlauben oder ausschließen.</p>
+<label>Benanntes Setup / Preset<select id="nPresetSelect"><option value="">Kein Preset</option></select></label>
+<div class="nature-two"><label>Neues Setup benennen<input id="nPresetName" placeholder="z. B. gemäßigte Vegetation"></label><button id="nPresetCreate" class="button outline">Als Preset speichern</button></div>
+<div class="nature-two"><button id="nPresetUpdate" class="button outline">Preset aktualisieren</button><button id="nPresetRemove" class="button ghost">Preset löschen</button></div>
+<strong>Gesamte Terrain-Kategorien</strong><div id="nCategoryPick" class="nature-biomes"></div>
+<strong>Einzelne Geländearten und Ausnahmen</strong><div id="nBiomes" class="nature-biomes"></div>
+<div class="infobox nature-coverage" id="nCoverage">Freigaben werden berechnet.</div>
+</div>
+<div class="nature-two"><label>Dichte je Hex (0–1)<input id="nDensity" type="number" min="0" max="1" step=".01"></label><label>Mindestabstand in Welteinheiten<input id="nSpacing" type="number" min="0" max="256" step="1"></label></div>
+<div class="nature-two"><label>Hexrandabstand (Anker)<input id="nMargin" type="number" min="0" max="80" step="1"></label><label>Status<select id="nStatus"><option value="candidate">Kandidat</option><option value="test">Testasset</option><option value="approved">Freigegeben</option><option value="deprecated">Archiviert</option></select></label></div>
+<label class="checkbox"><input type="checkbox" id="nCluster"> In Gruppen platzierbar</label>
+<label>Tags (Komma getrennt)<input id="nTags" placeholder="temperate, evergreen"></label>
+</div>
+<div id="nMountainFields" class="nature-rules hidden"><strong>Bergplatzierung · v0.11.0</strong>
+<label>Standflächenradius (Hexringe)<select id="nMountainRadius"><option value="1">1 Ring – 7 Hexfelder</option><option value="2">2 Ringe – 19 Hexfelder</option></select></label>
+<label>Gesperrte Kernzone<select id="nMountainCoreRadius"><option value="0">Nur Anker-Hex (empfohlen)</option><option value="1">7 Hexfelder (massiver Berg)</option></select></label>
+<button id="nMountainAnchor067" type="button" class="button outline block">Berganker Y auf 0,67 setzen</button>
+<label>Standard-Schattenstärke der Sprite-Vorlage (erst nach Metadaten-Speichern aktiv; bereits platzierte Berge siehe unten)<input id="nMountainShadow" type="number" min="0" max="0.65" step="0.05" value="0.23"></label>
+<label class="checkbox"><input id="nMountainFlatten" type="checkbox" checked> Bergfuß auf Landrelief sanft abflachen</label>
+<p class="muted">Berggrafik muss freigestellt sein. Verwende die Größenklasse Sehr groß, Anker unten mittig. Nur die Kernzone sperrt andere Sprites; der äußere Radius beeinflusst Relief und Bergketten. Neue Berge: Bodenanker Y = 0,67. Im Kettenmodus dürfen sich Einflusszonen überlappen.</p></div>
+<button id="nSave" class="button primary block">Sprite-Metadaten speichern</button><button id="nExportOne" class="button outline block">Sidecar-JSON exportieren</button><button id="nDelete" class="button ghost block">Eintrag aus Nature-Katalog entfernen</button>
+<div id="nAlphaInfo" class="terrain-validation">Freistellung wird geprüft.</div><p id="nMessage" class="muted" role="status"></p></section>
+<section class="control-section" id="natureLabTools"><h3>Nature-Sprite-System · Katalog & Verteilung</h3>
+<div class="inline-row"><strong id="nCatalogState">Nature-Katalog lädt…</strong></div><p class="muted" id="nRecoveryStatus">Bestehende Sprite-Zuordnungen werden vom lokalen Server gelesen. Bei fehlenden Daten zuerst den alten Katalog prüfen.</p><button id="nBackupPreview" class="button outline block">Nature-Sicherung prüfen / wiederherstellen</button>
+<div class="infobox" id="nSizeAudit">Größenkalibrierung: vorhandene Metadaten werden geprüft.</div>
+<button id="nNormalizeAll" class="button outline block" type="button">Bestehende Größenklassen übernehmen (mit Bestätigung)</button>
+<button id="nExportAll" class="button outline block">Nature-Katalog exportieren</button><label for="nImportCatalog" class="button outline block">Nature-Katalog / Asset-JSON importieren</label><input id="nImportCatalog" type="file" accept=".json" hidden>
+<label class="checkbox"><input id="nShowDemo" type="checkbox" checked> Alte Demo-Naturplätze anzeigen</label>
+<div class="inline-row"><label>Test-Seed</label><input id="nSeed" type="number" value="12345" min="1" max="2147483647"></div>
+<button id="nAddToHex" class="button primary block">Sprite variabel auf ausgewähltes Hex setzen</button>
+<button id="nPopulate" class="button outline block">Nature-Sprites auf Testkarte verteilen</button>
+<div id="mountainTools" class="control-section"><h3>Große Berge · v0.11.0</h3>
+<label>Platzierungsmodus<select id="mountainMode"><option value="single">Einzelberg – Abstand zu anderen Bergen</option><option value="chain">Bergkette – gemeinsame Einflusszone</option></select></label>
+<label>Bergketten-ID <input id="mountainChainId" maxlength="50" value="alpen_01" placeholder="z. B. nordkette_01"></label>
+<label>Kettenabstand<select id="mountainSpacing"><option value="tight">Eng – mehr Überdeckung</option><option value="normal" selected>Normal – ausgeglichen</option><option value="wide">Weit – wenig Überdeckung</option></select></label>
+<div class="mountain-shadow-controls"><strong>Schlagschatten · pro Berginstanz</strong><p class="muted">Berg auf der Karte auswählen: Regler verändern seinen Schlagschatten direkt und bleiben nach Neueinlesen erhalten. Ohne ausgewählten Berg gelten sie als Vorgabe für neue Berge.</p>
+<label>Schattenintensität <output id="mountainCastOpacityText">0,48</output><input id="mountainCastOpacity" type="range" min="0" max="0.75" step="0.01" value="0.48"></label>
+<label>Reichweite nach links <output id="mountainCastReachText">1,3×</output><input id="mountainCastReach" type="range" min="0.4" max="2.5" step="0.05" value="1.3"></label>
+<label>Weichheit <output id="mountainCastSoftText">12</output><input id="mountainCastSoft" type="range" min="2" max="30" step="1" value="12"></label>
+<button id="mountainShadowAll" type="button" class="button outline block">Aktuelle Werte auf alle Berge anwenden</button>
+<label class="checkbox"><input id="mountainShadowDebug" type="checkbox"> Nur Schlagschatten anzeigen (Debug)</label>
+<div id="mountainOverlapStats" class="infobox">Bergketten-Silhouetten werden geprüft.</div></div>
+<button id="mountainPlace" class="button primary block">Ausgewählten Berg auf Hex platzieren</button>
+<button id="mountainJoinChain" class="button outline block">Berg am ausgewählten Hex zur Kette hinzufügen</button>
+<button id="mountainRemove" class="button outline block">Berg auf ausgewähltem Hex entfernen</button>
+<button id="mountainChainTest" class="button outline block">19 Hexe: Bergkette aus 4 Bergen testen</button>
+<label class="checkbox"><input type="checkbox" id="mountainDebug"> Bergstandflächen und Bodenanker anzeigen</label>
+<div class="infobox" id="mountainStatus">Noch kein Berg platziert. Nur Nature-Sprites der Klasse „Berg“ verwendbar.</div></div>
+
+<button id="nClearHex" class="button outline block">Nature-Sprites auf ausgewähltem Hex entfernen</button>
+<button id="nClearAll" class="button ghost block">Alle generierten Nature-Sprites entfernen</button>
+<div class="infobox" id="nPlacedList">Noch keine Nature-Sprites platziert.</div>
+<p class="muted">Voraussetzung: Sprite-Metadaten gespeichert und passende Geländearten ausgewählt. Verteilung ist deterministisch (Seed + Hex + Asset-ID), respektiert Hexgrenzen und grobe Anker-Abstände.</p></section>
+<div class="infobox" id="assetInfo">Keine Grafik ausgewählt.</div><div id="terrainValidation" class="terrain-validation hidden"></div>
+<div class="btnrow"><button id="setA" class="button outline">Als A merken</button><button id="setB" class="button outline">Als B merken</button></div>
+<section class="control-section terrain-tests" id="terrainTests">
+<h3>Gelände-Testkarte</h3><p class="muted">Verwendet ausschließlich deine zugeordneten Terrainmaterialien – keine fest benannten Beispieldateien. Die Kartengröße folgt der Auswahl unter „Testszene“ (bis 37 Hexfelder).</p>
+<label>Testmodus<select id="terrainTestMode">
+<option value="single">Geländeart mit Varianten</option><option value="category" selected>Eine gesamte Gelände-Kategorie</option><option value="water">Wasserarten vergleichen (ohne Ufer)</option><option value="categories">Zwei Gelände-Kategorien vergleichen</option><option value="triple">Drei Geländearten vergleichen</option></select></label>
+<p class="muted">Alle Wasserarten einschließlich Küstenwasser werden weich überblendet; an Land/Wasser-Grenzen erscheinen zuschaltbare Ufer-Overlays. Hügel betreffen nur Land.</p><div id="testSingleSection" class="test-fields hidden"><label>Geländeart<select id="testSingleType"></select></label></div>
+<div id="testCategorySection" class="test-fields"><label>Gelände-Kategorie<select id="testCategoryA"></select></label></div>
+<div id="testCategoriesSection" class="test-fields hidden"><label>Kategorie A<select id="testCategoryCompareA"></select></label><label>Kategorie B<select id="testCategoryCompareB"></select></label></div>
+<div id="testTripleSection" class="test-fields hidden"><label>Geländeart A<select id="testTypeA"></select></label><label>Geländeart B<select id="testTypeB"></select></label><label>Geländeart C<select id="testTypeC"></select></label></div>
+<label class="checkbox"><input id="testMixVariants" type="checkbox" checked> Varianten jeder Geländeart mischen</label>
+<label class="checkbox"><input id="testTransitionDebug" type="checkbox"> Übergänge und Dreifachkontakte diagnostizieren</label>
+<button id="applyTerrainTest" class="button primary block">19-Hex-Testkarte erzeugen</button><div id="testFeedback" class="infobox">Kategorien und verfügbare Terrainvarianten werden aus dem Katalog ermittelt.</div>
+<details><summary>Einzelnes Bild auf Hex prüfen</summary><button id="placeHex" class="button outline block">Auf ausgewähltes Hex setzen</button><button id="placeBiome" class="button outline block">Als Material des Demo-Bioms</button><div class="inline-row"><label>Objektbreite <strong id="widthText">160</strong></label><input id="spriteWidth" type="range" min="24" max="192" value="160"></div><div class="inline-row hidden" id="materialScaleRow"><label>Material-Maßstab <strong id="materialScaleLabel">256</strong></label><input id="materialScale" type="range" min="160" max="768" step="16" value="256"></div><button id="clearHex" class="button ghost block">Ausgewähltes Hex zurücksetzen</button></details>
+</section>
+<div class="control-section relief-panel" id="reliefPanel"><h3>Hügel & Relief</h3>
+<p class="muted">Dieselben Terraintexturen bilden Höhenlagen in mehreren Biomen. Ein durchgehendes Feld verformt und beleuchtet die Oberfläche. Keine neuen Hügel-PNGs nötig.</p>
+<label class="checkbox"><input id="reliefOn" type="checkbox"> Relief aktivieren</label>
+<div class="inline-row"><label>Hügelprofil</label><select id="reliefProfile"><option value="rounded">Sanfte Kuppe</option><option value="steep">Steiler Hügel</option><option value="chain">Hügelkette</option><option value="plateau">Hochfläche</option><option value="ridge">Unregelmäßiger Höhenrücken</option></select></div>
+<div class="inline-row"><label>Reliefstärke <strong id="reliefStrengthText">45</strong> %</label><input type="range" id="reliefStrength" min="0" max="100" step="5" value="45"></div>
+<label class="checkbox"><input id="reliefLighting" type="checkbox" checked> Beleuchtung von rechts</label>
+<label class="checkbox"><input id="reliefConnected" type="checkbox" checked> Über mehrere Hexfelder verbinden</label>
+<label class="checkbox"><input id="reliefDebug" type="checkbox"> Höhen-Diagnosefarben</label>
+<label class="checkbox"><input id="reliefPadBuildings" type="checkbox" checked> Standflächen unter Gebäuden lokal abflachen</label>
+<button id="reliefBuildingTest" class="button outline block">Mine auf steilem Hügel testen</button>
+<div class="inline-row"><label>Relief-Seed</label><input id="reliefSeed" type="number" value="43781" min="0" max="2147483647" step="1"></div>
+<div class="inline-row"><label>Reliefzentrum</label><strong id="reliefCenter">0,0</strong><button id="reliefSetCenter" class="button outline">Auf Auswahl setzen</button></div>
+<button id="reliefFlatCompare" class="button outline block">A/B: Relief anzeigen</button>
+<button id="reliefGrassTest" class="button primary block">19 Hexe: Hügel auf Grasland</button>
+<button id="reliefBiomesTest" class="button outline block">19 Hexe: Hügel über Biomgrenzen</button>
+<div class="infobox" id="reliefStats">Relief wird geprüft…</div><div class="infobox" id="buildingPadStats">Bauplatz wird geprüft…</div>
+<p class="muted">Teststand: Keine frei drehbare 3D-Kamera. Steile Hänge, Wasserphysik und echte Gebäudefundamente sind noch nicht final.</p></div>
+<div class="control-section shoreline-panel" id="shorelinePanel"><h3>Ufer-Overlay · v0.11.0</h3>
+<p class="muted">Land/Wasser wird nicht weich vermischt. Stattdessen erhalten Landhexfelder an Wasserkanten ein Ufer-Overlay. Wasserarten mischen weiter weich untereinander.</p>
+<label class="checkbox"><input type="checkbox" id="shorelineToggle" checked> Ufer-Overlays aktivieren</label>
+<div class="inline-row"><label>Modus</label><select id="shorelineMode"><option value="art" selected>6 Ufergrafiken</option><option value="temp">Temporäre Kanten</option></select></div>
+<div class="inline-row"><label>Breite <strong id="shorelineWidthText">34</strong></label><input id="shorelineWidth" type="range" min="18" max="64" step="2" value="34"></div>
+<div class="inline-row"><label>Überhang ins Wasser <strong id="shorelineOuterText">10</strong></label><input id="shorelineOuter" type="range" min="0" max="24" step="1" value="10"></div>
+<button class="block outline" id="shorelineSixTest">6 Uferseiten prüfen</button><button class="block outline" id="shorelineCornersTest">Mehrfach-Ufer & Ecken prüfen</button><div class="infobox" id="shorelineStats">Uferkanten werden geprüft…</div>
+<p class="muted">Temporärer Modus = prozedurale Testkante. Grafikmodus = 6 transparente Ufer-Overlays aus <code>assets/shorelines/</code>.</p></div>
+<div class="control-section"><h3>Ansicht & Schärfe</h3><div class="inline-row"><label>Renderqualität</label><select id="quality"><option value="auto">Auto · bis 3×</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></div><label class="checkbox"><input type="checkbox" id="gridToggle"> Hexraster (hinter Objekten)</label><label class="checkbox"><input type="checkbox" id="objectsToggle"> Natur und Gebäude zeigen</label><label class="checkbox"><input type="checkbox" id="riverToggle" checked> Fluss & Straße</label><label class="checkbox"><input type="checkbox" id="edgeBlendToggle" checked> Auto-Tiling: weiche Biomübergänge</label>
+<div class="inline-row"><label>Übergangsbreite <strong id="edgeWidthText">28</strong></label><input id="edgeWidth" type="range" min="8" max="48" step="2" value="28"></div>
+<label class="checkbox"><input type="checkbox" id="blendVariantsToggle" checked> Nur Varianten derselben Geländeart mischen</label>
+<label>Wassertexturen: Darstellung<select id="waterSamplingMode"><option value="hex" selected>Motiv schützen – Bild einmal pro Hex (empfohlen)</option><option value="repeat">Legacy – weltweit wiederholen (A/B-Test)</option></select></label>
+<p class="muted">Motivschutz: Keine innere Bildwiederholung und keine künstliche 22-%-Randmischung. Ein Wrack, Eisberg oder Riff im Texturbild bleibt erhalten. An gemeinsamen Wasserhexkanten wird weiterhin normalisiert gemischt. Echte Einzelobjekte am besten nur auf einem ausgewählten Hex platzieren.</p>
+<div class="inline-row"><label>Organische Kante <strong id="irregularityText">5</strong></label><input id="edgeIrregularity" type="range" min="0" max="12" step="1" value="5" title="Weltverankerte Materialgrenzen leicht organisch verschieben"></div>
+<label class="checkbox"><input type="checkbox" id="cornerBlendToggle" checked> Dreifachkontakte stufenlos mischen</label>
+<div class="inline-row"><label>Diagnosemodus</label><select id="transitionDebugMode"><option value="edges">Kanten</option><option value="weights">Übergangsband</option><option value="types">Geländearten-Kennungen</option><option value="cores">Kernzonen</option></select></div>
+<label class="checkbox"><input type="checkbox" id="edgeDebugToggle"> Kanten & Dreifachkontakte anzeigen</label>
+<div class="infobox" id="waterTransitionStats">Wasserübergänge werden geprüft…</div><div class="infobox" id="selectedTransitionInfo">Hex-Nachbarschaft wird geprüft…</div><div class="infobox" id="autotileStats">Kanten werden analysiert…</div><label class="checkbox"><input type="checkbox" id="seamCheckToggle"> Nahtkontrolle (pink bei Lücken)</label><label class="checkbox"><input type="checkbox" id="boundsToggle"> Gebäudebereich anzeigen</label><div id="sharpnessInfo" class="infobox">Schärfe wird berechnet.</div></div>
+<div class="control-section"><h3>Testszene</h3><p class="muted">Der Auto-Tiling-Test erzeugt angrenzende Biomflächen. Regionale Tests verwenden 7, 19 oder 37 Hexfelder; Gebäude und Flüsse können ausgeblendet werden. Die Geometrie bleibt unverändert.</p><div class="inline-row"><label>Umfang</label><select id="sceneSize"><option value="7">7 Hexfelder</option><option value="19">19 Hexfelder</option><option value="37" selected>37 Hexfelder (Radius 3)</option></select></div><button id="saveScene" class="button outline block">Szene als JSON exportieren</button><label class="button outline block" for="sceneImport">Szene aus JSON importieren</label><input id="sceneImport" type="file" accept=".json" hidden><button id="resetScene" class="button ghost block">Alle Testzuweisungen entfernen</button></div>
+</aside></div>
+<footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
+</div>
+<script src="catalog.js?v=0.11.0"></script><script src="autotile.js?v=0.11.0"></script><script src="nature_catalog.js?v=0.11.0"></script><script src="sprite-planner.js?v=0.11.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.11.0"></script><script src="mountain.js?v=0.11.0"></script><script src="app.js?v=0.11.0"></script><script src="nature-ui.js?v=0.11.0"></script><script src="ui-organizer.js?v=0.11.0"></script>
+</body></html>
