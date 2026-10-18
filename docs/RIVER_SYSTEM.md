@@ -31,3 +31,7 @@ Die separate bisherige Teststraße bleibt erhalten und kann weiterhin über den 
 ## Prüfungen
 
 \`node tests/test_rivers.cjs\` prüft alle sechs Seiten, gerade und gebogene Verbindungen, exakte Nahtpunkte, Quelle an der Ecke, abgerundeten Anfang, Mündung ins Wasser, kein Fluss ohne Wasser, Ausschluss der Küsten-Ufergrafik nur an der Mündung und das biome-neutrale Alpha-Wasser-Overlay. Ein ausführlicher Browser-/Grafikvergleich bleibt eine separate visuelle QA.
+
+## Platzierungserleichterung (19. Oktober 2026)
+
+Auf der Standard-Testkarte sind zunächst 0 Wasserhexe vorhanden. Der ursprüngliche Flussknopf konnte deshalb nie einen Fluss erzeugen. Der neue Knopf **Testfluss mit Wasserhex erzeugen** sucht eine bereits geladene reale Ozean-Wassertextur, setzt sie auf ein bisher unzugewiesenes Randhex und legt eine gültige Flussroute von der ausgewählten Landquelle bis dort an. **Manuelle Flüsse:** Zunächst ein Landhex wählen, auf **Fluss Hex für Hex zeichnen** klicken und dann jeweils direkt benachbarte Hexfelder anklicken. Eine gestrichelte Vorschau markiert den noch unvollständigen Verlauf. Sobald ein Wasserhex als letztes Feld gewählt wird, wird die reguläre, richtungsabhängige Flussdarstellung erzeugt. Ein nicht verbundener Verlauf wird nicht als fertiger Fluss gespeichert. Eigens gesetzte Wasserhexe bleiben beim Löschen der Flüsse bestehen, damit die Karte nicht unerwartet verändert wird.
