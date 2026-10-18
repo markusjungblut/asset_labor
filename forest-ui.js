@@ -55,6 +55,7 @@ window.VedrasForestUI=(()=>{
    if(['water','shoreline'].includes(terrain?.materialClass))continue;
    if(f.jungleHexes[F.key(c.q,c.r)]!==true)added++;
    f.jungleHexes[F.key(c.q,c.r)]=true;
+   delete f.overrides[F.key(c.q,c.r)];
   }
   changed(true);
   $('forestStatus').textContent+=' · '+added+' zusätzliche Dschungel-Hexe markiert.';
