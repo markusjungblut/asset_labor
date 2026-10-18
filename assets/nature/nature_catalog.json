@@ -955,11 +955,11 @@
     },
     "nature/bush_01.png": {
       "id": "existing_bush_01",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 1 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_01.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -977,13 +977,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -997,17 +1000,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_02.png": {
       "id": "existing_bush_02",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 2 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_02.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1025,13 +1028,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1045,17 +1051,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_03.png": {
       "id": "existing_bush_03",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 3 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_03.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1073,13 +1079,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1093,17 +1102,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_04.png": {
       "id": "existing_bush_04",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 4 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_04.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1121,13 +1130,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1141,15 +1153,15 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_05.png": {
       "id": "existing_bush_05",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 5 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_05.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -1169,13 +1181,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1189,15 +1204,15 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "targetHeight": 34
     },
     "nature/bush_06.png": {
       "id": "existing_bush_06",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 6 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_06.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -1217,13 +1232,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1237,17 +1255,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "targetHeight": 34
     },
     "nature/bush_07.png": {
       "id": "existing_bush_07",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 7 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_07.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1265,13 +1283,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1285,17 +1306,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_08.png": {
       "id": "existing_bush_08",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 8 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_08.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1313,13 +1334,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1333,17 +1357,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_09.png": {
       "id": "existing_bush_09",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 9 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_09.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1361,13 +1385,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1381,17 +1408,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_10.png": {
       "id": "existing_bush_10",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 10 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_10.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1409,13 +1436,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1429,17 +1459,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_11.png": {
       "id": "existing_bush_11",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 11 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_11.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1457,13 +1487,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1477,17 +1510,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_12.png": {
       "id": "existing_bush_12",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 12 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_12.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1505,13 +1538,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1525,17 +1561,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_13.png": {
       "id": "existing_bush_13",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 13 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_13.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1553,13 +1589,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1573,17 +1612,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_14.png": {
       "id": "existing_bush_14",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 14 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_14.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1601,13 +1640,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1621,15 +1663,15 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_15.png": {
       "id": "existing_bush_15",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 15 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_15.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -1649,13 +1691,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1669,17 +1714,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "targetHeight": 34
     },
     "nature/bush_16.png": {
       "id": "existing_bush_16",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 16 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_16.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1697,13 +1742,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1717,17 +1765,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_17.png": {
       "id": "existing_bush_17",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 17 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_17.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1745,13 +1793,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1765,17 +1816,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_18.png": {
       "id": "existing_bush_18",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 18 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_18.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1793,13 +1844,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1813,17 +1867,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_19.png": {
       "id": "existing_bush_19",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 19 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_19.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1841,13 +1895,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1861,17 +1918,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 72
     },
     "nature/bush_20.png": {
       "id": "existing_bush_20",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 20 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_20.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1889,13 +1946,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1909,17 +1970,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_21.png": {
       "id": "existing_bush_21",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 21 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_21.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1937,13 +1999,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -1957,17 +2023,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_22.png": {
       "id": "existing_bush_22",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 22 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_22.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -1985,13 +2052,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2005,17 +2076,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_23.png": {
       "id": "existing_bush_23",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 23 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_23.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2033,13 +2105,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2053,17 +2129,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_24.png": {
       "id": "existing_bush_24",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 24 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_24.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2081,13 +2158,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2101,15 +2182,16 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_25.png": {
       "id": "existing_bush_25",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 25 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_25.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -2129,13 +2211,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2149,15 +2235,16 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "targetHeight": 34
     },
     "nature/bush_26.png": {
       "id": "existing_bush_26",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 26 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_26.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -2177,13 +2264,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2197,15 +2288,16 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "targetHeight": 34
     },
     "nature/bush_27.png": {
       "id": "existing_bush_27",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 27 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_27.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -2225,13 +2317,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2245,15 +2341,16 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "targetHeight": 34
     },
     "nature/bush_28.png": {
       "id": "existing_bush_28",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 28 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_28.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -2273,13 +2370,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2293,15 +2394,16 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "targetHeight": 34
     },
     "nature/bush_29.png": {
       "id": "existing_bush_29",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Trockener Busch 29 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar. Größe innerhalb der trockenen Buschreihe vorläufig.",
       "sourceReference": "Bestandsdatei: bush_29.png",
-      "family": "unclassified_bushes",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
@@ -2321,13 +2423,17 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2341,17 +2447,18 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "targetHeight": 34
     },
     "nature/bush_30.png": {
       "id": "existing_bush_30",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 30 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_30.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2369,13 +2476,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2389,17 +2499,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_31.png": {
       "id": "existing_bush_31",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 31 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_31.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2417,13 +2527,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2437,17 +2550,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_32.png": {
       "id": "existing_bush_32",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 32 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_32.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2465,13 +2578,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2485,17 +2601,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_33.png": {
       "id": "existing_bush_33",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Busch 33 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_33.png",
-      "family": "unclassified_bushes",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2513,13 +2629,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2533,17 +2652,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
-      "targetHeight": 34
+      "targetHeight": 49
     },
     "nature/bush_34.png": {
       "id": "existing_bush_34",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 34 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_34.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2553,7 +2672,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2561,13 +2680,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2581,17 +2703,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_35.png": {
       "id": "existing_bush_35",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 35 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_35.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2601,7 +2723,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2609,13 +2731,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2629,17 +2754,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_36.png": {
       "id": "existing_bush_36",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 36 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_36.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2649,7 +2774,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2657,13 +2782,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2677,17 +2805,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_37.png": {
       "id": "existing_bush_37",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 37 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_37.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2697,7 +2825,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2705,13 +2833,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2725,17 +2856,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_38.png": {
       "id": "existing_bush_38",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 38 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_38.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2745,7 +2876,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2753,13 +2884,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2773,17 +2907,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_39.png": {
       "id": "existing_bush_39",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 39 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_39.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2793,7 +2927,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2801,13 +2935,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2821,17 +2958,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_40.png": {
       "id": "existing_bush_40",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 40 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_40.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2841,7 +2978,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2849,13 +2986,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2869,17 +3009,17 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/bush_41.png": {
       "id": "existing_bush_41",
-      "description": "Busch (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Buschgruppe 41 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: bush_41.png",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -2889,7 +3029,7 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_medium_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -2897,13 +3037,16 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -2917,9 +3060,9 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
-      "targetHeight": 34
+      "targetHeight": 69
     },
     "nature/eiche1.png": {
       "id": "existing_eiche1",
@@ -5315,7 +5458,7 @@
     },
     "nature/tanne_schnee_01.png": {
       "id": "existing_tanne_schnee_01",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Kiefer – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_01.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5359,13 +5502,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_02.png": {
       "id": "existing_tanne_schnee_02",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Kiefer – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_02.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5409,13 +5553,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_03.png": {
       "id": "existing_tanne_schnee_03",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Kiefer – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_03.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5459,13 +5604,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_04.png": {
       "id": "existing_tanne_schnee_04",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Kiefer – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_04.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5509,13 +5655,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_05.png": {
       "id": "existing_tanne_schnee_05",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Kiefer – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_05.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5559,13 +5706,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_06.png": {
       "id": "existing_tanne_schnee_06",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Tanne – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_06.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5609,13 +5757,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_07.png": {
       "id": "existing_tanne_schnee_07",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Tanne – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_07.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5659,13 +5808,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_08.png": {
       "id": "existing_tanne_schnee_08",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Tanne – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_08.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5709,13 +5859,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_09.png": {
       "id": "existing_tanne_schnee_09",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Tanne – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_09.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5759,13 +5910,14 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "targetHeight": 174
     },
     "nature/tanne_schnee_10.png": {
       "id": "existing_tanne_schnee_10",
-      "description": "Schneebedeckter Nadelbaum (Art offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
+      "description": "Verschneite Tanne – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: tanne_schnee_10.png",
       "family": "snow_conifers",
       "kind": "tree",
@@ -5809,7 +5961,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "targetHeight": 174
     },
@@ -5968,11 +6121,11 @@
     },
     "nature/tree_12.png": {
       "id": "journal_tree_12",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_12.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -5996,7 +6149,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6010,17 +6163,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_13.png": {
       "id": "journal_tree_13",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_13.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6044,7 +6198,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6058,17 +6212,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_14.png": {
       "id": "journal_tree_14",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_14.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6092,7 +6247,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6106,17 +6261,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_15.png": {
       "id": "journal_tree_15",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_15.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6140,7 +6296,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6154,17 +6310,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_16.png": {
       "id": "journal_tree_16",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_16.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6188,7 +6345,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6202,17 +6359,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_17.png": {
       "id": "journal_tree_17",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_17.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6236,7 +6394,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6250,17 +6408,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_18.png": {
       "id": "journal_tree_18",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_18.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6284,7 +6443,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6298,17 +6457,18 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/tree_19.png": {
       "id": "journal_tree_19",
-      "description": "Klassifizierter Journal-Spezialbaum für die API. Keine gewöhnliche Baumart und keine automatische Weltplatzierung.",
+      "description": "Kapokbaum – Journal-Spezialasset für die API; nicht für automatisches oder manuelles Platzieren auf der Weltkarte freigegeben.",
       "sourceReference": "Bestandsdatei: tree_19.png",
-      "family": "journal_trees",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -6332,7 +6492,7 @@
       "placement": {
         "weight": 0,
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false,
         "edgeMargin": 12
       },
@@ -6346,9 +6506,10 @@
       "tags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
-      "targetHeight": 130
+      "targetHeight": 225
     },
     "nature/wacholder1.png": {
       "id": "existing_wacholder1",
