@@ -23,7 +23,10 @@ assert(wetland.some(x=>x.meta.kind==='tree'),'wetland forests');
 assert(cold.some(x=>x.meta.kind==='tree'&&x.meta.family==='snow_conifers'),'snow-covered conifers in cold biomes');
 assert(jungle.some(x=>x.meta.kind==='tree'&&x.meta.family==='palms'),'real palm sprites available for jungle biome');
 assert(!jungle.some(x=>x.meta.family==='savanna_trees'),'savanna tree silhouettes excluded from closed jungle');
-assert(!jungle.some(x=>x.meta.tags.includes('journal_api')),'journal Kapok assets remain API-only');
+const kapok=jungle.filter(x=>x.meta.tags.includes('kapok'));
+assert.equal(kapok.length,8,'all eight Kapok trees spawn in jungle');
+assert(kapok.every(x=>x.meta.kind==='tree'&&x.meta.placement.density>0),'Kapok are normal spawnable trees');
+assert(!grassland.some(x=>x.meta.tags.includes('kapok')),'Kapok spawn is restricted to jungle');
 assert(F.treeTarget({forestClass:'dense_forest',suitability:1})>F.treeTarget({forestClass:'light_forest',suitability:1}));
 assert(F.treeTarget({forestClass:'light_forest',suitability:1})>F.treeTarget({forestClass:'none',suitability:1,density:.12}));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
@@ -41,4 +44,4 @@ for(const script of ['forest.js?v=0.12.0','forest-ui.js?v=0.12.0']){
 for(const id of ['forestEnabled','forestCoverage','forestEdge','forestHexLight','forestHexDense','forestHexNone','forestHexAuto','forestMakeJungle','forestClearJungle','forestApply']){
  assert(html.includes('id="'+id+'"'),'missing UI control: '+id);
 }
-console.log('PASS: real woodland, cold and wetland trees, jungle palms, journal Kapok exclusion, independent forest scene export and UI wiring.');
+console.log('PASS: real woodland, cold and wetland trees, jungle palms and ordinary Kapok trees, independent forest scene export and UI wiring.');
