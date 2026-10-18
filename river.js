@@ -1,7 +1,7 @@
-/* Vedras river topology and transparent water-only rendering, v0.14.
+/* Vedras river topology and transparent water-only EDGE rendering, v0.15.
  * Side order and axial geometry are EXACTLY VedrasShoreline / VedrasAutotile.
  * A source uses ordinary water, only its unconnected end is rounded at a corner.
- * Interior connections are cut exactly at the shared hex edge and join seamlessly.
+ * Interior channels follow linked hex SIDES / CORNERS, never their centres.
  */
 'use strict';
 window.VedrasRivers=(()=>{
@@ -48,21 +48,66 @@ window.VedrasRivers=(()=>{
   }
   return null;
  }
+ // Every river pixel lies near an actual hex EDGE, not the hex centre.
+ // A route carries land cells; for each land/next-cell shared SIDE, select a
+ // common vertex (one of the side's two corners), and walk along the perimeter
+ // of the current hex to that vertex. Dynamic programming chooses a continuous,
+ // short, deterministic edge-chain across all selected cells.
+ const near=(a,b)=>Math.abs(a.x-b.x)<1e-5&&Math.abs(a.y-b.y)<1e-5;
+ function cornerIndex(cell,point){
+  return vertices(cell).findIndex(v=>near(v,point));
+ }
+ function edgeWalk(cell,from,to){
+  const v=vertices(cell),a=cornerIndex(cell,from),b=cornerIndex(cell,to);
+  if(a<0||b<0)throw Error('River edge-chain has a non-corner waypoint');
+  const forward=(b-a+6)%6,backward=(a-b+6)%6;
+  const step=forward<=backward?1:-1,n=Math.min(forward,backward);
+  return Array.from({length:n+1},(_,i)=>v[(a+step*i+6*2)%6]);
+ }
  function sections(route,cells,isWet){
   if(!valid(route,cells,isWet))return [];
-  const points=route.hexes.map(norm),list=[];
-  for(let i=0;i<points.length-1;i++){
-   const c=points[i],to=points[i+1];
-   const outSide=side(c,to),inSide=i?side(c,points[i-1]):null;
-   // The free end of the source lies EXACTLY on a hex corner, rather than
-   // being another special illustration. Default is the opposite corner.
-   const corner=i===0?(route.corner??((outSide+3)%6)):null;
-   const classification=i===0?(i===points.length-2?'source_mouth':'source'):
-     i===points.length-2?'mouth':((inSide+3)%6===outSide?'straight':'curve');
-   list.push({q:c.q,r:c.r,kind:classification,inSide,outSide,corner,
-    start:corner===null?midpoint(c,inSide):vertices(c)[corner],center:pos(c),end:midpoint(c,outSide)});
+  const points=route.hexes.map(norm),last=points.length-2;
+  const options=points.slice(0,-1).map((c,i)=>{
+   const s=side(c,points[i+1]),v=vertices(c);
+   return [v[s],v[(s+1)%6]];
+  });
+  const sourceSide=side(points[0],points[1]);
+  const corner=route.corner??((sourceSide+3)%6);
+  const origin=vertices(points[0])[corner];
+  const dp=options.map(()=>[Infinity,Infinity]),parent=options.map(()=>[0,0]);
+  for(let k=0;k<2;k++)dp[0][k]=edgeWalk(points[0],origin,options[0][k]).length-1;
+  for(let i=1;i<options.length;i++){
+   for(let k=0;k<2;k++){
+    for(let j=0;j<2;j++){
+     const distance=edgeWalk(points[i],options[i-1][j],options[i][k]).length-1;
+     const cost=dp[i-1][j]+distance;
+     if(cost<dp[i][k]){dp[i][k]=cost;parent[i][k]=j;}
+    }
+   }
   }
-  return list;
+  const gates=new Array(options.length);
+  let chosen=dp[last][0]<=dp[last][1]?0:1;
+  for(let i=last;i>=0;i--){gates[i]=options[i][chosen];chosen=parent[i][chosen];}
+  const result=[];
+  for(let i=0;i<=last;i++){
+   const c=points[i],inSide=i?side(c,points[i-1]):null,outSide=side(c,points[i+1]);
+   const start=i?gates[i-1]:origin,end=gates[i];
+   const boundary=edgeWalk(c,start,end);
+   result.push({q:c.q,r:c.r,
+    kind:i===0?(i===last?'source_mouth':'source'):i===last?'mouth':((inSide+3)%6===outSide?'straight':'curve'),
+    inSide,outSide,corner:i===0?corner:null,start,end,center:pos(c),
+    path:boundary,
+    // Each pair of path points follows a real side of this specific hex.
+    edgeSides:boundary.slice(1).map((v,j)=>{const a=cornerIndex(c,boundary[j]),b=cornerIndex(c,v);return b===(a+1)%6?a:b;})
+   });
+  }
+  return result;
+ }
+ function mouthTip(segments,route,width=32){
+  const last=segments[segments.length-1],water=pos(norm(route.hexes.at(-1)));
+  const land=pos(last),dx=water.x-land.x,dy=water.y-land.y;
+  const len=Math.hypot(dx,dy)||1;
+  return {x:last.end.x+dx/len*(width*.88),y:last.end.y+dy/len*(width*.88)};
  }
  function mouths(routes,cells,isWet){
   const set=new Set();
@@ -72,37 +117,27 @@ window.VedrasRivers=(()=>{
   }
   return set;
  }
- function trace(ctx,route,cells,isWet,groundY=null){
+ function trace(ctx,route,cells,isWet,groundY=null,width=32){
   const segments=sections(route,cells,isWet);
   if(!segments.length)return null;
-  const start=segments[0].start,water=pos(norm(route.hexes[route.hexes.length-1]));
+  const start=segments[0].start,water=pos(norm(route.hexes.at(-1)));
   const height=(x,y)=>groundY?groundY(x,y):y;
   ctx.moveTo(start.x,height(start.x,start.y));
+  // No quadratic-to-centre curves. Move along vertices of the SIX real hex
+  // edges, joining across shared corners with no gap or artificial beach.
   for(const s of segments){
-   // Each segment meets its neighbor at the EXACT shared edge midpoint.
-   // Relief follows the same height sample on both sides of a shared edge.
-   if(groundY){
-    for(let i=1;i<=16;i++){
-     const t=i/16,a=1-t,x=a*a*s.start.x+2*a*t*s.center.x+t*t*s.end.x;
-     const y=a*a*s.start.y+2*a*t*s.center.y+t*t*s.end.y;
-     ctx.lineTo(x,height(x,y));
-    }
-   }else ctx.quadraticCurveTo(s.center.x,s.center.y,s.end.x,s.end.y);
+   for(const v of s.path.slice(1))ctx.lineTo(v.x,height(v.x,v.y));
   }
-  // A short extension into the actual water tile; fade its alpha there.
-  const exit=segments[segments.length-1].end;
-  const mouth={x:exit.x+(water.x-exit.x)*.52,y:exit.y+(water.y-exit.y)*.52};
-  if(groundY){
-   for(let i=1;i<=8;i++){const k=i/8,x=exit.x+(mouth.x-exit.x)*k,y=exit.y+(mouth.y-exit.y)*k;ctx.lineTo(x,height(x,y));}
-  }else ctx.lineTo(mouth.x,mouth.y);
-  return {segments,start,end:exit,water};
+  const mouth=mouthTip(segments,route,width);
+  ctx.lineTo(mouth.x,height(mouth.x,mouth.y));
+  return {segments,start,end:segments.at(-1).end,water,mouth};
  }
  function render(ctx,route,cells,isWet,waterImage,options={}){
   if(!valid(route,cells,isWet))return null;
   const segments=sections(route,cells,isWet),width=Math.max(12,Math.min(70,Number(options.width)||32));
   const wpos=pos(norm(route.hexes.at(-1)));
   const groundY=typeof options.groundY==='function'?options.groundY:null;
-  const points=[...segments.flatMap(s=>[s.start,s.center,s.end]),wpos];
+  const points=[...segments.flatMap(s=>s.path),mouthTip(segments,route,width),wpos];
   const pad=width+34,x=Math.floor(Math.min(...points.map(p=>p.x))-pad);
   const y=Math.floor(Math.min(...points.map(p=>groundY?groundY(p.x,p.y):p.y))-pad);
   const xmax=Math.ceil(Math.max(...points.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...points.map(p=>groundY?groundY(p.x,p.y):p.y))+pad);
@@ -112,7 +147,7 @@ window.VedrasRivers=(()=>{
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d');g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
   const traceStroke=(strokeWidth,alpha)=>{
-   g.beginPath();trace(g,route,cells,isWet,groundY);g.lineJoin='round';g.lineCap='round';
+   g.beginPath();trace(g,route,cells,isWet,groundY,width);g.lineJoin='round';g.lineCap='round';
    g.strokeStyle='rgba(255,255,255,'+alpha+')';g.lineWidth=strokeWidth;g.stroke();
   };
   // All bands are WATER ALPHA only: no sand, beach, bank or border material.
@@ -135,7 +170,7 @@ window.VedrasRivers=(()=>{
   // River becomes indistinguishable from WATER within the receiving tile:
   // smoothly remove the overlay; never place a flat color cap in the sea.
   const last=segments[segments.length-1].end;
-  const mouth={x:last.x+(wpos.x-last.x)*.52,y:last.y+(wpos.y-last.y)*.52};
+  const mouth=mouthTip(segments,route,width);
   g.save();g.globalCompositeOperation='destination-out';
   g.beginPath();g.moveTo(last.x,groundY?groundY(last.x,last.y):last.y);g.lineTo(mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
   const grad=g.createLinearGradient(last.x,groundY?groundY(last.x,last.y):last.y,mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
@@ -150,5 +185,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,key,pos,vertices,side,midpoint,valid,findRoute,sections,mouths,trace,render,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,trace,render,normalizeRoutes};
 })();
