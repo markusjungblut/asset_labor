@@ -13,7 +13,7 @@ git clone https://github.com/markusjungblut/asset_labor.git
 cd asset_labor
 ```
 
-**Aktueller Stand:** Seit dem Asset-Import-Commit `2933ec5` enthält das öffentliche Repository bereits echte PNG-Dateien in `assets/`. Bereits getrackte Dateien werden nicht durch `.gitignore` versteckt; nur neue Bilddateien sowie `nature_catalog.json` und `terrain_catalog.json` sind von unbeabsichtigten Commits ausgeschlossen. Benutzerkataloge vor Änderungen und Migrationen lokal sichern. Keine PNGs auf Verdacht löschen oder umbenennen.
+**Aktueller Stand:** Seit dem Asset-Import-Commit `2933ec5` enthält das öffentliche Repository bereits echte PNG-Dateien in `assets/`. Bereits getrackte Dateien werden nicht durch `.gitignore` versteckt; am 18.10.2026 wurden die PNG-/Katalog-Ignore-Regeln vom Nutzer entfernt und beide tatsächlichen Kataloge eingecheckt. Neue Grafikdateien sind jetzt ebenfalls manuell über `git add`/`git commit`/`git push` versionierbar. Benutzerkataloge vor Änderungen und Migrationen lokal sichern. Keine PNGs auf Verdacht löschen oder umbenennen.
 
 ```bash
 python server.py
