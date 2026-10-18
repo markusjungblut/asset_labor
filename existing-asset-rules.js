@@ -63,7 +63,7 @@ window.VedrasExistingAssets = (() => {
   asset?.category==='nature' && !isJournal(asset) && !!meta &&
   meta.kind!=='mountain' && meta.artStatus!=='deprecated' &&
   meta.placement?.density>0 && meta.placement?.weight>0 &&
-  terrainTypes instanceof Set && terrainTypes.size>0;
+  terrainTypes?.size>0;
  function metadata(info, tmpl, filename) {
   const mountain=info.kind==='mountain',ground=info.kind==='ground_cover',tree=info.kind==='tree';
   const [categories,baseDensity,baseSpacing]=habitat[info.family]||[[],0,info.kind==='tree'?90:44];
