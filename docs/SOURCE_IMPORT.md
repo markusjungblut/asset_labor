@@ -8,7 +8,7 @@ Relevante Dateien: `app.js`, `autotile.js`, `nature-ui.js`, `mountain.js`, `spri
 
 ## Was bewusst noch nicht auf GitHub liegt
 
-- Die beiden tatsächlichen, individuell bearbeiteten Katalogdateien `assets/nature/nature_catalog.json` und `assets/terrain/terrain_catalog.json` bleiben weiterhin privat/lokal. **Ausnahme beim Bildbestand:** Seit dem späteren Commit `2933ec5` sind bereits 263 echte PNG-Bilder (148 Nature, 105 Terrain, 4 Schatten, 6 Ufer) im Git-Repository versioniert. Nicht davon ausgehen, dass sämtliche PNGs nur lokal existieren.
+- Die beiden tatsächlichen Katalogdateien `assets/nature/nature_catalog.json` und `assets/terrain/terrain_catalog.json` wurden inzwischen ausdrücklich vom Nutzer ins Git-Repository aufgenommen. Im aktuellen Stand sind 262 PNGs (148 Nature, 104 Terrain, 4 Schatten, 6 Ufer) getrackt. `.bak`-Sicherungen bleiben lokal. Vor einem Commit die geänderten Dateinamen und Metadaten prüfen.
 - Temporäre Testbilder unter `previews/` und Katalogsicherungen (`*.bak`).
 - Eine produktive 30×30-Weltgenerator-Integration.
 
@@ -36,4 +36,4 @@ Die Dateien bleiben für den lokalen Betrieb erhalten. Die komplette Demo-Vollve
 
 ## Sicherheit
 
-Die aktuelle `.gitignore` schließt `assets/`, `previews/`, Sicherungen und temporäre Dateien aus. Sie schützt aber keine persönlichen Geheimnisse, die an einem anderen Pfad abgelegt werden: Vor jedem Commit `git status` und `git diff --cached --name-only` prüfen. Die Quelle der Wahrheit für Produktionsgrafiken bleibt vorerst deine **lokale** Bibliothek.
+Die aktuelle `.gitignore` schließt NICHT mehr PNGs oder echte Kataloge aus, sondern nur `previews/`, Sicherungen und temporäre Dateien. Sie schützt aber keine persönlichen Geheimnisse, die an einem anderen Pfad abgelegt werden: Vor jedem Commit `git status` und `git diff --cached --name-only` prüfen. Die Quelle der Wahrheit für Produktionsgrafiken bleibt vorerst deine **lokale** Bibliothek.
