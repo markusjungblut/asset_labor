@@ -1,0 +1,3805 @@
+{
+  "schemaVersion": 1,
+  "description": "Dateinamengestützte Bestandsklassifikation von 148 tatsächlich vorhandenen Nature-Bildern (kein Bild-Platzhalter, keine automatische Produktionsfreigabe). Alle Biom-, Größen- und Dichtewerte sind prüfpflichtige Vorschläge; individuelle vorhandene Nature-Katalogeinträge haben Vorrang.",
+  "sourceOfTruth": "existing-asset-rules.js",
+  "sourceCommitDate": "2026-10-18",
+  "entryCount": 148,
+  "entries": [
+    {
+      "id": "existing_affenbrotbaum1",
+      "path": "assets/nature/affenbrotbaum1.png",
+      "name": "Affenbrotbaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_affenbrotbaum2",
+      "path": "assets/nature/affenbrotbaum2.png",
+      "name": "Affenbrotbaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_affenbrotbaum3",
+      "path": "assets/nature/affenbrotbaum3.png",
+      "name": "Affenbrotbaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ahorn1",
+      "path": "assets/nature/ahorn1.png",
+      "name": "Ahorn",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ahorn2",
+      "path": "assets/nature/ahorn2.png",
+      "name": "Ahorn",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ahorn3",
+      "path": "assets/nature/ahorn3.png",
+      "name": "Ahorn",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_berg_01",
+      "path": "assets/nature/berg_01.png",
+      "name": "Berg (Typ offen)",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "targetHeight": 310,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_berg_02",
+      "path": "assets/nature/berg_02.png",
+      "name": "Berg (Typ offen)",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "targetHeight": 310,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_berg_03",
+      "path": "assets/nature/berg_03.png",
+      "name": "Berg (Typ offen)",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "targetHeight": 310,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_berg_04",
+      "path": "assets/nature/berg_04.png",
+      "name": "Berg (Typ offen)",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "targetHeight": 310,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_besenheide1",
+      "path": "assets/nature/besenheide1.png",
+      "name": "Besenheide",
+      "family": "heath",
+      "kind": "ground_cover",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 17,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.25,
+        "minSpacing": 26,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_besenheide2",
+      "path": "assets/nature/besenheide2.png",
+      "name": "Besenheide",
+      "family": "heath",
+      "kind": "ground_cover",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 17,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.25,
+        "minSpacing": 26,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_besenheide3",
+      "path": "assets/nature/besenheide3.png",
+      "name": "Besenheide",
+      "family": "heath",
+      "kind": "ground_cover",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 17,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.25,
+        "minSpacing": 26,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_birke1",
+      "path": "assets/nature/birke1.png",
+      "name": "Birke",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_birke2",
+      "path": "assets/nature/birke2.png",
+      "name": "Birke",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_birke3",
+      "path": "assets/nature/birke3.png",
+      "name": "Birke",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 126,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_buche1",
+      "path": "assets/nature/buche1.png",
+      "name": "Buche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_buche2",
+      "path": "assets/nature/buche2.png",
+      "name": "Buche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_buche3",
+      "path": "assets/nature/buche3.png",
+      "name": "Buche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_bush_01",
+      "path": "assets/nature/bush_01.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_02",
+      "path": "assets/nature/bush_02.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_03",
+      "path": "assets/nature/bush_03.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_04",
+      "path": "assets/nature/bush_04.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_05",
+      "path": "assets/nature/bush_05.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_06",
+      "path": "assets/nature/bush_06.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_07",
+      "path": "assets/nature/bush_07.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_08",
+      "path": "assets/nature/bush_08.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_09",
+      "path": "assets/nature/bush_09.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_10",
+      "path": "assets/nature/bush_10.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_11",
+      "path": "assets/nature/bush_11.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_12",
+      "path": "assets/nature/bush_12.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_13",
+      "path": "assets/nature/bush_13.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_14",
+      "path": "assets/nature/bush_14.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_15",
+      "path": "assets/nature/bush_15.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_16",
+      "path": "assets/nature/bush_16.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_17",
+      "path": "assets/nature/bush_17.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_18",
+      "path": "assets/nature/bush_18.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_19",
+      "path": "assets/nature/bush_19.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_20",
+      "path": "assets/nature/bush_20.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_21",
+      "path": "assets/nature/bush_21.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_22",
+      "path": "assets/nature/bush_22.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_23",
+      "path": "assets/nature/bush_23.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_24",
+      "path": "assets/nature/bush_24.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_25",
+      "path": "assets/nature/bush_25.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_26",
+      "path": "assets/nature/bush_26.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_27",
+      "path": "assets/nature/bush_27.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_28",
+      "path": "assets/nature/bush_28.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_29",
+      "path": "assets/nature/bush_29.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_30",
+      "path": "assets/nature/bush_30.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_31",
+      "path": "assets/nature/bush_31.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_32",
+      "path": "assets/nature/bush_32.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_33",
+      "path": "assets/nature/bush_33.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_34",
+      "path": "assets/nature/bush_34.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_35",
+      "path": "assets/nature/bush_35.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_36",
+      "path": "assets/nature/bush_36.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_37",
+      "path": "assets/nature/bush_37.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_38",
+      "path": "assets/nature/bush_38.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_39",
+      "path": "assets/nature/bush_39.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_40",
+      "path": "assets/nature/bush_40.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_bush_41",
+      "path": "assets/nature/bush_41.png",
+      "name": "Busch (Art offen)",
+      "family": "unclassified_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_eiche1",
+      "path": "assets/nature/eiche1.png",
+      "name": "Eiche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_eiche2",
+      "path": "assets/nature/eiche2.png",
+      "name": "Eiche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_eiche3",
+      "path": "assets/nature/eiche3.png",
+      "name": "Eiche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_esche1",
+      "path": "assets/nature/esche1.png",
+      "name": "Esche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_esche2",
+      "path": "assets/nature/esche2.png",
+      "name": "Esche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_esche3",
+      "path": "assets/nature/esche3.png",
+      "name": "Esche",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ginster1",
+      "path": "assets/nature/ginster1.png",
+      "name": "Ginster",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ginster2",
+      "path": "assets/nature/ginster2.png",
+      "name": "Ginster",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_ginster3",
+      "path": "assets/nature/ginster3.png",
+      "name": "Ginster",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_haselstrauch1",
+      "path": "assets/nature/haselstrauch1.png",
+      "name": "Haselstrauch",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_haselstrauch2",
+      "path": "assets/nature/haselstrauch2.png",
+      "name": "Haselstrauch",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_haselstrauch3",
+      "path": "assets/nature/haselstrauch3.png",
+      "name": "Haselstrauch",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_holunder_01",
+      "path": "assets/nature/holunder_01.png",
+      "name": "Holunder",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_holunder_02",
+      "path": "assets/nature/holunder_02.png",
+      "name": "Holunder",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_holunder_03",
+      "path": "assets/nature/holunder_03.png",
+      "name": "Holunder",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_larche1",
+      "path": "assets/nature/lärche1.png",
+      "name": "Lärche",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_linde1",
+      "path": "assets/nature/linde1.png",
+      "name": "Linde",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_linde2",
+      "path": "assets/nature/linde2.png",
+      "name": "Linde",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_linde3",
+      "path": "assets/nature/linde3.png",
+      "name": "Linde",
+      "family": "deciduous_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands",
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.14,
+        "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_palme_01",
+      "path": "assets/nature/palme_01.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_02",
+      "path": "assets/nature/palme_02.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_03",
+      "path": "assets/nature/palme_03.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_04",
+      "path": "assets/nature/palme_04.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_05",
+      "path": "assets/nature/palme_05.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_06",
+      "path": "assets/nature/palme_06.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_07",
+      "path": "assets/nature/palme_07.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_08",
+      "path": "assets/nature/palme_08.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_09",
+      "path": "assets/nature/palme_09.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_10",
+      "path": "assets/nature/palme_10.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_palme_11",
+      "path": "assets/nature/palme_11.png",
+      "name": "Palme (Art offen)",
+      "family": "palms",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "water_coast",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 96,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_schirmakazie1",
+      "path": "assets/nature/schirmakazie1.png",
+      "name": "Schirmakazie",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schirmakazie2",
+      "path": "assets/nature/schirmakazie2.png",
+      "name": "Schirmakazie",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schirmakazie3",
+      "path": "assets/nature/schirmakazie3.png",
+      "name": "Schirmakazie",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schlehe1",
+      "path": "assets/nature/schlehe1.png",
+      "name": "Schlehe",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schlehe2",
+      "path": "assets/nature/schlehe2.png",
+      "name": "Schlehe",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schlehe3",
+      "path": "assets/nature/schlehe3.png",
+      "name": "Schlehe",
+      "family": "temperate_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
+      "placement": {
+        "density": 0.22,
+        "minSpacing": 43,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_tanne_01",
+      "path": "assets/nature/tanne_01.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_02",
+      "path": "assets/nature/tanne_02.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_03",
+      "path": "assets/nature/tanne_03.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_04",
+      "path": "assets/nature/tanne_04.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_05",
+      "path": "assets/nature/tanne_05.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_06",
+      "path": "assets/nature/tanne_06.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_07",
+      "path": "assets/nature/tanne_07.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_08",
+      "path": "assets/nature/tanne_08.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_09",
+      "path": "assets/nature/tanne_09.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_10",
+      "path": "assets/nature/tanne_10.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_11",
+      "path": "assets/nature/tanne_11.png",
+      "name": "Nadelbaum (Art offen)",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_01",
+      "path": "assets/nature/tanne_schnee_01.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_02",
+      "path": "assets/nature/tanne_schnee_02.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_03",
+      "path": "assets/nature/tanne_schnee_03.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_04",
+      "path": "assets/nature/tanne_schnee_04.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_05",
+      "path": "assets/nature/tanne_schnee_05.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_06",
+      "path": "assets/nature/tanne_schnee_06.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_07",
+      "path": "assets/nature/tanne_schnee_07.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_08",
+      "path": "assets/nature/tanne_schnee_08.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_09",
+      "path": "assets/nature/tanne_schnee_09.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tanne_schnee_10",
+      "path": "assets/nature/tanne_schnee_10.png",
+      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "family": "snow_conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 92,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_thymian_01",
+      "path": "assets/nature/thymian_01.png",
+      "name": "Thymian",
+      "family": "herbs",
+      "kind": "ground_cover",
+      "sizeClass": "tiny",
+      "sizeMode": "class",
+      "targetHeight": 10,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.24,
+        "minSpacing": 23,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_thymian_02",
+      "path": "assets/nature/thymian_02.png",
+      "name": "Thymian",
+      "family": "herbs",
+      "kind": "ground_cover",
+      "sizeClass": "tiny",
+      "sizeMode": "class",
+      "targetHeight": 10,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.24,
+        "minSpacing": 23,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_thymian_03",
+      "path": "assets/nature/thymian_03.png",
+      "name": "Thymian",
+      "family": "herbs",
+      "kind": "ground_cover",
+      "sizeClass": "tiny",
+      "sizeMode": "class",
+      "targetHeight": 10,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions",
+        "arid_regions"
+      ],
+      "placement": {
+        "density": 0.24,
+        "minSpacing": 23,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "journal_tree_12",
+      "path": "assets/nature/tree_12.png",
+      "name": "Journal-Spezialbaum 12",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_13",
+      "path": "assets/nature/tree_13.png",
+      "name": "Journal-Spezialbaum 13",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_14",
+      "path": "assets/nature/tree_14.png",
+      "name": "Journal-Spezialbaum 14",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_15",
+      "path": "assets/nature/tree_15.png",
+      "name": "Journal-Spezialbaum 15",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_16",
+      "path": "assets/nature/tree_16.png",
+      "name": "Journal-Spezialbaum 16",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_17",
+      "path": "assets/nature/tree_17.png",
+      "name": "Journal-Spezialbaum 17",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_18",
+      "path": "assets/nature/tree_18.png",
+      "name": "Journal-Spezialbaum 18",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "journal_tree_19",
+      "path": "assets/nature/tree_19.png",
+      "name": "Journal-Spezialbaum 19",
+      "family": "journal_trees",
+      "kind": "special",
+      "sizeClass": "large",
+      "sizeMode": "manual",
+      "targetHeight": 130,
+      "allowedTerrainCategories": [],
+      "placement": {
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "journal_api",
+        "no_auto_spawn"
+      ],
+      "apiOnly": true,
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_wacholder1",
+      "path": "assets/nature/wacholder1.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wacholder2",
+      "path": "assets/nature/wacholder2.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wacholder3",
+      "path": "assets/nature/wacholder3.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weissdorn1",
+      "path": "assets/nature/weißdorn1.png",
+      "name": "Weißdorn",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weissdorn2",
+      "path": "assets/nature/weißdorn2.png",
+      "name": "Weißdorn",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weissdorn3",
+      "path": "assets/nature/weißdorn3.png",
+      "name": "Weißdorn",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wildrose1",
+      "path": "assets/nature/wildrose1.png",
+      "name": "Wildrose",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wildrose2",
+      "path": "assets/nature/wildrose2.png",
+      "name": "Wildrose",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wildrose3",
+      "path": "assets/nature/wildrose3.png",
+      "name": "Wildrose",
+      "family": "flowering_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "warm_regions"
+      ],
+      "placement": {
+        "density": 0.19,
+        "minSpacing": 42,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder1",
+      "path": "assets/nature/zeder1.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder2",
+      "path": "assets/nature/zeder2.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder3",
+      "path": "assets/nature/zeder3.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder4",
+      "path": "assets/nature/zeder4.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder5",
+      "path": "assets/nature/zeder5.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zeder6",
+      "path": "assets/nature/zeder6.png",
+      "name": "Zeder",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zypresse1",
+      "path": "assets/nature/zypresse1.png",
+      "name": "Zypresse",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zypresse2",
+      "path": "assets/nature/zypresse2.png",
+      "name": "Zypresse",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zypresse3",
+      "path": "assets/nature/zypresse3.png",
+      "name": "Zypresse",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zypresse4",
+      "path": "assets/nature/zypresse4.png",
+      "name": "Zypresse",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_zypresse5",
+      "path": "assets/nature/zypresse5.png",
+      "name": "Zypresse",
+      "family": "conifers",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "apiOnly": false,
+      "speciesConfirmed": true
+    }
+  ]
+}
