@@ -174,7 +174,13 @@ window.VedrasNature=(()=>{
     return allowed.has(terrainType)||(terrainType==='forest_floor'&&c.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster'].includes(m.kind));
    });
    if(possible.length)suitableCells++;
-   const trees=possible.filter(a=>entryFor(a).kind==='tree').sort((a,b)=>rank(a,c,301)-rank(b,c,301));
+   const treePriority=a=>{
+    const p=entryFor(a).placement;
+    // Häufigkeit aus dem Nature-Katalog beachten; seltene Baumarten werden
+    // trotz dichter Waldklasse nicht so häufig wie gewöhnliche Bäume gezogen.
+    return rank(a,c,301)/Math.max(.04,p.density*Math.min(1,p.weight));
+   };
+   const trees=possible.filter(a=>entryFor(a).kind==='tree').sort((a,b)=>treePriority(a)-treePriority(b));
    const other=possible.filter(a=>entryFor(a).kind!=='tree').sort((a,b)=>rank(a,c,302)-rank(b,c,302));
    const wantedTrees=F.treeTarget(f),objectCap=F.maxObjects(f);
    const spacingFactor=f?.forestClass==='dense_forest'?.67:f?.forestClass==='light_forest'?.82:.95;
