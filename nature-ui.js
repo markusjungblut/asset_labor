@@ -58,9 +58,8 @@ window.VedrasNature=(()=>{
  }
  function setForm(a){selected=a?.category==='nature'?a:null;$('natureInspector').classList.toggle('hidden',!selected);
   if(!selected){$('nAddToHex').disabled=false;return;}
-  const journal=window.VedrasExistingAssets?.isJournal(selected)||false;
-  $('nAddToHex').disabled=journal;
-  $('nAddToHex').title=journal?'Journal-Spezialbaum: nur für die API, nicht auf der Weltkarte platzierbar.':'';
+  $('nAddToHex').disabled=false;
+  $('nAddToHex').title='Ausgewähltes Nature-Sprite auf das Hex setzen';
   alphaInspect(selected);
   const m=entryFor(selected)||suggest(selected);
   const val=(id,x)=>{$(id).value=x??'';};
@@ -144,7 +143,6 @@ window.VedrasNature=(()=>{
  }
  function saved(){core.persistScene();core.requestDraw();renderPlaced();}
  function placeSelected(){const a=core.assets().find(a=>a.path===state.asset);if(a?.category!=='nature'){message('Bitte links ein Nature-Sprite wählen.');return;}
-  if(window.VedrasExistingAssets?.isJournal(a)){message('Journal-Spezialbäume sind API-Assets und dürfen nicht auf die Weltkarte platziert werden.');return;}
   const meta=entryFor(a);if(!meta){message('Zuerst Sprite-Metadaten speichern.');return;}
   const [q,r]=state.selected.split(',').map(Number);const arr=state.natureInstances||[];
   const instance=makeInstance(a,q,r,arr.filter(x=>x.q===q&&x.r===r).length+1,arr,Number($('nSeed').value)||12345);
