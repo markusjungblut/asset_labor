@@ -1,6 +1,6 @@
 # Vedras Reiche – Asset-Labor v0.11.0
 
-**Aktueller Stand:** v0.11.0 mit 37-Hex-Testkarte, 45 zukünftigen Sprite-Profilen und geprüftem Bestandsmanifest: 25 Geländequellfamilien (104 PNGs), 148 Nature-PNGs inklusive acht API-Journal-Spezialbäumen. Eindeutige Dateinamen liefern Metadatenvorschläge, bestehende Katalogwerte werden nicht überschrieben. Neue Vorschläge bleiben bis zur Bildabnahme Kandidaten.
+**Aktueller Stand:** v0.11.0 mit 37-Hex-Testkarte, 17 tatsächlich offenen Spritearten (ursprünglich 45 Planposten) und geprüftem Bestandsmanifest: 25 Geländequellfamilien (104 PNGs), 148 Nature-PNGs inklusive acht API-Journal-Spezialbäumen. Eindeutige Dateinamen liefern Metadatenvorschläge, bestehende Katalogwerte werden nicht überschrieben. Neue Vorschläge bleiben bis zur Bildabnahme Kandidaten.
 
 **[Quellcode auf GitHub](https://github.com/markusjungblut/asset_labor)** · **[Verbindliche Grafikentscheidungen](https://github.com/markusjungblut/browsergame/blob/main/docs/graphics/Design.md)** · **[Release-Hinweise](README_V0110_UPDATE.md)**
 
@@ -163,7 +163,7 @@ Testaufrufe: `python tests/test_nature_v09_api.py` (Server) und `python tests/te
 
 ## Quellcode und geplanter Sprite-Katalog (v0.11.0)
 
-Der kanonische **Asset-Labor-Quellstand** liegt im separaten Repository [markusjungblut/asset_labor](https://github.com/markusjungblut/asset_labor). Dort liegen Programmcode, Tests und `plans/sprite_catalog_plan.json` (45 geplante Objekte). Designentscheidungen aus dem Gesamtspiel werden weiterhin in `browsergame/docs/graphics/Design.md` abgestimmt.
+Der kanonische **Asset-Labor-Quellstand** liegt im separaten Repository [markusjungblut/asset_labor](https://github.com/markusjungblut/asset_labor). Dort liegen Programmcode, Tests und `plans/sprite_catalog_plan.json` (17 offene Vorhaben, 28 abgeglichene ältere Planposten). Designentscheidungen aus dem Gesamtspiel werden weiterhin in `browsergame/docs/graphics/Design.md` abgestimmt.
 
 **Git-Stand nach Nutzer-Commit vom 18.10.2026:** In `assets/` sind inzwischen 148 Nature-PNGs, 104 Terrain-PNGs, 4 Schatten-PNGs und 6 Ufer-PNGs versioniert. Ebenso sind `assets/nature/nature_catalog.json` und `assets/terrain/terrain_catalog.json` jetzt eingecheckt. Die Nutzerin/der Nutzer hat die vorher ergänzten PNG-/Katalog-Ignore-Regeln ausdrücklich entfernt. Neue Bilder werden dadurch bei `git status` angezeigt, gelangen aber **erst nach `git add`, `git commit` und `git push`** nach GitHub; ein Dateikopiervorgang allein reicht nicht. `.bak` und temporäre Dateien bleiben ignoriert. Katalogspeicherung im lokalen Servermodus erzeugt vor dem Überschreiben ein Backup; individuelle vorhandene Zuordnungen werden beim automatischen Vorschlag nicht ersetzt.
 
@@ -178,3 +178,15 @@ Neue Bilder in `assets/nature/` kopieren und im laufenden lokalen Asset-Labor **
 Der Button **Nature-Sprites auf Testkarte verteilen** (ebenso die Schnellaktion **Natur verteilen**) verwendet auch `candidate` und `test`; dies gilt ausschließlich zum Testen, nicht als Produktionsfreigabe. Es zählen ausschließlich passende Geländearten und die jeweilige Dichte-/Abstandslogik. Bei 0 Instanzen zeigt die Oberfläche nun einen Grund an, statt stillschweigend 0 zu melden. Journal-API-Bäume `tree_12`–`tree_19` werden nie als gewöhnliche Bäume gesetzt.
 
 **Palmen:** `palme_01` bis `_05` gehören zur Familie `palms`, Größenklasse `medium` (126 Welt-Höheneinheiten); `_06` bis `_11` sind `large` (174). Alle bleiben auf Landbiome (`warm_regions`, `wetlands`) begrenzt, nicht auf offenes Küsten-/Ozeanwasser. Dies sind relative Bildschirmgrößen, keine realen Meter. Die botanische Unterart bleibt ungeklärt.
+
+## Vegetationskatalog & bereinigte Aufgabenliste (18. Oktober 2026)
+
+Der **Sprite-Planungskatalog ist keine Liste sämtlicher Grafikarten**. Die alte Sammlung von 45 Arten enthielt bereits produzierte Naturgrafiken unter abweichenden englischen Soll-Dateinamen. Daraus entstand die missverständliche Anzeige `0 von 45 Bilddateien`. Der bereinigte Plan hat **17 noch offene Arten**. Weitere 28 ältere Einträge stehen unter `resolved`: **21** werden durch vorhandene Varianten abgedeckt beziehungsweise nicht eigens benötigt; **7** Kleinstobjekte werden nicht als einzelne Nature-Sprites produziert, sondern gegebenenfalls in Terrain-Bodenmaterial integriert. Im Viewer steht deshalb die Zahl *noch offener Vorhaben*, nicht die irreführende 45er-Quote. Vorhandene Bilder verbleiben im realen Nature-Katalog; es wurden weder Platzhalterbilder noch leere Sidecars angelegt.
+
+**Büsche:** `bush_01`–`04` mittel; `05`–`06` klein; `07`–`10` groß; `11`–`14` mittel; `15` klein; `16` mittel; `17`–`19` groß; `20`–`29` trockene Büsche (Größe derzeit grob als 20–24 mittel und 25–29 klein angesetzt); `30`–`33` mittel; `34`–`41` echte Buschgruppen (`kind=cluster`). Die zehn Trockenbüsche bekommen die Familie `dry_bushes`, die anderen stehen unter `temperate_bushes`. Die Gruppengrößen und Trockenbusch-Feinabstufungen bleiben später optisch justierbar.
+
+**Beschneite Nadelhölzer:** `tanne_schnee_01`–`05` heißen im Katalog *Verschneite Kiefer*, `tanne_schnee_06`–`10` *Verschneite Tanne*. Diese Einteilung ist vom Nutzer frei gewählt, keine botanische Bestimmung. Die ursprünglichen Dateinamen und Sprite-IDs bleiben aus Kompatibilität erhalten. Die elf unbeschneiten `tanne_01`–`11` bleiben vorläufig Tannen und können später als Kiefern neu zugeordnet werden.
+
+**Kapokbäume:** `tree_12`–`19` werden nun als Kapokbäume (`family=jungle_trees`, Tag `kapok`) bezeichnet. Ihre stabilen `journal_tree_*`-IDs und ihre bisherige Journal-API-Rolle bleiben erhalten. Sie werden aktuell *nicht* von der Weltkarten-Verteilung gespawnt; eine Freigabe für das künftige Dschungel-Biom ist ein separater Arbeitsschritt.
+
+**Als noch offen gelten unter anderem:** Schilf, Farn, Kakteen, Mangroven und deren Gruppen, Weide, Erle, markantes Totholz, größere Felsen und Eisblöcke. Klee, Moospolster, Alpengras sowie mehrere weitere Kleinstobjekte werden nicht mehr als Einzel-PNGs geplant. Für bereits hergestellte Varianten wie Thymian, Wacholder, Buschgruppe, Akazie, Palmen und Tannen gibt es keine unnötigen Doppelaufträge. Neue Dateinamen lassen sich gegebenenfalls auch über im Plan aufgeführte deutsche Aliasse zuordnen.
