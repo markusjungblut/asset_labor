@@ -50,22 +50,22 @@ window.VedrasExistingAssets = (() => {
   const snowy = /^tanne_schnee_(\d+)$/.exec(base);
   if (snowy && Number(snowy[1])>=1 && Number(snowy[1])<=10) {
    const pine=Number(snowy[1])<=5;
-   return {id:'existing_'+base,name:pine?'Verschneite Kiefer':'Verschneite Tanne',family:'snow_conifers',kind:'tree',sizeClass:'large',apiOnly:false,confirmedSpecies:false,group:pine?'snow_pine':'snow_fir'};
+   return {id:'existing_'+base,name:pine?'Verschneite Kiefer':'Verschneite Tanne',family:'snow_conifers',kind:'tree',sizeClass:'large',confirmedSpecies:false,group:pine?'snow_pine':'snow_fir'};
   }
   const bush = /^bush_(\d+)$/.exec(base);
   if (bush && Number(bush[1])>=1 && Number(bush[1])<=41) {
    const n=Number(bush[1]),cluster=n>=34,dry=n>=20&&n<=29;
    // Bei den trockenen Büschen ist nur die GrößenSPANNE bekannt: Unterteilung zunächst vorläufig.
    const size=cluster?'medium':dry?(n<=24?'medium':'small'):[5,6,15].includes(n)?'small':([7,8,9,10,17,18,19].includes(n)?'large':'medium');
-   return {id:'existing_'+base,name:cluster?'Buschgruppe '+n:dry?'Trockener Busch '+n:'Busch '+n,family:dry?'dry_bushes':'temperate_bushes',kind:cluster?'cluster':'shrub',sizeClass:size,apiOnly:false,confirmedSpecies:true,group:cluster?'bush_group':dry?'dry_bush':'temperate_bush',provisionalSize:dry};
+   return {id:'existing_'+base,name:cluster?'Buschgruppe '+n:dry?'Trockener Busch '+n:'Busch '+n,family:dry?'dry_bushes':'temperate_bushes',kind:cluster?'cluster':'shrub',sizeClass:size,confirmedSpecies:true,group:cluster?'bush_group':dry?'dry_bush':'temperate_bush',provisionalSize:dry};
   }
   const palm=/^palme_(\d+)$/.exec(base);
   if(palm && Number(palm[1])>=1 && Number(palm[1])<=11){
    const smaller=Number(palm[1])<=5;
-   return {id:'existing_'+base,name:smaller?'Palme (kleinere Variante)':'Palme (größere Variante)',family:'palms',kind:'tree',sizeClass:smaller?'medium':'large',apiOnly:false,confirmedSpecies:false};
+   return {id:'existing_'+base,name:smaller?'Palme (kleinere Variante)':'Palme (größere Variante)',family:'palms',kind:'tree',sizeClass:smaller?'medium':'large',confirmedSpecies:false};
   }
   for (const [pattern,name,family,kind,sizeClass] of definitions) {
-   if (pattern.test(base)) return {id:'existing_'+base,name,family,kind,sizeClass,apiOnly:false,confirmedSpecies:!name.includes('offen')};
+   if (pattern.test(base)) return {id:'existing_'+base,name,family,kind,sizeClass,confirmedSpecies:!name.includes('offen')};
   }
   return null;
  }
