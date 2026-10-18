@@ -24,7 +24,7 @@ class AssetInventoryServerTests(unittest.TestCase):
             self.assertEqual([item['id'] for item in payload['items']],
                              [f'journal_tree_{n}' for n in range(12, 20)])
             self.assertTrue(all(item['kind'] == 'special' and item['spawnable'] is False
-                                and item['family'] == 'journal_trees' for item in payload['items']))
+                                and item['family'] == 'jungle_trees' and item['species'] == 'kapok' for item in payload['items']))
             self.assertTrue(all((server.BASE / item['path']).is_file() for item in payload['items']))
         finally:
             httpd.shutdown()
