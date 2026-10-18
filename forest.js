@@ -55,6 +55,7 @@ window.VedrasForest=(()=>{
     forestClass:'none',baseDensity:0,edgeInfluence:0,density:0,source:'none'};
   });
   const byKey=new Map(info.map(c=>[c.key,c]));
+  const originalByKey=new Map(cells.map(c=>[key(c.q,c.r),c]));
   const candidates=info.filter(c=>c.suitability>=.25&&!c.jungle);
   const nCenters=options.enabled&&options.coverage>0?Math.max(1,Math.round(candidates.length*options.coverage/5.5)):0;
   const ranked=candidates.map(c=>({...c,rank:random(options.seed,c.q,c.r,100)/(0.3+c.suitability)})).sort((a,b)=>a.rank-b.rank||a.key.localeCompare(b.key));
@@ -70,7 +71,7 @@ window.VedrasForest=(()=>{
     if(!c.suitability)continue;
     let forestClass='none',source='none';
     if(c.jungle){forestClass='dense_forest';source='jungle';}
-    else if(byKey.get(c.key)&&cells.some(x=>x.q===c.q&&x.r===c.r&&x.biome==='forest')){
+    else if(originalByKey.get(c.key)?.biome==='forest'){
      forestClass=random(options.seed,c.q,c.r,104)<.75?'dense_forest':'light_forest';source='demo_woodland';
     }else{
      const nearest=centers.reduce((d,seed)=>Math.min(d,distance(c,seed)),Infinity);
