@@ -44,19 +44,37 @@
  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const natural=()=>window.VedrasNature?.catalog()?.entries||{};
  function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- function renderPlan(){if(!P||!planList)return;const q=(input?.value||'').trim().toLowerCase();planList.replaceChildren();let available=0;
-  const assets=window.VedrasAssetLabor?.assets?.()||[];
-  for(const item of P.entries.filter(i=>!q||[i.id,i.name,i.family,i.kind].some(v=>v.toLowerCase().includes(q)))){
-   const hasAsset=assets.find(a=>a.category==='nature'&&a.name.toLowerCase()===item.filename.toLowerCase());
-   const saved=hasAsset&&natural()[hasAsset.relPath];if(hasAsset)available++;
+
+ function renderPlan(){
+  if(!P||!planList)return;
+  const q=(input?.value||'').trim().toLowerCase(),assets=window.VedrasAssetLabor?.assets?.()||[];
+  const archived=P.resolved||[],terrainDetails=archived.filter(x=>x.resolution==='terrain_detail').length;
+  planList.replaceChildren();
+  let available=0;
+  for(const item of P.entries){
+   const filenames=[item.filename,...(item.aliases||[])].map(x=>x.toLowerCase());
+   const actual=assets.find(a=>a.category==='nature'&&filenames.includes(a.name.toLowerCase()));
+   if(actual)available++;
+   if(q&&![item.id,item.name,item.family,item.kind,...filenames].some(v=>String(v).toLowerCase().includes(q)))continue;
+   const saved=actual&&natural()[actual.relPath];
    const row=document.createElement('div');row.className='plan-item';
-   const text=document.createElement('div');text.innerHTML=`<strong>${escape(item.name)}</strong><small>${escape(item.filename)} · ${escape(item.kind)} · ${escape(item.sizeClass)} · ${item.targetHeight} WE Höhe</small><small>${saved?'Eingepflegt':hasAsset?'Datei vorhanden':'Geplant'} · ${escape(item.allowedTerrainCategories.join(', '))}</small>`;
-   const button=document.createElement('button');button.className='plan-action';button.textContent='Sidecar';button.title='Vollständige Metadaten als Sidecar-JSON';
-   button.addEventListener('click',()=>{const name=item.filename.replace(/\.[^.]+$/,'');const meta=P.metadata(item,window.VedrasNatureCatalog.template());download(name+'.json',{assetType:'nature_sprite',relPath:'nature/'+item.filename,data:meta});feedback.textContent=item.name+' · Sidecar exportiert. PNG muss denselben geplanten Dateinamen erhalten.';});
-   row.append(text,button);planList.append(row);
+   const detail=document.createElement('div');
+   const state=actual?(saved?'Im Nature-Katalog erfasst':'PNG vorhanden – Metadaten prüfen'):(item.priority==='optional'?'Optional – noch kein Bild':'Noch zu erstellen');
+   detail.innerHTML='<strong>'+escape(item.name)+'</strong><small>'+escape(item.filename)+' · '+escape(item.kind)+' · '+escape(item.sizeClass)+' · '+item.targetHeight+' WE Höhe</small><small>'+escape(state)+' · '+escape(item.allowedTerrainCategories.join(', '))+'</small>';
+   const button=document.createElement('button');button.className='plan-action';button.textContent='Sidecar';button.title='Metadaten für den vorgeschlagenen Dateinamen exportieren';
+   button.addEventListener('click',()=>{
+    const name=(actual?.name||item.filename).replace(/\.[^.]+$/,'');
+    const meta=P.metadata(item,window.VedrasNatureCatalog.template());
+    download(name+'.json',{assetType:'nature_sprite',relPath:actual?.relPath||'nature/'+item.filename,data:meta});
+    feedback.textContent=item.name+' · Sidecar exportiert. Bereits gespeicherte individuelle Katalogdaten werden nicht überschrieben.';
+   });
+   row.append(detail,button);planList.append(row);
   }
-  if($('spritePlanCount'))$('spritePlanCount').textContent=`${available}/${P.entries.length} Bilddateien`;
+  const outstanding=P.entries.length-available;
+  if($('spritePlanCount'))$('spritePlanCount').textContent=outstanding+' offen · '+available+' vorhanden';
+  if(feedback)feedback.textContent=P.entries.length+' gezielte Produktionsarten; '+(archived.length-terrainDetails)+' bereits abgedeckte Planposten und '+terrainDetails+' entfallene Boden-/Kleinstobjekte werden nicht als fehlende PNGs geführt.';
  }
- $('spritePlanSearch')?.addEventListener('input',renderPlan);$('spritePlanExport')?.addEventListener('click',()=>download('sprite_catalog_plan.json',{schemaVersion:1,items:P.entries}));
+
+ $('spritePlanSearch')?.addEventListener('input',renderPlan);$('spritePlanExport')?.addEventListener('click',()=>download('sprite_catalog_plan.json',{schemaVersion:2,items:P.entries,resolved:P.resolved||[]}));
  window.addEventListener('vedras:assets-loaded',renderPlan);window.addEventListener('vedras:nature-catalog-changed',renderPlan);renderPlan();
 })();
