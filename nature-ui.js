@@ -187,7 +187,7 @@ window.VedrasNature=(()=>{
    }
    // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
    // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
-   if(!wantedTrees&&trees.length&&rank(trees[0],c,311)<.12&&count<objectCap){
+   if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.12&&count<objectCap){
     const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed);
     if(inst){all.push(inst);count++;forestTrees++;}
    }
