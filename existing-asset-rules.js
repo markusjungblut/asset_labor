@@ -58,6 +58,12 @@ window.VedrasExistingAssets = (() => {
   return null;
  }
  const isJournal = asset => !!classify(asset)?.apiOnly;
+ // Nur Testkarten-Verteilung: Kandidaten und Testgrafiken bleiben ohne Produktionsfreigabe nutzbar.
+ const canAutoPlaceInTest = (asset, meta, terrainTypes) =>
+  asset?.category==='nature' && !isJournal(asset) && !!meta &&
+  meta.kind!=='mountain' && meta.artStatus!=='deprecated' &&
+  meta.placement?.density>0 && meta.placement?.weight>0 &&
+  terrainTypes instanceof Set && terrainTypes.size>0;
  function metadata(info, tmpl, filename) {
   const mountain=info.kind==='mountain',ground=info.kind==='ground_cover',tree=info.kind==='tree';
   const [categories,baseDensity,baseSpacing]=habitat[info.family]||[[],0,info.kind==='tree'?90:44];
@@ -82,5 +88,5 @@ window.VedrasExistingAssets = (() => {
    ...(mountain?{mountain:{radius:1,coreRadius:0,shadowOpacity:.23,flatten:true}}:{})
   };
  }
- return {classify,isJournal,metadata};
+ return {classify,isJournal,metadata,canAutoPlaceInTest};
 })();
