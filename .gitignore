@@ -1,12 +1,13 @@
-# Local user-generated artwork and live catalogs are not published automatically
+# Unveröffentlichte persönliche Bilder und Nature-/Terrain-Kataloge
 /assets/
 /previews/
 __pycache__/
 *.pyc
 *.log
-*.bak
 *.zip
-.env
-.venv/
+*.bak
 .DS_Store
 Thumbs.db
+.venv/
+.env
+.vscode/
