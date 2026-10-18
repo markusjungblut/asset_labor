@@ -20,7 +20,7 @@ window.VedrasExistingAssets = (() => {
   [/^tanne_(\d+)$/, 'Nadelbaum (Art offen)', 'conifers', 'tree', 'large'],
   [/^thymian_(\d+)$/, 'Thymian', 'herbs', 'ground_cover', 'tiny'],
   [/^wacholder_?(\d+)$/, 'Wacholder', 'conifers', 'shrub', 'medium'],
-  [/^(?:marula|marulabaum|marula_baum)_?(\d+)$/, 'Marulabaum', 'savanna_trees', 'tree', 'large'],
+  [/^(?:marula|marula[-_]?baum)_?(\d+)$/, 'Marulabaum', 'savanna_trees', 'tree', 'large'],
   [/^weissdorn(\d+)$/, 'Weißdorn', 'flowering_bushes', 'shrub', 'medium'],
   [/^wildrose(\d+)$/, 'Wildrose', 'flowering_bushes', 'shrub', 'medium'],
   [/^zeder(\d+)$/, 'Zeder', 'conifers', 'tree', 'large'],
@@ -78,7 +78,7 @@ window.VedrasExistingAssets = (() => {
    terrainPresetId:'',allowedTerrainCategories:info.apiOnly?[]:categories,allowedTerrainTypes:[],excludedTerrainTypes:[],
    placement:{...tmpl.placement,weight:info.apiOnly?0:1,density:info.apiOnly?0:density,minSpacing:spacing,canCluster:!mountain&&!tree&&!info.apiOnly},
    artStatus:'candidate',
-   tags:info.apiOnly?['existing','journal_api','no_auto_spawn']:['existing','needs_art_review',...(info.confirmedSpecies?[]:['needs_species_review'])],
+   tags:info.apiOnly?['existing','journal_api','no_auto_spawn']:['existing','needs_art_review',...(info.confirmedSpecies?[]:['needs_species_review']),...(info.family==='palms'?[isSmallPalm?'palm_small':'palm_large']:[])],
    ...(mountain?{mountain:{radius:1,coreRadius:0,shadowOpacity:.23,flatten:true}}:{})
   };
  }
