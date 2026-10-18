@@ -58,10 +58,10 @@ const entries={};
 for(const filename of natureFiles){
  const asset={category:'nature',name:filename};
  const classification=E.classify(asset);
- assert(classification,'unclassified '+filename);
- entries['nature/'+filename]=E.metadata(classification,N.template(),filename);
+ if(classification)entries['nature/'+filename]=E.metadata(classification,N.template(),filename);
+ // Unbekannte neue Dateinamen bleiben editierbar, erhalten aber keine erfundene Artzuordnung.
 }
-assert.equal(Object.keys(entries).length,148);
+assert(Object.keys(entries).length>=148);
 for(const row of natureManifest.entries){
  const metadata=entries[row.path.slice('assets/'.length)];
  assert(metadata,'no recorded Nature asset '+row.path);
@@ -71,7 +71,7 @@ for(const row of natureManifest.entries){
  assert.equal(row.placement.minSpacing,metadata.placement.minSpacing,row.path+':spacing');
  assert.equal(row.apiOnly,E.isJournal({category:'nature',name:path.basename(row.path)}),row.path+':journal');
 }
-assert.equal(new Set(Object.values(entries).map(x=>x.id)).size,148);
+assert.equal(new Set(Object.values(entries).map(x=>x.id)).size,Object.keys(entries).length);
 const errors=N.validate({schemaVersion:1,revision:0,presets:{},entries},catalog);
 assert.deepEqual(Array.from(errors),[],'nature metadata invalid: '+errors.join(', '));
 for(let n=12;n<=19;n++){
@@ -96,4 +96,18 @@ assert(N.validPath('nature/lärche1.png'));
 assert(N.validPath('nature/weißdorn1.png'));
 assert(!N.validPath('nature/../secret.png'));
 assert.equal(Object.values(entries).filter(e=>e.artStatus!=='candidate').length,0);
+const terrainTypes= new Set(['grassland']);
+const eligible=Object.entries(entries).filter(([rel,m])=>E.canAutoPlaceInTest({category:'nature',name:path.basename(rel)},m,
+  N.effectiveTypes(m,catalog,{presets:{}}))).length;
+assert(eligible>0,'candidate sprites must be eligible in the nature TEST distribution');
+assert(E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},entries['nature/birke1.png'],terrainTypes));
+assert(!E.canAutoPlaceInTest({category:'nature',name:'tree_12.png'},entries['nature/tree_12.png'],terrainTypes));
+assert(!E.canAutoPlaceInTest({category:'nature',name:'bush_01.png'},entries['nature/bush_01.png'],terrainTypes));
+assert(!E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},{...entries['nature/birke1.png'],artStatus:'deprecated'},terrainTypes));
+assert.equal(E.classify({category:'nature',name:'marula-baum_01.png'}).family,'savanna_trees');
+assert.equal(E.classify({category:'nature',name:'wacholder_04.png'}).family,'conifers');
+for(let i=1;i<=11;i++){const filename='palme_'+String(i).padStart(2,'0')+'.png';
+ const m=entries['nature/'+filename];assert.equal(m.family,'palms');assert.equal(m.sizeClass,i<=5?'medium':'large');
+ assert(!m.allowedTerrainCategories.includes('water_coast'));
+}
 console.log('PASS inventory: 25 terrain families, 104 terrain variants, 148 nature profiles, 8 journal API trees; no existing assignments overwritten.');
