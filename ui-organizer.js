@@ -46,14 +46,15 @@
  function download(name,data){const blob=new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  function renderPlan(){if(!P||!planList)return;const q=(input?.value||'').trim().toLowerCase();planList.replaceChildren();let available=0;
   const assets=window.VedrasAssetLabor?.assets?.()||[];
-  for(const item of P.entries.filter(i=>!q||[i.id,i.name,i.family,i.kind].some(v=>v.toLowerCase().includes(q)))){
+  for(const item of P.entries.filter(i=>!q||[i.id,i.name,i.family,i.kind,...(i.aliases||[])].some(v=>v.toLowerCase().includes(q)))){
    const matches=assets.filter(a=>a.category==='nature'&&P.matches(item,a));const hasAsset=matches[0];
    const saved=matches.length&&matches.every(a=>natural()[a.relPath]);if(matches.length)available++;
    const row=document.createElement('div');row.className='plan-item';
    const text=document.createElement('div');text.innerHTML=`<strong>${escape(item.name)}</strong><small>${escape(item.folder?'nature/'+item.folder+'/'+item.filename:item.filename)} · ${escape(item.kind)} · ${escape(item.sizeClass)} · ${item.targetHeight} WE Höhe</small><small>${saved?'Eingepflegt':hasAsset?'Grafik vorhanden':'Noch zu erstellen'} · ${matches.length} Varianten · ${escape((item.allowedTerrainTypes?.length?item.allowedTerrainTypes:item.allowedTerrainCategories).join(', '))}</small>`;
    const button=document.createElement('button');button.className='plan-action';button.textContent='Sidecar';button.title='Vollständige Metadaten als Sidecar-JSON';
    button.addEventListener('click',()=>{const name=item.filename.replace(/\.[^.]+$/,'');const meta=P.metadata(item,window.VedrasNatureCatalog.template());download(name+'.json',{assetType:'nature_sprite',relPath:'nature/'+(item.folder?item.folder+'/':'')+item.filename,data:meta});feedback.textContent=item.name+' · Metadaten exportiert. Neue PNG in den angezeigten Zielordner kopieren.';});
-   row.append(text,button);planList.append(row);
+   if(item.confidence==='visual_proxy'){const note=document.createElement('small');note.textContent='Nur optische Nadelbaum-Rolle; botanische Art nicht bestätigt.';text.append(note);}
+    row.append(text,button);planList.append(row);
   }
   if($('spritePlanCount'))$('spritePlanCount').textContent=`${available}/${P.entries.length} Arten mit Grafik`;
  }
