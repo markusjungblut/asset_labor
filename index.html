@@ -15,6 +15,13 @@
 <button id="spritePlanExport" class="button outline block" type="button">Planungskatalog als JSON exportieren</button>
 <div class="muted" id="spritePlanFeedback">Nur offene Produktionsaufgaben; vorhandene Grafiken findest du in der Grafikbibliothek.</div>
 </details>
+<details class="sprite-plan" id="floraV2Panel"><summary>FloraV2 – Pflanzenreferenz <span id="floraV2Summary">104 Kategorien</span></summary>
+<p class="muted">Historische Arten- und Variantenübersicht des zweiten Branches. Keine zusätzliche Produktionsliste und keine automatischen Änderungen an deinen Grafiken. Die 17 tatsächlich offenen Spriteaufgaben stehen oben im Planungskatalog.</p>
+<input id="floraV2Search" type="search" placeholder="Art, Familie oder Dateiname suchen…" aria-label="FloraV2 durchsuchen">
+<select id="floraV2Family" aria-label="FloraV2 Familie"><option value="">Alle Pflanzenfamilien</option></select>
+<div id="floraV2List" class="sprite-plan-list" aria-live="polite"></div>
+<div class="muted" id="floraV2Help">Echte PNGs werden anhand ihrer Namen zugeordnet; bestehende Nature-Metadaten bleiben maßgeblich.</div>
+</details>
 <div class="catalog-panel">
   <div class="catalog-heading"><strong>Gelände-Katalog</strong> <span id="catalogStatus">Katalog lädt…</span></div>
   <details><summary>Neue Kategorie anlegen</summary><input id="newCategoryName" placeholder="Kategoriename, z. B. Vulkanisch"><input id="newCategoryId" placeholder="ID: volcanic_regions"><button class="block" id="newCategoryBtn">Kategorie erstellen</button></details>
@@ -186,5 +193,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="catalog.js?v=0.11.0"></script><script src="terrain-source-rules.js?v=0.11.0"></script><script src="autotile.js?v=0.11.0"></script><script src="nature_catalog.js?v=0.11.0"></script><script src="sprite-planner.js?v=0.11.0"></script><script src="existing-asset-rules.js?v=0.12.1"></script><script src="forest.js?v=0.12.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.11.0"></script><script src="mountain.js?v=0.11.0"></script><script src="app.js?v=0.12.1"></script><script src="nature-ui.js?v=0.12.1"></script><script src="ui-organizer.js?v=0.11.0"></script><script src="forest-ui.js?v=0.12.0"></script>
+<script src="catalog.js?v=0.11.0"></script><script src="terrain-source-rules.js?v=0.11.0"></script><script src="autotile.js?v=0.11.0"></script><script src="nature_catalog.js?v=0.11.0"></script><script src="flora-plan.js?v=0.13.0"></script><script src="terrain-plan.js?v=0.13.0"></script><script src="sprite-planner.js?v=0.11.0"></script><script src="existing-asset-rules.js?v=0.12.1"></script><script src="forest.js?v=0.12.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.11.0"></script><script src="mountain.js?v=0.11.0"></script><script src="app.js?v=0.12.1"></script><script src="nature-ui.js?v=0.12.1"></script><script src="ui-organizer.js?v=0.11.0"></script><script src="forest-ui.js?v=0.12.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>

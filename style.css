@@ -89,3 +89,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .forest-tools .forest-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}
 .forest-tools .forest-buttons button{white-space:normal;font-size:11px;min-height:37px}
 .forest-tools #forestStatus{margin-top:11px;line-height:1.45}
+
+/* FloraV2-Referenz ist getrennt von der verbindlichen 17-Positionen-Produktionsliste. */
+#floraV2Panel select{width:100%;margin:5px 0 8px;padding:7px;color:inherit;background:#142a2b;border:1px solid #60806a;border-radius:5px}
+#floraV2List .flora-row{padding:8px 5px;border-bottom:1px solid #3a5451}
+#floraV2List .flora-row strong{display:block;font-size:11px}
+#floraV2List .flora-row small{display:block;font-size:10px;color:#aec5b2;margin-top:3px;overflow-wrap:anywhere}

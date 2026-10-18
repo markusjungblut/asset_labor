@@ -1,4 +1,4 @@
-# Vedras Reiche – Asset-Labor v0.11.0
+# Vedras Reiche – Asset-Labor v0.13.0 (zusammengeführt)
 
 ## Wälder und Dschungel (v0.12.0)
 
@@ -197,3 +197,9 @@ Der **Sprite-Planungskatalog ist keine Liste sämtlicher Grafikarten**. Die alte
 **Kapokbäume:** Die acht Bilder `tree_12`–`19` gehören zur Familie `jungle_trees` und erscheinen als normale Bäume auf Dschungel-Hexen. Ihre IDs wurden in `kapok_tree_12`–`kapok_tree_19` geändert; der frühere Journal-/API-Sonderstatus wurde entfernt.
 
 **Als noch offen gelten unter anderem:** Schilf, Farn, Kakteen, Mangroven und deren Gruppen, Weide, Erle, markantes Totholz, größere Felsen und Eisblöcke. Klee, Moospolster, Alpengras sowie mehrere weitere Kleinstobjekte werden nicht mehr als Einzel-PNGs geplant. Für bereits hergestellte Varianten wie Thymian, Wacholder, Buschgruppe, Akazie, Palmen und Tannen gibt es keine unnötigen Doppelaufträge. Neue Dateinamen lassen sich gegebenenfalls auch über im Plan aufgeführte deutsche Aliasse zuordnen.
+
+## Branch-Zusammenführung: FloraV2 als zusätzliche Referenz
+
+Der frühere Branch `codex/flora-v2-asset-registry` wurde in `main` integriert. Seine 37 Pflanzenfamilien-Verzeichnisse und die FloraV2-Referenz mit 104 Kategorien sind im **FloraV2 – Pflanzenreferenz**-Panel durchsuchbar. Das ist **kein neuer Produktionsauftrag** und überschreibt weder den bestehenden Nature-Katalog (148 real vorhandene PNGs) noch die 17 tatsächlich offenen Spritearten. Die ursprüngliche FloraV2-Baumverteilung wurde **nicht** übernommen: Sie würde die neuere Wald-/Dschungel-Engine einschließlich der gewöhnlichen Kapokbäume ersetzen. Ihre Daten und die historischen Waldprofile stehen als Referenz zur Verfügung. Terrain-Seed-Werte sind informativ und überschreiben nicht die realen Geländezuweisungen.
+
+Die 37 Ordner enthalten ausschließlich textliche `_ASSET_PLAN.md`-Referenzen, **keine PNG-Platzhalter**. Für die tatsächliche Erstellung neuer Sprites gilt allein die aktuelle Produktionsliste `plans/sprite_catalog_plan.json`.
