@@ -63,6 +63,11 @@ def terrain_with_plan():
     for field in ('categories', 'terrainTypes', 'transitionProfiles'):
         ids = {row.get('id') for row in current.get(field, [])}
         current.setdefault(field, []).extend(row for row in plan[field] if row['id'] not in ids)
+    # Known v0.11 demo label: promote forest floor to the new special surface.
+    # Preserve custom user-edited names and all existing PNG assignments.
+    for row in current.get('terrainTypes', []):
+        if row.get('id') == 'forest_floor' and row.get('name') == 'Waldboden (Test)' and row.get('categoryId') == 'demo_regions':
+            row.update(name='Waldboden', categoryId='forest_regions', specialRole='forest_surface')
     # Never change saved user assignments or delete unknown user assets.
     for path, meta in plan['assets'].items():
         current.setdefault('assets', {}).setdefault(path, meta)
