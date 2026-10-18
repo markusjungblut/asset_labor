@@ -1,0 +1,393 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Bestand der exakt 25 vom Nutzer benannten Terrainfamilien; keine neuen Bilddateien oder Platzhalter. Alle Dateinamen verweisen auf tatsächlich eingecheckte Dateien.",
+  "filesVerifiedAt": "2026-10-18",
+  "terrainFamilyCount": 25,
+  "items": [
+    {
+      "sourceStem": "badlands",
+      "name": "Badlands",
+      "terrainTypeId": "badlands",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/badlands_01.png",
+        "assets/terrain/badlands_02.png",
+        "assets/terrain/badlands_03.png",
+        "assets/terrain/badlands_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "cosatal_water",
+      "name": "Küstenwasser",
+      "terrainTypeId": "coastal_water",
+      "categoryId": "water_coast",
+      "materialClass": "water",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/cosatal_water_01.png",
+        "assets/terrain/cosatal_water_02.png",
+        "assets/terrain/cosatal_water_03.png",
+        "assets/terrain/cosatal_water_04.png"
+      ],
+      "reviewNotes": "Bestehenden Schreibfehler cosatal als Dateinamen-Alias behalten; kanonische Geländeart coastal_water."
+    },
+    {
+      "sourceStem": "frozen_tundra_base",
+      "name": "Gefrorene Tundra",
+      "terrainTypeId": "frozen_tundra",
+      "categoryId": "cold_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/frozen_tundra_base_01.png",
+        "assets/terrain/frozen_tundra_base_02.png",
+        "assets/terrain/frozen_tundra_base_03.png",
+        "assets/terrain/frozen_tundra_base_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "grassland",
+      "name": "Grasland",
+      "terrainTypeId": "grassland",
+      "categoryId": "grass_pasture",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/grassland_01.png",
+        "assets/terrain/grassland_02.png",
+        "assets/terrain/grassland_03.png",
+        "assets/terrain/grassland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "halbwueste",
+      "name": "Halbwüste",
+      "terrainTypeId": "semi_desert",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/halbwueste_01.png",
+        "assets/terrain/halbwueste_02.png",
+        "assets/terrain/halbwueste_03.png",
+        "assets/terrain/halbwueste_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "hochland",
+      "name": "Hochland",
+      "terrainTypeId": "highland",
+      "categoryId": "cold_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/hochland_01.png",
+        "assets/terrain/hochland_02.png",
+        "assets/terrain/hochland_03.png",
+        "assets/terrain/hochland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "icy_ocean",
+      "name": "Eisiger Ozean",
+      "terrainTypeId": "icy_ocean",
+      "categoryId": "water_coast",
+      "materialClass": "water",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/icy_ocean_01.png",
+        "assets/terrain/icy_ocean_02.png",
+        "assets/terrain/icy_ocean_03.png",
+        "assets/terrain/icy_ocean_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "karges_weideland",
+      "name": "Karges Weideland",
+      "terrainTypeId": "sparse_pasture",
+      "categoryId": "grass_pasture",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/karges_weideland_01.png",
+        "assets/terrain/karges_weideland_02.png",
+        "assets/terrain/karges_weideland_03.png",
+        "assets/terrain/karges_weideland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "lehmwueste",
+      "name": "Lehmwüste",
+      "terrainTypeId": "clay_desert",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/lehmwueste_01.png",
+        "assets/terrain/lehmwueste_02.png",
+        "assets/terrain/lehmwueste_03.png",
+        "assets/terrain/lehmwueste_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "marshland",
+      "name": "Marschland",
+      "terrainTypeId": "marshland",
+      "categoryId": "wetlands",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/marshland_01.png",
+        "assets/terrain/marshland_02.png",
+        "assets/terrain/marshland_03.png",
+        "assets/terrain/marshland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "moor",
+      "name": "Moor",
+      "terrainTypeId": "moor",
+      "categoryId": "wetlands",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/moor_01.png",
+        "assets/terrain/moor_02.png",
+        "assets/terrain/moor_03.png",
+        "assets/terrain/moor_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "ocean",
+      "name": "Ozean",
+      "terrainTypeId": "ocean",
+      "categoryId": "water_coast",
+      "materialClass": "water",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/ocean_01.png",
+        "assets/terrain/ocean_02.png",
+        "assets/terrain/ocean_03.png",
+        "assets/terrain/ocean_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "oedland",
+      "name": "Ödland",
+      "terrainTypeId": "wasteland",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/oedland_01.png",
+        "assets/terrain/oedland_02.png",
+        "assets/terrain/oedland_03.png",
+        "assets/terrain/oedland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "sandige_steinige_wueste",
+      "name": "Sandig-steinige Wüste",
+      "terrainTypeId": "sandy_rocky_desert",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/sandige_steinige_wueste_01.png",
+        "assets/terrain/sandige_steinige_wueste_02.png",
+        "assets/terrain/sandige_steinige_wueste_03.png",
+        "assets/terrain/sandige_steinige_wueste_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "sandy_badlands",
+      "name": "Sandige Badlands",
+      "terrainTypeId": "sandy_badlands",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/sandy_badlands_01.png",
+        "assets/terrain/sandy_badlands_02.png",
+        "assets/terrain/sandy_badlands_03.png",
+        "assets/terrain/sandy_badlands_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "savanne",
+      "name": "Savanne",
+      "terrainTypeId": "savanna",
+      "categoryId": "warm_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/savanne_01.png",
+        "assets/terrain/savanne_02.png",
+        "assets/terrain/savanne_03.png",
+        "assets/terrain/savanne_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "schneefeld",
+      "name": "Schneefeld",
+      "terrainTypeId": "snowfields",
+      "categoryId": "cold_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/schneefeld_01.png",
+        "assets/terrain/schneefeld_02.png",
+        "assets/terrain/schneefeld_03.png",
+        "assets/terrain/schneefeld_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "steinige_badlands",
+      "name": "Steinige Badlands",
+      "terrainTypeId": "rocky_badlands",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/steinige_badlands_01.png",
+        "assets/terrain/steinige_badlands_02.png",
+        "assets/terrain/steinige_badlands_03.png",
+        "assets/terrain/steinige_badlands_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "steinige_wueste",
+      "name": "Steinige Wüste",
+      "terrainTypeId": "rocky_desert",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/steinige_wueste_01.png",
+        "assets/terrain/steinige_wueste_02.png",
+        "assets/terrain/steinige_wueste_03.png",
+        "assets/terrain/steinige_wueste_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "stormy_ocean",
+      "name": "Stürmischer Ozean",
+      "terrainTypeId": "stormy_ocean",
+      "categoryId": "water_coast",
+      "materialClass": "water",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/stormy_ocean_01.png",
+        "assets/terrain/stormy_ocean_02.png",
+        "assets/terrain/stormy_ocean_03.png",
+        "assets/terrain/stormy_ocean_04.png",
+        "assets/terrain/stormy_ocean_051.png",
+        "assets/terrain/stormy_ocean_061.png",
+        "assets/terrain/stormy_ocean_071.png",
+        "assets/terrain/stormy_ocean_081.png"
+      ],
+      "reviewNotes": "Dateinamen *_051 bis *_081 auf Variantenbenennung prüfen, vor Umbenennung Verweise und Bilder abgleichen."
+    },
+    {
+      "sourceStem": "sumpf",
+      "name": "Sumpf",
+      "terrainTypeId": "swamp",
+      "categoryId": "wetlands",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/sumpf_01.png",
+        "assets/terrain/sumpf_02.png",
+        "assets/terrain/sumpf_03.png",
+        "assets/terrain/sumpf_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "tundra_base",
+      "name": "Tundra",
+      "terrainTypeId": "tundra",
+      "categoryId": "cold_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/tundra_base_01.png",
+        "assets/terrain/tundra_base_02.png",
+        "assets/terrain/tundra_base_03.png",
+        "assets/terrain/tundra_base_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "wald",
+      "name": "Waldboden",
+      "terrainTypeId": "forest_floor",
+      "categoryId": "demo_regions",
+      "materialClass": "ground",
+      "role": "forest_floor_overlay_not_base_biome",
+      "files": [
+        "assets/terrain/wald_01.png",
+        "assets/terrain/wald_02.png",
+        "assets/terrain/wald_03.png",
+        "assets/terrain/wald_04.png"
+      ],
+      "reviewNotes": "Waldboden darf innerhalb vorhandener Biome liegen; alternativ als Dschungel-Optik. Keine automatische eigene Biomfestlegung."
+    },
+    {
+      "sourceStem": "weideland",
+      "name": "Weideland",
+      "terrainTypeId": "pasture",
+      "categoryId": "grass_pasture",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/weideland_01.png",
+        "assets/terrain/weideland_02.png",
+        "assets/terrain/weideland_03.png",
+        "assets/terrain/weideland_04.png"
+      ],
+      "reviewNotes": ""
+    },
+    {
+      "sourceStem": "wueste",
+      "name": "Wüste (generisch)",
+      "terrainTypeId": "desert",
+      "categoryId": "arid_regions",
+      "materialClass": "ground",
+      "role": "terrain_base",
+      "files": [
+        "assets/terrain/wueste_01.png",
+        "assets/terrain/wueste_02.png",
+        "assets/terrain/wueste_03.png",
+        "assets/terrain/wueste_04.png"
+      ],
+      "reviewNotes": ""
+    }
+  ],
+  "excludedFrom25": [
+    {
+      "path": "assets/terrain/mountain_01.png",
+      "reason": "Einzelne Berg-/Relief-Testgrafik, nicht Teil der 25 Terrainfamilien."
+    }
+  ]
+}
