@@ -62,6 +62,11 @@ with sync_playwright() as pw:
    statuses:Object.values(VedrasNature.catalog().entries).map(x=>x.artStatus)
  })""")
  assert distribution['count']>0,distribution
+ count_in_forest=page.evaluate('''() => {
+   const forest=new Set(VedrasAssetLabor.cells().filter(c=>c.biome==='forest').map(c=>c.q+','+c.r));
+   return VedrasAssetLabor.state.natureInstances.filter(n=>forest.has(n.q+','+n.r)).length;
+ }''')
+ assert count_in_forest>0, {'forestInstanceCount':count_in_forest}
  assert all(x=='candidate' for x in distribution['statuses']),distribution
  assert page.locator('#nSizeMode').count()==1
  assert page.locator('.lab-accordion').count()>=6
