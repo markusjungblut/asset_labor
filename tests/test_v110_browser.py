@@ -7,8 +7,9 @@ from playwright.sync_api import sync_playwright
 B=Path(__file__).resolve().parents[1]
 html=(B/'index.html').read_text()
 html=html.replace('<link rel="stylesheet" href="style.css?v=0.11.0">','<style>'+(B/'style.css').read_text()+'</style>')
-for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','relief','shoreline','mountain','app','nature-ui','ui-organizer']:
+for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','forest','relief','shoreline','mountain','app','nature-ui','ui-organizer','forest-ui']:
     html=html.replace(f'<script src="{f}.js?v=0.11.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.12.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
@@ -68,6 +69,38 @@ with sync_playwright() as pw:
  }''')
  assert count_in_forest>0, {'forestInstanceCount':count_in_forest}
  assert all(x=='candidate' for x in distribution['statuses']),distribution
+ assert page.locator('#forestTools').count()==1
+ before=page.evaluate("""() => ({
+  forest:VedrasAssetLabor.forestCells(),
+  terrain:VedrasAssetLabor.cells().map(c=>VedrasAssetLabor.effectiveBiome(c))
+ })""")
+ assert len(before['forest'])==37
+ assert any(c['forestClass']=='dense_forest' for c in before['forest'])
+ assert any(c['forestClass']=='none' and c['edgeInfluence']>0 for c in before['forest'])
+ # Forest is a per-cell overlay: assigning woodland does not modify a terrain image.
+ unchanged_terrain=before['terrain'][0]
+ page.evaluate("""() => {
+  VedrasAssetLabor.state.selected='0,0';
+  document.getElementById('forestHexDense').click();
+ }""")
+ forced=page.evaluate("""() => ({
+  cls:VedrasAssetLabor.forestCells().find(c=>c.key==='0,0').forestClass,
+  changed:VedrasAssetLabor.state.forest.overrides['0,0'],
+  count:VedrasAssetLabor.state.natureInstances.length
+ })""")
+ assert forced['cls']=='dense_forest' and forced['changed']=='dense_forest'
+ assert forced['count']>0
+ page.evaluate("document.getElementById('forestMakeJungle').click()")
+ jungle=page.evaluate("""() => ({
+  num:VedrasAssetLabor.forestCells().filter(c=>c.jungle).length,
+  target:VedrasAssetLabor.effectiveBiome(VedrasAssetLabor.cells().find(c=>c.q===0&&c.r===0)),
+  forest:VedrasAssetLabor.forestCells().find(c=>c.key==='0,0').forestClass
+ })""")
+ assert jungle['num']>=1 and jungle['num']<=7,jungle
+ assert jungle['target']=='jungle' and jungle['forest']=='dense_forest',jungle
+ page.evaluate("document.getElementById('forestClearJungle').click()")
+ assert page.evaluate("VedrasAssetLabor.forestCells().filter(c=>c.jungle).length")==0
+
  assert page.locator('#nSizeMode').count()==1
  assert page.locator('.lab-accordion').count()>=6
  page.locator('#quick37').click()
