@@ -53,7 +53,11 @@ window.VedrasNature=(()=>{
   }catch(e){info.textContent='Alpha-Test nicht möglich; manuelle Prüfung notwendig.';}
  }
  function setForm(a){selected=a?.category==='nature'?a:null;$('natureInspector').classList.toggle('hidden',!selected);
-  if(!selected)return;alphaInspect(selected);
+  if(!selected){$('nAddToHex').disabled=false;return;}
+  const journal=window.VedrasExistingAssets?.isJournal(selected)||false;
+  $('nAddToHex').disabled=journal;
+  $('nAddToHex').title=journal?'Journal-Spezialbaum: nur für die API, nicht auf der Weltkarte platzierbar.':'';
+  alphaInspect(selected);
   const m=entryFor(selected)||suggest(selected);
   const val=(id,x)=>{$(id).value=x??'';};
   $('nMountainFields').classList.toggle('hidden',m.kind!=='mountain');
