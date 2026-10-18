@@ -4,7 +4,7 @@ window.VedrasNature=(()=>{
  const $=id=>document.getElementById(id),core=window.VedrasAssetLabor,N=window.VedrasNatureCatalog;
  const state=core.state,escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let catalog=N.initial(),dirty=false,serverWritable=false,revision=0,saving=null,timer=null,selected=null;
- let pendingAutoImport=false;
+ let pendingAutoImport=false,loadedFromServer=false;
  const message=s=>{$('nMessage').textContent=s;};
  const entryFor=a=>a?catalog.entries[a.relPath]||null:null;
  function status(){ const values=Object.values(catalog.entries);if($('nSizeAudit'))$('nSizeAudit').textContent=`${values.filter(e=>e.kind!=='mountain'&&e.sizeMode==='class').length} von ${values.filter(e=>e.kind!=='mountain').length} vorhandenen nicht-Berg-Sprites verwenden bereits die normierte sichtbare Höhe. Bisherige manuelle Breiten bleiben erhalten.`; $('nCatalogState').textContent=`${Object.keys(catalog.entries).length} Sprites · ${Object.keys(catalog.presets||{}).length} Presets · ${dirty?(serverWritable?'Speichern offen':'Export nötig'):(serverWritable?'gespeichert':'nur lokal')}`;}
@@ -12,6 +12,7 @@ window.VedrasNature=(()=>{
  function suggest(a){const m=(a?.meta?.assetType==='nature_sprite'&&a.meta.data)?a.meta.data:(a?.meta||{}),r={...N.template(),...m};r.id=N.idOK(m.id)?m.id:(slug(a.name.replace(/\.[^.]+$/,''))||'asset')+'_01';
   r.family=N.idOK(m.family)?m.family:(a.name.toLowerCase().includes('rock')?'rocks':'temperate_bushes');
   const plan=window.VedrasSpritePlanner?.match(a);if(plan)return window.VedrasSpritePlanner.metadata(plan,N.template());
+  const existing=window.VedrasExistingAssets?.classify(a);if(existing)return window.VedrasExistingAssets.metadata(existing,N.template(),a.name);
   // Old placeholder graphics remain explicit test candidates; never claim production approval.
   r.artStatus=['candidate','test','approved','deprecated'].includes(m.artStatus)?m.artStatus:'test';
   if(a.name.startsWith('pine_')){r.kind='tree';r.family='conifers';r.sizeClass='medium';r.logicalWidth=65;r.shadow={mode:'generic_medium_round',path:''};}
@@ -101,7 +102,7 @@ window.VedrasNature=(()=>{
   const r0=revision;
   try{const response=await fetch('/api/nature-catalog',{cache:'no-store'});if(!response.ok)throw Error('Server nicht verfügbar');const data=await response.json();
    const errors=N.validate(data,terrainRegistry());if(errors.length)throw Error(errors.join('; '));
-   if(!dirty&&revision===r0)catalog=data;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
+   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
   }catch(e){serverWritable=false;status();message('Nature-Katalog konnte nicht geladen werden: '+e.message+' – vorhandene Daten nicht zurückgesetzt.');$('nRecoveryStatus').textContent='Ladefehler: '+e.message+'. Bitte den ursprünglichen assets/nature/nature_catalog.json sichern und ggf. die .bak prüfen.';}
  }
  async function importJSON(file){let data=JSON.parse(await file.text());let next;
@@ -135,13 +136,14 @@ window.VedrasNature=(()=>{
  }
  function saved(){core.persistScene();core.requestDraw();renderPlaced();}
  function placeSelected(){const a=core.assets().find(a=>a.path===state.asset);if(a?.category!=='nature'){message('Bitte links ein Nature-Sprite wählen.');return;}
+  if(window.VedrasExistingAssets?.isJournal(a)){message('Journal-Spezialbäume sind API-Assets und dürfen nicht auf die Weltkarte platziert werden.');return;}
   const meta=entryFor(a);if(!meta){message('Zuerst Sprite-Metadaten speichern.');return;}
   const [q,r]=state.selected.split(',').map(Number);const arr=state.natureInstances||[];
   const instance=makeInstance(a,q,r,arr.filter(x=>x.q===q&&x.r===r).length+1,arr,Number($('nSeed').value)||12345);
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
   state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
- function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>a.category==='nature'&&entryFor(a)&&entryFor(a).kind!=='mountain'&&resolveForMeta(entryFor(a)).size&&entryFor(a).artStatus!=='deprecated');
+ function populate(){const seed=Number($('nSeed').value)||12345;const all=[];const candidates=core.assets().filter(a=>a.category==='nature'&&!window.VedrasExistingAssets?.isJournal(a)&&entryFor(a)&&entryFor(a).kind!=='mountain'&&resolveForMeta(entryFor(a)).size&&entryFor(a).artStatus!=='deprecated');
   const hexes=core.cells();for(const c of hexes){const t=core.effectiveBiome(c);const possible=candidates.filter(a=>resolveForMeta(entryFor(a)).has(t));
    const scored=possible.map(a=>({a,score:random(seed,c.q,c.r,hash(seed,0,0,a.relPath.length)+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0))})).sort((u,v)=>u.score-v.score);
    for(const {a,score} of scored){const meta=entryFor(a);const limit=meta.placement.canCluster?5:3;
@@ -335,7 +337,9 @@ window.VedrasNature=(()=>{
      const raw=a.meta?.assetType==='nature_sprite'?(a.meta.data||a.meta):a.meta;
      if(!raw?.id||!raw?.kind){
       const plan=window.VedrasSpritePlanner?.match(a);
-      if(plan){const proposed=window.VedrasSpritePlanner.metadata(plan,N.template());const trial=structuredClone(catalog);trial.entries[a.relPath]=proposed;
+      const existing=window.VedrasExistingAssets?.classify(a);
+      const proposed=plan?window.VedrasSpritePlanner.metadata(plan,N.template()):existing?window.VedrasExistingAssets.metadata(existing,N.template(),a.name):null;
+      if(proposed){const trial=structuredClone(catalog);trial.entries[a.relPath]=proposed;
        if(!N.validate(trial,terrainRegistry()).length){catalog.entries[a.relPath]=proposed;count++;}else skipped.push(a.name);}
       continue;
      }
@@ -347,7 +351,8 @@ window.VedrasNature=(()=>{
    if(count){change();message(count+' Nature-Asset-Sidecar(s) automatisch zugeordnet.');}
    if(skipped.length)message('Importhinweis: unpassende Sidecars bei '+skipped.join(', '));
  }
- const onLibrary=()=>{importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();if(core.terrainReady?.()&&!dirty)reload();};
+ const onLibrary=async()=>{if(core.terrainReady?.()&&!loadedFromServer&&!dirty)await reload();
+  importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();};
  window.addEventListener('vedras:assets-loaded',onLibrary);
  window.addEventListener('vedras:hex-selected',renderPlaced);
  window.addEventListener('vedras:assets-loaded',syncMountainControls);
