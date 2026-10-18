@@ -10,6 +10,7 @@ html=html.replace('<link rel="stylesheet" href="style.css?v=0.12.0">','<style>'+
 for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-planner','existing-asset-rules','forest','relief','shoreline','mountain','app','nature-ui','ui-organizer','forest-ui']:
     html=html.replace(f'<script src="{f}.js?v=0.11.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.12.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.12.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
