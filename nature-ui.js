@@ -154,7 +154,11 @@ window.VedrasNature=(()=>{
    const possible=candidates.filter(a=>{
     const m=entryFor(a);
     if(type?.materialClass==='water'&&!['reeds','mangroves'].includes(m.family))return false;
-    return resolveForMeta(m).has(t);
+    const allowed=resolveForMeta(m);
+    // forest_floor ist nur ein neutrales Demo-Waldbodenmaterial.
+    // Für die Testszene sind auf Wald-Hexen auch Grasland-Waldarten verwendbar.
+    // Die echte Gelände- und Biomzuordnung wird dadurch nicht verändert.
+    return allowed.has(t)||(t==='forest_floor'&&c.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster'].includes(m.kind));
    });
    if(possible.length)suitableCells++;
    const scored=possible.map(a=>({a,score:random(seed,c.q,c.r,hash(seed,0,0,a.relPath.length)+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0))})).sort((u,v)=>u.score-v.score);
