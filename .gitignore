@@ -1,5 +1,3 @@
-# User-imported production artwork and metadata stay local until explicitly approved
-/assets/
 # Generated test previews and transient files
 /previews/
 __pycache__/
