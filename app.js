@@ -1,4 +1,4 @@
-/* Vedras Reiche – Asset Labor v0.11.0, browser canvas / standard ES2022.
+/* Vedras Reiche – Asset Labor v0.12.0, browser canvas / standard ES2022.
  * Preview tool. Terrain textures and old SVGs are placeholders, not approved art.
  * True hex dimensions: 256 logical width; orthographic ground y-compression 0.85.
  * Sprites are pre-rendered at the same angle and are NOT compressed a second time.
@@ -552,9 +552,9 @@ async function reloadFromServer(){
   catalogCanSave=response.ok;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
-  if(d.version!=='0.11.0'){
+  if(d.version!=='0.12.0'){
    $('serverStatus').textContent+=' · VERSION KONFLIKT';
-   $('nRecoveryStatus').textContent=`Achtung: Programmoberfläche v0.11.0 und Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
+   $('nRecoveryStatus').textContent=`Achtung: Programmoberfläche v0.12.0 und Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
   }
 
  }catch(err){
