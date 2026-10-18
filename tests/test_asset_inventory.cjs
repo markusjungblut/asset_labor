@@ -1,4 +1,4 @@
-/* Regression: real artwork inventory, exact terrain families and API-only journal trees. */
+/* Regression: real artwork inventory, exact terrain families and ordinary Kapok trees. */
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -69,7 +69,7 @@ for(const row of natureManifest.entries){
  assert.equal(JSON.stringify(row.allowedTerrainCategories),JSON.stringify(Array.from(metadata.allowedTerrainCategories)),row.path+':biomes');
  assert.equal(row.placement.density,metadata.placement.density,row.path+':density');
  assert.equal(row.placement.minSpacing,metadata.placement.minSpacing,row.path+':spacing');
- assert.equal(row.apiOnly,E.isJournal({category:'nature',name:path.basename(row.path)}),row.path+':journal');
+ assert.equal(JSON.stringify(row.allowedTerrainTypes||[]),JSON.stringify(Array.from(metadata.allowedTerrainTypes)),row.path+':terrain types');
 }
 assert.equal(new Set(Object.values(entries).map(x=>x.id)).size,Object.keys(entries).length);
 const errors=N.validate({schemaVersion:1,revision:0,presets:{},entries},catalog);
@@ -78,14 +78,16 @@ for(let n=12;n<=19;n++){
  const filename='tree_'+n+'.png';
  const classification=E.classify({category:'nature',name:filename});
  const meta=entries['nature/'+filename];
- assert.equal(classification.apiOnly,true);
- assert.equal(meta.kind,'special');
+ assert.equal(classification.id,'kapok_tree_'+n);
+ assert.equal(meta.kind,'tree');
  assert.equal(meta.family,'jungle_trees');
  assert(meta.tags.includes('kapok'));
- assert.equal(meta.placement.density,0);
- assert.equal(meta.placement.weight,0);
- assert.deepEqual(Array.from(meta.allowedTerrainCategories),[]);
- assert(meta.tags.includes('journal_api'));
+ assert(!meta.tags.includes('journal_api'));
+ assert(!meta.tags.includes('no_auto_spawn'));
+ assert(meta.placement.density>0);
+ assert(meta.placement.weight>0);
+ assert.equal(JSON.stringify(Array.from(meta.allowedTerrainTypes)),JSON.stringify(['jungle']));
+ assert(E.canAutoPlaceInTest({category:'nature',name:filename},meta,new Set(['jungle'])));
 }
 assert.equal(E.classify({category:'nature',name:'unknown.png'}),null);
 assert.equal(E.classify({category:'nature',name:'tanne_01.png'}).name,'Tanne');
@@ -106,7 +108,7 @@ const eligible=Object.entries(entries).filter(([rel,m])=>E.canAutoPlaceInTest({c
   N.effectiveTypes(m,catalog,{presets:{}}))).length;
 assert(eligible>0,'candidate sprites must be eligible in the nature TEST distribution');
 assert(E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},entries['nature/birke1.png'],terrainTypes));
-assert(!E.canAutoPlaceInTest({category:'nature',name:'tree_12.png'},entries['nature/tree_12.png'],terrainTypes));
+assert(E.canAutoPlaceInTest({category:'nature',name:'tree_12.png'},entries['nature/tree_12.png'],new Set(['jungle'])));
 assert(E.canAutoPlaceInTest({category:'nature',name:'bush_01.png'},entries['nature/bush_01.png'],terrainTypes));
 assert(!E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},{...entries['nature/birke1.png'],artStatus:'deprecated'},terrainTypes));
 assert.equal(E.classify({category:'nature',name:'marula-baum_01.png'}).family,'savanna_trees');
@@ -115,4 +117,4 @@ for(let i=1;i<=11;i++){const filename='palme_'+String(i).padStart(2,'0')+'.png';
  const m=entries['nature/'+filename];assert.equal(m.family,'palms');assert.equal(m.sizeClass,i<=5?'medium':'large');
  assert(!m.allowedTerrainCategories.includes('water_coast'));
 }
-console.log('PASS inventory: 25 terrain families, 104 terrain variants, 148 nature profiles, 8 journal API trees; no existing assignments overwritten.');
+console.log('PASS inventory: 25 terrain families, 104 terrain variants, 148 nature profiles, 8 ordinary Kapok trees; no existing assignments overwritten.');
