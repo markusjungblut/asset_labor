@@ -29,3 +29,9 @@ Unter `plans/sprite_catalog_plan.json` enthält `items` ausschließlich noch nic
 Waldklassen (`light_forest`, `dense_forest`) und ein ein Hex breiter Waldrand-Einfluss werden getrennt vom Terrain gespeichert. Der eigene Biomtyp `jungle` benötigt keine neue PNG; in der Testkarte kann vorhandener Waldboden vorläufig als **visuelles** Material dienen. Im Nature-Bereich unter **Wälder & Dschungel** Waldanteil, Waldrandstärke, manuelle Hexregeln und Dschungelgebiete einstellen und anschließend die Natur verteilen. Szenenexport und -import erhalten `forest` samt Seed, Overrides und Dschungelhexen; zusätzlich wird `forestByHex` mit den fertigen Ergebnissen exportiert. Siehe [FOREST_SYSTEM.md](FOREST_SYSTEM.md).
 
 **Tests:** `node tests/test_forest.cjs`, `node tests/test_forest_integration.cjs` und `python tests/test_v110_browser.py`. Die Hauptspiel-Generierung liegt außerhalb dieses Repositories und wird nicht stillschweigend geändert.
+
+## Import 19.10.2026: zusätzliche 33 Nature-Sprites
+
+Der Bestand umfasst 181 echte Nature-PNGs und Katalogeinträge (148 vorherige unverändert). Neu: 8 Baumstümpfe, 4 Erlen, 4 Weiden, 3 Marulabäume, 4 Tundra-Zwergsträucher, 4 Schilf-Varianten, 3 Sukkulenten und 3 Wacholder. `Marula2..png` und `Tundra_Zwergstrauch4..png` wurden ohne Bildänderung unter gültigen Dateinamen mit einem Punkt gespeichert. Die Normalisierung war für die sichere Nature-Pfadvalidierung notwendig.
+
+Schilf, Erlen, Weiden, Sukkulenten, Zwergsträucher und Baumstümpfe sind nicht mehr als fehlende Produktions-Sprites gelistet: **11 offene Arten, 34 erledigte/entfallene Altposten**. Reale Nature-Metadaten bleiben verbindlich, 106 FloraV2-Referenzgruppen ordnen genau 181 vorhandene Dateinamen ein. Neue Grafiken behalten den Prüfstatus `candidate` und erhalten Biom- und Größenprofile, die bei Bedarf im Nature-Inspektor korrigierbar sind.

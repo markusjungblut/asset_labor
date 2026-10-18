@@ -61,3 +61,7 @@ Ein fixer Seed sorgt dafür, dass Waldkerne, Randwirkung und Sprite-Positionen r
 `python tests/test_v110_browser.py`: Browser-Test für die 37-Hex-Szene, Wald-Eingriffe und Dschungelerzeugung (benötigt Playwright, Chromium und Pillow).
 
 **Nicht Bestandteil dieser Änderung:** Die tatsächliche Spielwelt-Generierung des separaten Hauptspiel-Repositories und großflächige Weltkarten-Performance. `forest.js` und das exportierte `forestByHex` liefern die Basis dafür. Die visuelle Feinabstimmung der Höhen, Baumschatten und Biomenge bleibt erforderlich.
+
+## Neue Nature-Arten, 19.10.2026
+
+Vier Weiden und vier Erlen werden als Ufer- bzw. Feuchtgebietsbäume (`riparian_trees`) geführt. Tundra-Zwergsträucher (`cold_bushes`) wachsen nur auf Tundra-, gefrorenen Tundra- oder Hochland-Terrain. Schilf (`reeds`) gehört zu Feuchtgebieten und nicht auf Ozeanflächen; Sukkulenten (`succulents`) zu ariden Biomen und Savannen. Baumstümpfe (`deadwood`) sind vereinzelte Waldbodenobjekte und werden nicht als lebende Bäume gezählt. Marula zählt zu Savannenbäumen; drei zusätzliche Wacholder sind Nadelgehölze. Alle sind normale `candidate`-Sprites. Normale Kapokbäume und der eigenständige Dschungel bleiben unverändert.

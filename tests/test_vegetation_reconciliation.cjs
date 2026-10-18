@@ -17,19 +17,19 @@ const plan=JSON.parse(fs.readFileSync(path.join(root,'plans/sprite_catalog_plan.
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'plans/nature_asset_inventory.json'),'utf8'));
 assert.equal(N.validate(nature,terrain).length,0,'real Nature catalog must validate');
 assert.equal(plan.schemaVersion,2);
-assert.equal(plan.items.length,17);
-assert.equal(plan.resolved.length,28);
-assert.equal(plan.items.filter(x=>x.priority==='optional').length,5);
-assert.equal(P.entries.length,17);
-assert.equal(P.resolved.length,28);
+assert.equal(plan.items.length,11);
+assert.equal(plan.resolved.length,34);
+assert.equal(plan.items.filter(x=>x.priority==='optional').length,2);
+assert.equal(P.entries.length,11);
+assert.equal(P.resolved.length,34);
 for(const id of ['clover_01','moss_01','alpine_grass_01','thyme_01','birch_01','fir_01','pine_01','palm_01','juniper_01','bush_group_01','jungle_tree_01']){
  assert(!plan.items.some(x=>x.id===id),'redundant/micro sprite incorrectly left open: '+id);
 }
-for(const id of ['reeds_01','fern_01','cactus_01','mangrove_01']){
+for(const id of ['fern_01','cactus_01','mangrove_01']){
  assert(plan.items.some(x=>x.id===id),'needed sprite excluded: '+id);
 }
 assert.equal(P.match({name:'thymian_01.png'}),null,'Thyme is in actual inventory, not backlog');
-assert.equal(P.match({name:'schilf_01.png'}).id,'reeds_01');
+assert.equal(P.match({name:'schilf1.png'}),null,'Schilf ist bereits vorhanden');
 assert.equal(P.match({name:'farn1.png'}).id,'fern_01');
 assert.equal(P.match({name:'kaktus_01.png'}).id,'cactus_01');
 const size=n=>n<=4?'medium':n<=6?'small':n<=10?'large':n<=14?'medium':n===15?'small':n===16?'medium':n<=19?'large':n<=24?'medium':n<=29?'small':n<=33?'medium':'medium';
@@ -74,4 +74,4 @@ for(const row of manifest.entries){
  assert.equal(m.kind,row.kind,row.path);
  assert.equal(m.sizeClass,row.sizeClass,row.path);
 }
-console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 ordinary Kapok jungle trees, 17 outstanding sprite needs, 28 resolved tasks.');
+console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 ordinary Kapok jungle trees, 11 outstanding sprite needs, 34 resolved tasks.');

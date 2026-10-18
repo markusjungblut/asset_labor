@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "source": "FloraV2-Branch, mit Nature-Katalog auf main am 18.10.2026 abgeglichen",
-  "meaning": "Historische, breite FloraV2-Referenz (104 Kategorien), KEINE Liste neu zu produzierender PNGs. Verbindlich sind die 17 offenen Aufgaben in plans/sprite_catalog_plan.json und die Einzelzuordnungen in assets/nature/nature_catalog.json.",
+  "meaning": "106 Referenzgruppen mit genau 181 realen Nature-Varianten; keine eigenständige Produktionsliste.",
   "species": [
     {
       "id": "oak_01",
@@ -934,7 +934,7 @@
       "name": "Wacholder",
       "filename": "juniper_01.png",
       "folder": "shrubs/dry_bushes",
-      "family": "dry_bushes",
+      "family": "conifers",
       "kind": "shrub",
       "sizeClass": "medium",
       "targetHeight": 49,
@@ -962,7 +962,10 @@
       "aliases": [
         "wacholder1.png",
         "wacholder2.png",
-        "wacholder3.png"
+        "wacholder3.png",
+        "wacholder_04.png",
+        "wacholder_05.png",
+        "wacholder_06.png"
       ],
       "confidence": "named"
     },
@@ -1096,17 +1099,22 @@
       "minSpacing": 82,
       "canCluster": false,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "riparian_trees"
       ],
       "spawnWeight": 0.7,
-      "aliases": [],
+      "aliases": [
+        "Weide1.png",
+        "Weide2.png",
+        "Weide3.png",
+        "Weide4.png"
+      ],
       "confidence": "named"
     },
     {
       "id": "alder_01",
-      "name": "Schwarzerle",
+      "name": "Erle (Art offen)",
       "filename": "alder_01.png",
       "folder": "trees/riparian_trees",
       "family": "riparian_trees",
@@ -1126,12 +1134,17 @@
       "minSpacing": 82,
       "canCluster": false,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "riparian_trees"
       ],
       "spawnWeight": 0.9,
-      "aliases": [],
+      "aliases": [
+        "Erle1.png",
+        "Erle2.png",
+        "Erle3.png",
+        "Erle4.png"
+      ],
       "confidence": "named"
     },
     {
@@ -1899,12 +1912,16 @@
       "minSpacing": 82,
       "canCluster": false,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "savanna_trees"
       ],
       "spawnWeight": 0.3,
-      "aliases": [],
+      "aliases": [
+        "Marula1.png",
+        "Marula2.png",
+        "Marula3.png"
+      ],
       "confidence": "named"
     },
     {
@@ -2270,7 +2287,7 @@
       "filename": "reed_01.png",
       "folder": "ground/reeds",
       "family": "reeds",
-      "kind": "ground_cover",
+      "kind": "cluster",
       "sizeClass": "medium",
       "targetHeight": 27,
       "description": "Schilf – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
@@ -2284,12 +2301,17 @@
       "minSpacing": 24,
       "canCluster": true,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "reeds"
       ],
       "spawnWeight": 1,
-      "aliases": [],
+      "aliases": [
+        "schilf1.png",
+        "schilf2.png",
+        "schilf3.png",
+        "schilf4.png"
+      ],
       "confidence": "named"
     },
     {
@@ -2973,7 +2995,7 @@
       "filename": "tree_stump_01.png",
       "folder": "ground/deadwood",
       "family": "deadwood",
-      "kind": "rock",
+      "kind": "special",
       "sizeClass": "small",
       "targetHeight": 35,
       "description": "Baumstumpf – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
@@ -2987,12 +3009,21 @@
       "minSpacing": 24,
       "canCluster": true,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "deadwood"
       ],
       "spawnWeight": 0.3,
-      "aliases": [],
+      "aliases": [
+        "Baumstumpf_01.png",
+        "Baumstumpf_02.png",
+        "Baumstumpf_03.png",
+        "Baumstumpf_04.png",
+        "Baumstumpf_05.png",
+        "Baumstumpf_06.png",
+        "Baumstumpf_07.png",
+        "Baumstumpf_08.png"
+      ],
       "confidence": "named"
     },
     {
@@ -3199,6 +3230,72 @@
         "berg_04.png"
       ],
       "confidence": "named"
+    },
+    {
+      "id": "bush_tundra_01",
+      "name": "Tundra-Zwergstrauch",
+      "filename": "bush_tundra_01.png",
+      "folder": "shrubs/cold_bushes",
+      "family": "cold_bushes",
+      "kind": "shrub",
+      "sizeClass": "tiny",
+      "targetHeight": 22,
+      "description": "Reale Sammelgruppe, genaue Art nicht visuell bestätigt.",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "tundra",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "density": 0.26,
+      "minSpacing": 44,
+      "canCluster": true,
+      "anchorY": 0.96,
+      "status": "existing_reference",
+      "tags": [
+        "cold_bushes"
+      ],
+      "spawnWeight": 1,
+      "aliases": [
+        "Tundra_Zwergstrauch1.png",
+        "Tundra_Zwergstrauch2.png",
+        "Tundra_Zwergstrauch3.png",
+        "Tundra_Zwergstrauch4.png"
+      ],
+      "confidence": "filename"
+    },
+    {
+      "id": "succulent_01",
+      "name": "Sukkulente",
+      "filename": "succulent_01.png",
+      "folder": "ground/succulents",
+      "family": "succulents",
+      "kind": "ground_cover",
+      "sizeClass": "small",
+      "targetHeight": 17,
+      "description": "Reale Sammelgruppe, genaue Art nicht visuell bestätigt.",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "rocky_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "density": 0.12,
+      "minSpacing": 24,
+      "canCluster": true,
+      "anchorY": 0.96,
+      "status": "existing_reference",
+      "tags": [
+        "succulents"
+      ],
+      "spawnWeight": 1,
+      "aliases": [
+        "sukkulent1.png",
+        "sukkulent2.png",
+        "sukkulent3.png"
+      ],
+      "confidence": "filename"
     }
   ],
   "unmatchedNatureFiles": [],
@@ -3237,7 +3334,7 @@
       ]
     }
   },
-  "reviewRequired": "Nur fachliche Referenz. Arten in dieser Registry sind weder automatisch Produktionsaufträge noch ein Override des Nature-Katalogs.",
+  "reviewRequired": "Neue Arten-, Größen- und Biomzuordnungen nach Dateiname bleiben Bildprüf-Kandidaten.",
   "productionBacklogPath": "plans/sprite_catalog_plan.json",
   "actualMetadataPath": "assets/nature/nature_catalog.json"
 }

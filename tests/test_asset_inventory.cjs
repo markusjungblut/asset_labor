@@ -16,8 +16,8 @@ const E = window.VedrasExistingAssets;
 const T = window.VedrasTerrainSources;
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'plans/terrain_asset_plan.json'),'utf8'));
 const natureManifest = JSON.parse(fs.readFileSync(path.join(root,'plans/nature_asset_inventory.json'),'utf8'));
-assert.equal(natureManifest.entryCount,148);
-assert.equal(natureManifest.entries.length,148);
+assert.equal(natureManifest.entryCount,181);
+assert.equal(natureManifest.entries.length,181);
 const terrainFiles = fs.readdirSync(path.join(root,'assets/terrain')).filter(x=>x.endsWith('.png')).sort();
 const natureFiles = fs.readdirSync(path.join(root,'assets/nature')).filter(x=>x.endsWith('.png')).sort();
 assert.equal(manifest.terrainFamilyCount,25);
@@ -25,7 +25,7 @@ assert.equal(manifest.items.length,25);
 assert.equal(T.rules.length,25);
 assert.equal(new Set(manifest.items.map(x=>x.sourceStem)).size,25);
 assert(terrainFiles.length>=104,'expected at least 104 terrain PNGs');
-assert(natureFiles.length>=148,'existing nature assets must remain available');
+assert(natureFiles.length>=181,'existing nature assets must remain available');
 const assignedPaths = manifest.items.flatMap(x=>x.files);
 assert.equal(assignedPaths.length,104);
 assert.equal(new Set(assignedPaths).size,104);
@@ -61,7 +61,7 @@ for(const filename of natureFiles){
  if(classification)entries['nature/'+filename]=E.metadata(classification,N.template(),filename);
  // Unbekannte neue Dateinamen bleiben editierbar, erhalten aber keine erfundene Artzuordnung.
 }
-assert(Object.keys(entries).length>=148);
+assert(Object.keys(entries).length>=181);
 for(const row of natureManifest.entries){
  const metadata=entries[row.path.slice('assets/'.length)];
  assert(metadata,'no recorded Nature asset '+row.path);
@@ -117,4 +117,4 @@ for(let i=1;i<=11;i++){const filename='palme_'+String(i).padStart(2,'0')+'.png';
  const m=entries['nature/'+filename];assert.equal(m.family,'palms');assert.equal(m.sizeClass,i<=5?'medium':'large');
  assert(!m.allowedTerrainCategories.includes('water_coast'));
 }
-console.log('PASS inventory: 25 terrain families, 104 terrain variants, 148 nature profiles, 8 ordinary Kapok trees; no existing assignments overwritten.');
+console.log('PASS inventory: 25 terrain families, 104 terrain variants, 181 nature profiles, 8 ordinary Kapok trees; no existing assignments overwritten.');

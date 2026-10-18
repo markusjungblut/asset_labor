@@ -9,6 +9,12 @@ window.VedrasExistingAssets = (() => {
   [/^buche(\d+)$/, 'Buche', 'deciduous_trees', 'tree', 'large'],
   [/^eiche(\d+)$/, 'Eiche', 'deciduous_trees', 'tree', 'large'],
   [/^esche(\d+)$/, 'Esche', 'deciduous_trees', 'tree', 'large'],
+  [/^erle_?(\d+)$/, 'Erle', 'riparian_trees', 'tree', 'large'],
+  [/^weide_?(\d+)$/, 'Weide', 'riparian_trees', 'tree', 'large'],
+  [/^tundra_zwergstrauch_?(\d+)$/, 'Tundra-Zwergstrauch (Art offen)', 'cold_bushes', 'shrub', 'small'],
+  [/^schilf_?(\d+)$/, 'Schilf', 'reeds', 'cluster', 'medium'],
+  [/^sukkulent(?:e|en)?_?(\d+)$/, 'Sukkulente (Art offen)', 'succulents', 'ground_cover', 'medium'],
+  [/^baumstumpf_?(\d+)$/, 'Baumstumpf', 'deadwood', 'special', 'medium'],
   [/^ginster(\d+)$/, 'Ginster', 'flowering_bushes', 'shrub', 'small'],
   [/^haselstrauch(\d+)$/, 'Haselstrauch', 'temperate_bushes', 'shrub', 'medium'],
   [/^holunder_(\d+)$/, 'Holunder', 'temperate_bushes', 'shrub', 'medium'],
@@ -40,6 +46,11 @@ window.VedrasExistingAssets = (() => {
   palms:[['warm_regions','wetlands'],.13,96],
   dry_bushes:[['arid_regions','warm_regions','grass_pasture'],.19,45],
   jungle_trees:[['warm_regions'],.06,132],
+  riparian_trees:[['wetlands'],.12,114],
+  cold_bushes:[[],.21,36],
+  reeds:[['wetlands'],.17,50],
+  succulents:[['arid_regions'],.12,38],
+  deadwood:[['grass_pasture','cold_regions','wetlands','warm_regions'],.045,74],
  };
  const stem = name => String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').toLowerCase().replace(/\.(?:png|webp|jpe?g|svg|gif|avif)$/i,'');
  function classify(asset) {
@@ -85,7 +96,9 @@ window.VedrasExistingAssets = (() => {
   const isSmallPalm=info.family==='palms'&&info.sizeClass==='medium';
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
-  const targetHeight=window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75;
+  const targetHeight=info.family==='deadwood'?55:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
+  const restrict={riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna']};
+  const groundWood=info.family==='deadwood';
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
    sizeMode:mountain?'manual':'class',targetHeight,
@@ -93,9 +106,9 @@ window.VedrasExistingAssets = (() => {
    description:info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
-   shadow:{...tmpl.shadow,mode:mountain||ground?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:info.group==='kapok'?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:[],excludedTerrainTypes:[],
-   placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:cluster||(!mountain&&!tree)},
+   shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
+   terrainPresetId:'',allowedTerrainCategories:info.group==='kapok'?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:(restrict[info.family]||[]),excludedTerrainTypes:[],
+   placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
     'existing','needs_art_review',...(info.confirmedSpecies?[]:['needs_species_review']),

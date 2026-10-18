@@ -1,3 +1,11 @@
+## Nature-Import: 33 neue Grafiken (19.10.2026)
+
+Die 33 neu gepushten PNGs sind als reale Nature-Assets eingetragen: 8 Baumstümpfe (`deadwood`), 4 Erlen und 4 Weiden (`riparian_trees`), 3 Marulabäume (`savanna_trees`), 4 Tundra-Zwergsträucher (`cold_bushes`), 4 Schilfgruppen (`reeds`), 3 Sukkulenten (`succulents`) und 3 weitere Wacholder (`conifers`). Der **Nature-Katalog hat 181 Einträge**; die bereits bestehenden 148 Metadaten wurden nicht überschrieben. Die beiden versehentlich doppelt gepunkteten PNGs sind bei identischem Bildinhalt von `Marula2..png` und `Tundra_Zwergstrauch4..png` auf `Marula2.png` bzw. `Tundra_Zwergstrauch4.png` korrigiert.
+
+Der **Sprite-Planungskatalog enthält nun 11 offene Vorhaben und 34 abgeglichene Altposten**. Schilf, Weide, Erle, Baumstumpf, Tundra-Zwergstrauch und Sukkulente gelten als vorhanden. Die FloraV2-Referenz umfasst **106 Gruppen mit 181 echten PNG-Aliassen**. Einträge bleiben `candidate` bis zur optischen Prüfung. Normale Kapokbäume sowie Wald- und Dschungelgenerierung sind unverändert.
+
+---
+
 # Vedras Reiche – Asset-Labor v0.13.0 (zusammengeführt)
 
 ## Wälder und Dschungel (v0.12.0)

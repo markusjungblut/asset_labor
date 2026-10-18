@@ -1,38 +1,8 @@
 {
   "schemaVersion": 2,
-  "description": "Offene, tatsächlich noch zu erstellende Sprite-Arten. Bereits vorhandene Äquivalente und bewusst gestrichene Bodendetails sind unter resolved dokumentiert. Dateinamen sind Produktionsvorschläge; Aliasdateien werden erkannt.",
+  "description": "11 offene Nature-Produktionsarten; 34 erledigte, abgedeckte oder verworfene Posten dokumentiert.",
   "heightUnits": "visible cropped sprite height in world units, independent of PNG pixel dimensions",
   "items": [
-    {
-      "id": "reeds_01",
-      "name": "Schilf",
-      "filename": "reeds_01.png",
-      "family": "reeds",
-      "kind": "ground_cover",
-      "sizeClass": "medium",
-      "targetHeight": 27,
-      "description": "Schilf – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "water_coast"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.22,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "reeds"
-      ],
-      "aliases": [
-        "schilf_01.png",
-        "schilf1.png"
-      ],
-      "priority": "planned"
-    },
     {
       "id": "fern_01",
       "name": "Farn",
@@ -63,62 +33,6 @@
         "farn1.png"
       ],
       "priority": "planned"
-    },
-    {
-      "id": "succulent_01",
-      "name": "Sukkulente",
-      "filename": "succulent_01.png",
-      "family": "succulents",
-      "kind": "ground_cover",
-      "sizeClass": "small",
-      "targetHeight": 17,
-      "description": "Sukkulente – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.12,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "succulents"
-      ],
-      "aliases": [
-        "sukkulente_01.png",
-        "sukkulente1.png"
-      ],
-      "priority": "optional"
-    },
-    {
-      "id": "bush_tundra_01",
-      "name": "Tundra-Zwergstrauch",
-      "filename": "bush_tundra_01.png",
-      "family": "cold_bushes",
-      "kind": "shrub",
-      "sizeClass": "tiny",
-      "targetHeight": 22,
-      "description": "Tundra-Zwergstrauch – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.26,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "cold_bushes"
-      ],
-      "aliases": [],
-      "priority": "optional"
     },
     {
       "id": "bush_jungle_01",
@@ -177,67 +91,6 @@
       ],
       "aliases": [
         "mangrovengruppe_01.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "willow_01",
-      "name": "Weide",
-      "filename": "willow_01.png",
-      "family": "riparian_trees",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Weide – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "grass_pasture",
-        "water_coast"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.12,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "riparian_trees"
-      ],
-      "aliases": [
-        "weide_01.png",
-        "weide1.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "alder_01",
-      "name": "Erle",
-      "filename": "alder_01.png",
-      "family": "riparian_trees",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "targetHeight": 126,
-      "description": "Erle – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "grass_pasture"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.17,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "riparian_trees"
-      ],
-      "aliases": [
-        "erle_01.png",
-        "erle1.png"
       ],
       "priority": "planned"
     },
@@ -330,37 +183,6 @@
         "toter_baum_01.png"
       ],
       "priority": "planned"
-    },
-    {
-      "id": "tree_stump_01",
-      "name": "Baumstumpf",
-      "filename": "tree_stump_01.png",
-      "family": "deadwood",
-      "kind": "rock",
-      "sizeClass": "small",
-      "targetHeight": 35,
-      "description": "Baumstumpf – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.16,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deadwood"
-      ],
-      "aliases": [
-        "baumstumpf_01.png"
-      ],
-      "priority": "optional"
     },
     {
       "id": "fallen_log_01",
@@ -677,6 +499,42 @@
       "name": "Kiesel",
       "resolution": "terrain_detail",
       "evidence": "Wird nach Entscheidung vom 18.10.2026 als Terrain-Oberflächenstruktur behandelt oder nicht einzeln produziert."
+    },
+    {
+      "id": "reeds_01",
+      "name": "Schilf",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "schilf1–4 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "succulent_01",
+      "name": "Sukkulente",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "sukkulent1–3 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "bush_tundra_01",
+      "name": "Tundra-Zwergstrauch",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "Tundra_Zwergstrauch1–4 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "willow_01",
+      "name": "Weide",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "Weide1–4 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "alder_01",
+      "name": "Erle",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "Erle1–4 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "tree_stump_01",
+      "name": "Baumstumpf",
+      "resolution": "covered_by_existing_assets",
+      "evidence": "Baumstumpf_01–08 als PNG vorhanden und im Nature-Katalog eingetragen."
     }
   ]
 }

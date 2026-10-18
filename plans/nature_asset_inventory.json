@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "description": "Dateinamengestützte Bestandsklassifikation von 148 tatsächlich vorhandenen Nature-Bildern (kein Bild-Platzhalter, keine automatische Produktionsfreigabe). Alle Biom-, Größen- und Dichtewerte sind prüfpflichtige Vorschläge; individuelle vorhandene Nature-Katalogeinträge haben Vorrang.",
+  "description": "181 echte Nature-PNGs im Katalog. Bestand der ersten 148 unverändert; neue Größen- und Biomprofile sind bis zur Sichtprüfung Kandidaten.",
   "sourceOfTruth": "existing-asset-rules.js",
   "sourceCommitDate": "2026-10-18",
-  "entryCount": 148,
+  "entryCount": 181,
   "entries": [
     {
       "id": "existing_affenbrotbaum1",
@@ -149,6 +149,230 @@
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_01",
+      "path": "assets/nature/Baumstumpf_01.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_02",
+      "path": "assets/nature/Baumstumpf_02.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_03",
+      "path": "assets/nature/Baumstumpf_03.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_04",
+      "path": "assets/nature/Baumstumpf_04.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_05",
+      "path": "assets/nature/Baumstumpf_05.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_06",
+      "path": "assets/nature/Baumstumpf_06.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_07",
+      "path": "assets/nature/Baumstumpf_07.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_08",
+      "path": "assets/nature/Baumstumpf_08.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
         "canCluster": false
       },
       "artStatus": "candidate",
@@ -1646,6 +1870,114 @@
       "speciesConfirmed": true
     },
     {
+      "id": "existing_erle1",
+      "path": "assets/nature/Erle1.png",
+      "name": "Erle",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_erle2",
+      "path": "assets/nature/Erle2.png",
+      "name": "Erle",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_erle3",
+      "path": "assets/nature/Erle3.png",
+      "name": "Erle",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_erle4",
+      "path": "assets/nature/Erle4.png",
+      "name": "Erle",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
       "id": "existing_esche1",
       "path": "assets/nature/esche1.png",
       "name": "Esche",
@@ -2052,6 +2384,84 @@
       "speciesConfirmed": true
     },
     {
+      "id": "existing_marula1",
+      "path": "assets/nature/Marula1.png",
+      "name": "Marulabaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_marula2",
+      "path": "assets/nature/Marula2.png",
+      "name": "Marulabaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_marula3",
+      "path": "assets/nature/Marula3.png",
+      "name": "Marulabaum",
+      "family": "savanna_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 130,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
       "id": "existing_palme_01",
       "path": "assets/nature/palme_01.png",
       "name": "Palme (kleinere Variante)",
@@ -2349,6 +2759,106 @@
       "speciesConfirmed": false
     },
     {
+      "id": "existing_schilf1",
+      "path": "assets/nature/schilf1.png",
+      "name": "Schilf",
+      "family": "reeds",
+      "kind": "cluster",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.17,
+        "minSpacing": 50,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schilf2",
+      "path": "assets/nature/schilf2.png",
+      "name": "Schilf",
+      "family": "reeds",
+      "kind": "cluster",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.17,
+        "minSpacing": 50,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schilf3",
+      "path": "assets/nature/schilf3.png",
+      "name": "Schilf",
+      "family": "reeds",
+      "kind": "cluster",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.17,
+        "minSpacing": 50,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_schilf4",
+      "path": "assets/nature/schilf4.png",
+      "name": "Schilf",
+      "family": "reeds",
+      "kind": "cluster",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.17,
+        "minSpacing": 50,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
       "id": "existing_schirmakazie1",
       "path": "assets/nature/schirmakazie1.png",
       "name": "Schirmakazie",
@@ -2497,6 +3007,90 @@
         "needs_art_review"
       ],
       "speciesConfirmed": true
+    },
+    {
+      "id": "existing_sukkulent1",
+      "path": "assets/nature/sukkulent1.png",
+      "name": "Sukkulente (Art offen)",
+      "family": "succulents",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_sukkulent2",
+      "path": "assets/nature/sukkulent2.png",
+      "name": "Sukkulente (Art offen)",
+      "family": "succulents",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_sukkulent3",
+      "path": "assets/nature/sukkulent3.png",
+      "name": "Sukkulente (Art offen)",
+      "family": "succulents",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [
+        "arid_regions"
+      ],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
     },
     {
       "id": "existing_tanne_01",
@@ -3331,6 +3925,196 @@
       ]
     },
     {
+      "id": "existing_tundra_zwergstrauch1",
+      "path": "assets/nature/Tundra_Zwergstrauch1.png",
+      "name": "Tundra-Zwergstrauch (Art offen)",
+      "family": "cold_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "tundra",
+        "frozen_tundra",
+        "highland"
+      ],
+      "placement": {
+        "density": 0.21,
+        "minSpacing": 36,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tundra_zwergstrauch2",
+      "path": "assets/nature/Tundra_Zwergstrauch2.png",
+      "name": "Tundra-Zwergstrauch (Art offen)",
+      "family": "cold_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "tundra",
+        "frozen_tundra",
+        "highland"
+      ],
+      "placement": {
+        "density": 0.21,
+        "minSpacing": 36,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tundra_zwergstrauch3",
+      "path": "assets/nature/Tundra_Zwergstrauch3.png",
+      "name": "Tundra-Zwergstrauch (Art offen)",
+      "family": "cold_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "tundra",
+        "frozen_tundra",
+        "highland"
+      ],
+      "placement": {
+        "density": 0.21,
+        "minSpacing": 36,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_tundra_zwergstrauch4",
+      "path": "assets/nature/Tundra_Zwergstrauch4.png",
+      "name": "Tundra-Zwergstrauch (Art offen)",
+      "family": "cold_bushes",
+      "kind": "shrub",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "tundra",
+        "frozen_tundra",
+        "highland"
+      ],
+      "placement": {
+        "density": 0.21,
+        "minSpacing": 36,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review"
+      ],
+      "speciesConfirmed": false
+    },
+    {
+      "id": "existing_wacholder_04",
+      "path": "assets/nature/wacholder_04.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wacholder_05",
+      "path": "assets/nature/wacholder_05.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_wacholder_06",
+      "path": "assets/nature/wacholder_06.png",
+      "name": "Wacholder",
+      "family": "conifers",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture"
+      ],
+      "allowedTerrainTypes": [],
+      "placement": {
+        "density": 0.15,
+        "minSpacing": 86,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
       "id": "existing_wacholder1",
       "path": "assets/nature/wacholder1.png",
       "name": "Wacholder",
@@ -3397,6 +4181,114 @@
         "density": 0.15,
         "minSpacing": 86,
         "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weide1",
+      "path": "assets/nature/Weide1.png",
+      "name": "Weide",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weide2",
+      "path": "assets/nature/Weide2.png",
+      "name": "Weide",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weide3",
+      "path": "assets/nature/Weide3.png",
+      "name": "Weide",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_weide4",
+      "path": "assets/nature/Weide4.png",
+      "name": "Weide",
+      "family": "riparian_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [
+        "pasture"
+      ],
+      "placement": {
+        "density": 0.12,
+        "minSpacing": 114,
+        "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
