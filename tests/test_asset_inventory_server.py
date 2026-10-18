@@ -1,4 +1,4 @@
-"""Integration tests for real journal-tree API and Unicode catalog paths."""
+"""Integration tests for ordinary Kapok trees and Unicode catalog paths."""
 import json
 import threading
 import unittest
@@ -11,21 +11,24 @@ import server
 
 
 class AssetInventoryServerTests(unittest.TestCase):
-    def test_journal_trees_endpoint(self):
+    def test_kapok_trees_are_regular_nature_assets(self):
         httpd = server.ThreadingHTTPServer((server.HOST, 0), server.Handler)
         thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         thread.start()
         try:
-            with urlopen(f'http://{server.HOST}:{httpd.server_port}/api/journal-trees', timeout=8) as response:
+            with urlopen(f'http://{server.HOST}:{httpd.server_port}/api/nature-catalog', timeout=8) as response:
                 self.assertEqual(response.status, 200)
                 payload = json.load(response)
-            self.assertEqual(payload['schemaVersion'], 1)
-            self.assertEqual(payload['count'], 8)
-            self.assertEqual([item['id'] for item in payload['items']],
-                             [f'journal_tree_{n}' for n in range(12, 20)])
-            self.assertTrue(all(item['kind'] == 'special' and item['spawnable'] is False
-                                and item['family'] == 'jungle_trees' and item['species'] == 'kapok' for item in payload['items']))
-            self.assertTrue(all((server.BASE / item['path']).is_file() for item in payload['items']))
+            for number in range(12, 20):
+                item = payload['entries'][f'nature/tree_{number}.png']
+                self.assertEqual(item['id'], f'kapok_tree_{number}')
+                self.assertEqual(item['kind'], 'tree')
+                self.assertEqual(item['family'], 'jungle_trees')
+                self.assertIn('jungle', item['allowedTerrainTypes'])
+                self.assertGreater(item['placement']['density'], 0)
+                self.assertGreater(item['placement']['weight'], 0)
+                self.assertNotIn('journal_api', item['tags'])
+                self.assertNotIn('no_auto_spawn', item['tags'])
         finally:
             httpd.shutdown()
             httpd.server_close()
@@ -51,7 +54,7 @@ class AssetInventoryServerTests(unittest.TestCase):
                                 'nature/weißdorn1.png': entry('existing_weissdorn1')}}
         server.validate_nature_catalog(metadata)
 
-    def test_no_unexpected_journal_assets(self):
+    def test_eight_kapok_image_files_exist(self):
         self.assertEqual(
             sorted(x.name for x in (server.ASSETS / 'nature').glob('tree_*.png')),
             [f'tree_{n}.png' for n in range(12, 20)]
