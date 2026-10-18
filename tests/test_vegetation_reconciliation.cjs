@@ -60,11 +60,12 @@ for(let n=1;n<=11;n++){
 }
 for(let n=12;n<=19;n++){
  const rel='nature/tree_'+n+'.png',m=nature.entries[rel];
- assert(m,rel);assert.equal(m.id,'journal_tree_'+n);
- assert.equal(m.kind,'special');assert.equal(m.family,'jungle_trees');
- assert(m.tags.includes('kapok'));assert(m.tags.includes('journal_api'));
- assert.equal(m.placement.density,0);assert.equal(m.placement.weight,0);
- assert.equal(E.isJournal({category:'nature',name:'tree_'+n+'.png'}),true);
+ assert(m,rel);assert.equal(m.id,'kapok_tree_'+n);
+ assert.equal(m.kind,'tree');assert.equal(m.family,'jungle_trees');
+ assert(m.tags.includes('kapok'));assert(!m.tags.includes('journal_api'));
+ assert(m.placement.density>0);assert(m.placement.weight>0);
+ assert.equal(JSON.stringify(m.allowedTerrainTypes),JSON.stringify(['jungle']));
+ assert(E.canAutoPlaceInTest({category:'nature',name:'tree_'+n+'.png'},m,new Set(['jungle'])));
 }
 for(const row of manifest.entries){
  const m=nature.entries[row.path.slice('assets/'.length)];
@@ -73,4 +74,4 @@ for(const row of manifest.entries){
  assert.equal(m.kind,row.kind,row.path);
  assert.equal(m.sizeClass,row.sizeClass,row.path);
 }
-console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 Kapok journals, 17 outstanding sprite needs, 28 resolved tasks.');
+console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 ordinary Kapok jungle trees, 17 outstanding sprite needs, 28 resolved tasks.');
