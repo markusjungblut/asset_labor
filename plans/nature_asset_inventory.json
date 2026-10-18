@@ -503,986 +503,1129 @@
     {
       "id": "existing_bush_01",
       "path": "assets/nature/bush_01.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 1",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_02",
       "path": "assets/nature/bush_02.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 2",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_03",
       "path": "assets/nature/bush_03.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 3",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_04",
       "path": "assets/nature/bush_04.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 4",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_05",
       "path": "assets/nature/bush_05.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 5",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_06",
       "path": "assets/nature/bush_06.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 6",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_07",
       "path": "assets/nature/bush_07.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 7",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_08",
       "path": "assets/nature/bush_08.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 8",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_09",
       "path": "assets/nature/bush_09.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 9",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_10",
       "path": "assets/nature/bush_10.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 10",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_11",
       "path": "assets/nature/bush_11.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 11",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_12",
       "path": "assets/nature/bush_12.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 12",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_13",
       "path": "assets/nature/bush_13.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 13",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_14",
       "path": "assets/nature/bush_14.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 14",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_15",
       "path": "assets/nature/bush_15.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 15",
+      "family": "temperate_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_16",
       "path": "assets/nature/bush_16.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 16",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_17",
       "path": "assets/nature/bush_17.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 17",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_18",
       "path": "assets/nature/bush_18.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 18",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_19",
       "path": "assets/nature/bush_19.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 19",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "large",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 72,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_20",
       "path": "assets/nature/bush_20.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 20",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_21",
       "path": "assets/nature/bush_21.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 21",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_22",
       "path": "assets/nature/bush_22.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 22",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_23",
       "path": "assets/nature/bush_23.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 23",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_24",
       "path": "assets/nature/bush_24.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 24",
+      "family": "dry_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_25",
       "path": "assets/nature/bush_25.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 25",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_26",
       "path": "assets/nature/bush_26.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 26",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_27",
       "path": "assets/nature/bush_27.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 27",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_28",
       "path": "assets/nature/bush_28.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 28",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_29",
       "path": "assets/nature/bush_29.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Trockener Busch 29",
+      "family": "dry_bushes",
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions",
+        "grass_pasture"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.19,
+        "minSpacing": 45,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "dry_bush",
+        "size_provisional"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_30",
       "path": "assets/nature/bush_30.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 30",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_31",
       "path": "assets/nature/bush_31.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 31",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_32",
       "path": "assets/nature/bush_32.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 32",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_33",
       "path": "assets/nature/bush_33.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
+      "name": "Busch 33",
+      "family": "temperate_bushes",
       "kind": "shrub",
-      "sizeClass": "small",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 49,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.22,
+        "minSpacing": 43,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "temperate_bush"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_34",
       "path": "assets/nature/bush_34.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 34",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_35",
       "path": "assets/nature/bush_35.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 35",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_36",
       "path": "assets/nature/bush_36.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 36",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_37",
       "path": "assets/nature/bush_37.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 37",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_38",
       "path": "assets/nature/bush_38.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 38",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_39",
       "path": "assets/nature/bush_39.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 39",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_40",
       "path": "assets/nature/bush_40.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 40",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_bush_41",
       "path": "assets/nature/bush_41.png",
-      "name": "Busch (Art offen)",
-      "family": "unclassified_bushes",
-      "kind": "shrub",
-      "sizeClass": "small",
+      "name": "Buschgruppe 41",
+      "family": "temperate_bushes",
+      "kind": "cluster",
+      "sizeClass": "medium",
       "sizeMode": "class",
-      "targetHeight": 34,
-      "allowedTerrainCategories": [],
+      "targetHeight": 69,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "wetlands"
+      ],
       "placement": {
-        "density": 0,
-        "minSpacing": 44,
+        "density": 0.1,
+        "minSpacing": 80,
         "canCluster": true
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "bush_group"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_eiche1",
@@ -2751,7 +2894,7 @@
     {
       "id": "existing_tanne_schnee_01",
       "path": "assets/nature/tanne_schnee_01.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Kiefer",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2769,7 +2912,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2777,7 +2921,7 @@
     {
       "id": "existing_tanne_schnee_02",
       "path": "assets/nature/tanne_schnee_02.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Kiefer",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2795,7 +2939,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2803,7 +2948,7 @@
     {
       "id": "existing_tanne_schnee_03",
       "path": "assets/nature/tanne_schnee_03.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Kiefer",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2821,7 +2966,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2829,7 +2975,7 @@
     {
       "id": "existing_tanne_schnee_04",
       "path": "assets/nature/tanne_schnee_04.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Kiefer",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2847,7 +2993,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2855,7 +3002,7 @@
     {
       "id": "existing_tanne_schnee_05",
       "path": "assets/nature/tanne_schnee_05.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Kiefer",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2873,7 +3020,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_pine"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2881,7 +3029,7 @@
     {
       "id": "existing_tanne_schnee_06",
       "path": "assets/nature/tanne_schnee_06.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Tanne",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2899,7 +3047,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2907,7 +3056,7 @@
     {
       "id": "existing_tanne_schnee_07",
       "path": "assets/nature/tanne_schnee_07.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Tanne",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2925,7 +3074,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2933,7 +3083,7 @@
     {
       "id": "existing_tanne_schnee_08",
       "path": "assets/nature/tanne_schnee_08.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Tanne",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2951,7 +3101,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2959,7 +3110,7 @@
     {
       "id": "existing_tanne_schnee_09",
       "path": "assets/nature/tanne_schnee_09.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Tanne",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2977,7 +3128,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -2985,7 +3137,7 @@
     {
       "id": "existing_tanne_schnee_10",
       "path": "assets/nature/tanne_schnee_10.png",
-      "name": "Schneebedeckter Nadelbaum (Art offen)",
+      "name": "Verschneite Tanne",
       "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -3003,7 +3155,8 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_fir"
       ],
       "apiOnly": false,
       "speciesConfirmed": false
@@ -3092,194 +3245,202 @@
     {
       "id": "journal_tree_12",
       "path": "assets/nature/tree_12.png",
-      "name": "Journal-Spezialbaum 12",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 12)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_13",
       "path": "assets/nature/tree_13.png",
-      "name": "Journal-Spezialbaum 13",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 13)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_14",
       "path": "assets/nature/tree_14.png",
-      "name": "Journal-Spezialbaum 14",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 14)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_15",
       "path": "assets/nature/tree_15.png",
-      "name": "Journal-Spezialbaum 15",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 15)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_16",
       "path": "assets/nature/tree_16.png",
-      "name": "Journal-Spezialbaum 16",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 16)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_17",
       "path": "assets/nature/tree_17.png",
-      "name": "Journal-Spezialbaum 17",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 17)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_18",
       "path": "assets/nature/tree_18.png",
-      "name": "Journal-Spezialbaum 18",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 18)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "journal_tree_19",
       "path": "assets/nature/tree_19.png",
-      "name": "Journal-Spezialbaum 19",
-      "family": "journal_trees",
+      "name": "Kapokbaum (Journal 19)",
+      "family": "jungle_trees",
       "kind": "special",
-      "sizeClass": "large",
+      "sizeClass": "giant",
       "sizeMode": "manual",
-      "targetHeight": 130,
+      "targetHeight": 225,
       "allowedTerrainCategories": [],
       "placement": {
         "density": 0,
-        "minSpacing": 44,
+        "minSpacing": 132,
         "canCluster": false
       },
       "artStatus": "candidate",
       "reviewTags": [
         "existing",
         "journal_api",
-        "no_auto_spawn"
+        "no_auto_spawn",
+        "kapok"
       ],
       "apiOnly": true,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_wacholder1",
