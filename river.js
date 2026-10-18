@@ -150,5 +150,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,pos,vertices,side,midpoint,valid,findRoute,sections,mouths,trace,render,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,valid,findRoute,sections,mouths,trace,render,normalizeRoutes};
 })();
