@@ -80,18 +80,23 @@ for(let n=12;n<=19;n++){
  const meta=entries['nature/'+filename];
  assert.equal(classification.apiOnly,true);
  assert.equal(meta.kind,'special');
- assert.equal(meta.family,'journal_trees');
+ assert.equal(meta.family,'jungle_trees');
+ assert(meta.tags.includes('kapok'));
  assert.equal(meta.placement.density,0);
  assert.equal(meta.placement.weight,0);
  assert.deepEqual(Array.from(meta.allowedTerrainCategories),[]);
  assert(meta.tags.includes('journal_api'));
 }
 assert.equal(E.classify({category:'nature',name:'unknown.png'}),null);
-assert.equal(E.classify({category:'nature',name:'tanne_01.png'}).confirmedSpecies,false);
+assert.equal(E.classify({category:'nature',name:'tanne_01.png'}).name,'Tanne');
 assert.equal(E.classify({category:'nature',name:'tanne_schnee_01.png'}).confirmedSpecies,false);
-assert(entries['nature/tanne_01.png'].tags.includes('needs_species_review'));
-assert(entries['nature/bush_01.png'].tags.includes('needs_species_review'));
-assert.equal(entries['nature/bush_01.png'].placement.density,0);
+assert(entries['nature/tanne_01.png'].tags.includes('reassignable_conifer'));
+assert.equal(entries['nature/bush_01.png'].sizeClass,'medium');
+assert.equal(entries['nature/bush_05.png'].sizeClass,'small');
+assert.equal(entries['nature/bush_09.png'].sizeClass,'large');
+assert.equal(entries['nature/bush_20.png'].family,'dry_bushes');
+assert.equal(entries['nature/bush_34.png'].kind,'cluster');
+assert(entries['nature/bush_01.png'].placement.density>0);
 assert(N.validPath('nature/lärche1.png'));
 assert(N.validPath('nature/weißdorn1.png'));
 assert(!N.validPath('nature/../secret.png'));
@@ -102,7 +107,7 @@ const eligible=Object.entries(entries).filter(([rel,m])=>E.canAutoPlaceInTest({c
 assert(eligible>0,'candidate sprites must be eligible in the nature TEST distribution');
 assert(E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},entries['nature/birke1.png'],terrainTypes));
 assert(!E.canAutoPlaceInTest({category:'nature',name:'tree_12.png'},entries['nature/tree_12.png'],terrainTypes));
-assert(!E.canAutoPlaceInTest({category:'nature',name:'bush_01.png'},entries['nature/bush_01.png'],terrainTypes));
+assert(E.canAutoPlaceInTest({category:'nature',name:'bush_01.png'},entries['nature/bush_01.png'],terrainTypes));
 assert(!E.canAutoPlaceInTest({category:'nature',name:'birke1.png'},{...entries['nature/birke1.png'],artStatus:'deprecated'},terrainTypes));
 assert.equal(E.classify({category:'nature',name:'marula-baum_01.png'}).family,'savanna_trees');
 assert.equal(E.classify({category:'nature',name:'wacholder_04.png'}).family,'conifers');
