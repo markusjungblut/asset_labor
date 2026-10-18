@@ -1,5 +1,12 @@
 # Vedras Reiche – Asset-Labor v0.11.0
 
+## Wälder und Dschungel (v0.12.0)
+
+Das Asset-Labor besitzt nun eine zusätzliche **Waldschicht** unabhängig von Terraintexturen und Biomen: `light_forest`, `dense_forest` sowie einen **ein Hex breiten Waldrand-Auslauf**, durch den auch benachbarte Hexe mehr Bäume erhalten. Das eigenständige Jungle-Biom `jungle` lässt sich auf Landhexen als Dschungelgebiet markieren; vorhandener Waldboden dient bis zu einem echten Jungle-Terrain ausschließlich als visuelle Fallbacktextur. Seed-basierte Waldgruppen, Biomverträglichkeit, individuelle Nature-Größen und -Abstände werden berücksichtigt. Testkarte: **Natur auf Karte verteilen → Wälder & Dschungel**. Die Waldklassen werden in der Szene gespeichert und pro Hex als `forestByHex` exportiert. Für technische Details und noch offene Hauptspiel-Integration siehe [Wald- und Dschungelsystem](docs/FOREST_SYSTEM.md).
+
+**Journal-Kapok:** Die acht Kapok-Journalassets bleiben bis zur gesonderten Freigabe API-only und werden auch vom Dschungelgenerator nicht als gewöhnliche Weltkartenbäume gesetzt. Aktuell stehen z. B. Palmen als tropische Nature-Sprites zur Verfügung.
+
+
 **Aktueller Stand:** v0.11.0 mit 37-Hex-Testkarte, 17 tatsächlich offenen Spritearten (ursprünglich 45 Planposten) und geprüftem Bestandsmanifest: 25 Geländequellfamilien (104 PNGs), 148 Nature-PNGs inklusive acht API-Journal-Spezialbäumen. Eindeutige Dateinamen liefern Metadatenvorschläge, bestehende Katalogwerte werden nicht überschrieben. Neue Vorschläge bleiben bis zur Bildabnahme Kandidaten.
 
 **[Quellcode auf GitHub](https://github.com/markusjungblut/asset_labor)** · **[Verbindliche Grafikentscheidungen](https://github.com/markusjungblut/browsergame/blob/main/docs/graphics/Design.md)** · **[Release-Hinweise](README_V0110_UPDATE.md)**
