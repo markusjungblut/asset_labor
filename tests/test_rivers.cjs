@@ -54,7 +54,19 @@ const bend=R.sections(curve,cells,wet);
 assert(bend.some(s=>s.kind==='curve'),'turn yields curve segment');
 const stroked=[],ctx={moveTo:(...x)=>stroked.push(['M',...x]),quadraticCurveTo:(...x)=>stroked.push(['Q',...x]),lineTo:(...x)=>stroked.push(['L',...x])};
 R.trace(ctx,route,cells,wet);
-assert.deepEqual(stroked[0][0],'M');assert(stroked.some(x=>x[0]==='Q'));
+assert.deepEqual(stroked[0][0],'M');
+assert(!stroked.some(x=>x[0]==='Q'),'no centre-based river paths');
+assert(stroked.some(x=>x[0]==='L'),'hex-edge segments');
+for(const s of sections){
+ assert(s.path.every(p=>Math.hypot(p.x-s.center.x,p.y-s.center.y)>120),'river must not cross hex interiors');
+ assert(s.edgeSides.every(side=>Number.isInteger(side)&&side>=0&&side<6));
+ for(let j=1;j<s.path.length;j++){
+  const vertices=R.vertices({q:s.q,r:s.r});
+  const a=vertices.findIndex(v=>same(v,s.path[j-1])),b=vertices.findIndex(v=>same(v,s.path[j]));
+  assert(a>=0&&b>=0&&(Math.abs(a-b)===1||Math.abs(a-b)===5),'all course segments lie on a hex edge');
+ }
+}
+for(let i=1;i<sections.length;i++)assert(same(sections[i-1].end,sections[i].start),'shared-corner continuity');
 const raised=[];R.trace({moveTo:(...x)=>raised.push(['M',...x]),lineTo:(...x)=>raised.push(['L',...x])},route,cells,wet,(x,y)=>y-10);
 assert(close(raised[0][2],sections[0].start.y-10),'relief maps source onto ground');
 const calls=[],g={
@@ -75,7 +87,7 @@ assert(!calls.some(x=>typeof x[3]==='string'&&/sand|beach|rgba\(212,190,143|#dac
 assert(calls.some(x=>x[0]==='fill'&&x[1]==='source-in'),'water fills soft alpha mask only');
 assert(calls.some(x=>x[0]==='stroke'&&x[1]==='butt'),'mouth fades inside receiving water tile');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const s of ['river.js?v=0.14.1','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
+for(const s of ['river.js?v=0.15.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('skipEdges'));assert(app.includes('riverRasterCache'));
 console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mouths, shoreline exclusion, persistence.');

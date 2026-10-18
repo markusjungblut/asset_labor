@@ -621,13 +621,11 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Elf echte Palmen; palme_01–05 mittel, palme_06–11 groß. Größe je Variante siehe Nature-Katalog.",
+      "description": "Elf Bestands-Palmen sind nur für warme Landbiome freigegeben: Dschungel/Savanne. Nicht in Moor, Marschland oder Sumpf. Nur die Nature-Katalogeinträge regeln die tatsächliche Verteilung.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "forest_floor",
-        "savanna",
-        "swamp",
-        "marshland"
+        "jungle",
+        "savanna"
       ],
       "excludedTerrainTypes": [],
       "density": 0.12,
@@ -2014,11 +2012,11 @@
       "kind": "shrub",
       "sizeClass": "medium",
       "targetHeight": 49,
-      "description": "Jungpalme – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
+      "description": "Nur Referenz (keine zugeordneten Dateien). Warmbiome, keine Moore.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "forest_floor",
-        "swamp"
+        "jungle",
+        "savanna"
       ],
       "excludedTerrainTypes": [],
       "density": 0.19,

@@ -6,6 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'..');
 const w={};vm.runInNewContext(fs.readFileSync(path.join(root,'river.js'),'utf8'),{window:w},{filename:'river.js'});
 const R=w.VedrasRivers;
+assert.equal(typeof R.edgeWalk,'function');
 const cells=[];for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++)if(Math.abs(q+r)<=3)cells.push({q,r});
 const state={selected:'0,0',riverPaths:[],riverWidth:32,river:false,riverDebug:false,hexTerrain:{},hexObject:{},forest:{jungleHexes:{}}};
 const controls=new Map(),listeners=new Map();

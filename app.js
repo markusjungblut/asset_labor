@@ -276,35 +276,39 @@ function drawRoads(){
     if(riverRasterCache.size>40)riverRasterCache.delete(riverRasterCache.keys().next().value);}
   }
  }
- // The old road stays a separate demo. Its sand-colored stroke is NEVER
- // used for a riverbank and cannot alter river/biome blending.
- if($('riverDebug')?.checked){
-  for(const route of routes){
-   const sections=window.VedrasRivers.sections(route,worldCells,wetHex);
-   for(const s of sections){
-    const a=s.start,b=s.end;
-    ctx.beginPath();ctx.moveTo(a.x,displayGroundY(a.x,a.y));ctx.lineTo(b.x,displayGroundY(b.x,b.y));
-    ctx.strokeStyle='rgba(250,250,156,.7)';ctx.lineWidth=1;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([]);
-    for(const [p,color] of [[a,s.corner===null?'#e6e4bc':'#f59c42'],[b,'#3bd8d2']]){
-     ctx.beginPath();ctx.arc(p.x,displayGroundY(p.x,p.y),5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
-    }
+ // Diagnostics and provisional editing follow real hex SIDES and CORNERS.
+ if($('riverDebug')?.checked)for(const route of routes){
+  for(const s of window.VedrasRivers.sections(route,worldCells,wetHex)){
+   ctx.beginPath();
+   for(const [i,p] of s.path.entries()){
+    const y=displayGroundY(p.x,p.y);
+    if(i===0)ctx.moveTo(p.x,y);else ctx.lineTo(p.x,y);
+   }
+   ctx.strokeStyle='rgba(250,250,156,.85)';ctx.lineWidth=2;
+   ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([]);
+   for(const [p,color] of [[s.start,s.corner===null?'#d7d4bc':'#f59c42'],[s.end,'#3bd8d2']]){
+    ctx.beginPath();ctx.arc(p.x,displayGroundY(p.x,p.y),5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
    }
   }
  }
- // During manual placement show a dashed provisional centreline until a real
- // WATER mouth completes the route. Provisional paths are never saved/spawned.
+ // The unfinished route highlights selected shared sides, never a phantom
+ // river cutting across the middle of a terrain hex.
  if(Array.isArray(state.riverDraft)&&state.riverDraft.length){
-  const points=state.riverDraft.map(([q,r])=>axialPos(q,r));
-  ctx.save();ctx.beginPath();
-  for(let i=0;i<points.length;i++){
-   const p=points[i],y=displayGroundY(p.x,p.y);
-   if(i===0)ctx.moveTo(p.x,y);else ctx.lineTo(p.x,y);
+  ctx.save();ctx.setLineDash([10,6]);ctx.lineCap='round';ctx.lineJoin='round';
+  for(let i=1;i<state.riverDraft.length;i++){
+   const [pq,pr]=state.riverDraft[i-1],[nq,nr]=state.riverDraft[i];
+   const prev={q:pq,r:pr},next={q:nq,r:nr};
+   const side=window.VedrasRivers.side(prev,next);if(side<0)continue;
+   const vertices=window.VedrasRivers.vertices(prev),a=vertices[side],b=vertices[(side+1)%6];
+   ctx.beginPath();ctx.moveTo(a.x,displayGroundY(a.x,a.y));ctx.lineTo(b.x,displayGroundY(b.x,b.y));
+   ctx.lineWidth=7;ctx.strokeStyle='#d8fbef';ctx.stroke();
+   ctx.lineWidth=4;ctx.strokeStyle='#287c96';ctx.stroke();
   }
-  ctx.setLineDash([14,7]);ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.lineWidth=7;ctx.strokeStyle='#d8fbef';ctx.stroke();
-  ctx.lineWidth=4;ctx.strokeStyle='#287c96';ctx.stroke();ctx.setLineDash([]);
-  for(const p of points){ctx.beginPath();ctx.arc(p.x,displayGroundY(p.x,p.y),5,0,Math.PI*2);ctx.fillStyle='#68eecb';ctx.fill();}
-  ctx.restore();
+  const [sq,sr]=state.riverDraft[0];
+  for(const p of window.VedrasRivers.vertices({q:sq,r:sr})){
+   ctx.beginPath();ctx.arc(p.x,displayGroundY(p.x,p.y),2.5,0,Math.PI*2);ctx.fillStyle='#68eecb';ctx.fill();
+  }
+  ctx.setLineDash([]);ctx.restore();
  }
  const road=[[1,-1],[0,0],[-1,1]].map(([q,r])=>{const p=axialPos(q,r);return [p.x,p.y];});
  smoothLine(road,18,'#9e8458');smoothLine(road,13,'#dab77e');

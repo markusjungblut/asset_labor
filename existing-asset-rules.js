@@ -42,8 +42,9 @@ window.VedrasExistingAssets = (() => {
   conifers:[['cold_regions','grass_pasture'],.15,86],
   snow_conifers:[['cold_regions'],.12,92],
   herbs:[['grass_pasture','warm_regions','arid_regions'],.24,23],
-  // Küstenpalmen stehen auf Land, nicht auf Wasser-Hexfeldern.
-  palms:[['warm_regions','wetlands'],.13,96],
+  // Palmen sind warme Landvegetation. Moor/Sumpf/Marschland dürfen ohne
+  // ausdrückliches tropisches Biom keine Palmen aus dieser Familie tragen.
+  palms:[['warm_regions'],.13,96],
   dry_bushes:[['arid_regions','warm_regions','grass_pasture'],.19,45],
   jungle_trees:[['warm_regions'],.06,132],
   riparian_trees:[['wetlands'],.12,114],

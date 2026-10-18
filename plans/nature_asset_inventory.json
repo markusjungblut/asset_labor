@@ -2471,8 +2471,7 @@
       "sizeMode": "class",
       "targetHeight": 126,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.17,
@@ -2486,7 +2485,8 @@
         "needs_species_review",
         "palm_small"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_02",
@@ -2498,8 +2498,7 @@
       "sizeMode": "class",
       "targetHeight": 126,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.17,
@@ -2513,7 +2512,8 @@
         "needs_species_review",
         "palm_small"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_03",
@@ -2525,8 +2525,7 @@
       "sizeMode": "class",
       "targetHeight": 126,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.17,
@@ -2540,7 +2539,8 @@
         "needs_species_review",
         "palm_small"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_04",
@@ -2552,8 +2552,7 @@
       "sizeMode": "class",
       "targetHeight": 126,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.17,
@@ -2567,7 +2566,8 @@
         "needs_species_review",
         "palm_small"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_05",
@@ -2579,8 +2579,7 @@
       "sizeMode": "class",
       "targetHeight": 126,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.17,
@@ -2594,7 +2593,8 @@
         "needs_species_review",
         "palm_small"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_06",
@@ -2606,8 +2606,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2621,7 +2620,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_07",
@@ -2633,8 +2633,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2648,7 +2647,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_08",
@@ -2660,8 +2660,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2675,7 +2674,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_09",
@@ -2687,8 +2687,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2702,7 +2701,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_10",
@@ -2714,8 +2714,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2729,7 +2728,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_palme_11",
@@ -2741,8 +2741,7 @@
       "sizeMode": "class",
       "targetHeight": 174,
       "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
+        "warm_regions"
       ],
       "placement": {
         "density": 0.12,
@@ -2756,7 +2755,8 @@
         "needs_species_review",
         "palm_large"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": []
     },
     {
       "id": "existing_schilf1",

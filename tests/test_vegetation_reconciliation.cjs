@@ -48,6 +48,12 @@ for(let n=1;n<=41;n++){
  if(n>=20&&n<=29)assert(meta.tags.includes('size_provisional'),name);
  if(n>=34)assert(meta.tags.includes('bush_group'),name);
 }
+for(let n=1;n<=11;n++){
+ const m=nature.entries['nature/palme_'+String(n).padStart(2,'0')+'.png'];
+ assert(m&&m.family==='palms');
+ assert.equal(JSON.stringify(m.allowedTerrainCategories),JSON.stringify(['warm_regions']));
+ assert(!m.allowedTerrainCategories.includes('wetlands'));
+}
 for(let n=1;n<=10;n++){
  const rel='nature/tanne_schnee_'+String(n).padStart(2,'0')+'.png',m=nature.entries[rel];
  assert(m,rel);assert.equal(m.family,'snow_conifers');
