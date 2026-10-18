@@ -2597,7 +2597,7 @@
     {
       "id": "existing_tanne_01",
       "path": "assets/nature/tanne_01.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2616,15 +2616,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_02",
       "path": "assets/nature/tanne_02.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2643,15 +2643,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_03",
       "path": "assets/nature/tanne_03.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2670,15 +2670,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_04",
       "path": "assets/nature/tanne_04.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2697,15 +2697,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_05",
       "path": "assets/nature/tanne_05.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2724,15 +2724,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_06",
       "path": "assets/nature/tanne_06.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2751,15 +2751,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_07",
       "path": "assets/nature/tanne_07.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2778,15 +2778,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_08",
       "path": "assets/nature/tanne_08.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2805,15 +2805,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_09",
       "path": "assets/nature/tanne_09.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2832,15 +2832,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_10",
       "path": "assets/nature/tanne_10.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2859,15 +2859,15 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_11",
       "path": "assets/nature/tanne_11.png",
-      "name": "Nadelbaum (Art offen)",
+      "name": "Tanne",
       "family": "conifers",
       "kind": "tree",
       "sizeClass": "large",
@@ -2886,10 +2886,10 @@
       "reviewTags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "reassignable_conifer"
       ],
       "apiOnly": false,
-      "speciesConfirmed": false
+      "speciesConfirmed": true
     },
     {
       "id": "existing_tanne_schnee_01",
