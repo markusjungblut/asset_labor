@@ -12,6 +12,7 @@ for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-p
     html=html.replace(f'<script src="{f}.js?v=0.12.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.12.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.14.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.14.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
@@ -74,6 +75,8 @@ with sync_playwright() as pw:
  assert page.locator('#forestTools').count()==1
  assert page.locator('#riverPanel').count()==1
  assert page.locator('#riverAdd').count()==1
+ assert page.locator('#riverQuickStart').count()==1
+ assert page.locator('#riverPaint').count()==1
  assert page.locator('#riverClear').count()==1
  # With no WATER hex, adding a river must fail rather than invent a land mouth.
  page.evaluate("document.getElementById('riverAdd').click()")
