@@ -17,7 +17,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'auto',
  selected:'0,0',grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverDebug:false,bounds:false,sceneSize:37,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
  shoreline:{enabled:true,mode:'temp',width:34,outer:10},
- asset:null,compareA:null,compareB:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.48,reach:.9,softness:17,originX:-.20,originY:.035,spread:1.28,contact:1.10},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
+ asset:null,compareA:null,compareB:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
 const demoTypes={plains:'grassland',forest:'forest_floor',jungle:'jungle',hills:'hilly_ground',mountain:'mountain_ground',dry:'dry_ground',desert:'rocky_desert'};
 function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
@@ -397,94 +397,96 @@ function validMountains(){
  });
 }
 function reservedMountainHexes(){return new Set(validMountains().flatMap(m=>window.VedrasMountains.occupied(m)));}
-// Block 3: sunlight from upper right. True alpha silhouettes are
-// projected LEFT/DOWN from their visible ground contact instead of the old
-// hidden left/up transform. Both cast and soft contact stay on the terrain
-// beneath the painter-sorted sprites.
+// Mountain shadows are procedural ground shapes. The PNG only determines
+// the LEFT-FOOT contact point; it is no longer sheared into a hidden spike.
 const mountainSilhouettes=new WeakMap();
 function shadowSilhouette(img){
  if(mountainSilhouettes.has(img))return mountainSilhouettes.get(img);
  const b=visibleBounds(img),side=512,ratio=Math.min(1,side/Math.max(b.sw,b.sh));
  const cv=document.createElement('canvas');cv.width=Math.max(8,Math.round(b.sw*ratio));cv.height=Math.max(8,Math.round(b.sh*ratio));
- const g=cv.getContext('2d');g.drawImage(img,b.sx,b.sy,b.sw,b.sh,0,0,cv.width,cv.height);
+ const g=cv.getContext('2d',{willReadFrequently:true});
+ g.drawImage(img,b.sx,b.sy,b.sw,b.sh,0,0,cv.width,cv.height);
+ // Keep the alpha channel and compute an anchor in the authored-foot band.
+ let footprint=null;
+ try{footprint=g.getImageData(0,0,cv.width,cv.height).data;}catch{}
  g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
- const result={canvas:cv,aspect:b.sh/b.sw};mountainSilhouettes.set(img,result);return result;
+ const result={canvas:cv,aspect:b.sh/b.sw,footData:footprint};
+ mountainSilhouettes.set(img,result);return result;
 }
 function mountainShadowSettings(o){
  const placed=o.mountainInstance||{},preset=state.shadowAssetPresets?.[o.asset?.path]||{};
- const fields={opacity:'shadowOpacity',reach:'shadowReach',softness:'shadowSoftness',
-  originX:'shadowOriginX',originY:'shadowOriginY',spread:'shadowSpread',contact:'shadowContact'};
- const cfg={...window.VedrasShadows.defaults,...state.mountainShadowDefaults,...preset};
+ const fields={opacity:'shadowOpacity',softness:'shadowSoftness',
+  originX:'shadowOriginX',originY:'shadowOriginY',
+  angle:'shadowAngle',length:'shadowLength',rootWidth:'shadowRootWidth',
+  midWidth:'shadowMidWidth',tipWidth:'shadowTipWidth',
+  contactWidth:'shadowContactWidth',contactLength:'shadowContactLength'};
+ const cfg={...(state.mountainShadowDefaults||{}),...preset};
+ // Legacy instance reach/spread/contact remain readable if a new geometric
+ // parameter was not explicitly authored on that particular instance.
+ if(Number.isFinite(placed.shadowReach)&&!Number.isFinite(placed.shadowLength))cfg.length=placed.shadowReach*.8;
+ if(Number.isFinite(placed.shadowSpread)&&!Number.isFinite(placed.shadowRootWidth))cfg.rootWidth=.26*placed.shadowSpread/1.28;
+ if(Number.isFinite(placed.shadowContact)&&!Number.isFinite(placed.shadowContactWidth))cfg.contactWidth=.16*placed.shadowContact/1.10;
  for(const [k,name] of Object.entries(fields))if(Number.isFinite(placed[name]))cfg[k]=placed[name];
  return window.VedrasShadows.settings(cfg);
 }
 function sceneShadowStrength(){return window.VedrasShadows.globalStrength(state.shadowGlobal);}
+function mountainOriginForObject(o,s,scale=1){
+ const shadows=window.VedrasShadows,p=toScreen(o.x,o.y);
+ const sprite=shadowSilhouette(o.asset.img),w=o.w*state.zoom*scale,h=w*sprite.aspect;
+ const anchor=o.natureMeta?.anchor||{x:.5,y:.67};
+ const foot=shadows.alphaFoot(sprite.footData,sprite.canvas.width,sprite.canvas.height,anchor);
+ return shadows.mountainOrigin({x:p.x*scale,y:p.y*scale},w,h,anchor,s,foot);
+}
 function drawMountainShadows(objects){
  const mts=objects.filter(o=>o.type==='mountain');
  if(!mts.length){window.__vedrasMountainShadowStats={count:0,maxAlpha:0,positiveCount:0};return;}
  const factor=.5,sw=Math.max(1,Math.ceil(W*factor)),sh=Math.max(1,Math.ceil(H*factor));
- const maxAlpha=new Uint8Array(sw*sh);
- const scratch=document.createElement('canvas');scratch.width=sw;scratch.height=sh;
- const g=scratch.getContext('2d',{willReadFrequently:true});
- const shadows=window.VedrasShadows;
+ const maxAlpha=new Uint8Array(sw*sh),scratch=document.createElement('canvas');
+ scratch.width=sw;scratch.height=sh;
+ const g=scratch.getContext('2d',{willReadFrequently:true}),shadows=window.VedrasShadows;
  for(const o of mts){
   const settings=mountainShadowSettings(o);
-  if(settings.opacity<=0)continue;
-  const p=toScreen(o.x,o.y),pos={x:p.x*factor,y:p.y*factor};
-  const width=o.w*state.zoom*factor,silhouette=shadowSilhouette(o.asset.img);
-  const height=width*silhouette.aspect,anchor=o.natureMeta?.anchor||{x:.5,y:.67};
-  const strength=Math.min(.56,settings.opacity*sceneShadowStrength()*1.13);
+  if(settings.opacity<=0||sceneShadowStrength()<=0)continue;
+  const origin=mountainOriginForObject(o,settings,factor),w=o.w*state.zoom*factor;
   g.clearRect(0,0,sw,sh);
-  // Two silhouette-derived layers share the exact anchor: a defined,
-  // recognizable interior and a softer outer penumbra. The projected
-  // summit goes down-left, OUTSIDE the mountain foot, not up beneath it.
-  shadows.cast(g,silhouette,pos,width,height,anchor,settings.reach,
-   'mountain',strength,settings.softness*factor*.55,settings);
-  shadows.cast(g,silhouette,pos,width,height,anchor,settings.reach*1.04,
-   'mountain',strength*.27,settings.softness*factor*1.35,settings);
-  // Wide footprint + strong inner contact keeps the mountain rooted even
-  // when the source PNG has mostly transparent lower corners.
-  shadows.contact(g,pos,width,'mountain',Math.min(1.2,settings.opacity*sceneShadowStrength()*1.15),settings);
+  shadows.paintMountain(g,origin,w,{...settings,softness:settings.softness*factor},sceneShadowStrength());
   const layer=g.getImageData(0,0,sw,sh).data;
-  // Composite overlap by MAX alpha, not additive darkness, so chains
-  // don't produce implausible black stripes where their shadows meet.
-  for(let i=0,j=3;i<maxAlpha.length;i++,j+=4){
+  // MAX union, never accumulate black bands between touching mountains.
+  for(let i=0,j=3;i<maxAlpha.length;i++,j+=4)
    if(layer[j]>maxAlpha[i])maxAlpha[i]=layer[j];
-  }
  }
  const image=g.createImageData(sw,sh);
  for(let i=0,j=0;i<maxAlpha.length;i++,j+=4){
-  image.data[j]=32;image.data[j+1]=49;image.data[j+2]=49;image.data[j+3]=Math.min(115,maxAlpha[i]);
+  image.data[j]=shadows.COLOR.r;image.data[j+1]=shadows.COLOR.g;
+  image.data[j+2]=shadows.COLOR.b;image.data[j+3]=maxAlpha[i];
  }
  g.clearRect(0,0,sw,sh);g.putImageData(image,0,0);
  ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.globalAlpha=1;
  ctx.drawImage(scratch,0,0,W,H);ctx.restore();
  let peakAlpha=0,positiveCount=0;
- for(let i=0;i<maxAlpha.length;i++){
-  if(maxAlpha[i]>peakAlpha)peakAlpha=maxAlpha[i];
-  if(maxAlpha[i]>2)positiveCount++;
- }
+ for(const alpha of maxAlpha){if(alpha>peakAlpha)peakAlpha=alpha;if(alpha>2)positiveCount++;}
  window.__vedrasMountainShadowStats={
   count:mts.length,maxAlpha:peakAlpha,positiveCount,dimensions:[sw,sh],
-  projection:'light-upper-right / shadow-lower-left'
+  projection:'alpha-foot / diagonal-procedural-ground-shadow'
  };
 }
 function drawMountainShadowGuide(mountains){
- // Diagnostic is shown ONLY in the existing "shadow only" mountain mode.
- // Gold pin = physical foot; line = estimated summit projection to the ground.
- ctx.save();ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.strokeStyle='rgba(255,210,118,.9)';
+ const shadows=window.VedrasShadows;
+ ctx.save();ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.strokeStyle='rgba(255,210,118,.95)';
  ctx.fillStyle='#fff0ae';ctx.font='12px system-ui';
  for(const o of mountains){
-  const p=toScreen(o.x,o.y),s=mountainShadowSettings(o);
-  const silhouette=shadowSilhouette(o.asset.img),w=o.w*state.zoom,h=w*silhouette.aspect;
-  const anchor=o.natureMeta?.anchor||{x:.5,y:.67};
-  const tip=window.VedrasShadows.projectedPoint('mountain',w,h,anchor,s.reach,anchor.x??.5,0,s);
-  const target={x:p.x+tip.x,y:p.y+tip.y};
-  const origin={x:p.x+w*s.originX,y:p.y+w*s.originY};
-   ctx.beginPath();ctx.moveTo(origin.x,origin.y);ctx.lineTo(target.x,target.y);ctx.stroke();
-   ctx.beginPath();ctx.arc(origin.x,origin.y,4,0,Math.PI*2);ctx.fill();
-   ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.stroke();
-  ctx.fillText('Schattenrichtung',target.x-32,target.y+20);
+  const s=mountainShadowSettings(o),w=o.w*state.zoom;
+  const origin=mountainOriginForObject(o,s),shape=shadows.mountainShape(origin,w,s);
+  const base={x:shape.normal.x*shape.radius[0],y:shape.normal.y*shape.radius[0]};
+  ctx.beginPath();ctx.moveTo(origin.x-base.x,origin.y-base.y);
+  ctx.lineTo(origin.x+base.x,origin.y+base.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(origin.x,origin.y);ctx.lineTo(shape.p1.x,shape.p1.y);
+  ctx.lineTo(shape.p2.x,shape.p2.y);ctx.stroke();
+  for(const [p,r] of [[origin,shape.radius[0]],[shape.p1,shape.radius[1]],[shape.p2,shape.radius[2]]]){
+   ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(origin.x,origin.y,5,0,Math.PI*2);ctx.fill();
+  ctx.fillText('Schattenbasis',origin.x-30,origin.y-12);
  }
  ctx.setLineDash([]);ctx.restore();
 }
@@ -790,7 +792,7 @@ function applySelected(toBiome){const a=useAsset(state.asset);if(!a)return;if(a.
 function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
 const savedFields=['terrainTest','relief','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverDebug','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline'];
 function persistScene(){try{const d={};for(const k of savedFields)d[k]=state[k];localStorage.setItem('vedras_asset_labor_v10',JSON.stringify(d));}catch{}}
-function restoreScene(){try{const d=JSON.parse((localStorage.getItem('vedras_asset_labor_v10')||localStorage.getItem('vedras_asset_labor_v09')||localStorage.getItem('vedras_asset_labor_v08')||localStorage.getItem('vedras_asset_labor_v07')||localStorage.getItem('vedras_asset_labor_v06')||'{}'));for(const k of savedFields)if(d[k]!==undefined)state[k]=d[k];}catch{}state.baseBiomeByHex=state.baseBiomeByHex&&typeof state.baseBiomeByHex==='object'?state.baseBiomeByHex:{};state.visualPolish=window.VedrasPolish.valid(state.visualPolish);state.relief=window.VedrasRelief.valid(state.relief);state.forest=window.VedrasForest.valid(state.forest);state.riverPaths=Array.isArray(state.riverPaths)?state.riverPaths:[];state.riverWidth=clamp(Number(state.riverWidth)||40,12,70);state.mountainSpacing=['tight','normal','wide'].includes(state.mountainSpacing)?state.mountainSpacing:'normal';state.mountainShadowDefaults=window.VedrasShadows.settings({...window.VedrasShadows.defaults,...(state.mountainShadowDefaults||{})});state.shadowGlobal=sceneShadowStrength();state.shadowAssetPresets=state.shadowAssetPresets&&typeof state.shadowAssetPresets==='object'&&!Array.isArray(state.shadowAssetPresets)?state.shadowAssetPresets:{};state.shadowHandles=!!state.shadowHandles;state.waterSampling=state.waterSampling==='repeat'?'repeat':'hex';state.sceneSize=[7,19,37].includes(Number(state.sceneSize))?Number(state.sceneSize):37;$('sceneSize').value=String(state.sceneSize);}
+function restoreScene(){try{const d=JSON.parse((localStorage.getItem('vedras_asset_labor_v10')||localStorage.getItem('vedras_asset_labor_v09')||localStorage.getItem('vedras_asset_labor_v08')||localStorage.getItem('vedras_asset_labor_v07')||localStorage.getItem('vedras_asset_labor_v06')||'{}'));for(const k of savedFields)if(d[k]!==undefined)state[k]=d[k];}catch{}state.baseBiomeByHex=state.baseBiomeByHex&&typeof state.baseBiomeByHex==='object'?state.baseBiomeByHex:{};state.visualPolish=window.VedrasPolish.valid(state.visualPolish);state.relief=window.VedrasRelief.valid(state.relief);state.forest=window.VedrasForest.valid(state.forest);state.riverPaths=Array.isArray(state.riverPaths)?state.riverPaths:[];state.riverWidth=clamp(Number(state.riverWidth)||40,12,70);state.mountainSpacing=['tight','normal','wide'].includes(state.mountainSpacing)?state.mountainSpacing:'normal';state.mountainShadowDefaults=window.VedrasShadows.settings(state.mountainShadowDefaults||{});state.shadowGlobal=sceneShadowStrength();state.shadowAssetPresets=state.shadowAssetPresets&&typeof state.shadowAssetPresets==='object'&&!Array.isArray(state.shadowAssetPresets)?state.shadowAssetPresets:{};state.shadowHandles=!!state.shadowHandles;state.waterSampling=state.waterSampling==='repeat'?'repeat':'hex';state.sceneSize=[7,19,37].includes(Number(state.sceneSize))?Number(state.sceneSize):37;$('sceneSize').value=String(state.sceneSize);}
 function exportScene(){const config={schema:'vedras-asset-labor-scene-0.8',schemaVersion:2,catalogVersion:catalog.schemaVersion,terrainTypeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),typeOfCell(c)])),baseBiomeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),baseBiomeOf(c)])),projection:{hexWidth:256,groundY:PROJECT_Y},
  terrainByHex:state.hexTerrain,terrainByBiome:state.biomeTerrain,objectsByHex:state.hexObject,shadowsByHex:state.hexShadow,natureInstances:state.natureInstances,mountainInstances:state.mountainInstances,mountainDebug:state.mountainDebug,mountainMode:state.mountainMode,mountainChainId:state.mountainChainId,mountainSpacing:state.mountainSpacing,mountainShadowDefaults:state.mountainShadowDefaults,mountainShadowDebug:state.mountainShadowDebug,shadowGlobal:state.shadowGlobal,shadowAssetPresets:state.shadowAssetPresets,shadowHandles:state.shadowHandles,natureSeed:state.natureSeed,river:state.river,riverPaths:riverRoutes(),riverWidth:state.riverWidth,riverDebug:state.riverDebug,forest:state.forest,forestByHex:Object.fromEntries(forestCells().map(c=>[c.key,{baseBiome:c.baseBiome,biome:c.biome,forestClass:c.forestClass,density:Number(c.density.toFixed(3)),edgeInfluence:Number(c.edgeInfluence.toFixed(3)),jungle:c.jungle}])),sceneSize:state.sceneSize,autotiling:{enabled:state.edgeBlend,blendVariants:state.blendVariants,waterSampling:state.waterSampling,width:state.edgeWidth,irregularity:state.edgeIrregularity,cornerBlend:state.cornerBlend,debug:state.edgeDebug,debugMode:state.transitionDebugMode},materialScales:state.materialScales,visualPolish:state.visualPolish,terrainTest:state.terrainTest||null,relief:state.relief,shoreline:state.shoreline};
  const url=URL.createObjectURL(new Blob([JSON.stringify(config,null,2)],{type:'application/json'}));const el=document.createElement('a');el.href=url;el.download='vedras_scene.json';el.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
@@ -1097,12 +1099,15 @@ function selectedShadowHandle(e){
  if(!state.shadowHandles)return null;
  const mountain=state.mountainInstances.find(m=>key(m.q,m.r)===state.selected);
  if(!mountain)return null;
- const obj=genericObjects().find(o=>o.mountainInstance===mountain);
- if(!obj?.asset?.img)return null;
- const p=toScreen(obj.x,displayGroundY(obj.x,obj.y)),w=obj.w*state.zoom;
- const sh=mountainShadowSettings(obj),origin={x:p.x+w*sh.originX,y:p.y+w*sh.originY};
+ const raw=genericObjects().find(o=>o.mountainInstance===mountain);
+ if(!raw?.asset?.img)return null;
+ const o={...raw,y:displayGroundY(raw.x,raw.y)},sh=mountainShadowSettings(o);
+ const origin=mountainOriginForObject(o,sh);
+ const w=o.w*state.zoom,base={
+  x:origin.x-w*sh.originX,y:origin.y-w*sh.originY
+ };
  const box=canvas.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;
- return Math.hypot(x-origin.x,y-origin.y)<=16?{instance:mountain,foot:p,width:w}:null;
+ return Math.hypot(x-origin.x,y-origin.y)<=16?{instance:mountain,base,width:w}:null;
 }
 canvas.addEventListener('pointerdown',e=>{
  const handle=selectedShadowHandle(e);
@@ -1112,8 +1117,8 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
  if(shadowDrag?.pointerId===e.pointerId){
   const box=canvas.getBoundingClientRect();
-  const x=(e.clientX-box.left-shadowDrag.foot.x)/shadowDrag.width;
-  const y=(e.clientY-box.top-shadowDrag.foot.y)/shadowDrag.width;
+  const x=(e.clientX-box.left-shadowDrag.base.x)/shadowDrag.width;
+  const y=(e.clientY-box.top-shadowDrag.base.y)/shadowDrag.width;
   shadowDrag.instance.shadowOriginX=clamp(Math.round(x*100)/100,-.8,.8);
   shadowDrag.instance.shadowOriginY=clamp(Math.round(y*100)/100,-.5,.5);
   $('mountainOriginX').value=String(shadowDrag.instance.shadowOriginX);
