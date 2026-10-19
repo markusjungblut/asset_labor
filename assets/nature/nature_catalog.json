@@ -7820,6 +7820,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7838,14 +7839,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -7864,8 +7864,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_02.png": {
       "id": "existing_baumstumpf_02",
@@ -7875,6 +7874,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7893,14 +7893,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -7919,8 +7918,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_03.png": {
       "id": "existing_baumstumpf_03",
@@ -7930,6 +7928,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7948,14 +7947,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -7974,8 +7972,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_04.png": {
       "id": "existing_baumstumpf_04",
@@ -7985,6 +7982,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8003,14 +8001,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -8029,8 +8026,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_05.png": {
       "id": "existing_baumstumpf_05",
@@ -8040,6 +8036,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8058,14 +8055,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -8084,8 +8080,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_06.png": {
       "id": "existing_baumstumpf_06",
@@ -8095,6 +8090,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8113,14 +8109,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -8139,8 +8134,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_07.png": {
       "id": "existing_baumstumpf_07",
@@ -8150,6 +8144,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8168,14 +8163,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -8194,8 +8188,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_08.png": {
       "id": "existing_baumstumpf_08",
@@ -8205,6 +8198,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8223,14 +8217,13 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -8249,8 +8242,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Erle1.png": {
       "id": "existing_erle1",
@@ -13531,6 +13523,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13548,15 +13541,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13577,8 +13567,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_10.png": {
       "id": "existing_baumstumpf_10",
@@ -13588,6 +13577,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13605,15 +13595,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13634,8 +13621,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_11.png": {
       "id": "existing_baumstumpf_11",
@@ -13645,6 +13631,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13662,15 +13649,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13691,8 +13675,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_12.png": {
       "id": "existing_baumstumpf_12",
@@ -13702,6 +13685,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13719,15 +13703,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13748,8 +13729,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_13.png": {
       "id": "existing_baumstumpf_13",
@@ -13759,6 +13739,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13776,15 +13757,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13805,8 +13783,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_14.png": {
       "id": "existing_baumstumpf_14",
@@ -13816,6 +13793,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13833,15 +13811,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13862,8 +13837,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_15.png": {
       "id": "existing_baumstumpf_15",
@@ -13873,6 +13847,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13890,15 +13865,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13919,8 +13891,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     },
     "nature/Baumstumpf_16.png": {
       "id": "existing_baumstumpf_16",
@@ -13930,6 +13901,7 @@
       "kind": "special",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 75,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13947,15 +13919,12 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "snowfields"
       ],
       "placement": {
         "weight": 1,
@@ -13976,8 +13945,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 55
+      ]
     }
   }
 }
