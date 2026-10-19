@@ -26,11 +26,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -76,11 +76,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -126,11 +126,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -178,10 +178,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -229,10 +230,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -280,10 +282,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -526,7 +529,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.25,
@@ -576,7 +582,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.25,
@@ -626,7 +635,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.25,
@@ -673,10 +685,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -724,10 +737,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -775,10 +789,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -826,10 +841,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -877,10 +893,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -928,10 +945,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -982,7 +1000,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1033,7 +1053,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1084,7 +1106,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1135,7 +1159,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1186,7 +1212,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1237,7 +1265,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1288,7 +1318,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1339,7 +1371,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1390,7 +1424,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1441,7 +1477,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1492,7 +1530,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1543,7 +1583,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1594,7 +1636,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1645,7 +1689,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1696,7 +1742,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1747,7 +1795,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1798,7 +1848,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1849,7 +1901,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1900,7 +1954,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -1948,10 +2004,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2001,10 +2058,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2054,10 +2112,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2107,10 +2166,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2160,10 +2220,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2213,10 +2274,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2266,10 +2328,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2319,10 +2382,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2372,10 +2436,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2425,10 +2490,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "arid_regions",
-        "warm_regions",
         "grass_pasture"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -2481,7 +2547,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -2532,7 +2600,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -2583,7 +2653,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -2634,7 +2706,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -2685,7 +2759,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2736,7 +2812,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2787,7 +2865,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2838,7 +2918,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2889,7 +2971,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2940,7 +3024,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -2991,7 +3077,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -3042,7 +3130,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.1,
@@ -3090,10 +3180,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3141,10 +3232,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3192,10 +3284,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3243,10 +3336,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3294,10 +3388,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3345,10 +3440,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3399,7 +3495,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -3449,7 +3547,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -3499,7 +3599,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -3549,7 +3651,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3599,7 +3703,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3649,7 +3755,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3699,7 +3807,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3749,7 +3859,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3799,7 +3911,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -3846,10 +3960,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3897,10 +4012,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -3948,10 +4064,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "wetlands",
-        "cold_regions"
+        "wetlands"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "highland"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -4002,7 +4119,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -4051,7 +4171,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.17,
@@ -4102,7 +4230,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.17,
@@ -4153,7 +4289,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.17,
@@ -4204,7 +4348,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.17,
@@ -4255,7 +4407,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.17,
@@ -4306,7 +4466,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4357,7 +4525,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4408,7 +4584,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4459,7 +4643,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4510,7 +4702,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4561,7 +4761,15 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "moor",
+        "swamp",
+        "marshland",
+        "highland",
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.12,
@@ -4608,11 +4816,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -4658,11 +4866,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -4708,11 +4916,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -4763,7 +4971,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -4813,7 +5023,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -4863,7 +5075,9 @@
         "wetlands"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.22,
@@ -4913,7 +5127,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -4964,7 +5181,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5015,7 +5235,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5066,7 +5289,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5117,7 +5343,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5168,7 +5397,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5219,7 +5451,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5270,7 +5505,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5321,7 +5559,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5372,7 +5613,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5423,7 +5667,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -5981,10 +6228,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "warm_regions",
         "arid_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -6032,10 +6280,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "warm_regions",
         "arid_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -6083,10 +6332,11 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [
         "grass_pasture",
-        "warm_regions",
         "arid_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "savanna"
+      ],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -6537,7 +6787,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -6587,7 +6840,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -6637,7 +6893,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -6687,7 +6946,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6737,7 +6998,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6787,7 +7050,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6837,7 +7102,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6887,7 +7154,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6937,7 +7206,9 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "jungle"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.19,
@@ -6987,7 +7258,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7037,7 +7311,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7087,7 +7364,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7137,7 +7417,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7187,7 +7470,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7237,7 +7523,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7287,7 +7576,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7337,7 +7629,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7387,7 +7682,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7437,7 +7735,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7487,7 +7788,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -7539,7 +7843,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7591,7 +7898,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7643,7 +7953,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7695,7 +8008,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7747,7 +8063,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7799,7 +8118,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7851,7 +8173,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -7903,7 +8228,10 @@
         "warm_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.045,
@@ -8152,11 +8480,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -8202,11 +8530,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -8252,11 +8580,11 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -9071,7 +9399,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -9121,7 +9452,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
@@ -9171,7 +9505,10 @@
         "grass_pasture"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
       "placement": {
         "weight": 1,
         "density": 0.15,
