@@ -148,6 +148,10 @@ window.VedrasNature=(()=>{
  function validInstance(inst,forestByHex=null){
   const a=core.assets().find(v=>v.path===inst.assetPath),meta=entryFor(a);
   if(!a||!meta)return null; // Unknown assets are retained pending import.
+  const k=inst.q+','+inst.r;
+  if(state.hexObject?.[k])return false;
+  if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(k)))return false;
+  if(k==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return false;
   return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta);
  }
  function cleanup(){
