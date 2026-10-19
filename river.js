@@ -113,9 +113,36 @@ window.VedrasRivers=(()=>{
   const land=pos({q:last.q,r:last.r}),dx=water.x-land.x,dy=water.y-land.y,len=Math.hypot(dx,dy)||1;
   return {x:cross.x+dx/len*Math.max(24,width*1.8),y:cross.y+dy/len*Math.max(24,width*1.8)};
  }
+ // Rounded fillets remain in the original hex-side corridor. Source and
+ // coastline crossing are exact: the geometry is shared by blocking/rendering.
+ function smoothCourse(raw,width=32){
+  if(raw.length<3)return raw;
+  const out=[raw[0]],waterRadius=Math.max(12,Math.min(70,width))/2;
+  for(let i=1;i<raw.length-2;i++){
+   const p=raw[i-1],v=raw[i],n=raw[i+1];
+   const u={x:v.x-p.x,y:v.y-p.y},w={x:n.x-v.x,y:n.y-v.y};
+   const a=Math.hypot(u.x,u.y),b=Math.hypot(w.x,w.y);
+   if(a<1e-5||b<1e-5)continue;
+   const dot=(u.x*w.x+u.y*w.y)/(a*b);
+   if(dot>.995){out.push(v);continue;}
+   const trim=Math.min(a*.29,b*.29,waterRadius*.90+8);
+   const before={x:v.x-u.x/a*trim,y:v.y-u.y/a*trim};
+   const after={x:v.x+w.x/b*trim,y:v.y+w.y/b*trim};
+   out.push(before);
+   for(let t=1;t<6;t++){
+    const z=t/6,k=1-z;
+    out.push({x:k*k*before.x+2*k*z*v.x+z*z*after.x,
+      y:k*k*before.y+2*k*z*v.y+z*z*after.y});
+   }
+   out.push(after);
+  }
+  out.push(raw.at(-2),raw.at(-1));
+  return out.filter((p,i)=>i===0||Math.hypot(p.x-out[i-1].x,p.y-out[i-1].y)>1e-7);
+ }
  function coursePoints(segments,route,width=32){
-  const points=[...segments.flatMap(s=>s.path),mouthCross(segments),mouthTip(segments,route,width)];
-  return points.filter((p,i)=>!i||Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y)>1e-7);
+  const raw=[...segments.flatMap(s=>s.path),mouthCross(segments),mouthTip(segments,route,width)];
+  const clean=raw.filter((p,i)=>!i||Math.hypot(p.x-raw[i-1].x,p.y-raw[i-1].y)>1e-7);
+  return smoothCourse(clean,width);
  }
  function mouthPortals(routes,cells,isWet,width=32){
   return (routes||[]).flatMap(route=>{
@@ -133,20 +160,12 @@ window.VedrasRivers=(()=>{
   return set;
  }
  function trace(ctx,route,cells,isWet,groundY=null,width=32){
-  const segments=sections(route,cells,isWet);
-  if(!segments.length)return null;
-  const start=segments[0].start,water=pos(norm(route.hexes.at(-1)));
-  const height=(x,y)=>groundY?groundY(x,y):y;
-  ctx.moveTo(start.x,height(start.x,start.y));
-  // No quadratic-to-centre curves. Move along vertices of the SIX real hex
-  // edges, joining across shared corners with no gap or artificial beach.
-  for(const s of segments){
-   for(const v of s.path.slice(1))ctx.lineTo(v.x,height(v.x,v.y));
-  }
-  const cross=mouthCross(segments),mouth=mouthTip(segments,route,width);
-  ctx.lineTo(cross.x,height(cross.x,cross.y));
-  ctx.lineTo(mouth.x,height(mouth.x,mouth.y));
-  return {segments,start,end:segments.at(-1).end,water,mouth};
+  const segments=sections(route,cells,isWet);if(!segments.length)return null;
+  const water=pos(norm(route.hexes.at(-1))),height=(x,y)=>groundY?groundY(x,y):y;
+  const path=coursePoints(segments,route,width);
+  ctx.moveTo(path[0].x,height(path[0].x,path[0].y));
+  for(const v of path.slice(1))ctx.lineTo(v.x,height(v.x,v.y));
+  return {segments,start:segments[0].start,end:segments.at(-1).end,water,mouth:path.at(-1)};
  }
  // A single distance-field MAX-union gives every segment a consistent,
  // antialiased bank. Discs drawn repeatedly at shared corners previously
@@ -159,7 +178,7 @@ window.VedrasRivers=(()=>{
   return .985*(1-ease);
  }
  function maskData(points,width,originX,originY,pixelScale,imageWidth,imageHeight){
-  const alpha=new Uint8Array(imageWidth*imageHeight),core=Math.max(12,Math.min(70,Number(width)||32));
+  const alpha=new Uint8Array(imageWidth*imageHeight),core=Math.max(12,Math.min(100,Number(width)||32));
   const outer=core/2+15,scale=pixelScale;
   const near=(p,a,b)=>{
    const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
@@ -198,34 +217,40 @@ window.VedrasRivers=(()=>{
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d',{willReadFrequently:true});
   const mask=maskData(projected,width,x,y,scale,canvas.width,canvas.height);
-  const image=g.createImageData(canvas.width,canvas.height);
-  const cross=projected.at(-2),tip=projected.at(-1);
-  const dx=tip.x-cross.x,dy=tip.y-cross.y,len2=dx*dx+dy*dy||1;
-  for(let iy=0;iy<canvas.height;iy++)for(let ix=0;ix<canvas.width;ix++){
-   const idx=iy*canvas.width+ix,base=idx*4;if(!mask[idx])continue;
-   // Fade only after the coastline crossing and into the WATER tile. All
-   // landward segments retain their opaque water kernel.
-   const worldX=x+(ix+.5)/scale,worldY=y+(iy+.5)/scale;
-   const t=Math.max(0,Math.min(1,((worldX-cross.x)*dx+(worldY-cross.y)*dy)/len2));
-   const fade=1-t*t*(3-2*t);
-   image.data[base]=255;image.data[base+1]=255;image.data[base+2]=255;
-   image.data[base+3]=Math.round(mask[idx]*fade);
-  }
-  g.putImageData(image,0,0);
-  g.save();g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
-  g.globalCompositeOperation='source-in';
-  const pattern=waterImage?.naturalWidth?g.createPattern(waterImage,'repeat'):null;
-  if(pattern){
-   if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
-    const factor=HEX/Math.max(1,waterImage.naturalWidth);
-    pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
+   const bank=maskData(projected,width+16,x,y,scale,canvas.width,canvas.height);
+   const waterLayer=document.createElement('canvas');waterLayer.width=canvas.width;waterLayer.height=canvas.height;
+   const wg=waterLayer.getContext('2d',{willReadFrequently:true});
+   const image=wg.createImageData(canvas.width,canvas.height);
+   const bankImage=g.createImageData(canvas.width,canvas.height);
+   const cross=projected.at(-2),tip=projected.at(-1);
+   const dx=tip.x-cross.x,dy=tip.y-cross.y,len2=dx*dx+dy*dy||1;
+   for(let iy=0;iy<canvas.height;iy++)for(let ix=0;ix<canvas.width;ix++){
+    const idx=iy*canvas.width+ix,base=idx*4;
+    if(!mask[idx]&&!bank[idx])continue;
+    const worldX=x+(ix+.5)/scale,worldY=y+(iy+.5)/scale;
+    const t=Math.max(0,Math.min(1,((worldX-cross.x)*dx+(worldY-cross.y)*dy)/len2));
+    const fade=1-t*t*(3-2*t);
+    image.data[base]=255;image.data[base+1]=255;image.data[base+2]=255;
+    image.data[base+3]=Math.round(mask[idx]*fade);
+    const rim=Math.max(0,bank[idx]-mask[idx]*.62);
+    bankImage.data[base]=66;bankImage.data[base+1]=83;bankImage.data[base+2]=64;
+    bankImage.data[base+3]=Math.round(rim*.20*fade);
    }
-   g.fillStyle=pattern;
-  }else g.fillStyle='#4397b2';
-  g.fillRect(x,y,dw,dh);
-  g.restore();
-  ctx.drawImage(canvas,x,y,dw,dh);
-  return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh,mask:'distance-field-max-alpha',source:'round-feather',mouth:'shore-midpoint-fade'};
+   wg.putImageData(image,0,0);
+   wg.save();wg.setTransform(scale,0,0,scale,-x*scale,-y*scale);
+   wg.globalCompositeOperation='source-in';
+   const pattern=waterImage?.naturalWidth?wg.createPattern(waterImage,'repeat'):null;
+   if(pattern){
+    if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
+     const factor=HEX/Math.max(1,waterImage.naturalWidth);
+     pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
+    }
+    wg.fillStyle=pattern;
+   }else wg.fillStyle='#4397b2';
+   wg.fillRect(x,y,dw,dh);wg.restore();
+   g.putImageData(bankImage,0,0);g.drawImage(waterLayer,0,0);
+   ctx.drawImage(canvas,x,y,dw,dh);
+  return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh,mask:'smooth-distance-field-max-alpha',source:'rounded-edge-fillets',mouth:'shore-midpoint-fade'};
  }
  // Shared geometry contract for the Nature system: the river occupies a
  // continuous capsule around each edge segment, including the source and mouth.
@@ -250,5 +275,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,mouthCross,mouthPortals,coursePoints,alphaAtDistance,maskData,trace,render,blocksPoint,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,mouthCross,mouthPortals,smoothCourse,coursePoints,alphaAtDistance,maskData,trace,render,blocksPoint,normalizeRoutes};
 })();
