@@ -316,6 +316,7 @@
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
+      "targetHeight": 310,
       "logicalWidth": 360,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -332,7 +333,9 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
@@ -353,8 +356,7 @@
         "existing",
         "needs_art_review",
         "needs_species_review"
-      ],
-      "targetHeight": 310
+      ]
     },
     "nature/berg_02.png": {
       "id": "existing_berg_02",
@@ -364,6 +366,7 @@
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
+      "targetHeight": 310,
       "logicalWidth": 360,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -380,7 +383,9 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
@@ -401,8 +406,7 @@
         "existing",
         "needs_art_review",
         "needs_species_review"
-      ],
-      "targetHeight": 310
+      ]
     },
     "nature/berg_03.png": {
       "id": "existing_berg_03",
@@ -412,6 +416,7 @@
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
+      "targetHeight": 310,
       "logicalWidth": 360,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -428,7 +433,9 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
@@ -449,8 +456,7 @@
         "existing",
         "needs_art_review",
         "needs_species_review"
-      ],
-      "targetHeight": 310
+      ]
     },
     "nature/berg_04.png": {
       "id": "existing_berg_04",
@@ -460,6 +466,7 @@
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
+      "targetHeight": 310,
       "logicalWidth": 360,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -476,7 +483,9 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [],
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
@@ -497,8 +506,7 @@
         "existing",
         "needs_art_review",
         "needs_species_review"
-      ],
-      "targetHeight": 310
+      ]
     },
     "nature/besenheide1.png": {
       "id": "existing_besenheide1",
