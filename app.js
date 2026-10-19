@@ -422,7 +422,9 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  // Nature objects are independent per-instance; their picture anchor is stored in the Nature catalog.
 
  for(const n of (state.natureInstances||[])){
-   if(blocked.has(key(n.q,n.r)))continue;const a=useAsset(n.assetPath);if(!a)continue;
+   if(blocked.has(key(n.q,n.r)))continue;
+   if(window.VedrasNature?.validInstance(n)===false)continue;
+   const a=useAsset(n.assetPath);if(!a)continue;
    const m=window.VedrasNature?.entryFor(a);if(!m)continue;
    const p=axialPos(n.q,n.r);
    const crop=visibleBounds(a.img);const baseWidth=window.VedrasSpritePlanner?.visualWidth(m,a.img,crop)??m.logicalWidth;
@@ -432,7 +434,10 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
   const a=useAsset(m.assetPath),meta=window.VedrasNature.entryFor(a),p=axialPos(m.q,m.r);
   objs.push({asset:a,x:p.x,y:p.y+20,w:meta.logicalWidth,type:'mountain',natureMeta:meta,mountainInstance:m,cell:key(m.q,m.r)});
  }
- return objs;}
+ // Legacy/demo objects are not catalogued: still keep their foot anchors
+ // outside the real water-channel mask. Buildings and units are unchanged.
+ return objs.filter(o=>o.type!=='nature'||!window.VedrasRivers.blocksPoint(o.x,o.y,
+  state.riverPaths||[],worldCells,wetHex,Number(state.riverWidth)||32,Math.min(28,(o.w||52)*.14)+5));}
 function pairedShadow(obj){if(obj.cell&&state.hexShadow[obj.cell])return useAsset(state.hexShadow[obj.cell]);
  const natureShadow=obj.natureMeta?.shadow;
  if(natureShadow){if(natureShadow.mode==='none')return null;const path=natureShadow.mode==='custom'?natureShadow.path:'shadows/'+natureShadow.mode+'.png';return useAsset('assets/'+path)||null;}
