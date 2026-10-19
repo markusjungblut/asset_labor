@@ -43,7 +43,9 @@ assert.equal(jung.find(c=>c.key==='1,0').biome,'jungle','independent jungle biom
 assert(jung.find(c=>c.key==='-1,0').suitability>0,'cold conifers may grow');
 assert.equal(F.preferredFamily('savanna_trees',jung.find(c=>c.key==='1,0')),false);
 assert.equal(F.preferredFamily('palms',jung.find(c=>c.key==='1,0')),true);
-assert.equal(F.treeTarget(jung.find(c=>c.key==='1,0')),5);
+assert.equal(F.treeTarget(jung.find(c=>c.key==='1,0')),3);
+assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest'}),5);
+assert.equal(F.maxObjects({suitability:1,forestClass:'light_forest'}),4);
 const safe=F.valid({enabled:true,coverage:55,edgeStrength:-2,overrides:{'0,0':'light_forest','1,1':'BAD','../../etc':'dense_forest'},jungleHexes:{'1,0':true,'1,1':'yes'}});
 assert.equal(safe.coverage,1);assert.equal(safe.edgeStrength,0);
 assert.equal(safe.overrides['0,0'],'light_forest');assert.equal(Object.keys(safe.overrides).length,1);
