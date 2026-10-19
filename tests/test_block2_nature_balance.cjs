@@ -29,10 +29,10 @@ assert(B.chanceMultiplier(fallen)<.2,'fallen-log chances reduced');
 assert(B.chanceMultiplier(from('deadwood'))<.5,'tree-stump density reduced');
 const limits=B.accentLimits(37);
 assert.equal(limits.dead_trees,2);assert.equal(limits.fallen_logs,2);
-assert.equal(F.treeTarget({forestClass:'dense_forest',suitability:1}),3);
-assert.equal(F.treeTarget({forestClass:'light_forest',suitability:1}),2);
-assert.equal(F.maxObjects({forestClass:'dense_forest',suitability:1}),5);
-assert.equal(F.maxObjects({forestClass:'light_forest',suitability:1}),4);
+assert.equal(F.treeTarget({forestClass:'dense_forest',suitability:1}),4);
+assert.equal(F.treeTarget({forestClass:'light_forest',suitability:1}),3);
+assert.equal(F.maxObjects({forestClass:'dense_forest',suitability:1}),7);
+assert.equal(F.maxObjects({forestClass:'light_forest',suitability:1}),6);
 const hexes=[];for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++)if(Math.abs(q+r)<=3)hexes.push({q,r});
 const occupied=new Set(['0,0','1,0']);
 const ground=c=>c.q<=1;
@@ -54,6 +54,6 @@ for(const fragment of ['B.reserveClearings(core.cells()','B.isCanopy(entryFor(a)
  assert(editor.includes(fragment),'runtime integration: '+fragment);
 }
 assert(app.includes('window.VedrasNatureBalance?.sizeFactor(m)'),'old/new nature sprites must share the reduction');
-const moduleTag='nature-balance.js?v=0.19.0',appTag='app.js?v=0.22.0';
+const moduleTag='nature-balance.js?v=0.23.0',appTag='app.js?v=0.23.0';
 assert(html.includes(moduleTag)&&html.indexOf(moduleTag)<html.indexOf(appTag),'balance module must load before map');
 console.log('PASS: 258 assets preserved, compact trees/shrubs/deadwood, sparse accents, adjacent building clearings and legacy sprite scales.');

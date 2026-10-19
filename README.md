@@ -1,3 +1,5 @@
+**v0.11.1 · Schatten-/Fluss-/Natur-Feinabstimmung (19.10.2026):** Gemeinsame Schattenstärke für Berge, Bäume und Gebäude; pro Berginstanz und Grafik anpassbare Schattensilhouette (inklusive verschiebbarem Schattenursprung), breiter und kürzer. Abgerundete Flussbögen entlang der Hexkanten mit schmalem Ufersaum; kleinere Nature-Sprites und dichtere natürliche Pflanzgruppen. **Waldbodentexturen und ihre Masken bleiben unverändert.** [Bedienung und Testhinweise](docs/SHADOW_RIVER_NATURE_REFINEMENT.md).
+
 **Waldboden-Nahtfix (19.10.2026):** Waldboden wird jetzt nicht mehr pro Hex mit eigener Fade-Grafik aufgestempelt, sondern einmal je zusammenhängender Waldregion als weltverankerte Textur mit gemeinsamer Alpha-Maske gerendert. Nur die Außenkante der Waldregion blendet weich aus. Details: `docs/FOREST_SYSTEM.md`, Test: `tests/test_forest_floor_regions.cjs`.
 
 **Block 4 · Grafik-Finish (19.10.2026):** Flüsse nutzen eine einzige,

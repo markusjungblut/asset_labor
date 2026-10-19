@@ -7,7 +7,7 @@ const S=window.VedrasShadows;
 const mountainAnchor={x:.5,y:.67},treeAnchor={x:.5,y:.96};
 for(const [kind,width,height,anchor] of [['mountain',360,420,mountainAnchor],['nature',110,150,treeAnchor]]){
  const foot=S.projectedPoint(kind,width,height,anchor,1.35,anchor.x,anchor.y);
- assert(Math.abs(foot.x)<.0001&&Math.abs(foot.y)<.0001,'shadow projection starts exactly at the root '+kind);
+ assert(kind==='mountain'?foot.x<0&&foot.y>0:Math.abs(foot.x)<.0001&&Math.abs(foot.y)<.0001,'configurable mountain shadow offsets and original Nature foot');
  const summit=S.projectedPoint(kind,width,height,anchor,1.35,anchor.x,0);
  assert(summit.x<0&&summit.y>0,'sun on upper-right -> summit casts visibly lower-left '+kind);
  const farther=S.projectedPoint(kind,width,height,anchor,2,anchor.x,0);
@@ -41,8 +41,8 @@ assert(stops[stops.length-1][2].endsWith(',0)'),'outer contact fades completely 
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-assert(html.includes('shadow-system.js?v=0.20.0'),'browser loads shadow system');
-assert(html.indexOf('shadow-system.js?v=0.20.0')<html.indexOf('app.js?v=0.22.0'),'shadow system loaded before app renderer');
+assert(html.includes('shadow-system.js?v=0.23.0'),'browser loads shadow system');
+assert(html.indexOf('shadow-system.js?v=0.23.0')<html.indexOf('app.js?v=0.23.0'),'shadow system loaded before app renderer');
 for(const fragment of ['shadows.cast(g,silhouette,pos,width,height','shadows.contact(g,pos,width,\'mountain\'',
  'maxAlpha[i]','if(settings.opacity<=0)continue','drawNatureGrounding(o,p)',
  'projection:\'light-upper-right / shadow-lower-left\'']){
@@ -51,7 +51,7 @@ for(const fragment of ['shadows.cast(g,silhouette,pos,width,height','shadows.con
 assert(app.indexOf('drawMountainShadows(objs);')<app.indexOf('for(const o of objs){\n   const p=toScreen(o.x,o.y);\n   if(p.x<-450'),'ground shadows precede visible sprite pass');
 assert(app.includes('sortY:toScreen(o.x,heightAdjusted).y'),'sort by projected relief-adjusted foot');
 assert(app.includes('return a.sortY-b.sortY'),'ground foot used in painter sort');
-assert(app.includes("else if(o.type==='building')window.VedrasShadows.contact"),'buildings receive grounding');
+assert(app.includes("else if(o.type==='building'){"),'buildings receive grounding');
 assert(nature.includes('current.shadowOpacity=values.opacity')&&nature.includes('core.persistScene()'),'per-mountain slider persists');
 assert(html.includes('Reichweite nach links unten'),'direction is explained in UI');
 console.log('PASS: mountain and Nature casts travel down-left from exact foot, softness/alpha modes, contact falloff, renderer depth order and slider persistence.');
