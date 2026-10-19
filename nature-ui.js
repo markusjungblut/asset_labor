@@ -134,6 +134,11 @@ window.VedrasNature=(()=>{
    forestClass:forest?.forestClass||'none',neighborTypes:neighborTypes(q,r)
   },terrainRegistry(),catalog);
  }
+ function blocksRoad(q,r,dx,dy){
+  const pos=pts(q,r);
+  return window.VedrasRoads.blocksPoint(pos.x+dx,pos.y+dy,
+   state.roadEdges||[],8,256);
+ }
  function blocksRiver(q,r,dx,dy,meta){
   const pos=pts(q,r),x=pos.x+dx,y=pos.y+dy;
   const width=Number(state.riverWidth)||32;
@@ -173,7 +178,7 @@ window.VedrasNature=(()=>{
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(k)))return false;
   if(k==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return false;
   if(conflictsWithBuilding(inst.q,inst.r,inst.dx,inst.dy,meta))return false;
-  return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta);
+  return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta)&&!blocksRoad(inst.q,inst.r,inst.dx,inst.dy);
  }
  function cleanup(){
   if(!Object.keys(catalog.entries||{}).length)return 0;
@@ -209,7 +214,7 @@ window.VedrasNature=(()=>{
    const {dx,dy}=window.VedrasPolish.localOffset(seed,q,r,kind,index,j,state.visualPolish?.composition??1);
    if(!inside(dx,dy,margin))continue;
    const x=p.x+dx,y=p.y+dy;
-   if(blocksRiver(q,r,dx,dy,meta))continue;
+   if(blocksRiver(q,r,dx,dy,meta)||blocksRoad(q,r,dx,dy))continue;
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
    if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));
