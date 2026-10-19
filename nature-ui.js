@@ -321,13 +321,13 @@ window.VedrasNature=(()=>{
  function selectedMountain(){const [q,r]=state.selected.split(',').map(Number);return (state.mountainInstances||[]).find(m=>m.q===q&&m.r===r)||null;}
  function getShadowControls(){return {opacity:Number($('mountainCastOpacity').value),reach:Number($('mountainCastReach').value),softness:Number($('mountainCastSoft').value)};}
  function setShadowControls(s){
-  $('mountainCastOpacity').value=String(s.opacity??.48);$('mountainCastReach').value=String(s.reach??1.3);$('mountainCastSoft').value=String(s.softness??12);
+  $('mountainCastOpacity').value=String(s.opacity??.58);$('mountainCastReach').value=String(s.reach??1.55);$('mountainCastSoft').value=String(s.softness??11);
   $('mountainCastOpacityText').textContent=Number($('mountainCastOpacity').value).toFixed(2).replace('.',',');
   $('mountainCastReachText').textContent=Number($('mountainCastReach').value).toFixed(2).replace('.',',')+'×';
   $('mountainCastSoftText').textContent=$('mountainCastSoft').value;
  }
  function syncMountainControls(){
-  const current=selectedMountain(),defaults=state.mountainShadowDefaults||{opacity:.48,reach:1.3,softness:12};
+  const current=selectedMountain(),defaults=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};
   setShadowControls(current?{
    opacity:current.shadowOpacity??defaults.opacity,reach:current.shadowReach??defaults.reach,softness:current.shadowSoftness??defaults.softness
   }:defaults);
@@ -362,7 +362,7 @@ window.VedrasNature=(()=>{
     cell=>{const t=core.effectiveBiome(cell),tt=core.catalog().terrainTypes.find(v=>v.id===t);return tt?.materialClass==='ground'&&eligible.has(t);},
     {coreRadius:config.coreRadius,mode,chainId,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
   if(!result.ok){message('Berg nicht platziert: '+result.reason);$('mountainStatus').textContent=result.reason;return;}
-  const sh=state.mountainShadowDefaults||{opacity:.48,reach:1.3,softness:12};
+  const sh=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};
   state.mountainInstances=[...(state.mountainInstances||[]),{assetPath:a.path,assetId:meta.id,q,r,radius:config.radius,coreRadius:config.coreRadius,mode,chainId:mode==='chain'?chainId:null,shadowOpacity:sh.opacity,shadowReach:sh.reach,shadowSoftness:sh.softness}];
   state.objects=true;$('objectsToggle').checked=true;
   core.invalidateTerrain?.();saved();syncMountainControls();$('mountainStatus').textContent=`${meta.id}: ${result.area.length} Kernhex(e) reserviert; ${result.influenceArea.length} Einflusshexe. Nachbarfelder für Sprites frei. ${placedMountainsMessage()}`;
@@ -381,7 +381,7 @@ window.VedrasNature=(()=>{
    const result=window.VedrasMountains.candidate({cells:core.cells(),mountains:state.mountainInstances,nature:[],objects:{}},q,r,conf.radius,
     c=>{const tt=core.catalog().terrainTypes.find(t=>t.id===core.effectiveBiome(c));return c.q===q&&c.r===r&&tt?.materialClass==='ground';},
     {coreRadius:0,mode:'chain',chainId:id,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
-   if(result.ok){const sh=state.mountainShadowDefaults||{opacity:.48,reach:1.3,softness:12};state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,shadowOpacity:sh.opacity,shadowReach:sh.reach,shadowSoftness:sh.softness});}
+   if(result.ok){const sh=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,shadowOpacity:sh.opacity,shadowReach:sh.reach,shadowSoftness:sh.softness});}
   });
   state.objects=true;state.showLegacyNature=false;state.river=false;state.mountainDebug=true;
   $('objectsToggle').checked=true;$('nShowDemo').checked=false;$('riverToggle').checked=false;$('mountainDebug').checked=true;
