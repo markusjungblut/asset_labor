@@ -76,6 +76,17 @@ for(const [prefix,a,b,family] of [
   }
  }
 }
+// All 10 snowy conifers may occur in every cold biome, but the tundra generator
+// must include the explicit low-probability filter (manual placement remains legal).
+for(let number=1;number<=10;number++){
+ const name='nature/tanne_schnee_'+String(number).padStart(2,'0')+'.png',m=nature.entries[name];
+ assert(m&&m.family==='snow_conifers');
+ const allowed=N.effectiveTypes(m,terrain,nature);
+ for(const biome of ['snowfields','frozen_tundra','tundra','highland'])assert(allowed.has(biome),'missing cold biome: '+name+'/'+biome);
+ for(const biome of ['savanna','jungle','grassland','swamp'])assert(!allowed.has(biome),'snow conifer leaks to '+biome);
+}
+const editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
+assert(editor.includes("m.family==='snow_conifers'&&rank(a,c,973)>=.02"),'rare deterministic snowy-conifer tundra placement is missing');
 assert(registry.species.some(s=>s.family==='snow_fallen_logs'&&s.aliases.length===10));
 for(let i=1;i<=4;i++)assert.equal(terrain.assets['terrain/frozen_tundra_base_0'+i+'.png']?.terrainTypeId,'frozen_tundra');
 console.log('PASS: 41 reconciled historic PNGs, 77 recent uploads, 258 catalogued, 4 geological tasks outstanding, 109 flora groups, 8 Kapok trees preserved.');
