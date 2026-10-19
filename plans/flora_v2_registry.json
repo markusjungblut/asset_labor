@@ -2489,11 +2489,11 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Mangrove – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
+      "description": "Einzelner Mangrovenbaum (referenziert; noch keine PNG-Aliasse). Landanker nur in warmen Feuchtufern/Sumpf mit benachbartem Wasser oder warmem Landbiom; Überhang ins Wasser erlaubt. Kein Moor, Hochland oder Ozeanhex.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "swamp",
-        "forest_floor"
+        "marshland"
       ],
       "excludedTerrainTypes": [],
       "density": 0.12,
@@ -2967,7 +2967,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "targetHeight": 126,
-      "description": "Totholzbaum – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
+      "description": "Unverschneite tote Bäume – nur passende Landbiome, nicht Schneefelder; Dead Tree 11–15 sind eigenständige Schneevarianten und derzeit noch nicht eingelesen.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "wasteland",
@@ -3029,11 +3029,11 @@
       "name": "Liegender Stamm",
       "filename": "fallen_log_01.png",
       "folder": "ground/deadwood",
-      "family": "deadwood",
+      "family": "fallen_logs",
       "kind": "cluster",
       "sizeClass": "medium",
       "targetHeight": 69,
-      "description": "Liegender Stamm – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
+      "description": "Umgefallener Baum / liegender Stamm, eigenständige Totholzklasse (kein Baumstumpf); die neu erstellte Bilddatei muss noch eingelesen werden.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "forest_floor",
