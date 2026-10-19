@@ -402,38 +402,54 @@ function mountainShadowSettings(o){
  };
 }
 function drawMountainShadows(objects){
- const mts=objects.filter(o=>o.type==='mountain');if(!mts.length)return;
+ const mts=objects.filter(o=>o.type==='mountain');
+ if(!mts.length){window.__vedrasMountainShadowStats={count:0,maxAlpha:0,positiveCount:0};return;}
  const factor=.5,sw=Math.max(1,Math.ceil(W*factor)),sh=Math.max(1,Math.ceil(H*factor));
  const maxAlpha=new Uint8Array(sw*sh);
  const scratch=document.createElement('canvas');scratch.width=sw;scratch.height=sh;
  const g=scratch.getContext('2d',{willReadFrequently:true});
+ const shadows=window.VedrasShadows;
  for(const o of mts){
-  const s=mountainShadowSettings(o);if(s.opacity<=0)continue;
-  const p=toScreen(o.x,o.y),ww=o.w*state.zoom;
-  const silhouette=shadowSilhouette(o.asset.img);const hh=ww*silhouette.aspect;
-  g.clearRect(0,0,sw,sh);g.save();
-  // Project the original alpha silhouette into the ground plane.
-  // A high summit casts much farther left than the mountain's base.
-  g.translate(p.x*factor,p.y*factor);
-  g.transform(.86,0,.63*s.reach,.20,0,0);
-  g.globalAlpha=s.opacity;
-  g.filter=`blur(${s.softness*factor}px)`;
-  const anchor=o.natureMeta?.anchor||{x:.5,y:.67};
-  g.drawImage(silhouette.canvas,-ww*(anchor.x??.5)*factor,-hh*(anchor.y??.67)*factor,ww*factor,hh*factor);
-  g.filter='none';g.globalAlpha=1;
-  // More concentrated foot-contact shade, independent of cast length.
-  const grad=g.createRadialGradient(-ww*.06*factor,0,0,-ww*.06*factor,0,Math.max(4,ww*.23*factor));
-  grad.addColorStop(0,`rgba(13,25,33,${Math.min(.7,s.opacity*1.25)})`);grad.addColorStop(1,'rgba(13,25,33,0)');
-  g.scale(1,.36);g.fillStyle=grad;g.beginPath();g.arc(-ww*.06*factor,0,ww*.23*factor,0,Math.PI*2);g.fill();
-  g.restore();
+  const settings=mountainShadowSettings(o);
+  if(settings.opacity<=0)continue;
+  const p=toScreen(o.x,o.y),pos={x:p.x*factor,y:p.y*factor};
+  const width=o.w*state.zoom*factor,silhouette=shadowSilhouette(o.asset.img);
+  const height=width*silhouette.aspect,anchor=o.natureMeta?.anchor||{x:.5,y:.67};
+  const strength=Math.min(.98,settings.opacity*1.32);
+  g.clearRect(0,0,sw,sh);
+  // Two silhouette-derived layers share the exact anchor: a defined,
+  // recognizable interior and a softer outer penumbra. The projected
+  // summit goes down-left, OUTSIDE the mountain foot, not up beneath it.
+  shadows.cast(g,silhouette,pos,width,height,anchor,settings.reach,
+   'mountain',strength,settings.softness*factor*.48);
+  shadows.cast(g,silhouette,pos,width,height,anchor,settings.reach*1.06,
+   'mountain',strength*.36,settings.softness*factor*1.38);
+  // Wide footprint + strong inner contact keeps the mountain rooted even
+  // when the source PNG has mostly transparent lower corners.
+  shadows.contact(g,pos,width,'mountain',Math.min(1.2,settings.opacity*1.65));
   const layer=g.getImageData(0,0,sw,sh).data;
-  for(let i=0,j=3;i<maxAlpha.length;i++,j+=4)if(layer[j]>maxAlpha[i])maxAlpha[i]=layer[j];
+  // Composite overlap by MAX alpha, not additive darkness, so chains
+  // don't produce implausible black stripes where their shadows meet.
+  for(let i=0,j=3;i<maxAlpha.length;i++,j+=4){
+   if(layer[j]>maxAlpha[i])maxAlpha[i]=layer[j];
+  }
  }
  const image=g.createImageData(sw,sh);
- for(let i=0,j=0;i<maxAlpha.length;i++,j+=4){image.data[j]=12;image.data[j+1]=22;image.data[j+2]=30;image.data[j+3]=maxAlpha[i];}
+ for(let i=0,j=0;i<maxAlpha.length;i++,j+=4){
+  image.data[j]=12;image.data[j+1]=22;image.data[j+2]=30;image.data[j+3]=maxAlpha[i];
+ }
  g.clearRect(0,0,sw,sh);g.putImageData(image,0,0);
- ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.globalAlpha=1;ctx.drawImage(scratch,0,0,W,H);ctx.restore();
- let peakAlpha=0,positiveCount=0;for(let i=0;i<maxAlpha.length;i++){if(maxAlpha[i]>peakAlpha)peakAlpha=maxAlpha[i];if(maxAlpha[i]>2)positiveCount++;}window.__vedrasMountainShadowStats={count:mts.length,maxAlpha:peakAlpha,positiveCount,dimensions:[sw,sh]};
+ ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.globalAlpha=1;
+ ctx.drawImage(scratch,0,0,W,H);ctx.restore();
+ let peakAlpha=0,positiveCount=0;
+ for(let i=0;i<maxAlpha.length;i++){
+  if(maxAlpha[i]>peakAlpha)peakAlpha=maxAlpha[i];
+  if(maxAlpha[i]>2)positiveCount++;
+ }
+ window.__vedrasMountainShadowStats={
+  count:mts.length,maxAlpha:peakAlpha,positiveCount,dimensions:[sw,sh],
+  projection:'light-upper-right / shadow-lower-left'
+ };
 }
 function drawMountainFootprints(){
  if(!state.mountainDebug)return;
@@ -531,12 +547,30 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
 }
 function drawNatureShadow(sh,obj,p){
  const meta=obj.natureMeta.shadow||{};const ww=obj.w*state.zoom;
- const sw=ww*(meta.widthScale??.70),hh=ww*(meta.depthScale??.18);
- const centerX=p.x+ww*(meta.offsetX??-.24),centerY=p.y+ww*(meta.offsetY??0)*PROJECT_Y;
- // Shadows are planar ground footprints; their alpha centroids coincide with the contact point.
+ const sw=ww*Math.max(.52,meta.widthScale??.70),hh=ww*Math.max(.15,meta.depthScale??.18);
+ const centerX=p.x+ww*(meta.offsetX??-.24),centerY=p.y+ww*(meta.offsetY??0)*PROJECT_Y+ww*.035;
  const b=visibleBounds(sh.img);
+ // Respect separately authored shadow artwork, but strengthen its terrain
+ // integration. A generic shadow image is supplementary, never the only
+ // contact/cast layer.
+ ctx.save();ctx.globalAlpha=.86;
  ctx.drawImage(sh.img,b.sx,b.sy,b.sw,b.sh,centerX-sw*.5,centerY-hh*.5,sw,hh);
+ ctx.restore();
  if(state.natureShadowDebug){ctx.save();ctx.strokeStyle='#f9ef9a';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#ef79b6';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(centerX,centerY);ctx.stroke();ctx.restore();}
+}
+function drawNatureGrounding(obj,p){
+ if(!obj.natureMeta)return;
+ const meta=obj.natureMeta,kind=meta.kind,ww=obj.w*state.zoom;
+ const strength=kind==='ground_cover'?.32:kind==='tree'?1:.76;
+ window.VedrasShadows.contact(ctx,p,ww,'nature',strength);
+ if(kind!=='tree'&&kind!=='shrub'&&kind!=='cluster')return;
+ const silhouette=shadowSilhouette(obj.asset.img),height=ww*silhouette.aspect;
+ // Taller trees cast more than bushes; both share one global light source.
+ const reach=kind==='tree'?.92:.55;
+ const alpha=kind==='tree'?.38:.25;
+ window.VedrasShadows.cast(ctx,silhouette,p,ww,height,
+  meta.anchor||{x:.5,y:.96},reach,'nature',alpha,
+  Math.min(8,Math.max(2,ww*.045)));
 }
 
 // If a neighboring tree is projected on top of an opaque mountain, render it
@@ -574,6 +608,9 @@ function drawMapObjects(){if(!state.objects)return;
   for(const o of objs){const p=toScreen(o.x,o.y);if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
     // A shadow is a genuine independently authored image, never an automatic oval.
     if(o.type==='mountain'){drawSprite(o);continue;}
+    // Contact shadow is always present for grounded Nature sprites, even
+    // without an optional PNG in assets/shadows.
+    if(o.natureMeta)drawNatureGrounding(o,p);
     const sh=pairedShadow(o);if(sh?.img?.naturalWidth){
      if(o.natureMeta)drawNatureShadow(sh,o,p);
      else{let ww=o.w*state.zoom,hh=ww*sh.img.naturalHeight/sh.img.naturalWidth;
