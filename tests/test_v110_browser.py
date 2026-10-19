@@ -14,6 +14,7 @@ for f in ['catalog','terrain-source-rules','autotile','nature_catalog','sprite-p
     html=html.replace(f'<script src="{f}.js?v=0.14.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.14.1"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
     html=html.replace(f'<script src="{f}.js?v=0.15.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
+    html=html.replace(f'<script src="{f}.js?v=0.16.0"></script>','<script>'+(B/(f+'.js')).read_text()+'</script>')
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 land=Image.new('RGB',(80,80),(95,147,77))
