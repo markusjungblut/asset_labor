@@ -145,6 +145,26 @@ window.VedrasNature=(()=>{
    c=>['water','shoreline'].includes(terrainRegistry().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass),
    width,radius+5);
  }
+ // Existing buildings and the built-in mine reserve more than their own
+ // hex: tree roots and large logs may otherwise overlap their foundations.
+ function buildPads(){
+  const pads=[];
+  for(const [key,record] of Object.entries(state.hexObject||{})){
+   const a=core.assets().find(v=>v.path===record?.path);
+   if(a?.category!=='buildings')continue;
+   const [q,r]=key.split(',').map(Number),p=pts(q,r);
+   if(Number.isFinite(p.x)&&Number.isFinite(p.y))pads.push({x:p.x,y:p.y+52});
+  }
+  if(core.assets().some(a=>a.category==='buildings'&&a.name.startsWith('mine_lvl01__main'))&&!state.hexObject?.['0,0']){
+   const p=pts(0,0);pads.push({x:p.x,y:p.y+52});
+  }
+  return pads;
+ }
+ function conflictsWithBuilding(q,r,dx,dy,meta,pads=null){
+  const p=pts(q,r),x=p.x+dx,y=p.y+dy;
+  const radius=meta?.kind==='tree'?126:['fallen_logs','snow_fallen_logs'].includes(meta?.family)?118:96;
+  return (pads||buildPads()).some(pad=>Math.hypot(x-pad.x,y-pad.y)<radius);
+ }
  function validInstance(inst,forestByHex=null){
   const a=core.assets().find(v=>v.path===inst.assetPath),meta=entryFor(a);
   if(!a||!meta)return null; // Unknown assets are retained pending import.
@@ -152,6 +172,7 @@ window.VedrasNature=(()=>{
   if(state.hexObject?.[k])return false;
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(k)))return false;
   if(k==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return false;
+  if(conflictsWithBuilding(inst.q,inst.r,inst.dx,inst.dy,meta))return false;
   return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta);
  }
  function cleanup(){
@@ -188,6 +209,7 @@ window.VedrasNature=(()=>{
    if(!inside(dx,dy,margin))continue;
    const x=p.x+dx,y=p.y+dy;
    if(blocksRiver(q,r,dx,dy,meta))continue;
+   if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
    if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const spacing=Math.max(20,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
