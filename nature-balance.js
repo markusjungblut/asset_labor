@@ -14,12 +14,12 @@ window.VedrasNatureBalance=(()=>{
   if(fallen.has(meta.family))return .71;
   if(meta.family==='deadwood')return .72;
   if(meta.kind==='tree'){
-   if(meta.sizeClass==='giant')return .73;
-   return meta.sizeClass==='large'?.79:meta.sizeClass==='medium'?.81:.86;
+   if(meta.sizeClass==='giant')return .65;
+   return meta.sizeClass==='large'?.69:meta.sizeClass==='medium'?.72:.77;
   }
-  if(meta.kind==='shrub')return meta.sizeClass==='medium'?.81:meta.sizeClass==='large'?.79:.90;
-  if(meta.kind==='cluster')return .82;
-  if(meta.kind==='ground_cover')return .90;
+  if(meta.kind==='shrub')return meta.sizeClass==='medium'?.73:meta.sizeClass==='large'?.71:.82;
+  if(meta.kind==='cluster')return .77;
+  if(meta.kind==='ground_cover')return .84;
   return meta.kind==='special'?.85:1;
  }
  const isCanopy=meta=>!!meta&&meta.kind==='tree'&&!deadTrees.has(meta.family);
