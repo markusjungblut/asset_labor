@@ -125,7 +125,7 @@ window.VedrasRivers=(()=>{
    if(a<1e-5||b<1e-5)continue;
    const dot=(u.x*w.x+u.y*w.y)/(a*b);
    if(dot>.995){out.push(v);continue;}
-   const trim=Math.min(a*.29,b*.29,waterRadius*.90+8);
+   const trim=Math.min(a*.40,b*.40,waterRadius*1.4+14);
    const before={x:v.x-u.x/a*trim,y:v.y-u.y/a*trim};
    const after={x:v.x+w.x/b*trim,y:v.y+w.y/b*trim};
    out.push(before);
