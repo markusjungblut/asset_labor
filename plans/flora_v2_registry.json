@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "source": "FloraV2-Branch, mit Nature-Katalog auf main am 18.10.2026 abgeglichen",
+  "source": "258 real Nature PNGs in assets/nature, with 77 uploaded 19 Oct 2026; reviewed ecological/seasonal grouping.",
   "meaning": "106 Referenzgruppen mit genau 181 realen Nature-Varianten; keine eigenständige Produktionsliste.",
   "species": [
     {
@@ -382,12 +382,15 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Schneebedeckte Tanne – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
-      "allowedTerrainCategories": [],
+      "description": "Verschneite Nadelbäume nur in kalten Biomen. Auf gewöhnlicher Tundra sehr selten automatisch verteilt.",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [
-        "highland",
+        "snowfields",
+        "frozen_tundra",
         "tundra",
-        "forest_floor"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "density": 0.12,
@@ -448,12 +451,15 @@
       "kind": "tree",
       "sizeClass": "medium",
       "targetHeight": 126,
-      "description": "Schneebedeckte Kiefer (Tannenbild) – Sprite aus FloraV2 / aktuellem Asset-Bestand; einzelnes freigestelltes Objekt ohne Terrainplatte.",
-      "allowedTerrainCategories": [],
+      "description": "Verschneite Nadelbäume nur in kalten Biomen. Auf gewöhnlicher Tundra sehr selten automatisch verteilt.",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
       "allowedTerrainTypes": [
-        "highland",
+        "snowfields",
+        "frozen_tundra",
         "tundra",
-        "forest_floor"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "density": 0.12,
@@ -2081,13 +2087,24 @@
       "minSpacing": 24,
       "canCluster": true,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "ferns"
       ],
       "spawnWeight": 1,
-      "aliases": [],
-      "confidence": "named"
+      "aliases": [
+        "fern_01.png",
+        "fern_02.png",
+        "fern_03.png",
+        "fern_04.png",
+        "fern_05.png",
+        "fern_06.png",
+        "fern_07.png",
+        "fern_08.png",
+        "fern_09.png",
+        "fern_10.png"
+      ],
+      "confidence": "filename"
     },
     {
       "id": "liana_01",
@@ -2489,7 +2506,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "targetHeight": 174,
-      "description": "Einzelner Mangrovenbaum (referenziert; noch keine PNG-Aliasse). Landanker nur in warmen Feuchtufern/Sumpf mit benachbartem Wasser oder warmem Landbiom; Überhang ins Wasser erlaubt. Kein Moor, Hochland oder Ozeanhex.",
+      "description": "Mangroven: Wurzeln auf Land in warmen Feuchtgebieten mit Wassernachbarschaft; Überhang ins Wasser erlaubt.",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "swamp",
@@ -2500,13 +2517,19 @@
       "minSpacing": 82,
       "canCluster": false,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "warm_tidal_coast_only"
       ],
       "spawnWeight": 0.4,
-      "aliases": [],
-      "confidence": "named"
+      "aliases": [
+        "mangrove_01.png",
+        "mangrove_02.png",
+        "mangrove_03.png",
+        "mangrove_04.png",
+        "mangrove_05.png"
+      ],
+      "confidence": "filename"
     },
     {
       "id": "duckweed_01",
@@ -2844,7 +2867,7 @@
       "name": "Kaktus",
       "filename": "cactus_01.png",
       "folder": "shrubs/succulents",
-      "family": "succulents",
+      "family": "cacti",
       "kind": "shrub",
       "sizeClass": "medium",
       "targetHeight": 49,
@@ -2860,13 +2883,24 @@
       "minSpacing": 44,
       "canCluster": true,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "succulents"
       ],
       "spawnWeight": 0.3,
-      "aliases": [],
-      "confidence": "named"
+      "aliases": [
+        "cactus_01.png",
+        "cactus_02.png",
+        "cactus_03.png",
+        "cactus_04.png",
+        "cactus_05.png",
+        "cactus_06.png",
+        "cactus_07.png",
+        "cactus_08.png",
+        "cactus_09.png",
+        "cactus_10.png"
+      ],
+      "confidence": "filename"
     },
     {
       "id": "desert_flower_01",
@@ -2963,7 +2997,7 @@
       "name": "Totholzbaum",
       "filename": "dead_tree_01.png",
       "folder": "trees/deadwood",
-      "family": "deadwood",
+      "family": "dead_trees",
       "kind": "tree",
       "sizeClass": "medium",
       "targetHeight": 126,
@@ -2979,13 +3013,24 @@
       "minSpacing": 82,
       "canCluster": false,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "deadwood"
       ],
       "spawnWeight": 0.2,
-      "aliases": [],
-      "confidence": "named"
+      "aliases": [
+        "dead_tree_01.png",
+        "dead_tree_02.png",
+        "dead_tree_03.png",
+        "dead_tree_04.png",
+        "dead_tree_05.png",
+        "dead_tree_06.png",
+        "dead_tree_07.png",
+        "dead_tree_08.png",
+        "dead_tree_09.png",
+        "dead_tree_10.png"
+      ],
+      "confidence": "filename"
     },
     {
       "id": "tree_stump_01",
@@ -3020,9 +3065,17 @@
         "Baumstumpf_05.png",
         "Baumstumpf_06.png",
         "Baumstumpf_07.png",
-        "Baumstumpf_08.png"
+        "Baumstumpf_08.png",
+        "Baumstumpf_09.png",
+        "Baumstumpf_10.png",
+        "Baumstumpf_11.png",
+        "Baumstumpf_12.png",
+        "Baumstumpf_13.png",
+        "Baumstumpf_14.png",
+        "Baumstumpf_15.png",
+        "Baumstumpf_16.png"
       ],
-      "confidence": "named"
+      "confidence": "filename"
     },
     {
       "id": "fallen_log_01",
@@ -3045,13 +3098,28 @@
       "minSpacing": 24,
       "canCluster": true,
       "anchorY": 0.96,
-      "status": "reference_only",
+      "status": "existing_reference",
       "tags": [
         "deadwood"
       ],
       "spawnWeight": 0.3,
-      "aliases": [],
-      "confidence": "named"
+      "aliases": [
+        "fallen_log_01.png",
+        "fallen_log_02.png",
+        "fallen_log_03.png",
+        "fallen_log_04.png",
+        "fallen_log_05.png",
+        "fallen_log_06.png",
+        "fallen_log_07.png",
+        "fallen_log_08.png",
+        "fallen_log_09.png",
+        "fallen_log_10.png",
+        "fallen_log_21.png",
+        "fallen_log_22.png",
+        "fallen_log_23.png",
+        "fallen_log_24.png"
+      ],
+      "confidence": "filename"
     },
     {
       "id": "branch_01",
@@ -3292,6 +3360,116 @@
         "sukkulent1.png",
         "sukkulent2.png",
         "sukkulent3.png"
+      ],
+      "confidence": "filename"
+    },
+    {
+      "id": "bush_jungle_01",
+      "name": "bush jungle 01",
+      "filename": "bush_jungle_01.png",
+      "folder": "nature/tropical_bushes",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "large",
+      "targetHeight": 69,
+      "description": "Echte vorhandene Grafiken, visuelle Artprüfung ausstehend.",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "density": 0.09,
+      "minSpacing": 96,
+      "canCluster": false,
+      "anchorY": 0.96,
+      "status": "existing_reference",
+      "tags": [
+        "tropical_bushes"
+      ],
+      "spawnWeight": 1,
+      "aliases": [
+        "bush_jungle_01.png",
+        "bush_jungle_02.png",
+        "bush_jungle_03.png",
+        "bush_jungle_04.png",
+        "bush_jungle_05.png"
+      ],
+      "confidence": "filename"
+    },
+    {
+      "id": "snow_dead_tree_01",
+      "name": "snow dead tree 01",
+      "filename": "dead_tree_11.png",
+      "folder": "nature/snow_dead_trees",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "targetHeight": 174,
+      "description": "Explizit verschneite Grafiken. Nur kalte Biome; Tundra-Verteilung wird separat gewichtet.",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "density": 0.065,
+      "minSpacing": 100,
+      "canCluster": false,
+      "anchorY": 0.96,
+      "status": "existing_reference",
+      "tags": [
+        "snow_dead_trees"
+      ],
+      "spawnWeight": 1,
+      "aliases": [
+        "dead_tree_11.png",
+        "dead_tree_12.png",
+        "dead_tree_13.png",
+        "dead_tree_14.png",
+        "dead_tree_15.png"
+      ],
+      "confidence": "filename"
+    },
+    {
+      "id": "snow_fallen_log_01",
+      "name": "snow fallen log 01",
+      "filename": "fallen_log_11.png",
+      "folder": "nature/snow_fallen_logs",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "targetHeight": 69,
+      "description": "Explizit verschneite Grafiken. Nur kalte Biome; Tundra-Verteilung wird separat gewichtet.",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "density": 0.035,
+      "minSpacing": 96,
+      "canCluster": false,
+      "anchorY": 0.96,
+      "status": "existing_reference",
+      "tags": [
+        "snow_fallen_logs"
+      ],
+      "spawnWeight": 1,
+      "aliases": [
+        "fallen_log_11.png",
+        "fallen_log_12.png",
+        "fallen_log_13.png",
+        "fallen_log_14.png",
+        "fallen_log_15.png",
+        "fallen_log_16.png",
+        "fallen_log_17.png",
+        "fallen_log_18.png",
+        "fallen_log_19.png",
+        "fallen_log_20.png"
       ],
       "confidence": "filename"
     }
