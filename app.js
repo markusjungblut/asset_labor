@@ -451,6 +451,23 @@ function drawMountainShadows(objects){
   projection:'light-upper-right / shadow-lower-left'
  };
 }
+function drawMountainShadowGuide(mountains){
+ // Diagnostic is shown ONLY in the existing "shadow only" mountain mode.
+ // Gold pin = physical foot; line = estimated summit projection to the ground.
+ ctx.save();ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.strokeStyle='rgba(255,210,118,.9)';
+ ctx.fillStyle='#fff0ae';ctx.font='12px system-ui';
+ for(const o of mountains){
+  const p=toScreen(o.x,o.y),s=mountainShadowSettings(o);
+  const silhouette=shadowSilhouette(o.asset.img),w=o.w*state.zoom,h=w*silhouette.aspect;
+  const anchor=o.natureMeta?.anchor||{x:.5,y:.67};
+  const tip=window.VedrasShadows.projectedPoint('mountain',w,h,anchor,s.reach,anchor.x??.5,0);
+  const target={x:p.x+tip.x,y:p.y+tip.y};
+  ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(target.x,target.y);ctx.stroke();
+  ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();
+  ctx.fillText('Schattenrichtung',target.x-32,target.y+20);
+ }
+ ctx.setLineDash([]);ctx.restore();
+}
 function drawMountainFootprints(){
  if(!state.mountainDebug)return;
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
@@ -616,7 +633,10 @@ function drawMapObjects(){if(!state.objects)return;
   // Ground shadows FIRST: a foreground tree must not paint its shadow
   // across the already rendered canopy of a tree behind it.
   drawMountainShadows(objs);
-  if(state.mountainShadowDebug)return;
+  if(state.mountainShadowDebug){
+   drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
+   return;
+  }
   for(const o of objs){
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
