@@ -9530,7 +9530,7 @@
       "targetHeight": 49
     },
     "nature/bush_jungle_01.png": {
-      "id": "bush_jungle_01",
+      "id": "existing_bush_jungle_01",
       "description": "Dschungelbusch – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: bush_jungle_01.png",
       "family": "tropical_bushes",
@@ -9582,7 +9582,7 @@
       "targetHeight": 49
     },
     "nature/cactus_01.png": {
-      "id": "cactus_01",
+      "id": "existing_cactus_01",
       "description": "Kaktus – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: cactus_01.png",
       "family": "cacti",
@@ -9640,7 +9640,7 @@
       "targetHeight": 49
     },
     "nature/dead_tree_01.png": {
-      "id": "dead_tree_01",
+      "id": "existing_dead_tree_01",
       "description": "Toter Baum – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: dead_tree_01.png",
       "family": "dead_trees",
@@ -9705,7 +9705,7 @@
       "targetHeight": 174
     },
     "nature/fallen_log_01.png": {
-      "id": "fallen_log_01",
+      "id": "existing_fallen_log_01",
       "description": "Umgefallener Baum – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: fallen_log_01.png",
       "family": "fallen_logs",
@@ -9768,7 +9768,7 @@
       "targetHeight": 69
     },
     "nature/fern_01.png": {
-      "id": "fern_01",
+      "id": "existing_fern_01",
       "description": "Farn – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: fern_01.png",
       "family": "ferns",
@@ -9826,7 +9826,7 @@
       "targetHeight": 27
     },
     "nature/mangrove_01.png": {
-      "id": "mangrove_01",
+      "id": "existing_mangrove_01",
       "description": "Mangrovenbaum – reale freigestellte Nature-Grafik; Habitat- und Größenprofil fachlich zugeordnet, optische Abnahme offen.",
       "sourceReference": "Bestandsdatei: mangrove_01.png",
       "family": "mangroves",
