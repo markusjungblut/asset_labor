@@ -34,6 +34,11 @@
       "sortOrder": 50
     },
     {
+      "id": "forest_regions",
+      "name": "Wald- und Vegetationsboden",
+      "sortOrder": 55
+    },
+    {
       "id": "demo_regions",
       "name": "Weitere Testgelände",
       "sortOrder": 60
@@ -175,8 +180,8 @@
     },
     {
       "id": "forest_floor",
-      "name": "Waldboden (Test)",
-      "categoryId": "demo_regions",
+      "name": "Waldboden (Wald-Overlay)",
+      "categoryId": "forest_regions",
       "materialClass": "ground",
       "transitionProfileId": "organic_ground"
     },
