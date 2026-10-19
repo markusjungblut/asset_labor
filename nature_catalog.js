@@ -51,6 +51,35 @@ window.VedrasNatureCatalog=(()=>{
   if(f==='flowering_bushes'||f==='temperate_bushes'||f==='heath')return !among('jungle','rocky_desert','sandy_desert','clay_desert');
   return true;
  }
+ // Unified biome + overlay gate for manual placement, generation, rendering
+ // and cleanup. The catalog is a preference, the underlying habitat a hard rule.
+ function canPlace(meta,context,terrain,catalog=null){
+  if(!meta||!context||meta.kind==='mountain')return false;
+  const base=context.baseBiome,biome=context.biome||base;
+  const all=terrain?.terrainTypes||[];
+  const baseInfo=all.find(x=>x.id===base),logicalInfo=all.find(x=>x.id===biome);
+  if(baseInfo?.materialClass!=='ground'||logicalInfo?.materialClass!=='ground')return false;
+  const wet=['moor','swamp','marshland'],cold=['snowfields','frozen_tundra','tundra','highland'];
+  const warm=['jungle','savanna'];
+  const forest=['light_forest','dense_forest'].includes(context.forestClass);
+  const jungle=biome==='jungle';
+  // An editor-drawn forest floor and a generic forest must never create a
+  // tropical climate. A jungle overlay is only valid on warm base terrain.
+  if(jungle&&!warm.includes(base))return false;
+  if(meta.family==='palms'&&(!warm.includes(base)||wet.includes(base)||cold.includes(base)))return false;
+  if(['jungle_trees','tropical_bushes'].includes(meta.family)&&!jungle)return false;
+  if(forest&&['cacti','succulents','dry_bushes'].includes(meta.family))return false;
+  const allowed=effectiveTypes(meta,terrain,catalog);
+  const listed=allowed.has(biome)||allowed.has(base)||
+   (forest&&allowed.has('forest_floor')&&meta.family!=='palms');
+  if(!listed)return false;
+  const neighbors=context.neighborTypes||[];
+  // All plants other than explicit tropical-jungle species must survive the
+  // original habitat test, even after a forest overlay changed their artwork.
+  if(!['jungle_trees','tropical_bushes'].includes(meta.family)&&!habitatOK(meta,base,neighbors,terrain))return false;
+  if(!habitatOK(meta,biome,neighbors,terrain))return false;
+  return true;
+ }
  function validate(catalog,terrain=null){const err=[];
   if(!catalog||catalog.schemaVersion!==1||!catalog.entries||Array.isArray(catalog.entries)||typeof catalog.entries!=='object')return ['Ungültiges Nature-Katalogformat.'];
   if(Object.keys(catalog.entries).length>10000)return ['Zu viele Nature-Sprites'];
@@ -93,5 +122,5 @@ window.VedrasNatureCatalog=(()=>{
   }
   return err;
  }
- return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,habitatOK,rules};
+ return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,habitatOK,canPlace,rules};
 })();
