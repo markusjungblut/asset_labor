@@ -5,9 +5,16 @@ import base64, json
 from PIL import Image,ImageDraw
 from playwright.sync_api import sync_playwright
 B=Path(__file__).resolve().parents[1]
-html=(B/'index.html').read_text().replace('<link rel="stylesheet" href="style.css?v=0.10.9">','<style>'+(B/'style.css').read_text()+'</style>')
-for f in ['catalog','autotile','nature_catalog','relief','shoreline','mountain','app','nature-ui']:
-    html=html.replace(f'<script src="{f}.js?v=0.10.9"></script>', '<script>'+(B/(f+'.js')).read_text()+'</script>')
+# Inline the current production modules and styles instead of depending
+# on the 0.10.9 filenames. This also works without an HTTP server.
+import re
+html=(B/'index.html').read_text()
+html=re.sub(r'<link rel="stylesheet" href="style\\.css\\?v=[^"]+">',lambda m:'<style>'+(B/'style.css').read_text()+'</style>',html)
+for f in ['catalog','terrain-source-rules','autotile','nature_catalog','flora-plan','terrain-plan','sprite-planner',
+          'existing-asset-rules','forest','nature-balance','relief','shoreline','river','mountain',
+          'shadow-system','app','nature-ui','ui-organizer','forest-ui','river-ui','flora-workspace']:
+    script=re.compile(r'<script src="'+re.escape(f)+r'\\.js\\?v=[^"]+"></script>')
+    html=script.sub(lambda m:'<script>'+(B/(f+'.js')).read_text()+'</script>',html)
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 mount=Image.new('RGBA',(160,160),(0,0,0,0));d=ImageDraw.Draw(mount)
