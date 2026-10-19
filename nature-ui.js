@@ -197,7 +197,10 @@ window.VedrasNature=(()=>{
    const possible=candidates.filter(a=>{
     const m=entryFor(a);
     if(!F.preferredFamily(m.family,f))return false;
-    return eligible(m,c.q,c.r);
+    if(!eligible(m,c.q,c.r))return false;
+    // Ordinary tundra is largely snow-free: snowy conifers remain possible but rare.
+    if(core.effectiveBiome(c)==='tundra'&&m.family==='snow_conifers'&&rank(a,c,973)>=.02)return false;
+    return true;
    });
    if(possible.length)suitableCells++;
    const treePriority=a=>{
