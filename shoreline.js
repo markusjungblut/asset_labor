@@ -39,7 +39,10 @@ window.VedrasShoreline=(()=>{
   stroke(0,3,'rgba(253,249,231,0.88)');
  }
  function build(cells,isWet,images,options={}){
-  const segs=segments(cells,isWet,new Set(options.skipEdges||[])),density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
+  // Keep ALL real coast edges, including the river mouth's host edge.
+  // Only a small local aperture is feathered out where water crosses it.
+  const segs=segments(cells,isWet),portals=Array.isArray(options.mouthPortals)?options.mouthPortals:[],
+   density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
   if(!segs.length)return {segments:segs,canvas:null,missing:0};
   // The large full-hex+bleed square can overrun outer map edges.
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
@@ -70,8 +73,35 @@ window.VedrasShoreline=(()=>{
     }
    }
   }
+  // Gradually reveal the river THROUGH the existing beach. Removing
+  // the entire shoreline EDGE made the source water hex lose its coast.
+  // This anisotropic aperture follows the correct side tangent/normal.
+  for(const portal of portals){
+   const host=cells.find(c=>c.q===portal.landQ&&c.r===portal.landR);
+   if(!host||!Number.isInteger(portal.side)||portal.side<0||portal.side>=6)continue;
+   const end=vertices(host),a=end[portal.side],b=end[(portal.side+1)%6];
+   const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+   const tx=dx/len,ty=dy/len,nx=-ty,ny=tx;
+   const base=Math.max(12,Math.min(70,Number(portal.width)||32));
+   const half=base*.5,core=half+2,edge=half+28,depth=base*.70+25;
+   const px=Math.round((portal.x-left)*density),py=Math.round((portal.y-top)*density);
+   const reach=Math.ceil(Math.max(edge,depth)*density);
+   for(let iy=Math.max(0,py-reach);iy<Math.min(height,py+reach);iy++){
+    const wy=top+(iy+.5)/density-portal.y;
+    for(let ix=Math.max(0,px-reach);ix<Math.min(width,px+reach);ix++){
+     const wx=left+(ix+.5)/density-portal.x,along=Math.abs(wx*tx+wy*ty),across=Math.abs(wx*nx+wy*ny);
+     if(along>=edge||across>=depth)continue;
+     const t=Math.max(0,Math.min(1,(along-core)/Math.max(1,edge-core)));
+     const feather=t*t*(3-2*t);
+     const transverse=Math.max(0,Math.min(1,(depth-across)/(depth*.27)));
+     const passage=(1-feather)*transverse;
+     const alphaIndex=(iy*width+ix)*4+3;
+     dst[alphaIndex]=Math.round(dst[alphaIndex]*(1-passage));
+    }
+   }
+  }
   outContext.putImageData(result,0,0);
-  return {canvas:output,x:left,y:top,width:right-left,height:bottom-top,segments:segs,missing};
+  return {canvas:output,x:left,y:top,width:right-left,height:bottom-top,segments:segs,missing,mouthPortals:portals.length};
  }
  return {DIRS,segments,vertices,pos,build};
 })();
