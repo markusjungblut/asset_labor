@@ -38,8 +38,17 @@ function typeOfCell(c){
  const base=baseBiomeOf(c);
  return window.VedrasForest.jungleAllowed(base)&&state.forest?.jungleHexes?.[key(c.q,c.r)]===true?'jungle':base;
 }
+let forestMemoSignature='',forestMemoCells=[];
 function forestCells(){
- return window.VedrasForest.generate(worldCells,catalog,state.forest,c=>typeOfCell(c),baseBiomeOf);
+ // The placement gate is called for hundreds of sprites per frame. Forest
+ // generation is deterministic; cache it by its ecological inputs.
+ const signature=JSON.stringify([state.forest,catalog.terrainTypes.map(t=>[t.id,t.categoryId,t.materialClass]),
+  worldCells.map(c=>[c.q,c.r,c.biome,baseBiomeOf(c)])]);
+ if(forestMemoSignature!==signature){
+  forestMemoCells=window.VedrasForest.generate(worldCells,catalog,state.forest,c=>typeOfCell(c),baseBiomeOf);
+  forestMemoSignature=signature;
+ }
+ return forestMemoCells;
 }
 function refreshCatalog(){
  const status=catalogDirty?(catalogCanSave?' · Speichern ausstehend':' · ungespeichert – bitte exportieren'):'';
@@ -452,7 +461,7 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
   const [q,r]=k.split(',').map(Number);const c=worldCells.find(c=>c.q===q&&c.r===r);if(!c||blocked.has(k))continue;const a=useAsset(values.path);if(!a)continue;
   if(a.category==='nature'){
    const meta=window.VedrasNature?.entryFor(a);
-   if(meta&&window.VedrasNature?.eligible(meta,q,r)===false)continue;
+   if(!meta||window.VedrasNature?.eligible(meta,q,r)===false)continue;
   }
   const p=axialPos(q,r);const obj={asset:a,x:p.x,y:p.y+52,w:values.width??(a.category==='buildings'?160:80),type:a.category==='buildings'?'building':'nature',cell:k};
   if(k==='0,0'){
