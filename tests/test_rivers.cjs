@@ -75,7 +75,7 @@ assert(!R.blocksPoint(open.x,open.y,[route],cells,wet,32,8),'river must not excl
 // A feathered signed-distance field is rasterized into one alpha layer.
 // No painted circle at a shared corner and no destination-out mouth stroke.
 const calls=[],g={
- setTransform(){},save(){},restore(){},fillRect(){calls.push(['fill',this.globalCompositeOperation,this.fillStyle]);},
+ setTransform(){},save(){},restore(){},drawImage(){calls.push(['compositeBank']);},fillRect(){calls.push(['fill',this.globalCompositeOperation,this.fillStyle]);},
  createPattern(){calls.push(['waterTexture']);return {setTransform(){}};},
  createImageData(w,h){return {width:w,height:h,data:new Uint8ClampedArray(w*h*4)};},
  putImageData(img){calls.push(['maskData',img.data]);}
@@ -86,7 +86,7 @@ const renderWindow={},scope={window:renderWindow,document};
 vm.runInNewContext(fs.readFileSync(path.join(root,'river.js'),'utf8'),scope,{filename:'river.js'});
 const paint=renderWindow.VedrasRivers.render(globalCtx,route,cells,wet,{naturalWidth:256},{width:32});
 assert(paint?.canvas&&paint.widthWorld>0);
-assert.equal(paint.mask,'distance-field-max-alpha');
+assert.equal(paint.mask,'smooth-distance-field-max-alpha');
 assert.equal(paint.mouth,'shore-midpoint-fade');
 assert(calls.some(x=>x[0]==='waterTexture'),'river uses the receiving water material');
 assert(calls.some(x=>x[0]==='fill'&&x[1]==='source-in'),'water texture is clipped to the soft field');
@@ -98,7 +98,7 @@ const last=sections.at(-1),portal=R.mouthPortals([route],cells,wet,32)[0];
 assert(portal&&same({x:portal.x,y:portal.y},R.midpoint(last,last.outSide)),'mouth crosses center of true shared coast edge');
 assert(R.blocksPoint(portal.x,portal.y,[route],cells,wet,32),'Nature roots blocked at shoreline gap');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const s of ['river.js?v=0.21.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
+for(const s of ['river.js?v=0.23.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('mouthPortals'));assert(app.includes('riverRasterCache'));
 console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mid-edge mouths, localized shoreline aperture, persistence.');
