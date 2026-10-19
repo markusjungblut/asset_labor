@@ -32,7 +32,6 @@ with sync_playwright() as pw:
   };
   ctx.clearRect(0,0,820,470);
   S.cast(ctx,{canvas:source},p,w,h,anchor,1.55,'mountain',0,5);
-  parts.zeroOpacity=region(210,505,200,280); // original pixels before clear are irrelevant
   const fresh=ctx.getImageData(210,200,295,80).data;
   parts.mutedAlpha=fresh.filter((_,i)=>i%4===3).reduce((a,b)=>a+b,0);
   S.contact(ctx,p,w,'mountain',1);
