@@ -204,7 +204,7 @@ window.VedrasNature=(()=>{
   if(state.hexObject?.[cellKey]||cellKey==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return null;
   if(!eligible(meta,q,r,forestByHex))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
-  const p=pts(q,r);for(let j=0;j<48;j++){
+  const p=pts(q,r);for(let j=0;j<72;j++){
    const kind=meta.kind==='tree'?'tree':meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
    const {dx,dy}=window.VedrasPolish.localOffset(seed,q,r,kind,index,j,state.visualPolish?.composition??1);
    if(!inside(dx,dy,margin))continue;
@@ -212,7 +212,8 @@ window.VedrasNature=(()=>{
    if(blocksRiver(q,r,dx,dy,meta))continue;
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
-   if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const spacing=Math.max(20,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor);
+   if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));
+    const spacing=Math.max(14,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor*areaScale);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
    return {assetPath:a.path,assetId:meta.id,q,r,dx:Math.round(dx*100)/100,dy:Math.round(dy*100)/100,scale:Math.round(scale*1000)/1000};
   }return null;
@@ -305,7 +306,7 @@ window.VedrasNature=(()=>{
     const factor=f?.forestClass==='dense_forest'?1.20:f?.forestClass==='light_forest'?1.05:f?.edgeInfluence>.1?1.05:1;
     const groupName=meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
     const patch=window.VedrasPolish.patch(seed,c.q,c.r,groupName,state.visualPolish?.composition??1);
-    const chance=Math.min(.75,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta)*patch);
+    const chance=Math.min(.82,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta)*patch);
     if(rank(a,c,312)>=chance)continue;
     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
     if(inst){all.push(inst);count++;if(group){accents[group]++;accentOnHex=true;}}
