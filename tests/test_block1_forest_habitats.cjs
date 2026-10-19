@@ -58,6 +58,7 @@ for(const req of ['function baseBiomeOf(c)','function typeOfCell(c)','function d
  'drawForestFloor();','baseBiomeByHex:','forestByHex:Object.fromEntries','baseBiomeOf,typeOfAsset']){
  assert(app.includes(req),'missing base/overlay integration: '+req);
 }
+assert(app.includes("typeOfAsset(a)!=='forest_floor'"),'forest floor must not become opaque base artwork');
 assert(app.indexOf('drawForestFloor();')<app.indexOf('drawShorelines();'),'forest flooring before coast water overlays');
 assert(controls.includes('if(!F.jungleAllowed(base))continue'),'jungle button must reject moor');
 for(const required of ['N.canPlace(meta,','function cleanup()','vedras:forest-changed',
