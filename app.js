@@ -413,6 +413,10 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  const army=findAsset('units','expedition');const ep=axialPos(1,0);if(army&&!blocked.has('1,0'))objs.push({asset:army,x:ep.x-35,y:ep.y+50,w:44,type:'unit'});
  for(const [k,values] of Object.entries(state.hexObject)){
   const [q,r]=k.split(',').map(Number);const c=worldCells.find(c=>c.q===q&&c.r===r);if(!c||blocked.has(k))continue;const a=useAsset(values.path);if(!a)continue;
+  if(a.category==='nature'){
+   const meta=window.VedrasNature?.entryFor(a);
+   if(meta&&window.VedrasNature?.eligible(meta,q,r)===false)continue;
+  }
   const p=axialPos(q,r);const obj={asset:a,x:p.x,y:p.y+52,w:values.width??(a.category==='buildings'?160:80),type:a.category==='buildings'?'building':'nature',cell:k};
   if(k==='0,0'){
     const old=objs.findIndex(o=>o.cell==='0,0');if(old>=0)objs.splice(old,1);
