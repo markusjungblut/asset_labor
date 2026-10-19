@@ -103,11 +103,26 @@ window.VedrasRivers=(()=>{
   }
   return result;
  }
+ function mouthCross(segments){
+  // Meet the actual land↔water EDGE at its midpoint, not at a corner.
+  // The original corner-routed channel runs along the last edge until here.
+  const last=segments.at(-1);return midpoint({q:last.q,r:last.r},last.outSide);
+ }
  function mouthTip(segments,route,width=32){
-  const last=segments[segments.length-1],water=pos(norm(route.hexes.at(-1)));
-  const land=pos(last),dx=water.x-land.x,dy=water.y-land.y;
-  const len=Math.hypot(dx,dy)||1;
-  return {x:last.end.x+dx/len*(width*.88),y:last.end.y+dy/len*(width*.88)};
+  const last=segments.at(-1),cross=mouthCross(segments),water=pos(norm(route.hexes.at(-1)));
+  const land=pos({q:last.q,r:last.r}),dx=water.x-land.x,dy=water.y-land.y,len=Math.hypot(dx,dy)||1;
+  return {x:cross.x+dx/len*Math.max(24,width*1.8),y:cross.y+dy/len*Math.max(24,width*1.8)};
+ }
+ function coursePoints(segments,route,width=32){
+  const points=[...segments.flatMap(s=>s.path),mouthCross(segments),mouthTip(segments,route,width)];
+  return points.filter((p,i)=>!i||Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y)>1e-7);
+ }
+ function mouthPortals(routes,cells,isWet,width=32){
+  return (routes||[]).flatMap(route=>{
+   const segments=sections(route,cells,isWet);if(!segments.length)return [];
+   const last=segments.at(-1),p=mouthCross(segments);
+   return [{x:p.x,y:p.y,landQ:last.q,landR:last.r,side:last.outSide,width:Math.max(12,Math.min(70,Number(width)||32))}];
+  });
  }
  function mouths(routes,cells,isWet){
   const set=new Set();
@@ -128,68 +143,89 @@ window.VedrasRivers=(()=>{
   for(const s of segments){
    for(const v of s.path.slice(1))ctx.lineTo(v.x,height(v.x,v.y));
   }
-  const mouth=mouthTip(segments,route,width);
+  const cross=mouthCross(segments),mouth=mouthTip(segments,route,width);
+  ctx.lineTo(cross.x,height(cross.x,cross.y));
   ctx.lineTo(mouth.x,height(mouth.x,mouth.y));
   return {segments,start,end:segments.at(-1).end,water,mouth};
+ }
+ // A single distance-field MAX-union gives every segment a consistent,
+ // antialiased bank. Discs drawn repeatedly at shared corners previously
+ // accumulated alpha and left visible semicircular bumps.
+ function alphaAtDistance(distance,diameter){
+  const inner=diameter/2-3,outer=diameter/2+14;
+  if(distance<=inner)return .985;
+  if(distance>=outer)return 0;
+  const t=(distance-inner)/(outer-inner),ease=t*t*(3-2*t);
+  return .985*(1-ease);
+ }
+ function maskData(points,width,originX,originY,pixelScale,imageWidth,imageHeight){
+  const alpha=new Uint8Array(imageWidth*imageHeight),core=Math.max(12,Math.min(70,Number(width)||32));
+  const outer=core/2+15,scale=pixelScale;
+  const near=(p,a,b)=>{
+   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+   const t=len2?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2)):0;
+   return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);
+  };
+  // Bounds per segment: O(length × width), not O(total raster × length).
+  for(let i=1;i<points.length;i++){
+   const a=points[i-1],b=points[i];
+   const minX=Math.max(0,Math.floor((Math.min(a.x,b.x)-outer-originX)*scale));
+   const maxX=Math.min(imageWidth,Math.ceil((Math.max(a.x,b.x)+outer-originX)*scale));
+   const minY=Math.max(0,Math.floor((Math.min(a.y,b.y)-outer-originY)*scale));
+   const maxY=Math.min(imageHeight,Math.ceil((Math.max(a.y,b.y)+outer-originY)*scale));
+   for(let iy=minY;iy<maxY;iy++){
+    const y=originY+(iy+.5)/scale;
+    for(let ix=minX;ix<maxX;ix++){
+     const x=originX+(ix+.5)/scale,v=Math.round(255*alphaAtDistance(near({x,y},a,b),core));
+     const idx=iy*imageWidth+ix;
+     if(v>alpha[idx])alpha[idx]=v;
+    }
+   }
+  }
+  return alpha;
  }
  function render(ctx,route,cells,isWet,waterImage,options={}){
   if(!valid(route,cells,isWet))return null;
   const segments=sections(route,cells,isWet),width=Math.max(12,Math.min(70,Number(options.width)||32));
-  const wpos=pos(norm(route.hexes.at(-1)));
   const groundY=typeof options.groundY==='function'?options.groundY:null;
-  const points=[...segments.flatMap(s=>s.path),mouthTip(segments,route,width),wpos];
-  const pad=width+34,x=Math.floor(Math.min(...points.map(p=>p.x))-pad);
-  const y=Math.floor(Math.min(...points.map(p=>groundY?groundY(p.x,p.y):p.y))-pad);
-  const xmax=Math.ceil(Math.max(...points.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...points.map(p=>groundY?groundY(p.x,p.y):p.y))+pad);
+  const course=coursePoints(segments,route,width);
+  const projected=course.map(p=>({x:p.x,y:groundY?groundY(p.x,p.y):p.y}));
+  const pad=width+20,x=Math.floor(Math.min(...projected.map(p=>p.x))-pad);
+  const y=Math.floor(Math.min(...projected.map(p=>p.y))-pad);
+  const xmax=Math.ceil(Math.max(...projected.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...projected.map(p=>p.y))+pad);
   const dw=xmax-x,dh=ymax-y;
-  // Preview remains bounded; the source-to-water hex path stays in world units.
   const scale=Math.min(1.55,2500/Math.max(dw,dh)),canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
-  const g=canvas.getContext('2d');g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
-  // Mask a chain of actual shoreline-aligned EDGE SEGMENTS. Each tile-side
-  // is an oriented filled polygon; joins and endcaps are shared filled discs.
-  // No freehand canvas stroke is used to paint a river.
-  const channel=[...segments.flatMap(s=>s.path),mouthTip(segments,route,width)].filter((p,i,a)=>!i||Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y)>1e-6);
-  const project=p=>({x:p.x,y:groundY?groundY(p.x,p.y):p.y});
-  function segmentMask(points,diameter,style){
-   const projected=points.map(project),half=diameter/2;
-   g.beginPath();
-   for(let i=1;i<projected.length;i++){
-    const a=projected[i-1],b=projected[i],len=Math.hypot(b.x-a.x,b.y-a.y);
-    if(len<1e-6)continue;
-    const nx=-(b.y-a.y)/len*half,ny=(b.x-a.x)/len*half;
-    g.moveTo(a.x+nx,a.y+ny);g.lineTo(b.x+nx,b.y+ny);
-    g.lineTo(b.x-nx,b.y-ny);g.lineTo(a.x-nx,a.y-ny);g.closePath();
-   }
-   for(const p of projected){g.moveTo(p.x+half,p.y);g.arc(p.x,p.y,half,0,Math.PI*2);}
-   g.fillStyle=style;g.fill();
+  const g=canvas.getContext('2d',{willReadFrequently:true});
+  const mask=maskData(projected,width,x,y,scale,canvas.width,canvas.height);
+  const image=g.createImageData(canvas.width,canvas.height);
+  const cross=projected.at(-2),tip=projected.at(-1);
+  const dx=tip.x-cross.x,dy=tip.y-cross.y,len2=dx*dx+dy*dy||1;
+  for(let iy=0;iy<canvas.height;iy++)for(let ix=0;ix<canvas.width;ix++){
+   const idx=iy*canvas.width+ix,base=idx*4;if(!mask[idx])continue;
+   // Fade only after the coastline crossing and into the WATER tile. All
+   // landward segments retain their opaque water kernel.
+   const worldX=x+(ix+.5)/scale,worldY=y+(iy+.5)/scale;
+   const t=Math.max(0,Math.min(1,((worldX-cross.x)*dx+(worldY-cross.y)*dy)/len2));
+   const fade=1-t*t*(3-2*t);
+   image.data[base]=255;image.data[base+1]=255;image.data[base+2]=255;
+   image.data[base+3]=Math.round(mask[idx]*fade);
   }
-  // Feathered per-segment alpha masks, with exactly the same material for
-  // straight edges, turns and rounded source end. No sand or hard bank.
-  for(const [extra,alpha] of [[24,.025],[17,.08],[11,.22],[6,.52],[0,.95]])
-   segmentMask(channel,width+extra,'rgba(255,255,255,'+alpha+')');
-  // Replace white mask with actual mouth-water image; preserve alpha shape.
-  g.save();g.globalCompositeOperation='source-in';g.globalAlpha=1;
+  g.putImageData(image,0,0);
+  g.save();g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
+  g.globalCompositeOperation='source-in';
   const pattern=waterImage?.naturalWidth?g.createPattern(waterImage,'repeat'):null;
   if(pattern){
-   // A water image normally occupies one 256-unit hex. No embedded beaches.
    if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
     const factor=HEX/Math.max(1,waterImage.naturalWidth);
     pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
    }
    g.fillStyle=pattern;
   }else g.fillStyle='#4397b2';
-  g.fillRect(x,y,dw,dh);g.restore();
-  // River becomes indistinguishable from WATER within the receiving tile:
-  // smoothly remove the overlay; never place a flat color cap in the sea.
-  const last=segments[segments.length-1].end;
-  const mouth=mouthTip(segments,route,width);
-  g.save();g.globalCompositeOperation='destination-out';
-  const grad=g.createLinearGradient(last.x,groundY?groundY(last.x,last.y):last.y,mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
-  grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,'rgba(0,0,0,1)');
-  segmentMask([last,mouth],width+28,grad);g.restore();
+  g.fillRect(x,y,dw,dh);
+  g.restore();
   ctx.drawImage(canvas,x,y,dw,dh);
-  return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh};
+  return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh,mask:'distance-field-max-alpha',source:'round-feather',mouth:'shore-midpoint-fade'};
  }
  // Shared geometry contract for the Nature system: the river occupies a
  // continuous capsule around each edge segment, including the source and mouth.
@@ -203,7 +239,7 @@ window.VedrasRivers=(()=>{
   const p={x,y};
   for(const route of routes||[]){
    const chunks=sections(route,cells,isWet);if(!chunks.length)continue;
-   const points=[...chunks.flatMap(c=>c.path),mouthTip(chunks,route,width)];
+   const points=coursePoints(chunks,route,width);
    if(points.some((v,i)=>i>0&&nearSegment(p,points[i-1],v)))return true;
   }
   return false;
@@ -214,5 +250,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,trace,render,blocksPoint,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,mouthCross,mouthPortals,coursePoints,alphaAtDistance,maskData,trace,render,blocksPoint,normalizeRoutes};
 })();
