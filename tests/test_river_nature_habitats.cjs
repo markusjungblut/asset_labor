@@ -25,7 +25,7 @@ for(const [name,family] of [
  ['Dead_Tree_11.png','snow_dead_trees'],['Dead_Tree_15.png','snow_dead_trees'],
  ['Dead_Tree_01.png','dead_trees'],['Farn_03.png','ferns'],
  ['Mangrove_01.png','mangroves'],['Dschungelbusch_02.png','tropical_bushes'],
- ['Kaktus_03.png','cacti'],['Fallen_Tree_04.png','deadwood']
+ ['Kaktus_03.png','cacti'],['Fallen_Tree_04.png','fallen_logs']
  ])assert.equal(E.classify({category:'nature',name})?.family,family,name);
 assert.equal(E.classify({category:'nature',name:'Mangrove_Group_01.png'}),null,'mangrove group cancelled');
 const cells=[];for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++)if(Math.abs(q+r)<=3)cells.push({q,r});
