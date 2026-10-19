@@ -565,7 +565,7 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  const roads=window.VedrasRoads.normalizeEdges(state.roadEdges,worldCells,wetHex);
  return objs.filter(o=>{
   if(o.type!=='mountain'&&window.VedrasRoads.blocksPoint(o.x,o.y,roads,
-   o.type==='building'?Math.min(25,(o.w||160)*.15):7,HEX))return false;
+   o.type==='building'?Math.min(72,(o.w||160)*.38):7,HEX))return false;
   return o.type!=='nature'||!window.VedrasRivers.blocksPoint(o.x,o.y,
    state.riverPaths||[],worldCells,wetHex,Number(state.riverWidth)||32,Math.min(28,(o.w||52)*.14)+5);
  });}
