@@ -326,31 +326,48 @@ window.VedrasNature=(()=>{
   return {width:meta?.logicalWidth||360,aspect:a?.img?.naturalWidth?a.img.naturalHeight/a.img.naturalWidth:1,anchorX:meta?.anchor?.x??.5,anchorY:meta?.anchor?.y??.67};
  }
  function selectedMountain(){const [q,r]=state.selected.split(',').map(Number);return (state.mountainInstances||[]).find(m=>m.q===q&&m.r===r)||null;}
- const SHADOW_FIELDS={opacity:'shadowOpacity',reach:'shadowReach',softness:'shadowSoftness',
-  originX:'shadowOriginX',originY:'shadowOriginY',spread:'shadowSpread',contact:'shadowContact'};
- const SHADOW_SLIDERS={opacity:'mountainCastOpacity',reach:'mountainCastReach',
-  softness:'mountainCastSoft',originX:'mountainOriginX',originY:'mountainOriginY',
-  spread:'mountainSpread',contact:'mountainContact'};
- const encodeInstanceShadow=values=>Object.fromEntries(Object.entries(SHADOW_FIELDS).map(([name,field])=>[field,values[name]]));
+ const SHADOW_FIELDS={opacity:'shadowOpacity',softness:'shadowSoftness',
+  originX:'shadowOriginX',originY:'shadowOriginY',angle:'shadowAngle',
+  length:'shadowLength',rootWidth:'shadowRootWidth',midWidth:'shadowMidWidth',
+  tipWidth:'shadowTipWidth',contactWidth:'shadowContactWidth',
+  contactLength:'shadowContactLength'};
+ const SHADOW_SLIDERS={opacity:'mountainCastOpacity',softness:'mountainCastSoft',
+  originX:'mountainOriginX',originY:'mountainOriginY',angle:'mountainAngle',
+  length:'mountainLength',rootWidth:'mountainRootWidth',midWidth:'mountainMidWidth',
+  tipWidth:'mountainTipWidth',contactWidth:'mountainContactWidth',
+  contactLength:'mountainContactLength'};
+ const encodeInstanceShadow=values=>Object.fromEntries(
+  Object.entries(SHADOW_FIELDS).map(([name,field])=>[field,values[name]]));
  function getShadowControls(){
-  return window.VedrasShadows.settings(Object.fromEntries(Object.entries(SHADOW_SLIDERS).map(([name,id])=>[name,Number($(id).value)])));
+  return window.VedrasShadows.settings(Object.fromEntries(
+   Object.entries(SHADOW_SLIDERS).map(([name,id])=>[name,Number($(id).value)])));
  }
  function setShadowControls(input){
   const config=window.VedrasShadows.settings(input);
   for(const [name,id] of Object.entries(SHADOW_SLIDERS)){
    $(id).value=String(config[name]);const out=$(id+'Text');
-   if(out)out.textContent=config[name].toFixed(name==='softness'?0:2).replace('.',',')+(['reach','spread','contact'].includes(name)?'×':'');
+   if(!out)continue;
+   const places=name==='softness'||name==='angle'?0:name==='tipWidth'?3:2;
+   out.textContent=config[name].toFixed(places).replace('.',',')+
+    (name==='angle'?'°':(['length','rootWidth','midWidth','tipWidth','contactWidth','contactLength'].includes(name)?'×':''));
   }
   $('shadowGlobalStrength').value=String(Math.round(window.VedrasShadows.globalStrength(state.shadowGlobal)*100));
   $('shadowGlobalText').textContent=$('shadowGlobalStrength').value+' %';
  }
  function syncMountainControls(){
   const current=selectedMountain(),selectedAsset=core.assets().find(a=>a.path===state.asset),
-   assetPath=current?.assetPath||selectedAsset?.path,
-   preset=state.shadowAssetPresets?.[assetPath]||{};
-  const config={...window.VedrasShadows.defaults,...state.mountainShadowDefaults,...preset};
-  if(current)for(const [k,field] of Object.entries(SHADOW_FIELDS))
-   if(Number.isFinite(current[field]))config[k]=current[field];
+   assetPath=current?.assetPath||selectedAsset?.path,preset=state.shadowAssetPresets?.[assetPath]||{};
+  const config={...state.mountainShadowDefaults,...preset};
+  if(current){
+   if(Number.isFinite(current.shadowReach)&&!Number.isFinite(current.shadowLength))
+    config.length=current.shadowReach*.8;
+   if(Number.isFinite(current.shadowSpread)&&!Number.isFinite(current.shadowRootWidth))
+    config.rootWidth=.26*current.shadowSpread/1.28;
+   if(Number.isFinite(current.shadowContact)&&!Number.isFinite(current.shadowContactWidth))
+    config.contactWidth=.16*current.shadowContact/1.10;
+   for(const [k,field] of Object.entries(SHADOW_FIELDS))
+    if(Number.isFinite(current[field]))config[k]=current[field];
+  }
   setShadowControls(config);renderMountainOverlap();
  }
  function renderMountainOverlap(){
@@ -365,7 +382,6 @@ window.VedrasNature=(()=>{
  function updateShadow(){
   const values=getShadowControls(),current=selectedMountain();
   if(current){
-   current.shadowOpacity=values.opacity;current.shadowReach=values.reach;current.shadowSoftness=values.softness;
    Object.assign(current,encodeInstanceShadow(values));
   }else state.mountainShadowDefaults={...values};
   setShadowControls(values);core.requestDraw();core.persistScene();
@@ -511,7 +527,7 @@ window.VedrasNature=(()=>{
  });
  $('shadowResetInstance').addEventListener('click',()=>{
   const current=selectedMountain();
-  if(current){for(const field of Object.values(SHADOW_FIELDS))delete current[field];}
+  if(current){for(const field of [...Object.values(SHADOW_FIELDS),'shadowReach','shadowSpread','shadowContact'])delete current[field];}
   else if(state.asset&&state.shadowAssetPresets?.[state.asset])delete state.shadowAssetPresets[state.asset];
   else state.mountainShadowDefaults={...window.VedrasShadows.defaults};
   syncMountainControls();core.persistScene();core.requestDraw();
