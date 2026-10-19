@@ -125,3 +125,44 @@ Integration verbindlich. Bestehende Fluss- und Klimaregeln bleiben erhalten.
 
 Regression: `node tests/test_block2_nature_balance.cjs` zusätzlich zu den
 Wald-, Habitat- und Inventar-Tests.
+
+
+## Fix: durchgehende Waldbodenregionen statt Hex-Stamps (19.10.2026)
+
+Die ursprünglichen Waldboden-Overlays wurden pro Hex auf eine eigene 300×300-PNG
+mit radialem Alpha-Verlauf geklebt und zusätzlich am Hexrand beschnitten.
+Dadurch entstanden **sichtbare Innenkanten und dunkle Aufhellungsfelder**
+zwischen zwei benachbarten Waldhexen, obwohl der unterliegende Terrainrenderer
+bereits korrekt autotilte.
+
+Neuer Ablauf in `forest-ground.js` / `drawForestFloor()`:
+1. Aus `forestCells()` passende bewaldete Landhexe auswählen:
+   `light_forest`, `dense_forest`, aber keine Dschungelhexen,
+   kein Wasser, keine Schneefelder oder gefrorene Tundra.
+2. Durch Breitensuche **zusammenhängende Waldregionen** bestimmen.
+   Unterschiedliche Grundbiome innerhalb einer Region sind möglich;
+   das **Grundbiom bleibt maßgeblich** für Ökologie und Vegetation.
+3. Pro Region alle Hexpolygone in **einen gemeinsamen Canvas-Pfad**
+   zeichnen und nur **einmal füllen**. Gemeinsame Innenränder sind
+   damit keine Maskengrenzen. Die Alpha-Intensität wird über die
+   jeweilige Region gemittelt (Feucht-/Kaltwald dezenter).
+4. **Eine einzige Waldtextur in Weltkoordinaten ab (0,0)** in die
+   gemeinsame Rasterfläche kacheln: kein Neuansatz an Hex-Zentren,
+   keine individuellen UV-Phasen und somit keine Mustersprungstelle.
+5. Auf die vereinigte Waldmaske **ein einziges Blur/Feather** anwenden
+   und als `destination-in` auf die Textur übertragen. Nur die
+   **äußeren Waldränder** (auch Grenzen zu Lichtungen) blenden aus.
+6. Das Ergebnis wird mit einem **inhaltbasierten Cache-Schlüssel**
+   aus Waldklassen, Biomen, Assetversion, Texturmaßstab und
+   Renderauflösung gespeichert und beim Zeichnen einmal verwendet.
+   Es bleibt unter Küsten/Flüssen sowie allen Schatten und Sprites.
+
+Auch am Kartenrand wird die Welttextur einmal gegen die
+**vereinigte Kartensilhouette** beschnitten, niemals pro Waldhex.
+Eine bestehende separate PNG je Terrainbiom wird nicht überschrieben.
+
+Tests: `node tests/test_forest_floor_regions.cjs` prüft
+zusammenhängende Regionen, 10 statt 12 Randsegmente für zwei Nachbarhexe,
+nur eine Maskenfüllung pro Region, Weltverankerung des Musters sowie
+Lade- und Cache-Verhalten. Eine visuelle Prüfung in der realen
+Kartenansicht mit Zoom/Relief bleibt erforderlich.
