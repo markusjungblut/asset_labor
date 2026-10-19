@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "description": "181 echte Nature-PNGs im Katalog. Bestand der ersten 148 unverändert; neue Größen- und Biomprofile sind bis zur Sichtprüfung Kandidaten.",
+  "description": "258 real Nature PNGs, including 77 new uploaded sprites. Explicit snowy series: dead_tree_11–15, fallen_log_11–20, tanne_schnee_01–10. Plant production backlog closed; optical QA pending.",
   "sourceOfTruth": "existing-asset-rules.js",
-  "sourceCommitDate": "2026-10-18",
-  "entryCount": 181,
+  "sourceCommitDate": "2026-10-19",
+  "entryCount": 258,
   "entries": [
     {
       "id": "existing_affenbrotbaum1",
@@ -379,6 +379,278 @@
       "reviewTags": [
         "existing",
         "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_09",
+      "path": "assets/nature/Baumstumpf_09.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_10",
+      "path": "assets/nature/Baumstumpf_10.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_11",
+      "path": "assets/nature/Baumstumpf_11.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_12",
+      "path": "assets/nature/Baumstumpf_12.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_13",
+      "path": "assets/nature/Baumstumpf_13.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_14",
+      "path": "assets/nature/Baumstumpf_14.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_15",
+      "path": "assets/nature/Baumstumpf_15.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_baumstumpf_16",
+      "path": "assets/nature/Baumstumpf_16.png",
+      "name": "Baumstumpf",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 55,
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "placement": {
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
       ],
       "speciesConfirmed": true
     },
@@ -1792,6 +2064,1059 @@
       "speciesConfirmed": true
     },
     {
+      "id": "bush_jungle_01",
+      "path": "assets/nature/bush_jungle_01.png",
+      "name": "Dschungelbusch",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 55,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "tropical_bushes",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_bush_jungle_02",
+      "path": "assets/nature/bush_jungle_02.png",
+      "name": "Dschungelbusch",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 55,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_bush_jungle_03",
+      "path": "assets/nature/bush_jungle_03.png",
+      "name": "Dschungelbusch",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 55,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_bush_jungle_04",
+      "path": "assets/nature/bush_jungle_04.png",
+      "name": "Dschungelbusch",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 55,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_bush_jungle_05",
+      "path": "assets/nature/bush_jungle_05.png",
+      "name": "Dschungelbusch",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 55,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "cactus_01",
+      "path": "assets/nature/cactus_01.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "cacti",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_02",
+      "path": "assets/nature/cactus_02.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_03",
+      "path": "assets/nature/cactus_03.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_04",
+      "path": "assets/nature/cactus_04.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_05",
+      "path": "assets/nature/cactus_05.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_06",
+      "path": "assets/nature/cactus_06.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_07",
+      "path": "assets/nature/cactus_07.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_08",
+      "path": "assets/nature/cactus_08.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_09",
+      "path": "assets/nature/cactus_09.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_cactus_10",
+      "path": "assets/nature/cactus_10.png",
+      "name": "Kaktus",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 49,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "semi_desert",
+        "sandy_desert",
+        "rocky_desert",
+        "clay_desert",
+        "sandy_rocky_desert",
+        "desert",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.085,
+        "minSpacing": 72,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "dead_tree_01",
+      "path": "assets/nature/dead_tree_01.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "dead_trees",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_02",
+      "path": "assets/nature/dead_tree_02.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_03",
+      "path": "assets/nature/dead_tree_03.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_04",
+      "path": "assets/nature/dead_tree_04.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_05",
+      "path": "assets/nature/dead_tree_05.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_06",
+      "path": "assets/nature/dead_tree_06.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_07",
+      "path": "assets/nature/dead_tree_07.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_08",
+      "path": "assets/nature/dead_tree_08.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_09",
+      "path": "assets/nature/dead_tree_09.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_10",
+      "path": "assets/nature/dead_tree_10.png",
+      "name": "Toter Baum",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle",
+        "wasteland",
+        "semi_desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_snow_11",
+      "path": "assets/nature/dead_tree_11.png",
+      "name": "Verschneiter toter Baum",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_dead_tree",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_snow_12",
+      "path": "assets/nature/dead_tree_12.png",
+      "name": "Verschneiter toter Baum",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_dead_tree",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_snow_13",
+      "path": "assets/nature/dead_tree_13.png",
+      "name": "Verschneiter toter Baum",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_dead_tree",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_snow_14",
+      "path": "assets/nature/dead_tree_14.png",
+      "name": "Verschneiter toter Baum",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_dead_tree",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_dead_tree_snow_15",
+      "path": "assets/nature/dead_tree_15.png",
+      "name": "Verschneiter toter Baum",
+      "family": "snow_dead_trees",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.065,
+        "minSpacing": 100,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_dead_tree",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
       "id": "existing_eiche1",
       "path": "assets/nature/eiche1.png",
       "name": "Eiche",
@@ -2052,6 +3377,1214 @@
       "reviewTags": [
         "existing",
         "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "fallen_log_01",
+      "path": "assets/nature/fallen_log_01.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "deadwood",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_02",
+      "path": "assets/nature/fallen_log_02.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_03",
+      "path": "assets/nature/fallen_log_03.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_04",
+      "path": "assets/nature/fallen_log_04.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_05",
+      "path": "assets/nature/fallen_log_05.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_06",
+      "path": "assets/nature/fallen_log_06.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_07",
+      "path": "assets/nature/fallen_log_07.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_08",
+      "path": "assets/nature/fallen_log_08.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_09",
+      "path": "assets/nature/fallen_log_09.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_10",
+      "path": "assets/nature/fallen_log_10.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_11",
+      "path": "assets/nature/fallen_log_11.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_12",
+      "path": "assets/nature/fallen_log_12.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_13",
+      "path": "assets/nature/fallen_log_13.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_14",
+      "path": "assets/nature/fallen_log_14.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_15",
+      "path": "assets/nature/fallen_log_15.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_16",
+      "path": "assets/nature/fallen_log_16.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_17",
+      "path": "assets/nature/fallen_log_17.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_18",
+      "path": "assets/nature/fallen_log_18.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_19",
+      "path": "assets/nature/fallen_log_19.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_20",
+      "path": "assets/nature/fallen_log_20.png",
+      "name": "Verschneiter liegender Baumstamm",
+      "family": "snow_fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.035,
+        "minSpacing": 110,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "winter_fallen_log",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_21",
+      "path": "assets/nature/fallen_log_21.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_22",
+      "path": "assets/nature/fallen_log_22.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_23",
+      "path": "assets/nature/fallen_log_23.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fallen_log_24",
+      "path": "assets/nature/fallen_log_24.png",
+      "name": "Umgefallener Baum",
+      "family": "fallen_logs",
+      "kind": "cluster",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 69,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "swamp",
+        "marshland",
+        "moor",
+        "savanna",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.07,
+        "minSpacing": 98,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "fern_01",
+      "path": "assets/nature/fern_01.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "ferns",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_02",
+      "path": "assets/nature/fern_02.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_03",
+      "path": "assets/nature/fern_03.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_04",
+      "path": "assets/nature/fern_04.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_05",
+      "path": "assets/nature/fern_05.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_06",
+      "path": "assets/nature/fern_06.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_07",
+      "path": "assets/nature/fern_07.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_08",
+      "path": "assets/nature/fern_08.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_09",
+      "path": "assets/nature/fern_09.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_fern_10",
+      "path": "assets/nature/fern_10.png",
+      "name": "Farn",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "targetHeight": 27,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "pasture",
+        "moor",
+        "swamp",
+        "marshland",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.13,
+        "minSpacing": 38,
+        "canCluster": true
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
       ],
       "speciesConfirmed": true
     },
@@ -2380,6 +4913,152 @@
       "reviewTags": [
         "existing",
         "needs_art_review"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "mangrove_01",
+      "path": "assets/nature/mangrove_01.png",
+      "name": "Mangrovenbaum",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.055,
+        "minSpacing": 118,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "mangroves",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_mangrove_02",
+      "path": "assets/nature/mangrove_02.png",
+      "name": "Mangrovenbaum",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.055,
+        "minSpacing": 118,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_mangrove_03",
+      "path": "assets/nature/mangrove_03.png",
+      "name": "Mangrovenbaum",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.055,
+        "minSpacing": 118,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_mangrove_04",
+      "path": "assets/nature/mangrove_04.png",
+      "name": "Mangrovenbaum",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.055,
+        "minSpacing": 118,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
+      ],
+      "speciesConfirmed": true
+    },
+    {
+      "id": "existing_mangrove_05",
+      "path": "assets/nature/mangrove_05.png",
+      "name": "Mangrovenbaum",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "targetHeight": 174,
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "density": 0.055,
+        "minSpacing": 118,
+        "canCluster": false
+      },
+      "artStatus": "candidate",
+      "reviewTags": [
+        "existing",
+        "needs_art_review",
+        "user_supplied",
+        "needs_visual_qa"
       ],
       "speciesConfirmed": true
     },
