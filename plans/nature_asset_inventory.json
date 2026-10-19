@@ -14,10 +14,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -28,7 +25,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_affenbrotbaum2",
@@ -39,10 +42,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -53,7 +53,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_affenbrotbaum3",
@@ -64,10 +70,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -78,7 +81,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ahorn1",
@@ -89,11 +98,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -104,7 +109,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ahorn2",
@@ -115,11 +128,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -130,7 +139,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ahorn3",
@@ -141,11 +158,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -156,7 +169,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_01",
@@ -167,13 +188,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -184,7 +213,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_02",
@@ -195,13 +225,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -212,7 +250,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_03",
@@ -223,13 +262,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -240,7 +287,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_04",
@@ -251,13 +299,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -268,7 +324,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_05",
@@ -279,13 +336,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -296,7 +361,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_06",
@@ -307,13 +373,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -324,7 +398,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_07",
@@ -335,13 +410,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -352,7 +435,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_baumstumpf_08",
@@ -363,13 +447,21 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 55,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands",
-        "warm_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra",
+        "moor",
+        "marshland",
+        "swamp",
+        "savanna",
+        "jungle"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.045,
         "minSpacing": 74,
@@ -380,7 +472,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_berg_01",
@@ -403,7 +496,9 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_berg_02",
@@ -426,7 +521,9 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_berg_03",
@@ -449,7 +546,9 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_berg_04",
@@ -472,7 +571,9 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_besenheide1",
@@ -483,10 +584,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 17,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.25,
         "minSpacing": 26,
@@ -497,7 +595,16 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_besenheide2",
@@ -508,10 +615,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 17,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.25,
         "minSpacing": 26,
@@ -522,7 +626,16 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_besenheide3",
@@ -533,10 +646,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 17,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.25,
         "minSpacing": 26,
@@ -547,7 +657,16 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_birke1",
@@ -558,11 +677,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -573,7 +688,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_birke2",
@@ -584,11 +707,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -599,7 +718,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_birke3",
@@ -610,11 +737,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 126,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -625,7 +748,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_buche1",
@@ -636,11 +767,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -651,7 +778,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_buche2",
@@ -662,11 +797,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -677,7 +808,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_buche3",
@@ -688,11 +827,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -703,7 +838,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_01",
@@ -714,10 +857,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -729,7 +869,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_02",
@@ -740,10 +888,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -755,7 +900,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_03",
@@ -766,10 +919,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -781,7 +931,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_04",
@@ -792,10 +950,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -807,7 +962,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_05",
@@ -818,10 +981,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -833,7 +993,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_06",
@@ -844,10 +1012,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -859,7 +1024,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_07",
@@ -870,10 +1043,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -885,7 +1055,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_08",
@@ -896,10 +1074,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -911,7 +1086,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_09",
@@ -922,10 +1105,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -937,7 +1117,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_10",
@@ -948,10 +1136,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -963,7 +1148,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_11",
@@ -974,10 +1167,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -989,7 +1179,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_12",
@@ -1000,10 +1198,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1015,7 +1210,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_13",
@@ -1026,10 +1229,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1041,7 +1241,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_14",
@@ -1052,10 +1260,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1067,7 +1272,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_15",
@@ -1078,10 +1291,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1093,7 +1303,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_16",
@@ -1104,10 +1322,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1119,7 +1334,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_17",
@@ -1130,10 +1353,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1145,7 +1365,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_18",
@@ -1156,10 +1384,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1171,7 +1396,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_19",
@@ -1182,10 +1415,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 72,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1197,7 +1427,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_20",
@@ -1208,11 +1446,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1225,7 +1459,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_21",
@@ -1236,11 +1485,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1253,7 +1498,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_22",
@@ -1264,11 +1524,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1281,7 +1537,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_23",
@@ -1292,11 +1563,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1309,7 +1576,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_24",
@@ -1320,11 +1602,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1337,7 +1615,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_25",
@@ -1348,11 +1641,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1365,7 +1654,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_26",
@@ -1376,11 +1680,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1393,7 +1693,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_27",
@@ -1404,11 +1719,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1421,7 +1732,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_28",
@@ -1432,11 +1758,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1449,7 +1771,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_29",
@@ -1460,11 +1797,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 45,
@@ -1477,7 +1810,22 @@
         "dry_bush",
         "size_provisional"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_30",
@@ -1488,10 +1836,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1503,7 +1848,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_31",
@@ -1514,10 +1867,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1529,7 +1879,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_32",
@@ -1540,10 +1898,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1555,7 +1910,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_33",
@@ -1566,10 +1929,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -1581,7 +1941,15 @@
         "needs_art_review",
         "temperate_bush"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_34",
@@ -1592,10 +1960,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1607,7 +1972,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_35",
@@ -1618,10 +1991,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1633,7 +2003,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_36",
@@ -1644,10 +2022,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1659,7 +2034,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_37",
@@ -1670,10 +2053,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1685,7 +2065,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_38",
@@ -1696,10 +2084,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1711,7 +2096,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_39",
@@ -1722,10 +2115,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1737,7 +2127,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_40",
@@ -1748,10 +2146,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1763,7 +2158,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_bush_41",
@@ -1774,10 +2177,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.1,
         "minSpacing": 80,
@@ -1789,7 +2189,15 @@
         "needs_art_review",
         "bush_group"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_eiche1",
@@ -1800,11 +2208,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -1815,7 +2219,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_eiche2",
@@ -1826,11 +2238,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -1841,7 +2249,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_eiche3",
@@ -1852,11 +2268,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -1867,7 +2279,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_erle1",
@@ -1878,11 +2298,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -1894,7 +2315,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_erle2",
@@ -1905,11 +2327,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -1921,7 +2344,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_erle3",
@@ -1932,11 +2356,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -1948,7 +2373,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_erle4",
@@ -1959,11 +2385,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -1975,7 +2402,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_esche1",
@@ -1986,11 +2414,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2001,7 +2425,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_esche2",
@@ -2012,11 +2444,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2027,7 +2455,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_esche3",
@@ -2038,11 +2474,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2053,7 +2485,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ginster1",
@@ -2064,10 +2504,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -2078,7 +2515,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ginster2",
@@ -2089,10 +2533,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -2103,7 +2544,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_ginster3",
@@ -2114,10 +2562,7 @@
       "sizeClass": "small",
       "sizeMode": "class",
       "targetHeight": 34,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -2128,7 +2573,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_haselstrauch1",
@@ -2139,10 +2591,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2153,7 +2602,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_haselstrauch2",
@@ -2164,10 +2621,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2178,7 +2632,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_haselstrauch3",
@@ -2189,10 +2651,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2203,7 +2662,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_holunder_01",
@@ -2214,10 +2681,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2228,7 +2692,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_holunder_02",
@@ -2239,10 +2711,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2253,7 +2722,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_holunder_03",
@@ -2264,10 +2741,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2278,7 +2752,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_larche1",
@@ -2289,10 +2771,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -2303,7 +2782,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_linde1",
@@ -2314,11 +2803,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2329,7 +2814,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_linde2",
@@ -2340,11 +2833,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2355,7 +2844,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_linde3",
@@ -2366,11 +2863,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands",
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.14,
         "minSpacing": 90,
@@ -2381,7 +2874,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_marula1",
@@ -2392,11 +2893,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2407,7 +2909,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_marula2",
@@ -2418,11 +2921,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2433,7 +2937,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_marula3",
@@ -2444,11 +2949,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2459,7 +2965,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_01",
@@ -2486,7 +2993,8 @@
         "palm_small"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_02",
@@ -2513,7 +3021,8 @@
         "palm_small"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_03",
@@ -2540,7 +3049,8 @@
         "palm_small"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_04",
@@ -2567,7 +3077,8 @@
         "palm_small"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_05",
@@ -2594,7 +3105,8 @@
         "palm_small"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_06",
@@ -2621,7 +3133,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_07",
@@ -2648,7 +3161,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_08",
@@ -2675,7 +3189,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_09",
@@ -2702,7 +3217,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_10",
@@ -2729,7 +3245,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_palme_11",
@@ -2756,7 +3273,8 @@
         "palm_large"
       ],
       "speciesConfirmed": false,
-      "allowedTerrainTypes": []
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schilf1",
@@ -2767,10 +3285,12 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.17,
         "minSpacing": 50,
@@ -2781,7 +3301,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schilf2",
@@ -2792,10 +3313,12 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.17,
         "minSpacing": 50,
@@ -2806,7 +3329,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schilf3",
@@ -2817,10 +3341,12 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.17,
         "minSpacing": 50,
@@ -2831,7 +3357,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schilf4",
@@ -2842,10 +3369,12 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 69,
-      "allowedTerrainCategories": [
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.17,
         "minSpacing": 50,
@@ -2856,7 +3385,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schirmakazie1",
@@ -2867,10 +3397,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2881,7 +3408,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schirmakazie2",
@@ -2892,10 +3425,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2906,7 +3436,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schirmakazie3",
@@ -2917,10 +3453,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.07,
         "minSpacing": 130,
@@ -2931,7 +3464,13 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schlehe1",
@@ -2942,10 +3481,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2956,7 +3492,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schlehe2",
@@ -2967,10 +3511,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -2981,7 +3522,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_schlehe3",
@@ -2992,10 +3541,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.22,
         "minSpacing": 43,
@@ -3006,7 +3552,15 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_sukkulent1",
@@ -3017,11 +3571,19 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 27,
-      "allowedTerrainCategories": [
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "savanna"
+        "savanna",
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "placement": {
         "density": 0.12,
@@ -3034,7 +3596,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_sukkulent2",
@@ -3045,11 +3608,19 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 27,
-      "allowedTerrainCategories": [
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "savanna"
+        "savanna",
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "placement": {
         "density": 0.12,
@@ -3062,7 +3633,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_sukkulent3",
@@ -3073,11 +3645,19 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 27,
-      "allowedTerrainCategories": [
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "savanna"
+        "savanna",
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "placement": {
         "density": 0.12,
@@ -3090,7 +3670,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_01",
@@ -3101,10 +3682,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3116,7 +3694,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_02",
@@ -3127,10 +3715,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3142,7 +3727,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_03",
@@ -3153,10 +3748,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3168,7 +3760,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_04",
@@ -3179,10 +3781,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3194,7 +3793,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_05",
@@ -3205,10 +3814,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3220,7 +3826,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_06",
@@ -3231,10 +3847,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3246,7 +3859,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_07",
@@ -3257,10 +3880,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3272,7 +3892,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_08",
@@ -3283,10 +3913,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3298,7 +3925,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_09",
@@ -3309,10 +3946,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3324,7 +3958,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_10",
@@ -3335,10 +3979,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3350,7 +3991,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_11",
@@ -3361,10 +4012,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -3376,7 +4024,17 @@
         "needs_art_review",
         "reassignable_conifer"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_01",
@@ -3387,9 +4045,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3402,7 +4058,13 @@
         "needs_species_review",
         "snow_pine"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_02",
@@ -3413,9 +4075,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3428,7 +4088,13 @@
         "needs_species_review",
         "snow_pine"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_03",
@@ -3439,9 +4105,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3454,7 +4118,13 @@
         "needs_species_review",
         "snow_pine"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_04",
@@ -3465,9 +4135,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3480,7 +4148,13 @@
         "needs_species_review",
         "snow_pine"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_05",
@@ -3491,9 +4165,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3506,7 +4178,13 @@
         "needs_species_review",
         "snow_pine"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_06",
@@ -3517,9 +4195,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3532,7 +4208,13 @@
         "needs_species_review",
         "snow_fir"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_07",
@@ -3543,9 +4225,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3558,7 +4238,13 @@
         "needs_species_review",
         "snow_fir"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_08",
@@ -3569,9 +4255,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3584,7 +4268,13 @@
         "needs_species_review",
         "snow_fir"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_09",
@@ -3595,9 +4285,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3610,7 +4298,13 @@
         "needs_species_review",
         "snow_fir"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tanne_schnee_10",
@@ -3621,9 +4315,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.12,
         "minSpacing": 92,
@@ -3636,7 +4328,13 @@
         "needs_species_review",
         "snow_fir"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_thymian_01",
@@ -3647,11 +4345,7 @@
       "sizeClass": "tiny",
       "sizeMode": "class",
       "targetHeight": 10,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.24,
         "minSpacing": 23,
@@ -3662,7 +4356,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground",
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_thymian_02",
@@ -3673,11 +4377,7 @@
       "sizeClass": "tiny",
       "sizeMode": "class",
       "targetHeight": 10,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.24,
         "minSpacing": 23,
@@ -3688,7 +4388,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground",
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_thymian_03",
@@ -3699,11 +4409,7 @@
       "sizeClass": "tiny",
       "sizeMode": "class",
       "targetHeight": 10,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions",
-        "arid_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.24,
         "minSpacing": 23,
@@ -3714,7 +4420,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground",
+        "savanna",
+        "semi_desert",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_12",
@@ -3740,7 +4456,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_13",
@@ -3766,7 +4483,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_14",
@@ -3792,7 +4510,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_15",
@@ -3818,7 +4537,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_16",
@@ -3844,7 +4564,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_17",
@@ -3870,7 +4591,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_18",
@@ -3896,7 +4618,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "kapok_tree_19",
@@ -3922,7 +4645,8 @@
       "speciesConfirmed": true,
       "allowedTerrainTypes": [
         "jungle"
-      ]
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tundra_zwergstrauch1",
@@ -3950,7 +4674,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tundra_zwergstrauch2",
@@ -3978,7 +4703,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tundra_zwergstrauch3",
@@ -4006,7 +4732,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_tundra_zwergstrauch4",
@@ -4034,7 +4761,8 @@
         "needs_art_review",
         "needs_species_review"
       ],
-      "speciesConfirmed": false
+      "speciesConfirmed": false,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder_04",
@@ -4045,11 +4773,16 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4060,7 +4793,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder_05",
@@ -4071,11 +4805,16 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4086,7 +4825,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder_06",
@@ -4097,11 +4837,16 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
       ],
-      "allowedTerrainTypes": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4112,7 +4857,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder1",
@@ -4123,10 +4869,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4137,7 +4880,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder2",
@@ -4148,10 +4901,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4162,7 +4912,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wacholder3",
@@ -4173,10 +4933,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4187,7 +4944,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weide1",
@@ -4198,11 +4965,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -4214,7 +4982,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weide2",
@@ -4225,11 +4994,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -4241,7 +5011,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weide3",
@@ -4252,11 +5023,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -4268,7 +5040,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weide4",
@@ -4279,11 +5052,12 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "wetlands"
-      ],
+      "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "pasture"
+        "marshland",
+        "swamp",
+        "pasture",
+        "grassland"
       ],
       "placement": {
         "density": 0.12,
@@ -4295,7 +5069,8 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weissdorn1",
@@ -4306,10 +5081,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4320,7 +5092,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weissdorn2",
@@ -4331,10 +5110,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4345,7 +5121,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_weissdorn3",
@@ -4356,10 +5139,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4370,7 +5150,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wildrose1",
@@ -4381,10 +5168,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4395,7 +5179,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wildrose2",
@@ -4406,10 +5197,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4420,7 +5208,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_wildrose3",
@@ -4431,10 +5226,7 @@
       "sizeClass": "medium",
       "sizeMode": "class",
       "targetHeight": 49,
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "warm_regions"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.19,
         "minSpacing": 42,
@@ -4445,7 +5237,14 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder1",
@@ -4456,10 +5255,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4470,7 +5266,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder2",
@@ -4481,10 +5287,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4495,7 +5298,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder3",
@@ -4506,10 +5319,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4520,7 +5330,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder4",
@@ -4531,10 +5351,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4545,7 +5362,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder5",
@@ -4556,10 +5383,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4570,7 +5394,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zeder6",
@@ -4581,10 +5415,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4595,7 +5426,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zypresse1",
@@ -4606,10 +5447,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4620,7 +5458,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zypresse2",
@@ -4631,10 +5479,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4645,7 +5490,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zypresse3",
@@ -4656,10 +5511,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4670,7 +5522,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zypresse4",
@@ -4681,10 +5543,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4695,7 +5554,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     },
     {
       "id": "existing_zypresse5",
@@ -4706,10 +5575,7 @@
       "sizeClass": "large",
       "sizeMode": "class",
       "targetHeight": 174,
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
-      ],
+      "allowedTerrainCategories": [],
       "placement": {
         "density": 0.15,
         "minSpacing": 86,
@@ -4720,7 +5586,17 @@
         "existing",
         "needs_art_review"
       ],
-      "speciesConfirmed": true
+      "speciesConfirmed": true,
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "hilly_ground",
+        "highland",
+        "tundra"
+      ],
+      "excludedTerrainTypes": []
     }
   ]
 }
