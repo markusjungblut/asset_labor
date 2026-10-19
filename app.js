@@ -621,6 +621,8 @@ function drawMapObjects(){if(!state.objects)return;
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
    if(o.natureMeta)drawNatureGrounding(o,p);
+   else if(o.type==='building')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.74);
+   else if(o.type==='unit')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.35);
    const sh=pairedShadow(o);
    if(sh?.img?.naturalWidth){
     if(o.natureMeta)drawNatureShadow(sh,o,p);
