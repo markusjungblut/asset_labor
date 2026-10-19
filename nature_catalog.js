@@ -41,7 +41,7 @@ window.VedrasNatureCatalog=(()=>{
   if(f==='ferns')return among('forest_floor','grassland','pasture','moor','swamp','marshland','jungle');
   if(f==='reeds')return among('moor','swamp','marshland');
   if(f==='cold_bushes')return among('tundra','frozen_tundra','highland');
-  if(f==='snow_conifers'||f==='snow_dead_trees'||f==='snow_deadwood')return among('snowfields','frozen_tundra','tundra','highland');
+  if(f==='snow_conifers'||f==='snow_dead_trees'||f==='snow_deadwood'||f==='snow_fallen_logs')return among('snowfields','frozen_tundra','tundra','highland');
   if(f==='riparian_trees')return among('moor','swamp','marshland')||
    among('grassland','pasture')&&(nearWater||[...neighbors].some(id=>['moor','swamp','marshland'].includes(id)));
   const snow=/(?:snow|schnee|verschneit|winter)/i.test([meta.id,meta.description,...(meta.tags||[])].join(' '));
