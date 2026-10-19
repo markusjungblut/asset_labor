@@ -511,7 +511,7 @@ function drawMountainFootprints(){
 function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  if(state.showLegacyNature!==false)for(const c of worldCells){if(blocked.has(key(c.q,c.r)))continue;if(c.biome==='forest')for(let j=0;j<4;j++){const a=rnd(c.q,c.r,j+40)*Math.PI*2,rad=38+rnd(c.q,c.r,j+70)*78,p=axialPos(c.q,c.r);
  const x=p.x+Math.cos(a)*rad,y=p.y+Math.sin(a)*rad;if(Math.hypot(x,y-50)<126)continue;
- objs.push({asset:findAsset('nature',j%2?'pine_02':'pine_01'),x,y,w:58,type:'nature'});}
+ objs.push({asset:findAsset('nature',j%2?'pine_02':'pine_01'),x,y,w:29,type:'nature'});}
  if(c.biome==='mountain' || c.biome==='hills'){const p=axialPos(c.q,c.r);
  const a=findAsset('nature',c.biome==='mountain'?'hill_01':'rock_02');if(a)objs.push({asset:a,x:p.x+30,y:p.y+38,w:c.biome==='mountain'?153:65,type:'nature'});}
  }
