@@ -8,19 +8,22 @@ window.VedrasNatureBalance=(()=>{
  const accents=new Set(['dead_trees','snow_dead_trees','fallen_logs','snow_fallen_logs']);
  const deadTrees=new Set(['dead_trees','snow_dead_trees']);
  const fallen=new Set(['fallen_logs','snow_fallen_logs']);
+ // Relative to the already balanced v0.11.1 display sizes.
+ const placementScale=meta=>!meta||meta.kind==='mountain'?1:meta.kind==='tree'?.5:.7;
  function sizeFactor(meta){
   if(!meta||meta.kind==='mountain')return 1;
-  if(deadTrees.has(meta.family))return .58;
-  if(fallen.has(meta.family))return .71;
-  if(meta.family==='deadwood')return .72;
+  const extra=placementScale(meta);
+  if(deadTrees.has(meta.family))return .58*extra;
+  if(fallen.has(meta.family))return .71*extra;
+  if(meta.family==='deadwood')return .72*extra;
   if(meta.kind==='tree'){
-   if(meta.sizeClass==='giant')return .65;
-   return meta.sizeClass==='large'?.69:meta.sizeClass==='medium'?.72:.77;
+   if(meta.sizeClass==='giant')return .65*extra;
+   return (meta.sizeClass==='large'?.69:meta.sizeClass==='medium'?.72:.77)*extra;
   }
-  if(meta.kind==='shrub')return meta.sizeClass==='medium'?.73:meta.sizeClass==='large'?.71:.82;
-  if(meta.kind==='cluster')return .77;
-  if(meta.kind==='ground_cover')return .84;
-  return meta.kind==='special'?.85:1;
+  if(meta.kind==='shrub')return (meta.sizeClass==='medium'?.73:meta.sizeClass==='large'?.71:.82)*extra;
+  if(meta.kind==='cluster')return .77*extra;
+  if(meta.kind==='ground_cover')return .84*extra;
+  return (meta.kind==='special'?.85:1)*extra;
  }
  const isCanopy=meta=>!!meta&&meta.kind==='tree'&&!deadTrees.has(meta.family);
  const isAccent=meta=>!!meta&&accents.has(meta.family);
@@ -33,9 +36,9 @@ window.VedrasNatureBalance=(()=>{
   if(deadTrees.has(meta?.family))return .11;
   if(fallen.has(meta?.family))return .16;
   if(meta?.family==='deadwood')return .40;
-  if(meta?.kind==='cluster')return .68;
-  if(meta?.kind==='shrub')return .84;
-  return 1;
+  if(meta?.kind==='cluster')return .76;
+  if(meta?.kind==='shrub')return .93;
+  return meta?.kind==='ground_cover'?1.10:1;
  };
  function accentLimits(landCells){
   const count=Math.max(1,Number(landCells)||1);
@@ -72,5 +75,5 @@ window.VedrasNatureBalance=(()=>{
   }
   return chosen;
  }
- return {sizeFactor,isCanopy,isAccent,accentGroup,chanceMultiplier,accentLimits,reserveClearings,stable};
+ return {sizeFactor,placementScale,isCanopy,isAccent,accentGroup,chanceMultiplier,accentLimits,reserveClearings,stable};
 })();
