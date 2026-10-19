@@ -38,19 +38,19 @@ assert(route&&R.valid(route,cells,wet));
 const source=R.sections(route,cells,wet)[0],c=source.start;
 assert(R.blocksPoint(c.x,c.y,[route],cells,wet,32,8),'river roots blocked');
 assert(!R.blocksPoint(source.center.x,source.center.y,[route],cells,wet,32,8),'hex centre outside edge river');
-let strokes=0,masks=0,fade=0;
+let mask,waterFill=false;
 const context={
- setTransform(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},arc(){},
- fill(){masks++;if(this.globalCompositeOperation==='destination-out')fade++;},
- stroke(){strokes++;},save(){},restore(){},fillRect(){},createPattern(){return {setTransform(){}};},
- createLinearGradient(){return {addColorStop(){}};}
+ setTransform(){},createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)};},
+ putImageData(image){mask=image.data;},save(){},restore(){},
+ fillRect(){if(this.globalCompositeOperation==='source-in')waterFill=true;},
+ createPattern(){return {setTransform(){}};}
 };
 const doc={createElement:()=>({width:0,height:0,getContext:()=>context})};
 const wrapper={window:{},document:doc};
 vm.runInNewContext(fs.readFileSync(path.join(root,'river.js'),'utf8'),wrapper,{filename:'river.js'});
 const image={naturalWidth:256},paint=wrapper.window.VedrasRivers.render({drawImage(){}},route,cells,wet,image,{width:32});
-assert(paint?.canvas);assert.equal(strokes,0,'filled segment masks, not brush strokes');
-assert(masks>=6&&fade>0,'water feathering and mouth fade');
+assert(paint?.canvas&&mask&&waterFill,'distance-field water is clipped to the real sea texture');
+assert.equal(paint.mask,'distance-field-max-alpha');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-assert(html.includes('id="nCleanup"')&&html.includes('river.js?v=0.16.0'));
-console.log('PASS: 258 Nature entries, mangrove and palm hard habitats, future sprite classification, filled river geometry and block zones.');
+assert(html.includes('id="nCleanup"')&&html.includes('river.js?v=0.21.0'));
+console.log('PASS: 258 Nature entries, mangrove and palm hard habitats, future sprite classification, feathered distance-field river geometry and block zones.');
