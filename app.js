@@ -1140,6 +1140,7 @@ canvas.addEventListener('pointerup',e=>{
   const previousCell=from&&worldCells.find(c=>c.q===from.q&&c.r===from.r);
   if(from&&previousCell&&selected&&window.VedrasRoads.side(from,hex)>=0&&!wetHex(previousCell)&&!wetHex(selected)){
    state.roadEdges=window.VedrasRoads.setEdge(state.roadEdges,from,hex,state.roadMaterial,worldCells,wetHex);
+   state.roadShown=true;
    persistScene();
   }
   state.roadPaintOrigin=key(hex.q,hex.r);
