@@ -109,7 +109,7 @@ window.VedrasNature=(()=>{
   const r0=revision;
   try{const response=await fetch('/api/nature-catalog',{cache:'no-store'});if(!response.ok)throw Error('Server nicht verfügbar');const data=await response.json();
    const errors=N.validate(data,terrainRegistry());if(errors.length)throw Error(errors.join('; '));
-   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
+   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();cleanup();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
   }catch(e){serverWritable=false;status();message('Nature-Katalog konnte nicht geladen werden: '+e.message+' – vorhandene Daten nicht zurückgesetzt.');$('nRecoveryStatus').textContent='Ladefehler: '+e.message+'. Bitte den ursprünglichen assets/nature/nature_catalog.json sichern und ggf. die .bak prüfen.';}
  }
  async function importJSON(file){let data=JSON.parse(await file.text());let next;
