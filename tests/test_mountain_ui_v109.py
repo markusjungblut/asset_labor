@@ -9,11 +9,11 @@ B=Path(__file__).resolve().parents[1]
 # on the 0.10.9 filenames. This also works without an HTTP server.
 import re
 html=(B/'index.html').read_text()
-html=re.sub(r'<link rel="stylesheet" href="style\\.css\\?v=[^"]+">',lambda m:'<style>'+(B/'style.css').read_text()+'</style>',html)
+html=re.sub(r'<link rel="stylesheet" href="style\.css\?v=[^"]+">',lambda m:'<style>'+(B/'style.css').read_text()+'</style>',html)
 for f in ['catalog','terrain-source-rules','autotile','nature_catalog','flora-plan','terrain-plan','sprite-planner',
           'existing-asset-rules','forest','nature-balance','relief','shoreline','river','mountain',
           'shadow-system','app','nature-ui','ui-organizer','forest-ui','river-ui','flora-workspace']:
-    script=re.compile(r'<script src="'+re.escape(f)+r'\\.js\\?v=[^"]+"></script>')
+    script=re.compile(r'<script src="'+re.escape(f)+r'\.js\?v=[^"]+"></script>')
     html=script.sub(lambda m:'<script>'+(B/(f+'.js')).read_text()+'</script>',html)
 def png(im):
     b=BytesIO();im.save(b,format='PNG');return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
