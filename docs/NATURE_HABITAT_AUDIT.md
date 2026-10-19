@@ -1,6 +1,6 @@
 # Habitat- und Flussprüfung – Asset-Labor v0.16
 
-Stand: 19. Oktober 2026. Diese Prüfung umfasst die **im Repository tatsächlich erfassten 181 Nature-PNGs**, nicht bislang nur lokal erstellte Bilddateien. Der Nature-Katalog wurde familienspezifisch ausgewertet; die folgenden Kriterien werden bei generierter **und** manueller Nature-Platzierung mit `VedrasNatureCatalog.habitatOK()` zusätzlich zu den Katalog-Freigaben kontrolliert.
+Stand: 19. Oktober 2026. Diese Prüfung umfasst die **im Repository tatsächlich erfassten 258 Nature-PNGs**, nicht bislang nur lokal erstellte Bilddateien. Der Nature-Katalog wurde familienspezifisch ausgewertet; die folgenden Kriterien werden bei generierter **und** manueller Nature-Platzierung mit `VedrasNatureCatalog.habitatOK()` zusätzlich zu den Katalog-Freigaben kontrolliert.
 
 ## Überprüfte bestehende Familien (17)
 
@@ -52,3 +52,36 @@ Die einzigen offenen **neuen Objekttypen** im Produktionsplan sind Findling, Fel
 - Programmlogik: richtungsorientierte Wasser-Masken, Flusskollision und harte Biomfälle mit gezielten JS-Smoke-Tests geprüft.
 - Regressionsdateien: `tests/test_rivers.cjs`, `tests/test_river_nature_habitats.cjs`, `tests/test_vegetation_reconciliation.cjs`, `tests/test_new_nature_import.cjs`, `tests/test_v110_browser.py`.
 - Eine echte optische Prüfung des Renderings in mehreren Biomen einschließlich konkreter PNG-Transparenz, Spriteüberhang und visueller Kanten bei Zoom/Relief bleibt notwendig. Die aktuellen Prüfungen ersetzen keinen Browser-Screenshot-Abgleich.
+
+
+## Neue Uploads und saisonale Zuordnung (19.10.2026)
+
+Zusätzlich zu den ursprünglich geprüften 181 Nature-PNGs sind **77 hochgeladene Nature-PNGs**
+mit Katalog, Inventar und FloraV2-Referenz verknüpft. Zusätzlich 4 neue
+`frozen_tundra_base_01–04.png` im Terrain-Katalog; keine Nature-Sprites.
+
+| Bildserie | Anzahl | Familie | Erlaubte Standorte |
+|---|---:|---|---|
+| `bush_jungle_01–05` | 5 | `tropical_bushes` | Dschungel |
+| `cactus_01–10` | 10 | `cacti` | Trockene Wüste/Halbwüste und Savanne |
+| `dead_tree_01–10` | 10 | `dead_trees` | Geeignete unverschneite Landbiome |
+| `dead_tree_11–15` | 5 | `snow_dead_trees` | Nur Kältebiome |
+| `fallen_log_01–10,21–24` | 14 | `fallen_logs` | Geeignete unverschneite Landbiome |
+| `fallen_log_11–20` | 10 | `snow_fallen_logs` | Nur Kältebiome |
+| `fern_01–10` | 10 | `ferns` | Wald-, Dschungel- und Feuchtlandboden |
+| `mangrove_01–05` | 5 | `mangroves` | Feuchtes, warmes Uferland mit geeignetem Nachbarhex |
+| `Baumstumpf_09–16` | 8 | `deadwood` | Geeignetes Land, keine Schneeversion |
+
+Kältebiome für die 25 expliziten Schneevarianten: Schneefelder, gefrorene Tundra,
+Tundra und Hochland. Alle zehn `tanne_schnee_01–10` sind dort grundsätzlich zulässig.
+Auf Tundra durchlaufen sie bei automatischer Generierung einen zusätzlichen
+deterministischen 2-%-Zulassungstest je Kandidat, damit die Bäume selten sind.
+Die Standorteignung wird nicht durch den Dateinamen allein bestimmt.
+
+Die weiteren Pflanzenarten sind als **abgeschlossen** eingeplant.
+Offen bleiben als eigenständige Nicht-Flora-Vorhaben: Findling, Felsgruppe,
+Eisblock, Schneeberg. Weitere Schneevarianten (zum Beispiel Büsche) sind
+Optionen für eine spätere optische Ausbaustufe, nicht aktueller Produktionsrückstand.
+
+Optische Prüfung der neuen Bilder und die Integration in die separate Hauptspielwelt
+sind noch nicht abgeschlossen.
