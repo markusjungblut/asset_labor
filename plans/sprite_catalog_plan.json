@@ -1,219 +1,8 @@
 {
   "schemaVersion": 2,
-  "description": "11 offene Nature-Produktionsarten; 34 erledigte, abgedeckte oder verworfene Posten dokumentiert.",
+  "description": "4 offene reine Fels-/Eis-Produktionsarten; Pflanzenplanung laut Nutzer abgeschlossen, 6 Grafikfamilien noch zur Repository-Einlesung vorgesehen, Mangrovengruppe gestrichen. 41 bearbeitete Posten.",
   "heightUnits": "visible cropped sprite height in world units, independent of PNG pixel dimensions",
   "items": [
-    {
-      "id": "fern_01",
-      "name": "Farn",
-      "filename": "fern_01.png",
-      "family": "ferns",
-      "kind": "ground_cover",
-      "sizeClass": "small",
-      "targetHeight": 17,
-      "description": "Farn – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "grass_pasture",
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.26,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "ferns"
-      ],
-      "aliases": [
-        "farn_01.png",
-        "farn1.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "bush_jungle_01",
-      "name": "Tropischer Busch",
-      "filename": "bush_jungle_01.png",
-      "family": "tropical_bushes",
-      "kind": "shrub",
-      "sizeClass": "medium",
-      "targetHeight": 49,
-      "description": "Tropischer Busch – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "warm_regions",
-        "wetlands"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.27,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "tropical_bushes"
-      ],
-      "aliases": [
-        "dschungelbusch_01.png",
-        "tropischer_busch_01.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "mangrove_group_01",
-      "name": "Mangroven-Gruppe",
-      "filename": "mangrove_group_01.png",
-      "family": "mangroves",
-      "kind": "cluster",
-      "sizeClass": "large",
-      "targetHeight": 105,
-      "description": "Mangroven-Gruppe – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "water_coast",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.13,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "mangroves"
-      ],
-      "aliases": [
-        "mangrovengruppe_01.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "mangrove_01",
-      "name": "Mangrove",
-      "filename": "mangrove_01.png",
-      "family": "mangroves",
-      "kind": "tree",
-      "sizeClass": "large",
-      "targetHeight": 174,
-      "description": "Mangrove – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "wetlands",
-        "water_coast",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.18,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "mangroves"
-      ],
-      "aliases": [
-        "mangrove1.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "cactus_01",
-      "name": "Kaktus",
-      "filename": "cactus_01.png",
-      "family": "cacti",
-      "kind": "shrub",
-      "sizeClass": "medium",
-      "targetHeight": 49,
-      "description": "Kaktus – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "arid_regions",
-        "warm_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.13,
-      "minSpacing": 44,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "cacti"
-      ],
-      "aliases": [
-        "kaktus_01.png",
-        "kaktus1.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "dead_tree_01",
-      "name": "Totholzbaum",
-      "filename": "dead_tree_01.png",
-      "family": "dead_trees",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "targetHeight": 126,
-      "description": "Totholzbaum – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "arid_regions",
-        "wetlands"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.08,
-      "minSpacing": 82,
-      "canCluster": false,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "dead_trees"
-      ],
-      "aliases": [
-        "toter_baum_01.png"
-      ],
-      "priority": "planned"
-    },
-    {
-      "id": "fallen_log_01",
-      "name": "Umgestürzter Stamm",
-      "filename": "fallen_log_01.png",
-      "family": "deadwood",
-      "kind": "cluster",
-      "sizeClass": "medium",
-      "targetHeight": 69,
-      "description": "Umgestürzter Stamm – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "cold_regions",
-        "wetlands"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
-      "density": 0.1,
-      "minSpacing": 24,
-      "canCluster": true,
-      "anchorY": 0.96,
-      "status": "planned",
-      "tags": [
-        "planned",
-        "deadwood"
-      ],
-      "aliases": [
-        "baumstamm_01.png"
-      ],
-      "priority": "optional"
-    },
     {
       "id": "boulder_01",
       "name": "Findling",
@@ -535,6 +324,48 @@
       "name": "Baumstumpf",
       "resolution": "covered_by_existing_assets",
       "evidence": "Baumstumpf_01–08 als PNG vorhanden und im Nature-Katalog eingetragen."
+    },
+    {
+      "id": "fern_01",
+      "name": "Farn",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
+    },
+    {
+      "id": "bush_jungle_01",
+      "name": "Tropischer Busch",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
+    },
+    {
+      "id": "mangrove_group_01",
+      "name": "Mangroven-Gruppe",
+      "resolution": "cancelled_by_design",
+      "evidence": "Mangrovengruppen werden ausdrücklich nicht benötigt."
+    },
+    {
+      "id": "mangrove_01",
+      "name": "Mangrove",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
+    },
+    {
+      "id": "cactus_01",
+      "name": "Kaktus",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
+    },
+    {
+      "id": "dead_tree_01",
+      "name": "Totholzbaum",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
+    },
+    {
+      "id": "fallen_log_01",
+      "name": "Umgestürzter Stamm",
+      "resolution": "user_created_pending_repo_import",
+      "evidence": "Grafiken laut Nutzer vorhanden; Dateien sind noch nicht im Nature-Katalog des verbundenen Repositories und werden beim nächsten Einlesen klassifiziert."
     }
   ]
 }
