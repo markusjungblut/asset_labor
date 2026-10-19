@@ -410,7 +410,7 @@ function shadowSilhouette(img){
  let footprint=null;
  try{footprint=g.getImageData(0,0,cv.width,cv.height).data;}catch{}
  g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
- const result={canvas:cv,aspect:b.sh/b.sw,footData:footprint};
+ const result={canvas:cv,aspect:b.sh/b.sw,footData:footprint,footCache:new Map()};
  mountainSilhouettes.set(img,result);return result;
 }
 function mountainShadowSettings(o){
@@ -421,6 +421,9 @@ function mountainShadowSettings(o){
   midWidth:'shadowMidWidth',tipWidth:'shadowTipWidth',
   contactWidth:'shadowContactWidth',contactLength:'shadowContactLength'};
  const cfg={...(state.mountainShadowDefaults||{}),...preset};
+ if(Number.isFinite(preset.reach)&&!Number.isFinite(preset.length))cfg.length=preset.reach*.8;
+ if(Number.isFinite(preset.spread)&&!Number.isFinite(preset.rootWidth))cfg.rootWidth=.26*preset.spread/1.28;
+ if(Number.isFinite(preset.contact)&&!Number.isFinite(preset.contactWidth))cfg.contactWidth=.16*preset.contact/1.10;
  // Legacy instance reach/spread/contact remain readable if a new geometric
  // parameter was not explicitly authored on that particular instance.
  if(Number.isFinite(placed.shadowReach)&&!Number.isFinite(placed.shadowLength))cfg.length=placed.shadowReach*.8;
@@ -434,7 +437,9 @@ function mountainOriginForObject(o,s,scale=1){
  const shadows=window.VedrasShadows,p=toScreen(o.x,o.y);
  const sprite=shadowSilhouette(o.asset.img),w=o.w*state.zoom*scale,h=w*sprite.aspect;
  const anchor=o.natureMeta?.anchor||{x:.5,y:.67};
- const foot=shadows.alphaFoot(sprite.footData,sprite.canvas.width,sprite.canvas.height,anchor);
+ const footKey=(anchor.x??.5)+','+(anchor.y??.67);
+ let foot=sprite.footCache.get(footKey);
+ if(!foot){foot=shadows.alphaFoot(sprite.footData,sprite.canvas.width,sprite.canvas.height,anchor);sprite.footCache.set(footKey,foot);}
  return shadows.mountainOrigin({x:p.x*scale,y:p.y*scale},w,h,anchor,s,foot);
 }
 function drawMountainShadows(objects){
