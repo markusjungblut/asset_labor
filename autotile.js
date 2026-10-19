@@ -84,7 +84,7 @@ window.VedrasAutotile = (() => {
  // Shared 2D material field. Every pixel has one normalized partition of unity.
  // No candidate-specific offset: both sides of a shared edge use the same warped point.
  function build(cells,textureOf,typeOf,opts={}){
-  const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex'}=opts;
+  const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex',terrainTone=null}=opts;
   const data=[],samples=new Map();
   for(const cell of cells){const a=textureOf(cell);if(!a?.img?.naturalWidth)return null;
    if(!samples.has(a.path))samples.set(a.path,texData(a,materialScales));
@@ -151,7 +151,11 @@ window.VedrasAutotile = (() => {
     }
     // The shared blend weights already sum to one. No water-only brightness
     // patch: it can damage a deliberate shipwreck or high-contrast ice motif.
-    pixels[p4]=Math.round(red);pixels[p4+1]=Math.round(green);pixels[p4+2]=Math.round(blue);pixels[p4+3]=255;
+    // Terrain finishing is subtle, opt-in and only affects the sampled
+    // raster. Raw art and smooth shared border weights stay untouched.
+    const rgb=typeof terrainTone==='function'?
+     terrainTone([red,green,blue],selected.materialClass,selected.terrainTypeId):[red,green,blue];
+    pixels[p4]=Math.round(rgb[0]);pixels[p4+1]=Math.round(rgb[1]);pixels[p4+2]=Math.round(rgb[2]);pixels[p4+3]=255;
     // Split according to HOME tile, not blended pixel color: water is always FLAT.
     const dst=(selected.materialClass==='water'||selected.materialClass==='shoreline')?seaImg.data:landImg.data;
     dst[p4]=pixels[p4];dst[p4+1]=pixels[p4+1];dst[p4+2]=pixels[p4+2];dst[p4+3]=255;
