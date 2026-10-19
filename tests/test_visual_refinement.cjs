@@ -30,11 +30,11 @@ assert(distance(pts[0],sections[0].start)<1e-7,'source remains on its exact orig
 assert(distance(pts.at(-2),R.midpoint(sections.at(-1),sections.at(-1).outSide))<1e-7,'coast midpoint preserved');
 assert(R.blocksPoint(pts[Math.floor(pts.length/2)].x,pts[Math.floor(pts.length/2)].y,[route],cells,wet,40),
  'nature blocking uses precisely the smoothed stream');
-assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest'}),4);
-assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest'}),7);
+assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest'}),5);
+assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest'}),8);
 assert(B.sizeFactor({kind:'tree',sizeClass:'medium'})<.75);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),app=fs.readFileSync(path.join(root,'app.js'),'utf8'),editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
-for(const id of ['shadowGlobalStrength','mountainOriginX','mountainOriginY','mountainSpread','mountainContact','shadowHandles','shadowAssetApply','shadowResetInstance'])
+for(const id of ['shadowGlobalStrength','mountainOriginX','mountainOriginY','mountainRootWidth','mountainContactWidth','mountainAngle','mountainLength','shadowHandles','shadowAssetApply','shadowResetInstance'])
  assert(html.includes('id="'+id+'"'),'shadow control must exist: '+id);
 for(const part of ['shadowDrag.instance.shadowOriginX','shadowDrag.instance.shadowOriginY',
  'shadowGlobal:state.shadowGlobal','shadowAssetPresets:state.shadowAssetPresets',
