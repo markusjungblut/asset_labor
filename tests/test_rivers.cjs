@@ -72,11 +72,13 @@ assert(close(raised[0][2],sections[0].start.y-10),'relief maps source onto groun
 const blocked=sections[0].start,open=sections[0].center;
 assert(R.blocksPoint(blocked.x,blocked.y,[route],cells,wet,32,8),'river excludes Nature at hex corner');
 assert(!R.blocksPoint(open.x,open.y,[route],cells,wet,32,8),'river must not exclude distant hex interior');
+// A feathered signed-distance field is rasterized into one alpha layer.
+// No painted circle at a shared corner and no destination-out mouth stroke.
 const calls=[],g={
- setTransform(){},beginPath(){},moveTo(){},quadraticCurveTo(){},lineTo(){},closePath(){},arc(){},fill(){calls.push(['maskFill',this.fillStyle]);},stroke(){calls.push(['unexpectedStroke']);},
- save(){},restore(){},fillRect(){calls.push(['fill',this.globalCompositeOperation,this.fillStyle]);},
+ setTransform(){},save(){},restore(){},fillRect(){calls.push(['fill',this.globalCompositeOperation,this.fillStyle]);},
  createPattern(){calls.push(['waterTexture']);return {setTransform(){}};},
- createLinearGradient(){return {addColorStop(){}};}
+ createImageData(w,h){return {width:w,height:h,data:new Uint8ClampedArray(w*h*4)};},
+ putImageData(img){calls.push(['maskData',img.data]);}
 };
 const globalCtx={drawImage(){calls.push(['paint'])}};
 const document={createElement(){return {width:0,height:0,getContext(){return g}}}};
@@ -84,14 +86,19 @@ const renderWindow={},scope={window:renderWindow,document};
 vm.runInNewContext(fs.readFileSync(path.join(root,'river.js'),'utf8'),scope,{filename:'river.js'});
 const paint=renderWindow.VedrasRivers.render(globalCtx,route,cells,wet,{naturalWidth:256},{width:32});
 assert(paint?.canvas&&paint.widthWorld>0);
-assert(calls.some(x=>x[0]==='waterTexture'),'river overlays the actual WATER texture');
-assert(calls.filter(x=>x[0]==='maskFill').length>=6,'filled oriented masks and mouth fade');
-assert(!calls.some(x=>x[0]==='unexpectedStroke'),'river is made of filled masks, never a brush stroke');
-assert(!calls.some(x=>typeof x[3]==='string'&&/sand|beach|rgba\(212,190,143|#dacb8b/.test(x[3])),'NO beach or sand along river');
-assert(calls.some(x=>x[0]==='fill'&&x[1]==='source-in'),'water fills soft alpha mask only');
-assert(calls.some(x=>x[0]==='maskFill'&&x[1]&&typeof x[1]==='object'),'mouth uses a destination-out gradient mask');
+assert.equal(paint.mask,'distance-field-max-alpha');
+assert.equal(paint.mouth,'shore-midpoint-fade');
+assert(calls.some(x=>x[0]==='waterTexture'),'river uses the receiving water material');
+assert(calls.some(x=>x[0]==='fill'&&x[1]==='source-in'),'water texture is clipped to the soft field');
+const alpha=calls.find(x=>x[0]==='maskData')?.[1];
+assert(alpha&&alpha.some((v,i)=>i%4===3&&v===0)&&alpha.some((v,i)=>i%4===3&&v>220),
+ 'one alpha field with transparent borders and a strong water core');
+assert(!calls.some(x=>x[0]==='unexpectedStroke'),'no freehand strokes or drawn round caps');
+const last=sections.at(-1),portal=R.mouthPortals([route],cells,wet,32)[0];
+assert(portal&&same({x:portal.x,y:portal.y},R.midpoint(last,last.outSide)),'mouth crosses center of true shared coast edge');
+assert(R.blocksPoint(portal.x,portal.y,[route],cells,wet,32),'Nature roots blocked at shoreline gap');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const s of ['river.js?v=0.16.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
+for(const s of ['river.js?v=0.21.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
-assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('skipEdges'));assert(app.includes('riverRasterCache'));
-console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mouths, shoreline exclusion, persistence.');
+assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('mouthPortals'));assert(app.includes('riverRasterCache'));
+console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mid-edge mouths, localized shoreline aperture, persistence.');
