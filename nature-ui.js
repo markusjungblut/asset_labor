@@ -135,7 +135,10 @@ window.VedrasNature=(()=>{
  function blocksRiver(q,r,dx,dy,meta){
   const pos=pts(q,r),x=pos.x+dx,y=pos.y+dy;
   const width=Number(state.riverWidth)||32;
-  const radius=Math.max(6,Math.min(28,(Number(meta?.logicalWidth)||52)*.16));
+  // Horizontal fallen logs can cover a wide ground footprint beyond their anchor.
+  const radius=['fallen_logs','snow_fallen_logs'].includes(meta?.family)
+   ?Math.max(64,Math.min(95,(Number(meta?.logicalWidth)||140)*.55))
+   :Math.max(6,Math.min(28,(Number(meta?.logicalWidth)||52)*.16));
   return window.VedrasRivers.blocksPoint(x,y,state.riverPaths||[],core.cells(),
    c=>['water','shoreline'].includes(terrainRegistry().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass),
    width,radius+5);
