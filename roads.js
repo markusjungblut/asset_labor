@@ -178,7 +178,7 @@ window.VedrasRoads=(()=>{
   const objects={};
   for(const [k,obj] of Object.entries(hexObjects||{})){
    const [q,r]=k.split(',').map(Number),p=center({q,r},hex);
-   if(!blocksPoint(p.x,p.y+52,added,20,hex))objects[k]=obj;
+   if(!blocksPoint(p.x,p.y+52,added,Math.max(42,Math.min(72,(Number(obj?.width)||150)*.38)),hex))objects[k]=obj;
   }
   return {natureInstances:nature,hexObjects:objects,
    removed:(natureInstances||[]).length-nature.length+
