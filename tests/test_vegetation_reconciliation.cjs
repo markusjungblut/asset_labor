@@ -17,21 +17,21 @@ const plan=JSON.parse(fs.readFileSync(path.join(root,'plans/sprite_catalog_plan.
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'plans/nature_asset_inventory.json'),'utf8'));
 assert.equal(N.validate(nature,terrain).length,0,'real Nature catalog must validate');
 assert.equal(plan.schemaVersion,2);
-assert.equal(plan.items.length,11);
-assert.equal(plan.resolved.length,34);
-assert.equal(plan.items.filter(x=>x.priority==='optional').length,2);
-assert.equal(P.entries.length,11);
-assert.equal(P.resolved.length,34);
+assert.equal(plan.items.length,4);
+assert.equal(plan.resolved.length,41);
+assert.equal(plan.items.filter(x=>x.priority==='optional').length,1);
+assert.equal(P.entries.length,4);
+assert.equal(P.resolved.length,41);
 for(const id of ['clover_01','moss_01','alpine_grass_01','thyme_01','birch_01','fir_01','pine_01','palm_01','juniper_01','bush_group_01','jungle_tree_01']){
  assert(!plan.items.some(x=>x.id===id),'redundant/micro sprite incorrectly left open: '+id);
 }
-for(const id of ['fern_01','cactus_01','mangrove_01']){
- assert(plan.items.some(x=>x.id===id),'needed sprite excluded: '+id);
+for(const id of ['fern_01','cactus_01','mangrove_01','bush_jungle_01','dead_tree_01','fallen_log_01','mangrove_group_01']){
+ assert(plan.resolved.some(x=>x.id===id),'user-created plant task missing from completed planning: '+id);
 }
 assert.equal(P.match({name:'thymian_01.png'}),null,'Thyme is in actual inventory, not backlog');
 assert.equal(P.match({name:'schilf1.png'}),null,'Schilf ist bereits vorhanden');
-assert.equal(P.match({name:'farn1.png'}).id,'fern_01');
-assert.equal(P.match({name:'kaktus_01.png'}).id,'cactus_01');
+assert.equal(E.classify({category:'nature',name:'farn1.png'}).family,'ferns');
+assert.equal(E.classify({category:'nature',name:'kaktus_01.png'}).family,'cacti');
 const size=n=>n<=4?'medium':n<=6?'small':n<=10?'large':n<=14?'medium':n===15?'small':n===16?'medium':n<=19?'large':n<=24?'medium':n<=29?'small':n<=33?'medium':'medium';
 for(let n=1;n<=41;n++){
  const name='bush_'+String(n).padStart(2,'0')+'.png';
@@ -80,4 +80,4 @@ for(const row of manifest.entries){
  assert.equal(m.kind,row.kind,row.path);
  assert.equal(m.sizeClass,row.sizeClass,row.path);
 }
-console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 ordinary Kapok jungle trees, 11 outstanding sprite needs, 34 resolved tasks.');
+console.log('PASS: 41 shrubs, 10 snowy conifers, 11 firs, 8 ordinary Kapok jungle trees, 4 geological sprite needs, 41 handled tasks.');
