@@ -2064,7 +2064,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "bush_jungle_01",
+      "id": "existing_bush_jungle_01",
       "path": "assets/nature/bush_jungle_01.png",
       "name": "Dschungelbusch",
       "family": "tropical_bushes",
@@ -2205,7 +2205,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "cactus_01",
+      "id": "existing_cactus_01",
       "path": "assets/nature/cactus_01.png",
       "name": "Kaktus",
       "family": "cacti",
@@ -2546,7 +2546,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "dead_tree_01",
+      "id": "existing_dead_tree_01",
       "path": "assets/nature/dead_tree_01.png",
       "name": "Toter Baum",
       "family": "dead_trees",
@@ -3381,7 +3381,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "fallen_log_01",
+      "id": "existing_fallen_log_01",
       "path": "assets/nature/fallen_log_01.png",
       "name": "Umgefallener Baum",
       "family": "fallen_logs",
@@ -4248,7 +4248,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "fern_01",
+      "id": "existing_fern_01",
       "path": "assets/nature/fern_01.png",
       "name": "Farn",
       "family": "ferns",
@@ -4917,7 +4917,7 @@
       "speciesConfirmed": true
     },
     {
-      "id": "mangrove_01",
+      "id": "existing_mangrove_01",
       "path": "assets/nature/mangrove_01.png",
       "name": "Mangrovenbaum",
       "family": "mangroves",
