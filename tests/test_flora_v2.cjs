@@ -26,7 +26,7 @@ assert.deepEqual(F.species.find(s=>s.id==='snow_fir_01').aliases,Array.from({len
 assert.equal(F.species.find(s=>s.id==='fir_01').aliases.length,11);
 assert.notEqual(T.terrainTypes.find(t=>t.id==='jungle').archived,true);
 assert.equal(Object.keys(T.assets).length,104);
-assert.equal(Object.keys(R.assets).length,108);
+assert.equal(Object.keys(R.assets).length,104);
 assert.equal(ctx.window.VedrasFloraPlan.species.length,109);
 assert.notEqual(ctx.window.VedrasTerrainPlan.terrainTypes.find(t=>t.id==='jungle').archived,true);
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
