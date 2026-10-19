@@ -11,17 +11,17 @@ const manifest=JSON.parse(fs.readFileSync(path.join(root,'plans/nature_asset_inv
 const plan=JSON.parse(fs.readFileSync(path.join(root,'plans/sprite_catalog_plan.json'),'utf8'));
 const registry=JSON.parse(fs.readFileSync(path.join(root,'plans/flora_v2_registry.json'),'utf8'));
 const images=fs.readdirSync(path.join(root,'assets/nature')).filter(n=>n.endsWith('.png'));
-assert.equal(images.length,181);
-assert.equal(Object.keys(nature.entries).length,181);
-assert.equal(manifest.entryCount,181);assert.equal(manifest.entries.length,181);
+assert.equal(images.length,258);
+assert.equal(Object.keys(nature.entries).length,258);
+assert.equal(manifest.entryCount,258);assert.equal(manifest.entries.length,258);
 assert.deepEqual(Array.from(N.validate(nature,terrain)),[]);
 assert.equal(plan.items.length,4);assert.equal(plan.resolved.length,41);
-assert.equal(registry.species.length,106);
+assert.equal(registry.species.length,109);
 const aliases=registry.species.flatMap(s=>s.aliases);
-assert.equal(aliases.length,181);assert.equal(new Set(aliases).size,181);
+assert.equal(aliases.length,258);assert.equal(new Set(aliases).size,258);
 assert.deepEqual(aliases.slice().sort(),images.slice().sort(),'every real PNG in flora lookup');
 const specs=[
- ['Baumstumpf_',8,'deadwood','special'],
+ ['Baumstumpf_',16,'deadwood','special'],
  ['Erle',4,'riparian_trees','tree'],
  ['Weide',4,'riparian_trees','tree'],
  ['Marula',3,'savanna_trees','tree'],
@@ -47,7 +47,7 @@ for(const [prefix,count,family,kind] of specs){
  }
  total+=count;
 }
-assert.equal(total,33);
+assert.equal(total,41);
 for(const name of ['Marula2.png','Tundra_Zwergstrauch4.png']){
  assert(images.includes(name));assert(N.validPath('nature/'+name));
 }
@@ -56,4 +56,26 @@ for(const id of ['reeds_01','succulent_01','bush_tundra_01','willow_01','alder_0
  assert(plan.resolved.some(e=>e.id===id));assert(!plan.items.some(e=>e.id===id));
 }
 for(let i=12;i<=19;i++){const m=nature.entries['nature/tree_'+i+'.png'];assert.equal(m.id,'kapok_tree_'+i);assert.equal(m.kind,'tree');}
-console.log('PASS: 33 new PNGs classified, 181 catalogued, 4 geological tasks outstanding, 106 flora groups, 8 Kapok trees preserved.');
+// Confirm the exact 77 uploaded files are registered, classified and seasonally valid.
+for(const [prefix,a,b,family] of [
+ ['bush_jungle_',1,5,'tropical_bushes'],['cactus_',1,10,'cacti'],
+ ['dead_tree_',1,10,'dead_trees'],['dead_tree_',11,15,'snow_dead_trees'],
+ ['fallen_log_',1,10,'fallen_logs'],['fallen_log_',11,20,'snow_fallen_logs'],['fallen_log_',21,24,'fallen_logs'],
+ ['fern_',1,10,'ferns'],['mangrove_',1,5,'mangroves'],['Baumstumpf_',9,16,'deadwood']
+]){
+ for(let number=a;number<=b;number++){
+  const filename=prefix+String(number).padStart(2,'0')+'.png';
+  const meta=nature.entries['nature/'+filename];
+  assert(images.includes(filename),'missing PNG '+filename);
+  assert(meta&&meta.family===family,'incorrect seasonal classification '+filename);
+  assert.equal(E.classify({category:'nature',name:filename}).family,family,filename);
+  assert(manifest.entries.some(x=>x.path==='assets/nature/'+filename),'inventory missing '+filename);
+  assert(N.effectiveTypes(meta,terrain,nature).size>0,'unplaceable '+filename);
+  for(const type of N.effectiveTypes(meta,terrain,nature)){
+   if(family.startsWith('snow_'))assert(['snowfields','frozen_tundra','tundra','highland'].includes(type),'snow sprite on '+type);
+  }
+ }
+}
+assert(registry.species.some(s=>s.family==='snow_fallen_logs'&&s.aliases.length===10));
+for(let i=1;i<=4;i++)assert.equal(terrain.assets['terrain/frozen_tundra_base_0'+i+'.png']?.terrainTypeId,'frozen_tundra');
+console.log('PASS: 41 reconciled historic PNGs, 77 recent uploads, 258 catalogued, 4 geological tasks outstanding, 109 flora groups, 8 Kapok trees preserved.');
