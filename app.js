@@ -1092,13 +1092,43 @@ $('sceneImport').addEventListener('change',async e=>{
 $('saveScene').addEventListener('click',exportScene);
 $('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.natureInstances=[];window.VedrasNature?.renderPlaced?.();state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});
-let points=new Map(),moved=false,initialPinch=null;
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;if(points.size===2)initialPinch=null;});
-canvas.addEventListener('pointermove',e=>{if(!points.has(e.pointerId))return;const old=points.get(e.pointerId);const dx=e.clientX-old.x,dy=e.clientY-old.y;points.set(e.pointerId,{x:e.clientX,y:e.clientY});if(Math.abs(dx)+Math.abs(dy)>1)moved=true;
+let points=new Map(),moved=false,initialPinch=null,shadowDrag=null;
+function selectedShadowHandle(e){
+ if(!state.shadowHandles)return null;
+ const mountain=state.mountainInstances.find(m=>key(m.q,m.r)===state.selected);
+ if(!mountain)return null;
+ const obj=genericObjects().find(o=>o.mountainInstance===mountain);
+ if(!obj?.asset?.img)return null;
+ const p=toScreen(obj.x,displayGroundY(obj.x,obj.y)),w=obj.w*state.zoom;
+ const sh=mountainShadowSettings(obj),origin={x:p.x+w*sh.originX,y:p.y+w*sh.originY};
+ const box=canvas.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;
+ return Math.hypot(x-origin.x,y-origin.y)<=16?{instance:mountain,foot:p,width:w}:null;
+}
+canvas.addEventListener('pointerdown',e=>{
+ const handle=selectedShadowHandle(e);
+ if(handle){canvas.setPointerCapture(e.pointerId);shadowDrag={...handle,pointerId:e.pointerId};return;}
+ canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;if(points.size===2)initialPinch=null;
+});
+canvas.addEventListener('pointermove',e=>{
+ if(shadowDrag?.pointerId===e.pointerId){
+  const box=canvas.getBoundingClientRect();
+  const x=(e.clientX-box.left-shadowDrag.foot.x)/shadowDrag.width;
+  const y=(e.clientY-box.top-shadowDrag.foot.y)/shadowDrag.width;
+  shadowDrag.instance.shadowOriginX=clamp(Math.round(x*100)/100,-.8,.8);
+  shadowDrag.instance.shadowOriginY=clamp(Math.round(y*100)/100,-.5,.5);
+  $('mountainOriginX').value=String(shadowDrag.instance.shadowOriginX);
+  $('mountainOriginY').value=String(shadowDrag.instance.shadowOriginY);
+  $('mountainOriginXText').textContent=shadowDrag.instance.shadowOriginX.toFixed(2).replace('.',',');
+  $('mountainOriginYText').textContent=shadowDrag.instance.shadowOriginY.toFixed(2).replace('.',',');
+  requestDraw();return;
+ }
+ if(!points.has(e.pointerId))return;const old=points.get(e.pointerId);const dx=e.clientX-old.x,dy=e.clientY-old.y;points.set(e.pointerId,{x:e.clientX,y:e.clientY});if(Math.abs(dx)+Math.abs(dy)>1)moved=true;
  if(points.size===1){state.panX+=dx;state.panY+=dy;requestDraw();}else if(points.size===2){const p=[...points.values()],dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),r=canvas.getBoundingClientRect();if(initialPinch)applyZoom(state.zoom*dist/initialPinch.dist,(p[0].x+p[1].x)/2-r.left,(p[0].y+p[1].y)/2-r.top);initialPinch={dist};}});
-canvas.addEventListener('pointerup',e=>{points.delete(e.pointerId);initialPinch=null;if(moved)return;const b=canvas.getBoundingClientRect(),world=fromScreen(e.clientX-b.left,e.clientY-b.top),hex=pixelToHex(world.x,world.y);if(worldCells.find(c=>c.q===hex.q&&c.r===hex.r)){
+canvas.addEventListener('pointerup',e=>{
+ if(shadowDrag?.pointerId===e.pointerId){shadowDrag=null;persistScene();requestDraw();return;}
+ points.delete(e.pointerId);initialPinch=null;if(moved)return;const b=canvas.getBoundingClientRect(),world=fromScreen(e.clientX-b.left,e.clientY-b.top),hex=pixelToHex(world.x,world.y);if(worldCells.find(c=>c.q===hex.q&&c.r===hex.r)){
  state.selected=key(hex.q,hex.r);$('selectedHex').textContent='Ausgewählt: Hex ('+hex.q+','+hex.r+')';$('mapFooter').textContent=`Hex (${hex.q},${hex.r}) · ${worldCells.find(c=>c.q===hex.q&&c.r===hex.r).name} · Drag zum Verschieben`;requestDraw();window.dispatchEvent(new Event('vedras:hex-selected'));}});
-canvas.addEventListener('pointercancel',e=>{points.delete(e.pointerId);initialPinch=null;});
+canvas.addEventListener('pointercancel',e=>{if(shadowDrag?.pointerId===e.pointerId){shadowDrag=null;persistScene();}points.delete(e.pointerId);initialPinch=null;});
 window.addEventListener('keydown',e=>{if(e.target?.matches('input,select,textarea'))return;if(e.key==='+'||e.key==='=')applyZoom(state.zoom*1.1);if(e.key==='-')applyZoom(state.zoom/.9);});
 window.addEventListener('resize',resize);
 new ResizeObserver(()=>resize()).observe(canvas);
