@@ -8,8 +8,15 @@ window.VedrasNatureBalance=(()=>{
  const accents=new Set(['dead_trees','snow_dead_trees','fallen_logs','snow_fallen_logs']);
  const deadTrees=new Set(['dead_trees','snow_dead_trees']);
  const fallen=new Set(['fallen_logs','snow_fallen_logs']);
- // Relative to the already balanced v0.11.1 display sizes.
- const placementScale=meta=>!meta||meta.kind==='mountain'?1:meta.kind==='tree'?.5:.7;
+ // Relative to v0.11.1, with v0.11.2 as the comparison baseline.
+ // Living Nature grows 20% from v0.11.2; dead standing trees, fallen
+ // branches/logs and stumps preserve EXACTLY their v0.11.2 dimensions.
+ const woodExceptions=new Set(['dead_trees','snow_dead_trees','fallen_logs','snow_fallen_logs','deadwood']);
+ const placementScale=meta=>{
+  if(!meta||meta.kind==='mountain')return 1;
+  const previous=meta.kind==='tree'?.5:.7;
+  return woodExceptions.has(meta.family)?previous:previous*1.2;
+ };
  function sizeFactor(meta){
   if(!meta||meta.kind==='mountain')return 1;
   const extra=placementScale(meta);
