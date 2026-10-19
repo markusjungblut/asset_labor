@@ -1,3 +1,11 @@
+**Block 2 Natur-Balancing (19.10.2026):** Naturgrößen werden jetzt im
+Kartenrenderer artabhängig verkleinert, tote Bäume und Stämme seltener
+verteilt, lebende Baumquoten reduziert und 18 % geeigneter Landhexe in
+benachbarten Bau-/Freiflächen von automatischer Vegetation freigehalten.
+Gebäude erhalten auch auf Nachbarhexen eine gesperrte Fundamentzone.
+Die Werte liegen in `nature-balance.js`, ohne die 258 PNGs und
+Katalogmaße zu verändern; Tests in `tests/test_block2_nature_balance.cjs`.
+
 ## Nature-Bestand und Schneevarianten · 19. Oktober 2026
 
 **258 reale Nature-PNGs katalogisiert und im Inventar sowie in FloraV2 abgeglichen.**
