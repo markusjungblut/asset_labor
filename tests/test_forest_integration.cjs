@@ -50,7 +50,7 @@ for(const required of ['forest:state.forest','forestByHex:','state.forest=window
 for(const required of ['F.treeTarget(f)','F.maxObjects(f)','F.preferredFamily(m.family,f)','vedras:forest-changed']){
  assert(editor.includes(required),'missing Nature spawn integration: '+required);
 }
-for(const script of ['forest.js?v=0.18.0','forest-ui.js?v=0.18.0']){
+for(const script of ['forest.js?v=0.19.0','forest-ui.js?v=0.18.0']){
  assert(html.includes(script),'missing forest browser module: '+script);
 }
 for(const id of ['forestEnabled','forestCoverage','forestEdge','forestHexLight','forestHexDense','forestHexNone','forestHexAuto','forestMakeJungle','forestClearJungle','forestApply']){
