@@ -172,7 +172,11 @@ window.VedrasNature=(()=>{
  function hash(seed,q,r,k){let h=(seed|0)^Math.imul(q+97,374761393)^Math.imul(r+513,668265263)^Math.imul(k+11,2246822519);h^=h>>>13;h=Math.imul(h,1274126177);return (h^(h>>>16))>>>0;}
  const random=(seed,q,r,k)=>hash(seed,q,r,k)/4294967296;
  function makeInstance(a,q,r,index,all,seed,spacingFactor=1,forestByHex=null){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
-  if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(q+','+r)))return null;
+  const cellKey=q+','+r;
+  if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(cellKey)))return null;
+  // Never plant into a building or legacy footprint, even if the caller uses
+  // the manual single-sprite action.
+  if(state.hexObject?.[cellKey]||cellKey==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return null;
   if(!eligible(meta,q,r,forestByHex))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
   const p=pts(q,r);for(let j=0;j<48;j++){
@@ -199,22 +203,37 @@ window.VedrasNature=(()=>{
   const seed=Number($('nSeed').value)||12345;
   state.natureSeed=seed;
   state.forest=window.VedrasForest.valid({...state.forest,seed});
-  const F=window.VedrasForest,forest=core.forestCells();
+  const F=window.VedrasForest,B=window.VedrasNatureBalance,forest=core.forestCells();
   const forestByHex=new Map(forest.map(c=>[c.key,c]));
   // Keep valid hand-placed instances when refreshing a forest. Old generated
   // instances without provenance are intentionally regenerated.
   const all=(state.natureInstances||[]).filter(n=>n.source==='manual'&&validInstance(n,forestByHex)===true);
   const assets=core.assets();
   const candidates=assets.filter(a=>F&&window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
+  const ground=c=>terrainRegistry().terrainTypes.some(t=>t.id===core.effectiveBiome(c)&&t.materialClass==='ground');
+  const occupied=new Set(Object.keys(state.hexObject||{}));
+  for(const m of state.mountainInstances||[])for(const k of window.VedrasMountains.occupied(m))occupied.add(k);
+  if(assets.some(a=>a.category==='buildings'&&a.name.startsWith('mine_lvl01__main')))occupied.add('0,0');
+  // Deterministic two-hex clearing patches are deliberately left without
+  // generated sprites. Existing manual plants are never deleted by this pass.
+  const clearings=B.reserveClearings(core.cells(),forestByHex,seed,ground,occupied);
+  const limits=B.accentLimits(core.cells().filter(ground).length);
+  const accents={dead_trees:0,fallen_logs:0};
+  for(const n of all){
+   const a=assets.find(v=>v.path===n.assetPath),group=B.accentGroup(entryFor(a));
+   if(group)accents[group]++;
+  }
   let suitableCells=0,forestTrees=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
   for(const c of core.cells()){
-   const terrainType=core.effectiveBiome(c),f=forestByHex.get(c.q+','+c.r);
+   const k=c.q+','+c.r;
+   if(clearings.has(k)||occupied.has(k))continue;
+   const terrainType=core.effectiveBiome(c),f=forestByHex.get(k);
    const type=terrainRegistry().terrainTypes?.find(x=>x.id===terrainType);
    const possible=candidates.filter(a=>{
     const m=entryFor(a);
     if(!F.preferredFamily(m.family,f))return false;
-    if(!eligible(m,c.q,c.r))return false;
+    if(!eligible(m,c.q,c.r,forestByHex))return false;
     // Ordinary tundra is largely snow-free: snowy conifers remain possible but rare.
     if(core.effectiveBiome(c)==='tundra'&&m.family==='snow_conifers'&&rank(a,c,973)>=.02)return false;
     return true;
@@ -226,11 +245,15 @@ window.VedrasNature=(()=>{
     // trotz dichter Waldklasse nicht so häufig wie gewöhnliche Bäume gezogen.
     return rank(a,c,301)/Math.max(.04,p.density*Math.min(1,p.weight));
    };
-   const trees=possible.filter(a=>entryFor(a).kind==='tree').sort((a,b)=>treePriority(a)-treePriority(b));
-   const other=possible.filter(a=>entryFor(a).kind!=='tree').sort((a,b)=>rank(a,c,302)-rank(b,c,302));
+   const trees=possible.filter(a=>B.isCanopy(entryFor(a))).sort((a,b)=>treePriority(a)-treePriority(b));
+   // Standing dead trees are accents, NOT living canopy quota trees.
+   const other=possible.filter(a=>!B.isCanopy(entryFor(a))).sort((a,b)=>rank(a,c,302)-rank(b,c,302));
    const wantedTrees=F.treeTarget(f),objectCap=F.maxObjects(f);
-   const spacingFactor=f?.forestClass==='dense_forest'?.67:f?.forestClass==='light_forest'?.82:.95;
-   let count=0,treeCount=0;
+   const spacingFactor=f?.forestClass==='dense_forest'?.82:f?.forestClass==='light_forest'?.92:1;
+   const placed=all.filter(n=>n.q===c.q&&n.r===c.r);
+   let count=placed.length,treeCount=placed.filter(n=>{
+    const a=assets.find(v=>v.path===n.assetPath);return B.isCanopy(entryFor(a));
+   }).length;
    for(const a of trees){
     if(treeCount>=wantedTrees||count>=objectCap)break;
     const meta=entryFor(a);
@@ -239,18 +262,20 @@ window.VedrasNature=(()=>{
    }
    // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
    // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
-   if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.12&&count<objectCap){
+   if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.06&&count<objectCap){
     const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed,1,forestByHex);
     if(inst){all.push(inst);count++;forestTrees++;}
    }
+   let accentOnHex=placed.some(n=>{const a=assets.find(v=>v.path===n.assetPath);return B.isAccent(entryFor(a));});
    for(const a of other){
     if(count>=objectCap)break;
-    const meta=entryFor(a);
-    const factor=f?.forestClass==='dense_forest'?1.65:f?.forestClass==='light_forest'?1.30:f?.edgeInfluence>.1?1.15:1;
-    const chance=Math.min(0.9,meta.placement.density*Math.min(1,meta.placement.weight)*factor);
+    const meta=entryFor(a),group=B.accentGroup(meta);
+    if(group&&(accentOnHex||accents[group]>=limits[group]))continue;
+    const factor=f?.forestClass==='dense_forest'?1.20:f?.forestClass==='light_forest'?1.05:f?.edgeInfluence>.1?1.05:1;
+    const chance=Math.min(.75,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta));
     if(rank(a,c,312)>=chance)continue;
-    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor);
-    if(inst){all.push(inst);count++;}
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
+    if(inst){all.push(inst);count++;if(group){accents[group]++;accentOnHex=true;}}
    }
   }
   state.natureInstances=all;state.showLegacyNature=false;$('nShowDemo').checked=false;
@@ -260,7 +285,7 @@ window.VedrasNature=(()=>{
   const edge=forest.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' Bäume) auf '+core.cells().length+' Hexen · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand · '+candidates.length+' Testkandidaten.');
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume) auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand.');
  }
 
  function mountainGeometry(m){
