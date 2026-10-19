@@ -35,9 +35,9 @@ window.VedrasExistingAssets = (() => {
   [/^(?:farn|fern)[_ -]?(\d+)$/, 'Farn', 'ferns', 'ground_cover', 'medium'],
   [/^(?:dschungel[_ -]?busch|jungle[_ -]?bush|bush[_ -]?jungle|tropical[_ -]?bush)[_ -]?(\d+)$/, 'Dschungelbusch', 'tropical_bushes', 'shrub', 'medium'],
   [/^(?:kaktus|cactus|cacti)[_ -]?(\d+)$/, 'Kaktus', 'cacti', 'shrub', 'medium'],
-  [/^(?:fallen[_ -]?(?:tree|log)|fallen[_ -]?baum|umgestuerzt(?:er|e)?[_ -]?baum|baumstamm|liegender[_ -]?baum)[_ -]?(\d+)$/, 'Umgefallener Baum', 'deadwood', 'special', 'large'],
+  [/^(?:fallen[_ -]?(?:tree|log)|fallen[_ -]?baum|umgestuerzt(?:er|e)?[_ -]?baum|baumstamm|liegender[_ -]?baum)[_ -]?(\d+)$/, 'Umgefallener Baum', 'fallen_logs', 'cluster', 'large'],
   [/^(?:dead[_ -]?tree|toter[_ -]?baum)[_ -]?(\d+)$/, 'Toter Baum', 'dead_trees', 'tree', 'large'],
-  [/^(?:mangrove|mangrovenbaum|mangrove[_ -]?tree)[_ -]?(\d+)$/, 'Mangrovenbaum', 'mangroves', 'tree', 'large'],
+  [/^(?:mangroven?|mangrovenbaum|mangrove[_ -]?tree)[_ -]?(\d+)$/, 'Mangrovenbaum', 'mangroves', 'tree', 'large'],
  ];
  const habitat = {
   savanna_trees:[['warm_regions','arid_regions'],.07,130],
@@ -58,6 +58,7 @@ window.VedrasExistingAssets = (() => {
   reeds:[['wetlands'],.17,50],
   succulents:[['arid_regions'],.12,38],
   deadwood:[['grass_pasture','cold_regions','wetlands','warm_regions'],.045,74],
+  fallen_logs:[['grass_pasture','cold_regions','wetlands','warm_regions'],.07,98],
   dead_trees:[['grass_pasture','cold_regions','wetlands','warm_regions'],.065,100],
   snow_dead_trees:[[],.065,100],
   mangroves:[[],.055,118],
@@ -114,17 +115,17 @@ window.VedrasExistingAssets = (() => {
   const isSmallPalm=info.family==='palms'&&info.sizeClass==='medium';
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
-  const targetHeight=info.family==='deadwood'?55:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
+  const targetHeight=info.family==='deadwood'?55:info.family==='fallen_logs'?69:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
   const restrict={
    riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna'],
    mangroves:['swamp','marshland'],snow_dead_trees:['snowfields','frozen_tundra','tundra','highland'],
    tropical_bushes:['jungle'],ferns:['jungle','forest_floor'],dead_trees:['grassland','pasture','highland']
   };
-  const groundWood=info.family==='deadwood';
+  const groundWood=['deadwood','fallen_logs'].includes(info.family);
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
    sizeMode:mountain?'manual':'class',targetHeight,
-   logicalWidth:mountain?360:ground?28:tree?110:52,
+   logicalWidth:mountain?360:info.family==='fallen_logs'?140:ground?28:tree?110:52,
    description:info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
