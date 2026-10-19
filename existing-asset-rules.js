@@ -59,6 +59,7 @@ window.VedrasExistingAssets = (() => {
   succulents:[['arid_regions'],.12,38],
   deadwood:[['grass_pasture','cold_regions','wetlands','warm_regions'],.045,74],
   fallen_logs:[['grass_pasture','cold_regions','wetlands','warm_regions'],.07,98],
+  snow_fallen_logs:[['cold_regions'],.035,110],
   dead_trees:[['grass_pasture','cold_regions','wetlands','warm_regions'],.065,100],
   snow_dead_trees:[[],.065,100],
   mangroves:[[],.055,118],
@@ -80,6 +81,9 @@ window.VedrasExistingAssets = (() => {
   // These are distinct snow-coated trees, not ordinary deadwood placed on snow.
   const winterDead=/^(?:dead[_ -]?tree|toter[_ -]?baum)[_ -]?(1[1-5])$/.exec(base);
   if(winterDead)return {id:'existing_dead_tree_snow_'+winterDead[1],name:'Verschneiter toter Baum',family:'snow_dead_trees',kind:'tree',sizeClass:'large',confirmedSpecies:true,group:'winter_dead_tree'};
+  // User-approved snow set: fallen_log_11–20 only, ordinary 01–10/21–24.
+  const snowyLog=/^(?:fallen[_ -]?(?:tree|log)|fallen[_ -]?baum|umgestuerzt(?:er|e)?[_ -]?baum|baumstamm|liegender[_ -]?baum)[_ -]?(1[1-9]|20)$/.exec(base);
+  if(snowyLog)return {id:'existing_'+base.replace(/[^a-z0-9_]+/g,'_'),name:'Verschneiter liegender Baumstamm',family:'snow_fallen_logs',kind:'cluster',sizeClass:'large',confirmedSpecies:true,group:'winter_fallen_log'};
   // Individual mangrove sprites only; mangrove GROUPS are deliberately unused.
   if(/mangrov/.test(base)&&/(?:group|gruppe)/.test(base))return null;
   const bush = /^bush_(\d+)$/.exec(base);
@@ -115,22 +119,22 @@ window.VedrasExistingAssets = (() => {
   const isSmallPalm=info.family==='palms'&&info.sizeClass==='medium';
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
-  const targetHeight=info.family==='deadwood'?55:info.family==='fallen_logs'?69:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
+  const targetHeight=info.family==='deadwood'?55:['fallen_logs','snow_fallen_logs'].includes(info.family)?69:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
   const restrict={
    riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna'],
-   mangroves:['swamp','marshland'],snow_dead_trees:['snowfields','frozen_tundra','tundra','highland'],
+   mangroves:['swamp','marshland'],snow_dead_trees:['snowfields','frozen_tundra','tundra','highland'],snow_fallen_logs:['snowfields','frozen_tundra','tundra','highland'],
    tropical_bushes:['jungle'],ferns:['jungle','forest_floor'],dead_trees:['grassland','pasture','highland']
   };
-  const groundWood=['deadwood','fallen_logs'].includes(info.family);
+  const groundWood=['deadwood','fallen_logs','snow_fallen_logs'].includes(info.family);
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
    sizeMode:mountain?'manual':'class',targetHeight,
-   logicalWidth:mountain?360:info.family==='fallen_logs'?140:ground?28:tree?110:52,
+   logicalWidth:mountain?360:['fallen_logs','snow_fallen_logs'].includes(info.family)?140:ground?28:tree?110:52,
    description:info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
    shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees'].includes(info.family)?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:(restrict[info.family]||[]),excludedTerrainTypes:[],
+   terrainPresetId:'',allowedTerrainCategories:['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:(restrict[info.family]||[]),excludedTerrainTypes:[],
    placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
