@@ -109,7 +109,7 @@ window.VedrasNature=(()=>{
   const r0=revision;
   try{const response=await fetch('/api/nature-catalog',{cache:'no-store'});if(!response.ok)throw Error('Server nicht verfügbar');const data=await response.json();
    const errors=N.validate(data,terrainRegistry());if(errors.length)throw Error(errors.join('; '));
-   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;cleanup('Katalog geladen');status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
+   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
   }catch(e){serverWritable=false;status();message('Nature-Katalog konnte nicht geladen werden: '+e.message+' – vorhandene Daten nicht zurückgesetzt.');$('nRecoveryStatus').textContent='Ladefehler: '+e.message+'. Bitte den ursprünglichen assets/nature/nature_catalog.json sichern und ggf. die .bak prüfen.';}
  }
  async function importJSON(file){let data=JSON.parse(await file.text());let next;
@@ -160,6 +160,7 @@ window.VedrasNature=(()=>{
   return true;
  }
  function cleanup(reason=''){
+  if(!Object.keys(catalog.entries).length||!core.assets().length)return 0;
   const old=state.natureInstances||[],valid=old.filter(isValidInstance),removed=old.length-valid.length;
   if(removed){state.natureInstances=valid;saved();message(removed+' Nature-Instanz(en) wegen unpassendem Biom, Wasser, Fluss oder gesperrtem Gelände entfernt'+(reason?' ('+reason+')':'')+'.');}
   return removed;
@@ -445,9 +446,8 @@ window.VedrasNature=(()=>{
    if(skipped.length)message('Importhinweis: unpassende Sidecars bei '+skipped.join(', '));
  }
  const onLibrary=async()=>{if(core.terrainReady?.()&&!loadedFromServer&&!dirty)await reload();
-  importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();};
+  importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();cleanup('Grafiken und Katalog geladen');};
  window.addEventListener('vedras:assets-loaded',onLibrary);
- window.addEventListener('vedras:assets-loaded',()=>cleanup('Grafiken geladen'));
  window.addEventListener('vedras:river-changed',()=>cleanup('Fluss verändert'));
  window.addEventListener('vedras:nature-catalog-changed',()=>cleanup('Habitatregeln verändert'));
  window.addEventListener('vedras:hex-selected',renderPlaced);
