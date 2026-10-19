@@ -41,17 +41,17 @@ assert(stops[stops.length-1][2].endsWith(',0)'),'outer contact fades completely 
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-assert(html.includes('shadow-system.js?v=0.23.0'),'browser loads shadow system');
-assert(html.indexOf('shadow-system.js?v=0.23.0')<html.indexOf('app.js?v=0.23.0'),'shadow system loaded before app renderer');
-for(const fragment of ['shadows.cast(g,silhouette,pos,width,height','shadows.contact(g,pos,width,\'mountain\'',
+assert(html.includes('shadow-system.js?v=0.24.0'),'browser loads shadow system');
+assert(html.indexOf('shadow-system.js?v=0.24.0')<html.indexOf('app.js?v=0.24.0'),'shadow system loaded before app renderer');
+for(const fragment of ['shadows.paintMountain(g,origin,w','mountainOriginForObject(o,settings,factor)',
  'maxAlpha[i]','if(settings.opacity<=0)continue','drawNatureGrounding(o,p)',
- 'projection:\'light-upper-right / shadow-lower-left\'']){
+ 'projection:\'alpha-foot / diagonal-procedural-ground-shadow\'']){
  assert(app.includes(fragment),'missing shadow integration: '+fragment);
 }
 assert(app.indexOf('drawMountainShadows(objs);')<app.indexOf('for(const o of objs){\n   const p=toScreen(o.x,o.y);\n   if(p.x<-450'),'ground shadows precede visible sprite pass');
 assert(app.includes('sortY:toScreen(o.x,heightAdjusted).y'),'sort by projected relief-adjusted foot');
 assert(app.includes('return a.sortY-b.sortY'),'ground foot used in painter sort');
 assert(app.includes("else if(o.type==='building'){"),'buildings receive grounding');
-assert(nature.includes('current.shadowOpacity=values.opacity')&&nature.includes('core.persistScene()'),'per-mountain slider persists');
-assert(html.includes('Reichweite nach links unten'),'direction is explained in UI');
+assert(nature.includes('encodeInstanceShadow(values)')&&nature.includes('core.persistScene()'),'per-mountain slider persists');
+assert(html.includes('Schattenlänge'),'direction is explained in UI');
 console.log('PASS: mountain and Nature casts travel down-left from exact foot, softness/alpha modes, contact falloff, renderer depth order and slider persistence.');
