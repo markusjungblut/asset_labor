@@ -125,6 +125,14 @@ window.VedrasExistingAssets = (() => {
    mangroves:['swamp','marshland'],snow_dead_trees:['snowfields','frozen_tundra','tundra','highland'],snow_fallen_logs:['snowfields','frozen_tundra','tundra','highland'],
    tropical_bushes:['jungle'],ferns:['jungle','forest_floor'],dead_trees:['grassland','pasture','highland']
   };
+  // Narrow classifications are shared by initial catalog import and all later
+  // reimports. Never revive an older blanket wetland/arid category in new PNGs.
+  const preciseTypes={
+   cacti:['semi_desert','sandy_desert','rocky_desert','clay_desert','sandy_rocky_desert','desert','savanna'],
+   dead_trees:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra','swamp','marshland','moor','savanna','jungle','wasteland','semi_desert'],
+   fallen_logs:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra','swamp','marshland','moor','savanna','jungle'],
+   ferns:['forest_floor','grassland','pasture','moor','swamp','marshland','jungle']
+  };
   const groundWood=['deadwood','fallen_logs','snow_fallen_logs'].includes(info.family);
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
@@ -134,7 +142,7 @@ window.VedrasExistingAssets = (() => {
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
    shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:(restrict[info.family]||[]),excludedTerrainTypes:[],
+   terrainPresetId:'',allowedTerrainCategories:preciseTypes[info.family]||['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories,allowedTerrainTypes:preciseTypes[info.family]||(info.group==='kapok'?['jungle']:(restrict[info.family]||[])),excludedTerrainTypes:info.family==='deadwood'?['snowfields','frozen_tundra']:[],
    placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
