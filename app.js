@@ -469,7 +469,10 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
    const meta=window.VedrasNature?.entryFor(a);
    if(!meta||window.VedrasNature?.eligible(meta,q,r)===false)continue;
   }
-  const p=axialPos(q,r);const obj={asset:a,x:p.x,y:p.y+52,w:values.width??(a.category==='buildings'?160:80),type:a.category==='buildings'?'building':'nature',cell:k};
+  const p=axialPos(q,r),natureMeta=a.category==='nature'?window.VedrasNature?.entryFor(a):null;
+  const authoredWidth=values.width??(a.category==='buildings'?160:80);
+  const balancedWidth=a.category==='nature'?authoredWidth*(window.VedrasNatureBalance?.sizeFactor(natureMeta)??.85):authoredWidth;
+  const obj={asset:a,x:p.x,y:p.y+52,w:balancedWidth,type:a.category==='buildings'?'building':'nature',natureMeta,cell:k};
   if(k==='0,0'){
     const old=objs.findIndex(o=>o.cell==='0,0');if(old>=0)objs.splice(old,1);
   }
@@ -484,7 +487,10 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
    const m=window.VedrasNature?.entryFor(a);if(!m)continue;
    const p=axialPos(n.q,n.r);
    const crop=visibleBounds(a.img);const baseWidth=window.VedrasSpritePlanner?.visualWidth(m,a.img,crop)??m.logicalWidth;
-   objs.push({asset:a,x:p.x+n.dx,y:p.y+n.dy,w:baseWidth*n.scale,type:'nature',natureMeta:m,cell:key(n.q,n.r)});
+   // Keep author-defined catalog dimensions editable; apply the shared map
+   // composition factor to both old saved and newly generated instances.
+   const balance=window.VedrasNatureBalance?.sizeFactor(m)??1;
+   objs.push({asset:a,x:p.x+n.dx,y:p.y+n.dy,w:baseWidth*n.scale*balance,type:'nature',natureMeta:m,cell:key(n.q,n.r)});
  }
  for(const m of validMountains()){
   const a=useAsset(m.assetPath),meta=window.VedrasNature.entryFor(a),p=axialPos(m.q,m.r);
