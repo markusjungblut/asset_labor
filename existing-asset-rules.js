@@ -99,6 +99,7 @@ window.VedrasExistingAssets = (() => {
   // Unknown/unclassified material is NEVER automatically placed.
   if(!family||family==='unclassified')return false;
   if(family==='mangroves'&&(!context.coastal||!context.warm))return false;
+  if(family==='riparian_trees'&&['grassland','pasture'].includes(type)&&!context.waterNearby)return false;
   return true;
  }
  const stem = name => String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').toLowerCase().replace(/\.(?:png|webp|jpe?g|svg|gif|avif)$/i,'');
@@ -129,7 +130,7 @@ window.VedrasExistingAssets = (() => {
    return {id:'existing_'+base,name:smaller?'Palme (kleinere Variante)':'Palme (größere Variante)',family:'palms',kind:'tree',sizeClass:smaller?'medium':'large',confirmedSpecies:false};
   }
   for (const [pattern,name,family,kind,sizeClass] of definitions) {
-   if (pattern.test(base)) return {id:'existing_'+base,name,family,kind,sizeClass,confirmedSpecies:!name.includes('offen')};
+   if (pattern.test(base)) return {id:'existing_'+base.replace(/[^a-z0-9_]/g,'_'),name,family,kind,sizeClass,confirmedSpecies:!name.includes('offen')};
   }
   return null;
  }
@@ -150,9 +151,8 @@ window.VedrasExistingAssets = (() => {
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
   const targetHeight=info.family==='deadwood'?55:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
-  const restrict={riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna'],
-   mangroves:['swamp','marshland'],jungle_bushes:['jungle'],snow_deadwood:['snowfields','frozen_tundra','highland'],
-   ferns:['forest_floor','jungle'],cacti:['savanna']};
+  // Newly imported sprites get the same narrow rules as the reviewed real catalog.
+  const explicit=allowedBiomes[info.family]||[];
   const groundWood=info.family==='deadwood';
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
@@ -162,7 +162,7 @@ window.VedrasExistingAssets = (() => {
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
    shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:info.group==='kapok'?[]:categories,allowedTerrainTypes:info.group==='kapok'?['jungle']:(restrict[info.family]||[]),excludedTerrainTypes:[],
+   terrainPresetId:'',allowedTerrainCategories:info.family==='palms'?['warm_regions']:[],allowedTerrainTypes:info.family==='palms'?[]:explicit,excludedTerrainTypes:[],
    placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
