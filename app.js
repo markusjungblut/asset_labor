@@ -191,6 +191,36 @@ function drawShorelines(){
  if(report)report.textContent=`${r?.segments?.length||0} Land/Wasser-Kanten, ${opts.mode==='art'?'6 Grafik-Overlays':'temporäre Testkanten'} · ${r?.missing||0} Grafik-Fallbacks · ${shorelineCache.buildMs?.toFixed(0)||0} ms · Küstenwasser zählt als WATER.`;
 }
 
+// A forest is overlaid on its *original* ground, rather than replacing a moor,
+// meadow or highland biome with a generic forest-floor ecological type.
+const forestFloorStamps=new Map();
+function drawForestFloor(){
+ const asset=assets.find(a=>isTerrainValid(a)&&typeOfAsset(a)==='forest_floor'&&a.img?.naturalWidth>0);
+ if(!asset)return;
+ const signature=asset.path+'|'+asset.mtime+'|'+asset.img.naturalWidth;
+ let stamp=forestFloorStamps.get(signature);
+ if(!stamp){
+  stamp=document.createElement('canvas');stamp.width=stamp.height=300;
+  const g=stamp.getContext('2d');
+  g.drawImage(asset.img,0,0,300,300);
+  g.globalCompositeOperation='destination-in';
+  const fade=g.createRadialGradient(150,150,32,150,150,148);
+  fade.addColorStop(0,'rgba(0,0,0,1)');fade.addColorStop(.48,'rgba(0,0,0,.95)');
+  fade.addColorStop(.84,'rgba(0,0,0,.42)');fade.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=fade;g.fillRect(0,0,300,300);
+  forestFloorStamps.clear();forestFloorStamps.set(signature,stamp);
+ }
+ for(const forest of forestCells()){
+  if(!['light_forest','dense_forest'].includes(forest.forestClass)||forest.jungle)continue;
+  const base=forest.baseBiome,cat=catalog.terrainTypes.find(t=>t.id===base)?.categoryId;
+  if(['snowfields','frozen_tundra'].includes(base)||!catalog.terrainTypes.some(t=>t.id===base&&t.materialClass==='ground'))continue;
+  const strength=cat==='wetlands'?.30:cat==='cold_regions'?.25:cat==='arid_regions'?.22:.72;
+  const alpha=strength*(forest.forestClass==='dense_forest'?1:.58);
+  const p=axialPos(forest.q,forest.r);
+  ctx.save();hexPath(forest.q,forest.r);ctx.clip();ctx.globalAlpha=alpha;
+  ctx.drawImage(stamp,p.x-150,p.y-150,300,300);ctx.restore();
+ }
+}
 function drawGround(){
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.fillStyle=state.seamCheck?'#ec27f1':'#879a81';ctx.fillRect(0,0,W,H);
@@ -221,6 +251,7 @@ function drawGround(){
   if(state.relief.enabled)window.VedrasAutotile.draw(ctx,terrainRasterCache.raster.waterLayer);
   window.VedrasAutotile.draw(ctx,reliefRaster);ctx.restore();
  }
+ drawForestFloor();
  drawShorelines();
  if(state.edgeDebug)window.VedrasAutotile.drawDebug(ctx,graph,{mode:state.transitionDebugMode,band:state.edgeWidth});
  const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
@@ -823,7 +854,7 @@ function terrainTestApply(){const mode=$('terrainTestMode').value,options=catalo
  if(!groups.length||groups.some(g=>!g.length||g.some(t=>!available.has(t)))){$('testFeedback').textContent='Fehlende kompatible Materialien für diese Auswahl. Ordne die Bilder zuerst im Gelände-Katalog zu.';return;}
  const allTypeIds=[...new Set(groups.flat())],mix=$('testMixVariants').checked;
  const seed=state.relief.seed; // deterministic selection coupled to the scene seed
- state.sceneSize=[7,19,37].includes(Number($('sceneSize').value))?Number($('sceneSize').value):37;assignBiomes();state.hexTerrain={};state.biomeTerrain={};
+ state.sceneSize=[7,19,37].includes(Number($('sceneSize').value))?Number($('sceneSize').value):37;assignBiomes();state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};
  for(const c of worldCells){const g=groups[testCellIndex(c,groups.length,seed)];
   const t=g.length>1?g[testCellIndex(c,g.length,seed+101)]:g[0];
   const variants=available.get(t).slice().sort((x,y)=>x.path.localeCompare(y.path));
@@ -870,7 +901,7 @@ function shorelineTest(mode){
  const mats=assets.filter(isTerrainValid),land=mats.find(a=>window.VedrasCatalog.terrainType(catalog,typeOfAsset(a))?.materialClass==='ground');
  const water=mats.find(a=>window.VedrasCatalog.terrainType(catalog,typeOfAsset(a))?.materialClass==='water');
  if(!land||!water){$('shorelineStats').textContent='Für den Ufertest werden mindestens ein zugeordnetes Landmaterial und ein als WATER klassifiziertes Material benötigt.';return;}
- state.sceneSize=[7,19,37].includes(Number($('sceneSize').value))?Number($('sceneSize').value):37;assignBiomes();state.hexTerrain={};state.biomeTerrain={};
+ state.sceneSize=[7,19,37].includes(Number($('sceneSize').value))?Number($('sceneSize').value):37;assignBiomes();state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};
  for(const c of worldCells)state.hexTerrain[key(c.q,c.r)]=land.path;
  const neighbors=window.VedrasShoreline.DIRS;
  const dirs=mode==='six'?neighbors:neighbors.filter((_,i)=>[0,1,2,4].includes(i));
@@ -899,6 +930,7 @@ $('sceneImport').addEventListener('change',async e=>{
   state.sceneSize=[7,19,37].includes(Number(scene.sceneSize))?Number(scene.sceneSize):37;$('sceneSize').value=String(state.sceneSize);assignBiomes();
   state.hexTerrain=Object.fromEntries(Object.entries(tileMap).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&good(v)));
   state.biomeTerrain=Object.fromEntries(Object.entries(biomeMap).filter(([k,v])=>good(v)));
+  state.baseBiomeByHex=Object.fromEntries(Object.entries(scene.baseBiomeByHex||{}).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&catalog.terrainTypes.some(t=>t.id===v&&t.materialClass==='ground')));
   state.materialScales=scene.materialScales||{};
   state.hexObject=scene.objectsByHex||{};state.hexShadow=scene.shadowsByHex||{};state.natureInstances=(Array.isArray(scene.natureInstances)?scene.natureInstances:[]).filter(x=>typeof x.assetPath==='string'&&Number.isFinite(x.dx)&&Number.isFinite(x.dy)&&Number.isFinite(x.q)&&Number.isFinite(x.r)&&Number.isFinite(x.scale)&&x.scale>0&&x.scale<=3).slice(0,2000);state.mountainInstances=(Array.isArray(scene.mountainInstances)?scene.mountainInstances:[]).filter(m=>typeof m.assetPath==='string'&&Number.isInteger(m.q)&&Number.isInteger(m.r)&&[1,2].includes(m.radius)).map(m=>({...m,coreRadius:m.coreRadius===1?1:0,mode:m.mode==='chain'?'chain':'single',chainId:typeof m.chainId==='string'?m.chainId:null})).slice(0,60);state.mountainDebug=!!scene.mountainDebug;state.mountainMode=scene.mountainMode==='chain'?'chain':'single';state.mountainChainId=typeof scene.mountainChainId==='string'?scene.mountainChainId:'alpen_01';state.mountainSpacing=['tight','normal','wide'].includes(scene.mountainSpacing)?scene.mountainSpacing:'normal';if(scene.mountainShadowDefaults&&typeof scene.mountainShadowDefaults==='object')state.mountainShadowDefaults={...state.mountainShadowDefaults,...scene.mountainShadowDefaults};state.mountainShadowDebug=!!scene.mountainShadowDebug;$('mountainDebug').checked=state.mountainDebug;$('mountainMode').value=state.mountainMode;$('mountainChainId').value=state.mountainChainId;$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=state.mountainShadowDebug;state.natureSeed=Number(scene.natureSeed)||12345;state.forest=window.VedrasForest.valid(scene.forest);state.riverPaths=window.VedrasRivers.normalizeRoutes(scene.riverPaths,worldCells,wetHex);state.riverDraft=null;state.riverWidth=clamp(Number(scene.riverWidth)||32,12,70);state.riverDebug=!!scene.riverDebug;state.river=scene.river!==false;$('riverToggle').checked=state.river;window.dispatchEvent(new Event('vedras:forest-changed'));window.dispatchEvent(new Event('vedras:river-changed'));
   state.relief=window.VedrasRelief.valid(scene.relief||window.VedrasRelief.defaults());syncReliefUI();
@@ -914,7 +946,7 @@ $('sceneImport').addEventListener('change',async e=>{
  }catch(err){alert('Szenenimport abgelehnt: '+err.message);}e.target.value='';
 });
 $('saveScene').addEventListener('click',exportScene);
-$('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
+$('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 let points=new Map(),moved=false,initialPinch=null;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;if(points.size===2)initialPinch=null;});
