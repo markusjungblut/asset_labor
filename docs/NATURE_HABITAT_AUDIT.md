@@ -85,3 +85,10 @@ Optionen für eine spätere optische Ausbaustufe, nicht aktueller Produktionsrü
 
 Optische Prüfung der neuen Bilder und die Integration in die separate Hauptspielwelt
 sind noch nicht abgeschlossen.
+
+
+## Nachprüfung Block 1: tatsächliche Ökologie der Wald- und Bodenlayer
+
+Das in älteren Szenen dargestellte `forest_floor` darf die reale Moor-/Sumpf-/Grasland-Identität eines Hex nicht verändern. `canPlace(meta,{baseBiome,biome,forestClass,neighborTypes},terrain,catalog)` wertet beide Ebenen aus. Palmen auf Moor bleiben auch in dichtem Wald und mit alten ungültigen Dschungelmarkierungen ausgeschlossen. Sumpf-/Moorwald kann andere dort zulässige Bäume, Farne und Feuchtvegetation enthalten. Auch im gespeicherten `hexObject` enthaltene Nature-Zuordnungen werden geprüft; unbekannte Dateinamen werden zur Nachbearbeitung nicht automatisch gelöscht.
+
+Status: Codeschutz und Tests implementiert. Die zugehörigen sichtbaren Wald-/Flussübergänge sind noch im echten Browser zu beurteilen.
