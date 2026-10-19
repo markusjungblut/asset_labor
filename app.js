@@ -380,9 +380,10 @@ function validMountains(){
  });
 }
 function reservedMountainHexes(){return new Set(validMountains().flatMap(m=>window.VedrasMountains.occupied(m)));}
-// v0.11.0: light comes from the right. A mountain silhouette casts a soft,
-// LEFTWARD planar shadow onto the composited terrain, before objects are painted.
-// Unlike the old short oval this is tied to each mountain's real alpha silhouette.
+// Block 3: sunlight from upper right. True alpha silhouettes are
+// projected LEFT/DOWN from their visible ground contact instead of the old
+// hidden left/up transform. Both cast and soft contact stay on the terrain
+// beneath the painter-sorted sprites.
 const mountainSilhouettes=new WeakMap();
 function shadowSilhouette(img){
  if(mountainSilhouettes.has(img))return mountainSilhouettes.get(img);
