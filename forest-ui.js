@@ -15,12 +15,12 @@ window.VedrasForestUI=(()=>{
   const dense=cells.filter(c=>c.forestClass==='dense_forest').length,light=cells.filter(c=>c.forestClass==='light_forest').length;
   const edges=cells.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
   const jungle=cells.filter(c=>c.jungle).length;
-  const name=selected?.jungle?'Dschungel':selected?.biome||'–';
+  const name=selected?.jungle?'Dschungel über '+selected.baseBiome:selected?.baseBiome||'–';
   const cls=selected?.forestClass==='dense_forest'?'dicht':selected?.forestClass==='light_forest'?'licht':selected?.edgeInfluence>.05?'Waldrand':'offen';
   $('forestStatus').textContent=cells.length+' Hexe · '+dense+' dicht · '+light+' licht · '+edges+' Waldrand · '+jungle+' Dschungel · ausgewählt: '+name+', '+cls+' ('+Math.round((selected?.density||0)*100)+' % Waldintensität).';
  }
  function changed(repopulate=false){
-  config();core.persistScene();core.requestDraw();
+  config();core.persistScene();core.requestDraw();window.dispatchEvent(new Event('vedras:forest-changed'));
   if(repopulate&&window.VedrasNature?.populate)window.VedrasNature.populate();
   else render();
  }
@@ -51,14 +51,14 @@ window.VedrasForestUI=(()=>{
   let added=0;
   for(const c of core.cells()){
    if(F.distance(c,cell)>1)continue;
-   const type=core.effectiveBiome(c),terrain=core.catalog().terrainTypes.find(t=>t.id===type);
-   if(['water','shoreline'].includes(terrain?.materialClass))continue;
+   const base=core.baseBiomeOf(c);
+   if(!F.jungleAllowed(base))continue; // Moorwald and temperate forest cannot become jungle.
    if(f.jungleHexes[F.key(c.q,c.r)]!==true)added++;
    f.jungleHexes[F.key(c.q,c.r)]=true;
    delete f.overrides[F.key(c.q,c.r)];
   }
   changed(true);
-  $('forestStatus').textContent+=' · '+added+' zusätzliche Dschungel-Hexe markiert.';
+  $('forestStatus').textContent+=' · '+added+' zulässige Dschungel-Hexe markiert (nur warme Basisbiome).';
  });
  $('forestClearJungle').addEventListener('click',()=>{config().jungleHexes={};changed(true);});
  window.addEventListener('vedras:hex-selected',render);
