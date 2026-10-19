@@ -384,7 +384,7 @@ window.VedrasNature=(()=>{
     cell=>{const t=core.effectiveBiome(cell),tt=core.catalog().terrainTypes.find(v=>v.id===t);return tt?.materialClass==='ground'&&eligible.has(t);},
     {coreRadius:config.coreRadius,mode,chainId,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
   if(!result.ok){message('Berg nicht platziert: '+result.reason);$('mountainStatus').textContent=result.reason;return;}
-  const sh=window.VedrasShadows.settings(state.mountainShadowDefaults);
+  const sh=window.VedrasShadows.settings({...state.mountainShadowDefaults,...(state.shadowAssetPresets?.[a.path]||{})});
   state.mountainInstances=[...(state.mountainInstances||[]),{assetPath:a.path,assetId:meta.id,q,r,radius:config.radius,coreRadius:config.coreRadius,mode,chainId:mode==='chain'?chainId:null,...encodeInstanceShadow(sh)}];
   state.objects=true;$('objectsToggle').checked=true;
   core.invalidateTerrain?.();saved();syncMountainControls();$('mountainStatus').textContent=`${meta.id}: ${result.area.length} Kernhex(e) reserviert; ${result.influenceArea.length} Einflusshexe. Nachbarfelder für Sprites frei. ${placedMountainsMessage()}`;
@@ -403,7 +403,7 @@ window.VedrasNature=(()=>{
    const result=window.VedrasMountains.candidate({cells:core.cells(),mountains:state.mountainInstances,nature:[],objects:{}},q,r,conf.radius,
     c=>{const tt=core.catalog().terrainTypes.find(t=>t.id===core.effectiveBiome(c));return c.q===q&&c.r===r&&tt?.materialClass==='ground';},
     {coreRadius:0,mode:'chain',chainId:id,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
-   if(result.ok){const sh=window.VedrasShadows.settings(state.mountainShadowDefaults);state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,...encodeInstanceShadow(sh)});}
+   if(result.ok){const sh=window.VedrasShadows.settings({...state.mountainShadowDefaults,...(state.shadowAssetPresets?.[a.path]||{})});state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,...encodeInstanceShadow(sh)});}
   });
   state.objects=true;state.showLegacyNature=false;state.river=false;state.mountainDebug=true;
   $('objectsToggle').checked=true;$('nShowDemo').checked=false;$('riverToggle').checked=false;$('mountainDebug').checked=true;
