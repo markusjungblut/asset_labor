@@ -44,11 +44,25 @@ assert.equal(S.paintMountain(ctx,origin,width,{...cfg,opacity:0},.7),null);
 assert(Math.abs(S.settings({reach:1.4}).length-1.12)<1e-9,'legacy length migration');
 assert(Math.abs(S.settings({spread:2}).rootWidth-.26*2/1.28)<1e-8,'legacy spread migration');
 assert.equal(S.settings({opacity:3}).opacity,.75,'opacity bounded');
-assert.equal(B.placementScale({kind:'tree'}),.5);
-assert.equal(B.placementScale({kind:'shrub'}),.7);
+assert.equal(B.placementScale({kind:'tree'}),.6);
+assert.equal(B.placementScale({kind:'shrub'}),.84);
 assert.equal(B.placementScale({kind:'mountain'}),1);
-assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.5)<1e-10);
-assert(Math.abs(B.sizeFactor({kind:'shrub',sizeClass:'medium'})-.73*.7)<1e-10);
+const unchangedWood=[
+ {kind:'tree',family:'dead_trees',scale:.5},
+ {kind:'tree',family:'snow_dead_trees',scale:.5},
+ {kind:'cluster',family:'fallen_logs',scale:.7},
+ {kind:'cluster',family:'snow_fallen_logs',scale:.7},
+ {kind:'special',family:'deadwood',scale:.7}
+];
+for(const entry of unchangedWood)
+ assert.equal(B.placementScale(entry),entry.scale,'deadwood must retain previous display size: '+entry.family);
+assert(Math.abs(B.sizeFactor({kind:'tree',family:'dead_trees',sizeClass:'medium'})-.58*.5)<1e-10);
+assert(Math.abs(B.sizeFactor({kind:'tree',family:'snow_dead_trees'})-.58*.5)<1e-10);
+assert(Math.abs(B.sizeFactor({kind:'special',family:'deadwood'})-.72*.7)<1e-10);
+assert.equal(B.placementScale({kind:'ground_cover'}),.84);
+assert.equal(B.placementScale({kind:'rock'}),.84);
+assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.6)<1e-10);
+assert(Math.abs(B.sizeFactor({kind:'shrub',sizeClass:'medium'})-.73*.84)<1e-10);
 assert(Math.abs(B.sizeFactor({kind:'cluster',family:'fallen_logs'})-.71*.7)<1e-10);
 assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest'}),5);
 assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest'}),8);
@@ -64,4 +78,4 @@ assert(app.includes('shadows.paintMountain(g,origin,w,')&&app.includes('shadows.
 assert(app.includes('mountainOriginForObject(o,sh)'),'dragging uses actual alpha origin');
 assert(editor.includes('placementScale(meta)')&&editor.includes('encodeInstanceShadow(sh)'),
  'new sprite spacing and saved shape are integrated');
-console.log('PASS: directional mountain field, left alpha foot, no right spill, shape controls, 50/30 scaling and higher quotas.');
+console.log('PASS: directional mountain field, alpha foot, scale bump with deadwood exclusions and original density quotas.');

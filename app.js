@@ -516,11 +516,11 @@ function drawMountainFootprints(){
 function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  if(state.showLegacyNature!==false)for(const c of worldCells){if(blocked.has(key(c.q,c.r)))continue;if(c.biome==='forest')for(let j=0;j<4;j++){const a=rnd(c.q,c.r,j+40)*Math.PI*2,rad=38+rnd(c.q,c.r,j+70)*78,p=axialPos(c.q,c.r);
  const x=p.x+Math.cos(a)*rad,y=p.y+Math.sin(a)*rad;if(Math.hypot(x,y-50)<126)continue;
- objs.push({asset:findAsset('nature',j%2?'pine_02':'pine_01'),x,y,w:29,type:'nature'});}
+ objs.push({asset:findAsset('nature',j%2?'pine_02':'pine_01'),x,y,w:34.8,type:'nature'});}
  if(c.biome==='mountain' || c.biome==='hills'){const p=axialPos(c.q,c.r);
- const a=findAsset('nature',c.biome==='mountain'?'hill_01':'rock_02');if(a)objs.push({asset:a,x:p.x+30,y:p.y+38,w:c.biome==='mountain'?153:65,type:'nature'});}
+ const a=findAsset('nature',c.biome==='mountain'?'hill_01':'rock_02');if(a)objs.push({asset:a,x:p.x+30,y:p.y+38,w:c.biome==='mountain'?153:78,type:'nature'});}
  }
- if(state.showLegacyNature!==false&&!blocked.has(window.VedrasAutotile.hexAt(113,-32))){const ore=findAsset('nature','ore_iron');if(ore)objs.push({asset:ore,x:113,y:-32,w:68,type:'nature'});}
+ if(state.showLegacyNature!==false&&!blocked.has(window.VedrasAutotile.hexAt(113,-32))){const ore=findAsset('nature','ore_iron');if(ore)objs.push({asset:ore,x:113,y:-32,w:81.6,type:'nature'});}
  const a=findAsset('buildings','mine_lvl01__main');if(a&&!blocked.has('0,0'))objs.push({asset:a,x:0,y:52,w:160,type:'building',cell:'0,0'});
  const army=findAsset('units','expedition');const ep=axialPos(1,0);if(army&&!blocked.has('1,0'))objs.push({asset:army,x:ep.x-35,y:ep.y+50,w:44,type:'unit'});
  for(const [k,values] of Object.entries(state.hexObject)){
