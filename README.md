@@ -1,3 +1,30 @@
+## Nature-Bestand und Schneevarianten · 19. Oktober 2026
+
+**258 reale Nature-PNGs katalogisiert und im Inventar sowie in FloraV2 abgeglichen.**
+Die jüngsten Uploads ergänzen 77 Nature-Grafiken (5 Dschungelbüsche, 10 Kakteen, 15 tote Bäume,
+24 gefallene Stämme, 10 Farne, 5 Mangroven und 8 Baumstümpfe). Die 4 zusätzlichen
+`frozen_tundra_base_01–04.png` sind Gelände-Texturen, keine Flora.
+
+**Verbindliche Schneevarianten:** `dead_tree_11–15` (5), `fallen_log_11–20` (10)
+und `tanne_schnee_01–10` (10). Diese 25 PNGs sind nur für
+`snowfields`, `frozen_tundra`, `tundra`, `highland` zugelassen;
+**Schneetannen/-kiefern auf gewöhnlicher Tundra sind bei der Zufallsplatzierung selten
+(2-%-Prüfung je Kandidat)**. Manuelle Platzierungen in passenden Kältebiomen bleiben erlaubt.
+`fallen_log_21–24` sowie `Baumstumpf_09–16` werden **nicht** als verschneit angesehen.
+Andere Pflanzen können auf Tundra vorkommen, sind aber nicht automatisch Schneevarianten.
+
+**Pflanzenplanung abgeschlossen:** keine offenen neuen Floraarten, keine Mangrovengruppen.
+Nur künftige optionale *Schneeversionen* werden bei Bedarf ergänzt. Die verbleibenden
+Planungsaufträge Findling, Felsgruppe, Eisblock, Schneeberg gehören zu Steinen/Eis/Geologie;
+Tiere sind ein unabhängiger späterer Bereich.
+
+**Habitat-Schutz:** Mangrovenwurzeln stehen ausschließlich auf Land in geeigneten warmen
+Feuchtgebieten, ihre Kronen dürfen angrenzendes Wasser überragen. Flusskorridore blockieren
+auch breite liegende Baumstämme. Alte Fehlplatzierungen werden anhand von Habitat und
+Flussmasken überprüft. Nur katalogisierte Grafiken werden zuverlässig automatisch verteilt;
+optische Einzelfreigaben der 77 Uploads stehen weiterhin aus.
+
+---
 **Grafik-/Habitat-Korrektur v0.16 (19.10.2026):** Der Flusskörper wird nicht mehr mit Canvas-Strichen gemalt, sondern als gefüllte, entlang realer Hexkanten orientierte Wasser-Segmentmaske mit weichem Alpharand und ohne Sandkante gerendert. Fluss-Sperrflächen verhindern Nature-Platzierungen im Wasserkanal, auch bei manuellen Aktionen; bisherige, überprüfbar unzulässige Instanzen werden beim Laden des Nature-Katalogs, bei relevanten Änderungen sowie per **„Fehlplatzierungen prüfen und bereinigen“** entfernt. Mangroven bleiben auf feuchte, warme Uferlandhexe beschränkt und dürfen visuell in angrenzendes Wasser hineinragen. Palmen stehen ausschließlich in Dschungel/Savanne. Der aktuelle Bestandskatalog enthält unverändert **181 PNGs** aus **17 Familien**; die Habitatfreigaben wurden familienweise geprüft. Die neu erstellten zusätzlichen Pflanzen sind noch **nicht im Repository eingelesen**; der offene Sprite-Produktionsplan enthält nur noch vier geologische Aufgaben (Findling, Felsgruppe, Eisblock, Schneeberg). Zur Detailprüfung: [Habitat- und Fluss-Audit](docs/NATURE_HABITAT_AUDIT.md). Ein echter Bild-/Browser-QA-Lauf bleibt nötig.
 
 **Fluss- und Palmenkorrektur v0.15:** Flüsse verlaufen entlang der Hexkanten und Hex-Ecken, wie die Küsten-Overlays. Die Küsten-PNGs bleiben unverändert; sie definieren die Ausrichtung, nicht das Flussmaterial. Für den Fluss wird Wasser ohne Strand mit transparenter Kante verwendet. Die elf Palmen sind nur für warme Landbiome zugelassen, nicht mehr für Moor, Marschland oder Sumpf. Vorher erzeugte, manuell platzierte Instanzen werden nicht ungefragt gelöscht; eine neue Naturverteilung entfernt alte Zufallsplatzierungen.
