@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "source": "258 real Nature PNGs in assets/nature, with 77 uploaded 19 Oct 2026; reviewed ecological/seasonal grouping.",
-  "meaning": "106 Referenzgruppen mit genau 181 realen Nature-Varianten; keine eigenständige Produktionsliste.",
+  "meaning": "109 read-only reference groups with exactly 258 real Nature PNG aliases. No additional plant production backlog; geology and ice are separate.",
   "species": [
     {
       "id": "oak_01",
