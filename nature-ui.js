@@ -140,7 +140,11 @@ window.VedrasNature=(()=>{
   const water=around.some(v=>['water','shoreline'].includes(terrain.terrainTypes.find(t=>t.id===core.effectiveBiome(v))?.materialClass));
   const warm=['jungle','savanna','tropical_coast','tropical_marsh','mangrove_swamp'].includes(type)||
    around.some(v=>['jungle','savanna','tropical_coast','tropical_marsh','mangrove_swamp'].includes(core.effectiveBiome(v)));
-  return window.VedrasExistingAssets.habitatAllowed(a,meta,type,material,{coastal:water,warm});
+  const p=pts(c.q,c.r),nearRiver=(core.riverRoutes?.()||[]).some(route=>{
+   const wet=v=>['water','shoreline'].includes(terrain.terrainTypes.find(t=>t.id===core.effectiveBiome(v))?.materialClass);
+   return window.VedrasRivers.intersects(route,core.cells(),wet,p.x,p.y,112,state.riverWidth||32);
+  });
+  return window.VedrasExistingAssets.habitatAllowed(a,meta,type,material,{coastal:water,warm,waterNearby:water||nearRiver});
  }
  function riverBlocked(meta,q,r,dx,dy){
   const Rv=window.VedrasRivers;if(!Rv||!core.riverRoutes)return false;
