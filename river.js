@@ -146,15 +146,28 @@ window.VedrasRivers=(()=>{
   const scale=Math.min(1.55,2500/Math.max(dw,dh)),canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d');g.setTransform(scale,0,0,scale,-x*scale,-y*scale);
-  const traceStroke=(strokeWidth,alpha)=>{
-   g.beginPath();trace(g,route,cells,isWet,groundY,width);g.lineJoin='round';g.lineCap='round';
-   g.strokeStyle='rgba(255,255,255,'+alpha+')';g.lineWidth=strokeWidth;g.stroke();
-  };
-  // All bands are WATER ALPHA only: no sand, beach, bank or border material.
-  // The terrain beneath shows through the progressively softer channel edges.
-  traceStroke(width+24,.025);traceStroke(width+17,.08);
-  traceStroke(width+11,.22);traceStroke(width+6,.52);
-  traceStroke(width,.95);
+  // Mask a chain of actual shoreline-aligned EDGE SEGMENTS. Each tile-side
+  // is an oriented filled polygon; joins and endcaps are shared filled discs.
+  // No freehand canvas stroke is used to paint a river.
+  const channel=[...segments.flatMap(s=>s.path),mouthTip(segments,route,width)].filter((p,i,a)=>!i||Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y)>1e-6);
+  const project=p=>({x:p.x,y:groundY?groundY(p.x,p.y):p.y});
+  function segmentMask(points,diameter,style){
+   const projected=points.map(project),half=diameter/2;
+   g.beginPath();
+   for(let i=1;i<projected.length;i++){
+    const a=projected[i-1],b=projected[i],len=Math.hypot(b.x-a.x,b.y-a.y);
+    if(len<1e-6)continue;
+    const nx=-(b.y-a.y)/len*half,ny=(b.x-a.x)/len*half;
+    g.moveTo(a.x+nx,a.y+ny);g.lineTo(b.x+nx,b.y+ny);
+    g.lineTo(b.x-nx,b.y-ny);g.lineTo(a.x-nx,a.y-ny);g.closePath();
+   }
+   for(const p of projected){g.moveTo(p.x+half,p.y);g.arc(p.x,p.y,half,0,Math.PI*2);}
+   g.fillStyle=style;g.fill();
+  }
+  // Feathered per-segment alpha masks, with exactly the same material for
+  // straight edges, turns and rounded source end. No sand or hard bank.
+  for(const [extra,alpha] of [[24,.025],[17,.08],[11,.22],[6,.52],[0,.95]])
+   segmentMask(channel,width+extra,'rgba(255,255,255,'+alpha+')');
   // Replace white mask with actual mouth-water image; preserve alpha shape.
   g.save();g.globalCompositeOperation='source-in';g.globalAlpha=1;
   const pattern=waterImage?.naturalWidth?g.createPattern(waterImage,'repeat'):null;
@@ -172,12 +185,28 @@ window.VedrasRivers=(()=>{
   const last=segments[segments.length-1].end;
   const mouth=mouthTip(segments,route,width);
   g.save();g.globalCompositeOperation='destination-out';
-  g.beginPath();g.moveTo(last.x,groundY?groundY(last.x,last.y):last.y);g.lineTo(mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
   const grad=g.createLinearGradient(last.x,groundY?groundY(last.x,last.y):last.y,mouth.x,groundY?groundY(mouth.x,mouth.y):mouth.y);
   grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,'rgba(0,0,0,1)');
-  g.strokeStyle=grad;g.lineCap='butt';g.lineWidth=width+28;g.stroke();g.restore();
+  segmentMask([last,mouth],width+28,grad);g.restore();
   ctx.drawImage(canvas,x,y,dw,dh);
   return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh};
+ }
+ // Shared geometry contract for the Nature system: the river occupies a
+ // continuous capsule around each edge segment, including the source and mouth.
+ function blocksPoint(x,y,routes,cells,isWet,width=32,padding=0){
+  const reach=Math.max(12,Math.min(70,Number(width)||32))/2+Math.max(0,Number(padding)||0);
+  const nearSegment=(p,a,b)=>{
+   const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+   const t=len2?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2)):0;
+   return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy)<=reach;
+  };
+  const p={x,y};
+  for(const route of routes||[]){
+   const chunks=sections(route,cells,isWet);if(!chunks.length)continue;
+   const points=[...chunks.flatMap(c=>c.path),mouthTip(chunks,route,width)];
+   if(points.some((v,i)=>i>0&&nearSegment(p,points[i-1],v)))return true;
+  }
+  return false;
  }
  function normalizeRoutes(routes,cells,isWet){
   return (Array.isArray(routes)?routes:[]).slice(0,50).filter(x=>valid(x,cells,isWet)).map(route=>({
@@ -185,5 +214,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,trace,render,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,trace,render,blocksPoint,normalizeRoutes};
 })();
