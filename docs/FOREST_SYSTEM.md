@@ -80,3 +80,48 @@ Vier Weiden und vier Erlen werden als Ufer- bzw. Feuchtgebietsbäume (`riparian_
 Tests: `node tests/test_block1_forest_habitats.cjs` sowie die bestehenden Wald-, Inventar-, Flora- und Fluss-Habitat-Regressionen.
 
 **Grenzen**: Dies ist das Asset-Labor, noch nicht der Gelände-/Waldgenerator im separaten Hauptspiel. Eine echte kombinierte Klima-/Temperatur-/Brackwasserkarte für Mangroven existiert nicht. Browserseitige visuelle Kontrolle des weichen Waldbodens bei aktiviertem Relief bleibt sinnvoll.
+
+
+## Block 2 – Nature-Balancing und Bauflächen (19.10.2026)
+
+Die 258 PNGs sowie ihre einzeln editierbaren Kataloggrößen bleiben unverändert.
+`nature-balance.js` reduziert die **sichtbare** Größe von generierten, manuell platzierten
+und in älteren Szenen gespeicherten Nature-Instanzen zentral. Dadurch wird beim
+Ändern eines Katalogmaßes weiterhin die tatsächliche individuelle Größe verändert.
+
+| Grafiktyp | Laufzeitmaßstab gegenüber bisher | Ziel |
+|---|---:|---|
+| große lebende Bäume | 79 % | weniger dominant, Raum für Bauten |
+| mittelgroße lebende Bäume | 81 % | ähnliche Proportionen |
+| riesige Bäume/Kapok | 73 % | große Silhouette, aber platzsparender |
+| tote Bäume und verschneite tote Bäume | **58 %** | keine unbeabsichtigten Landmarken |
+| liegende Baumstämme, auch verschneit | 71 % | niedrigere bodennahe Hindernisse |
+| mittelgroße Büsche | 81 % | Boden und Bauplätze sichtbar |
+| Baumstümpfe | 72 % | zurückhaltende Dekoration |
+| andere Buschgruppen | 82 % | lockere Untervegetation |
+
+Die Quoten der **lebenden** Waldkronen wurden angepasst: `dense_forest` 5→3,
+`light_forest` 3→2 und der Waldrand zu meist 0–1 lebenden Bäumen.
+Zudem sinkt die Gesamtzahl möglicher Nature-Objekte pro Hex (dicht 9→5, licht 7→4).
+**Tote Bäume zählen nicht zur lebenden Baumquote.** Sie und liegende Stämme
+werden als sehr seltene Hintergrundobjekte verteilt und zusätzlich pro Karte
+gedeckelt: maximal `floor(Landhexe / 16)` automatisch generierte tote
+Bäume beziehungsweise `floor(Landhexe / 15)` liegende Stämme, mindestens
+jeweils 1, alle Schneevarianten mitgerechnet. Manuelle Sonderplatzierungen
+sind davon ausgenommen.
+
+Mit konstantem Seed bleiben ungefähr **18 %** der verfügbaren Landhexe
+als benachbarte, zusammenhängende **Freiflächen/Baubereiche** ohne automatisch
+generierte Nature-Sprites. Wasser, vorhandene Objekte und Berge zählen dafür
+nicht als Baufläche. Gebäude sperren darüber hinaus das eigene Hex sowie
+eine artabhängige Bodenzone (Bäume ca. 126, liegende Stämme ca. 118,
+kleine Objekte ca. 96 logische Welteinheiten). Altinstanzen werden dagegen
+validiert; explizit manuell hinzugefügte Nature-Sprites dürfen bewusst auch
+auf einer sonst freigehaltenen Lichtung stehen.
+
+Die Lichtungsreservierung ist **keine spätere Gebäudeplatzierungs-API**.
+Die Gebäude- und Bauvorschriften des Hauptspiels werden erst bei dessen
+Integration verbindlich. Bestehende Fluss- und Klimaregeln bleiben erhalten.
+
+Regression: `node tests/test_block2_nature_balance.cjs` zusätzlich zu den
+Wald-, Habitat- und Inventar-Tests.
