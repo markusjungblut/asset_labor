@@ -193,17 +193,18 @@ function drawShorelines(){
  if(!opts.enabled){if(report)report.textContent='Ufer-Overlays ausgeschaltet.';return;}
  const classes=worldCells.map(c=>[c.q,c.r,isWaterTerrain(typeOfCell(c))]);
  const files=SHORE_EDGE_PATHS.map(path=>useAsset(path));
- const skipEdges=state.river?[...window.VedrasRivers.mouths(riverRoutes(),worldCells,wetHex)].sort():[];
- const signature=JSON.stringify({cells:classes,mode:opts.mode,width:opts.width,outer:opts.outer,images:files.map(a=>[a?.path,a?.mtime]),skipEdges});
+ const mouthPortals=state.river?window.VedrasRivers.mouthPortals(riverRoutes(),worldCells,wetHex,state.riverWidth):[];
+ const signature=JSON.stringify({cells:classes,mode:opts.mode,width:opts.width,outer:opts.outer,
+  images:files.map(a=>[a?.path,a?.mtime]),mouthPortals,version:4});
  if(shorelineCache.signature!==signature){
   const imgs=files.map(a=>a?.img?.naturalWidth?a.img:null);
   const t0=performance.now();
-  shorelineCache.raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{...opts,resolution:1.5,skipEdges});
+  shorelineCache.raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{...opts,resolution:1.5,mouthPortals});
   shorelineCache.signature=signature;shorelineCache.buildMs=performance.now()-t0;
  }
  const r=shorelineCache.raster;
  if(r?.canvas)ctx.drawImage(r.canvas,r.x,r.y,r.width,r.height);
- if(report)report.textContent=`${r?.segments?.length||0} Land/Wasser-Kanten, ${opts.mode==='art'?'6 Grafik-Overlays':'temporäre Testkanten'} · ${r?.missing||0} Grafik-Fallbacks · ${shorelineCache.buildMs?.toFixed(0)||0} ms · Küstenwasser zählt als WATER.`;
+ if(report)report.textContent=`${r?.segments?.length||0} vollständige Land/Wasser-Kanten · ${r?.mouthPortals||0} weiche Mündungsöffnungen · ${r?.missing||0} Grafik-Fallbacks · ${shorelineCache.buildMs?.toFixed(0)||0} ms.`;
 }
 
 // A forest is overlaid on its *original* ground, rather than replacing a moor,
@@ -319,7 +320,7 @@ function drawRoads(){
   const width=clamp(Number(state.riverWidth)||32,12,70);
   // Raster is reused at every pan/zoom. The water sampler must come from
   // the actual mouth tile, not a fixed blue/sandy river bitmap.
-  const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,width,asset:water?.path,mtime:water?.mtime,img:water?.img?.naturalWidth||0,relief:state.relief});
+  const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,width,asset:water?.path,mtime:water?.mtime,img:water?.img?.naturalWidth||0,relief:state.relief,mask:'sdf-v4'});
   const cached=riverRasterCache.get(signature);
   if(cached)ctx.drawImage(cached.canvas,cached.x,cached.y,cached.width,cached.height);
   else{
