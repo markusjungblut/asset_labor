@@ -1,3 +1,5 @@
+**Waldboden-Nahtfix (19.10.2026):** Waldboden wird jetzt nicht mehr pro Hex mit eigener Fade-Grafik aufgestempelt, sondern einmal je zusammenhängender Waldregion als weltverankerte Textur mit gemeinsamer Alpha-Maske gerendert. Nur die Außenkante der Waldregion blendet weich aus. Details: `docs/FOREST_SYSTEM.md`, Test: `tests/test_forest_floor_regions.cjs`.
+
 **Block 4 · Grafik-Finish (19.10.2026):** Flüsse nutzen eine einzige,
 weich auslaufende **Distanzfeldmaske** statt sichtbarer Halbkreise an
 Hexkanten; ihre Mündungen liegen auf dem gemeinsamen Küsten-Seitenmittelpunkt.
