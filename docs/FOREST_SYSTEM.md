@@ -65,3 +65,18 @@ Ein fixer Seed sorgt dafür, dass Waldkerne, Randwirkung und Sprite-Positionen r
 ## Neue Nature-Arten, 19.10.2026
 
 Vier Weiden und vier Erlen werden als Ufer- bzw. Feuchtgebietsbäume (`riparian_trees`) geführt. Tundra-Zwergsträucher (`cold_bushes`) wachsen nur auf Tundra-, gefrorenen Tundra- oder Hochland-Terrain. Schilf (`reeds`) gehört zu Feuchtgebieten und nicht auf Ozeanflächen; Sukkulenten (`succulents`) zu ariden Biomen und Savannen. Baumstümpfe (`deadwood`) sind vereinzelte Waldbodenobjekte und werden nicht als lebende Bäume gezählt. Marula zählt zu Savannenbäumen; drei zusätzliche Wacholder sind Nadelgehölze. Alle sind normale `candidate`-Sprites. Normale Kapokbäume und der eigenständige Dschungel bleiben unverändert.
+
+
+## Block 1 – verbindliche Grundbiom-/Wald-Architektur (19.10.2026)
+
+* **Grundbiom (`baseBiomeOf`)**: wird aus einem ausdrücklich zugewiesenen Terrain-Typ, andernfalls aus dem ursprünglichen Kartenbiom abgeleitet. `forest_floor` ist ausschließlich Bodengrafik. Die Demo-Vorlage `forest_floor` erhält als neutrales Ursprungsbiom `grassland`; vorhandene Moor-/Hochlandtypen gehen nicht verloren.
+* **Wald-Overlay (`forestCells`)**: `light_forest`, `dense_forest` und Waldrand überlagern unabhängig den Grundtyp. Damit ist z. B. **Moor + dichter Wald** erlaubt, aber kein Dschungel auf Moor. Waldgenerierung bleibt deterministisch und wird nach Eingaben zwischengespeichert.
+* **Bodendarstellung (`drawForestFloor`)**: eine `wald_*.png` wird mit einer radial auslaufenden Alphamaske unter der Vegetation, aber über dem ursprünglichen Terrain gezeichnet. Die Stärke ist im Feuchtgebiet niedriger; Schneefelder und gefrorene Tundra erhalten keinen grünen Waldboden. Auch eine manuell zugewiesene Waldboden-PNG ersetzt nicht die Basistextur.
+* **Dschungel**: darf nur über `savanna` oder bereits als `jungle` ausgewiesenen warmen Boden gelegt werden. Alte Dschungelmarker auf Moor/Wasser bleiben wirkungslos, statt einen neuen Klimatyp zu erfinden.
+* **Habitatentscheidung (`VedrasNatureCatalog.canPlace`)**: prüft mit derselben Funktion in Generierung, manueller Platzierung, Darstellung und Cleanup den echten Untergrund, ein mögliches Dschungelbiom, die Waldklasse, den Nature-Katalog sowie erforderliche Nachbarn. **Palmen nur in Savanne/Dschungel**, unabhängig vom Wald-Overlay; Kakteen/Sukkulenten/trockene Büsche nicht in geschlossenen Wäldern; Mangroven mit Landanker und passenden Feucht-/Uferbedingungen.
+* **Szenenhaltung**: `baseBiomeByHex` wird exportiert/importiert, ohne ältere Szenen zu brechen. Ungültige Nature-Instanzen und ältere direkte Nature-Hexzuweisungen werden bei Katalog-, Terrain-, Fluss- und Waldänderungen bereinigt. Noch fehlende Assets werden nicht blind gelöscht. Manuell hinzugefügte gültige Sprites tragen `source:'manual'` und werden bei Waldneuverteilung erhalten. Ein vollständiger Szenenreset entfernt vorhandene Nature-Instanzen.
+* **Terrainkatalog**: `forest_floor` liegt unter **Wald- und Vegetationsboden**, nicht mehr unter **Weitere Testgelände**. Keine neuen Pflanzen-Sprites sind dadurch erforderlich.
+
+Tests: `node tests/test_block1_forest_habitats.cjs` sowie die bestehenden Wald-, Inventar-, Flora- und Fluss-Habitat-Regressionen.
+
+**Grenzen**: Dies ist das Asset-Labor, noch nicht der Gelände-/Waldgenerator im separaten Hauptspiel. Eine echte kombinierte Klima-/Temperatur-/Brackwasserkarte für Mangroven existiert nicht. Browserseitige visuelle Kontrolle des weichen Waldbodens bei aktiviertem Relief bleibt sinnvoll.
