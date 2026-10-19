@@ -326,19 +326,32 @@ window.VedrasNature=(()=>{
   return {width:meta?.logicalWidth||360,aspect:a?.img?.naturalWidth?a.img.naturalHeight/a.img.naturalWidth:1,anchorX:meta?.anchor?.x??.5,anchorY:meta?.anchor?.y??.67};
  }
  function selectedMountain(){const [q,r]=state.selected.split(',').map(Number);return (state.mountainInstances||[]).find(m=>m.q===q&&m.r===r)||null;}
- function getShadowControls(){return {opacity:Number($('mountainCastOpacity').value),reach:Number($('mountainCastReach').value),softness:Number($('mountainCastSoft').value)};}
- function setShadowControls(s){
-  $('mountainCastOpacity').value=String(s.opacity??.58);$('mountainCastReach').value=String(s.reach??1.55);$('mountainCastSoft').value=String(s.softness??11);
-  $('mountainCastOpacityText').textContent=Number($('mountainCastOpacity').value).toFixed(2).replace('.',',');
-  $('mountainCastReachText').textContent=Number($('mountainCastReach').value).toFixed(2).replace('.',',')+'×';
-  $('mountainCastSoftText').textContent=$('mountainCastSoft').value;
+ const SHADOW_FIELDS={opacity:'shadowOpacity',reach:'shadowReach',softness:'shadowSoftness',
+  originX:'shadowOriginX',originY:'shadowOriginY',spread:'shadowSpread',contact:'shadowContact'};
+ const SHADOW_SLIDERS={opacity:'mountainCastOpacity',reach:'mountainCastReach',
+  softness:'mountainCastSoft',originX:'mountainOriginX',originY:'mountainOriginY',
+  spread:'mountainSpread',contact:'mountainContact'};
+ const encodeInstanceShadow=values=>Object.fromEntries(Object.entries(SHADOW_FIELDS).map(([name,field])=>[field,values[name]]));
+ function getShadowControls(){
+  return window.VedrasShadows.settings(Object.fromEntries(Object.entries(SHADOW_SLIDERS).map(([name,id])=>[name,Number($(id).value)])));
+ }
+ function setShadowControls(input){
+  const config=window.VedrasShadows.settings(input);
+  for(const [name,id] of Object.entries(SHADOW_SLIDERS)){
+   $(id).value=String(config[name]);const out=$(id+'Text');
+   if(out)out.textContent=config[name].toFixed(name==='softness'?0:2).replace('.',',')+(['reach','spread','contact'].includes(name)?'×':'');
+  }
+  $('shadowGlobalStrength').value=String(Math.round(window.VedrasShadows.globalStrength(state.shadowGlobal)*100));
+  $('shadowGlobalText').textContent=$('shadowGlobalStrength').value+' %';
  }
  function syncMountainControls(){
-  const current=selectedMountain(),defaults=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};
-  setShadowControls(current?{
-   opacity:current.shadowOpacity??defaults.opacity,reach:current.shadowReach??defaults.reach,softness:current.shadowSoftness??defaults.softness
-  }:defaults);
-  renderMountainOverlap();
+  const current=selectedMountain(),selectedAsset=core.assets().find(a=>a.path===state.asset),
+   assetPath=current?.assetPath||selectedAsset?.path,
+   preset=state.shadowAssetPresets?.[assetPath]||{};
+  const config={...window.VedrasShadows.defaults,...state.mountainShadowDefaults,...preset};
+  if(current)for(const [k,field] of Object.entries(SHADOW_FIELDS))
+   if(Number.isFinite(current[field]))config[k]=current[field];
+  setShadowControls(config);renderMountainOverlap();
  }
  function renderMountainOverlap(){
   const mts=state.mountainInstances||[];let peak=0,pair=null;
@@ -351,10 +364,12 @@ window.VedrasNature=(()=>{
  }
  function updateShadow(){
   const values=getShadowControls(),current=selectedMountain();
-  if(current){current.shadowOpacity=values.opacity;current.shadowReach=values.reach;current.shadowSoftness=values.softness;}
-  else state.mountainShadowDefaults={...values};
+  if(current){
+   current.shadowOpacity=values.opacity;current.shadowReach=values.reach;current.shadowSoftness=values.softness;
+   Object.assign(current,encodeInstanceShadow(values));
+  }else state.mountainShadowDefaults={...values};
   setShadowControls(values);core.requestDraw();core.persistScene();
-  $('mountainStatus').textContent=current?`Schlagschatten für Berg (${current.q},${current.r}) gespeichert.`:'Schattenvorgaben für neue Berge gespeichert.';
+  $('mountainStatus').textContent=current?`Schattenform für Berg (${current.q},${current.r}) gespeichert.`:'Schattenvorgaben für neue Berge gespeichert.';
  }
  function placedMountainsMessage(){const all=state.mountainInstances||[],chains=window.VedrasMountains.chainGroups(all);
   return `${all.length} Berge · ${[...chains.keys()].filter(x=>x.startsWith('chain:')).length} Bergketten`;}
@@ -369,8 +384,8 @@ window.VedrasNature=(()=>{
     cell=>{const t=core.effectiveBiome(cell),tt=core.catalog().terrainTypes.find(v=>v.id===t);return tt?.materialClass==='ground'&&eligible.has(t);},
     {coreRadius:config.coreRadius,mode,chainId,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
   if(!result.ok){message('Berg nicht platziert: '+result.reason);$('mountainStatus').textContent=result.reason;return;}
-  const sh=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};
-  state.mountainInstances=[...(state.mountainInstances||[]),{assetPath:a.path,assetId:meta.id,q,r,radius:config.radius,coreRadius:config.coreRadius,mode,chainId:mode==='chain'?chainId:null,shadowOpacity:sh.opacity,shadowReach:sh.reach,shadowSoftness:sh.softness}];
+  const sh=window.VedrasShadows.settings(state.mountainShadowDefaults);
+  state.mountainInstances=[...(state.mountainInstances||[]),{assetPath:a.path,assetId:meta.id,q,r,radius:config.radius,coreRadius:config.coreRadius,mode,chainId:mode==='chain'?chainId:null,...encodeInstanceShadow(sh)}];
   state.objects=true;$('objectsToggle').checked=true;
   core.invalidateTerrain?.();saved();syncMountainControls();$('mountainStatus').textContent=`${meta.id}: ${result.area.length} Kernhex(e) reserviert; ${result.influenceArea.length} Einflusshexe. Nachbarfelder für Sprites frei. ${placedMountainsMessage()}`;
  }
@@ -388,7 +403,7 @@ window.VedrasNature=(()=>{
    const result=window.VedrasMountains.candidate({cells:core.cells(),mountains:state.mountainInstances,nature:[],objects:{}},q,r,conf.radius,
     c=>{const tt=core.catalog().terrainTypes.find(t=>t.id===core.effectiveBiome(c));return c.q===q&&c.r===r&&tt?.materialClass==='ground';},
     {coreRadius:0,mode:'chain',chainId:id,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
-   if(result.ok){const sh=state.mountainShadowDefaults||{opacity:.58,reach:1.55,softness:11};state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,shadowOpacity:sh.opacity,shadowReach:sh.reach,shadowSoftness:sh.softness});}
+   if(result.ok){const sh=window.VedrasShadows.settings(state.mountainShadowDefaults);state.mountainInstances.push({assetPath:a.path,assetId:meta.id,q,r,radius:conf.radius,coreRadius:0,mode:'chain',chainId:id,...encodeInstanceShadow(sh)});}
   });
   state.objects=true;state.showLegacyNature=false;state.river=false;state.mountainDebug=true;
   $('objectsToggle').checked=true;$('nShowDemo').checked=false;$('riverToggle').checked=false;$('mountainDebug').checked=true;
@@ -476,9 +491,33 @@ window.VedrasNature=(()=>{
  $('nExportAll').addEventListener('click',()=>exportJSON('nature_catalog.json',catalog));
  $('nImportCatalog').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{await importJSON(f);}catch(err){message('Import abgelehnt: '+err.message);}e.target.value='';});
  $('mountainSpacing').addEventListener('change',e=>{state.mountainSpacing=e.target.value;renderMountainOverlap();core.persistScene();});
- for(const id of ['mountainCastOpacity','mountainCastReach','mountainCastSoft'])$(id).addEventListener('input',updateShadow);
+ for(const id of Object.values(SHADOW_SLIDERS))$(id).addEventListener('input',updateShadow);
+ $('shadowGlobalStrength').addEventListener('input',()=>{
+  state.shadowGlobal=Number($('shadowGlobalStrength').value)/100;
+  $('shadowGlobalText').textContent=$('shadowGlobalStrength').value+' %';
+  core.persistScene();core.requestDraw();
+ });
+ $('shadowHandles').addEventListener('change',e=>{
+  state.shadowHandles=e.target.checked;core.persistScene();core.requestDraw();
+ });
+ $('shadowAssetApply').addEventListener('click',()=>{
+  const current=selectedMountain(),asset=core.assets().find(a=>a.path===(current?.assetPath||state.asset));
+  if(!asset||!(asset.category==='buildings'||window.VedrasNature?.entryFor(asset)?.kind==='mountain')){
+   message('Links eine Berg- oder Gebäudegrafik wählen oder einen platzierten Berg anklicken.');return;
+  }
+  state.shadowAssetPresets??={};state.shadowAssetPresets[asset.path]=getShadowControls();
+  core.persistScene();core.requestDraw();
+  message('Schattenprofil für '+asset.name+' gespeichert.');
+ });
+ $('shadowResetInstance').addEventListener('click',()=>{
+  const current=selectedMountain();
+  if(current){for(const field of Object.values(SHADOW_FIELDS))delete current[field];}
+  else if(state.asset&&state.shadowAssetPresets?.[state.asset])delete state.shadowAssetPresets[state.asset];
+  else state.mountainShadowDefaults={...window.VedrasShadows.defaults};
+  syncMountainControls();core.persistScene();core.requestDraw();
+ });
  $('mountainShadowAll').addEventListener('click',()=>{
-  const v=getShadowControls();for(const m of (state.mountainInstances||[])){m.shadowOpacity=v.opacity;m.shadowReach=v.reach;m.shadowSoftness=v.softness;}
+  const v=getShadowControls();for(const m of (state.mountainInstances||[]))Object.assign(m,encodeInstanceShadow(v));
   state.mountainShadowDefaults={...v};saved();message(`Schattenwerte auf ${(state.mountainInstances||[]).length} Berge und künftige Platzierungen angewandt.`);
  });
  $('mountainShadowDebug').addEventListener('change',e=>{state.mountainShadowDebug=e.target.checked;core.requestDraw();core.persistScene();});
@@ -498,7 +537,7 @@ window.VedrasNature=(()=>{
  $('nSeed').addEventListener('change',saved);
  $('nShadowMode').addEventListener('change',()=>{$('nShadowPath').disabled=$('nShadowMode').value!=='custom';});
  const previousOnSelect=core.onSelect; // core only calls our own hook, no cycles
- const onSelect=a=>{setForm(a);renderPlaced();$('nShadowPath').disabled=$('nShadowMode').value!=='custom';};
+ const onSelect=a=>{setForm(a);renderPlaced();syncMountainControls();$('nShadowPath').disabled=$('nShadowMode').value!=='custom';};
  function importSidecars(){let count=0,skipped=[];
    for(const a of core.assets().filter(x=>x.category==='nature'&&!entryFor(x))){
      const raw=a.meta?.assetType==='nature_sprite'?(a.meta.data||a.meta):a.meta;
@@ -523,10 +562,12 @@ window.VedrasNature=(()=>{
  window.addEventListener('vedras:assets-loaded',onLibrary);
  window.addEventListener('vedras:hex-selected',renderPlaced);
  window.addEventListener('vedras:assets-loaded',syncMountainControls);
+ window.addEventListener('vedras:shadow-changed',syncMountainControls);
  for(const event of ['vedras:river-changed','vedras:nature-catalog-changed','vedras:terrain-catalog-changed','vedras:forest-changed'])
   window.addEventListener(event,cleanup);
  window.addEventListener('vedras:terrain-catalog-changed',()=>{if(core.terrainReady?.()&&!dirty)reload();else if(selected)ensureTypeOptions(entryFor(selected)||suggest(selected));});
  $('nShowDemo').checked=state.showLegacyNature!==false;$('nSeed').value=String(state.natureSeed||12345);
+ $('shadowHandles').checked=!!state.shadowHandles;syncMountainControls();
  $('nSeed').addEventListener('change',()=>{state.natureSeed=Number($('nSeed').value)||12345;saved();});
  if(core.terrainReady?.())reload();
  $('nBackupPreview').addEventListener('click',async()=>{try{
