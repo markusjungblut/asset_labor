@@ -11,6 +11,8 @@ window.VedrasForest=(()=>{
  };
  const random=(seed,q,r,salt=0)=>hash(seed,q,r,salt)/4294967296;
  const distance=(a,b)=>Math.max(Math.abs(a.q-b.q),Math.abs(a.r-b.r),Math.abs(a.q+a.r-b.q-b.r));
+ // Tropical canopy is a climate-specific overlay, not a universal forest type.
+ const jungleAllowed=base=>['jungle','savanna'].includes(base);
  const defaults=()=>({enabled:true,seed:12345,coverage:0.38,edgeStrength:0.72,debug:false,overrides:{},jungleHexes:{}});
  function valid(raw){
   const d=defaults(),v=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
@@ -42,16 +44,17 @@ window.VedrasForest=(()=>{
    default: return .55;
   }
  }
- function generate(cells,terrainCatalog,raw,biomeOf){
+ function generate(cells,terrainCatalog,raw,biomeOf,baseOf){
   const options=valid(raw);
   const types=new Map((terrainCatalog?.terrainTypes||[]).map(t=>[t.id,t]));
   const info=cells.map(c=>{
-   const k=key(c.q,c.r),biome=String(typeof biomeOf==='function'?biomeOf(c):c.terrainTypeId||c.biome||'');
-   const isJungle=(options.jungleHexes[k]===true||biome==='jungle')&&
-    !['water','shoreline'].includes(types.get(biome)?.materialClass);
-   const intendedBiome=isJungle?'jungle':biome;
+   const k=key(c.q,c.r),baseBiome=String(typeof baseOf==='function'?baseOf(c):c.baseBiome||c.terrainTypeId||c.biome||'');
+   const biome=String(typeof biomeOf==='function'?biomeOf(c):baseBiome);
+   const ground=types.get(baseBiome)?.materialClass==='ground';
+   const isJungle=ground&&jungleAllowed(baseBiome)&&(options.jungleHexes[k]===true||biome==='jungle');
+   const intendedBiome=isJungle?'jungle':baseBiome;
    const climate=suitability(types.get(intendedBiome),c,intendedBiome);
-   return {q:c.q,r:c.r,key:k,biome:intendedBiome,biomeId:intendedBiome,jungle:isJungle,suitability:climate,
+   return {q:c.q,r:c.r,key:k,baseBiome,biome:intendedBiome,biomeId:intendedBiome,jungle:isJungle,suitability:climate,
     forestClass:'none',baseDensity:0,edgeInfluence:0,density:0,source:'none'};
   });
   const byKey=new Map(info.map(c=>[c.key,c]));
@@ -108,5 +111,5 @@ window.VedrasForest=(()=>{
   // Warm-savanna trees belong to savannas rather than closed jungle canopy.
   return !['savanna_trees','conifers','snow_conifers','deciduous_trees','dry_bushes'].includes(family);
  }
- return {DIRS,key,distance,defaults,valid,random,suitability,generate,treeTarget,maxObjects,preferredFamily};
+ return {DIRS,key,distance,defaults,valid,random,suitability,jungleAllowed,generate,treeTarget,maxObjects,preferredFamily};
 })();
