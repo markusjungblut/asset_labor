@@ -20,8 +20,8 @@ for(const c of cells)if(!water(c))for(const [dq,dr] of R.DIRS){
 const results=B.candidates(edges,[route],cells,water,40);
 assert(results.length>=3,'real road network crosses edge-based river');
 assert(results.every(x=>x.dir>=0&&x.dir<6&&x.length>=88));
-assert.deepEqual(B.candidates(edges,[],cells,water,40),[],'no water => no bridges');
-assert.deepEqual(B.candidates([], [route],cells,water,40),[],'no roads => no bridges');
+assert.equal(B.candidates(edges,[],cells,water,40).length,0,'no water => no bridges');
+assert.equal(B.candidates([], [route],cells,water,40).length,0,'no roads => no bridges');
 assert(B.urls.length===6,'all orientations have their own image');
 for(let i=0;i<6;i++){
  const filename='assets/bridges/bridge_dir_'+String(i).padStart(2,'0')+'.svg';
