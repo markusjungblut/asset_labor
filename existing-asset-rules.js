@@ -2,6 +2,12 @@
 'use strict';
 window.VedrasExistingAssets = (() => {
  const definitions = [
+  [/^(?:dschungel[_ -]?busch|jungle[_ -]?bush)_?(\d+)$/, 'Dschungelbusch', 'jungle_bushes', 'shrub', 'medium'],
+  [/^(?:kaktus|cactus|kakteen)_?(\d+)$/, 'Kaktus', 'cacti', 'special', 'medium'],
+  [/^(?:farn|fern)_?(\d+)$/, 'Farn', 'ferns', 'ground_cover', 'medium'],
+  [/^(?:mangrove|mangroven)_?(\d+)$/, 'Mangrove', 'mangroves', 'tree', 'large'],
+  [/^(?:fallen[_ -]?tree|fallen[_ -]?log|umgefallener[_ -]?baum|liegender[_ -]?baum)_?(\d+)$/, 'Umgestürzter Baum', 'fallen_wood', 'special', 'large'],
+  [/^dead[_ -]?tree[_ -]?(\d+)$/, 'Toter Baum', 'deadwood', 'special', 'large'],
   [/^affenbrotbaum(\d+)$/, 'Affenbrotbaum', 'savanna_trees', 'tree', 'large'],
   [/^ahorn(\d+)$/, 'Ahorn', 'deciduous_trees', 'tree', 'medium'],
   [/^besenheide(\d+)$/, 'Besenheide', 'heath', 'ground_cover', 'small'],
@@ -52,7 +58,49 @@ window.VedrasExistingAssets = (() => {
   reeds:[['wetlands'],.17,50],
   succulents:[['arid_regions'],.12,38],
   deadwood:[['grass_pasture','cold_regions','wetlands','warm_regions'],.045,74],
+  snow_deadwood:[[],.045,74],
+  fallen_wood:[['grass_pasture','cold_regions','wetlands','warm_regions'],.04,85],
+  jungle_bushes:[[],.17,55],
+  cacti:[['arid_regions'],.11,70],
+  ferns:[['grass_pasture','wetlands'],.20,45],
+  mangroves:[[],.07,125],
  };
+ // Ground/root placement rules are deliberately stricter than coarse terrain
+ // categories. Images can overhang adjacent water, but their root must be on land.
+ const allowedBiomes = {
+  savanna_trees:['savanna','semi_desert','dry_ground'],
+  deciduous_trees:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground'],
+  heath:['grassland','pasture','sparse_pasture','moor','tundra','highland'],
+  flowering_bushes:['grassland','pasture','sparse_pasture','hilly_ground'],
+  temperate_bushes:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground'],
+  conifers:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra'],
+  snow_conifers:['snowfields','frozen_tundra','highland'],
+  palms:['jungle','savanna','tropical_coast'],
+  herbs:['grassland','pasture','sparse_pasture','hilly_ground','savanna','semi_desert','dry_ground'],
+  dry_bushes:['savanna','semi_desert','dry_ground','rocky_desert','sandy_desert','clay_desert','badlands','wasteland','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'],
+  jungle_trees:['jungle'],
+  jungle_bushes:['jungle'],
+  riparian_trees:['marshland','swamp','pasture','grassland'],
+  cold_bushes:['tundra','frozen_tundra','highland'],
+  reeds:['moor','marshland','swamp'],
+  succulents:['savanna','semi_desert','rocky_desert','sandy_desert','clay_desert','badlands','wasteland','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'],
+  deadwood:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra','moor','marshland','swamp','savanna','jungle'],
+  snow_deadwood:['snowfields','frozen_tundra','highland'],
+  fallen_wood:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra','moor','marshland','swamp','savanna','jungle'],
+  cacti:['semi_desert','rocky_desert','sandy_desert','clay_desert','sandy_rocky_desert','desert','savanna'],
+  ferns:['forest_floor','grassland','pasture','marshland','swamp','jungle'],
+  mangroves:['swamp','marshland','mangrove_swamp','tropical_marsh','tropical_coast']
+ };
+ function habitatAllowed(asset,meta,type,material,context={}){
+  if(material!=='ground')return false;
+  const family=meta?.family||classify(asset)?.family;
+  const allowed=allowedBiomes[family];
+  if(allowed&&!allowed.includes(type))return false;
+  // Unknown/unclassified material is NEVER automatically placed.
+  if(!family||family==='unclassified')return false;
+  if(family==='mangroves'&&(!context.coastal||!context.warm))return false;
+  return true;
+ }
  const stem = name => String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').toLowerCase().replace(/\.(?:png|webp|jpe?g|svg|gif|avif)$/i,'');
  function classify(asset) {
   if (asset?.category !== 'nature' || !/\.(?:png|webp|jpe?g|svg|gif|avif)$/i.test(asset.name || '')) return null;
@@ -64,6 +112,10 @@ window.VedrasExistingAssets = (() => {
    const pine=Number(snowy[1])<=5;
    return {id:'existing_'+base,name:pine?'Verschneite Kiefer':'Verschneite Tanne',family:'snow_conifers',kind:'tree',sizeClass:'large',confirmedSpecies:false,group:pine?'snow_pine':'snow_fir'};
   }
+  // Dead Tree 11–15 are the explicit snowy variants, not bare deadwood.
+  const dead=/^dead[_ -]?tree[_ -]?(\d+)$/.exec(base);
+  if(dead && Number(dead[1])>=11 && Number(dead[1])<=15)
+   return {id:'existing_'+base.replace(/[^a-z0-9_]/g,'_'),name:'Verschneiter toter Baum',family:'snow_deadwood',kind:'special',sizeClass:'large',confirmedSpecies:true};
   const bush = /^bush_(\d+)$/.exec(base);
   if (bush && Number(bush[1])>=1 && Number(bush[1])<=41) {
    const n=Number(bush[1]),cluster=n>=34,dry=n>=20&&n<=29;
@@ -98,7 +150,9 @@ window.VedrasExistingAssets = (() => {
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
   const targetHeight=info.family==='deadwood'?55:(window.VedrasSpritePlanner?.targetHeight(info.kind,info.sizeClass)||75);
-  const restrict={riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna']};
+  const restrict={riparian_trees:['pasture'],cold_bushes:['tundra','frozen_tundra','highland'],succulents:['savanna'],
+   mangroves:['swamp','marshland'],jungle_bushes:['jungle'],snow_deadwood:['snowfields','frozen_tundra','highland'],
+   ferns:['forest_floor','jungle'],cacti:['savanna']};
   const groundWood=info.family==='deadwood';
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
@@ -120,5 +174,5 @@ window.VedrasExistingAssets = (() => {
    ...(mountain?{mountain:{radius:1,coreRadius:0,shadowOpacity:.23,flatten:true}}:{})
   };
  }
- return {classify,metadata,canAutoPlaceInTest};
+ return {classify,metadata,canAutoPlaceInTest,habitatAllowed,allowedBiomes};
 })();
