@@ -24,6 +24,21 @@ window.VedrasPolish=(()=>{
   // Up to ~±40%, moderated for sparse groups to avoid excessive density.
   return Math.max(.60,Math.min(1.4,1+(value-.5)*1.5*clamp(strength,0,1)));
  }
+ function localOffset(seed,q,r,family,index,attempt,composition=1){
+  // Family-stable local grouping gives shrubs a shared patch rather than
+  // independent, uniform scattering. Retries fan outward and eventually
+  // return to uniform distribution to respect spacing/building/river masks.
+  const group=family==='ground_cover'?737:family==='shrub'?313:family==='tree'?521:149;
+  const salt=group+17;
+  const pivotX=(hash(seed,q,r,salt)-.5)*154,pivotY=(hash(seed,q,r,salt+1)-.5)*146;
+  const u=hash(seed,q,r,index*127+attempt*2+17),v=hash(seed,q,r,index*127+attempt*2+18);
+  const rawX=(u-.5)*242,rawY=(v-.5)*258;
+  const influence=clamp(composition,0,1)*(attempt>=26?0:family==='tree'?.43:.68);
+  const scale=family==='tree'?170:126;
+  const patchX=pivotX+(u-.5)*scale,patchY=pivotY+(v-.5)*scale;
+  return {dx:rawX*(1-influence)+patchX*influence,
+   dy:rawY*(1-influence)+patchY*influence};
+ }
  function natureFilter(meta,amount=.40){
   const v=clamp(amount,0,1);
   if(!v||meta?.kind==='mountain')return 'none';
@@ -41,5 +56,5 @@ window.VedrasPolish=(()=>{
   const y=.2126*r+.7152*g+.0722*b,contrast=1-.12*v,saturation=1-.14*v;
   return [r,g,b].map(c=>Math.max(0,Math.min(255,Math.round((y+(c-y)*saturation-128)*contrast+128))));
  }
- return {defaults,valid,patch,natureFilter,terrainRGB};
+ return {defaults,valid,patch,localOffset,natureFilter,terrainRGB};
 })();
