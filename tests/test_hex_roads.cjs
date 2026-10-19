@@ -67,8 +67,8 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const ui=fs.readFileSync(path.join(root,'road-ui.js'),'utf8');
 for(const name of ['roadPanel','roadNeighbors','roadPaint','roadJunctionTest','roadShown','roadMaterial'])
  assert(html.includes('id="'+name+'"'),'road control missing: '+name);
-assert(html.indexOf('roads.js?v=0.26.0')<html.indexOf('app.js?v=0.26.0'));
-assert(html.indexOf('app.js?v=0.26.0')<html.indexOf('road-ui.js?v=0.26.0'));
+assert(html.indexOf('roads.js?v=0.27.0')<html.indexOf('app.js?v=0.27.0'));
+assert(html.indexOf('app.js?v=0.27.0')<html.indexOf('road-ui.js?v=0.27.0'));
 for(const field of ['roadEdges:','roadShown:','roadMaterial:','state.roadEdges=',
  'window.VedrasRoads.render(ctx,','window.VedrasRoads.setEdge(state.roadEdges',
  "window.dispatchEvent(new Event('vedras:road-changed'))"])

@@ -8,12 +8,12 @@ window.VedrasRoads=(()=>{
  const DIRS=[[1,-1],[1,0],[0,1],[-1,1],[-1,0],[0,-1]];
  const levels=['trail','packed','stone'];
  const profiles={
-  trail:{title:'Trampelpfad',width:22,outer:34,shoulder:29,
-   edge:'#56412d',bank:'#7f6240',center:[173,139,94],highlight:'rgba(233,204,155,.20)',speck:[83,67,44]},
-  packed:{title:'Befestigter Erdweg',width:29,outer:40,shoulder:35,
-   edge:'#51483b',bank:'#846e52',center:[166,142,108],highlight:'rgba(228,205,170,.15)',speck:[97,83,61]},
-  stone:{title:'Steinstraße',width:34,outer:46,shoulder:41,
-   edge:'#555348',bank:'#77725f',center:[159,151,131],highlight:'rgba(230,222,199,.10)',speck:[87,84,75]}
+  trail:{title:'Sandiger Trampelpfad',width:19,outer:33,shoulder:27,
+   edge:'rgba(119,94,58,.18)',bank:'rgba(178,148,104,.46)',center:[204,180,135],highlight:'rgba(242,225,182,.13)',speck:[123,103,71]},
+  packed:{title:'Befestigter Erdweg',width:27,outer:39,shoulder:34,
+   edge:'rgba(101,89,69,.25)',bank:'rgba(160,137,104,.65)',center:[190,168,132],highlight:'rgba(231,209,170,.15)',speck:[117,102,78]},
+  stone:{title:'Steinstraße',width:32,outer:44,shoulder:39,
+   edge:'rgba(87,86,75,.38)',bank:'rgba(133,130,110,.80)',center:[170,164,143],highlight:'rgba(230,222,199,.10)',speck:[89,87,77]}
  };
  const key=p=>p.q+','+p.r,asPoint=p=>Array.isArray(p)?{q:p[0],r:p[1]}:p;
  const validPoint=p=>p&&Number.isInteger(p.q)&&Number.isInteger(p.r)&&Math.abs(p.q)<100000&&Math.abs(p.r)<100000;
@@ -75,7 +75,7 @@ window.VedrasRoads=(()=>{
   const a=asPoint(edge.a),b=asPoint(edge.b),p=center(a,hex),z=center(b,hex);
   const vx=z.x-p.x,vy=z.y-p.y,length=Math.hypot(vx,vy),nx=-vy/length,ny=vx/length;
   const noise=hash(a.q+b.q,a.r+b.r,hash(a.q-b.q,a.r-b.r,11));
-  const bend=((noise%2001)/1000-1)*1.8,points=[];
+  const bend=((noise%2001)/1000-1)*4.2,points=[];
   for(let i=0;i<=16;i++){
    const t=i/16,jitter=bend*Math.sin(t*2*Math.PI);
    const x=p.x+vx*t+nx*jitter,y=p.y+vy*t+ny*jitter;
@@ -100,8 +100,8 @@ window.VedrasRoads=(()=>{
    const i=4*(y*size+x),fine=hash(x,y,profileName.length*129),
     wave=5*Math.sin(x*Math.PI*4/size)*Math.cos(y*Math.PI*4/size)+
       4*Math.sin((x+y)*Math.PI*2/size);
-   const grain=(fine%31)-15,speck=(fine>>>10)%37===0,stone=profileName==='stone'&&((fine>>>8)%45<5);
-   const delta=wave+grain*.48+(speck?-20:0)+(stone?12:0);
+   const grain=(fine%31)-15,speck=(fine>>>10)%61===0,stone=profileName==='stone'&&((fine>>>8)%45<5);
+   const delta=wave*.48+grain*.28+(speck?-12:0)+(stone?12:0);
    const base=stone&&speck?p.speck:p.center;
    out[i]=clamp(Math.round(base[0]+delta),0,255);
    out[i+1]=clamp(Math.round(base[1]+delta*.9),0,255);
@@ -149,5 +149,40 @@ window.VedrasRoads=(()=>{
   }
   ctx.restore();return {edges:normalized.length,nodes:allNodes.size};
  }
- return {DIRS,levels,profiles,key,side,identity,normalizeEdges,setEdge,removeEdge,mask,degree,center,port,course,render};
+
+ // World-space root clearance: remove ONLY objects whose ground anchor
+ // falls on a road's capsule. Overhanging crowns and branches may remain.
+ function distanceToSegment(p,a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+  const t=len2?clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/len2,0,1):0;
+  return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);
+ }
+ function blocksPoint(x,y,edges,padding=8,hex=256){
+  if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+  const p={x,y};
+  for(const edge of edges||[]){
+   if(!identity(edge.a,edge.b))continue;
+   const pts=course(edge,hex),radius=profiles[type(edge.level)].outer*.5+Math.max(0,padding);
+   if(pts.slice(1).some((v,i)=>distanceToSegment(p,pts[i],v)<=radius))return true;
+  }
+  return false;
+ }
+ function clearCorridor(previous,next,natureInstances,hexObjects,hex=256){
+  const previousIds=new Set((previous||[]).map(e=>identity(e.a,e.b)));
+  const added=(next||[]).filter(e=>!previousIds.has(identity(e.a,e.b)));
+  if(!added.length)return {natureInstances:natureInstances||[],hexObjects:hexObjects||{},removed:0};
+  const nature=(natureInstances||[]).filter(inst=>{
+   const p=center(inst,hex);
+   return !blocksPoint(p.x+(Number(inst.dx)||0),p.y+(Number(inst.dy)||0),added,9,hex);
+  });
+  const objects={};
+  for(const [k,obj] of Object.entries(hexObjects||{})){
+   const [q,r]=k.split(',').map(Number),p=center({q,r},hex);
+   if(!blocksPoint(p.x,p.y+52,added,Math.max(42,Math.min(72,(Number(obj?.width)||150)*.38)),hex))objects[k]=obj;
+  }
+  return {natureInstances:nature,hexObjects:objects,
+   removed:(natureInstances||[]).length-nature.length+
+     Object.keys(hexObjects||{}).length-Object.keys(objects).length};
+ }
+ return {DIRS,levels,profiles,key,side,identity,normalizeEdges,setEdge,removeEdge,mask,degree,center,port,course,render,blocksPoint,clearCorridor};
 })();
