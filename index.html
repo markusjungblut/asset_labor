@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vedras Reiche – Asset-Labor v0.11.3</title><link rel="stylesheet" href="style.css?v=0.12.0"></head>
+<title>Vedras Reiche – Asset-Labor v0.11.4</title><link rel="stylesheet" href="style.css?v=0.12.0"></head>
 <body>
 <div class="app">
-<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.11.3</small></h1></div></div>
+<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.11.4</small></h1></div></div>
 <div class="toptools"><span class="status" id="serverStatus">Lade Asset-Bibliothek…</span><button id="reloadBtn" title="Ordner erneut einlesen">↻ Neu einlesen</button><label class="button outline" for="folderInput">Ordner importieren</label><input id="folderInput" type="file" webkitdirectory multiple hidden accept="image/*,.svg,.json"/></div></header>
 <div class="layout">
 <aside class="library"><div class="paneheader"><h2>Grafikbibliothek</h2><div class="subtle">Dateien in <code>assets/</code> ablegen</div></div>
@@ -205,13 +205,27 @@
 <label class="checkbox"><input type="checkbox" id="riverDebug">Flussverbindungen und Quell-Ecken anzeigen</label>
 <button class="block outline" id="riverRemove">Letzten Fluss entfernen</button><button class="block ghost" id="riverClear">Alle Flüsse entfernen</button>
 <div class="infobox" id="riverStats" role="status">Flusswege werden geprüft…</div>
-</div><div class="control-section" id="polishPanel"><h3>Grafik-Finish · nicht-destruktiv</h3>
+</div><div class="control-section" id="roadPanel"><h3>Wege & Straßen · Hexmitte zu Hexmitte</h3>
+<p class="muted">Jedes Hex hat sechs unabhängig verbindbare Nachbarn. Die Trampelpfade treffen sich ohne überlagerte Kreuzungsbilder in der Mitte. Upgrades behalten exakt dieselben Verbindungen und Übergänge.</p>
+<label class="checkbox"><input id="roadShown" type="checkbox" checked> Wege und Straßen anzeigen</label>
+<label>Belag für neue Verbindungen und Upgrades
+<select id="roadMaterial"><option value="trail">Brauner Trampelpfad</option><option value="packed">Befestigter Erdweg</option><option value="stone">Steinstraße</option></select></label>
+<button id="roadPaint" type="button" class="button primary block">Hex für Hex zeichnen</button>
+<p class="muted">Zeichnen: Starthex wählen und dann direkt benachbarte Hexe anklicken. Alternativ ein Hex auswählen und unten jede der sechs Verbindungen einzeln bearbeiten. Einen vorhandenen Abschnitt mit anderem Belag überschreiben; mit gleichem Belag entfernen.</p>
+<strong>Nachbarn des ausgewählten Hexes</strong>
+<div id="roadNeighbors" class="road-neighbors" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px"></div>
+<button id="roadJunctionTest" type="button" class="button outline block">Sechsarmige Kreuzung auf ausgewähltem Hex testen</button>
+<button id="roadRemoveLast" type="button" class="button outline block">Eine Verbindung am Listenende entfernen</button>
+<button id="roadClear" type="button" class="button ghost block">Alle Wege entfernen</button>
+<div class="infobox" id="roadStatus" role="status">Noch keine Wege angelegt.</div>
+</div>
+<div class="control-section" id="polishPanel"><h3>Grafik-Finish · nicht-destruktiv</h3>
 <p class="muted">Dezente Farbharmonie und ruhigere Bodenmuster; die originalen PNGs bleiben unverändert. Die Mikroverteilung wirkt bei der nächsten „Natur verteilen“-Aktion.</p>
 <div class="inline-row"><label>Nature-Farbangleichung <strong id="polishNatureValue">40 %</strong></label><input id="polishNature" type="range" min="0" max="100" value="40" step="5"></div>
 <div class="inline-row"><label>Terrainmuster beruhigen <strong id="polishTerrainValue">35 %</strong></label><input id="polishTerrain" type="range" min="0" max="100" value="35" step="5"></div>
 <div class="inline-row"><label>Natürliche Pflanzengruppen <strong id="polishCompositionValue">100 %</strong></label><input id="polishComposition" type="range" min="0" max="100" value="100" step="10"></div>
 </div>
-<div class="control-section"><h3>Ansicht & Schärfe</h3><div class="inline-row"><label>Renderqualität</label><select id="quality"><option value="auto">Auto · bis 3×</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></div><label class="checkbox"><input type="checkbox" id="gridToggle"> Hexraster (hinter Objekten)</label><label class="checkbox"><input type="checkbox" id="objectsToggle"> Natur und Gebäude zeigen</label><label class="checkbox"><input type="checkbox" id="riverToggle" checked> Flüsse & Demo-Straße anzeigen</label><label class="checkbox"><input type="checkbox" id="edgeBlendToggle" checked> Auto-Tiling: weiche Biomübergänge</label>
+<div class="control-section"><h3>Ansicht & Schärfe</h3><div class="inline-row"><label>Renderqualität</label><select id="quality"><option value="auto">Auto · bis 3×</option><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></div><label class="checkbox"><input type="checkbox" id="gridToggle"> Hexraster (hinter Objekten)</label><label class="checkbox"><input type="checkbox" id="objectsToggle"> Natur und Gebäude zeigen</label><label class="checkbox"><input type="checkbox" id="riverToggle" checked> Flüsse anzeigen</label><label class="checkbox"><input type="checkbox" id="edgeBlendToggle" checked> Auto-Tiling: weiche Biomübergänge</label>
 <div class="inline-row"><label>Übergangsbreite <strong id="edgeWidthText">28</strong></label><input id="edgeWidth" type="range" min="8" max="48" step="2" value="28"></div>
 <label class="checkbox"><input type="checkbox" id="blendVariantsToggle" checked> Nur Varianten derselben Geländeart mischen</label>
 <label>Wassertexturen: Darstellung<select id="waterSamplingMode"><option value="hex" selected>Motiv schützen – Bild einmal pro Hex (empfohlen)</option><option value="repeat">Legacy – weltweit wiederholen (A/B-Test)</option></select></label>
@@ -225,5 +239,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.21.0"></script><script src="nature_catalog.js?v=0.18.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.17.0"></script><script src="forest.js?v=0.24.0"></script><script src="forest-ground.js?v=0.22.0"></script><script src="nature-balance.js?v=0.25.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.21.0"></script><script src="river.js?v=0.23.0"></script><script src="mountain.js?v=0.11.0"></script><script src="shadow-system.js?v=0.24.0"></script><script src="app.js?v=0.25.0"></script><script src="nature-ui.js?v=0.24.0"></script><script src="ui-organizer.js?v=0.11.0"></script><script src="forest-ui.js?v=0.18.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.21.0"></script><script src="nature_catalog.js?v=0.18.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.17.0"></script><script src="forest.js?v=0.24.0"></script><script src="forest-ground.js?v=0.22.0"></script><script src="nature-balance.js?v=0.25.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.21.0"></script><script src="river.js?v=0.23.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.26.0"></script><script src="shadow-system.js?v=0.24.0"></script><script src="app.js?v=0.26.0"></script><script src="nature-ui.js?v=0.24.0"></script><script src="road-ui.js?v=0.26.0"></script><script src="ui-organizer.js?v=0.11.0"></script><script src="forest-ui.js?v=0.18.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
