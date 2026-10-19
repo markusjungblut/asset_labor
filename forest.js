@@ -102,15 +102,15 @@ window.VedrasForest=(()=>{
  function treeTarget(cell){
   if(!cell?.suitability)return 0;
   // Keep readable ground between crowns and future building footprints.
-  if(cell.forestClass==='dense_forest')return 3;
-  if(cell.forestClass==='light_forest')return 2;
+  if(cell.forestClass==='dense_forest')return 4;
+  if(cell.forestClass==='light_forest')return 3;
   return cell.density>.18?1:0;
  }
  function maxObjects(cell){
   if(!cell?.suitability)return 0;
-  if(cell.forestClass==='dense_forest')return 5;
-  if(cell.forestClass==='light_forest')return 4;
-  return cell.edgeInfluence>.1?3:2;
+  if(cell.forestClass==='dense_forest')return 7;
+  if(cell.forestClass==='light_forest')return 6;
+  return cell.edgeInfluence>.1?4:3;
  }
  function preferredFamily(family,cell){
   if(!cell?.jungle)return true;
