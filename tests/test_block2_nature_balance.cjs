@@ -13,12 +13,12 @@ const snowyDead=from('snow_dead_trees'),fallen=from('fallen_logs'),snowyFallen=f
 const mediumShrub=assets.find(x=>x.kind==='shrub'&&x.sizeClass==='medium');
 const mountain=from('mountains'),mangrove=from('mangroves');
 assert.equal(B.sizeFactor(mountain),1,'geology must not be scaled by the Nature balance system');
-assert(B.sizeFactor(regular)<=.405&&B.sizeFactor(regular)>.30,'living trees scale down');
-assert(B.sizeFactor(conifer)<=.405,'conifers scale down');
+assert(B.sizeFactor(regular)<=.462&&B.sizeFactor(regular)>.36,'living trees scale down');
+assert(B.sizeFactor(conifer)<=.462,'conifers scale down');
 assert(B.sizeFactor(dead)<=.30&&B.sizeFactor(snowyDead)<=.30,'dead trees shrink substantially');
 assert(B.sizeFactor(fallen)<.525&&B.sizeFactor(snowyFallen)<.525,'fallen trees shrink');
-assert(B.sizeFactor(mediumShrub)<=.575,'medium shrubs shrink');
-assert(B.sizeFactor(mangrove)<.425,'mangroves are compatible with smaller buildings');
+assert(B.sizeFactor(mediumShrub)<=.69,'medium shrubs shrink');
+assert(B.sizeFactor(mangrove)<.51,'mangroves are compatible with smaller buildings');
 assert(B.isCanopy(regular)&&B.isCanopy(conifer),'living forest canopy');
 assert(!B.isCanopy(dead)&&!B.isCanopy(snowyDead),'dead trees cannot fill living forest canopy quota');
 assert(B.isAccent(dead)&&B.isAccent(fallen)&&B.isAccent(snowyFallen));
@@ -54,6 +54,6 @@ for(const fragment of ['B.reserveClearings(core.cells()','B.isCanopy(entryFor(a)
  assert(editor.includes(fragment),'runtime integration: '+fragment);
 }
 assert(app.includes('window.VedrasNatureBalance?.sizeFactor(m)'),'old/new nature sprites must share the reduction');
-const moduleTag='nature-balance.js?v=0.24.0',appTag='app.js?v=0.24.0';
+const moduleTag='nature-balance.js?v=0.25.0',appTag='app.js?v=0.25.0';
 assert(html.includes(moduleTag)&&html.indexOf(moduleTag)<html.indexOf(appTag),'balance module must load before map');
 console.log('PASS: 258 assets preserved, compact trees/shrubs/deadwood, sparse accents, adjacent building clearings and legacy sprite scales.');
