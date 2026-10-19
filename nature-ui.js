@@ -205,7 +205,8 @@ window.VedrasNature=(()=>{
   if(!eligible(meta,q,r,forestByHex))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
   const p=pts(q,r);for(let j=0;j<48;j++){
-   const dx=(random(seed,q,r,index*127+j*2+17)-.5)*242,dy=(random(seed,q,r,index*127+j*2+18)-.5)*258;
+   const kind=meta.kind==='tree'?'tree':meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
+   const {dx,dy}=window.VedrasPolish.localOffset(seed,q,r,kind,index,j,state.visualPolish?.composition??1);
    if(!inside(dx,dy,margin))continue;
    const x=p.x+dx,y=p.y+dy;
    if(blocksRiver(q,r,dx,dy,meta))continue;
@@ -274,7 +275,11 @@ window.VedrasNature=(()=>{
    const trees=possible.filter(a=>B.isCanopy(entryFor(a))).sort((a,b)=>treePriority(a)-treePriority(b));
    // Standing dead trees are accents, NOT living canopy quota trees.
    const other=possible.filter(a=>!B.isCanopy(entryFor(a))).sort((a,b)=>rank(a,c,302)-rank(b,c,302));
-   const wantedTrees=F.treeTarget(f),objectCap=F.maxObjects(f);
+   let wantedTrees=F.treeTarget(f);
+   // Coherent stand variation: neighboring hexes form groves and glades
+   // rather than filling every woodland hex with exactly the same quota.
+   if(wantedTrees>1&&window.VedrasPolish.patch(seed,c.q,c.r,'tree',state.visualPolish?.composition??1)<.89)wantedTrees--;
+   const objectCap=F.maxObjects(f);
    const spacingFactor=f?.forestClass==='dense_forest'?.82:f?.forestClass==='light_forest'?.92:1;
    const placed=all.filter(n=>n.q===c.q&&n.r===c.r);
    let count=placed.length,treeCount=placed.filter(n=>{
@@ -298,7 +303,9 @@ window.VedrasNature=(()=>{
     const meta=entryFor(a),group=B.accentGroup(meta);
     if(group&&(accentOnHex||accents[group]>=limits[group]))continue;
     const factor=f?.forestClass==='dense_forest'?1.20:f?.forestClass==='light_forest'?1.05:f?.edgeInfluence>.1?1.05:1;
-    const chance=Math.min(.75,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta));
+    const groupName=meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
+    const patch=window.VedrasPolish.patch(seed,c.q,c.r,groupName,state.visualPolish?.composition??1);
+    const chance=Math.min(.75,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta)*patch);
     if(rank(a,c,312)>=chance)continue;
     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
     if(inst){all.push(inst);count++;if(group){accents[group]++;accentOnHex=true;}}
