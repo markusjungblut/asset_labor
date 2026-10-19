@@ -101,11 +101,17 @@ window.VedrasForest=(()=>{
  }
  function treeTarget(cell){
   if(!cell?.suitability)return 0;
-  if(cell.forestClass==='dense_forest')return 5;
-  if(cell.forestClass==='light_forest')return 3;
-  return cell.density>.24?2:cell.density>.06?1:0;
+  // Keep readable ground between crowns and future building footprints.
+  if(cell.forestClass==='dense_forest')return 3;
+  if(cell.forestClass==='light_forest')return 2;
+  return cell.density>.18?1:0;
  }
- function maxObjects(cell){const t=treeTarget(cell);return t>=5?9:t>=3?7:t>=1?4:3;}
+ function maxObjects(cell){
+  if(!cell?.suitability)return 0;
+  if(cell.forestClass==='dense_forest')return 5;
+  if(cell.forestClass==='light_forest')return 4;
+  return cell.edgeInfluence>.1?3:2;
+ }
  function preferredFamily(family,cell){
   if(!cell?.jungle)return true;
   // Warm-savanna trees belong to savannas rather than closed jungle canopy.
