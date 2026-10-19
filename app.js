@@ -88,8 +88,14 @@ function useAsset(path){return assetByPath.get(path)||null;}
 function allAssets(){return assets.filter(a=>a.img&&a.img.complete&&a.img.naturalWidth>0);}
 function findAsset(category,stem){return assets.find(a=>a.category===category&&(a.name===stem||a.name.startsWith(stem)))||null;}
 function imageForBiome(c){
- if(state.hexTerrain[key(c.q,c.r)]){const a=useAsset(state.hexTerrain[key(c.q,c.r)]);if(isTerrainValid(a)&&typeOfAsset(a))return a;}
- const chosen=state.biomeTerrain[c.biome];if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a))return a;}
+ // Forest-floor PNGs are overlay materials. Never use them as the opaque
+ // ground of a moor (or any other base biome), even when painted manually.
+ if(state.hexTerrain[key(c.q,c.r)]){
+  const a=useAsset(state.hexTerrain[key(c.q,c.r)]);
+  if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;
+ }
+ const chosen=state.biomeTerrain[c.biome];
+ if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
  const typeId=typeOfCell(c),jungle=typeId==='jungle';
  let matches=assets.filter(a=>isTerrainValid(a)&&typeOfAsset(a)===typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
