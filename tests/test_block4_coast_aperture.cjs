@@ -20,7 +20,7 @@ const document={createElement:()=>{const cv={width:0,height:0};cv.getContext=()=
 const context={window:w,document};
 vm.runInNewContext(fs.readFileSync(path.join(root,'shoreline.js'),'utf8'),context);
 const images=Array.from({length:6},()=>({naturalWidth:512}));
-const coast=S.build(cells,wet,images,{mode:'art',resolution:.8,mouthPortals:[portal]});
+const coast=context.window.VedrasShoreline.build(cells,wet,images,{mode:'art',resolution:.8,mouthPortals:[portal]});
 assert.equal(coast.segments.length,1,'river mouth does not erase coastline');
 assert.equal(coast.mouthPortals,1);
 assert(result?.data,'real alpha mask constructed');
