@@ -17,6 +17,7 @@
  };
  const edges=()=>R.normalizeEdges(state.roadEdges,core.cells(),water);
  function commit(next){
+  state.roadShown=true;
   state.roadEdges=R.normalizeEdges(next,core.cells(),water);
   core.persistScene();core.requestDraw();render();
  }
