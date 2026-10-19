@@ -821,7 +821,7 @@ $('zoomSlider').addEventListener('input',e=>applyZoom(Number(e.target.value)/100
 $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(state.sceneSize===37?.65:.95);});
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
-$('sceneSize').addEventListener('change',e=>{state.sceneSize=Number(e.target.value);if(state.sceneSize===37&&state.zoom>.75)applyZoom(.65);assignBiomes();persistScene();});
+$('sceneSize').addEventListener('change',e=>{state.sceneSize=Number(e.target.value);if(state.sceneSize===37&&state.zoom>.75)applyZoom(.65);assignBiomes();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();});
 // Dynamic terrain test scenes: derive categories and materials from the live catalog.
 function terrainTestOptions(){
  const old={};for(const id of ['testSingleType','testCategoryA','testCategoryCompareA','testCategoryCompareB','testTypeA','testTypeB','testTypeC'])old[id]=$(id).value;
@@ -955,7 +955,7 @@ $('sceneImport').addEventListener('change',async e=>{
  }catch(err){alert('Szenenimport abgelehnt: '+err.message);}e.target.value='';
 });
 $('saveScene').addEventListener('click',exportScene);
-$('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
+$('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.natureInstances=[];window.VedrasNature?.renderPlaced?.();state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 let points=new Map(),moved=false,initialPinch=null;
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;if(points.size===2)initialPinch=null;});
