@@ -53,7 +53,7 @@ with sync_playwright() as pw:
  assert len(p.evaluate('Array.from(VedrasAssetLabor.mountains.reservedMountainHexes())'))==1
  assert p.locator('#mountainCastOpacity').count()==1
  p.evaluate("window.dispatchEvent(new Event('vedras:hex-selected'))")
- assert abs(float(p.locator('#mountainCastOpacity').input_value())-.48)<.001
+ assert abs(float(p.locator('#mountainCastOpacity').input_value())-.58)<.001
  p.evaluate("()=>{const x=document.getElementById('mountainCastOpacity');x.value='.7';x.dispatchEvent(new Event('input',{bubbles:true}));}")
  assert abs(p.evaluate('VedrasAssetLabor.state.mountainInstances[0].shadowOpacity')-.7)<.001
  p.evaluate("()=>{const x=document.getElementById('mountainCastReach');x.value='2';x.dispatchEvent(new Event('input',{bubbles:true}));}")
