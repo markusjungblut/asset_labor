@@ -41,7 +41,7 @@ assert(result&&result.maxAlpha>25&&result.maxAlpha<125&&result.positiveCount>200
 assert(painted.length===1&&painted[0].img.data.some((v,i)=>i%4===3&&v>0),
  'mask written to canvas with real visible pixels');
 assert.equal(S.paintMountain(ctx,origin,width,{...cfg,opacity:0},.7),null);
-assert.equal(S.settings({reach:1.4}).length,1.12,'legacy length migration');
+assert(Math.abs(S.settings({reach:1.4}).length-1.12)<1e-9,'legacy length migration');
 assert(Math.abs(S.settings({spread:2}).rootWidth-.26*2/1.28)<1e-8,'legacy spread migration');
 assert.equal(S.settings({opacity:3}).opacity,.75,'opacity bounded');
 assert.equal(B.placementScale({kind:'tree'}),.5);
