@@ -9528,6 +9528,304 @@
         "needs_art_review"
       ],
       "targetHeight": 49
+    },
+    "nature/bush_jungle_01.png": {
+      "id": "bush_jungle_01",
+      "description": "Tropischer Busch – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan bush_jungle_01",
+      "family": "tropical_bushes",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "logicalWidth": 39.2,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.27,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 10
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "tropical_bushes"
+      ],
+      "targetHeight": 49
+    },
+    "nature/cactus_01.png": {
+      "id": "cactus_01",
+      "description": "Kaktus – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan cactus_01",
+      "family": "cacti",
+      "kind": "shrub",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "logicalWidth": 39.2,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "arid_regions",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.13,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 10
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "cacti"
+      ],
+      "targetHeight": 49
+    },
+    "nature/dead_tree_01.png": {
+      "id": "dead_tree_01",
+      "description": "Totholzbaum – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan dead_tree_01",
+      "family": "dead_trees",
+      "kind": "tree",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "logicalWidth": 100.80000000000001,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_medium_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "arid_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.08,
+        "minSpacing": 82,
+        "canCluster": false,
+        "edgeMargin": 20
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "dead_trees"
+      ],
+      "targetHeight": 126
+    },
+    "nature/fallen_log_01.png": {
+      "id": "fallen_log_01",
+      "description": "Umgestürzter Stamm – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan fallen_log_01",
+      "family": "deadwood",
+      "kind": "cluster",
+      "sizeClass": "medium",
+      "sizeMode": "class",
+      "logicalWidth": 55.2,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "grass_pasture",
+        "cold_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.1,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 10
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "deadwood"
+      ],
+      "targetHeight": 69
+    },
+    "nature/fern_01.png": {
+      "id": "fern_01",
+      "description": "Farn – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan fern_01",
+      "family": "ferns",
+      "kind": "ground_cover",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 13.600000000000001,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "wetlands",
+        "grass_pasture",
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.26,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 10
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "ferns"
+      ],
+      "targetHeight": 17
+    },
+    "nature/mangrove_01.png": {
+      "id": "mangrove_01",
+      "description": "Mangrove – eigenständiges Karten-Sprite, noch nicht im aktuellen Nature-Bestand vorhanden; kein Platzhalterbild.",
+      "sourceReference": "Sprite-Plan mangrove_01",
+      "family": "mangroves",
+      "kind": "tree",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 139.20000000000002,
+      "scaleMin": 0.92,
+      "scaleMax": 1.08,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_medium_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "wetlands",
+        "water_coast",
+        "warm_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.18,
+        "minSpacing": 82,
+        "canCluster": false,
+        "edgeMargin": 20
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "mangroves"
+      ],
+      "targetHeight": 174
     }
   }
 }
