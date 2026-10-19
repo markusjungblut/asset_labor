@@ -125,12 +125,14 @@ window.VedrasNature=(()=>{
  function pts(q,r){return {x:256*(q+r/2),y:1.5*(256/Math.sqrt(3))*r};}
  const R=256/Math.sqrt(3);
  const neighborTypes=(q,r)=>window.VedrasRivers.DIRS.map(([dq,dr])=>core.cells().find(c=>c.q===q+dq&&c.r===r+dr)).filter(Boolean).map(c=>core.effectiveBiome(c));
- function eligible(meta,q,r){
+ function eligible(meta,q,r,forestByHex=null){
   const cell=core.cells().find(c=>c.q===q&&c.r===r);
   if(!cell||!meta||meta.kind==='mountain')return false;
-  const type=core.effectiveBiome(cell),allowed=resolveForMeta(meta);
-  const forestFallback=type==='forest_floor'&&cell.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster','special'].includes(meta.kind);
-  return (allowed.has(type)||forestFallback)&&N.habitatOK(meta,type,neighborTypes(q,r),terrainRegistry());
+  const forest=forestByHex?.get(q+','+r)||core.forestCells().find(c=>c.key===q+','+r);
+  return N.canPlace(meta,{
+   baseBiome:core.baseBiomeOf(cell),biome:core.effectiveBiome(cell),
+   forestClass:forest?.forestClass||'none',neighborTypes:neighborTypes(q,r)
+  },terrainRegistry(),catalog);
  }
  function blocksRiver(q,r,dx,dy,meta){
   const pos=pts(q,r),x=pos.x+dx,y=pos.y+dy;
@@ -143,26 +145,35 @@ window.VedrasNature=(()=>{
    c=>['water','shoreline'].includes(terrainRegistry().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass),
    width,radius+5);
  }
- function validInstance(inst){
+ function validInstance(inst,forestByHex=null){
   const a=core.assets().find(v=>v.path===inst.assetPath),meta=entryFor(a);
   if(!a||!meta)return null; // Unknown assets are retained pending import.
-  return eligible(meta,inst.q,inst.r)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta);
+  return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta);
  }
  function cleanup(){
   if(!Object.keys(catalog.entries||{}).length)return 0;
+  const forestByHex=new Map(core.forestCells().map(c=>[c.key,c]));
   const before=(state.natureInstances||[]).length;
-  state.natureInstances=(state.natureInstances||[]).filter(inst=>validInstance(inst)!==false);
-  const dropped=before-state.natureInstances.length;
-  if(dropped){saved();message(dropped+' unzulässige Nature-Instanz(en) entfernt: Wasser, Fluss oder unpassendes Biom.');}
+  // Unavailable assets stay in storage for recovery and are not shown meanwhile.
+  state.natureInstances=(state.natureInstances||[]).filter(inst=>validInstance(inst,forestByHex)!==false);
+  let dropped=before-state.natureInstances.length;
+  // Older scenes can also contain legacy hexObject Nature assignments.
+  for(const [hex,record] of Object.entries(state.hexObject||{})){
+   const a=core.assets().find(v=>v.path===record?.path);
+   if(!a||a.category!=='nature')continue;
+   const meta=entryFor(a),[q,r]=hex.split(',').map(Number);
+   if(meta&&!eligible(meta,q,r,forestByHex)){delete state.hexObject[hex];dropped++;}
+  }
+  if(dropped){saved();message(dropped+' unzulässige Nature-Platzierung(en) entfernt: Grundbiom, Wald-Overlay, Wasser oder Fluss.');}
   return dropped;
  }
  function inside(x,y,margin=0){const ax=Math.abs(x),ay=Math.abs(y);return ay<=R-margin&&ax<=Math.min(128,Math.sqrt(3)*(R-ay))-margin;}
  // Simple deterministic, order-independent per asset + hex. Never uses Math.random().
  function hash(seed,q,r,k){let h=(seed|0)^Math.imul(q+97,374761393)^Math.imul(r+513,668265263)^Math.imul(k+11,2246822519);h^=h>>>13;h=Math.imul(h,1274126177);return (h^(h>>>16))>>>0;}
  const random=(seed,q,r,k)=>hash(seed,q,r,k)/4294967296;
- function makeInstance(a,q,r,index,all,seed,spacingFactor=1){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
+ function makeInstance(a,q,r,index,all,seed,spacingFactor=1,forestByHex=null){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(q+','+r)))return null;
-  if(!eligible(meta,q,r))return null;
+  if(!eligible(meta,q,r,forestByHex))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
   const p=pts(q,r);for(let j=0;j<48;j++){
    const dx=(random(seed,q,r,index*127+j*2+17)-.5)*242,dy=(random(seed,q,r,index*127+j*2+18)-.5)*258;
@@ -220,13 +231,13 @@ window.VedrasNature=(()=>{
    for(const a of trees){
     if(treeCount>=wantedTrees||count>=objectCap)break;
     const meta=entryFor(a);
-    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor);
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
     if(inst){all.push(inst);treeCount++;count++;forestTrees++;}
    }
    // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
    // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
    if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.12&&count<objectCap){
-    const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed);
+    const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed,1,forestByHex);
     if(inst){all.push(inst);count++;forestTrees++;}
    }
    for(const a of other){
@@ -451,7 +462,7 @@ window.VedrasNature=(()=>{
  window.addEventListener('vedras:assets-loaded',onLibrary);
  window.addEventListener('vedras:hex-selected',renderPlaced);
  window.addEventListener('vedras:assets-loaded',syncMountainControls);
- for(const event of ['vedras:river-changed','vedras:nature-catalog-changed','vedras:terrain-catalog-changed'])
+ for(const event of ['vedras:river-changed','vedras:nature-catalog-changed','vedras:terrain-catalog-changed','vedras:forest-changed'])
   window.addEventListener(event,cleanup);
  window.addEventListener('vedras:terrain-catalog-changed',()=>{if(core.terrainReady?.()&&!dirty)reload();else if(selected)ensureTypeOptions(entryFor(selected)||suggest(selected));});
  $('nShowDemo').checked=state.showLegacyNature!==false;$('nSeed').value=String(state.natureSeed||12345);
