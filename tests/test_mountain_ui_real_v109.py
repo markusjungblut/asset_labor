@@ -6,7 +6,7 @@ from PIL import Image,ImageDraw
 from playwright.sync_api import sync_playwright
 B=Path(__file__).resolve().parents[1]
 # Inline the current production modules and styles instead of depending
-# on the 0.10.9 filenames. This also works without an HTTP server.
+# on outdated versioned filenames. This also works without an HTTP server.
 import re
 html=(B/'index.html').read_text()
 html=re.sub(r'<link rel="stylesheet" href="style\.css\?v=[^"]+">',lambda m:'<style>'+(B/'style.css').read_text()+'</style>',html)
@@ -30,7 +30,7 @@ C.assets['terrain/test_ocean.png']={terrainTypeId:'ocean',variantFamilyId:'ocean
 const M=VedrasNatureCatalog.template();Object.assign(M,{id:'mountain_snow_test',description:'Test mountain',sourceReference:'Generated test',family:'snowy_mountains',kind:'mountain',sizeClass:'giant',logicalWidth:360,scaleMin:1,scaleMax:1,anchor:{x:.5,y:.67},shadow:{mode:'none',path:'',offsetX:-.24,offsetY:0,widthScale:.7,depthScale:.18},allowedTerrainCategories:['grass_pasture'],mountain:{radius:1,coreRadius:0,shadowOpacity:.25,flatten:true}});
 const B=VedrasNatureCatalog.template();Object.assign(B,{id:'bush_test',description:'Bush',sourceReference:'test',family:'bushes',kind:'shrub',sizeClass:'small',allowedTerrainCategories:['grass_pasture']});
 const N={schemaVersion:1,revision:0,presets:{},entries:{'nature/mountain_snow_test.png':M,'nature/bush.png':B}};
-let obj={};if(path==='/api/assets')obj={assets:TEST_ASSETS,version:'0.10.9'};
+let obj={};if(path==='/api/assets')obj={assets:TEST_ASSETS,version:'0.11.0'};
 else if(path==='/api/terrain-catalog')obj=C;
 else if(path==='/api/nature-catalog')obj=N;
 else return new Response('{}',{status:404});
