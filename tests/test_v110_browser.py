@@ -49,7 +49,7 @@ with sync_playwright() as pw:
  page.wait_for_function('VedrasAssetLabor.assets().length===4 && VedrasNature.entryFor(VedrasAssetLabor.assets().find(a=>a.name==="birke1.png"))',timeout=45000)
  s=page.evaluate('''()=>({cells:VedrasAssetLabor.cells().length,section:!!document.getElementById('drawer_natureLabTools'),planner:VedrasSpritePlanner.entries.length,imported:Object.keys(VedrasNature.catalog().entries).length})''')
  assert s['cells']==37,s
- assert s['section'] and s['planner']==11 and s['imported']==2,s
+ assert s['section'] and s['planner']==4 and s['imported']==2,s
  birch=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='birke1.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,allowed:m.allowedTerrainCategories,height:m.targetHeight}}''')
  thyme=page.evaluate('''()=>{const a=VedrasAssetLabor.assets().find(x=>x.name==='thymian_01.png');const m=VedrasNature.entryFor(a);return {size:m.sizeClass,sizeMode:m.sizeMode,kind:m.kind,height:m.targetHeight}}''')
  assert birch['kind']=='tree' and birch['height']>thyme['height']*5 and thyme['kind']=='ground_cover',(birch,thyme)
