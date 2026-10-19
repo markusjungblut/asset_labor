@@ -56,7 +56,7 @@ const editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const auto=fs.readFileSync(path.join(root,'autotile.js'),'utf8');
 const shoreline=fs.readFileSync(path.join(root,'shoreline.js'),'utf8');
 for(const id of ['polishNature','polishTerrain','polishComposition'])assert(html.includes('id="'+id+'"'),'visual control missing '+id);
-assert(html.indexOf('polish.js?v=0.21.0')<html.indexOf('app.js?v=0.21.0'),'polish module loads before the map');
+assert(html.indexOf('polish.js?v=0.21.0')<html.indexOf('app.js?v=0.22.0'),'polish module loads before the map');
 assert(html.includes('river.js?v=0.21.0')&&html.includes('shoreline.js?v=0.21.0'));
 assert(app.includes('mouthPortals=state.river?')&&app.includes('mouthPortals,version:4'),'coast uses mouth apertures');
 assert(!app.includes('skipEdges'),'old whole-coast suppression gone');
