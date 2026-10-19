@@ -48,8 +48,8 @@ window.VedrasForest=(()=>{
   const options=valid(raw);
   const types=new Map((terrainCatalog?.terrainTypes||[]).map(t=>[t.id,t]));
   const info=cells.map(c=>{
-   const k=key(c.q,c.r),baseBiome=String(typeof baseOf==='function'?baseOf(c):c.baseBiome||c.terrainTypeId||c.biome||'');
-   const biome=String(typeof biomeOf==='function'?biomeOf(c):baseBiome);
+   const k=key(c.q,c.r),biome=String(typeof biomeOf==='function'?biomeOf(c):c.terrainTypeId||c.biome||'');
+   const baseBiome=String(typeof baseOf==='function'?baseOf(c):c.baseBiome||biome);
    const ground=types.get(baseBiome)?.materialClass==='ground';
    const isJungle=ground&&jungleAllowed(baseBiome)&&(options.jungleHexes[k]===true||biome==='jungle');
    const intendedBiome=isJungle?'jungle':baseBiome;
