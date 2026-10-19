@@ -209,33 +209,49 @@ function drawShorelines(){
 
 // A forest is overlaid on its *original* ground, rather than replacing a moor,
 // meadow or highland biome with a generic forest-floor ecological type.
-const forestFloorStamps=new Map();
+// Forest floor is a WORLD-SPACE MATERIAL over a UNION of connected forest
+// polygons, not 37 individual hex stamps. The signature keeps this raster
+// separate from terrain, rivers and shoreline caches.
+let forestFloorRasterCache={signature:null,raster:null,buildMs:0};
 function drawForestFloor(){
  const asset=assets.find(a=>isTerrainValid(a)&&typeOfAsset(a)==='forest_floor'&&a.img?.naturalWidth>0);
- if(!asset)return;
- const signature=asset.path+'|'+asset.mtime+'|'+asset.img.naturalWidth;
- let stamp=forestFloorStamps.get(signature);
- if(!stamp){
-  stamp=document.createElement('canvas');stamp.width=stamp.height=300;
-  const g=stamp.getContext('2d');
-  g.drawImage(asset.img,0,0,300,300);
-  g.globalCompositeOperation='destination-in';
-  const fade=g.createRadialGradient(150,150,32,150,150,148);
-  fade.addColorStop(0,'rgba(0,0,0,1)');fade.addColorStop(.48,'rgba(0,0,0,.95)');
-  fade.addColorStop(.84,'rgba(0,0,0,.42)');fade.addColorStop(1,'rgba(0,0,0,0)');
-  g.fillStyle=fade;g.fillRect(0,0,300,300);
-  forestFloorStamps.clear();forestFloorStamps.set(signature,stamp);
+ if(!asset){window.__vedrasForestFloorRaster=null;return;}
+ const cells=forestCells().map(c=>{
+  const type=catalog.terrainTypes.find(t=>t.id===c.baseBiome);
+  return {...c,categoryId:type?.categoryId,ground:type?.materialClass==='ground'};
+ });
+ const textureSize=clamp(Number(state.materialScales[asset.path]||asset.meta?.textureWorldSize)||256,160,1536);
+ const resolution=Math.max(.65,Math.min(1.9,state.zoom*state.dpr*1.45));
+ const signature=JSON.stringify({
+  asset:[asset.path,asset.mtime,asset.img.naturalWidth,asset.img.naturalHeight],
+  size:textureSize,resolution:Math.round(resolution*10)/10,
+  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.jungle,c.baseBiome,c.ground,c.categoryId]),
+  version:'region-mask-v1'
+ });
+ if(forestFloorRasterCache.signature!==signature){
+  const start=performance.now();
+  forestFloorRasterCache.raster=window.VedrasForestGround.build(cells,asset.img,{
+   textureSize,resolution,maxPixels:2600000,feather:23
+  });
+  forestFloorRasterCache.signature=signature;
+  forestFloorRasterCache.buildMs=performance.now()-start;
  }
- for(const forest of forestCells()){
-  if(!['light_forest','dense_forest'].includes(forest.forestClass)||forest.jungle)continue;
-  const base=forest.baseBiome,cat=catalog.terrainTypes.find(t=>t.id===base)?.categoryId;
-  if(['snowfields','frozen_tundra'].includes(base)||!catalog.terrainTypes.some(t=>t.id===base&&t.materialClass==='ground'))continue;
-  const strength=cat==='wetlands'?.30:cat==='cold_regions'?.25:cat==='arid_regions'?.22:.72;
-  const alpha=strength*(forest.forestClass==='dense_forest'?1:.58);
-  const p=axialPos(forest.q,forest.r);
-  ctx.save();hexPath(forest.q,forest.r);ctx.clip();ctx.globalAlpha=alpha;
-  ctx.drawImage(stamp,p.x-150,p.y-150,300,300);ctx.restore();
+ const raster=forestFloorRasterCache.raster;
+ window.__vedrasForestFloorRaster=raster;
+ if(!raster?.canvas)return;
+ ctx.save();
+ // One complete map silhouette prevents the outward feather spilling onto
+ // the background. Critically, there is NO per-forest-hex clipping/fade.
+ ctx.beginPath();
+ for(const c of worldCells){
+  const pts=hexPoints(c.q,c.r);ctx.moveTo(...pts[0]);
+  for(let i=1;i<6;i++)ctx.lineTo(...pts[i]);
+  ctx.closePath();
  }
+ ctx.clip();
+ ctx.globalAlpha=1;
+ ctx.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);
+ ctx.restore();
 }
 function drawGround(){
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
