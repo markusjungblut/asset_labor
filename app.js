@@ -666,7 +666,7 @@ function drawMapObjects(){if(!state.objects)return;
    else if(o.type==='building'){
     const w=o.w*state.zoom,preset=state.shadowAssetPresets?.[o.asset.path]||{};
     const shape=window.VedrasShadows.settings({opacity:.37,reach:.55,spread:1.05,originX:-.06,originY:0,contact:.75,...preset});
-    window.VedrasShadows.contact(ctx,p,w,'nature',.65*sceneShadowStrength());
+    window.VedrasShadows.contact(ctx,p,w,'nature',.65*sceneShadowStrength(),shape);
     const silhouette=shadowSilhouette(o.asset.img),height=w*silhouette.aspect;
     window.VedrasShadows.cast(ctx,silhouette,p,w,height,o.asset.meta?.anchor||{x:.5,y:.90},shape.reach,'nature',
       shape.opacity*sceneShadowStrength()*.8,shape.softness*.5,shape);
