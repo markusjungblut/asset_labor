@@ -589,7 +589,10 @@ function mountainCoversBase(plant,mountain){
  }catch{return false;}
 }
 function drawMapObjects(){if(!state.objects)return;
- const objs=genericObjects().filter(o=>o.asset?.img?.naturalWidth).map(o=>({...o,groundY:o.y, y:displayGroundY(o.x,o.y)}));
+ const objs=genericObjects().filter(o=>o.asset?.img?.naturalWidth).map(o=>{
+  const heightAdjusted=displayGroundY(o.x,o.y);
+  return {...o,groundY:o.y,y:heightAdjusted,sortY:toScreen(o.x,heightAdjusted).y};
+ });
  if(state.mode==='far'){
    // Far view deliberately uses simplified strategic markers, not the detailed sprites.
    for(const o of objs){if(o.type!=='building'&&o.type!=='unit'&&o.type!=='mountain')continue;const p=toScreen(o.x,o.y);
@@ -602,21 +605,37 @@ function drawMapObjects(){if(!state.objects)return;
   // even when that Nature sprite originates from a legal neighboring hex.
   const mountains=objs.filter(o=>o.type==='mountain');
   for(const o of objs)if(o.type==='nature'&&mountains.some(m=>mountainCoversBase(o,m)))o.occludedByMountain=true;
-  objs.sort((a,b)=>{if(a.type==='mountain'&&b.occludedByMountain)return 1;if(b.type==='mountain'&&a.occludedByMountain)return -1;return a.groundY-b.groundY || (a.type==='mountain'&&b.type==='mountain'?a.x-b.x:0);});
+  // Painter order follows the ACTUAL projected ground-foot height, including
+  // relief displacement. A mountain only covers a neighbor when the neighbor's
+  // foot intersects that particular mountain's opaque silhouette.
+  objs.sort((a,b)=>{
+   if(a.type==='mountain'&&b.occludedByMountain&&mountainCoversBase(b,a))return 1;
+   if(b.type==='mountain'&&a.occludedByMountain&&mountainCoversBase(a,b))return -1;
+   return a.sortY-b.sortY||(a.x-b.x);
+  });
+  // Ground shadows FIRST: a foreground tree must not paint its shadow
+  // across the already rendered canopy of a tree behind it.
   drawMountainShadows(objs);
   if(state.mountainShadowDebug)return;
-  for(const o of objs){const p=toScreen(o.x,o.y);if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
-    // A shadow is a genuine independently authored image, never an automatic oval.
-    if(o.type==='mountain'){drawSprite(o);continue;}
-    // Contact shadow is always present for grounded Nature sprites, even
-    // without an optional PNG in assets/shadows.
-    if(o.natureMeta)drawNatureGrounding(o,p);
-    const sh=pairedShadow(o);if(sh?.img?.naturalWidth){
-     if(o.natureMeta)drawNatureShadow(sh,o,p);
-     else{let ww=o.w*state.zoom,hh=ww*sh.img.naturalHeight/sh.img.naturalWidth;
-      const anchor=sh.meta?.anchor||{x:.5,y:.5};ctx.drawImage(sh.img,p.x-ww*anchor.x,p.y-hh*anchor.y,ww,hh);}
+  for(const o of objs){
+   const p=toScreen(o.x,o.y);
+   if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
+   if(o.natureMeta)drawNatureGrounding(o,p);
+   const sh=pairedShadow(o);
+   if(sh?.img?.naturalWidth){
+    if(o.natureMeta)drawNatureShadow(sh,o,p);
+    else{
+     const ww=o.w*state.zoom,hh=ww*sh.img.naturalHeight/sh.img.naturalWidth;
+     const anchor=sh.meta?.anchor||{x:.5,y:.5};
+     ctx.drawImage(sh.img,p.x-ww*anchor.x,p.y-hh*anchor.y,ww,hh);
     }
-    drawSprite(o);
+   }
+  }
+  // Real sprites are sorted by projected ground foot AFTER the shadow layer.
+  for(const o of objs){
+   const p=toScreen(o.x,o.y);
+   if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
+   drawSprite(o);
   }
 }
 function drawBounds(){if(!state.bounds)return;const [q,r]=state.selected.split(',').map(Number),p=axialPos(q,r),s=toScreen(p.x,p.y+52),half=96*state.zoom,full=128*state.zoom;
