@@ -1,3 +1,17 @@
+**Block 3 · Schatten und 2,5D (19.10.2026):** Bergschatten
+werden nun aus der echten PNG-Silhouette **nach links unten** auf
+den Boden projiziert – zuvor fielen sie weitgehend nach links *oben*
+und verschwanden unter dem Berg. Ein kräftigerer Fußkontakt und
+zwei sanfte Wurfschattenschichten machen die Silhouette sichtbar.
+Bäume, Büsche, Gebäude und Einheiten erhalten konsistente
+Bodenkontaktschatten; Nature-Sprites können zusätzlich
+silhouettenbasierte Schatten und ihre bestehenden Schatten-PNGs nutzen.
+Schatten werden vor den Sprites gezeichnet, Objekte nach
+reliefkorrigiertem Fußpunkt gestaffelt. Der Berg-Schatten-Debug zeigt
+goldene Linien vom Fuß zum Wurfschatten. Einzelheiten in
+`docs/SHADOW_SYSTEM.md`; Regression
+`tests/test_block3_shadows.cjs`.
+
 **Block 2 Natur-Balancing (19.10.2026):** Naturgrößen werden jetzt im
 Kartenrenderer artabhängig verkleinert, tote Bäume und Stämme seltener
 verteilt, lebende Baumquoten reduziert und 18 % geeigneter Landhexe in
