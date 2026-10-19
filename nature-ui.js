@@ -193,7 +193,7 @@ window.VedrasNature=(()=>{
   if(!eligible(meta,q,r)){message('Dieses Nature-Sprite ist auf dem ausgewählten Biom nicht zulässig. Mangroven brauchen geeignete warme Feuchtufer und einen Landanker.');return;}
   const instance=makeInstance(a,q,r,arr.filter(x=>x.q===q&&x.r===r).length+1,arr,Number($('nSeed').value)||12345);
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
-  state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
+  state.natureInstances=[...arr,{...instance,source:'manual'}];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
  function populate(){
   const seed=Number($('nSeed').value)||12345;
@@ -201,7 +201,10 @@ window.VedrasNature=(()=>{
   state.forest=window.VedrasForest.valid({...state.forest,seed});
   const F=window.VedrasForest,forest=core.forestCells();
   const forestByHex=new Map(forest.map(c=>[c.key,c]));
-  const all=[],assets=core.assets();
+  // Keep valid hand-placed instances when refreshing a forest. Old generated
+  // instances without provenance are intentionally regenerated.
+  const all=(state.natureInstances||[]).filter(n=>n.source==='manual'&&validInstance(n,forestByHex)===true);
+  const assets=core.assets();
   const candidates=assets.filter(a=>F&&window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
   let suitableCells=0,forestTrees=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
