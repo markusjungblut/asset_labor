@@ -15,7 +15,7 @@ assert.equal(images.length,181);
 assert.equal(Object.keys(nature.entries).length,181);
 assert.equal(manifest.entryCount,181);assert.equal(manifest.entries.length,181);
 assert.deepEqual(Array.from(N.validate(nature,terrain)),[]);
-assert.equal(plan.items.length,11);assert.equal(plan.resolved.length,34);
+assert.equal(plan.items.length,4);assert.equal(plan.resolved.length,41);
 assert.equal(registry.species.length,106);
 const aliases=registry.species.flatMap(s=>s.aliases);
 assert.equal(aliases.length,181);assert.equal(new Set(aliases).size,181);
@@ -56,4 +56,4 @@ for(const id of ['reeds_01','succulent_01','bush_tundra_01','willow_01','alder_0
  assert(plan.resolved.some(e=>e.id===id));assert(!plan.items.some(e=>e.id===id));
 }
 for(let i=12;i<=19;i++){const m=nature.entries['nature/tree_'+i+'.png'];assert.equal(m.id,'kapok_tree_'+i);assert.equal(m.kind,'tree');}
-console.log('PASS: 33 new PNGs classified, 181 catalogued, 11 outstanding, 106 flora groups, 8 Kapok trees preserved.');
+console.log('PASS: 33 new PNGs classified, 181 catalogued, 4 geological tasks outstanding, 106 flora groups, 8 Kapok trees preserved.');
