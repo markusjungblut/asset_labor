@@ -8,7 +8,7 @@ const R=w.VedrasRivers,N=w.VedrasNatureCatalog,E=w.VedrasExistingAssets;
 const terrain=JSON.parse(fs.readFileSync(path.join(root,'assets/terrain/terrain_catalog.json'),'utf8'));
 const cat=JSON.parse(fs.readFileSync(path.join(root,'assets/nature/nature_catalog.json'),'utf8'));
 assert.deepEqual(N.validate(cat,terrain),[]);
-assert.equal(Object.keys(cat.entries).length,181);
+assert.equal(Object.keys(cat.entries).length,258);
 const ok=(f,t,n=[])=>N.habitatOK({id:f,family:f,tags:[]},t,n,terrain);
 for(const [f,t,n,want] of [
  ['mangroves','swamp',['ocean'],true],['mangroves','marshland',['jungle'],true],
@@ -18,12 +18,16 @@ for(const [f,t,n,want] of [
  ['palms','moor',[],false],['palms','marshland',[],false],['palms','highland',[],false],
  ['savanna_trees','savanna',[],true],['savanna_trees','jungle',[],false],
  ['savanna_trees','sandy_desert',[],false],['conifers','snowfields',[],false],
- ['snow_conifers','snowfields',[],true],['reeds','ocean',['swamp'],false],
+ ['snow_conifers','snowfields',[],true],['snow_conifers','tundra',[],true],
+ ['snow_fallen_logs','snowfields',[],true],['snow_fallen_logs','tundra',[],true],
+ ['snow_fallen_logs','savanna',[],false],['snow_dead_trees','highland',[],true],['reeds','ocean',['swamp'],false],
  ['riparian_trees','pasture',[],false],['riparian_trees','pasture',['marshland'],true]
  ])assert.equal(ok(f,t,n),want,f+'/'+t);
 for(const [name,family] of [
  ['Dead_Tree_11.png','snow_dead_trees'],['Dead_Tree_15.png','snow_dead_trees'],
- ['Dead_Tree_01.png','dead_trees'],['Farn_03.png','ferns'],
+ ['Dead_Tree_01.png','dead_trees'],
+ ['Fallen_Log_11.png','snow_fallen_logs'],['Fallen_Log_20.png','snow_fallen_logs'],
+ ['Fallen_Log_21.png','fallen_logs'],['Farn_03.png','ferns'],
  ['Mangrove_01.png','mangroves'],['Dschungelbusch_02.png','tropical_bushes'],
  ['Kaktus_03.png','cacti'],['Fallen_Tree_04.png','fallen_logs']
  ])assert.equal(E.classify({category:'nature',name})?.family,family,name);
@@ -49,4 +53,4 @@ assert(paint?.canvas);assert.equal(strokes,0,'filled segment masks, not brush st
 assert(masks>=6&&fade>0,'water feathering and mouth fade');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert(html.includes('id="nCleanup"')&&html.includes('river.js?v=0.16.0'));
-console.log('PASS: 181 Nature entries, mangrove and palm hard habitats, future sprite classification, filled river geometry and block zones.');
+console.log('PASS: 258 Nature entries, mangrove and palm hard habitats, future sprite classification, filled river geometry and block zones.');
