@@ -1,3 +1,16 @@
+**Block 4 · Grafik-Finish (19.10.2026):** Flüsse nutzen eine einzige,
+weich auslaufende **Distanzfeldmaske** statt sichtbarer Halbkreise an
+Hexkanten; ihre Mündungen liegen auf dem gemeinsamen Küsten-Seitenmittelpunkt.
+Der Strand bleibt an allen Küstenseiten vollständig erhalten und wird
+nur in einer schmalen, verlaufenden Flussöffnung zurückgenommen.
+Die neuen Regler **Nature-Farbangleichung**, **Terrainmuster beruhigen**
+und **Natürliche Pflanzengruppen** wirken ausschließlich im Renderer
+beziehungsweise bei der nächsten automatischen Vegetationsverteilung.
+Echte PNGs und Habitatregeln werden nicht verändert. Dokumentation:
+`docs/VISUAL_POLISH.md`; Tests:
+`tests/test_block4_visual_polish.cjs` und
+`tests/test_block4_coast_aperture.cjs`.
+
 **Block 3 · Schatten und 2,5D (19.10.2026):** Bergschatten
 werden nun aus der echten PNG-Silhouette **nach links unten** auf
 den Boden projiziert – zuvor fielen sie weitgehend nach links *oben*
