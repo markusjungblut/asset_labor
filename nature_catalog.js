@@ -20,6 +20,37 @@ window.VedrasNatureCatalog=(()=>{
   const removed=new Set([...shared.excludeIds,...own.excludeIds]);
   return new Set(types.filter(t=>!removed.has(t.id)&&(cats.has(t.categoryId)||included.has(t.id))).map(t=>t.id));
  }
+ // Hard ecological guard, independent of category presets and edited metadata.
+ // Both generated and manually placed sprites MUST pass it. The anchor stays on
+ // LAND; a mangrove crown may overhang adjacent water without spawning in it.
+ function habitatOK(meta,typeId,neighborTypes=[],terrain=null){
+  if(!meta||!typeId)return false;
+  const registry=terrain?.terrainTypes||[];
+  const tile=registry.find(t=>t.id===typeId);
+  if(tile&&tile.materialClass!=='ground')return false;
+  const f=meta.family,t=typeId,neighbors=new Set(neighborTypes||[]);
+  const nearWater=[...neighbors].some(id=>registry.find(v=>v.id===id)?.materialClass==='water'||registry.find(v=>v.id===id)?.materialClass==='shoreline');
+  const nearWarm=[...neighbors].some(id=>id==='jungle'||id==='savanna');
+  const among=(...v)=>v.includes(t);
+  if(f==='mangroves')return among('swamp','marshland')&&(nearWater||nearWarm);
+  if(f==='palms')return among('jungle','savanna','tropical_coast');
+  if(f==='jungle_trees'||f==='tropical_bushes')return among('jungle');
+  if(f==='savanna_trees')return among('savanna','semi_desert');
+  if(f==='cacti')return among('rocky_desert','sandy_desert','clay_desert','desert','semi_desert','sandy_rocky_desert','savanna');
+  if(f==='succulents')return among('savanna','semi_desert','rocky_desert','sandy_desert','sandy_rocky_desert','badlands','desert');
+  if(f==='ferns')return among('forest_floor','grassland','pasture','moor','swamp','marshland','jungle');
+  if(f==='reeds')return among('moor','swamp','marshland');
+  if(f==='cold_bushes')return among('tundra','frozen_tundra','highland');
+  if(f==='snow_conifers'||f==='snow_dead_trees'||f==='snow_deadwood')return among('snowfields','frozen_tundra','tundra','highland');
+  if(f==='riparian_trees')return among('moor','swamp','marshland')||
+   among('grassland','pasture')&&(nearWater||[...neighbors].some(id=>['moor','swamp','marshland'].includes(id)));
+  const snow=/(?:snow|schnee|verschneit|winter)/i.test([meta.id,meta.description,...(meta.tags||[])].join(' '));
+  if(among('snowfields','frozen_tundra')&&!snow)return false;
+  if(f==='dry_bushes')return !among('jungle','moor','swamp','marshland','tundra','highland');
+  if(f==='herbs')return !among('jungle','swamp','marshland','ocean','snowfields','frozen_tundra');
+  if(f==='flowering_bushes'||f==='temperate_bushes'||f==='heath')return !among('jungle','rocky_desert','sandy_desert','clay_desert');
+  return true;
+ }
  function validate(catalog,terrain=null){const err=[];
   if(!catalog||catalog.schemaVersion!==1||!catalog.entries||Array.isArray(catalog.entries)||typeof catalog.entries!=='object')return ['Ungültiges Nature-Katalogformat.'];
   if(Object.keys(catalog.entries).length>10000)return ['Zu viele Nature-Sprites'];
@@ -62,5 +93,5 @@ window.VedrasNatureCatalog=(()=>{
   }
   return err;
  }
- return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,rules};
+ return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,habitatOK,rules};
 })();
