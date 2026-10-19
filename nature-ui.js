@@ -109,7 +109,7 @@ window.VedrasNature=(()=>{
   const r0=revision;
   try{const response=await fetch('/api/nature-catalog',{cache:'no-store'});if(!response.ok)throw Error('Server nicht verfügbar');const data=await response.json();
    const errors=N.validate(data,terrainRegistry());if(errors.length)throw Error(errors.join('; '));
-   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
+   if(!dirty&&revision===r0)catalog=data;loadedFromServer=true;serverWritable=true;cleanup('Katalog geladen');status();$('nRecoveryStatus').textContent=Object.keys(catalog.entries).length+' gespeicherte Nature-Zuordnungen vom Server geladen. Editor öffnet sich beim Anklicken einer Nature-Grafik.';importSidecars();if(dirty)saveTimer();setForm(core.assets().find(a=>a.path===core.state.asset));
   }catch(e){serverWritable=false;status();message('Nature-Katalog konnte nicht geladen werden: '+e.message+' – vorhandene Daten nicht zurückgesetzt.');$('nRecoveryStatus').textContent='Ladefehler: '+e.message+'. Bitte den ursprünglichen assets/nature/nature_catalog.json sichern und ggf. die .bak prüfen.';}
  }
  async function importJSON(file){let data=JSON.parse(await file.text());let next;
@@ -128,14 +128,53 @@ window.VedrasNature=(()=>{
  // Simple deterministic, order-independent per asset + hex. Never uses Math.random().
  function hash(seed,q,r,k){let h=(seed|0)^Math.imul(q+97,374761393)^Math.imul(r+513,668265263)^Math.imul(k+11,2246822519);h^=h>>>13;h=Math.imul(h,1274126177);return (h^(h>>>16))>>>0;}
  const random=(seed,q,r,k)=>hash(seed,q,r,k)/4294967296;
+ // Single authoritative placement gate for generated, manual and saved sprites.
+ // This checks the *ground anchor*. Mangrove foliage may still overhang water.
+ function permitted(a,meta,c){
+  if(!a||!meta||!c)return false;
+  const type=core.effectiveBiome(c),terrain=terrainRegistry(),material=terrain.terrainTypes.find(t=>t.id===type)?.materialClass;
+  const valid=resolveForMeta(meta);
+  const forestFallback=type==='forest_floor'&&c.biome==='forest'&&valid.has('grassland')&&['tree','shrub','ground_cover','cluster','special'].includes(meta.kind);
+  if(!valid.has(type)&&!forestFallback)return false;
+  const around=core.cells().filter(v=>Math.max(Math.abs(c.q-v.q),Math.abs(c.r-v.r),Math.abs(c.q+c.r-v.q-v.r))===1);
+  const water=around.some(v=>['water','shoreline'].includes(terrain.terrainTypes.find(t=>t.id===core.effectiveBiome(v))?.materialClass));
+  const warm=['jungle','savanna','tropical_coast','tropical_marsh','mangrove_swamp'].includes(type)||
+   around.some(v=>['jungle','savanna','tropical_coast','tropical_marsh','mangrove_swamp'].includes(core.effectiveBiome(v)));
+  return window.VedrasExistingAssets.habitatAllowed(a,meta,type,material,{coastal:water,warm});
+ }
+ function riverBlocked(meta,q,r,dx,dy){
+  const Rv=window.VedrasRivers;if(!Rv||!core.riverRoutes)return false;
+  const routes=core.riverRoutes(),p=pts(q,r);
+  const water=c=>['water','shoreline'].includes(terrainRegistry().terrainTypes.find(t=>t.id===core.effectiveBiome(c))?.materialClass);
+  // Roots/trunks are excluded; the drawn crown may overhang a nearby shore.
+  const radius=meta.family==='fallen_wood'?46:meta.kind==='tree'?23:meta.kind==='special'?18:meta.kind==='cluster'?16:12;
+  return routes.some(route=>Rv.intersects(route,core.cells(),water,p.x+dx,p.y+dy,radius,state.riverWidth||32));
+ }
+ function isValidInstance(n){
+  if(!n||!Number.isInteger(n.q)||!Number.isInteger(n.r)||!Number.isFinite(n.dx)||!Number.isFinite(n.dy))return false;
+  const a=core.assets().find(asset=>asset.path===n.assetPath),meta=entryFor(a);
+  const c=core.cells().find(cell=>cell.q===n.q&&cell.r===n.r);
+  if(!meta||meta.kind==='mountain'||!permitted(a,meta,c))return false;
+  if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(n.q+','+n.r)))return false;
+  if(riverBlocked(meta,n.q,n.r,n.dx,n.dy))return false;
+  return true;
+ }
+ function cleanup(reason=''){
+  const old=state.natureInstances||[],valid=old.filter(isValidInstance),removed=old.length-valid.length;
+  if(removed){state.natureInstances=valid;saved();message(removed+' Nature-Instanz(en) wegen unpassendem Biom, Wasser, Fluss oder gesperrtem Gelände entfernt'+(reason?' ('+reason+')':'')+'.');}
+  return removed;
+ }
  function makeInstance(a,q,r,index,all,seed,spacingFactor=1){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(q+','+r)))return null;
+  const cell=core.cells().find(c=>c.q===q&&c.r===r);
+  if(!permitted(a,meta,cell))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
   const p=pts(q,r);for(let j=0;j<48;j++){
    const dx=(random(seed,q,r,index*127+j*2+17)-.5)*242,dy=(random(seed,q,r,index*127+j*2+18)-.5)*258;
    if(!inside(dx,dy,margin))continue;
    const x=p.x+dx,y=p.y+dy;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
+   if(riverBlocked(meta,q,r,dx,dy))continue;
    if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const spacing=Math.max(20,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
    return {assetPath:a.path,assetId:meta.id,q,r,dx:Math.round(dx*100)/100,dy:Math.round(dy*100)/100,scale:Math.round(scale*1000)/1000};
@@ -146,7 +185,7 @@ window.VedrasNature=(()=>{
   const meta=entryFor(a);if(!meta){message('Zuerst Sprite-Metadaten speichern.');return;}
   const [q,r]=state.selected.split(',').map(Number);const arr=state.natureInstances||[];
   const instance=makeInstance(a,q,r,arr.filter(x=>x.q===q&&x.r===r).length+1,arr,Number($('nSeed').value)||12345);
-  if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
+  if(!instance){message('Keine zulässige Standfläche: Habitat, Fluss-Sperrfläche oder Abstand prüfen.');return;}
   state.natureInstances=[...arr,instance];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
  function populate(){
@@ -160,16 +199,10 @@ window.VedrasNature=(()=>{
   let suitableCells=0,forestTrees=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
   for(const c of core.cells()){
-   const terrainType=core.effectiveBiome(c),f=forestByHex.get(c.q+','+c.r);
-   const type=terrainRegistry().terrainTypes?.find(x=>x.id===terrainType);
+   const f=forestByHex.get(c.q+','+c.r);
    const possible=candidates.filter(a=>{
     const m=entryFor(a);
-    if(type?.materialClass==='water'&&!['reeds','mangroves'].includes(m.family))return false;
-    if(!F.preferredFamily(m.family,f))return false;
-    const allowed=resolveForMeta(m);
-    // Waldboden-Testmaterial ist NICHT der Waldtyp: Baumfamilien gehören zum
-    // ursprünglichen Grasland-/Kälte-/Sumpfbiom, unabhängig von der Boden-PNG.
-    return allowed.has(terrainType)||(terrainType==='forest_floor'&&c.biome==='forest'&&allowed.has('grassland')&&['tree','shrub','ground_cover','cluster'].includes(m.kind));
+    return F.preferredFamily(m.family,f)&&permitted(a,m,c);
    });
    if(possible.length)suitableCells++;
    const treePriority=a=>{
@@ -414,9 +447,12 @@ window.VedrasNature=(()=>{
  const onLibrary=async()=>{if(core.terrainReady?.()&&!loadedFromServer&&!dirty)await reload();
   importSidecars();setForm(core.assets().find(a=>a.path===state.asset));status();};
  window.addEventListener('vedras:assets-loaded',onLibrary);
+ window.addEventListener('vedras:assets-loaded',()=>cleanup('Grafiken geladen'));
+ window.addEventListener('vedras:river-changed',()=>cleanup('Fluss verändert'));
+ window.addEventListener('vedras:nature-catalog-changed',()=>cleanup('Habitatregeln verändert'));
  window.addEventListener('vedras:hex-selected',renderPlaced);
  window.addEventListener('vedras:assets-loaded',syncMountainControls);
- window.addEventListener('vedras:terrain-catalog-changed',()=>{if(core.terrainReady?.()&&!dirty)reload();else if(selected)ensureTypeOptions(entryFor(selected)||suggest(selected));});
+ window.addEventListener('vedras:terrain-catalog-changed',()=>{if(core.terrainReady?.()&&!dirty)reload();else if(selected)ensureTypeOptions(entryFor(selected)||suggest(selected));cleanup('Terrain verändert');});
  $('nShowDemo').checked=state.showLegacyNature!==false;$('nSeed').value=String(state.natureSeed||12345);
  $('nSeed').addEventListener('change',()=>{state.natureSeed=Number($('nSeed').value)||12345;saved();});
  if(core.terrainReady?.())reload();
@@ -428,5 +464,5 @@ window.VedrasNature=(()=>{
   if(!r.ok)throw Error((await r.text()).slice(0,200));dirty=false;await reload();
   message('Sicherung wiederhergestellt: '+amount+' Sprite-Einträge.');
  }catch(e){message('Wiederherstellung: '+e.message);}});
- return {catalog:()=>catalog,entryFor,resolveForMeta,onSelect,placeSelected,reload,save,renderPlaced,populate,inside,makeInstance};
+ return {catalog:()=>catalog,entryFor,resolveForMeta,onSelect,placeSelected,reload,save,renderPlaced,populate,inside,makeInstance,permitted,isValidInstance,cleanup};
 })();
