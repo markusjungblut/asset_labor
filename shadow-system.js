@@ -56,9 +56,10 @@ window.VedrasShadows=(()=>{
   if(!(width>0)||strength<=0)return;
   const mountain=kind==='mountain',k=clamp(strength,0,1.3);
   const s=mountain?settings(shape):shape;
-  const radius=width*(mountain?.48:.31)*(mountain?s.contact:1);
-  const offsetX=mountain?width*(s.originX*.44-.045):-width*.025;
-  const offsetY=mountain?width*(s.originY+.018):width*.012;
+  const contactScale=number(s.contact,1,.35,2.5);
+  const radius=width*(mountain?.48:.31)*contactScale;
+  const offsetX=mountain?width*(s.originX*.44-.045):width*((s.originX??0)*.44-.025);
+  const offsetY=mountain?width*(s.originY+.018):width*((s.originY??0)+.012);
   ctx.save();ctx.translate(p.x+offsetX,p.y+offsetY);
   ctx.scale(1,mountain?.37:.31);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,radius);
