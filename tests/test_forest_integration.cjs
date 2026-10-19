@@ -20,7 +20,7 @@ const jungle=suitable('jungle',{jungle:true});
 assert(grassland.some(x=>x.meta.kind==='tree'&&x.meta.family==='deciduous_trees'),'woodland deciduous trees');
 assert(grassland.some(x=>x.meta.kind==='tree'&&x.meta.family==='conifers'),'woodland conifers');
 assert.equal(resources.filter(x=>x.meta.family==='riparian_trees').length,8);
-assert.equal(resources.filter(x=>x.meta.family==='deadwood').length,8);
+assert.equal(resources.filter(x=>x.meta.family==='deadwood').length,16);
 assert.equal(resources.filter(x=>x.meta.family==='reeds').length,4);
 assert.equal(resources.filter(x=>x.meta.family==='cold_bushes').length,4);
 assert.equal(resources.filter(x=>x.meta.family==='succulents').length,3);
