@@ -422,6 +422,9 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  // Nature objects are independent per-instance; their picture anchor is stored in the Nature catalog.
 
  for(const n of (state.natureInstances||[])){
+   // A stale imported/manual instance is never rendered over rivers or on
+   // incompatible ground while the persisted scene is being reconciled.
+   if(window.VedrasNature?.isValidInstance&&!window.VedrasNature.isValidInstance(n))continue;
    if(blocked.has(key(n.q,n.r)))continue;const a=useAsset(n.assetPath);if(!a)continue;
    const m=window.VedrasNature?.entryFor(a);if(!m)continue;
    const p=axialPos(n.q,n.r);
