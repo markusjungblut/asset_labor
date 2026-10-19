@@ -359,6 +359,12 @@ window.VedrasNature=(()=>{
   const current=selectedMountain(),selectedAsset=core.assets().find(a=>a.path===state.asset),
    assetPath=current?.assetPath||selectedAsset?.path,preset=state.shadowAssetPresets?.[assetPath]||{};
   const config={...state.mountainShadowDefaults,...preset};
+  if(Number.isFinite(preset.reach)&&!Number.isFinite(preset.length))
+   config.length=preset.reach*.8;
+  if(Number.isFinite(preset.spread)&&!Number.isFinite(preset.rootWidth))
+   config.rootWidth=.26*preset.spread/1.28;
+  if(Number.isFinite(preset.contact)&&!Number.isFinite(preset.contactWidth))
+   config.contactWidth=.16*preset.contact/1.10;
   if(current){
    if(Number.isFinite(current.shadowReach)&&!Number.isFinite(current.shadowLength))
     config.length=current.shadowReach*.8;
