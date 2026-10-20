@@ -70,6 +70,12 @@ async function test(){
  let rejected=false;try{await client.render({cells:[],types:[]},[source]);}
  catch{rejected=true;}
  assert(rejected,'unsupported/disabled worker rejects for legacy fallback');
+ client.restart();
+ assert(client.available(),'operator can retry a failed worker');
+ await client.render({cells:[],types:[]},[source]);
+ assert.equal(instances.length,2,'restarting the worker creates a fresh thread');
+ assert.equal(inbox.filter(msg=>msg.type==='texture').length,2,
+  'restarting re-uploads source artwork to the fresh worker');
  
  // Asynchronous chunks must preserve scene epochs and close stale bitmaps.
  const taskQueue=[],world={};
