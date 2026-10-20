@@ -41,13 +41,23 @@ window.VedrasShoreline=(()=>{
  function build(cells,isWet,images,options={}){
   // Keep ALL real coast edges, including the river mouth's host edge.
   // Only a small local aperture is feathered out where water crosses it.
-  const segs=segments(cells,isWet),portals=Array.isArray(options.mouthPortals)?options.mouthPortals:[],
+  const bbox=options.bounds||null;
+  const allSegments=options.segments||segments(cells,isWet);
+  const segs=bbox?allSegments.filter(s=>
+   s.center.x>=bbox.x-260&&s.center.x<=bbox.x+bbox.width+260&&
+   s.center.y>=bbox.y-260&&s.center.y<=bbox.y+bbox.height+260):allSegments;
+  const portals=Array.isArray(options.mouthPortals)?options.mouthPortals:[],
    density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
   if(!segs.length)return {segments:segs,canvas:null,missing:0};
   // The large full-hex+bleed square can overrun outer map edges.
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
   for(const c of cells){const p=pos(c);left=Math.min(left,p.x-260);right=Math.max(right,p.x+260);top=Math.min(top,p.y-260);bottom=Math.max(bottom,p.y+260);}
-  left=Math.floor(left);top=Math.floor(top);right=Math.ceil(right);bottom=Math.ceil(bottom);
+  if(bbox){
+   left=Math.floor(bbox.x);top=Math.floor(bbox.y);
+   right=Math.ceil(bbox.x+bbox.width);bottom=Math.ceil(bbox.y+bbox.height);
+  }else{
+   left=Math.floor(left);top=Math.floor(top);right=Math.ceil(right);bottom=Math.ceil(bottom);
+  }
   const width=Math.ceil((right-left)*density),height=Math.ceil((bottom-top)*density);
   const output=document.createElement('canvas');output.width=width;output.height=height;
   const outContext=output.getContext('2d',{willReadFrequently:true});

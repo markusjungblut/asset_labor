@@ -57,12 +57,12 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
  nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8'),
  html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const riverIndex=app.indexOf('for(const route of routes){',app.indexOf('function drawRoads(){'));
-const roadsIndex=app.indexOf('window.VedrasRoads.render(ctx,roadEdges',riverIndex);
+const roadsIndex=app.indexOf('window.VedrasRoads.render(ctx,visibleEdges',riverIndex);
 const bridgeIndex=app.indexOf('window.VedrasBridges.render(ctx,crossings',roadsIndex);
 assert(riverIndex>=0&&roadsIndex>riverIndex&&bridgeIndex>roadsIndex,
  'render in precise order: terrain, river, sandy paths, bridge');
 assert(html.indexOf('river.js?v=0.28.0')<html.indexOf('bridges.js?v=0.28.0'));
-assert(html.indexOf('bridges.js?v=0.28.0')<html.indexOf('app.js?v=0.28.0'));
+assert(html.indexOf('bridges.js?v=0.28.0')<html.indexOf('app.js?v=0.29.0'));
 assert(app.includes('function applyRoadChanges(next)')&&app.includes('clearCorridor(previous,edges'));
 assert(app.includes('if(o.type!==\'mountain\'&&window.VedrasRoads.blocksPoint'));
 assert(ui.includes('core.roads.apply(next)'),'all click and junction actions use clearance');
