@@ -434,6 +434,13 @@ function drawGround(){
 }
 
 let bridgeCrossingsCache={signature:null,crossings:[]};
+const roadChunks=window.VedrasChunks.create({size:512,maxTiles:72,maxPixels:25000000});
+function roadInView(edge,bounds){
+ const a=window.VedrasRoads.center(Array.isArray(edge.a)?{q:edge.a[0],r:edge.a[1]}:edge.a),
+  b=window.VedrasRoads.center(Array.isArray(edge.b)?{q:edge.b[0],r:edge.b[1]}:edge.b);
+ return Math.max(a.x,b.x)>=bounds.x-80&&Math.min(a.x,b.x)<=bounds.x+bounds.width+80&&
+  Math.max(a.y,b.y)>=bounds.y-80&&Math.min(a.y,b.y)<=bounds.y+bounds.height+80;
+}
 function drawRoads(){
  if(!state.river&&!state.roadShown)return;
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
@@ -441,7 +448,15 @@ function drawRoads(){
  // First draw rivers. Their water remains unchanged: paths and bridges are
  // constructed ABOVE water rather than being submerged beneath its mask.
  const routes=state.river?riverRoutes():[],byKey=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
+ const sw=fromScreen(-140,-140),ne=fromScreen(W+140,H+140);
+ const bounds={x:Math.min(sw.x,ne.x),y:Math.min(sw.y,ne.y),
+  width:Math.abs(ne.x-sw.x),height:Math.abs(ne.y-sw.y)};
+ const visibleRiver=route=>(route.hexes||[]).some(([q,r])=>{
+  const p=axialPos(q,r);return p.x>=bounds.x-360&&p.x<=bounds.x+bounds.width+360&&
+   p.y>=bounds.y-360&&p.y<=bounds.y+bounds.height+360;
+ });
  for(const route of routes){
+  if(!visibleRiver(route))continue;
   const mouth=route.hexes.at(-1),cell=byKey.get(mouth.join(',')),water=cell?imageForBiome(cell):null;
   const width=clamp(Number(state.riverWidth)||32,12,70);
   // Raster is reused at every pan/zoom. The water sampler must come from
@@ -492,14 +507,42 @@ function drawRoads(){
  if(state.roadShown){
   const roadEdges=visibleRoadEdges();
   const projection=state.relief.enabled?displayGroundY:null;
-  window.VedrasRoads.render(ctx,roadEdges,{hex:HEX,groundY:projection,detail:state.zoom>=.80});
+  const visibleEdges=roadEdges.filter(e=>roadInView(e,bounds));
+  if(state.chunkRendering||state.sceneSize>37){
+   const distant=state.zoom<.75,density=distant?.5:1;
+   const signature=JSON.stringify([roadEdges,state.relief,distant]);
+   roadChunks.configure(signature,{
+    worldCells,
+    buildTile:(tile)=>{
+     const pad=window.VedrasChunks.HALO,w=tile.size+2*pad;
+     const canvas=document.createElement('canvas');
+     canvas.width=Math.ceil(w*density);canvas.height=Math.ceil(w*density);
+     const g=canvas.getContext('2d');
+     g.setTransform(density,0,0,density,
+      -(tile.x-pad)*density,-(tile.y-pad)*density);
+     const clip={x:tile.x-pad,y:tile.y-pad,width:w,height:w};
+     const edges=roadEdges.filter(e=>roadInView(e,clip));
+     window.VedrasRoads.render(g,edges,{hex:HEX,groundY:projection,detail:!distant});
+     return {raster:{canvas,x:tile.x-pad,y:tile.y-pad,width:w,height:w}};
+    },
+    redraw:requestDraw
+   });
+   roadChunks.draw(ctx,bounds,{margin:0,drawRaster:window.VedrasAutotile.draw});
+  }else{
+   roadChunks.clear();
+   window.VedrasRoads.render(ctx,visibleEdges,{hex:HEX,groundY:projection,
+    detail:state.zoom>=.80});
+  }
   const bridgeSignature=JSON.stringify([roadEdges,routes,state.riverWidth,
    worldCells.map(c=>[c.q,c.r])]);
   if(bridgeCrossingsCache.signature!==bridgeSignature)
    bridgeCrossingsCache={signature:bridgeSignature,crossings:window.VedrasBridges.candidates(
     roadEdges,routes,worldCells,wetHex,state.riverWidth)};
   const crossings=bridgeCrossingsCache.crossings;
-  window.VedrasBridges.render(ctx,crossings,{groundY:projection,requestDraw});
+  window.VedrasBridges.render(ctx,crossings.filter(b=>
+   b.x>=bounds.x-200&&b.x<=bounds.x+bounds.width+200&&
+   b.y>=bounds.y-200&&b.y<=bounds.y+bounds.height+200),
+   {groundY:projection,requestDraw});
   const label=$('roadBridgeStats');
   if(label)label.textContent=crossings.length+' Brücke(n) an tatsächlichen Flussquerungen · sechs Richtungsbilder';
  }else{
