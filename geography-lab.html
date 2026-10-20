@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vedras Reiche – Geografie-Labor v2</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#101923;color:#e8edf3}
+*{box-sizing:border-box}body{margin:0}header{background:#172634;border-bottom:1px solid #3a5064;padding:14px 22px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}h1{font-size:21px;margin:0}h2{font-size:16px;margin:0 0 12px}.minor{color:#a6b6c6;font-size:12px}
+main{display:grid;grid-template-columns:minmax(260px,350px) minmax(300px,1fr);gap:14px;padding:14px}
+aside,.mainpanel{background:#172431;border:1px solid #30485b;border-radius:12px;padding:16px}
+aside{height:calc(100vh - 90px);overflow:auto} .controls{display:grid;grid-template-columns:repeat(3,minmax(115px,1fr));gap:10px}.controls label{font-size:13px}
+input,select,button{background:#22394b;color:#eff7fe;border:1px solid #456074;border-radius:6px;padding:8px;max-width:100%}
+input[type=number],input[type=text],select{width:100%}
+button{cursor:pointer}button:hover{background:#31536a}button.primary{background:#2d675a;border-color:#478f7a}
+.field{border-top:1px solid #31495b;padding:10px 0;display:grid;gap:5px}
+.field label{font-size:13px;font-weight:600}.field .pair{display:grid;grid-template-columns:1fr 84px;gap:6px;align-items:center}
+.field input[type=range]{width:100%;padding:0}.help{font-size:11px;color:#aabcc9}
+details{border-top:1px solid #415062;padding:7px 0}summary{font-weight:700;cursor:pointer;padding:5px 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.toolbar label{font-size:12px;color:#c2d2df;min-width:85px}
+figure{margin:12px 0;background:#0c1620;border:1px solid #3a5164;border-radius:10px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
+#stats{font-size:13px;color:#bfd2df;line-height:1.6}
+#selected{background:#21394a;padding:10px;margin-top:10px;border-radius:7px;white-space:pre-wrap;font-size:12px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+#message{color:#d9bc83;font-size:12px;margin:8px 0;min-height:18px}
+@media(max-width:830px){main{grid-template-columns:1fr}aside{height:auto;max-height:58vh}.controls{grid-template-columns:repeat(2,1fr)}}
+</style></head>
+<body>
+<header><div><h1>Vedras Reiche · Geografie-Labor</h1><div class="minor">Gemeinsame Worldgen v2 · konfigurierte Welt VOR Spielbeginn · keine Änderungen an bestehenden Spielwelten</div></div>
+<div class="actions"><button id="exportConfig">Parameter exportieren</button><button id="importConfig">Parameter importieren</button><input id="configFile" type="file" accept=".json,application/json" hidden><button id="resetConfig">Standardwerte</button></div></header>
+<main>
+<aside><h2>Weltparameter</h2><div class="minor">Alle aktiven Generatorparameter erscheinen automatisch aus dem gemeinsamen Schema. Ein neuer Parameter einer späteren Erweiterung erhält hier ohne zusätzliche UI-Verkabelung seinen Regler.</div><div id="parameters"></div></aside>
+<section class="mainpanel">
+<div class="toolbar">
+<label>World Seed<input id="worldSeed" type="text" value="vedras-welt-01" maxlength="256"></label>
+<label>Breite (Hex)<input id="worldWidth" type="number" min="10" max="240" value="95"></label>
+<label>Höhe (Hex)<input id="worldHeight" type="number" min="10" max="240" value="75"></label>
+<label>Anzeige<select id="viewMode"><option value="terrain">Terrain-Untertypen</option><option value="biomes">Biomregionen</option><option value="water">Land / Wasser</option><option value="relief">Flach / Hügel / Berg</option><option value="temperature">Temperatur</option><option value="humidity">Feuchtigkeit</option><option value="forest">Wälder</option><option value="features">Fundorte / Tiere</option></select></label>
+<button class="primary" id="generate">Welt neu berechnen</button>
+</div>
+<div id="message" role="status">Wird vorbereitet …</div>
+<figure><canvas id="worldMap" width="1200" height="750" aria-label="Prozedurale Hex-Weltkarte"></canvas></figure>
+<div id="stats"></div><div id="selected">Hexfeld anklicken, um die geografischen Werte und Besonderheiten zu prüfen.</div>
+<div class="actions"><button id="downloadWorld">Generierte Welt als JSON exportieren</button><button id="sendToLab">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
+<p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
+</section>
+</main>
+<script src="worldgen-geography.js"></script><script src="geography-lab.js"></script>
+</body></html>
