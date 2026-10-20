@@ -147,7 +147,7 @@ const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:28,maxPixels:1
 let lastChunkStats=null;
 let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
-function invalidateTerrain(){terrainRasterCache={signature:null,raster:null};reliefRasterCache={signature:null,raster:null,hits:0,misses:0};reliefFieldCache={signature:null,value:null};terrainChunks.clear();shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();window.VedrasRivers.clearGeometryCache?.();}
+function invalidateTerrain(){terrainRasterCache={signature:null,raster:null};reliefRasterCache={signature:null,raster:null,hits:0,misses:0};reliefFieldCache={signature:null,value:null};terrainChunks.clear();shorelineChunks.clear();shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();window.VedrasRivers.clearGeometryCache?.();}
 function currentRelief(){
  // This field was rebuilt once per displayed Nature sprite. Its map, coast
  // lookup and building pads depend on scene edits, not per-frame camera pan.
@@ -194,6 +194,7 @@ function displayGroundY(x,y){return y-reliefHeight(x,y);}
 
 const SHORE_EDGE_PATHS=Array.from({length:6},(_,i)=>`assets/shorelines/shore_v105_edge_${String(i+1).padStart(2,'0')}.png`);
 let shorelineCache={signature:null,raster:null};
+const shorelineChunks=window.VedrasChunks.create({size:512,maxTiles:24,maxPixels:12000000});
 const riverRasterCache=new Map();
 const wetHex=c=>isWaterTerrain(typeOfCell(c));
 const riverRoutes=()=>window.VedrasRivers.normalizeRoutes(state.riverPaths,worldCells,wetHex);
@@ -206,15 +207,43 @@ function drawShorelines(){
  const mouthPortals=state.river?window.VedrasRivers.mouthPortals(riverRoutes(),worldCells,wetHex,state.riverWidth):[];
  const signature=JSON.stringify({cells:classes,mode:opts.mode,width:opts.width,outer:opts.outer,
   images:files.map(a=>[a?.path,a?.mtime]),mouthPortals,version:4});
- if(shorelineCache.signature!==signature){
+ const chunkMode=state.chunkRendering||state.sceneSize>37;
+ if(chunkMode){
   const imgs=files.map(a=>a?.img?.naturalWidth?a.img:null);
-  const t0=performance.now();
-  shorelineCache.raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{...opts,resolution:1.5,mouthPortals});
-  shorelineCache.signature=signature;shorelineCache.buildMs=performance.now()-t0;
+  if(shorelineCache.signature!==signature){
+   shorelineCache.signature=signature;
+   shorelineCache.segments=window.VedrasShoreline.segments(worldCells,wetHex);
+  }
+  const segments=shorelineCache.segments;
+  shorelineChunks.configure(signature,{
+   worldCells,
+   buildTile:(tile)=>{
+    const halo=window.VedrasChunks.HALO,bounds={
+     x:tile.x-halo,y:tile.y-halo,width:tile.size+2*halo,height:tile.size+2*halo};
+    const raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{
+     ...opts,segments,bounds,resolution:1,mouthPortals});
+    return raster?.canvas?{raster}:null;
+   },
+   redraw:requestDraw
+  });
+  const a=fromScreen(-60,-60),b=fromScreen(W+60,H+60);
+  const stats=shorelineChunks.draw(ctx,{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
+   width:Math.abs(b.x-a.x),height:Math.abs(b.y-a.y)},
+   {drawRaster:(g,r)=>g.drawImage(r.canvas,r.x,r.y,r.width,r.height),margin:0});
+  if(report)report.textContent=segments.length+' echte Küstenkanten · Chunk-Raster '+stats.painted+'/'+stats.visible+
+   ' sichtbar · '+stats.pending+' geplant';
+ }else{
+  shorelineChunks.clear();
+  if(shorelineCache.signature!==signature||!shorelineCache.raster){
+   const imgs=files.map(a=>a?.img?.naturalWidth?a.img:null);
+   const t0=performance.now();
+   shorelineCache.raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{...opts,resolution:1.5,mouthPortals});
+   shorelineCache.signature=signature;shorelineCache.buildMs=performance.now()-t0;
+  }
+  const r=shorelineCache.raster;
+  if(r?.canvas)ctx.drawImage(r.canvas,r.x,r.y,r.width,r.height);
+  if(report)report.textContent=`${r?.segments?.length||0} vollständige Land/Wasser-Kanten · ${r?.mouthPortals||0} weiche Mündungsöffnungen · ${shorelineCache.buildMs?.toFixed(0)||0} ms.`;
  }
- const r=shorelineCache.raster;
- if(r?.canvas)ctx.drawImage(r.canvas,r.x,r.y,r.width,r.height);
- if(report)report.textContent=`${r?.segments?.length||0} vollständige Land/Wasser-Kanten · ${r?.mouthPortals||0} weiche Mündungsöffnungen · ${r?.missing||0} Grafik-Fallbacks · ${shorelineCache.buildMs?.toFixed(0)||0} ms.`;
 }
 
 // A forest is overlaid on its *original* ground, rather than replacing a moor,
