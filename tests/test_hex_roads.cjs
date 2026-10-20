@@ -55,7 +55,7 @@ const calls=[];
 const ctx={
  save(){calls.push('save');},restore(){calls.push('restore')},
  beginPath(){calls.push('path')},moveTo(){},lineTo(){},
- stroke(){calls.push('stroke')},arc(){calls.push('arc')},fill(){calls.push('fill')},
+ stroke(){calls.push('stroke')},arc(){calls.push('arc')},ellipse(){calls.push('ellipse')},fill(){calls.push('fill')},
  createPattern(){return {pattern:true}}
 };
 const result=R.render(ctx,duplicated,{hex:256});
@@ -67,8 +67,8 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const ui=fs.readFileSync(path.join(root,'road-ui.js'),'utf8');
 for(const name of ['roadPanel','roadNeighbors','roadPaint','roadJunctionTest','roadShown','roadMaterial'])
  assert(html.includes('id="'+name+'"'),'road control missing: '+name);
-assert(html.indexOf('roads.js?v=0.27.0')<html.indexOf('app.js?v=0.27.0'));
-assert(html.indexOf('app.js?v=0.27.0')<html.indexOf('road-ui.js?v=0.27.0'));
+assert(html.indexOf('roads.js?v=0.28.0')<html.indexOf('app.js?v=0.28.0'));
+assert(html.indexOf('app.js?v=0.28.0')<html.indexOf('road-ui.js?v=0.28.0'));
 for(const field of ['roadEdges:','roadShown:','roadMaterial:','state.roadEdges=',
  'window.VedrasRoads.render(ctx,','window.VedrasRoads.setEdge(state.roadEdges',
  "window.dispatchEvent(new Event('vedras:road-changed'))"])
