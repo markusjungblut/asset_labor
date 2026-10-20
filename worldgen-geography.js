@@ -456,7 +456,7 @@
       +(100*largestComponent(x=>x.surfaceClass==="land")/totalLand).toFixed(1):0;
     stats.largestWaterBody=largestComponent(x=>x.surfaceClass!=="land");
     return {version:VERSION,seed,width,height,originQ,originR,config:c,
-      cells,riverPaths,stats,riverGeometry:"hex-edges"};
+      cells,riverPaths,riverPreviewPaths:countedRoutes.map(path=>path.map(p=>[p.q,p.r])),stats,riverGeometry:"hex-edges"};
   }
   const api={VERSION,DIRS,parameterSchema,defaultConfig,normalizeConfig,
     registerParameter,registerFeature,generateWorld,getWorldCell:(world,q,r)=>{
