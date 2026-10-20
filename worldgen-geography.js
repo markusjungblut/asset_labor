@@ -50,7 +50,7 @@
     ["Biomgrenzen","biomes.semiDesertMargin","Übergang Halbwüste zu Wüste",0.045,0,0.18,0.005,"Breite der Halbwüstenzone in ariden Regionen"],
     ["Boden-Untertypen","geology.grassSparseHumidity","Karges Weideland bis Feuchte",0.36,0.1,0.7,0.01,"Trockenere Grasregionen erzeugen karges Weideland"],
     ["Boden-Untertypen","geology.pastureSoil","Weideland nach Bodenwert",0.37,0,1,0.01,"Untertyp-Mischung innerhalb Grasregionen"],
-    ["Boden-Untertypen","geology.highlandSoil","Hochland-Gesteinsausprägung",0.78,0.2,1,0.01,"Materialausprägung in kühlen Regionen; kein echtes Höhenmodell"],
+    ["Boden-Untertypen","geology.highlandSoil","Hochland-Reliefschwelle",0.62,0.2,1,0.01,"Hochland-Bodentextur in markanten kühlen Reliefgebieten; weiterhin nur flat/hills/mountain"],
     ["Boden-Untertypen","geology.wetlandSoil","Moor/Marschland nach Bodenwert",0.50,0,1,0.01,"Steuert die Untertypen in gemäßigten Feuchtgebieten"],
     ["Boden-Untertypen","geology.aridRockyBadlands","Steinige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridBadlands","Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
@@ -127,7 +127,7 @@
     extraFeatures.push(def);
   }
   function neighbours(c,lookup){return DIRS.map(([dq,dr])=>lookup.get(key(c.q+dq,c.r+dr))).filter(Boolean);}
-  function terrainFrom(family,t,h,soil,c) {
+  function terrainFrom(family,t,h,soil,c,reliefValue=null) {
     if(family==="arid"){
       if(h>c["biomes.dryThreshold"]-c["biomes.semiDesertMargin"])return "semi_desert";
       const s=clamp(soil+(c["geology.sandBias"]-.5)*.36);
@@ -150,7 +150,7 @@
     if(family==="cold"){
       if(t<.14)return h>.55?"snowfields":"frozen_tundra";
       if(t<.25)return h>.8?"snowfields":"tundra";
-      return soil>c["geology.highlandSoil"]?"highland":"tundra";
+      return reliefValue&&reliefValue.hill>c["geology.highlandSoil"]?"highland":"tundra";
     }
     if(family==="wetland")return t>.64?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
     if(family==="jungle")return "jungle";
@@ -316,7 +316,7 @@
         const cell={q,r,temperature:info?.t??temperature(q,r),
           humidity:info?.h??humidity(q,r),regionId:info?.center.id??"",
           baseBiome:info?.family??null,
-          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c):surfaceClass,
+          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c,info.landRelief):surfaceClass,
           surfaceClass,reliefClass:mountain?"mountain":hills?"hills":"flat",
           hillProfile:hills?["rounded","steep","chain","plateau","ridge"][
             Math.floor(unit(s,Math.floor(q/3),Math.floor(r/3),"hill-style")*5)]:null,
