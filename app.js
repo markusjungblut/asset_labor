@@ -488,8 +488,11 @@ function mountainOriginForObject(o,s,scale=1){
 // Cache keys contain size, strength and full style so edits invalidate only
 // the edited geometry. Maximum cache is bounded independently of the scene.
 const mountainShadowRasterCache=new Map();
+let mountainShadowCachedPixels=0;
 function shadowLocalMask(width,settings,global){
- const Sh=window.VedrasShadows,factor=.60,w=width*factor;
+ const Sh=window.VedrasShadows,
+  // Keep even large zoomed mountains below a ~320 px footprint raster.
+  factor=Math.min(.60,320/Math.max(width,1)),w=width*factor;
  const cfg={...settings,softness:settings.softness*factor};
  const id=JSON.stringify([Math.round(w*100)/100,cfg,global]);
  if(mountainShadowRasterCache.has(id)){
@@ -509,8 +512,13 @@ function shadowLocalMask(width,settings,global){
  const result={canvas:cv,left,top,factor,
   peakAlpha:stats?.maxAlpha||0,positiveCount:stats?.positiveCount||0};
  mountainShadowRasterCache.set(id,result);
- while(mountainShadowRasterCache.size>32)
-  mountainShadowRasterCache.delete(mountainShadowRasterCache.keys().next().value);
+ mountainShadowCachedPixels+=cv.width*cv.height;
+ while(mountainShadowRasterCache.size>18||mountainShadowCachedPixels>5000000){
+  const oldest=mountainShadowRasterCache.keys().next().value;
+  const evicted=mountainShadowRasterCache.get(oldest);
+  mountainShadowCachedPixels-=evicted.canvas.width*evicted.canvas.height;
+  mountainShadowRasterCache.delete(oldest);
+ }
  return {...result,hit:false};
 }
 function drawMountainShadows(objects){
