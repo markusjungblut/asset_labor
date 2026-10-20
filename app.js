@@ -350,7 +350,8 @@ function drawGround(){
      const image=selectedMap.get(key(c.q,c.r))||fallback;
      return [image?.path,image];
     })).values()].filter(a=>a?.path&&a?.img?.naturalWidth);
-    if(!assets.length)return localBuild();
+    if(!assets.length||assets.length!==new Set(nearby.map(c=>
+     (selectedMap.get(key(c.q,c.r))||fallback)?.path)).size)return localBuild();
     const {landMask,...safeRelief}=relief||{};
     const data={
      bounds,options:{
