@@ -510,7 +510,7 @@ function drawRoads(){
   const visibleEdges=roadEdges.filter(e=>roadInView(e,bounds));
   if(state.chunkRendering||state.sceneSize>37){
    const distant=state.zoom<.75,density=distant?.5:1;
-   const signature=JSON.stringify([roadEdges,state.relief,distant]);
+   const signature=JSON.stringify([roadEdges,state.relief,state.mountainInstances,state.hexObject,distant]);
    roadChunks.configure(signature,{
     worldCells,
     buildTile:(tile)=>{
