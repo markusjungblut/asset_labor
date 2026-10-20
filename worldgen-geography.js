@@ -224,7 +224,13 @@
       return wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]-
         Math.max(0,lakes-.68)*c["water.lakeInfluence"];
     }
-    const waterCut=globalCut(s,"water",c["water.fraction"],(q,r)=>-waterScore(q,r));
+    // Calibrate the core ocean share independently of the small-lake bonus.
+    // Increasing the lake control can ADD lakes, not delete existing water.
+    const waterCut=globalCut(s,"water",c["water.fraction"],(q,r)=>{
+      const wide=noise(s,q,r,c["water.scale"],"sea");
+      const detail=noise(s,q,r,Math.max(2,c["water.scale"]*.21),"shore");
+      return -(wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]);
+    });
     function wet(q,r){
       const k=spot(q,r);if(cacheWater.has(k))return cacheWater.get(k);
       const v=-waterScore(q,r)>=waterCut;cacheWater.set(k,v);return v;
