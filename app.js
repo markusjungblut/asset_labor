@@ -404,10 +404,16 @@ function reservedMountainHexes(){return new Set(validMountains().flatMap(m=>wind
 // An alpine hex or any visible mountain influence cell cannot host a road.
 // The influence halo also stops long road arms visually entering a mountain
 // PNG from a neighboring tile, not just from the occupied mountain core.
+let roadBlockedMemo={signature:null,set:new Set()};
 function roadBlockedHexes(){
- const occupied=new Set(validMountains().flatMap(m=>window.VedrasMountains.influence(m)));
- for(const c of worldCells)if(c.biome==='mountain'||typeOfCell(c)==='mountain_ground')occupied.add(key(c.q,c.r));
- return occupied;
+ const signature=JSON.stringify([state.mountainInstances,catalogRevision,assetByPath.size,
+   worldCells.map(c=>[c.q,c.r,c.biome,typeOfCell(c)])]);
+ if(roadBlockedMemo.signature!==signature){
+  const occupied=new Set(validMountains().flatMap(m=>window.VedrasMountains.influence(m)));
+  for(const c of worldCells)if(c.biome==='mountain'||typeOfCell(c)==='mountain_ground')occupied.add(key(c.q,c.r));
+  roadBlockedMemo={signature,set:occupied};
+ }
+ return roadBlockedMemo.set;
 }
 function roadBlockedCell(c){return roadBlockedHexes().has(key(c.q,c.r));}
 function visibleRoadEdges(){
