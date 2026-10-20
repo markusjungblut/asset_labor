@@ -60,6 +60,7 @@ window.VedrasNatureCatalog=(()=>{
   const baseInfo=all.find(x=>x.id===base),logicalInfo=all.find(x=>x.id===biome);
   if(baseInfo?.materialClass!=='ground'||logicalInfo?.materialClass!=='ground')return false;
   const wet=['moor','swamp','marshland'],cold=['snowfields','frozen_tundra','tundra','highland'];
+  if(meta.family==='stones'&&['snowfields','frozen_tundra'].includes(base))return false;
   const warm=['jungle','savanna'];
   const forest=['light_forest','dense_forest'].includes(context.forestClass);
   const jungle=biome==='jungle';
