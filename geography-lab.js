@@ -134,7 +134,7 @@ for(const c of world.cells){
  }
  if(rad>=2.5&&['terrain','biomes','relief','water'].includes(mode)){
   ctx.strokeStyle="#328cbb";ctx.lineWidth=Math.max(1,rad*.22);
-  for(const path of world.riverPaths)edgeRiver(path); }
+  for(const path of (world.riverPreviewPaths||world.riverPaths))edgeRiver(path); }
  ctx.save();
   ctx.fillStyle='rgba(12,29,26,.91)';
   ctx.fillRect(15,15,325,46);
