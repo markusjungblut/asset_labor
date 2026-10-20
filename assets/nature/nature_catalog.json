@@ -15524,14 +15524,13 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions",
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -15551,7 +15550,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "boulder"
+        "boulder",
+        "winter_boulder"
       ],
       "targetHeight": 110
     },
@@ -15579,14 +15579,13 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions",
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -15606,7 +15605,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "boulder"
+        "boulder",
+        "winter_boulder"
       ],
       "targetHeight": 110
     },
@@ -15634,14 +15634,13 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions",
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -15661,7 +15660,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "boulder"
+        "boulder",
+        "winter_boulder"
       ],
       "targetHeight": 110
     },
@@ -15689,14 +15689,13 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions",
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -15716,7 +15715,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "boulder"
+        "boulder",
+        "winter_boulder"
       ],
       "targetHeight": 110
     },
@@ -15744,14 +15744,13 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture",
-        "arid_regions",
-        "warm_regions",
-        "wetlands"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
@@ -15771,7 +15770,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "boulder"
+        "boulder",
+        "winter_boulder"
       ],
       "targetHeight": 110
     }
