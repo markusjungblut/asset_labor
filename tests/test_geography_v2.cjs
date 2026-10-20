@@ -18,6 +18,15 @@ const identical=G.generateWorld('geography-v21-regression',{width:65,height:52})
 assert.deepEqual(one,identical,'same version + seed + config => same world');
 assert.equal(one.cells.length,65*52);
 assert.equal(one.riverGeometry,'hex-edges');
+const uiPath=fs.existsSync(path.join(root,'geography-lab.js'))
+ ?path.join(root,'geography-lab.js')
+ :path.join(root,'public/geography-lab.js');
+const uiSource=fs.readFileSync(uiPath,'utf8');
+assert(uiSource.includes('function edgeRiver(route)')&&
+ uiSource.includes('edgeRiver(path)'),'overview map must draw edge rivers');
+assert(!uiSource.includes('path.forEach(([q,r],i)'),
+ 'preview must not connect hex centers as river visuals');
+
 assert(one.stats.forestPercentLand>=0&&one.stats.forestPercentLand<=100);
 assert(one.stats.forestPercentEligible>=0&&one.stats.forestPercentEligible<=100);
 const map=new Map(one.cells.map(c=>[c.q+','+c.r,c]));
