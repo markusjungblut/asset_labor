@@ -356,6 +356,33 @@
       stats.terrains[x.terrainId]=(stats.terrains[x.terrainId]||0)+1;
       for(const f of x.features)stats.features[f]=(stats.features[f]||0)+1;
     }
+    const regionSizes=new Map();
+    for(const x of cells)if(x.surfaceClass==="land")
+      regionSizes.set(x.regionId,(regionSizes.get(x.regionId)||0)+1);
+    const sizes=[...regionSizes.values()].sort((a,b)=>a-b);
+    stats.biomeRegions={count:sizes.length,min:sizes[0]||0,
+      average:sizes.length?Math.round(totalLand/sizes.length*10)/10:0,
+      median:sizes.length?sizes[Math.floor(sizes.length/2)]:0,
+      max:sizes.at(-1)||0,
+      within30to90:sizes.filter(n=>n>=30&&n<=90).length};
+    function largestComponent(isTarget){
+      const visited=new Set();let maximum=0;
+      for(const x of cells){
+        if(!isTarget(x)||visited.has(key(x.q,x.r)))continue;
+        const pending=[x];visited.add(key(x.q,x.r));
+        for(let i=0;i<pending.length;i++){
+          for(const neighbour of neighbours(pending[i],byKey)){
+            const k=key(neighbour.q,neighbour.r);
+            if(isTarget(neighbour)&&!visited.has(k)){visited.add(k);pending.push(neighbour);}
+          }
+        }
+        maximum=Math.max(maximum,pending.length);
+      }
+      return maximum;
+    }
+    stats.connectedLandPercent=totalLand?
+      Math.round(1000*largestComponent(x=>x.surfaceClass==="land")/totalLand)/10:0;
+    stats.largestWaterBody=largestComponent(x=>x.surfaceClass!=="land");
     return {version:VERSION,seed,width,height,config:c,cells,riverPaths,stats};
   }
   const api={VERSION,DIRS,parameterSchema,defaultConfig,normalizeConfig,
