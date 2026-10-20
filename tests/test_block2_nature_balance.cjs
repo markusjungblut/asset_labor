@@ -54,6 +54,6 @@ for(const fragment of ['B.reserveClearings(core.cells()','B.isCanopy(entryFor(a)
  assert(editor.includes(fragment),'runtime integration: '+fragment);
 }
 assert(app.includes('window.VedrasNatureBalance?.sizeFactor(m)'),'old/new nature sprites must share the reduction');
-const moduleTag='nature-balance.js?v=0.25.0',appTag='app.js?v=0.30.0';
+const moduleTag='nature-balance.js?v=0.25.0',appTag='app.js?v=0.31.0';
 assert(html.includes(moduleTag)&&html.indexOf(moduleTag)<html.indexOf(appTag),'balance module must load before map');
 console.log('PASS: 258 assets preserved, compact trees/shrubs/deadwood, sparse accents, adjacent building clearings and legacy sprite scales.');

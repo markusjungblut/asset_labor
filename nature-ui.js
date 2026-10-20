@@ -357,8 +357,11 @@ window.VedrasNature=(()=>{
    out.textContent=config[name].toFixed(places).replace('.',',')+
     (name==='angle'?'°':(['length','rootWidth','midWidth','tipWidth','contactWidth','contactLength'].includes(name)?'×':''));
   }
-  $('shadowGlobalStrength').value=String(Math.round(window.VedrasShadows.globalStrength(state.shadowGlobal)*100));
-  $('shadowGlobalText').textContent=$('shadowGlobalStrength').value+' %';
+  const percent=String(Math.round(window.VedrasShadows.globalStrength(state.shadowGlobal)*100));
+  for(const [slider,out] of [['shadowGlobalStrength','shadowGlobalText'],
+    ['shadowGeneralStrength','shadowGeneralText']]){
+   $(slider).value=percent;$(out).textContent=percent+' %';
+  }
  }
  function syncMountainControls(){
   const current=selectedMountain(),selectedAsset=core.assets().find(a=>a.path===state.asset),
@@ -520,11 +523,17 @@ window.VedrasNature=(()=>{
  $('nImportCatalog').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{await importJSON(f);}catch(err){message('Import abgelehnt: '+err.message);}e.target.value='';});
  $('mountainSpacing').addEventListener('change',e=>{state.mountainSpacing=e.target.value;renderMountainOverlap();core.persistScene();});
  for(const id of Object.values(SHADOW_SLIDERS))$(id).addEventListener('input',updateShadow);
- $('shadowGlobalStrength').addEventListener('input',()=>{
-  state.shadowGlobal=Number($('shadowGlobalStrength').value)/100;
-  $('shadowGlobalText').textContent=$('shadowGlobalStrength').value+' %';
+ function changeGlobalShadow(source){
+  const percent=Math.max(0,Math.min(200,Number($(source).value)||0));
+  state.shadowGlobal=percent/100;
+  for(const [slider,out] of [['shadowGlobalStrength','shadowGlobalText'],
+    ['shadowGeneralStrength','shadowGeneralText']]){
+   $(slider).value=String(percent);$(out).textContent=percent+' %';
+  }
   core.persistScene();core.requestDraw();
- });
+ }
+ for(const id of ['shadowGlobalStrength','shadowGeneralStrength'])
+  $(id).addEventListener('input',()=>changeGlobalShadow(id));
  $('shadowHandles').addEventListener('change',e=>{
   state.shadowHandles=e.target.checked;core.persistScene();core.requestDraw();
  });

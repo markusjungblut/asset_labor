@@ -49,8 +49,8 @@ for(const fragment of ['function roadBlockedHexes()','window.VedrasMountains.inf
  "averageObjectsMs:mean('objectsMs')"])
  assert(app.includes(fragment),'missing mountain veto or optimization: '+fragment);
 assert(editor.includes('core.roads.blocked'),'six-way editor vetoes alpine connections');
-assert(html.includes('perfStats')&&html.includes('Asset-Labor v0.11.8'));
-assert(html.includes('roads.js?v=0.28.0')&&html.includes('app.js?v=0.30.0'));
+assert(html.includes('perfStats')&&html.includes('Asset-Labor v0.11.9'));
+assert(html.includes('roads.js?v=0.31.0')&&html.includes('app.js?v=0.31.0'));
 assert(html.includes('bis 2× (leistungsoptimiert)'));
 for(let i=0;i<6;i++){
  const svg=fs.readFileSync(path.join(root,'assets/bridges/bridge_dir_'+String(i).padStart(2,'0')+'.svg'),'utf8');

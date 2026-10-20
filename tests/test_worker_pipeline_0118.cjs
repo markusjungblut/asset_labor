@@ -25,8 +25,8 @@ async function test(){
   assert(app.includes(token),'app integration: '+token);
  assert(html.includes('id="workerTerrain"'));
  assert(html.indexOf('terrain-worker-client.js?v=0.30.0')<
-  html.indexOf('app.js?v=0.30.0'));
- assert(html.includes('Asset-Labor v0.11.8'));
+  html.indexOf('app.js?v=0.31.0'));
+ assert(html.includes('Asset-Labor v0.11.9'));
  assert(workerCode.includes('self.window=self')&&workerCode.includes('self.document='),
   'Worker uses DOM-free offscreen canvas shim');
 

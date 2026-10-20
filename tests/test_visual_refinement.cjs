@@ -8,7 +8,7 @@ for(const file of ['shadow-system.js','river.js','forest.js','nature-balance.js'
 const S=w.VedrasShadows,R=w.VedrasRivers,F=w.VedrasForest,B=w.VedrasNatureBalance;
 assert.equal(S.globalStrength(0),0);
 assert.equal(S.globalStrength(.68),.68);
-assert.equal(S.globalStrength(4),1);
+assert.equal(S.globalStrength(4),2);
 const base=S.settings(),anchor={x:.5,y:.67},w0=350,h0=400;
 const before=S.projectedPoint('mountain',w0,h0,anchor,base.reach,.5,0,base);
 const shifted=S.projectedPoint('mountain',w0,h0,anchor,base.reach,.5,0,{...base,originX:base.originX-.25});

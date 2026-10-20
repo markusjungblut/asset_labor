@@ -41,8 +41,9 @@ window.VedrasChunks=(()=>{
  }
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
-  const cache=new Map(),queue=new Map();
-  let signature='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,pixels:0};
+  let cache=new Map();const retired=new Map(),queue=new Map();
+  let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
+   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0};
   let cells=[],build=()=>null,requestDraw=()=>{};
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
@@ -53,16 +54,36 @@ window.VedrasChunks=(()=>{
     if(typeof resource.close==='function')resource.close();
    }
   }
+  function dispose(bucket){
+   for(const item of bucket.values())release(item);
+   bucket.clear();
+  }
   function dropCache(){
-   for(const item of cache.values())release(item);
-   cache.clear();stats.pixels=0;
+   dispose(cache);for(const bucket of retired.values())dispose(bucket);
+   retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
    dropCache();queue.clear();protectedIds.clear();
-   signature='';epoch++;scheduled=false;inFlight=false;
+   signature='';family='';epoch++;scheduled=false;inFlight=false;
   }
-  function configure(next,{worldCells,buildTile,redraw}){
-   if(next!==signature){dropCache();queue.clear();protectedIds.clear();signature=next;epoch++;scheduled=false;inFlight=false;}
+  function configure(next,{worldCells,buildTile,redraw,family:nextFamily=''}){
+   if(next!==signature){
+    queue.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    if(nextFamily&&nextFamily===family){
+     // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
+     // old variant and reuse it immediately if the user zooms back.
+     if(cache.size)retired.set(signature,cache);
+     cache=retired.get(next)||new Map();
+     retired.delete(next);
+     while(retired.size>2){
+      const oldest=retired.keys().next().value;
+      const old=retired.get(oldest);
+      for(const item of old.values())stats.pixels-=item.pixels;
+      dispose(old);retired.delete(oldest);
+     }
+    }else dropCache();
+    signature=next;family=nextFamily;
+   }
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
   }
   function use(k){
@@ -71,14 +92,18 @@ window.VedrasChunks=(()=>{
    return data;
   }
   function trim(){
-   while(cache.size>maxTiles||stats.pixels>maxPixels){
-    // Do not discard an on-screen tile to make room for the next on-screen
-    // tile: doing so would create a permanent idle-build/evict/flicker loop.
-    const oldest=[...cache.keys()].find(id=>!protectedIds.has(id));
-    if(oldest===undefined)break;
-    const value=cache.get(oldest);
-    stats.pixels-=value.pixels;
-    cache.delete(oldest);release(value);stats.evicted++;
+   const itemCount=()=>cache.size+[...retired.values()].reduce((n,m)=>n+m.size,0);
+   while(itemCount()>maxTiles||stats.pixels>maxPixels){
+    // Retain the viewport's active and fallback variants; evict older
+    // offscreen tiles before either currently visible resolution.
+    let bucket=null,id;
+    for(const candidate of [...retired.values(),cache]){
+     id=[...candidate.keys()].find(k=>!protectedIds.has(k));
+     if(id!==undefined){bucket=candidate;break;}
+    }
+    if(!bucket)break;
+    const value=bucket.get(id);
+    stats.pixels-=value.pixels;bucket.delete(id);release(value);stats.evicted++;
    }
   }
   // buildTile may return a concrete canvas group OR a Promise of transferred
@@ -138,7 +163,7 @@ window.VedrasChunks=(()=>{
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
-   stats.visible=tiles.length;stats.painted=0;
+   stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
    protectedIds=new Set(tiles.map(t=>t.id));trim();
    // Remove tiles that a changed camera no longer needs. Old cached tiles
    // remain until LRU eviction, allowing cheap return-pans.
@@ -146,19 +171,22 @@ window.VedrasChunks=(()=>{
    for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
    for(const t of tiles){
     const result=use(t.id);
-    if(!result){if(!queue.has(t.id))queue.set(t.id,t);continue;}
-    if(!ctx||!drawRaster)continue;
+    if(!result&&!queue.has(t.id))queue.set(t.id,t);
+    const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
+      find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
+    const artwork=result||fallback;
+    if(!artwork||!ctx||!drawRaster)continue;
     ctx.save();ctx.beginPath();ctx.rect(t.x,t.y,size,size);ctx.clip();
-    if(water&&result.raster?.waterLayer)drawRaster(ctx,result.raster.waterLayer);
-    if(result.relief)drawRaster(ctx,result.relief);
-    else if(result.raster)drawRaster(ctx,result.raster);
-    ctx.restore();stats.painted++;
+    if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer);
+    if(artwork.relief)drawRaster(ctx,artwork.relief);
+    else if(artwork.raster)drawRaster(ctx,artwork.raster);
+    ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
    stats.pending=queue.size+(inFlight?1:0);
    schedule();
-   return {...stats,cached:cache.size};
+   return {...stats,cached:cache.size,variants:retired.size};
   }
-  return {configure,draw,clear,stats:()=>({...stats,cached:cache.size}),
+  return {configure,draw,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
  return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create};
