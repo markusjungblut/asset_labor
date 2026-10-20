@@ -701,13 +701,15 @@ function drawMapObjects(){if(!state.objects)return;
   // A base point intersecting the mountain's opaque silhouette is occluded,
   // even when that Nature sprite originates from a legal neighboring hex.
   const mountains=objs.filter(o=>o.type==='mountain');
-  for(const o of objs)if(o.type==='nature'&&mountains.some(m=>mountainCoversBase(o,m)))o.occludedByMountain=true;
-  // Painter order follows the ACTUAL projected ground-foot height, including
-  // relief displacement. A mountain only covers a neighbor when the neighbor's
-  // foot intersects that particular mountain's opaque silhouette.
+  // Alpha overlap is tested once per plant+mountain, NOT repeatedly inside
+  // Array.sort's O(N log N) comparator. Significant for dense Nature scenes.
+  for(const o of objs)if(o.type==='nature'){
+   o.coveredByMountains=new Set(mountains.filter(m=>mountainCoversBase(o,m)));
+   o.occludedByMountain=o.coveredByMountains.size>0;
+  }
   objs.sort((a,b)=>{
-   if(a.type==='mountain'&&b.occludedByMountain&&mountainCoversBase(b,a))return 1;
-   if(b.type==='mountain'&&a.occludedByMountain&&mountainCoversBase(a,b))return -1;
+   if(a.type==='mountain'&&b.coveredByMountains?.has(a))return 1;
+   if(b.type==='mountain'&&a.coveredByMountains?.has(b))return -1;
    return a.sortY-b.sortY||(a.x-b.x);
   });
   // Ground shadows FIRST: a foreground tree must not paint its shadow
