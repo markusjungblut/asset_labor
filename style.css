@@ -100,3 +100,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #riverPanel{border-left:3px solid #4b9da9;padding-left:10px}
 #riverPanel .infobox{line-height:1.5;white-space:normal}
 #riverPanel .inline-row input[type=range]{flex:1;min-width:90px}
+
+/* Worldgen entry remains easy to find at desktop and narrow window widths. */
+.inspector-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
+#shortcutGeography{background:#376653;border-color:#8dbca1;color:#f0ffe8}
+#openGeography{background:#376653;border-color:#8dbca1;color:#f0ffe8}
