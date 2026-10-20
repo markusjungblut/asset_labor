@@ -42,7 +42,7 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert(html.includes('shadow-system.js?v=0.24.0'),'browser loads shadow system');
-assert(html.indexOf('shadow-system.js?v=0.24.0')<html.indexOf('app.js?v=0.28.0'),'shadow system loaded before app renderer');
+assert(html.indexOf('shadow-system.js?v=0.24.0')<html.indexOf('app.js?v=0.29.0'),'shadow system loaded before app renderer');
 for(const fragment of ['Sh.paintMountain(g,{x:-left,y:-top},w,cfg,global)',
  'mountainOriginForObject(o,cfg)','mountainShadowRasterCache',
  "projection:'cached-local-mountain-shadow'",'drawNatureGrounding(o,p)',
