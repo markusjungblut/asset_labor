@@ -252,6 +252,21 @@ window.VedrasRivers=(()=>{
    ctx.drawImage(canvas,x,y,dw,dh);
   return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh,mask:'smooth-distance-field-max-alpha',source:'rounded-edge-fillets',mouth:'shore-midpoint-fade'};
  }
+ // River collision calls happen hundreds of times per Nature draw.
+ // Cache the SAME source/mouth/fillet geometry by stable scene route object:
+ // no visual river geometry is altered, and terrain edits invalidate below.
+ let collisionRouteCache=new WeakMap();
+ function clearGeometryCache(){collisionRouteCache=new WeakMap();}
+ function collisionRoutePoints(route,cells,isWet,width){
+  if(!route||typeof route!=='object')return [];
+  const signature=JSON.stringify([route.hexes,route.corner]);
+  const old=collisionRouteCache.get(route);
+  if(old&&old.cells===cells&&old.width===width&&old.signature===signature)return old.points;
+  const segments=sections(route,cells,isWet);
+  const points=segments.length?coursePoints(segments,route,width):[];
+  collisionRouteCache.set(route,{cells,width,points,signature});
+  return points;
+ }
  // Shared geometry contract for the Nature system: the river occupies a
  // continuous capsule around each edge segment, including the source and mouth.
  function blocksPoint(x,y,routes,cells,isWet,width=32,padding=0){
@@ -263,8 +278,7 @@ window.VedrasRivers=(()=>{
   };
   const p={x,y};
   for(const route of routes||[]){
-   const chunks=sections(route,cells,isWet);if(!chunks.length)continue;
-   const points=coursePoints(chunks,route,width);
+   const points=collisionRoutePoints(route,cells,isWet,width);
    if(points.some((v,i)=>i>0&&nearSegment(p,points[i-1],v)))return true;
   }
   return false;
@@ -275,5 +289,5 @@ window.VedrasRivers=(()=>{
    ...(route.corner===undefined?{}:{corner:route.corner})
   }));
  }
- return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,mouthCross,mouthPortals,smoothCourse,coursePoints,alphaAtDistance,maskData,trace,render,blocksPoint,normalizeRoutes};
+ return {DIRS,key,pos,vertices,side,midpoint,edgeWalk,valid,findRoute,sections,mouths,mouthCross,mouthPortals,smoothCourse,coursePoints,alphaAtDistance,maskData,trace,render,blocksPoint,clearGeometryCache,normalizeRoutes};
 })();

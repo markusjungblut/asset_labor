@@ -98,7 +98,7 @@ const last=sections.at(-1),portal=R.mouthPortals([route],cells,wet,32)[0];
 assert(portal&&same({x:portal.x,y:portal.y},R.midpoint(last,last.outSide)),'mouth crosses center of true shared coast edge');
 assert(R.blocksPoint(portal.x,portal.y,[route],cells,wet,32),'Nature roots blocked at shoreline gap');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const s of ['river.js?v=0.23.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
+for(const s of ['river.js?v=0.28.0','river-ui.js?v=0.14.1','id="riverPanel"','id="riverAdd"','id="riverClear"'])assert(html.includes(s));
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert(app.includes('riverPaths:riverRoutes()'));assert(app.includes('mouthPortals'));assert(app.includes('riverRasterCache'));
 console.log('PASS: 6 aligned sides, straight/bent segments, corner-rounded source, transparent river water, seam-safe mid-edge mouths, localized shoreline aperture, persistence.');

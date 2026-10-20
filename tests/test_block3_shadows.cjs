@@ -42,10 +42,11 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert(html.includes('shadow-system.js?v=0.24.0'),'browser loads shadow system');
-assert(html.indexOf('shadow-system.js?v=0.24.0')<html.indexOf('app.js?v=0.27.0'),'shadow system loaded before app renderer');
-for(const fragment of ['shadows.paintMountain(g,origin,w','mountainOriginForObject(o,settings,factor)',
- 'maxAlpha[i]','if(settings.opacity<=0||sceneShadowStrength()<=0)continue','drawNatureGrounding(o,p)',
- 'projection:\'alpha-foot / diagonal-procedural-ground-shadow\'']){
+assert(html.indexOf('shadow-system.js?v=0.24.0')<html.indexOf('app.js?v=0.28.0'),'shadow system loaded before app renderer');
+for(const fragment of ['Sh.paintMountain(g,{x:-left,y:-top},w,cfg,global)',
+ 'mountainOriginForObject(o,cfg)','mountainShadowRasterCache',
+ "projection:'cached-local-mountain-shadow'",'drawNatureGrounding(o,p)',
+ 'cacheHits:hits,cacheMisses:misses']){
  assert(app.includes(fragment),'missing shadow integration: '+fragment);
 }
 assert(app.indexOf('drawMountainShadows(objs);')<app.indexOf('for(const o of objs){\n   const p=toScreen(o.x,o.y);\n   if(p.x<-450'),'ground shadows precede visible sprite pass');
