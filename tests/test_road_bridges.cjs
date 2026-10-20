@@ -57,7 +57,7 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
  nature=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8'),
  html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const riverIndex=app.indexOf('for(const route of routes){',app.indexOf('function drawRoads(){'));
-const roadsIndex=app.indexOf('window.VedrasRoads.render(ctx,roadEdges',riverIndex);
+const roadsIndex=app.indexOf('window.VedrasRoads.render(ctx,visibleEdges',riverIndex);
 const bridgeIndex=app.indexOf('window.VedrasBridges.render(ctx,crossings',roadsIndex);
 assert(riverIndex>=0&&roadsIndex>riverIndex&&bridgeIndex>roadsIndex,
  'render in precise order: terrain, river, sandy paths, bridge');
