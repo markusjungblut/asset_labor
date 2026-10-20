@@ -43,6 +43,6 @@ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert(app.includes("w:34.8,type:'nature'"),'legacy tree previews also grow by 20%');
 assert(app.includes("w:c.biome==='mountain'?153:78,type:'nature'"),'legacy mountain unchanged and rock enlarged');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-assert(html.includes('Asset-Labor v0.11.5'),'version label');
+assert(html.includes('Asset-Labor v0.11.6'),'version label');
 assert(html.includes('nature-balance.js?v=0.25.0'),'browser bypasses cached old scale');
 console.log('PASS: '+larger+' regular Nature sprites +20%; '+unchanged+' excluded deadwood, fallen branches, stumps and mountains unchanged.');
