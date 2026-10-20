@@ -1517,6 +1517,64 @@ $('reliefBiomesTest').addEventListener('click',()=>{
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('objectsToggle').checked=state.objects;
 restoreScene();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes();reloadFromServer();
+// Shared v2 geography preview: explicit opt-in; never touches source assets.
+let geographyPopup=null;
+$('openGeography').addEventListener('click',()=>{
+ geographyPopup=window.open('geography-lab.html','vedras-geography-lab');
+ if(geographyPopup)geographyPopup.focus();
+});
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==geographyPopup||
+    event.data?.type!=='vedras-geography-preview')return;
+ const world=event.data.world;
+ if(!world||world.version!==window.VedrasGeography?.VERSION||
+    !Number.isSafeInteger(world.width)||!Number.isSafeInteger(world.height)||
+    world.width*world.height!==world.cells?.length||world.cells.length>60000)return;
+ const radius=sceneRadius(state.sceneSize),cq=Math.floor(world.width/2),cr=Math.floor(world.height/2);
+ const byPosition=new Map(world.cells.map(c=>[key(c.q,c.r),c]));
+ const next=[],forestOverrides={},jungleHexes={};
+ for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
+  if(Math.abs(q+r)>radius)continue;
+  const source=byPosition.get(key(q+cq,r+cr));
+  if(!source)return;
+  const id=source.terrainId;
+  if(!catalog.terrainTypes.some(t=>t.id===id)){
+   $('catalogMessage').textContent='Geografie-Vorschau nicht übernommen: Terrain-ID fehlt im Katalog: '+id;
+   return;
+  }
+  const item={q,r,biome:id,terrainTypeId:id,name:id,
+   reliefClass:source.reliefClass,hillProfile:source.hillProfile,
+   features:Array.isArray(source.features)?source.features:[],
+   temperature:source.temperature,humidity:source.humidity};
+  next.push(item);
+  if(source.forestClass==='light_forest'||source.forestClass==='dense_forest')
+   forestOverrides[key(q,r)]=source.forestClass;
+  if(source.baseBiome==='jungle')jungleHexes[key(q,r)]=true;
+ }
+ if(!window.confirm('Die aktuelle Testszene wird durch '+next.length+
+  ' geografisch generierte Hexfelder ersetzt. Platzierte Objekte, Wege und Flüsse in der Testszene werden zurückgesetzt. Die originale Grafikbibliothek und beide Asset-Kataloge bleiben unangetastet. Fortfahren?'))return;
+ worldCells=next;
+ state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};
+ state.hexObject={};state.hexShadow={};state.natureInstances=[];state.mountainInstances=[];
+ state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;
+ state.forest=window.VedrasForest.valid({...window.VedrasForest.defaults(),
+  enabled:true,seed:state.natureSeed,overrides:forestOverrides,jungleHexes});
+ const view=new Set(next.map(c=>key(c.q,c.r)));
+ const candidateRoutes=(world.riverPaths||[]).map(path=>({
+  hexes:path.map(([q,r])=>[q-cq,r-cr])
+ })).filter(route=>route.hexes.every(([q,r])=>view.has(key(q,r))));
+ state.riverPaths=window.VedrasRivers.normalizeRoutes(candidateRoutes,worldCells,wetHex);
+ state.river=true;state.selected='0,0';
+ $('riverToggle').checked=true;
+ state.panX=0;state.panY=20;
+ riverRasterCache.clear();invalidateTerrain();
+ setView('map');applyZoom(suggestedSceneZoom(state.sceneSize));
+ persistScene();requestDraw();
+ for(const type of ['forest','river','road'])window.dispatchEvent(new Event('vedras:'+type+'-changed'));
+ window.VedrasNature?.renderPlaced?.();
+ $('catalogMessage').textContent='Geografie v2 übernommen: '+next.length+
+  ' Hexe als Testausschnitt (Mitte der vorab generierten Welt). Gebirge und spezielle Fundorte sind als Daten übernommen; deren automatische Sprite-Inszenierung bleibt ein eigener Integrationsschritt.';
+});
 window.addEventListener('vedras:nature-catalog-changed',()=>renderAssetsList());
 window.addEventListener('vedras:terrain-catalog-changed',terrainTestOptions);
 window.addEventListener('vedras:assets-loaded',()=>{terrainTestOptions();syncTerrainTestUI();});
