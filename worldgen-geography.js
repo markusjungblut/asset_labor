@@ -40,6 +40,29 @@
     ["Vegetation","forest.coverage","Waldanteil geeigneter Landregionen",0.36,0,0.9,0.01,"Bewaldung als Overlay; Grundbiom bleibt erhalten"],
     ["Vegetation","forest.patchScale","Größe der Waldgruppen",8,2,30,1,"Räumlicher Zusammenhang lichter und dichter Wälder"],
     ["Vegetation","forest.denseThreshold","Schwelle dichter Wald",0.72,0.35,0.95,0.01,"Ab welcher regionalen Dichte ein Wald als dicht gilt"],
+    ["Klima / Details","climate.coastalDecay","Feuchtereichweite der Küsten",3,1,20,0.5,"Entfernung, über die Gewässer die Landfeuchte beeinflussen"],
+    ["Biomgrenzen","biomes.coldBoundary","Grenze kalter Biome",0.29,0.1,0.48,0.01,"Kältebiome gegenüber gemäßigten Regionen"],
+    ["Biomgrenzen","biomes.warmBoundary","Grenze der Savannen",0.66,0.45,0.85,0.01,"Warmregionen gegenüber Grasland"],
+    ["Biomgrenzen","biomes.jungleWarmBoundary","Dschungel-Wärmegrenze",0.68,0.45,0.9,0.01,"Dschungel kann direkt an Wüste grenzen"],
+    ["Biomgrenzen","biomes.aridWarmBoundary","Temperaturgrenze trockener Wüsten",0.48,0.3,0.8,0.01,"Arides Biom nur bei ausreichend warmer Temperatur"],
+    ["Biomgrenzen","biomes.wetlandBoundary","Zusätzliche Feuchtgebietsgrenze",0.67,0.45,0.9,0.01,"Warme/gemäßigte Feuchtregionen"],
+    ["Biomgrenzen","biomes.regionClimateMix","Regionale Klimakohärenz",0.82,0.3,1,0.01,"Große Biomregionen statt kleinteiliger Einzelhexe"],
+    ["Biomgrenzen","biomes.semiDesertMargin","Übergang Halbwüste zu Wüste",0.045,0,0.18,0.005,"Breite der Halbwüstenzone in ariden Regionen"],
+    ["Boden-Untertypen","geology.grassSparseHumidity","Karges Weideland bis Feuchte",0.36,0.1,0.7,0.01,"Trockenere Grasregionen erzeugen karges Weideland"],
+    ["Boden-Untertypen","geology.pastureSoil","Weideland nach Bodenwert",0.37,0,1,0.01,"Untertyp-Mischung innerhalb Grasregionen"],
+    ["Boden-Untertypen","geology.highlandSoil","Hochland nach Bodenwert",0.78,0.2,1,0.01,"Hochland-Untertyp in geeigneten kalten Regionen"],
+    ["Boden-Untertypen","geology.wetlandSoil","Moor/Marschland nach Bodenwert",0.50,0,1,0.01,"Steuert die Untertypen in gemäßigten Feuchtgebieten"],
+    ["Boden-Untertypen","geology.aridRockyBadlands","Steinige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridBadlands","Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridRockyDesert","Steinwüste Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridSandyRocky","Sandig-steinige Wüste Gewicht",15,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridDesert","Wüstenboden Gewicht",14,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridClay","Lehmwüste Gewicht",12,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridSandyBadlands","Sandige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridWasteland","Ödland Gewicht",15,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Vegetation","forest.lightThreshold","Grenze lichter Wald",0.12,0.02,0.4,0.01,"Dichte für lichte Waldklassen"],
+    ["Vegetation","forest.denseFactor","Dichtefaktor dichter Wald",0.65,0.4,1,0.01,"Zusammen mit der Waldschwelle ergibt dies dichten Wald"],
+    ["Fundorte / Tiere","features.horseShare","Pferdeanteil auf geeigneten Tierhexen",0.50,0,1,0.01,"Pferde in Grasland/Savanne; andere geeignete Tierhexe können Schweine tragen"],
     ["Fundorte / Tiere","features.ironPer1000","Eisenvorkommen pro 1000 Landhexe",27,0,150,1,"Geologische Rohstoffvorkommen (Testverteilung)"],
     ["Fundorte / Tiere","features.animalsPer1000","Tierhexe pro 1000 geeignete Landhexe",75,0,250,1,"Pferde und Schweine als erste Testgruppen"],
     ["Fundorte / Tiere","features.ruinsPer1000","Ruinen pro 1000 Landhexe",6,0,40,1,"Erkundbare Orte; weitere Fundorttypen bleiben ergänzbar"],
@@ -62,6 +85,13 @@
   }
   const unit=(seed,q,r,salt)=>hash(seed,q,r,salt)/4294967296;
   const ease=x=>x*x*(3-2*x);
+  function chooseWeighted(value,entries,c) {
+    const total=entries.reduce((n,[,name])=>n+c[name],0);
+    if(total<=0)return entries[0][0];
+    let remaining=clamp(value,0,.999999999)*total;
+    for(const [id,name] of entries){remaining-=c[name];if(remaining<0)return id;}
+    return entries[entries.length-1][0];
+  }
   const mix=(a,b,t)=>a+(b-a)*t;
   function noise(seed,x,y,scale,salt) {
     const px=x/scale,py=y/scale,q=Math.floor(px),r=Math.floor(py),u=ease(px-q),v=ease(py-r);
@@ -100,39 +130,40 @@
   function neighbours(c,lookup){return DIRS.map(([dq,dr])=>lookup.get(key(c.q+dq,c.r+dr))).filter(Boolean);}
   function terrainFrom(family,t,h,soil,c) {
     if(family==="arid"){
-      if(h>c["biomes.dryThreshold"]-0.045)return "semi_desert";
+      if(h>c["biomes.dryThreshold"]-c["biomes.semiDesertMargin"])return "semi_desert";
       const s=clamp(soil+(c["geology.sandBias"]-.5)*.36);
-      if(s<.11)return "rocky_badlands";
-      if(s<.22)return "badlands";
-      if(s<.33)return "rocky_desert";
-      if(s<.48)return "sandy_rocky_desert";
-      if(s<.62)return "desert";
-      if(s<.74)return "clay_desert";
-      if(s<.85)return "sandy_badlands";
-      if(s<.94)return "wasteland";
-      return "rocky_badlands";
+      return chooseWeighted(s,[
+        ["rocky_badlands","geology.aridRockyBadlands"],
+        ["badlands","geology.aridBadlands"],
+        ["rocky_desert","geology.aridRockyDesert"],
+        ["sandy_rocky_desert","geology.aridSandyRocky"],
+        ["desert","geology.aridDesert"],
+        ["clay_desert","geology.aridClay"],
+        ["sandy_badlands","geology.aridSandyBadlands"],
+        ["wasteland","geology.aridWasteland"]
+      ],c);
     }
     if(family==="grassland"){
-      if(h<.36)return "sparse_pasture";
-      if(soil<.37)return "pasture";
+      if(h<c["geology.grassSparseHumidity"])return "sparse_pasture";
+      if(soil<c["geology.pastureSoil"])return "pasture";
       return "grassland";
     }
     if(family==="cold"){
       if(t<.14)return h>.55?"snowfields":"frozen_tundra";
       if(t<.25)return h>.8?"snowfields":"tundra";
-      return soil>.78?"highland":"tundra";
+      return soil>c["geology.highlandSoil"]?"highland":"tundra";
     }
-    if(family==="wetland")return t>.64?"swamp":t<.38?"moor":h>.85?"marshland":soil>.5?"moor":"marshland";
+    if(family==="wetland")return t>.64?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
     if(family==="jungle")return "jungle";
     if(family==="savanna")return h<.33?"semi_desert":"savanna";
     return "grassland";
   }
   function biomeFamily(t,h,c) {
-    if(t<.29)return "cold";
-    if(h>c["biomes.wetThreshold"])return t>.68?"jungle":"wetland";
-    if(h<c["biomes.dryThreshold"]&&t>.48)return "arid";
-    if(t>.66)return "savanna";
-    if(h>.67)return "wetland";
+    if(t<c["biomes.coldBoundary"])return "cold";
+    if(h>c["biomes.wetThreshold"])return t>c["biomes.jungleWarmBoundary"]?"jungle":"wetland";
+    if(h<c["biomes.dryThreshold"]&&t>c["biomes.aridWarmBoundary"])return "arid";
+    if(t>c["biomes.warmBoundary"])return "savanna";
+    if(h>c["biomes.wetlandBoundary"])return "wetland";
     return "grassland";
   }
   function region(seed,q,r,c) {
@@ -202,14 +233,15 @@
     for(const cell of cells){
       if(cell.surfaceClass!=="land"){cell.terrainId=cell.surfaceClass;continue;}
       const distance=distances.get(key(cell.q,cell.r))??100;
-      cell.humidity=clamp(cell.humidity+c["climate.coastalHumidity"]*Math.exp(-distance/3));
+      cell.humidity=clamp(cell.humidity+c["climate.coastalHumidity"]*Math.exp(-distance/c["climate.coastalDecay"]));
       const center=region(s,cell.q,cell.r,c);
       cell.regionId=center.id;
       if(!regionClimate.has(center.id))
         regionClimate.set(center.id,{t:temp(center.x,center.y),h:moisture(center.x,center.y)});
       const climate=regionClimate.get(center.id);
-      const t=clamp(climate.t*.82+cell.temperature*.18),
-        h=clamp(climate.h*.82+cell.humidity*.18);
+      const coherence=c["biomes.regionClimateMix"];
+      const t=clamp(climate.t*coherence+cell.temperature*(1-coherence)),
+        h=clamp(climate.h*coherence+cell.humidity*(1-coherence));
       const family=biomeFamily(t,h,c),soil=noise(s,cell.q,cell.r,c["geology.scale"],"soil");
       cell.baseBiome=family;
       cell.terrainId=terrainFrom(family,t,h,soil,c);
@@ -246,8 +278,8 @@
     for(const cell of forestable){
       if(cell.reliefClass==="mountain"){cell.forestClass="none";continue;}
       if(cell.baseBiome==="jungle"){cell.forestClass="dense_forest";cell.forestDensity=Math.max(.76,cell.forestDensity);}
-      else if(cell.forestDensity>=c["forest.denseThreshold"]*.65)cell.forestClass="dense_forest";
-      else if(cell.forestDensity>.12)cell.forestClass="light_forest";
+      else if(cell.forestDensity>=c["forest.denseThreshold"]*c["forest.denseFactor"])cell.forestClass="dense_forest";
+      else if(cell.forestDensity>c["forest.lightThreshold"])cell.forestClass="light_forest";
     }
     // A source must be able to reach water via traversable, adjacent hexes.
     const steps=new Map(),streamQueue=[];
@@ -298,7 +330,8 @@
       if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"){
         if(chance("iron",c["features.ironPer1000"])&&x._mountainScore>.30)x.features.push("iron");
         if(chance("animals",c["features.animalsPer1000"])){
-          if(["grassland","savanna"].includes(x.baseBiome))x.features.push("horses");
+          if(["grassland","savanna"].includes(x.baseBiome)&&
+             (x.baseBiome==="savanna"||unit(s,x.q,x.r,"animal-ratio")<c["features.horseShare"]))x.features.push("horses");
           else if(["wetland","grassland","jungle"].includes(x.baseBiome))x.features.push("pigs");
         }
         if(chance("ruins",c["features.ruinsPer1000"]))x.features.push("ruins");
