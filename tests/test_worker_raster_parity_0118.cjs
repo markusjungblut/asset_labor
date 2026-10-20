@@ -88,4 +88,35 @@ for(let i=0;i<workerPixels.length;i+=4){
  if(workerPixels[i+3])nonempty++;compared++;
 }
 assert(nonempty>1000,'actual colored pixels rendered in synthetic test');
-console.log('PASS: worker OffscreenCanvas produces byte-identical terrain to the main-thread raster across '+compared+' pixels and two blended neighboring biomes.');
+// Test split water over elevated land and active relief warping. Source
+// atlas/shoreline logic is shared; oceans remain flat on the water layer.
+worker.onmessage({data:{type:'texture',path:'ocean.png',
+ bitmap:{width:32,height:32,rgba:[50,122,180,255],close(){}},worldSize:256}});
+const seaCells=[{q:0,r:0,path:'ocean.png',terrainTypeId:'coastal_water'}];
+worker.onmessage({data:{type:'render',id:12,data:{
+ cells:seaCells,bounds:{x:-65,y:-55,width:130,height:110,lowResolution:true},
+ options,types:[{id:'coastal_water',materialClass:'water'}],
+ relief:{enabled:true,strength:0,profile:'rounded',center:'0,0',pads:[]},
+ maskCells:[{q:0,r:0,wet:true}],maskKey:'sea-test'
+}}});
+const seaAnswer=worker.messages.pop();
+assert.equal(seaAnswer.type,'result',seaAnswer.message||'water worker failed');
+assert(seaAnswer.waterLayer?.canvas?.pixels?.some((v,i)=>i%4===3&&v>0),
+ 'water RGBA remains on its own flat layer');
+assert(!seaAnswer.relief.canvas.pixels.some((v,i)=>i%4===3&&v>0),
+ 'water must never bleed into elevated land raster');
+const plainBounds={x:-70,y:-60,width:140,height:120,lowResolution:true};
+worker.onmessage({data:{type:'render',id:13,data:{
+ cells:[cells[0]],bounds:plainBounds,options,
+ types:[{id:'grassland',materialClass:'ground'}],
+ relief:{enabled:true,strength:18,profile:'rounded',center:'0,0',
+  lighting:true,connected:true,padBuildings:false,pads:[]},
+ maskCells:[{q:0,r:0,wet:false}],maskKey:'hill-test'
+}}});
+const hill=worker.messages.pop();
+assert.equal(hill.type,'result',hill.message||'relief worker failed');
+assert(hill.relief.height>plainBounds.height,'OffscreenCanvas produced elevated terrain overlay');
+assert(hill.relief.canvas.pixels.some((v,i)=>i%4===3&&v>0),
+ 'active terrain displacement still contains visible pixels');
+console.log('PASS: OffscreenCanvas raster parity across '+compared+
+ ' biome-blend pixels, separate flat-water bitmap and active relief bitmap.');
