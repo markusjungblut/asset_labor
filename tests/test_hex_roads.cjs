@@ -54,7 +54,7 @@ assert.equal(duplicated.length,1);assert.equal(duplicated[0].level,'stone');
 const calls=[];
 const ctx={
  save(){calls.push('save');},restore(){calls.push('restore')},
- beginPath(){calls.push('path')},moveTo(){},lineTo(){},
+ closePath(){},beginPath(){calls.push('path')},moveTo(){},lineTo(){},
  stroke(){calls.push('stroke')},arc(){calls.push('arc')},ellipse(){calls.push('ellipse')},fill(){calls.push('fill')},
  createPattern(){return {pattern:true}}
 };
