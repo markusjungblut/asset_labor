@@ -112,8 +112,8 @@ function updateStats(){
 }
 $('worldMap').addEventListener('click',e=>{
  if(!world||!geometry)return;
- const b=e.currentTarget.getBoundingClientRect(),X=(e.clientX-b.left)*world.width/(b.width)*0+
-  (e.clientX-b.left)*e.currentTarget.width/b.width;
+ const b=e.currentTarget.getBoundingClientRect(),
+  X=(e.clientX-b.left)*e.currentTarget.width/b.width;
  const Y=(e.clientY-b.top)*e.currentTarget.height/b.height;
  const {rad,x0,y0}=geometry,rf=(Y-y0)/(1.5*rad),qf=(X-x0)/(Math.sqrt(3)*rad)-rf/2;
  let cx=qf,cz=rf,cy=-cx-cz,rx=Math.round(cx),ry=Math.round(cy),rz=Math.round(cz);
