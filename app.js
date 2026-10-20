@@ -1184,7 +1184,7 @@ for(const [id,key] of [['polishNature','nature'],['polishTerrain','terrain'],['p
 }
 $('materialScale').addEventListener('input',e=>{const a=useAsset(state.asset);if(!isTerrainValid(a))return;const size=Number(e.target.value);state.materialScales[a.path]=size;$('materialScaleLabel').textContent=String(size);persistScene();requestDraw();updateDiagnostics();});
 $('zoomSlider').addEventListener('input',e=>applyZoom(Number(e.target.value)/100));$('zoomIn').addEventListener('click',()=>applyZoom(state.zoom*1.16));$('zoomOut').addEventListener('click',()=>applyZoom(state.zoom/1.16));
-$('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(state.sceneSize===37?.65:.95);});
+$('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize));});
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;invalidateTerrain();persistScene();requestDraw();});
