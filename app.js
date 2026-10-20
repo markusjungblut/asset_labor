@@ -233,6 +233,7 @@ function drawShorelines(){
   const stats=shorelineChunks.draw(ctx,{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
    width:Math.abs(b.x-a.x),height:Math.abs(b.y-a.y)},
    {drawRaster:(g,r)=>g.drawImage(r.canvas,r.x,r.y,r.width,r.height),margin:0});
+  window.__vedrasShoreChunkProfile=stats;
   if(report)report.textContent=segments.length+' echte Küstenkanten · Chunk-Raster '+stats.painted+'/'+stats.visible+
    ' sichtbar · '+stats.pending+' geplant';
  }else{
@@ -263,7 +264,10 @@ function drawForestFloor(){
   return {...c,categoryId:type?.categoryId,ground:type?.materialClass==='ground'};
  });
  const textureSize=clamp(Number(state.materialScales[asset.path]||asset.meta?.textureWorldSize)||256,160,1536);
- const resolution=Math.max(.65,Math.min(1.9,state.zoom*state.dpr*1.45));
+ // The original global forest-region UNION must remain seamless. On large
+ // maps keep one fixed raster scale across camera zoom, so panning and
+ // zooming cannot re-blur the complete forest mask repeatedly.
+ const resolution=state.sceneSize>37?.65:Math.max(.65,Math.min(1.9,state.zoom*state.dpr*1.45));
  const signature=JSON.stringify({
   asset:[asset.path,asset.mtime,asset.img.naturalWidth,asset.img.naturalHeight],
   size:textureSize,resolution:Math.round(resolution*10)/10,
@@ -346,6 +350,7 @@ function drawGround(){
    width:Math.abs(far.x-near.x),height:Math.abs(far.y-near.y)
   },{water:state.relief.enabled,drawRaster:window.VedrasAutotile.draw,margin:0});
   window.__vedrasTerrainRaster={chunked:true,stats:lastChunkStats};
+  window.__vedrasChunkProfile={terrain:lastChunkStats,shore:shorelineChunks.stats()};
   window.__vedrasReliefRaster=state.relief.enabled?{chunked:true}:null;
   if(chunkInfo)chunkInfo.textContent='Terrain: '+lastChunkStats.painted+'/'+
    lastChunkStats.visible+' sichtbare Chunks, '+lastChunkStats.pending+
