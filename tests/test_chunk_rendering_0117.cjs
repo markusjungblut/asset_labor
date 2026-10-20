@@ -73,7 +73,7 @@ assert(coast.includes('options.segments||segments(cells,isWet)')&&coast.includes
  'chunk coastline keeps global coast neighborhood');
 for(const name of ['91','169','271','397'])
  assert(html.includes('<option value="'+name+'">'),'new map size '+name);
-assert(html.indexOf('chunks.js?v=0.30.0')<html.indexOf('app.js?v=0.30.0'));
+assert(html.indexOf('chunks.js?v=0.31.0')<html.indexOf('app.js?v=0.31.0'));
 assert(html.includes('id="chunkStats"')&&html.includes('id="chunkRendering"'));
 assert(!fs.readFileSync(path.join(root,'forest-ground.js'),'utf8').includes('VedrasChunks'),
  'forest floor existing union renderer and textures untouched');
