@@ -2,8 +2,8 @@
  * junctions, and global 0–200% shadow intensity. */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const root=path.resolve(__dirname,'..'),ctx={window:{}},base={};
-vm.runInNewContext(fs.readFileSync(path.join(root,'shadow-system.js'),'utf8'),base={window:{}});
+const root=path.resolve(__dirname,'..'),base={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(root,'shadow-system.js'),'utf8'),base);
 const Shadows=base.window.VedrasShadows;
 assert.equal(Shadows.globalStrength(1),1);
 assert.equal(Shadows.globalStrength(2),2);
