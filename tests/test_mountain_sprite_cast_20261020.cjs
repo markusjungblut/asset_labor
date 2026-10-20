@@ -19,7 +19,7 @@ for(const token of [
  assert(app.includes(token),'Sprite mountain shade missing: '+token);
 assert(app.indexOf('drawMountainShadows(objs);')<app.indexOf('drawSprite(o);'),
  'ground shadows generated before actual sprite pass');
-const begin=app.indexOf('function spriteMountainCasts(obj,left,top,width,height){');
+const begin=app.indexOf('function protectsSouthwestLargeSprite(receiver,caster){');
 const end=app.indexOf('function drawNatureShadow(sh,obj,p){',begin);
 assert(begin>=0&&end>begin,'sprite shader extractable');
 const drawCalls=[],shadeCalls=[];
@@ -60,6 +60,41 @@ assert.equal(shadeCalls.length,0,'far-away shadow must not allocate per-sprite c
 assert.equal(drawCalls.length,1,'unshaded sprite fast path preserved');
 assert.equal(shader.spriteMountainCasts(mountain,20,20,40,40).length,0,
  'mountain does not receive its own cast');
+// A tall mountain or building in the immediately SOUTHWEST neighboring
+// axial hex (q-1,r+1) should remain lit. The terrain and small plants
+// should still receive their normal shadow.
+const highMountain={type:'mountain',cell:'0,0'};
+const toSouthwest=type=>({...sprite,type,cell:'-1,1'});
+const highShadow={...shadow,owner:highMountain};
+shader.setCasts([highShadow]);
+assert.equal(shader.spriteMountainCasts(toSouthwest('mountain'),20,20,40,40).length,0,
+ 'immediately southwest mountain remains unshaded by its neighbor');
+assert.equal(shader.spriteMountainCasts(toSouthwest('building'),20,20,40,40).length,0,
+ 'immediately southwest building remains unshaded by its neighbor');
+assert.equal(shader.spriteMountainCasts(toSouthwest('nature'),20,20,40,40).length,1,
+ 'small vegetation stays shaded on southwest hex');
+assert.equal(shader.spriteMountainCasts(toSouthwest('unit'),20,20,40,40).length,1,
+ 'units keep ordinary ground-level shade');
+for(const cell of ['-2,2','-1,0','0,1','1,0']){
+ assert.equal(shader.spriteMountainCasts({...sprite,type:'mountain',cell},20,20,40,40).length,1,
+  'non-southwest-neighbor mountain remains shadeable: '+cell);
+ assert.equal(shader.spriteMountainCasts({...sprite,type:'building',cell},20,20,40,40).length,1,
+  'non-southwest-neighbor building remains shadeable: '+cell);
+}
+shader.setCasts([highShadow,{...shadow,owner:{type:'mountain',cell:'3,-1'}}]);
+assert.equal(shader.spriteMountainCasts(toSouthwest('mountain'),20,20,40,40).length,1,
+ 'exclusion is per caster, not an all-mountain shadow exemption');
+assert.equal(shader.spriteMountainCasts(toSouthwest('building'),20,20,40,40).length,1,
+ 'different distant caster still shades the southwest building');
+drawCalls.length=0;shadeCalls.length=0;
+shader.setCasts([highShadow]);
+shader.drawSprite(toSouthwest('building'));
+assert.equal(shadeCalls.length,0,'protected building takes the unshaded fast path');
+assert.equal(drawCalls.length,1,'protected building still renders');
+drawCalls.length=0;shadeCalls.length=0;
+shader.drawSprite(toSouthwest('mountain'));
+assert.equal(shadeCalls.length,0,'protected neighboring peak takes the unshaded path');
+assert.equal(drawCalls.length,1,'protected mountain is still rendered');
 assert(html.includes('id="geographyImport"')&&html.includes('id="geographyImportFile"'),
  'file import is reachable from the map');
 assert(ui.includes('shortcutGeographyImport'),
