@@ -80,7 +80,7 @@ window.VedrasRoads=(()=>{
   // The same centre-line is reused by painting, collisions and plant
   // placement. Cache unprojected world curves; relief projects a copy.
   const id=identity(edge.a,edge.b);
-  const cacheKey=id+'@'+hex;
+  const cacheKey=key(asPoint(edge.a))+'>'+key(asPoint(edge.b))+'@'+hex;
   if(groundY){
    return course(edge,hex,null).map(p=>({x:p.x,y:groundY(p.x,p.y)}));
   }
