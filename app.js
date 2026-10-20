@@ -863,10 +863,25 @@ function visibleBounds(img){
  }catch(e){/* SVG, opaque or canvas restrictions: preserve full geometry. */}
  natureBounds.set(img,bounds);return bounds;
 }
-// Only shade sprites intersecting a mountain shadow. A mountain does not
-// receive its OWN cast, but can be shaded by another mountain in a chain.
+// Large neighboring objects rise above a mountain's ground-level shadow.
+// Pointy-top axial southwest = (q-1, r+1), visually the hex LEFT/BELOW the
+// caster. Only a building/mountain immediately in that hex is protected;
+// vegetation, units, further-away buildings and the terrain keep their casts.
+function protectsSouthwestLargeSprite(receiver,caster){
+ if(!receiver||!caster||(receiver.type!=='mountain'&&receiver.type!=='building'))
+  return false;
+ if(typeof receiver.cell!=='string'||typeof caster.cell!=='string')return false;
+ const a=/^(-?\\d+),(-?\\d+)$/.exec(receiver.cell);
+ const b=/^(-?\\d+),(-?\\d+)$/.exec(caster.cell);
+ if(!a||!b)return false;
+ return Number(a[1])===Number(b[1])-1&&Number(a[2])===Number(b[2])+1;
+}
+// Only shade sprites intersecting a mountain shadow. The owner still never
+// receives its OWN cast. The exception is applied per source/receiver pair,
+// so an unrelated distant mountain's shadow continues to work.
 function spriteMountainCasts(obj,left,top,width,height){
  return mountainCastsForFrame.filter(c=>c.owner!==obj&&
+  !protectsSouthwestLargeSprite(obj,c.owner)&&
   c.x<left+width&&c.x+c.width>left&&c.y<top+height&&c.y+c.height>top);
 }
 // Reuse one scratch canvas instead of allocating textures for each tree.
