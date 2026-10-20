@@ -108,7 +108,11 @@ function updateStats(){
   'Hexfelder: '+s.total.toLocaleString('de-DE')+' · Land: '+(100*s.land/s.total).toFixed(1)+
   '% · Wasser: '+(100*s.water/s.total).toFixed(1)+'% · Küstenwasser: '+s.coast+
   ' · Hügel: '+s.hills+' · Berge: '+s.mountains+' · Flüsse: '+s.rivers+
-  ' · Bewaldet: '+s.forest+' · Häufigste Terrains: '+most.map(([k,v])=>k+' '+v).join(', ');
+  ' · Bewaldet: '+s.forest+' · Zusammenhängendes Land: '+s.connectedLandPercent+'%' +
+  ' · Größtes Gewässer: '+s.largestWaterBody+' Hexe' +
+  ' · Biomkerne: '+s.biomeRegions.count+' (Ø '+s.biomeRegions.average+
+  ', Median '+s.biomeRegions.median+', davon '+s.biomeRegions.within30to90+' mit 30–90 Hexen)' +
+  ' · Häufigste Terrains: '+most.map(([k,v])=>k+' '+v).join(', ');
 }
 $('worldMap').addEventListener('click',e=>{
  if(!world||!geometry)return;
