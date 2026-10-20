@@ -74,7 +74,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 for(const field of ['mountainAngle','mountainLength','mountainRootWidth','mountainMidWidth',
  'mountainTipWidth','mountainContactWidth','mountainContactLength'])
  assert(html.includes('id="'+field+'"'),'editor control '+field);
-assert(app.includes('shadows.paintMountain(g,origin,w,')&&app.includes('shadows.alphaFoot('));
+assert(app.includes('Sh.paintMountain(g,{x:-left,y:-top},w,cfg,global)')&&app.includes('shadows.alphaFoot('));
 assert(app.includes('mountainOriginForObject(o,sh)'),'dragging uses actual alpha origin');
 assert(editor.includes('placementScale(meta)')&&editor.includes('encodeInstanceShadow(sh)'),
  'new sprite spacing and saved shape are integrated');
