@@ -38,7 +38,10 @@ assert(painted.painted>=1,'completed chunk is composited from cached raster');
 const cached=render.stats().cacheHits;render.draw(ctx,{x:one.x,y:one.y,width:200,height:200},{drawRaster,margin:0});
 assert(render.stats().cacheHits>cached,'return-pan reuses cached tile');
 while(tasks.length&&stats.builds<10)tasks.shift()();
-assert(render.stats().cached<=2,'LRU respects maximum count');
+assert(render.stats().cached<=Math.max(2,painted.visible),
+ 'visible tiles remain protected against infinite evict/redraw loops');
+render.draw(ctx,{x:6000,y:6000,width:100,height:100},{drawRaster,margin:0});
+assert(render.stats().cached<=2,'off-screen LRU tiles are evicted under limit');
 const before=stats.builds;
 render.configure('epoch-b',{worldCells:cells,buildTile:build,redraw:()=>stats.redraws++});
 assert(render.stats().cached===0,'terrain edit drops old chunks');
