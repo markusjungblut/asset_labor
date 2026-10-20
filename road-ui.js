@@ -13,9 +13,10 @@
  const eligible=(a,b)=>{
   const cells=cellMap();
   return R.side(a,b)>=0&&cells.has(R.key(a))&&cells.has(R.key(b))&&
-   !water(cells.get(R.key(a)))&&!water(cells.get(R.key(b)));
+   !water(cells.get(R.key(a)))&&!water(cells.get(R.key(b)))&&
+   !core.roads.blocked(cells.get(R.key(a)))&&!core.roads.blocked(cells.get(R.key(b)));
  };
- const edges=()=>R.normalizeEdges(state.roadEdges,core.cells(),water);
+ const edges=()=>R.normalizeEdges(state.roadEdges,core.cells(),water,core.roads.blocked);
  function commit(next){
   const outcome=core.roads.apply(next);
   render();
@@ -46,12 +47,12 @@
    const level=exists?R.profiles[exists.level].title:null;
    button.textContent=words[i]+' · '+neighbor.q+','+neighbor.r+(ok?
     (exists?' · '+level+' → '+(exists.level===state.roadMaterial?'entfernen':'wechseln'):' · verbinden'):
-    (cells.has(R.key(neighbor))?' · Wasser':' · außerhalb'));
+    (cells.has(R.key(neighbor))?(core.roads.blocked(cells.get(R.key(neighbor)))||core.roads.blocked(cells.get(R.key(p)))?' · Berg gesperrt':' · Wasser'):' · außerhalb'));
    button.title=exists?'Mit ausgewähltem Material ersetzen; bei gleichem Material entfernen':'Weg zum benachbarten Hex hinzufügen';
    button.addEventListener('click',()=>{
     const next=exists&&exists.level===state.roadMaterial?
-      R.removeEdge(currentEdges,p,neighbor,core.cells(),water):
-      R.setEdge(currentEdges,p,neighbor,state.roadMaterial,core.cells(),water);
+      R.removeEdge(currentEdges,p,neighbor,core.cells(),water,core.roads.blocked):
+      R.setEdge(currentEdges,p,neighbor,state.roadMaterial,core.cells(),water,core.roads.blocked);
     commit(next);
    });
    list.append(button);
@@ -81,10 +82,10 @@
   let p=current(),count=0,next=edges();
   const candidates=R.DIRS.map(([dq,dr])=>({q:p.q+dq,r:p.r+dr}));
   for(const n of candidates)if(eligible(p,n)){
-   next=R.setEdge(next,p,n,'trail',core.cells(),water);count++;
+   next=R.setEdge(next,p,n,'trail',core.cells(),water,core.roads.blocked);count++;
    // A second branch away from the centre demonstrates connected intersections.
    const far={q:n.q+(n.q-p.q),r:n.r+(n.r-p.r)};
-   if(eligible(n,far))next=R.setEdge(next,n,far,'trail',core.cells(),water);
+   if(eligible(n,far))next=R.setEdge(next,n,far,'trail',core.cells(),water,core.roads.blocked);
   }
   if(!count){$('roadStatus').textContent='Kein benachbartes Landhex vorhanden: bitte Landhex auswählen.';return;}
   state.roadShown=true;commit(next);
