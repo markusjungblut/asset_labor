@@ -90,5 +90,9 @@ window.VedrasTerrainWorker=(()=>{
   return {supported:supported(),enabled:!disabledReason&&supported(),active:!!worker,
    failedReason:disabledReason,textures:loaded.size,pending:jobs.size,...stats};
  }
- return {render,status,disable:stop,available:()=>!disabledReason&&supported()};
+ function restart(){
+  stop('Worker was reset by user');
+  disabledReason='';
+ }
+ return {render,status,disable:stop,restart,available:()=>!disabledReason&&supported()};
 })();
