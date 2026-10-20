@@ -49,7 +49,8 @@ function build(){
   const width=Number($('worldWidth').value),height=Number($('worldHeight').value);
   $('message').textContent="Welt wird berechnet …";
   const start=performance.now();
-  world=G.generateWorld($('worldSeed').value,{width,height,config});
+  world=G.generateWorld($('worldSeed').value,{width,height,config,
+    originQ:Number($('worldOriginQ').value),originR:Number($('worldOriginR').value)});
   $('message').textContent="Berechnet in "+Math.round(performance.now()-start)+
     " ms · "+world.version+" · Seed "+world.seed;
   selected=null;draw();updateStats();
@@ -82,7 +83,8 @@ function draw(){
  const x0=16+Math.sqrt(3)*rad,y0=15+rad;
  geometry={rad,x0,y0};
  const mode=$('viewMode').value;
- function point(q,r){return [x0+Math.sqrt(3)*rad*(q+r/2),y0+1.5*rad*r];}
+ function point(q,r){const u=q-(world.originQ||0),v=r-(world.originR||0);
+  return [x0+Math.sqrt(3)*rad*(u+v/2),y0+1.5*rad*v];}
  for(const c of world.cells){
   const [x,y]=point(c.q,c.r);ctx.beginPath();
   for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,xx=x+rad*Math.cos(a),yy=y+rad*Math.sin(a);
@@ -96,7 +98,16 @@ function draw(){
    ctx.stroke();
   }
  }
- if(selected){
+ ctx.save();
+  ctx.fillStyle='rgba(12,29,26,.91)';
+  ctx.fillRect(15,15,325,46);
+  ctx.fillStyle='#ebf6e7';ctx.font='bold 16px system-ui';
+  ctx.fillText('Wald: '+world.stats.forestPercentLand+' % der Landhexe',26,34);
+  ctx.font='12px system-ui';ctx.fillStyle='#c5e4cb';
+  ctx.fillText(world.stats.forest+' bewaldete Hexe · '+world.stats.forestPercentEligible+
+    ' % der geeigneten Landhexe',26,51);
+  ctx.restore();
+  if(selected){
   const [x,y]=point(selected.q,selected.r);ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(x,y,Math.max(3,rad*.88),0,Math.PI*2);ctx.stroke();
  }
@@ -108,7 +119,9 @@ function updateStats(){
   'Hexfelder: '+s.total.toLocaleString('de-DE')+' · Land: '+(100*s.land/s.total).toFixed(1)+
   '% · Wasser: '+(100*s.water/s.total).toFixed(1)+'% · Küstenwasser: '+s.coast+
   ' · Hügel: '+s.hills+' · Berge: '+s.mountains+' · Flüsse: '+s.rivers+
-  ' · Bewaldet: '+s.forest+' · Zusammenhängendes Land: '+s.connectedLandPercent+'%' +
+  ' · Wald: '+s.forest+' Hexe ('+s.forestPercentLand+' % Land; '+
+    s.forestPercentEligible+' % geeignete Gebiete) · Flusshexe: '+s.riverHexes+
+   ' · Zusammenhängendes Land: '+s.connectedLandPercent+'%' +
   ' · Größtes Gewässer: '+s.largestWaterBody+' Hexe' +
   ' · Biomkerne: '+s.biomeRegions.count+' (Ø '+s.biomeRegions.average+
   ', Median '+s.biomeRegions.median+', davon '+s.biomeRegions.within30to90+' mit 30–90 Hexen)' +
@@ -123,7 +136,7 @@ $('worldMap').addEventListener('click',e=>{
  let cx=qf,cz=rf,cy=-cx-cz,rx=Math.round(cx),ry=Math.round(cy),rz=Math.round(cz);
  const dx=Math.abs(rx-cx),dy=Math.abs(ry-cy),dz=Math.abs(rz-cz);
  if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy>dz)ry=-rx-rz;else rz=-rx-ry;
- selected=G.getWorldCell(world,rx,rz);
+ selected=G.getWorldCell(world,rx+(world.originQ||0),rz+(world.originR||0));
  $('selected').textContent=selected?JSON.stringify(selected,null,2):
   'Kein Hexfeld an dieser Position.';draw();
 });
@@ -134,11 +147,12 @@ function download(name,data){
 }
 $('generate').addEventListener('click',build);
 $('viewMode').addEventListener('change',draw);
-for(const id of ['worldSeed','worldWidth','worldHeight'])$(id).addEventListener('change',requestBuild);
+for(const id of ['worldSeed','worldWidth','worldHeight','worldOriginQ','worldOriginR'])$(id).addEventListener('change',requestBuild);
 $('resetConfig').addEventListener('click',()=>{config=G.defaultConfig();buildControls();build();});
 $('exportConfig').addEventListener('click',()=>download('vedras-worldgen-parameter.json',
  {generatorVersion:G.VERSION,seed:$('worldSeed').value,width:Number($('worldWidth').value),
- height:Number($('worldHeight').value),config}));
+ height:Number($('worldHeight').value),originQ:Number($('worldOriginQ').value),
+  originR:Number($('worldOriginR').value),config}));
 $('downloadWorld').addEventListener('click',()=>{
  if(world)download('vedras-welt-'+world.seed+'.json',world);
 });
@@ -147,10 +161,18 @@ $('configFile').addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;
  try{
   const obj=JSON.parse(await file.text());
-  if(obj.generatorVersion!==G.VERSION)throw Error("Unpassende Worldgen-Version. Keine stille Migration.");
+  const version=obj.generatorVersion||obj.version;
+  if(version!==G.VERSION){
+   if(version!=="geography-v2.0.0"||!window.confirm(
+     "Geografie 2.0 wurde überarbeitet. Die alten Werte können übernommen werden, "+
+     "aber die Karte wird in 2.1 neu generiert. Bewusst übernehmen?"))
+    throw Error("Alte Worldgen-Version nicht ohne Zustimmung übernommen.");
+  }
   config=G.normalizeConfig(obj.config);
   $('worldSeed').value=obj.seed;$('worldWidth').value=obj.width;
-  $('worldHeight').value=obj.height;buildControls();build();
+  $('worldHeight').value=obj.height;
+  $('worldOriginQ').value=obj.originQ??0;$('worldOriginR').value=obj.originR??0;
+  buildControls();build();
  }catch(error){$('message').textContent="Import fehlgeschlagen: "+error.message;}
  finally{e.target.value="";}
 });
