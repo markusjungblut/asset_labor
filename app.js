@@ -1274,7 +1274,7 @@ $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(sug
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;invalidateTerrain();persistScene();requestDraw();});
-$('workerTerrain').addEventListener('change',e=>{state.workerTerrain=e.target.checked;terrainChunks.clear();persistScene();requestDraw();});
+$('workerTerrain').addEventListener('change',e=>{state.workerTerrain=e.target.checked;if(state.workerTerrain&&!window.VedrasTerrainWorker.available())window.VedrasTerrainWorker.restart();terrainChunks.clear();persistScene();requestDraw();});
 $('sceneSize').addEventListener('change',e=>{state.sceneSize=Number(e.target.value);state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize));assignBiomes();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();});
 // Dynamic terrain test scenes: derive categories and materials from the live catalog.
 function terrainTestOptions(){
