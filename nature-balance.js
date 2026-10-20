@@ -15,6 +15,7 @@ window.VedrasNatureBalance=(()=>{
  const placementScale=meta=>{
   if(!meta||meta.kind==='mountain')return 1;
   const previous=meta.kind==='tree'?.5:.7;
+  if(meta.family==='stones'&&['rock','cluster'].includes(meta.kind))return previous*1.2*.25;
   return woodExceptions.has(meta.family)?previous:previous*1.2;
  };
  function sizeFactor(meta){
@@ -24,8 +25,8 @@ window.VedrasNatureBalance=(()=>{
   if(fallen.has(meta.family))return .71*extra;
   if(meta.family==='deadwood')return .72*extra;
   if(meta.kind==='tree'){
-   if(meta.sizeClass==='giant')return .65*extra;
-   return (meta.sizeClass==='large'?.69:meta.sizeClass==='medium'?.72:.77)*extra;
+   if(meta.sizeClass==='giant')return .65*extra*1.10;
+   return (meta.sizeClass==='large'?.69:meta.sizeClass==='medium'?.72:.77)*extra*1.10;
   }
   if(meta.kind==='shrub')return (meta.sizeClass==='medium'?.73:meta.sizeClass==='large'?.71:.82)*extra;
   if(meta.kind==='cluster')return .77*extra;

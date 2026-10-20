@@ -78,7 +78,13 @@ window.VedrasNature=(()=>{
  function updateSizeHint(){if(!selected)return;const kind=$('nKind').value,cl=$('nSize').value,mode=$('nSizeMode').value;
   const h=window.VedrasSpritePlanner?.targetHeight(kind,cl)||50;
   const img=selected.img;
-  $('nSizeInfo').textContent=mode==='class'?`Automatische Zielhöhe ca. ${h} Welteinheiten (sichtbarer Ausschnitt, unabhängig von PNG-Größe). Die eingestellte Basisbreite bleibt als manueller Rückfall erhalten.`:`Manueller Modus: Basisbreite ${$('nWidth').value||'?'} Welteinheiten. Größenklasse ist hier nur ein Katalogetikett.`;
+  const m={...(entryFor(selected)||{}),kind,sizeClass:cl};
+  const effective=Math.round(h*(window.VedrasNatureBalance?.sizeFactor(m)||1));
+  const policy=m.family==='stones'?' · Findling-/Steinklasse: 25 % der bisherigen Kartendarstellung.':
+   kind==='tree'&&!['dead_trees','snow_dead_trees'].includes(m.family)?' · Lebende Bäume: +10 % Kartendarstellung.':'';
+  $('nSizeInfo').textContent=mode==='class'?
+   `Kataloghöhe ${h}; geschätzte Darstellung ca. ${effective} Welteinheiten nach Karten-Skalierung.${policy} PNG und Katalogdimension bleiben unverändert.`:
+   `Manueller Modus: Basisbreite ${$('nWidth').value||'?'} Welteinheiten.${policy}`;
  }
  function readForm(){if(!selected)throw Error('Nature-Sprite auswählen');const f=id=>$(id).value.trim();
   const m={id:f('nId'),description:f('nDescription'),sourceReference:f('nSource'),family:f('nFamily'),kind:f('nKind'),sizeClass:f('nSize'),sizeMode:f('nSizeMode'),targetHeight:window.VedrasSpritePlanner?.targetHeight(f('nKind'),f('nSize'))||40,
@@ -232,16 +238,77 @@ window.VedrasNature=(()=>{
   if(!instance){message('Keine freie Standfläche auf diesem Hex.');return;}
   state.natureInstances=[...arr,{...instance,source:'manual'}];state.objects=true;$('objectsToggle').checked=true;saved();message(meta.id+' auf Hex ('+q+','+r+') platziert.');
  }
+
+ // Mountain sprites are generated from explicit geographical mountain HEXES,
+ // never from generic tree-placement chances. Existing manual peaks survive.
+ function autoGeoMountains(seed,assets){
+  const wanted=core.cells().filter(c=>c.reliefClass==='mountain'||c.biome==='mountain');
+  const candidates=assets.filter(a=>a.category==='nature'&&a.img?.naturalWidth&&entryFor(a)?.kind==='mountain');
+  state.mountainInstances=(state.mountainInstances||[]).filter(m=>m.source!=='generated');
+  if(!wanted.length||!candidates.length)return {placed:0,wanted:wanted.length};
+  const lookup=new Map(wanted.map(c=>[c.q+','+c.r,c])),seen=new Set(),groups=[];
+  for(const first of wanted){
+   const k=first.q+','+first.r;if(seen.has(k))continue;
+   const group=[first];seen.add(k);
+   for(let i=0;i<group.length;i++){
+    const c=group[i];
+    for(const [dq,dr] of window.VedrasMountains.DIRS){
+     const adjacent=(c.q+dq)+','+(c.r+dr);
+     if(lookup.has(adjacent)&&!seen.has(adjacent)){
+      seen.add(adjacent);group.push(lookup.get(adjacent));
+     }
+    }
+   }
+   groups.push(group);
+  }
+  const scene={cells:core.cells(),mountains:state.mountainInstances,
+   nature:(state.natureInstances||[]).filter(n=>n.source==='manual'),
+   objects:state.hexObject||{}};
+  let placed=0;
+  groups.forEach((group,index)=>{
+   for(const c of group){
+    const terrain=core.effectiveBiome(c);
+    const snowy=['snowfields','frozen_tundra','tundra'].includes(terrain);
+    const pool=candidates.filter(a=>{
+     const m=entryFor(a);
+     return (snowy||m.family!=='snowy_mountains')&&
+      !(m.excludedTerrainTypes||[]).includes(terrain);
+    });
+    if(!pool.length)continue;
+    const start=Math.floor(random(seed,c.q,c.r,2002)*pool.length);
+    for(let j=0;j<pool.length;j++){
+     const a=pool[(start+j)%pool.length],meta=entryFor(a);
+     const cfg=window.VedrasMountains.config(meta);
+     const valid=window.VedrasMountains.candidate(scene,c.q,c.r,cfg.radius,
+      target=>terrainRegistry().terrainTypes.some(t=>t.id===core.effectiveBiome(target)&&t.materialClass==='ground'),
+      {coreRadius:0,mode:'chain',chainId:'geography_'+index,
+       spacing:'tight',visualInfo:mountainGeometry({assetPath:a.path}),
+       visualInfoOf:mountainGeometry});
+     if(!valid.ok)continue;
+     const shadow=window.VedrasShadows.settings({...state.mountainShadowDefaults,
+      ...(state.shadowAssetPresets?.[a.path]||{})});
+     state.mountainInstances.push({
+      assetPath:a.path,assetId:meta.id,q:c.q,r:c.r,
+      radius:cfg.radius,coreRadius:0,mode:'chain',chainId:'geography_'+index,
+      source:'generated',...encodeInstanceShadow(shadow)});
+     placed++;break;
+    }
+   }
+  });
+  return {placed,wanted:wanted.length};
+ }
+ const isBoulder=meta=>!!meta&&meta.kind==='rock'&&
+  (meta.family==='stones'||/^boulder[_-]?\d+$/i.test(meta.id||''));
  function populate(){
   const seed=Number($('nSeed').value)||12345;
   state.natureSeed=seed;
   state.forest=window.VedrasForest.valid({...state.forest,seed});
+  const assets=core.assets(),generatedMountains=autoGeoMountains(seed,assets);
   const F=window.VedrasForest,B=window.VedrasNatureBalance,forest=core.forestCells();
   const forestByHex=new Map(forest.map(c=>[c.key,c]));
   // Keep valid hand-placed instances when refreshing a forest. Old generated
   // instances without provenance are intentionally regenerated.
   const all=(state.natureInstances||[]).filter(n=>n.source==='manual'&&validInstance(n,forestByHex)===true);
-  const assets=core.assets();
   const candidates=assets.filter(a=>F&&window.VedrasExistingAssets?.canAutoPlaceInTest(a,entryFor(a),entryFor(a)?resolveForMeta(entryFor(a)):null));
   const ground=c=>terrainRegistry().terrainTypes.some(t=>t.id===core.effectiveBiome(c)&&t.materialClass==='ground');
   const occupied=new Set(Object.keys(state.hexObject||{}));
@@ -256,7 +323,7 @@ window.VedrasNature=(()=>{
    const a=assets.find(v=>v.path===n.assetPath),group=B.accentGroup(entryFor(a));
    if(group)accents[group]++;
   }
-  let suitableCells=0,forestTrees=0;
+  let suitableCells=0,forestTrees=0,newBoulders=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
   for(const c of core.cells()){
    const k=c.q+','+c.r;
@@ -280,20 +347,24 @@ window.VedrasNature=(()=>{
    };
    const trees=possible.filter(a=>B.isCanopy(entryFor(a))).sort((a,b)=>treePriority(a)-treePriority(b));
    // Standing dead trees are accents, NOT living canopy quota trees.
-   const other=possible.filter(a=>!B.isCanopy(entryFor(a))).sort((a,b)=>rank(a,c,302)-rank(b,c,302));
+   const boulders=possible.filter(a=>isBoulder(entryFor(a)))
+    .sort((a,b)=>a.relPath.localeCompare(b.relPath));
+   const other=possible.filter(a=>!B.isCanopy(entryFor(a))&&!isBoulder(entryFor(a)))
+    .sort((a,b)=>rank(a,c,302)-rank(b,c,302));
    let wantedTrees=F.treeTarget(f);
    // Coherent stand variation: neighboring hexes form groves and glades
    // rather than filling every woodland hex with exactly the same quota.
-   if(wantedTrees>1&&window.VedrasPolish.patch(seed,c.q,c.r,'tree',state.visualPolish?.composition??1)<.89)wantedTrees--;
+   if(wantedTrees>1&&window.VedrasPolish.patch(seed,c.q,c.r,'tree',state.visualPolish?.composition??1)<.58)wantedTrees--;
    const objectCap=F.maxObjects(f);
-   const spacingFactor=f?.forestClass==='dense_forest'?.82:f?.forestClass==='light_forest'?.92:1;
+   const spacingFactor=f?.forestClass==='dense_forest'?.72:f?.forestClass==='light_forest'?.92:1;
    const placed=all.filter(n=>n.q===c.q&&n.r===c.r);
    let count=placed.length,treeCount=placed.filter(n=>{
     const a=assets.find(v=>v.path===n.assetPath);return B.isCanopy(entryFor(a));
    }).length;
-   for(const a of trees){
-    if(treeCount>=wantedTrees||count>=objectCap)break;
-    const meta=entryFor(a);
+   // Reuse available tree species in a coherent grove, not one per PNG.
+   for(let slot=0;slot<wantedTrees&&count<objectCap&&trees.length;slot++){
+    if(treeCount>=wantedTrees)break;
+    const a=trees[slot%trees.length];
     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
     if(inst){all.push(inst);treeCount++;count++;forestTrees++;}
    }
@@ -302,6 +373,17 @@ window.VedrasNature=(()=>{
    if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.06&&count<objectCap){
     const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed,1,forestByHex);
     if(inst){all.push(inst);count++;forestTrees++;}
+   }
+   // Draw all currently imported boulder_NN variants via a stable choice.
+   // Do not independently spawn only the first catalog entry.
+   if(boulders.length&&count<objectCap&&random(seed,c.q,c.r,1601)<
+      Math.min(.32,Math.max(...boulders.map(a=>entryFor(a).placement.density))*1.15)){
+    const first=Math.floor(random(seed,c.q,c.r,1602)*boulders.length);
+    for(let j=0;j<boulders.length;j++){
+     const a=boulders[(first+j)%boulders.length];
+     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex);
+     if(inst){all.push(inst);count++;newBoulders++;break;}
+    }
    }
    let accentOnHex=placed.some(n=>{const a=assets.find(v=>v.path===n.assetPath);return B.isAccent(entryFor(a));});
    for(const a of other){
@@ -324,7 +406,7 @@ window.VedrasNature=(()=>{
   const edge=forest.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume) auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand.');
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand.');
  }
 
  function mountainGeometry(m){

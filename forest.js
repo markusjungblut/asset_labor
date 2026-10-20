@@ -13,7 +13,7 @@ window.VedrasForest=(()=>{
  const distance=(a,b)=>Math.max(Math.abs(a.q-b.q),Math.abs(a.r-b.r),Math.abs(a.q+a.r-b.q-b.r));
  // Tropical canopy is a climate-specific overlay, not a universal forest type.
  const jungleAllowed=base=>['jungle','savanna'].includes(base);
- const defaults=()=>({enabled:true,seed:12345,coverage:0.38,edgeStrength:0.72,debug:false,overrides:{},jungleHexes:{}});
+ const defaults=()=>({enabled:true,seed:12345,coverage:0.38,edgeStrength:0.72,debug:false,overrides:{},densityOverrides:{},jungleHexes:{}});
  function valid(raw){
   const d=defaults(),v=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const numeric=(n,fallback,min,max)=>Number.isFinite(Number(n))?clamp(Number(n),min,max):fallback;
@@ -21,13 +21,17 @@ window.VedrasForest=(()=>{
   for(const [k,value] of Object.entries(v.overrides&&typeof v.overrides==='object'&&!Array.isArray(v.overrides)?v.overrides:{})){
    if(validKey(k)&&['none','light_forest','dense_forest'].includes(value))overrides[k]=value;
   }
+  const densityOverrides={};
+  for(const [k,value] of Object.entries(v.densityOverrides&&typeof v.densityOverrides==='object'&&!Array.isArray(v.densityOverrides)?v.densityOverrides:{})){
+   if(validKey(k)&&Number.isFinite(Number(value)))densityOverrides[k]=clamp(Number(value),0,1);
+  }
   const jungleHexes={};
   for(const [k,value] of Object.entries(v.jungleHexes&&typeof v.jungleHexes==='object'&&!Array.isArray(v.jungleHexes)?v.jungleHexes:{})){
    if(validKey(k)&&value===true)jungleHexes[k]=true;
   }
   return {enabled:v.enabled!==false,seed:Math.trunc(numeric(v.seed,d.seed,1,2147483647)),
    coverage:numeric(v.coverage,d.coverage,0,1),edgeStrength:numeric(v.edgeStrength,d.edgeStrength,0,1),
-   debug:v.debug===true,overrides,jungleHexes};
+   debug:v.debug===true,overrides,densityOverrides,jungleHexes};
  }
  function suitability(terrainType,c,biome){
   if(terrainType?.materialClass==='water'||terrainType?.materialClass==='shoreline')return 0;
@@ -86,7 +90,8 @@ window.VedrasForest=(()=>{
     const override=options.overrides[c.key];
     if(override){forestClass=override;source='manual';}
     c.forestClass=forestClass;c.source=source;
-    c.baseDensity=forestClass==='dense_forest'?1:forestClass==='light_forest'?.44:0;
+    const densityOverride=options.densityOverrides[c.key];
+    c.baseDensity=Number.isFinite(densityOverride)&&forestClass!=='none'?densityOverride:(forestClass==='dense_forest'?1:forestClass==='light_forest'?.44:0);
    }
    // One-ring halo: a core forest raises tree probability in neighboring, otherwise open hexes.
    // Overrides of 'none' intentionally remain clear.
@@ -102,13 +107,13 @@ window.VedrasForest=(()=>{
  function treeTarget(cell){
   if(!cell?.suitability)return 0;
   // Keep readable ground between crowns and future building footprints.
-  if(cell.forestClass==='dense_forest')return 5;
-  if(cell.forestClass==='light_forest')return 4;
+  if(cell.forestClass==='dense_forest')return 5+Math.round(2*cell.density);
+  if(cell.forestClass==='light_forest')return 3+Math.round(2*cell.density);
   return cell.density>.18?1:0;
  }
  function maxObjects(cell){
   if(!cell?.suitability)return 0;
-  if(cell.forestClass==='dense_forest')return 8;
+  if(cell.forestClass==='dense_forest')return 11;
   if(cell.forestClass==='light_forest')return 7;
   return cell.edgeInfluence>.1?5:4;
  }

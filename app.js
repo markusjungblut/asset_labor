@@ -872,6 +872,15 @@ function spriteMountainCasts(obj,left,top,width,height){
 // Reuse one scratch canvas instead of allocating textures for each tree.
 // 'source-atop' restricts the cast strictly to visible sprite pixels.
 let spriteShadeCanvas=null;
+// Priority 3: slightly align all object perspectives to the fixed .85
+// ground projection. Only a DISPLAY transform around the sprite's foot;
+// source PNGs, bounding data, gameplay cells and catalog remain untouched.
+const OBJECT_DISPLAY_SCALE_Y=.965,OBJECT_DISPLAY_SHEAR_X=.012;
+function objectPerspective(context,p){
+ context.translate(p.x,p.y);
+ context.transform(1,0,OBJECT_DISPLAY_SHEAR_X,OBJECT_DISPLAY_SCALE_Y,0,0);
+ context.translate(-p.x,-p.y);
+}
 function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScreen(obj.x,obj.y),width=obj.w*state.zoom;
  const b=obj.natureMeta?visibleBounds(obj.asset.img):{sx:0,sy:0,sw:obj.asset.img.naturalWidth,sh:obj.asset.img.naturalHeight};
  const height=width*b.sh/b.sw,anchor=obj.natureMeta?.anchor||obj.asset.meta?.anchor||{x:.5,y:.96};
@@ -883,6 +892,7 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
  if(!casts.length){
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
   ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
+  objectPerspective(ctx,p);
   ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);ctx.restore();
   return;
  }
@@ -904,6 +914,7 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
   g.drawImage(cast.canvas,cast.x-left,cast.y-top,cast.width,cast.height);
  ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';
  ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
+ objectPerspective(ctx,p);
  ctx.drawImage(spriteShadeCanvas,0,0,sw,sh,left,top,width,height);ctx.restore();
 }
 function drawNatureShadow(sh,obj,p){
@@ -1571,7 +1582,7 @@ function importGeographyWorld(world){
   cq=(world.originQ??0)+Math.floor(world.width/2),
   cr=(world.originR??0)+Math.floor(world.height/2);
  const byPosition=new Map(world.cells.map(c=>[key(c.q,c.r),c]));
- const next=[],forestOverrides={},jungleHexes={};
+ const next=[],forestOverrides={},densityOverrides={},jungleHexes={};
  for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
   if(Math.abs(q+r)>radius)continue;
   const source=byPosition.get(key(q+cq,r+cr));
@@ -1586,8 +1597,12 @@ function importGeographyWorld(world){
    features:Array.isArray(source.features)?source.features:[],
    temperature:source.temperature,humidity:source.humidity};
   next.push(item);
-  if(source.forestClass==='light_forest'||source.forestClass==='dense_forest')
+  if(source.forestClass==='light_forest'||source.forestClass==='dense_forest'){
    forestOverrides[key(q,r)]=source.forestClass;
+   // Preserve the numeric density as well as the broad forest class.
+   if(Number.isFinite(source.forestDensity))
+    densityOverrides[key(q,r)]=source.forestDensity;
+  }
   if(source.baseBiome==='jungle')jungleHexes[key(q,r)]=true;
  }
  if(!window.confirm('Die aktuelle Testszene wird durch '+next.length+
@@ -1597,7 +1612,7 @@ function importGeographyWorld(world){
  state.hexObject={};state.hexShadow={};state.natureInstances=[];state.mountainInstances=[];
  state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;
  state.forest=window.VedrasForest.valid({...window.VedrasForest.defaults(),
-  enabled:true,seed:state.natureSeed,overrides:forestOverrides,jungleHexes});
+  enabled:true,seed:state.natureSeed,overrides:forestOverrides,densityOverrides,jungleHexes});
  const view=new Set(next.map(c=>key(c.q,c.r)));
  const candidateRoutes=(world.riverPaths||[]).map(path=>({
   hexes:path.map(([q,r])=>[q-cq,r-cr])
