@@ -176,7 +176,12 @@ window.VedrasChunks=(()=>{
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
-    ctx.save();ctx.beginPath();ctx.rect(t.x,t.y,size,size);ctx.clip();
+    // Each terrain raster is built WITH a world-space halo. Allow adjacent
+    // chunks to overlap by two world units rather than clipping on exactly
+    // the same fractional screen pixel. This avoids hairline square seams
+    // under fractional zoom/DPR without changing PNGs or terrain coordinates.
+    const bleed=2;
+    ctx.save();ctx.beginPath();ctx.rect(t.x-bleed,t.y-bleed,size+2*bleed,size+2*bleed);ctx.clip();
     if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer);
     if(artwork.relief)drawRaster(ctx,artwork.relief);
     else if(artwork.raster)drawRaster(ctx,artwork.raster);
