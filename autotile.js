@@ -11,6 +11,7 @@ window.VedrasAutotile = (() => {
  const HEX=256,R=HEX/Math.sqrt(3),DIRS=[[1,-1],[1,0],[0,1],[-1,1],[-1,0],[0,-1]];
  const vtx=Array.from({length:6},(_,i)=>{const a=-Math.PI/2+i*Math.PI/3;return [R*Math.cos(a),R*Math.sin(a)];});
  const cache=new Map();
+ let textureCache=new WeakMap();
  function pos(q,r){return {x:HEX*(q+r/2),y:1.5*R*r};}
  function k(q,r){return `${q},${r}`;}
  function hashText(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
@@ -50,10 +51,17 @@ window.VedrasAutotile = (() => {
  // a hex, so wrecks, reefs and other recognizable motifs remain intact.
  function texData(a,textureScales){
   const size=clamp(Number(textureScales[a.path]||a.meta?.textureWorldSize)||256,160,1536);
+  // Multiple terrain chunks reuse decoded source texels, not one huge
+  // getImageData allocation per chunk for each shared terrain asset.
+  let bySize=textureCache.get(a.img);
+  if(bySize?.has(size))return bySize.get(size);
   const w=Math.min(1536,Math.max(512,a.img.naturalWidth)),h=Math.min(1536,Math.max(512,a.img.naturalHeight));
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(a.img,0,0,w,h);
-  return {path:a.path,size,pixels:g.getImageData(0,0,w,h).data,width:w,height:h};
+  const sample={path:a.path,size,pixels:g.getImageData(0,0,w,h).data,width:w,height:h};
+  if(!bySize){bySize=new Map();textureCache.set(a.img,bySize);}
+  bySize.set(size,sample);
+  return sample;
  }
  function clamp(n,lo,hi){return Math.max(lo,Math.min(hi,n));}
  function wrap(n,m){return ((n%m)+m)%m;}
@@ -84,7 +92,7 @@ window.VedrasAutotile = (() => {
  // Shared 2D material field. Every pixel has one normalized partition of unity.
  // No candidate-specific offset: both sides of a shared edge use the same warped point.
  function build(cells,textureOf,typeOf,opts={}){
-  const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex',terrainTone=null}=opts;
+  const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex',terrainTone=null,bounds=null}=opts;
   const data=[],samples=new Map();
   for(const cell of cells){const a=textureOf(cell);if(!a?.img?.naturalWidth)return null;
    if(!samples.has(a.path))samples.set(a.path,texData(a,materialScales));
@@ -92,7 +100,15 @@ window.VedrasAutotile = (() => {
   }
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
   for(const c of data){left=Math.min(left,c.x-HEX/2);right=Math.max(right,c.x+HEX/2);top=Math.min(top,c.y-R);bottom=Math.max(bottom,c.y+R);}
-  left=Math.floor(left-1);right=Math.ceil(right+1);top=Math.floor(top-1);bottom=Math.ceil(bottom+1);
+  if(bounds){
+   if(![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite)||
+    bounds.width<=0||bounds.height<=0)throw Error('Invalid chunk raster bounds');
+   left=Math.floor(bounds.x);top=Math.floor(bounds.y);
+   right=Math.ceil(bounds.x+bounds.width);bottom=Math.ceil(bounds.y+bounds.height);
+  }else{
+   left=Math.floor(left-1);right=Math.ceil(right+1);
+   top=Math.floor(top-1);bottom=Math.ceil(bottom+1);
+  }
   let density=clamp(resolution,1,3);const maxPix=Math.max(160000,Math.min(4200000,Number(maxPixels)||4200000));density=Math.min(density,Math.sqrt(maxPix/((right-left)*(bottom-top))));
   const width=Math.ceil((right-left)*density),height=Math.ceil((bottom-top)*density);
   const image=document.createElement('canvas');image.width=width;image.height=height;
@@ -166,7 +182,7 @@ window.VedrasAutotile = (() => {
   return {...common,canvas:image,materialCount:samples.size,waterLayer:{...common,canvas:seaCanvas},landLayer:{...common,canvas:landCanvas}};
  }
  function draw(ctx,raster){if(raster)ctx.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);}
- function clearCache(){cache.clear();}
+ function clearCache(){cache.clear();textureCache=new WeakMap();}
  function drawDebug(ctx,g,{mode='edges',band=28}={}){
   ctx.save();ctx.lineWidth=2;ctx.setLineDash([6,5]);
   if(mode==='weights'){for(const seam of g.seams){const p=pos(seam.c.q,seam.c.r),a=vtx[seam.side],b=vtx[(seam.side+1)%6];ctx.strokeStyle='#58edff';ctx.lineWidth=Math.max(2,band*1.6);ctx.globalAlpha=.2;ctx.beginPath();ctx.moveTo(p.x+a[0],p.y+a[1]);ctx.lineTo(p.x+b[0],p.y+b[1]);ctx.stroke();}ctx.globalAlpha=1;}
