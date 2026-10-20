@@ -40,6 +40,7 @@ window.VedrasExistingAssets = (() => {
   [/^(?:mangroven?|mangrovenbaum|mangrove[_ -]?tree)[_ -]?(\d+)$/, 'Mangrovenbaum', 'mangroves', 'tree', 'large'],
  ];
  const habitat = {
+   stones:[['cold_regions','grass_pasture','arid_regions','warm_regions','wetlands'],.12,24],
   savanna_trees:[['warm_regions','arid_regions'],.07,130],
   deciduous_trees:[['grass_pasture','wetlands','cold_regions'],.14,90],
   heath:[['cold_regions','grass_pasture'],.25,26],
@@ -71,6 +72,10 @@ window.VedrasExistingAssets = (() => {
  function classify(asset) {
   if (asset?.category !== 'nature' || !/\.(?:png|webp|jpe?g|svg|gif|avif)$/i.test(asset.name || '')) return null;
   const base = stem(asset.name);
+  const boulder=/^boulder[_ -]?(\d+)$/.exec(base);
+  if(boulder)return {id:'boulder_'+String(Number(boulder[1])).padStart(2,'0'),
+   name:'Findling '+Number(boulder[1]),family:'stones',kind:'rock',
+   sizeClass:'large',confirmedSpecies:false,group:'boulder'};
   const kapok = /^tree_(1[2-9])$/.exec(base);
   if (kapok) return {id:'kapok_tree_'+kapok[1],name:'Kapokbaum',family:'jungle_trees',kind:'tree',sizeClass:'giant',confirmedSpecies:true,group:'kapok'};
   const snowy = /^tanne_schnee_(\d+)$/.exec(base);
