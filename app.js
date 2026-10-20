@@ -387,7 +387,7 @@ function drawGround(){
    },
    redraw:requestDraw,family:chunkFamily
   });
-  const near=fromScreen(-80,-80),far=fromScreen(W+80,H+80);
+  const near=fromScreen(-155,-155),far=fromScreen(W+155,H+155);
   lastChunkStats=terrainChunks.draw(ctx,{
    x:Math.min(near.x,far.x),y:Math.min(near.y,far.y),
    width:Math.abs(far.x-near.x),height:Math.abs(far.y-near.y)
@@ -397,7 +397,8 @@ function drawGround(){
   window.__vedrasReliefRaster=state.relief.enabled?{chunked:true}:null;
   if(chunkInfo)chunkInfo.textContent='Terrain: '+lastChunkStats.painted+'/'+
    lastChunkStats.visible+' sichtbare Chunks, '+lastChunkStats.pending+
-   ' geplant · '+lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
+   ' geplant · '+lastChunkStats.stalePainted+' mit vorheriger Auflösung · '+
+   lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
    ' gebaut · '+Math.round(lastChunkStats.pixels*4/1048576)+' MiB gepuffert · '+
    lastChunkStats.lastMs.toFixed(0)+' ms letzter Chunk · '+
    (workerActive?'Worker/OffscreenCanvas aktiv':state.workerTerrain===false?
