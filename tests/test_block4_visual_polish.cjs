@@ -60,7 +60,7 @@ assert(html.indexOf('polish.js?v=0.21.0')<html.indexOf('app.js?v=0.29.0'),'polis
 assert(html.includes('river.js?v=0.28.0')&&html.includes('shoreline.js?v=0.29.0'));
 assert(app.includes('mouthPortals=state.river?')&&app.includes('mouthPortals,version:4'),'coast uses mouth apertures');
 assert(!app.includes('skipEdges'),'old whole-coast suppression gone');
-assert(shoreline.includes('const segs=segments(cells,isWet)'),'keep all real coastline segments');
+assert(shoreline.includes('const allSegments=options.segments||segments(cells,isWet)'),'keep all real coastline segments');
 assert(shoreline.includes('dst[alphaIndex]=Math.round(dst[alphaIndex]*(1-passage))'),'narrow coast portal feathering');
 assert(app.includes('visualPolish:state.visualPolish'),'scene export stores polish');
 assert(app.includes('state.visualPolish=window.VedrasPolish.valid(scene.visualPolish)'),'scene import restores polish');
