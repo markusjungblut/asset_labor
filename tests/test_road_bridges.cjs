@@ -62,7 +62,7 @@ const bridgeIndex=app.indexOf('window.VedrasBridges.render(ctx,crossings',roadsI
 assert(riverIndex>=0&&roadsIndex>riverIndex&&bridgeIndex>roadsIndex,
  'render in precise order: terrain, river, sandy paths, bridge');
 assert(html.indexOf('river.js?v=0.28.0')<html.indexOf('bridges.js?v=0.28.0'));
-assert(html.indexOf('bridges.js?v=0.28.0')<html.indexOf('app.js?v=0.29.0'));
+assert(html.indexOf('bridges.js?v=0.28.0')<html.indexOf('app.js?v=0.30.0'));
 assert(app.includes('function applyRoadChanges(next)')&&app.includes('clearCorridor(previous,edges'));
 assert(app.includes('if(o.type!==\'mountain\'&&window.VedrasRoads.blocksPoint'));
 assert(ui.includes('core.roads.apply(next)'),'all click and junction actions use clearance');
