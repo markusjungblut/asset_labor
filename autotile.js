@@ -109,7 +109,7 @@ window.VedrasAutotile = (() => {
    left=Math.floor(left-1);right=Math.ceil(right+1);
    top=Math.floor(top-1);bottom=Math.ceil(bottom+1);
   }
-  let density=clamp(resolution,1,3);const maxPix=Math.max(160000,Math.min(4200000,Number(maxPixels)||4200000));density=Math.min(density,Math.sqrt(maxPix/((right-left)*(bottom-top))));
+  let density=clamp(resolution,bounds?.lowResolution?.5:1,3);const maxPix=Math.max(160000,Math.min(4200000,Number(maxPixels)||4200000));density=Math.min(density,Math.sqrt(maxPix/((right-left)*(bottom-top))));
   const width=Math.ceil((right-left)*density),height=Math.ceil((bottom-top)*density);
   const image=document.createElement('canvas');image.width=width;image.height=height;
   const context=image.getContext('2d',{willReadFrequently:true});const img=context.createImageData(width,height),pixels=img.data;
