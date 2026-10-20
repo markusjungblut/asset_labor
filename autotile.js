@@ -55,7 +55,7 @@ window.VedrasAutotile = (() => {
   // getImageData allocation per chunk for each shared terrain asset.
   let bySize=textureCache.get(a.img);
   if(bySize?.has(size))return bySize.get(size);
-  const w=Math.min(1536,Math.max(512,a.img.naturalWidth)),h=Math.min(1536,Math.max(512,a.img.naturalHeight));
+  const w=Math.min(1536,Math.max(512,(a.img.naturalWidth||a.img.width))),h=Math.min(1536,Math.max(512,(a.img.naturalHeight||a.img.height)));
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(a.img,0,0,w,h);
   const sample={path:a.path,size,pixels:g.getImageData(0,0,w,h).data,width:w,height:h};
@@ -94,7 +94,7 @@ window.VedrasAutotile = (() => {
  function build(cells,textureOf,typeOf,opts={}){
   const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex',terrainTone=null,bounds=null}=opts;
   const data=[],samples=new Map();
-  for(const cell of cells){const a=textureOf(cell);if(!a?.img?.naturalWidth)return null;
+  for(const cell of cells){const a=textureOf(cell);if(!a?.img||!(a.img.naturalWidth||a.img.width))return null;
    if(!samples.has(a.path))samples.set(a.path,texData(a,materialScales));
    const p=pos(cell.q,cell.r);data.push({...cell,terrainTypeId:typeOf(cell),x:p.x,y:p.y,asset:a,sample:samples.get(a.path),materialClass:materialClassOf(typeOf(cell))});
   }
