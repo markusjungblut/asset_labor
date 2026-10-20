@@ -714,7 +714,10 @@ function shadowLocalMask(width,settings,global){
  }
  return {...result,hit:false};
 }
+// Reuse the exact same mountain-shadow rasters for ground and sprites.
+let mountainCastsForFrame=[];
 function drawMountainShadows(objects){
+ mountainCastsForFrame=[];
  const mts=objects.filter(o=>o.type==='mountain');
  const strength=sceneShadowStrength();
  if(!mts.length||strength<=0){
@@ -730,9 +733,11 @@ function drawMountainShadows(objects){
   const origin=mountainOriginForObject(o,cfg);
   // The mask was rasterized in its own tight local bounds, rather than
   // allocating/readback of W*H for every mountain on every frame.
-  ctx.drawImage(local.canvas,origin.x+local.left/local.factor,
-   origin.y+local.top/local.factor,local.canvas.width/local.factor,
-   local.canvas.height/local.factor);
+  const cast={owner:o,canvas:local.canvas,
+   x:origin.x+local.left/local.factor,y:origin.y+local.top/local.factor,
+   width:local.canvas.width/local.factor,height:local.canvas.height/local.factor};
+  ctx.drawImage(cast.canvas,cast.x,cast.y,cast.width,cast.height);
+  mountainCastsForFrame.push(cast);
   maxAlpha=Math.max(maxAlpha,local.peakAlpha);
   positiveCount+=local.positiveCount;
  }
@@ -858,15 +863,48 @@ function visibleBounds(img){
  }catch(e){/* SVG, opaque or canvas restrictions: preserve full geometry. */}
  natureBounds.set(img,bounds);return bounds;
 }
+// Only shade sprites intersecting a mountain shadow. A mountain does not
+// receive its OWN cast, but can be shaded by another mountain in a chain.
+function spriteMountainCasts(obj,left,top,width,height){
+ return mountainCastsForFrame.filter(c=>c.owner!==obj&&
+  c.x<left+width&&c.x+c.width>left&&c.y<top+height&&c.y+c.height>top);
+}
+// Reuse one scratch canvas instead of allocating textures for each tree.
+// 'source-atop' restricts the cast strictly to visible sprite pixels.
+let spriteShadeCanvas=null;
 function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScreen(obj.x,obj.y),width=obj.w*state.zoom;
  const b=obj.natureMeta?visibleBounds(obj.asset.img):{sx:0,sy:0,sw:obj.asset.img.naturalWidth,sh:obj.asset.img.naturalHeight};
  const height=width*b.sh/b.sw,anchor=obj.natureMeta?.anchor||obj.asset.meta?.anchor||{x:.5,y:.96};
  const ax=Number.isFinite(Number(anchor.x))?clamp(Number(anchor.x),0,1):.5;
  const ay=Number.isFinite(Number(anchor.y))?clamp(Number(anchor.y),0,1):.96;
- ctx.save();ctx.globalCompositeOperation='source-over';
- ctx.filter=obj.natureMeta?window.VedrasPolish.natureFilter(obj.natureMeta,state.visualPolish.nature):'none';
+ const left=p.x-width*ax,top=p.y-height*ay;
+ const casts=spriteMountainCasts(obj,left,top,width,height);
+ const filter=obj.natureMeta?window.VedrasPolish.natureFilter(obj.natureMeta,state.visualPolish.nature):'none';
+ if(!casts.length){
+  ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
+  ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
+  ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);ctx.restore();
+  return;
+ }
+ // Keep scratch backing store bounded even for large zoomed mountains.
+ const pixelScale=Math.min(Math.max(1,state.dpr),2,
+  Math.sqrt(6000000/Math.max(1,width*height)));
+ const sw=Math.max(1,Math.ceil(width*pixelScale)),sh=Math.max(1,Math.ceil(height*pixelScale));
+ if(!spriteShadeCanvas)spriteShadeCanvas=document.createElement('canvas');
+ if(spriteShadeCanvas.width<sw)spriteShadeCanvas.width=sw;
+ if(spriteShadeCanvas.height<sh)spriteShadeCanvas.height=sh;
+ const g=spriteShadeCanvas.getContext('2d');
+ g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,sw,sh);
+ g.setTransform(pixelScale,0,0,pixelScale,0,0);
+ g.globalCompositeOperation='source-over';g.globalAlpha=1;
+ g.shadowBlur=0;g.shadowColor='transparent';g.filter=filter;
+ g.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,0,0,width,height);
+ g.filter='none';g.globalCompositeOperation='source-atop';
+ for(const cast of casts)
+  g.drawImage(cast.canvas,cast.x-left,cast.y-top,cast.width,cast.height);
+ ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';
  ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
- ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,p.x-width*ax,p.y-height*ay,width,height);ctx.restore();
+ ctx.drawImage(spriteShadeCanvas,0,0,sw,sh,left,top,width,height);ctx.restore();
 }
 function drawNatureShadow(sh,obj,p){
  const meta=obj.natureMeta.shadow||{};const ww=obj.w*state.zoom;
@@ -972,6 +1010,8 @@ function drawMapObjects(){if(!state.objects)return;
     }
    }
   }
+  // Every intersecting tree, bush, building, unit and mountain receives the
+  // cast on its visible pixels without altering the depth-sorted sprite pass.
   // Real sprites are sorted by projected ground foot AFTER the shadow layer.
   for(const o of objs){
    const p=toScreen(o.x,o.y);
@@ -1523,10 +1563,7 @@ $('openGeography').addEventListener('click',()=>{
  geographyPopup=window.open('geography-lab.html','vedras-geography-lab');
  if(geographyPopup)geographyPopup.focus();
 });
-window.addEventListener('message',event=>{
- if(event.origin!==location.origin||event.source!==geographyPopup||
-    event.data?.type!=='vedras-geography-preview')return;
- const world=event.data.world;
+function importGeographyWorld(world){
  if(!world||world.version!==window.VedrasGeography?.VERSION||
     !Number.isSafeInteger(world.width)||!Number.isSafeInteger(world.height)||
     world.width*world.height!==world.cells?.length||world.cells.length>60000)return;
@@ -1574,6 +1611,37 @@ window.addEventListener('message',event=>{
  window.VedrasNature?.renderPlaced?.();
  $('catalogMessage').textContent='Geografie v2 übernommen: '+next.length+
   ' Hexe als Testausschnitt (Mitte der vorab generierten Welt). Gebirge und spezielle Fundorte sind als Daten übernommen; deren automatische Sprite-Inszenierung bleibt ein eigener Integrationsschritt.';
+}
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==geographyPopup||
+    event.data?.type!=='vedras-geography-preview')return;
+ importGeographyWorld(event.data.world);
+});
+// Worldgen v2 exports use a DIFFERENT schema from vedras_scene.json.
+// Allow a saved preset OR precomputed world to be imported safely without
+// requiring the geography popup to remain open.
+$('geographyImport').addEventListener('click',()=>$('geographyImportFile').click());
+$('geographyImportFile').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>30000000)throw Error('Datei über 30 MB: Erzeuge zunächst eine kleinere Vorschau.');
+  const raw=JSON.parse(await file.text()),G=window.VedrasGeography;
+  if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
+  const version=raw.generatorVersion||raw.version;
+  if(version!==G.VERSION)throw Error('Diese Datei gehört nicht zur aktuellen Worldgen-Version '+G.VERSION+'.');
+  if(!raw.seed||!Number.isSafeInteger(Number(raw.width))||!Number.isSafeInteger(Number(raw.height)))
+   throw Error('Seed oder Kartengröße fehlt.');
+  // Regenerate from the saved, versioned parameters rather than trusting
+  // arbitrary terrain arrays or altering another saved gameplay world.
+  const generated=G.generateWorld(raw.seed,{
+   width:Number(raw.width),height:Number(raw.height),config:raw.config
+  });
+  if(Array.isArray(raw.cells)&&raw.cells.length!==generated.cells.length)
+   throw Error('Gespeicherte Weltdatei hat eine unerwartete Hexanzahl.');
+  importGeographyWorld(generated);
+ }catch(error){$('catalogMessage').textContent='Geografie-Import abgelehnt: '+error.message;}
+ finally{event.target.value='';}
 });
 window.addEventListener('vedras:nature-catalog-changed',()=>renderAssetsList());
 window.addEventListener('vedras:terrain-catalog-changed',terrainTestOptions);

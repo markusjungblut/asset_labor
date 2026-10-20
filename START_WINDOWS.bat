@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-echo Vedras Reiche - Asset Labor v0.10.8 (Standard-Port 8779, automatische Ausweichports)
+echo Vedras Reiche - Asset Labor – Schatten auf Sprites & Geografie-Zugang (Start-Port 8780, automatische Ausweichports)
 where py >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
   py -3 server.py
