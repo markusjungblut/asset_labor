@@ -465,38 +465,61 @@ function mountainOriginForObject(o,s,scale=1){
  if(!foot){foot=shadows.alphaFoot(sprite.footData,sprite.canvas.width,sprite.canvas.height,anchor);sprite.footCache.set(footKey,foot);}
  return shadows.mountainOrigin({x:p.x*scale,y:p.y*scale},w,h,anchor,s,foot);
 }
+// Per-style LOCAL shadow bitmaps: panning and road editing only reposition
+// cached mountain masks; they never regenerate/read back viewport-sized images.
+// Cache keys contain size, strength and full style so edits invalidate only
+// the edited geometry. Maximum cache is bounded independently of the scene.
+const mountainShadowRasterCache=new Map();
+function shadowLocalMask(width,settings,global){
+ const Sh=window.VedrasShadows,factor=.60,w=width*factor;
+ const cfg={...settings,softness:settings.softness*factor};
+ const id=JSON.stringify([Math.round(w*100)/100,cfg,global]);
+ if(mountainShadowRasterCache.has(id)){
+  const mask=mountainShadowRasterCache.get(id);
+  mountainShadowRasterCache.delete(id);mountainShadowRasterCache.set(id,mask);
+  return {...mask,hit:true};
+ }
+ const shape=Sh.mountainShape({x:0,y:0},w,cfg);
+ const r=Math.max(...shape.radius,w*cfg.contactWidth),pad=r+Math.max(5,cfg.softness)*1.3;
+ const left=Math.floor(Math.min(0,shape.p2.x)-pad)-2,
+  top=Math.floor(Math.min(0,shape.p2.y)-pad)-2;
+ const right=Math.ceil(w*.045+3),bottom=Math.ceil(Math.max(0,shape.p2.y)+pad)+2;
+ const cv=document.createElement('canvas');cv.width=Math.max(1,right-left);
+ cv.height=Math.max(1,bottom-top);
+ const g=cv.getContext('2d',{willReadFrequently:true});
+ const stats=Sh.paintMountain(g,{x:-left,y:-top},w,cfg,global);
+ const result={canvas:cv,left,top,factor,
+  peakAlpha:stats?.maxAlpha||0,positiveCount:stats?.positiveCount||0};
+ mountainShadowRasterCache.set(id,result);
+ while(mountainShadowRasterCache.size>32)
+  mountainShadowRasterCache.delete(mountainShadowRasterCache.keys().next().value);
+ return {...result,hit:false};
+}
 function drawMountainShadows(objects){
  const mts=objects.filter(o=>o.type==='mountain');
- if(!mts.length){window.__vedrasMountainShadowStats={count:0,maxAlpha:0,positiveCount:0};return;}
- const factor=.5,sw=Math.max(1,Math.ceil(W*factor)),sh=Math.max(1,Math.ceil(H*factor));
- const maxAlpha=new Uint8Array(sw*sh),scratch=document.createElement('canvas');
- scratch.width=sw;scratch.height=sh;
- const g=scratch.getContext('2d',{willReadFrequently:true}),shadows=window.VedrasShadows;
+ const strength=sceneShadowStrength();
+ if(!mts.length||strength<=0){
+  window.__vedrasMountainShadowStats={count:mts.length,maxAlpha:0,positiveCount:0,cacheHits:0,cacheMisses:0};
+  return;
+ }
+ let maxAlpha=0,positiveCount=0,hits=0,misses=0;
+ ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.filter='none';
  for(const o of mts){
-  const settings=mountainShadowSettings(o);
-  if(settings.opacity<=0||sceneShadowStrength()<=0)continue;
-  const origin=mountainOriginForObject(o,settings,factor),w=o.w*state.zoom*factor;
-  g.clearRect(0,0,sw,sh);
-  shadows.paintMountain(g,origin,w,{...settings,softness:settings.softness*factor},sceneShadowStrength());
-  const layer=g.getImageData(0,0,sw,sh).data;
-  // MAX union, never accumulate black bands between touching mountains.
-  for(let i=0,j=3;i<maxAlpha.length;i++,j+=4)
-   if(layer[j]>maxAlpha[i])maxAlpha[i]=layer[j];
+  const cfg=mountainShadowSettings(o);if(cfg.opacity<=0)continue;
+  const width=o.w*state.zoom,local=shadowLocalMask(width,cfg,strength);
+  if(local.hit)hits++;else misses++;
+  const origin=mountainOriginForObject(o,cfg);
+  // The mask was rasterized in its own tight local bounds, rather than
+  // allocating/readback of W*H for every mountain on every frame.
+  ctx.drawImage(local.canvas,origin.x+local.left/local.factor,
+   origin.y+local.top/local.factor,local.canvas.width/local.factor,
+   local.canvas.height/local.factor);
+  maxAlpha=Math.max(maxAlpha,local.peakAlpha);
+  positiveCount+=local.positiveCount;
  }
- const image=g.createImageData(sw,sh);
- for(let i=0,j=0;i<maxAlpha.length;i++,j+=4){
-  image.data[j]=shadows.COLOR.r;image.data[j+1]=shadows.COLOR.g;
-  image.data[j+2]=shadows.COLOR.b;image.data[j+3]=maxAlpha[i];
- }
- g.clearRect(0,0,sw,sh);g.putImageData(image,0,0);
- ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.globalAlpha=1;
- ctx.drawImage(scratch,0,0,W,H);ctx.restore();
- let peakAlpha=0,positiveCount=0;
- for(const alpha of maxAlpha){if(alpha>peakAlpha)peakAlpha=alpha;if(alpha>2)positiveCount++;}
- window.__vedrasMountainShadowStats={
-  count:mts.length,maxAlpha:peakAlpha,positiveCount,dimensions:[sw,sh],
-  projection:'alpha-foot / diagonal-procedural-ground-shadow'
- };
+ ctx.restore();
+ window.__vedrasMountainShadowStats={count:mts.length,maxAlpha,positiveCount,
+  cacheHits:hits,cacheMisses:misses,projection:'cached-local-mountain-shadow'};
 }
 function drawMountainShadowGuide(mountains){
  const shadows=window.VedrasShadows;
