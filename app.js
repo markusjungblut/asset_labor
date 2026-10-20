@@ -311,6 +311,7 @@ function drawGround(){
    c=>selectedMap.get(key(c.q,c.r))||fallback,{blendVariants:state.blendVariants});
  }
  const graph=terrainRasterCache.graph,chunkMode=state.chunkRendering||state.sceneSize>37;
+ const chunkInfo=$('chunkStats');
  window.__vedrasLastAutotile=graph;
  if(chunkMode){
   terrainRasterCache.signature=signature;
@@ -346,6 +347,11 @@ function drawGround(){
   },{water:state.relief.enabled,drawRaster:window.VedrasAutotile.draw,margin:0});
   window.__vedrasTerrainRaster={chunked:true,stats:lastChunkStats};
   window.__vedrasReliefRaster=state.relief.enabled?{chunked:true}:null;
+  if(chunkInfo)chunkInfo.textContent='Terrain: '+lastChunkStats.painted+'/'+
+   lastChunkStats.visible+' sichtbare Chunks, '+lastChunkStats.pending+
+   ' geplant · '+lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
+   ' gebaut · '+Math.round(lastChunkStats.pixels*4/1048576)+' MiB gepuffert · '+
+   lastChunkStats.lastMs.toFixed(0)+' ms letzter Chunk';
  }else{
   terrainChunks.clear();
   if(terrainRasterCache.signature!==signature||!terrainRasterCache.raster){
@@ -384,6 +390,7 @@ function drawGround(){
    window.VedrasAutotile.draw(ctx,reliefRaster);ctx.restore();
   }
   lastChunkStats=null;
+  if(chunkInfo)chunkInfo.textContent='Klassischer zusammenhängender Geländerenderer (Chunk-Test optional).';
  }
  drawForestFloor();
  drawShorelines();
@@ -675,8 +682,11 @@ function drawMountainFootprints(){
  }
  ctx.restore();
 }
-function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
- if(state.showLegacyNature!==false)for(const c of worldCells){if(blocked.has(key(c.q,c.r)))continue;if(c.biome==='forest')for(let j=0;j<4;j++){const a=rnd(c.q,c.r,j+40)*Math.PI*2,rad=38+rnd(c.q,c.r,j+70)*78,p=axialPos(c.q,c.r);
+function genericObjects(view=null){
+ const objs=[],blocked=reservedMountainHexes();
+ const inView=(x,y,extra=0)=>!view||(x>=view.x-extra&&y>=view.y-extra&&
+    x<=view.x+view.width+extra&&y<=view.y+view.height+extra);
+ if(state.showLegacyNature!==false)for(const c of worldCells){const cp=axialPos(c.q,c.r);if(!inView(cp.x,cp.y,200)||blocked.has(key(c.q,c.r)))continue;if(c.biome==='forest')for(let j=0;j<4;j++){const a=rnd(c.q,c.r,j+40)*Math.PI*2,rad=38+rnd(c.q,c.r,j+70)*78,p=axialPos(c.q,c.r);
  const x=p.x+Math.cos(a)*rad,y=p.y+Math.sin(a)*rad;if(Math.hypot(x,y-50)<126)continue;
  objs.push({asset:findAsset('nature',j%2?'pine_02':'pine_01'),x,y,w:34.8,type:'nature'});}
  if(c.biome==='mountain' || c.biome==='hills'){const p=axialPos(c.q,c.r);
@@ -703,6 +713,9 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  // Nature objects are independent per-instance; their picture anchor is stored in the Nature catalog.
 
  for(const n of (state.natureInstances||[])){
+   if(view){const p=axialPos(n.q,n.r);
+    if(!inView(p.x+n.dx,p.y+n.dy,220))continue;
+   }
    if(blocked.has(key(n.q,n.r)))continue;
    if(window.VedrasNature?.validInstance(n)===false)continue;
    const a=useAsset(n.assetPath);if(!a)continue;
@@ -716,6 +729,7 @@ function genericObjects(){const objs=[];const blocked=reservedMountainHexes();
  }
  for(const m of validMountains()){
   const a=useAsset(m.assetPath),meta=window.VedrasNature.entryFor(a),p=axialPos(m.q,m.r);
+  if(!inView(p.x,p.y+20,Math.max(400,meta?.logicalWidth||600)))continue;
   objs.push({asset:a,x:p.x,y:p.y+20,w:meta.logicalWidth,type:'mountain',natureMeta:meta,mountainInstance:m,cell:key(m.q,m.r)});
  }
  // No roots/feet may stand on an existing road. Old dynamic demo flora and
@@ -802,7 +816,10 @@ function mountainCoversBase(plant,mountain){
  }catch{return false;}
 }
 function drawMapObjects(){if(!state.objects)return;
- const objs=genericObjects().filter(o=>o.asset?.img?.naturalWidth).map(o=>{
+ const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
+ const view={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
+  width:Math.abs(b.x-a.x),height:Math.abs(b.y-a.y)};
+ const objs=genericObjects(view).filter(o=>o.asset?.img?.naturalWidth).map(o=>{
   const heightAdjusted=displayGroundY(o.x,o.y);
   return {...o,groundY:o.y,y:heightAdjusted,sortY:toScreen(o.x,heightAdjusted).y};
  });
@@ -1170,6 +1187,7 @@ $('zoomSlider').addEventListener('input',e=>applyZoom(Number(e.target.value)/100
 $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(state.sceneSize===37?.65:.95);});
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
+$('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;invalidateTerrain();persistScene();requestDraw();});
 $('sceneSize').addEventListener('change',e=>{state.sceneSize=Number(e.target.value);state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize));assignBiomes();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();});
 // Dynamic terrain test scenes: derive categories and materials from the live catalog.
 function terrainTestOptions(){
