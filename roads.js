@@ -7,13 +7,16 @@
 window.VedrasRoads=(()=>{
  const DIRS=[[1,-1],[1,0],[0,1],[-1,1],[-1,0],[0,-1]];
  const levels=['trail','packed','stone'];
+ // Soft embedded surfaces rather than flat outlined ribbons.
+ // World size is unchanged; width is the compacted central track, not a
+ // solid opaque road slab. Three visually distinct materials share a graph.
  const profiles={
-  trail:{title:'Sandiger Trampelpfad',width:19,outer:33,shoulder:27,
-   edge:'rgba(119,94,58,.18)',bank:'rgba(178,148,104,.46)',center:[204,180,135],highlight:'rgba(242,225,182,.13)',speck:[123,103,71]},
-  packed:{title:'Befestigter Erdweg',width:27,outer:39,shoulder:34,
-   edge:'rgba(101,89,69,.25)',bank:'rgba(160,137,104,.65)',center:[190,168,132],highlight:'rgba(231,209,170,.15)',speck:[117,102,78]},
-  stone:{title:'Steinstraße',width:32,outer:44,shoulder:39,
-   edge:'rgba(87,86,75,.38)',bank:'rgba(133,130,110,.80)',center:[170,164,143],highlight:'rgba(230,222,199,.10)',speck:[89,87,77]}
+  trail:{title:'Trampelpfad · eingelaufene Erde',width:17,outer:42,shoulder:30,
+   edge:'rgba(82,64,38,.105)',bank:'rgba(163,136,92,.25)',center:[156,133,93],speck:[96,85,62],opacity:.73},
+  packed:{title:'Befestigter Erdweg · Fahrspuren',width:26,outer:46,shoulder:36,
+   edge:'rgba(84,68,47,.16)',bank:'rgba(148,125,90,.32)',center:[166,146,112],speck:[103,89,67],opacity:.83},
+  stone:{title:'Steinstraße · Pflaster',width:32,outer:49,shoulder:40,
+   edge:'rgba(71,68,59,.23)',bank:'rgba(132,127,108,.36)',center:[152,147,131],speck:[99,95,83],opacity:.95}
  };
  const key=p=>p.q+','+p.r,asPoint=p=>Array.isArray(p)?{q:p[0],r:p[1]}:p;
  const validPoint=p=>p&&Number.isInteger(p.q)&&Number.isInteger(p.r)&&Math.abs(p.q)<100000&&Math.abs(p.r)<100000;
@@ -25,14 +28,15 @@ window.VedrasRoads=(()=>{
   return ka<kb?ka+'|'+kb:kb+'|'+ka;
  }
  const type=x=>levels.includes(x)?x:'trail';
- function normalizeEdges(input,cells,isWet){
+ function normalizeEdges(input,cells,isWet,isBlocked){
   const visible=new Map((cells||[]).map(c=>[key(c),c])),unique=new Map();
   if(!Array.isArray(input))return [];
   for(const raw of input.slice(0,12000)){
    if(!raw||typeof raw!=='object')continue;
    const a=asPoint(raw.a),b=asPoint(raw.b),id=identity(a,b);
    if(!id||!visible.has(key(a))||!visible.has(key(b)))continue;
-   if(isWet&&(isWet(visible.get(key(a)))||isWet(visible.get(key(b)))))continue;
+   if((isWet&&(isWet(visible.get(key(a)))||isWet(visible.get(key(b)))))||
+     (isBlocked&&(isBlocked(visible.get(key(a)))||isBlocked(visible.get(key(b))))))continue;
    const pair=key(a)<key(b)?[a,b]:[b,a];
    const next={a:[pair[0].q,pair[0].r],b:[pair[1].q,pair[1].r],level:type(raw.level)};
    const prev=unique.get(id);
@@ -40,15 +44,15 @@ window.VedrasRoads=(()=>{
   }
   return [...unique.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([,v])=>v);
  }
- function setEdge(input,a,b,level,cells,isWet){
+ function setEdge(input,a,b,level,cells,isWet,isBlocked){
   const id=identity(a,b);
-  if(!id)return normalizeEdges(input,cells,isWet);
-  const others=normalizeEdges(input,cells,isWet).filter(e=>identity(e.a,e.b)!==id);
-  return normalizeEdges([...others,{a:[asPoint(a).q,asPoint(a).r],b:[asPoint(b).q,asPoint(b).r],level:type(level)}],cells,isWet);
+  if(!id)return normalizeEdges(input,cells,isWet,isBlocked);
+  const others=normalizeEdges(input,cells,isWet,isBlocked).filter(e=>identity(e.a,e.b)!==id);
+  return normalizeEdges([...others,{a:[asPoint(a).q,asPoint(a).r],b:[asPoint(b).q,asPoint(b).r],level:type(level)}],cells,isWet,isBlocked);
  }
- function removeEdge(input,a,b,cells,isWet){
+ function removeEdge(input,a,b,cells,isWet,isBlocked){
   const id=identity(a,b);
-  return normalizeEdges(input,cells,isWet).filter(e=>identity(e.a,e.b)!==id);
+  return normalizeEdges(input,cells,isWet,isBlocked).filter(e=>identity(e.a,e.b)!==id);
  }
  function mask(edges,p){
   p=asPoint(p);if(!validPoint(p))return 0;
@@ -90,6 +94,8 @@ window.VedrasRoads=(()=>{
   }
  }
  const cache=new Map();
+ // Deterministic tiled soil, porous alpha reveals the actual biome underneath.
+ // Coarse layered noise, moss/dirt micro-grains, footprint dabs and stone chips.
  function texture(profileName){
   if(cache.has(profileName))return cache.get(profileName);
   if(typeof document==='undefined')return null;
@@ -98,18 +104,21 @@ window.VedrasRoads=(()=>{
   const g=canvas.getContext('2d'),img=g.createImageData(size,size),out=img.data;
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
    const i=4*(y*size+x),fine=hash(x,y,profileName.length*129),
-    wave=5*Math.sin(x*Math.PI*4/size)*Math.cos(y*Math.PI*4/size)+
-      4*Math.sin((x+y)*Math.PI*2/size);
-   const grain=(fine%31)-15,speck=(fine>>>10)%61===0,stone=profileName==='stone'&&((fine>>>8)%45<5);
-   const delta=wave*.48+grain*.28+(speck?-12:0)+(stone?12:0);
-   const base=stone&&speck?p.speck:p.center;
+     coarse=hash(x>>3,y>>3,577),macro=hash(x>>5,y>>5,771),
+     vein=Math.sin((x*.22+y*.07))*Math.cos((y*.17-x*.045)),
+     grain=(fine%43)-21,stone=profileName==='stone'&&((coarse>>>7)%17)<4,
+     thin=(fine>>>12)%97===0,weather=(macro%31)-15,
+     delta=grain*.31+((coarse%37)-18)*.49+weather*.50+vein*5+
+       (stone?11:0)-(thin?18:0);
+   const base=stone&&thin?p.speck:p.center;
    out[i]=clamp(Math.round(base[0]+delta),0,255);
-   out[i+1]=clamp(Math.round(base[1]+delta*.9),0,255);
-   out[i+2]=clamp(Math.round(base[2]+delta*.65),0,255);
-   out[i+3]=255;
+   out[i+1]=clamp(Math.round(base[1]+delta*.91),0,255);
+   out[i+2]=clamp(Math.round(base[2]+delta*.78),0,255);
+   // Dirt stays partially transparent so forest/meadow hues appear inside.
+   out[i+3]=profileName==='stone'?Math.round(217+(fine%24)):
+     Math.round(168+(fine%62));
   }
-  g.putImageData(img,0,0);cache.set(profileName,canvas);
-  return canvas;
+  g.putImageData(img,0,0);cache.set(profileName,canvas);return canvas;
  }
  function drawEdges(ctx,entries,hex,groundY,weight,paint){
   if(!entries.length)return;
@@ -126,30 +135,82 @@ window.VedrasRoads=(()=>{
    ctx.beginPath();ctx.arc(c.x,y,weight*.501,0,2*Math.PI);ctx.fill();
   }
  }
+ // Off-centre earth grains, granular lower recesses, worn light on the upper
+ // rim, and etched footprints/wheel ruts. All detail fades at each node.
+ function detail(ctx,entries,level,hex,groundY){
+  const p=profiles[level];ctx.lineJoin='round';ctx.lineCap='round';
+  for(const edge of entries){
+   const pts=course(edge,hex,groundY),id=identity(edge.a,edge.b);
+   const salt=[...id].reduce((v,c)=>Math.imul(v,31)+c.charCodeAt(0)|0,17);
+   // Two soft indented parallel wheels on packed roads, a single asymmetric
+   // foot groove on trails; stone has irregular joint marks instead.
+   if(level!=='stone'){
+    const ruts=level==='packed'?[-.24,.24]:[.12];
+    for(const offset of ruts){
+     for(const [distance,color] of [
+      [0,'rgba(65,57,42,.17)'],[1.8,'rgba(237,220,180,.11)']]){
+      ctx.strokeStyle=color;ctx.lineWidth=level==='packed'?2.6:2.1;
+      ctx.beginPath();
+      for(let i=2;i<pts.length-2;i++){
+       const t=i/(pts.length-1),prev=pts[i-1],next=pts[i+1],
+         dx=next.x-prev.x,dy=next.y-prev.y,l=Math.hypot(dx,dy)||1,
+         normal={x:-dy/l,y:dx/l},u=offset*p.width+distance;
+       const px=pts[i].x+normal.x*u,py=pts[i].y+normal.y*u;
+       if(i===2)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+     }
+    }
+   }
+   for(let i=2;i<pts.length-2;i++){
+    const base=pts[i],prev=pts[i-1],next=pts[i+1],
+      dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1,
+      nx=-dy/len,ny=dx/len;
+    for(let j=-1;j<=1;j++){
+     const h=hash(i*5+j,salt,level.length),side=((h%140)/70-1);
+     if((h>>>9)%4===0)continue;
+     const offset=side*p.width*.46,x=base.x+nx*offset,y=base.y+ny*offset;
+     const bright=(h>>>12)%3===0;
+     ctx.fillStyle=bright?'rgba(236,219,174,.29)':'rgba(82,73,52,.20)';
+     ctx.beginPath();ctx.ellipse(x,y,level==='stone'?1.7:.9,
+       level==='stone'?2.2:1.45,(h%17)/10,0,Math.PI*2);ctx.fill();
+    }
+    if(level==='stone'&&i%3===0){
+     ctx.strokeStyle='rgba(79,75,67,.24)';ctx.lineWidth=1.4;
+     ctx.beginPath();
+     ctx.moveTo(base.x-nx*p.width*.32,base.y-ny*p.width*.32);
+     ctx.lineTo(base.x+nx*p.width*.30,base.y+ny*p.width*.30);ctx.stroke();
+    }
+   }
+  }
+ }
  function render(ctx,edges,options={}){
   if(!ctx||!Array.isArray(edges)||!edges.length)return {edges:0,nodes:0};
-  const hex=Number(options.hex)||256,groundY=typeof options.groundY==='function'?options.groundY:null;
-  const normalized=edges.filter(e=>identity(e.a,e.b));
-  const allNodes=new Set();
+  const hex=Number(options.hex)||256,groundY=typeof options.groundY==='function'?options.groundY:null,
+    normalized=edges.filter(e=>identity(e.a,e.b)),allNodes=new Set();
   ctx.save();
   for(const e of normalized)for(const p of [e.a,e.b])allNodes.add(key(asPoint(p)));
   for(const level of levels){
    const group=normalized.filter(e=>type(e.level)===level);
    if(!group.length)continue;
-   const p=profiles[level];
-   const tile=texture(level),pattern=tile&&ctx.createPattern?ctx.createPattern(tile,'repeat'):null;
-   // All arms of one material are painted in whole-network passes, not
-   // as separately composited tiles; round hub unions remove star seams.
-   for(const [weight,color] of [[p.outer,p.edge],[p.shoulder,p.bank],[p.width,pattern||'rgb('+p.center.join(',')+')']]){
+   const p=profiles[level],tile=texture(level),
+     pattern=tile&&ctx.createPattern?ctx.createPattern(tile,'repeat'):null;
+   // Wide but nearly transparent softened earth/shoulder, followed by
+   // semi-transparent compacted earth. This avoids bright plastic ribbons.
+   for(const [weight,color] of [[p.outer,p.edge],[p.shoulder,p.bank]]){
     drawEdges(ctx,group,hex,groundY,weight,color);
     drawNodes(ctx,group,hex,groundY,weight,color);
    }
-   // No translucent complete-arm overlay here: sixfold intersections would
-   // otherwise become bright disks. Surface granularity comes from the tile.
+   ctx.save();
+   ctx.globalAlpha=p.opacity;
+   const fill=pattern||'rgba('+p.center.join(',')+',.72)';
+   drawEdges(ctx,group,hex,groundY,p.width,fill);
+   drawNodes(ctx,group,hex,groundY,p.width,fill);
+   ctx.restore();
+   detail(ctx,group,level,hex,groundY);
   }
   ctx.restore();return {edges:normalized.length,nodes:allNodes.size};
  }
-
  // World-space root clearance: remove ONLY objects whose ground anchor
  // falls on a road's capsule. Overhanging crowns and branches may remain.
  function distanceToSegment(p,a,b){
