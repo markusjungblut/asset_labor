@@ -1567,7 +1567,9 @@ function importGeographyWorld(world){
  if(!world||world.version!==window.VedrasGeography?.VERSION||
     !Number.isSafeInteger(world.width)||!Number.isSafeInteger(world.height)||
     world.width*world.height!==world.cells?.length||world.cells.length>60000)return;
- const radius=sceneRadius(state.sceneSize),cq=Math.floor(world.width/2),cr=Math.floor(world.height/2);
+ const radius=sceneRadius(state.sceneSize),
+  cq=(world.originQ??0)+Math.floor(world.width/2),
+  cr=(world.originR??0)+Math.floor(world.height/2);
  const byPosition=new Map(world.cells.map(c=>[key(c.q,c.r),c]));
  const next=[],forestOverrides={},jungleHexes={};
  for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
@@ -1629,13 +1631,19 @@ $('geographyImportFile').addEventListener('change',async event=>{
   const raw=JSON.parse(await file.text()),G=window.VedrasGeography;
   if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
   const version=raw.generatorVersion||raw.version;
-  if(version!==G.VERSION)throw Error('Diese Datei gehört nicht zur aktuellen Worldgen-Version '+G.VERSION+'.');
+  if(version!==G.VERSION){
+   if(version!=='geography-v2.0.0'||!window.confirm(
+     'Diese gespeicherte Datei stammt aus Worldgen v2.0. Bei der Übernahme '
+     +'wird die Geografie mit dem stabilisierten Generator v2.1 neu erzeugt. '
+     +'Das Ergebnis kann anders aussehen. Fortfahren?'))
+    throw Error('Weltversion wird ohne ausdrückliche Zustimmung nicht konvertiert.');
+  }
   if(!raw.seed||!Number.isSafeInteger(Number(raw.width))||!Number.isSafeInteger(Number(raw.height)))
    throw Error('Seed oder Kartengröße fehlt.');
   // Regenerate from the saved, versioned parameters rather than trusting
   // arbitrary terrain arrays or altering another saved gameplay world.
   const generated=G.generateWorld(raw.seed,{
-   width:Number(raw.width),height:Number(raw.height),config:raw.config
+   width:Number(raw.width),height:Number(raw.height),originQ:Number(raw.originQ??0),originR:Number(raw.originR??0),config:raw.config
   });
   if(Array.isArray(raw.cells)&&raw.cells.length!==generated.cells.length)
    throw Error('Gespeicherte Weltdatei hat eine unerwartete Hexanzahl.');

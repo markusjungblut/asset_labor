@@ -32,7 +32,8 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <div class="toolbar">
 <label>World Seed<input id="worldSeed" type="text" value="vedras-welt-01" maxlength="256"></label>
 <label>Breite (Hex)<input id="worldWidth" type="number" min="10" max="240" value="95"></label>
-<label>Höhe (Hex)<input id="worldHeight" type="number" min="10" max="240" value="75"></label>
+<label>Höhe (Hex)<input id="worldHeight" type="number" min="10" max="240" value="75"></label><label>Weltstart Q<input id="worldOriginQ" type="number" min="-1000000" max="1000000" value="0"></label>
+<label>Weltstart R<input id="worldOriginR" type="number" min="-1000000" max="1000000" value="0"></label>
 <label>Anzeige<select id="viewMode"><option value="terrain">Terrain-Untertypen</option><option value="biomes">Biomregionen</option><option value="water">Land / Wasser</option><option value="relief">Flach / Hügel / Berg</option><option value="temperature">Temperatur</option><option value="humidity">Feuchtigkeit</option><option value="forest">Wälder</option><option value="features">Fundorte / Tiere</option></select></label>
 <button class="primary" id="generate">Welt neu berechnen</button>
 </div>
@@ -43,5 +44,5 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js"></script><script src="geography-lab.js"></script>
+<script src="worldgen-geography.js?v=2.1.0"></script><script src="geography-lab.js?v=2.1.0"></script>
 </body></html>

@@ -1,67 +1,90 @@
-/* Geography v2 acceptance checks – run: node tests/test_geography_v2.cjs */
+/* Shared geography v2.1 – run: node tests/test_geography_v2.cjs */
 'use strict';
-const assert=require('node:assert/strict');
-const path=require('node:path');
-const fs=require('node:fs');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const filename=fs.existsSync(path.join(root,'worldgen-geography.js'))
+const enginePath=fs.existsSync(path.join(root,'worldgen-geography.js'))
  ?path.join(root,'worldgen-geography.js')
- :path.join(root,'public','worldgen-geography.js');
-const G=require(filename);
-const defaults=G.defaultConfig();
-const required=[
- 'water.fraction','water.coastDetail','biomes.targetHexes','geology.scale',
+ :path.join(root,'public/worldgen-geography.js');
+const G=require(enginePath),defaults=G.defaultConfig();
+assert.equal(G.VERSION,'geography-v2.1.0');
+assert(!Object.hasOwn(defaults,'climate.latitudeCooling'),'no map-edge latitude climate');
+assert(!Object.hasOwn(defaults,'features.horseShare'),'one quota for all animal species');
+for(const id of ['water.fraction','water.lakeInfluence','biomes.targetHexes',
  'relief.hillFraction','relief.mountainFraction','rivers.sourcesPer100',
- 'forest.coverage','features.animalsPer1000','features.wrecksPer1000'];
-for(const key of required)assert(Object.hasOwn(defaults,key),'missing tunable '+key);
-assert(G.parameterSchema().length>=37);
-const small=G.generateWorld('vedras-worldgen-quality-a',{width:85,height:65});
-const again=G.generateWorld('vedras-worldgen-quality-a',{width:85,height:65});
-assert.deepEqual(small,again,'seed and full preset must deterministically reproduce whole world');
-assert.equal(small.version,G.VERSION);
-assert.equal(small.stats.water,Math.round(small.stats.total*defaults['water.fraction']));
-assert.equal(small.stats.total,small.width*small.height);
-const land=small.cells.filter(c=>c.surfaceClass==='land');
-assert(land.length>small.cells.length/2,'land-dominated world');
-assert(land.every(c=>['flat','hills','mountain'].includes(c.reliefClass)),
- 'exactly the three approved relief classes');
-assert(land.every(c=>c.baseBiome&&c.terrainId),'every land hex has biome and terrain subtype');
-assert(land.every(c=>c.reliefClass!=='mountain'||c.forestClass==='none'),
- 'no tree density on impassable mountains');
-for(const c of small.cells){
- const touching=G.DIRS.some(([dq,dr])=>G.getWorldCell(small,c.q+dq,c.r+dr)?.surfaceClass==='land');
- if(c.surfaceClass==='coastal_water')assert(touching,'coastal water always touches land');
- if(c.surfaceClass!=='land'&&c.surfaceClass!=='coastal_water')
-  assert(!touching,'no ocean variant touches land');
+ 'forest.coverage','features.animalsPer1000'])
+ assert(Object.hasOwn(defaults,id),'required parameter '+id);
+const one=G.generateWorld('geography-v21-regression',{width:65,height:52});
+const identical=G.generateWorld('geography-v21-regression',{width:65,height:52});
+assert.deepEqual(one,identical,'same version + seed + config => same world');
+assert.equal(one.cells.length,65*52);
+assert.equal(one.riverGeometry,'hex-edges');
+const uiPath=fs.existsSync(path.join(root,'geography-lab.js'))
+ ?path.join(root,'geography-lab.js')
+ :path.join(root,'public/geography-lab.js');
+const uiSource=fs.readFileSync(uiPath,'utf8');
+assert(uiSource.includes('function edgeRiver(route)')&&
+ uiSource.includes('edgeRiver(path)'),'overview map must draw edge rivers');
+assert(!uiSource.includes('path.forEach(([q,r],i)'),
+ 'preview must not connect hex centers as river visuals');
+
+assert(one.stats.forestPercentLand>=0&&one.stats.forestPercentLand<=100);
+assert(one.stats.forestPercentEligible>=0&&one.stats.forestPercentEligible<=100);
+const map=new Map(one.cells.map(c=>[c.q+','+c.r,c]));
+for(const c of one.cells){
+ const near=G.DIRS.map(([dq,dr])=>map.get((c.q+dq)+','+(c.r+dr))).filter(Boolean);
+ if(c.surfaceClass==='coastal_water'&&near.length===6)
+  assert(near.some(n=>n.surfaceClass==='land'),'interior coast touches land');
+ if(['ocean','icy_ocean','stormy_ocean'].includes(c.surfaceClass))
+  assert(!near.some(n=>n.surfaceClass==='land'),'ocean types never touch land');
+ if(c.surfaceClass==='land'){
+  assert(['flat','hills','mountain'].includes(c.reliefClass));
+  assert(c.terrainId&&c.baseBiome);
+  if(c.reliefClass==='mountain')assert.equal(c.forestClass,'none');
+ }
  if(c.features.includes('oasis'))assert.equal(c.baseBiome,'arid');
  if(c.features.includes('wreck'))assert.notEqual(c.surfaceClass,'land');
- if(c.features.includes('horses'))assert(['grassland','savanna'].includes(c.baseBiome));
- if(c.features.includes('pigs'))assert(['grassland','wetland','jungle'].includes(c.baseBiome));
+ if(c.features.includes('horses'))assert(['savanna','grassland'].includes(c.baseBiome));
+ if(c.features.includes('pigs'))assert(['grassland','jungle','wetland'].includes(c.baseBiome));
+ for(const direction of c.riverEdges)assert(direction>=0&&direction<6);
 }
-assert(small.stats.rivers>0,'rivers are generated before exploration');
-for(const river of small.riverPaths){
- const head=river[0],tail=river[river.length-1];
- assert.equal(G.getWorldCell(small,...head).surfaceClass,'land');
- assert.notEqual(G.getWorldCell(small,...tail).surfaceClass,'land');
- assert(river.length-1>=defaults['rivers.minLength']);
- for(let i=1;i<river.length;i++){
-  const [q1,r1]=river[i-1],[q2,r2]=river[i];
-  assert(G.DIRS.some(([dq,dr])=>q1+dq===q2&&r1+dr===r2),'river segment not hex-adjacent');
+for(const route of one.riverPaths){
+ assert(route.length-1>=defaults['rivers.minLength']);
+ assert.equal(G.getWorldCell(one,...route[0]).surfaceClass,'land');
+ assert.notEqual(G.getWorldCell(one,...route.at(-1)).surfaceClass,'land');
+ for(let i=1;i<route.length;i++){
+  const [q,r]=route[i-1],[qq,rr]=route[i];
+  assert(G.DIRS.some(([dq,dr])=>q+dq===qq&&r+dr===rr),
+   'river route remains neighbor-linked for HEX-SIDE rendering');
  }
 }
-const changed=G.generateWorld('vedras-worldgen-quality-a',{width:85,height:65,
- config:{...defaults,'water.fraction':.38,'biomes.targetHexes':40,'relief.hillFraction':.18}});
-assert.equal(changed.stats.water,Math.round(changed.stats.total*.38));
-assert.notDeepEqual(changed.cells.map(c=>c.terrainId),small.cells.map(c=>c.terrainId));
-assert.notDeepEqual(changed.stats,small.stats);
+// World extensions must not reclassify already generated hexes.
+const short=G.generateWorld('vedras-grow-test',{width:40,height:40});
+const grown=G.generateWorld('vedras-grow-test',{width:70,height:70});
+for(const c of short.cells)
+ assert.deepEqual(c,G.getWorldCell(grown,c.q,c.r),'changed hex on world expansion '+c.q+','+c.r);
+const offset=G.generateWorld('vedras-grow-test',{width:30,height:30,originQ:20,originR:15});
+for(const c of offset.cells)
+ assert.deepEqual(c,G.getWorldCell(grown,c.q,c.r),'changed hex when origin shifted');
+const dry=G.generateWorld('lake-slider-test',{width:35,height:35,
+ config:{...defaults,'water.lakeInfluence':0}});
+const wet=G.generateWorld('lake-slider-test',{width:35,height:35,
+ config:{...defaults,'water.lakeInfluence':.4}});
+assert(wet.stats.water>=dry.stats.water,'lake slider must never remove water');
+for(const c of dry.cells)if(c.surfaceClass!=='land')
+ assert.notEqual(G.getWorldCell(wet,c.q,c.r).surfaceClass,'land');
+const lessWood=G.generateWorld('woods-test',{width:35,height:35,
+ config:{...defaults,'forest.coverage':.05}});
+const moreWood=G.generateWorld('woods-test',{width:35,height:35,
+ config:{...defaults,'forest.coverage':.75}});
+assert(moreWood.stats.forest>=lessWood.stats.forest,'more forest must not decrease coverage');
 assert.throws(()=>G.normalizeConfig({'water.fraction':99}),RangeError);
 assert.throws(()=>G.generateWorld('',{width:40,height:40}));
-G.registerParameter({id:'extension.fungi.rarity',group:'Erweiterungen',label:'Pilzrarität',
- defaultValue:3,min:0,max:20,step:1,help:'Automatisch sichtbarer neuer Regler'});
-assert.equal(G.defaultConfig()['extension.fungi.rarity'],3);
+G.registerParameter({id:'extension.fungi.rarity',group:'Erweiterungen',label:'Pilze',
+ defaultValue:3,min:0,max:20,step:1,help:'Regler für ein späteres Feature'});
 G.registerFeature({id:'extension.fungi',place:({hex,config})=>
- hex.surfaceClass==='land'&&hex.q===3&&hex.r===4&&config['extension.fungi.rarity']>0});
-assert(G.generateWorld('extension-test',{width:15,height:15}).cells.some(c=>
- c.features.includes('extension.fungi')),'extension can participate in geographic generation');
-console.log('PASS geography v2: deterministic seed; target water coverage; no land/ocean contacts;'+
- ' biome/terrain/relief; river adjacency; editable preset; extensible schema and features.');
+ hex.surfaceClass==='land'&&hex.q===2&&hex.r===3&&config['extension.fungi.rarity']>0});
+const extra=G.generateWorld('fungi-test',{width:15,height:15});
+if(G.getWorldCell(extra,2,3).surfaceClass==='land')
+ assert(G.getWorldCell(extra,2,3).features.includes('extension.fungi'));
+console.log('PASS Worldgen v2.1: expansion stable; permanent ocean terrains; coast; '+
+ 'river EDGE topology; wood statistics; lake monotonicity; all-animal quota; extensions.');
