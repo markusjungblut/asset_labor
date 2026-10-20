@@ -221,6 +221,66 @@ window.VedrasRoads=(()=>{
    }
   }
  }
+ // The compacted earth used to be painted once PER road arm with
+ // translucent strokes. At corners / six-way junctions that accumulated
+ // alpha into dark disks. Rasterize each material/pass as an OPAQUE UNION
+ // mask first, then texture it once: A union B has the same darkness as A.
+ const scratchByCanvas=new WeakMap();
+ function unionScratch(ctx){
+  const target=ctx.canvas;
+  if(!target||typeof ctx.getTransform!=='function'||typeof document==='undefined')
+   return null;
+  let record=scratchByCanvas.get(target);
+  if(!record){
+   const canvas=document.createElement('canvas');
+   record={canvas,context:canvas.getContext('2d')};
+   scratchByCanvas.set(target,record);
+  }
+  if(record.canvas.width!==target.width||record.canvas.height!==target.height){
+   record.canvas.width=target.width;
+   record.canvas.height=target.height;
+  }
+  return record;
+ }
+ function paintUnion(ctx,group,hex,groundY,width,paint,{worn=false,level='trail',opacity=1}={}){
+  const scratch=unionScratch(ctx);
+  if(!scratch){
+   // Node/DOM-free tests can still render raw geometry. Real canvas uses
+   // the union pipeline, avoiding accumulated alpha at intersecting arms.
+   if(worn)drawWornFill(ctx,group,hex,groundY,width,paint,level);
+   else drawEdges(ctx,group,hex,groundY,width,paint);
+   drawNodes(ctx,group,hex,groundY,width,paint);
+   return;
+  }
+  const g=scratch.context,canvas=scratch.canvas;
+  g.save();
+  g.setTransform(1,0,0,1,0,0);
+  g.clearRect(0,0,canvas.width,canvas.height);
+  g.setTransform(ctx.getTransform());
+  g.globalAlpha=1;g.globalCompositeOperation='source-over';
+  // Source strokes and central disks are fully opaque, so overlaps cannot
+  // deepen the mask irrespective of the number of connected road arms.
+  if(worn)drawWornFill(g,group,hex,groundY,width,'#fff',level);
+  else drawEdges(g,group,hex,groundY,width,'#fff');
+  drawNodes(g,group,hex,groundY,width,'#fff');
+  let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
+  for(const edge of group)for(const p of [asPoint(edge.a),asPoint(edge.b)]){
+   const point=center(p,hex),y=groundY?groundY(point.x,point.y):point.y;
+   left=Math.min(left,point.x);right=Math.max(right,point.x);
+   top=Math.min(top,y);bottom=Math.max(bottom,y);
+  }
+  const pad=hex;
+  g.globalCompositeOperation='source-in';
+  g.globalAlpha=opacity;
+  g.fillStyle=paint;
+  g.fillRect(left-pad,top-pad,right-left+pad*2,bottom-top+pad*2);
+  g.restore();
+  ctx.save();
+  ctx.globalCompositeOperation='source-over';
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.drawImage(canvas,0,0);
+  ctx.restore();
+ }
  function render(ctx,edges,options={}){
   if(!ctx||!Array.isArray(edges)||!edges.length)return {edges:0,nodes:0};
   const hex=Number(options.hex)||256,groundY=typeof options.groundY==='function'?options.groundY:null,
@@ -232,18 +292,13 @@ window.VedrasRoads=(()=>{
    if(!group.length)continue;
    const p=profiles[level],tile=texture(level),
      pattern=tile&&ctx.createPattern?ctx.createPattern(tile,'repeat'):null;
-   // Wide but nearly transparent softened earth/shoulder, followed by
-   // semi-transparent compacted earth. This avoids bright plastic ribbons.
-   for(const [weight,color] of [[p.outer,p.edge],[p.shoulder,p.bank]]){
-    drawEdges(ctx,group,hex,groundY,weight,color);
-    drawNodes(ctx,group,hex,groundY,weight,color);
-   }
-   ctx.save();
-   ctx.globalAlpha=p.opacity;
+   // Each material pass is drawn from a single coverage mask. Road arms
+   // and node disks overlap geometrically but never add alpha to each other.
+   for(const [weight,color] of [[p.outer,p.edge],[p.shoulder,p.bank]])
+    paintUnion(ctx,group,hex,groundY,weight,color,{level});
    const fill=pattern||'rgba('+p.center.join(',')+',.72)';
-   drawWornFill(ctx,group,hex,groundY,p.width,fill,level);
-   drawNodes(ctx,group,hex,groundY,p.width,fill);
-   ctx.restore();
+   paintUnion(ctx,group,hex,groundY,p.width,fill,
+    {worn:true,level,opacity:p.opacity});
    if(options.detail!==false)detail(ctx,group,level,hex,groundY);
   }
   ctx.restore();return {edges:normalized.length,nodes:allNodes.size};
