@@ -30,7 +30,7 @@
  }
  // Sticky quick actions are always one click away, rather than buried after metadata.
  const shortcuts=document.createElement('nav');shortcuts.className='inspector-shortcuts';shortcuts.setAttribute('aria-label','Schnellzugriff');
- shortcuts.innerHTML='<button type="button" id="shortcutGeography">Geografie-Labor</button><button type="button" id="shortcutNature">Natur verteilen</button><button type="button" id="shortcutMountain">Berge</button><button type="button" id="shortcutMap">Testkarte</button>';
+ shortcuts.innerHTML='<button type="button" id="shortcutGeography">Geografie-Labor</button><button type="button" id="shortcutGeographyImport">Geografie-JSON importieren</button><button type="button" id="shortcutNature">Natur verteilen</button><button type="button" id="shortcutMountain">Berge</button><button type="button" id="shortcutMap">Testkarte</button>';
  inspector.querySelector('.paneheader')?.after(shortcuts);
  function openDrawer(id){const drawer=$('drawer_'+id);if(drawer)drawer.open=true;drawer?.scrollIntoView({behavior:'smooth',block:'start'});}
  const populate=()=>{openDrawer('natureLabTools');$('nPopulate')?.click();};
@@ -38,6 +38,7 @@
   // A second always-visible entry point avoids hiding geography among many
   // toolbar actions on narrow browser windows.
   $('shortcutGeography')?.addEventListener('click',()=>$('openGeography')?.click());
+  $('shortcutGeographyImport')?.addEventListener('click',()=>$('geographyImport')?.click());
  const openMountain=()=>openDrawer('mountainTools');
  $('quickMountains')?.addEventListener('click',openMountain);$('shortcutMountain')?.addEventListener('click',openMountain);
  $('quick37')?.addEventListener('click',()=>{$('sceneSize').value='37';$('sceneSize').dispatchEvent(new Event('change',{bubbles:true}));});
