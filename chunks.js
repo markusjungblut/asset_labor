@@ -42,14 +42,14 @@ window.VedrasChunks=(()=>{
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
   const cache=new Map(),queue=new Map();
-  let signature='',epoch=0,scheduled=false,stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,pixels:0};
+  let signature='',epoch=0,scheduled=false,protectedIds=new Set(),stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,pixels:0};
   let cells=[],build=()=>null,requestDraw=()=>{};
   function clear(){
-   cache.clear();queue.clear();stats.pixels=0;
+   cache.clear();queue.clear();protectedIds.clear();stats.pixels=0;
    signature='';epoch++;scheduled=false;
   }
   function configure(next,{worldCells,buildTile,redraw}){
-   if(next!==signature){cache.clear();queue.clear();stats.pixels=0;signature=next;epoch++;scheduled=false;}
+   if(next!==signature){cache.clear();queue.clear();protectedIds.clear();stats.pixels=0;signature=next;epoch++;scheduled=false;}
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
   }
   function use(k){
@@ -59,7 +59,9 @@ window.VedrasChunks=(()=>{
   }
   function trim(){
    while(cache.size>maxTiles||stats.pixels>maxPixels){
-    const oldest=cache.keys().next().value;
+    // Do not discard an on-screen tile to make room for the next on-screen
+    // tile: doing so would create a permanent idle-build/evict/flicker loop.
+    const oldest=[...cache.keys()].find(id=>!protectedIds.has(id));
     if(oldest===undefined)break;
     const value=cache.get(oldest);
     stats.pixels-=value.pixels;
@@ -109,6 +111,7 @@ window.VedrasChunks=(()=>{
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
    stats.visible=tiles.length;stats.painted=0;
+   protectedIds=new Set(tiles.map(t=>t.id));trim();
    // Remove tiles that a changed camera no longer needs. Old cached tiles
    // remain until LRU eviction, allowing cheap return-pans.
    const keep=new Set(tiles.map(t=>t.id));
