@@ -72,8 +72,9 @@ window.VedrasChunks=(()=>{
    if(scheduled||!queue.size)return;
    scheduled=true;const generation=epoch;
    const task=()=>{
-    scheduled=false;
+    // Stale idle callbacks must never unset a newer scene's scheduled job.
     if(generation!==epoch)return;
+    scheduled=false;
     const next=queue.entries().next().value;
     if(!next)return;
     const [id,t]=next;queue.delete(id);
