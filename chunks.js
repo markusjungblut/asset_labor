@@ -79,7 +79,12 @@ window.VedrasChunks=(()=>{
      const t0=typeof performance!=='undefined'?performance.now():0;
      const item=build(t,neighbors(t,cells));
      if(generation!==epoch)return;
-     if(item){
+     if(!item){
+      // Empty or fully oceanless/forestless chunk: cache the absence too.
+      // Otherwise a persistent missing tile is rebuilt on every pan/frame.
+      cache.set(id,{raster:null,relief:null,pixels:0});
+      trim();
+     }else{
       // Count all offscreen tile canvases, including water/land and relief;
       // eviction releases entire image groups together.
       const pixels=(item.raster?.canvas?.width||0)*(item.raster?.canvas?.height||0)+
