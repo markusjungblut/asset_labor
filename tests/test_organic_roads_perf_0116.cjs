@@ -27,7 +27,7 @@ assert(R.profiles.trail.width<R.profiles.packed.width&&R.profiles.packed.width<R
 assert(R.profiles.trail.outer>R.profiles.trail.width*2,'worn trails feather well beyond their compacted core');
 const events=[];
 const ctx={save:()=>events.push('save'),restore:()=>events.push('restore'),
- moveTo(){},lineTo(){},arc(){},beginPath(){},fill(){},stroke(){},
+ moveTo(){},lineTo(){},arc(){},closePath(){},beginPath(){},fill(){},stroke(){},
  ellipse:()=>events.push('grain'),createPattern:()=>null};
 const full=R.render(ctx,[roads[0]],{detail:true});
 assert.equal(full.edges,1);assert(events.includes('grain'),'visible dust grains/pebbles and footprint marks');
