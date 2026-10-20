@@ -42,14 +42,27 @@ window.VedrasChunks=(()=>{
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
   const cache=new Map(),queue=new Map();
-  let signature='',epoch=0,scheduled=false,protectedIds=new Set(),stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,pixels:0};
+  let signature='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,pixels:0};
   let cells=[],build=()=>null,requestDraw=()=>{};
+  function release(item){
+   const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
+    item?.raster?.landLayer?.canvas,item?.relief?.canvas];
+   const seen=new Set();
+   for(const resource of canvases)if(resource&&!seen.has(resource)){
+    seen.add(resource);
+    if(typeof resource.close==='function')resource.close();
+   }
+  }
+  function dropCache(){
+   for(const item of cache.values())release(item);
+   cache.clear();stats.pixels=0;
+  }
   function clear(){
-   cache.clear();queue.clear();protectedIds.clear();stats.pixels=0;
-   signature='';epoch++;scheduled=false;
+   dropCache();queue.clear();protectedIds.clear();
+   signature='';epoch++;scheduled=false;inFlight=false;
   }
   function configure(next,{worldCells,buildTile,redraw}){
-   if(next!==signature){cache.clear();queue.clear();protectedIds.clear();stats.pixels=0;signature=next;epoch++;scheduled=false;}
+   if(next!==signature){dropCache();queue.clear();protectedIds.clear();signature=next;epoch++;scheduled=false;inFlight=false;}
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
   }
   function use(k){
@@ -65,43 +78,57 @@ window.VedrasChunks=(()=>{
     if(oldest===undefined)break;
     const value=cache.get(oldest);
     stats.pixels-=value.pixels;
-    cache.delete(oldest);stats.evicted++;
+    cache.delete(oldest);release(value);stats.evicted++;
    }
   }
+  // buildTile may return a concrete canvas group OR a Promise of transferred
+  // ImageBitmaps. While the Worker is busy, input and the compositor stay free.
   function schedule(){
-   if(scheduled||!queue.size)return;
+   if(scheduled||inFlight||!queue.size)return;
    scheduled=true;const generation=epoch;
    const task=()=>{
-    // Stale idle callbacks must never unset a newer scene's scheduled job.
     if(generation!==epoch)return;
     scheduled=false;
     const next=queue.entries().next().value;
     if(!next)return;
     const [id,t]=next;queue.delete(id);
-    try{
-     const t0=typeof performance!=='undefined'?performance.now():0;
-     const item=build(t,neighbors(t,cells));
-     if(generation!==epoch)return;
+    const t0=typeof performance!=='undefined'?performance.now():0;
+    const complete=item=>{
+     if(generation!==epoch){release(item);return;}
      if(!item){
-      // Empty or fully oceanless/forestless chunk: cache the absence too.
-      // Otherwise a persistent missing tile is rebuilt on every pan/frame.
       cache.set(id,{raster:null,relief:null,pixels:0});
-      trim();
      }else{
-      // Count all offscreen tile canvases, including water/land and relief;
-      // eviction releases entire image groups together.
       const pixels=(item.raster?.canvas?.width||0)*(item.raster?.canvas?.height||0)+
        (item.raster?.waterLayer?.canvas?.width||0)*(item.raster?.waterLayer?.canvas?.height||0)+
        (item.raster?.landLayer?.canvas?.width||0)*(item.raster?.landLayer?.canvas?.height||0)+
        (item.relief?.canvas&&item.relief.canvas!==item.raster?.landLayer?.canvas?
         item.relief.canvas.width*item.relief.canvas.height:0);
-      cache.set(id,{...item,pixels});
-      stats.pixels+=pixels;trim();stats.built++;
+      cache.set(id,{...item,pixels});stats.pixels+=pixels;stats.built++;
      }
+     trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
-    }catch(e){stats.errors++;if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',e);}
-    requestDraw();
-    if(queue.size)schedule();
+     requestDraw();
+     if(queue.size)schedule();
+    };
+    const fail=error=>{
+     if(generation!==epoch)return;
+     stats.errors++;
+     if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
+     requestDraw();if(queue.size)schedule();
+    };
+    try{
+     const output=build(t,neighbors(t,cells));
+     if(output&&typeof output.then==='function'){
+      inFlight=true;
+      output.then(item=>{
+       if(generation===epoch)inFlight=false;
+       complete(item);
+      },err=>{
+       if(generation===epoch)inFlight=false;
+       fail(err);
+      });
+     }else complete(output);
+    }catch(err){fail(err);}
    };
    if(typeof requestIdleCallback==='function')requestIdleCallback(task,{timeout:250});
    else if(typeof setTimeout==='function')setTimeout(task,0);
@@ -127,7 +154,7 @@ window.VedrasChunks=(()=>{
     else if(result.raster)drawRaster(ctx,result.raster);
     ctx.restore();stats.painted++;
    }
-   stats.pending=queue.size;
+   stats.pending=queue.size+(inFlight?1:0);
    schedule();
    return {...stats,cached:cache.size};
   }
