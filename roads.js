@@ -148,6 +148,30 @@ window.VedrasRoads=(()=>{
    ctx.beginPath();ctx.arc(c.x,y,weight*.501,0,2*Math.PI);ctx.fill();
   }
  }
+ // One continuous slightly asymmetric compacted strip, not a perfect
+ // software stroke. Direction-aligned soil banks meander subtly between
+ // hex centres while the endpoints remain precise for six-way junctions.
+ function drawWornFill(ctx,entries,hex,groundY,width,paint,level){
+  const rough=level==='trail'?.16:level==='packed'?.075:.028;
+  ctx.fillStyle=paint;
+  for(const edge of entries){
+   const pts=course(edge,hex,groundY),left=[],right=[];
+   const id=identity(edge.a,edge.b),phase=hash(id.length,edge.a[0]||0,edge.b[1]||0)%628/100;
+   for(let i=0;i<pts.length;i++){
+    const previous=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)],
+      dx=next.x-previous.x,dy=next.y-previous.y,len=Math.hypot(dx,dy)||1,
+      nx=-dy/len,ny=dx/len,t=i/(pts.length-1),smooth=Math.sin(Math.PI*t),
+      a=width*.5*(1+rough*smooth*(.69*Math.sin(t*12+phase)+.36*Math.cos(t*17+phase))),
+      b=width*.5*(1+rough*smooth*(.63*Math.cos(t*11+phase)-.32*Math.sin(t*18+phase)));
+    left.push({x:pts[i].x+nx*a,y:pts[i].y+ny*a});
+    right.push({x:pts[i].x-nx*b,y:pts[i].y-ny*b});
+   }
+   ctx.beginPath();ctx.moveTo(left[0].x,left[0].y);
+   for(let i=1;i<left.length;i++)ctx.lineTo(left[i].x,left[i].y);
+   for(let i=right.length-1;i>=0;i--)ctx.lineTo(right[i].x,right[i].y);
+   ctx.closePath();ctx.fill();
+  }
+ }
  // Off-centre earth grains, granular lower recesses, worn light on the upper
  // rim, and etched footprints/wheel ruts. All detail fades at each node.
  function detail(ctx,entries,level,hex,groundY){
@@ -217,7 +241,7 @@ window.VedrasRoads=(()=>{
    ctx.save();
    ctx.globalAlpha=p.opacity;
    const fill=pattern||'rgba('+p.center.join(',')+',.72)';
-   drawEdges(ctx,group,hex,groundY,p.width,fill);
+   drawWornFill(ctx,group,hex,groundY,p.width,fill,level);
    drawNodes(ctx,group,hex,groundY,p.width,fill);
    ctx.restore();
    if(options.detail!==false)detail(ctx,group,level,hex,groundY);
