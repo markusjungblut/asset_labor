@@ -871,8 +871,8 @@ function protectsSouthwestLargeSprite(receiver,caster){
  if(!receiver||!caster||(receiver.type!=='mountain'&&receiver.type!=='building'))
   return false;
  if(typeof receiver.cell!=='string'||typeof caster.cell!=='string')return false;
- const a=/^(-?\\d+),(-?\\d+)$/.exec(receiver.cell);
- const b=/^(-?\\d+),(-?\\d+)$/.exec(caster.cell);
+ const a=/^(-?\d+),(-?\d+)$/.exec(receiver.cell);
+ const b=/^(-?\d+),(-?\d+)$/.exec(caster.cell);
  if(!a||!b)return false;
  return Number(a[1])===Number(b[1])-1&&Number(a[2])===Number(b[2])+1;
 }
