@@ -10,7 +10,7 @@
   const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
   const definitions = [
     ["Welt / Wasser","water.fraction","Wasser-Zielanteil",0.25,0.05,0.65,0.01,"Statistischer Wasseranteil statt exakter Quote jedes Kartenausschnitts"],
-    ["Welt / Wasser","water.scale","Größe der Wasserlandschaften",25,5,85,1,"Höher bedeutet größere zusammenhängende Meere und Seen"],
+    ["Welt / Wasser","water.scale","Größe der Wasserlandschaften",18,5,85,1,"Höher bedeutet größere zusammenhängende Meere und Seen"],
     ["Welt / Wasser","water.coastDetail","Küstenunregelmäßigkeit",0.28,0,0.65,0.01,"Kleinräumige Buchten und Vorsprünge"],
     ["Welt / Wasser","water.lakeInfluence","Binnengewässer",0.10,0,0.4,0.01,"Mehr kleine Seen durch Wasserwert-Absenkung"],
     ["Welt / Wasser","water.stormChance","Stürmischer Ozean (dauerhaft)",0.22,0,0.8,0.01,"Fester Terrain-Typ ohne dynamisches Wetter"],
@@ -216,21 +216,21 @@
       (noise(s,q,r,c["climate.scale"],"temp")-.5)*2*c["climate.tempVariation"]);
     const humidity=(q,r)=>clamp(c["climate.humidity"]+
       (noise(s,q,r,c["climate.scale"]*.9,"wet")-.5)*2*c["climate.humidityVariation"]);
-    function waterScore(q,r) {
-      const wide=noise(s,q,r,c["water.scale"],"sea");
-      const detail=noise(s,q,r,Math.max(2,c["water.scale"]*.21),"shore");
-      const lakes=noise(s,q,r,4.2,"lakes");
-      // Lower values mean water; MORE lakeInfluence means MORE water.
-      return wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]-
-        Math.max(0,lakes-.68)*c["water.lakeInfluence"];
+    function oceanScore(q,r) {
+      const big=noise(s,q,r,c["water.scale"],"sea");
+      const middle=noise(s,q,r,Math.max(3,c["water.scale"]*.45),"sea-mid");
+      const little=noise(s,q,r,Math.max(2,c["water.scale"]*.21),"shore");
+      const detailFraction=.20+.30*c["water.coastDetail"];
+      return (big+middle)*.5*(1-detailFraction)+little*detailFraction;
     }
-    // Calibrate the core ocean share independently of the small-lake bonus.
-    // Increasing the lake control can ADD lakes, not delete existing water.
-    const waterCut=globalCut(s,"water",c["water.fraction"],(q,r)=>{
-      const wide=noise(s,q,r,c["water.scale"],"sea");
-      const detail=noise(s,q,r,Math.max(2,c["water.scale"]*.21),"shore");
-      return -(wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]);
-    });
+    function waterScore(q,r){
+      const lakes=noise(s,q,r,4.2,"lakes");
+      // Never recalibrate the cutoff when 'lakes' changes. A greater lake
+      // setting therefore always preserves existing water and adds ponds.
+      return oceanScore(q,r)-Math.max(0,lakes-.68)*c["water.lakeInfluence"];
+    }
+    const waterCut=globalCut(s,"water",c["water.fraction"],
+      (q,r)=>-oceanScore(q,r));
     function wet(q,r){
       const k=spot(q,r);if(cacheWater.has(k))return cacheWater.get(k);
       const v=-waterScore(q,r)>=waterCut;cacheWater.set(k,v);return v;
