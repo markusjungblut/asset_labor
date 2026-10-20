@@ -78,7 +78,13 @@ window.VedrasNature=(()=>{
  function updateSizeHint(){if(!selected)return;const kind=$('nKind').value,cl=$('nSize').value,mode=$('nSizeMode').value;
   const h=window.VedrasSpritePlanner?.targetHeight(kind,cl)||50;
   const img=selected.img;
-  $('nSizeInfo').textContent=mode==='class'?`Automatische Zielhöhe ca. ${h} Welteinheiten (sichtbarer Ausschnitt, unabhängig von PNG-Größe). Die eingestellte Basisbreite bleibt als manueller Rückfall erhalten.`:`Manueller Modus: Basisbreite ${$('nWidth').value||'?'} Welteinheiten. Größenklasse ist hier nur ein Katalogetikett.`;
+  const m={...(entryFor(selected)||{}),kind,sizeClass:cl};
+  const effective=Math.round(h*(window.VedrasNatureBalance?.sizeFactor(m)||1));
+  const policy=m.family==='stones'?' · Findling-/Steinklasse: 25 % der bisherigen Kartendarstellung.':
+   kind==='tree'&&!['dead_trees','snow_dead_trees'].includes(m.family)?' · Lebende Bäume: +10 % Kartendarstellung.':'';
+  $('nSizeInfo').textContent=mode==='class'?
+   `Kataloghöhe ${h}; geschätzte Darstellung ca. ${effective} Welteinheiten nach Karten-Skalierung.${policy} PNG und Katalogdimension bleiben unverändert.`:
+   `Manueller Modus: Basisbreite ${$('nWidth').value||'?'} Welteinheiten.${policy}`;
  }
  function readForm(){if(!selected)throw Error('Nature-Sprite auswählen');const f=id=>$(id).value.trim();
   const m={id:f('nId'),description:f('nDescription'),sourceReference:f('nSource'),family:f('nFamily'),kind:f('nKind'),sizeClass:f('nSize'),sizeMode:f('nSizeMode'),targetHeight:window.VedrasSpritePlanner?.targetHeight(f('nKind'),f('nSize'))||40,
