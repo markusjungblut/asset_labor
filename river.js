@@ -258,11 +258,12 @@ window.VedrasRivers=(()=>{
  let collisionRouteCache=new WeakMap();
  function clearGeometryCache(){collisionRouteCache=new WeakMap();}
  function collisionRoutePoints(route,cells,isWet,width){
+  const signature=JSON.stringify([route.hexes,route.corner]);
   const old=collisionRouteCache.get(route);
-  if(old&&old.cells===cells&&old.width===width)return old.points;
+  if(old&&old.cells===cells&&old.width===width&&old.signature===signature)return old.points;
   const segments=sections(route,cells,isWet);
   const points=segments.length?coursePoints(segments,route,width):[];
-  collisionRouteCache.set(route,{cells,width,points});
+  collisionRouteCache.set(route,{cells,width,points,signature});
   return points;
  }
  // Shared geometry contract for the Nature system: the river occupies a
