@@ -1563,10 +1563,7 @@ $('openGeography').addEventListener('click',()=>{
  geographyPopup=window.open('geography-lab.html','vedras-geography-lab');
  if(geographyPopup)geographyPopup.focus();
 });
-window.addEventListener('message',event=>{
- if(event.origin!==location.origin||event.source!==geographyPopup||
-    event.data?.type!=='vedras-geography-preview')return;
- const world=event.data.world;
+function importGeographyWorld(world){
  if(!world||world.version!==window.VedrasGeography?.VERSION||
     !Number.isSafeInteger(world.width)||!Number.isSafeInteger(world.height)||
     world.width*world.height!==world.cells?.length||world.cells.length>60000)return;
@@ -1614,6 +1611,37 @@ window.addEventListener('message',event=>{
  window.VedrasNature?.renderPlaced?.();
  $('catalogMessage').textContent='Geografie v2 übernommen: '+next.length+
   ' Hexe als Testausschnitt (Mitte der vorab generierten Welt). Gebirge und spezielle Fundorte sind als Daten übernommen; deren automatische Sprite-Inszenierung bleibt ein eigener Integrationsschritt.';
+}
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==geographyPopup||
+    event.data?.type!=='vedras-geography-preview')return;
+ importGeographyWorld(event.data.world);
+});
+// Worldgen v2 exports use a DIFFERENT schema from vedras_scene.json.
+// Allow a saved preset OR precomputed world to be imported safely without
+// requiring the geography popup to remain open.
+$('geographyImport').addEventListener('click',()=>$('geographyImportFile').click());
+$('geographyImportFile').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>30000000)throw Error('Datei über 30 MB: Erzeuge zunächst eine kleinere Vorschau.');
+  const raw=JSON.parse(await file.text()),G=window.VedrasGeography;
+  if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
+  const version=raw.generatorVersion||raw.version;
+  if(version!==G.VERSION)throw Error('Diese Datei gehört nicht zur aktuellen Worldgen-Version '+G.VERSION+'.');
+  if(!raw.seed||!Number.isSafeInteger(Number(raw.width))||!Number.isSafeInteger(Number(raw.height)))
+   throw Error('Seed oder Kartengröße fehlt.');
+  // Regenerate from the saved, versioned parameters rather than trusting
+  // arbitrary terrain arrays or altering another saved gameplay world.
+  const generated=G.generateWorld(raw.seed,{
+   width:Number(raw.width),height:Number(raw.height),config:raw.config
+  });
+  if(Array.isArray(raw.cells)&&raw.cells.length!==generated.cells.length)
+   throw Error('Gespeicherte Weltdatei hat eine unerwartete Hexanzahl.');
+  importGeographyWorld(generated);
+ }catch(error){$('catalogMessage').textContent='Geografie-Import abgelehnt: '+error.message;}
+ finally{event.target.value='';}
 });
 window.addEventListener('vedras:nature-catalog-changed',()=>renderAssetsList());
 window.addEventListener('vedras:terrain-catalog-changed',terrainTestOptions);
