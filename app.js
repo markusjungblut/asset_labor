@@ -146,7 +146,7 @@ function deviceRatio(){const requested=state.quality==='auto'?Math.min(window.de
  return Math.max(1,Math.min(requested,4,Math.sqrt((state.quality==='auto'?7600000:18000000)/Math.max(1,W*H)),4096/Math.max(1,W),4096/Math.max(1,H)));}
 function resize(){const b=canvas.getBoundingClientRect();const nw=Math.max(100,Math.round(b.width)),nh=Math.max(100,Math.round(b.height));W=nw;H=nh;state.dpr=deviceRatio();canvas.width=Math.round(W*state.dpr);canvas.height=Math.round(H*state.dpr);requestDraw();updateDiagnostics();}
 let terrainRasterCache={signature:null,raster:null};
-const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:64,maxPixels:34000000});
+const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:120,maxPixels:60000000});
 let lastChunkStats=null;
 let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
@@ -316,7 +316,7 @@ function drawGround(){
  if(chunkMode){
   terrainRasterCache.signature=signature;
   const chunkSignature=JSON.stringify([signature,state.relief,
-   state.mountainInstances,state.hexObject,state.zoom<.50?'distant-half-res':'near-full-res']);
+   state.mountainInstances,state.hexObject,state.zoom<.75?'distant-half-res':'near-full-res']);
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
    worldCells,
@@ -331,7 +331,7 @@ function drawGround(){
       blend:state.edgeBlend,materialScales:state.materialScales,
       terrainTone:(rgb,material,id)=>window.VedrasPolish.terrainRGB(
        rgb[0],rgb[1],rgb[2],state.visualPolish.terrain,material,id),
-      resolution:state.zoom<.50?.5:1,maxPixels:1300000,cornerBlend:state.cornerBlend,
+      resolution:state.zoom<.75?.5:1,maxPixels:1300000,cornerBlend:state.cornerBlend,
       transitionMode:(a,b)=>window.VedrasCatalog.profile(catalog,a,b).mode,
       materialClassOf:id=>window.VedrasCatalog.terrainType(catalog,id)?.materialClass||'ground'
      });
