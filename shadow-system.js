@@ -28,7 +28,7 @@ window.VedrasShadows=(()=>{
    contactLength:number(raw.contactLength,defaults.contactLength,.08,1.1)
   };
  }
- const globalStrength=v=>number(v,.68,0,1);
+ const globalStrength=v=>number(v,.68,0,2);
  function projection(kind='mountain',reach=1,shape={}){
   const k=number(reach,1,.2,3),spread=number(shape.spread,kind==='mountain'?1.28:1,.5,2.5);
   // A wider, more horizontal projected footprint: the user should see a
@@ -56,14 +56,14 @@ window.VedrasShadows=(()=>{
   // defines the source silhouette. Trim everything below the contact row.
   ctx.beginPath();ctx.rect(-width*ax,-height*ay,width,height*ay);ctx.clip();
   ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=clamp(alpha,0,.8);
+  ctx.globalAlpha=clamp(alpha,0,.97);
   ctx.filter='blur('+Math.max(0,Number(softness)||0)+'px)';
   ctx.drawImage(silhouette.canvas,-width*ax,-height*ay,width,height);
   ctx.restore();
  }
  function contact(ctx,p,width,kind='nature',strength=1,shape={}){
   if(!(width>0)||strength<=0)return;
-  const mountain=kind==='mountain',k=clamp(strength,0,1.3);
+  const mountain=kind==='mountain',k=clamp(strength,0,2);
   const s=mountain?settings(shape):shape;
   const contactScale=number(s.contact,1,.35,2.5);
   const radius=width*(mountain?.48:.31)*contactScale;
@@ -72,7 +72,7 @@ window.VedrasShadows=(()=>{
   ctx.save();ctx.translate(p.x+offsetX,p.y+offsetY);
   ctx.scale(1,mountain?.37:.31);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,radius);
-  const rgba=a=>'rgba('+COLOR.r+','+COLOR.g+','+COLOR.b+','+Math.min(.62,a*k)+')';
+  const rgba=a=>'rgba('+COLOR.r+','+COLOR.g+','+COLOR.b+','+Math.min(.88,a*k)+')';
   gradient.addColorStop(0,rgba(mountain?.45:.42));
   gradient.addColorStop(.24,rgba(mountain?.30:.29));
   gradient.addColorStop(.68,rgba(mountain?.12:.105));
@@ -144,7 +144,7 @@ window.VedrasShadows=(()=>{
   const contactFade=(1-smoothstep(-soft*.08,soft*.70,contactDist))*
    smoothstep(-width*.05,width*.025,t);
   const cover=Math.max(.90*castFade,.56*contactFade);
-  return Math.min(.49,Math.max(0,s.opacity*global*cover));
+  return Math.min(.90,Math.max(0,s.opacity*global*cover));
  }
  function paintMountain(ctx,origin,width,config,global=1){
   if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||global<=0)return null;
