@@ -10,7 +10,7 @@ let catalogRevision=0,catalogAutosaveTimer=null,catalogSaveInFlight=null;
 const CATALOG_AUTOSAVE_DELAY=300;
 
 const HEX=256, R=HEX/Math.sqrt(3), PROJECT_Y=.85, MAX_BUILD=HEX*.75, SEED=309175;
-const ZMIN=.30,ZMAX=2.40,FAR_ENTER=.54,FAR_LEAVE=.64;
+const ZMIN=.12,ZMAX=2.40,FAR_ENTER=.17,FAR_LEAVE=.23;
 const $=id=>document.getElementById(id);
 const canvas=$('mapCanvas'),viewport=$('canvasOuter'),ctx=canvas.getContext('2d',{alpha:false,desynchronized:false});
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -19,6 +19,12 @@ const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'aut
  shoreline:{enabled:true,mode:'temp',width:34,outer:10},
  asset:null,compareA:null,compareB:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
+let terrainLod='high'; // Hysteresis: <=48% coarse, >=76% high.
+function updateTerrainLod(zoom){
+ if(terrainLod==='high'&&zoom<.48)terrainLod='coarse';
+ else if(terrainLod==='coarse'&&zoom>.76)terrainLod='high';
+ return terrainLod;
+}
 const demoTypes={plains:'grassland',forest:'forest_floor',jungle:'jungle',hills:'hilly_ground',mountain:'mountain_ground',dry:'dry_ground',desert:'rocky_desert'};
 function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
 // Ground-material selection, the original habitat and the forest canopy are
@@ -300,6 +306,7 @@ function drawForestFloor(){
  ctx.restore();
 }
 function drawGround(){
+ updateTerrainLod(state.zoom);
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.fillStyle=state.seamCheck?'#ec27f1':'#879a81';ctx.fillRect(0,0,W,H);
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
@@ -320,9 +327,10 @@ function drawGround(){
  if(chunkMode){
   terrainRasterCache.signature=signature;
   const workerActive=state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
-  const chunkSignature=JSON.stringify([signature,state.relief,
-   state.mountainInstances,state.hexObject,state.zoom<.75?'distant-half-res':'near-full-res',
-   workerActive?'worker':'main-thread']);
+  const lod=updateTerrainLod(state.zoom);
+  const chunkFamily=JSON.stringify([signature,state.relief,
+   state.mountainInstances,state.hexObject,workerActive?'worker':'main-thread']);
+  const chunkSignature=JSON.stringify([chunkFamily,lod]);
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
    worldCells,
@@ -338,7 +346,7 @@ function drawGround(){
       blend:state.edgeBlend,materialScales:state.materialScales,
       terrainTone:(rgb,material,id)=>window.VedrasPolish.terrainRGB(
        rgb[0],rgb[1],rgb[2],state.visualPolish.terrain,material,id),
-      resolution:state.zoom<.75?.5:1,maxPixels:1300000,cornerBlend:state.cornerBlend,
+      resolution:lod==='coarse'?.5:1,maxPixels:1300000,cornerBlend:state.cornerBlend,
       transitionMode:(a,b)=>window.VedrasCatalog.profile(catalog,a,b).mode,
       materialClassOf:id=>window.VedrasCatalog.terrainType(catalog,id)?.materialClass||'ground'
      });
@@ -359,7 +367,7 @@ function drawGround(){
       waterSampling:state.waterSampling,irregularity:state.edgeIrregularity,
       blend:state.edgeBlend,materialScales:state.materialScales,
       terrainAmount:state.visualPolish.terrain,
-      resolution:state.zoom<.75?.5:1,maxPixels:1300000,
+      resolution:lod==='coarse'?.5:1,maxPixels:1300000,
       cornerBlend:state.cornerBlend
      },
      cells:nearby.map(c=>{
@@ -377,7 +385,7 @@ function drawGround(){
      return localBuild();
     });
    },
-   redraw:requestDraw
+   redraw:requestDraw,family:chunkFamily
   });
   const near=fromScreen(-80,-80),far=fromScreen(W+80,H+80);
   lastChunkStats=terrainChunks.draw(ctx,{
@@ -547,8 +555,9 @@ function drawRoads(){
   const projection=state.relief.enabled?displayGroundY:null;
   const visibleEdges=roadEdges.filter(e=>roadInView(e,bounds));
   if(state.chunkRendering||state.sceneSize>37){
-   const distant=state.zoom<.75,density=distant?.5:1;
-   const signature=JSON.stringify([roadEdges,state.relief,state.mountainInstances,state.hexObject,distant]);
+   const distant=updateTerrainLod(state.zoom)==='coarse',density=distant?.5:1;
+   const roadFamily=JSON.stringify([roadEdges,state.relief,state.mountainInstances,state.hexObject]);
+   const signature=JSON.stringify([roadFamily,distant]);
    roadChunks.configure(signature,{
     worldCells,
     buildTile:(tile)=>{
@@ -563,7 +572,7 @@ function drawRoads(){
      window.VedrasRoads.render(g,edges,{hex:HEX,groundY:projection,detail:!distant});
      return {raster:{canvas,x:tile.x-pad,y:tile.y-pad,width:w,height:w}};
     },
-    redraw:requestDraw
+    redraw:requestDraw,family:roadFamily
    });
    roadChunks.draw(ctx,bounds,{margin:0,drawRaster:window.VedrasAutotile.draw});
   }else{
@@ -1022,7 +1031,7 @@ function updateDiagnostics(){const pixels=canvas.width*canvas.height,mb=(pixels*
  (isSvg?'Vektorgrafik: in dieser Darstellung ohne quellbedingtes Rasterlimit.':`Quellpixel pro Ausgabepixel bei ${terrain?"Terrainmaterial":"Objektbreite"} ${logical}: <strong>${density.toFixed(2)}×</strong> (${density>=1?'ausreichende Quelldichte':'Hochskalierung – kann weich wirken'})`)+
  '<br>Hinweis: hohe Quelldichte garantiert keine feinen Details in einer KI-Illustration.';
 }
-function applyZoom(zoom,pivotX=W/2,pivotY=H/2){zoom=clamp(zoom,ZMIN,ZMAX);const world=fromScreen(pivotX,pivotY);state.zoom=zoom;state.panX=pivotX-W/2-world.x*zoom;state.panY=pivotY-H/2-world.y*PROJECT_Y*zoom;
+function applyZoom(zoom,pivotX=W/2,pivotY=H/2){zoom=clamp(zoom,ZMIN,ZMAX);const world=fromScreen(pivotX,pivotY);state.zoom=zoom;updateTerrainLod(zoom);state.panX=pivotX-W/2-world.x*zoom;state.panY=pivotY-H/2-world.y*PROJECT_Y*zoom;
  if(state.mode==='normal'&&state.zoom<FAR_ENTER)state.mode='far';else if(state.mode==='far'&&state.zoom>FAR_LEAVE)state.mode='normal';$('zoomSlider').value=Math.round(zoom*100);$('zoomText').textContent=Math.round(zoom*100)+' %';requestDraw();updateDiagnostics();}
 function setView(view){state.view=view;for(const [id,name] of [['viewMap','map'],['viewSolo','solo'],['viewCompare','compare']])$(id).classList.toggle('active',view===name);
  $('mapCanvas').classList.toggle('hidden',view!=='map');$('mapLegend').classList.toggle('hidden',view!=='map');$('mapFooter').classList.toggle('hidden',view!=='map');
