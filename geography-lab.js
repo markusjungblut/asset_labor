@@ -85,7 +85,48 @@ function draw(){
  const mode=$('viewMode').value;
  function point(q,r){const u=q-(world.originQ||0),v=r-(world.originR||0);
   return [x0+Math.sqrt(3)*rad*(u+v/2),y0+1.5*rad*v];}
- for(const c of world.cells){
+ 
+ // Hex-edge geometry: routes contain axial neighbors, but visible rivers
+ // follow the SIDES and shared CORNERS of the hexes, as in river.js.
+ const vertex=(p,i)=>{
+  const [x,y]=point(p.q,p.r),a=-Math.PI/6+i*Math.PI/3;
+  return [x+rad*Math.cos(a),y+rad*Math.sin(a)];
+ };
+ const near=(a,b)=>Math.abs(a[0]-b[0])<.001&&Math.abs(a[1]-b[1])<.001;
+ function corners(a,b){
+  const other=Array.from({length:6},(_,i)=>vertex(b,i));
+  return Array.from({length:6},(_,i)=>({i,p:vertex(a,i)}))
+   .filter(x=>other.some(y=>near(x.p,y)));
+ }
+ function around(h,from,to){
+  const vs=Array.from({length:6},(_,i)=>vertex(h,i));
+  const i=vs.findIndex(p=>near(p,from)),j=vs.findIndex(p=>near(p,to));
+  if(i<0||j<0)return [];
+  const forward=(j-i+6)%6,backward=(i-j+6)%6;
+  const step=forward<=backward?1:-1,n=Math.min(forward,backward);
+  return Array.from({length:n+1},(_,k)=>vs[(i+step*k+12)%6]);
+ }
+ function edgeRiver(route){
+  const hexes=route.map(([q,r])=>({q,r})),land=hexes.slice(0,-1);
+  if(!land.length)return;
+  const exits=land.map((h,i)=>corners(h,hexes[i+1]));
+  if(exits.some(x=>x.length!==2))return;
+  // Use the shorter continuous walk along each hex's perimeter.
+  let current=vertex(land[0],(exits[0][0].i+3)%6);
+  ctx.beginPath();ctx.moveTo(...current);
+  for(let i=0;i<land.length;i++){
+   const scores=exits[i].map(x=>({x,path:around(land[i],current,x.p)}));
+   scores.sort((a,b)=>a.path.length-b.path.length);
+   const chosen=scores[0];
+   for(const point of chosen.path.slice(1))ctx.lineTo(...point);
+   current=chosen.x.p;
+  }
+  const last=exits.at(-1);
+  ctx.lineTo((last[0].p[0]+last[1].p[0])/2,
+    (last[0].p[1]+last[1].p[1])/2); // actual water boundary
+  ctx.stroke();
+ }
+for(const c of world.cells){
   const [x,y]=point(c.q,c.r);ctx.beginPath();
   for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6,xx=x+rad*Math.cos(a),yy=y+rad*Math.sin(a);
    if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}
@@ -93,11 +134,7 @@ function draw(){
  }
  if(rad>=2.5&&['terrain','biomes','relief','water'].includes(mode)){
   ctx.strokeStyle="#328cbb";ctx.lineWidth=Math.max(1,rad*.22);
-  for(const path of world.riverPaths){ctx.beginPath();
-   path.forEach(([q,r],i)=>{const [x,y]=point(q,r);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
-   ctx.stroke();
-  }
- }
+  for(const path of world.riverPaths)edgeRiver(path); }
  ctx.save();
   ctx.fillStyle='rgba(12,29,26,.91)';
   ctx.fillRect(15,15,325,46);
