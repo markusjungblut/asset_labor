@@ -1,33 +1,84 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="-80 -80 160 160">
+<!-- Handmade timber crossing in world-space; hex direction 1, 0 degrees -->
 <defs>
- <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddc9a4"/><stop offset=".48" stop-color="#cbb18b"/><stop offset="1" stop-color="#b79c76"/></linearGradient>
- <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#786044"/><stop offset="1" stop-color="#4c3a2a"/></linearGradient>
- <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0c69b"/><stop offset="1" stop-color="#9b7b53"/></linearGradient>
- <filter id="shade" x="-20%" y="-40%" width="140%" height="190%"><feGaussianBlur stdDeviation="2.5"/></filter>
+<linearGradient id="deck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5c99c"/><stop offset=".5" stop-color="#bb9464"/><stop offset="1" stop-color="#96714c"/></linearGradient>
+<linearGradient id="rail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0bf8e"/><stop offset=".34" stop-color="#b28a5c"/><stop offset="1" stop-color="#61462f"/></linearGradient>
+<filter id="shade" x="-30%" y="-50%" width="160%" height="200%"><feGaussianBlur stdDeviation="2.7"/></filter>
 </defs>
-<!-- Direction 1: 0 degrees from the hex-centre east axis. -->
 <g transform="rotate(0)">
- <rect x="-69" y="-28.5" width="138" height="57" rx="8" fill="#2c281e" opacity=".22" filter="url(#shade)"/>
- <path d="M-67 -21 Q-59 -25 -49 -25 H50 Q63 -25 67 -20 V20 Q59 25 48 25 H-51 Q-63 25 -67 20Z" fill="url(#edge)" stroke="#4f4233" stroke-width="1"/>
- <path d="M-65 -17 Q-57 -21 -47 -21 H49 Q60 -21 65 -17 V17 Q56 20 47 20 H-49 Q-59 20 -65 17 Z" fill="url(#deck)" stroke="#aa906c" stroke-width="1"/>
- <!-- Narrow timber joints that cross the deck: shared wood construction visible at any hex direction. -->
- <path d="M-55 -18 Q-56 -5 -55 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M-40 -18 Q-41 -5 -40 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M-25 -18 Q-26 -5 -25 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M-10 -18 Q-11 -5 -10 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M5 -18 Q4 -5 5 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M20 -18 Q19 -5 20 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M35 -18 Q34 -5 35 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M50 -18 Q49 -5 50 17" fill="none" stroke="#9c835f" stroke-opacity=".62" stroke-width="1.6"/>
- <path d="M-60 -5 C-29 -7 6 -4 60 -6" stroke="#f1dfbc" stroke-opacity=".40" stroke-width="1.1" fill="none"/>
- <path d="M-59 10 C-14 7 35 12 60 9" stroke="#8c765a" stroke-opacity=".32" stroke-width="1" fill="none"/>
- <!-- Subtle integrated side beams instead of oversized modern guardrails. -->
- <path d="M-60 -22 H60" stroke="#5d4a34" stroke-width="5" stroke-linecap="round"/>
- <path d="M-60 -24 H60" stroke="url(#rail)" stroke-width="3.1" stroke-linecap="round"/>
- <path d="M-60 22 H60" stroke="#4a392a" stroke-width="5" stroke-linecap="round"/>
- <path d="M-60 20 H60" stroke="url(#rail)" stroke-width="3.1" stroke-linecap="round"/>
- <g><rect x="-50" y="-27" width="6" height="9" rx="2" fill="#8c6c45"/><rect x="-49.4" y="-28" width="4.8" height="3" rx="1" fill="#d8be91"/><rect x="-50" y="18" width="6" height="9" rx="2" fill="#826342"/><rect x="-49.4" y="24" width="4.8" height="3" rx="1" fill="#d4ba8e"/></g>
- <g><rect x="-3" y="-27" width="6" height="9" rx="2" fill="#8c6c45"/><rect x="-2.4" y="-28" width="4.8" height="3" rx="1" fill="#d8be91"/><rect x="-3" y="18" width="6" height="9" rx="2" fill="#826342"/><rect x="-2.4" y="24" width="4.8" height="3" rx="1" fill="#d4ba8e"/></g>
- <g><rect x="44" y="-27" width="6" height="9" rx="2" fill="#8c6c45"/><rect x="44.6" y="-28" width="4.8" height="3" rx="1" fill="#d8be91"/><rect x="44" y="18" width="6" height="9" rx="2" fill="#826342"/><rect x="44.6" y="24" width="4.8" height="3" rx="1" fill="#d4ba8e"/></g>
- <path d="M-67 -18 L-70 -18 M67 -18 L70 -18 M-67 18 L-70 18 M67 18 L70 18" stroke="#a99375" stroke-width="2.5" stroke-linecap="round"/>
+<!-- Deep side supports and modest cast shadow read well over water -->
+<path d="M-70 -20 Q-72 -28 -60 -31 H60 Q73 -28 70 -20 L70 24 Q65 33 58 32 H-59 Q-73 28 -70 20Z" fill="#283028" opacity=".34" filter="url(#shade)"/>
+<path d="M-71 -24 L70 -24 L72 -19 L72 22 L65 29 L-69 29 L-73 22Z" fill="#453323" stroke="#241d19" stroke-width="1.3"/>
+<path d="M-69 -24 L68 -24 L67 22 L-68 22 Z" fill="#765539"/>
+<!-- Grainy oak planks are visible separately instead of as a flat beige slab -->
+<g>
+<rect x="-60" y="-19" width="9.2" height="38" rx="1.5" fill="#b18a5b" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-58 -13 q3 8 1 16 t2 12 M-54 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-59 -16 H-52" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="-49" y="-19" width="9.2" height="38" rx="1.5" fill="#c09a69" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-47 -13 q3 8 1 16 t2 12 M-43 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-48 -16 H-41" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="-38" y="-19" width="9.2" height="38" rx="1.5" fill="#c9a678" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-36 -13 q3 8 1 16 t2 12 M-32 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-37 -16 H-30" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="-27" y="-19" width="9.2" height="38" rx="1.5" fill="#af8759" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-25 -13 q3 8 1 16 t2 12 M-21 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-26 -16 H-19" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="-16" y="-19" width="9.2" height="38" rx="1.5" fill="#d0b184" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-14 -13 q3 8 1 16 t2 12 M-10 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-15 -16 H-8" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="-5" y="-19" width="9.2" height="38" rx="1.5" fill="#b18a5b" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M-3 -13 q3 8 1 16 t2 12 M1 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M-4 -16 H3" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="6" y="-19" width="9.2" height="38" rx="1.5" fill="#c09a69" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M8 -13 q3 8 1 16 t2 12 M12 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M7 -16 H14" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="17" y="-19" width="9.2" height="38" rx="1.5" fill="#c9a678" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M19 -13 q3 8 1 16 t2 12 M23 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M18 -16 H25" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="28" y="-19" width="9.2" height="38" rx="1.5" fill="#af8759" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M30 -13 q3 8 1 16 t2 12 M34 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M29 -16 H36" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="39" y="-19" width="9.2" height="38" rx="1.5" fill="#d0b184" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M41 -13 q3 8 1 16 t2 12 M45 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M40 -16 H47" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="50" y="-19" width="9.2" height="38" rx="1.5" fill="#b18a5b" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M52 -13 q3 8 1 16 t2 12 M56 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M51 -16 H58" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<g>
+<rect x="61" y="-19" width="9.2" height="38" rx="1.5" fill="#c09a69" stroke="#705035" stroke-opacity=".65" stroke-width=".7"/>
+<path d="M63 -13 q3 8 1 16 t2 12 M67 -15 q-2 12 -1 20" fill="none" stroke="#69492e" stroke-opacity=".26" stroke-width=".75"/>
+<path d="M62 -16 H69" stroke="#ead2a4" stroke-opacity=".32" stroke-width="1"/>
+</g>
+<!-- Deep supporting rails, highlighted along upper edge -->
+<path d="M-68 -23.5 Q-38 -26 -3 -23.8 Q34 -25 68 -23.5" fill="none" stroke="#3c2b20" stroke-width="8" stroke-linecap="round"/>
+<path d="M-68 -25 Q-38 -26 -3 -25 Q34 -26 68 -25" fill="none" stroke="url(#rail)" stroke-width="5" stroke-linecap="round"/>
+<path d="M-68 23.5 Q-34 26 0 24 Q33 25 68 23.5" fill="none" stroke="#3a2a1d" stroke-width="8" stroke-linecap="round"/>
+<path d="M-68 22 Q-34 24 0 22.5 Q33 23.5 68 22" fill="none" stroke="url(#rail)" stroke-width="5" stroke-linecap="round"/>
+<circle cx="-50" cy="-22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="-50" cy="22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="-24" cy="-22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="-24" cy="22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="3" cy="-22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="3" cy="22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="30" cy="-22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="30" cy="22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="52" cy="-22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/><circle cx="52" cy="22.6" r="1.5" fill="#3e352b" stroke="#d7b889" stroke-width=".5"/>
+<g><rect x="-56" y="-29.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="-55.4" y="-30.5" width="6.8" height="4.2" rx="1.3" fill="#dab88a" stroke="#6f5035" stroke-width=".65"/><rect x="-56" y="20.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="-55.4" y="27" width="6.8" height="4.2" rx="1.3" fill="#caa879" stroke="#6f5035" stroke-width=".65"/></g><g><rect x="-17" y="-29.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="-16.4" y="-30.5" width="6.8" height="4.2" rx="1.3" fill="#dab88a" stroke="#6f5035" stroke-width=".65"/><rect x="-17" y="20.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="-16.4" y="27" width="6.8" height="4.2" rx="1.3" fill="#caa879" stroke="#6f5035" stroke-width=".65"/></g><g><rect x="21" y="-29.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="21.6" y="-30.5" width="6.8" height="4.2" rx="1.3" fill="#dab88a" stroke="#6f5035" stroke-width=".65"/><rect x="21" y="20.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="21.6" y="27" width="6.8" height="4.2" rx="1.3" fill="#caa879" stroke="#6f5035" stroke-width=".65"/></g><g><rect x="49" y="-29.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="49.6" y="-30.5" width="6.8" height="4.2" rx="1.3" fill="#dab88a" stroke="#6f5035" stroke-width=".65"/><rect x="49" y="20.2" width="8" height="9" rx="2" fill="#58412d" stroke="#392a1e" stroke-width="1"/><rect x="49.6" y="27" width="6.8" height="4.2" rx="1.3" fill="#caa879" stroke="#6f5035" stroke-width=".65"/></g>
+<!-- End supports; crossing visibly ends before the earthen path starts -->
+<path d="M-70 -21 V22 M70 -21 V22" fill="none" stroke="#b99763" stroke-width="3" stroke-linecap="round"/>
+<path d="M-64 -17 L-58 -10 M63 -17 L57 -10 M-64 17 L-58 10 M63 17 L57 10" stroke="#67472d" stroke-width="2" fill="none"/>
 </g></svg>
