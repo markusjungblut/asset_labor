@@ -945,8 +945,53 @@ function drawNatureShadow(sh,obj,p){
  ctx.restore();
  if(state.natureShadowDebug){ctx.save();ctx.strokeStyle='#f9ef9a';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#ef79b6';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(centerX,centerY);ctx.stroke();ctx.restore();}
 }
+// Fallen trunks lie horizontally on the terrain. The generic Nature
+// contact() circle wrongly looks like a floating dot beneath the PNG.
+// Use one long, soft LEFT-directed ground footprint derived from the actual
+// alpha-cropped log silhouette instead. No source PNGs/catalog edits.
+const FALLEN_LOG_FAMILIES=new Set(['fallen_logs','snow_fallen_logs']);
+function isFallenLog(obj){
+ return FALLEN_LOG_FAMILIES.has(obj?.natureMeta?.family);
+}
+function fallenLogShadowGeometry(obj,p){
+ const width=obj.w*state.zoom;
+ return {x:p.x-width*.22,y:p.y+width*.035,
+  rx:width*.64,ry:Math.max(1.5,width*.105),angle:-.075,
+  opacity:obj.natureMeta.family==='snow_fallen_logs'?.15:.21,
+  blur:Math.min(8,Math.max(1.5,width*.028)),width};
+}
+function drawFallenLogShadow(obj,p){
+ const strength=sceneShadowStrength();
+ if(strength<=0)return;
+ const geometry=fallenLogShadowGeometry(obj,p);
+ if(!(geometry.width>0))return;
+ const silhouette=shadowSilhouette(obj.asset.img);
+ const anchor=obj.natureMeta.anchor||{x:.5,y:.96};
+ const ax=clamp(Number(anchor.x??.5),0,1),ay=clamp(Number(anchor.y??.96),0,1);
+ const height=geometry.width*silhouette.aspect;
+ ctx.save();
+ ctx.globalCompositeOperation='source-over';
+ ctx.globalAlpha=Math.min(.8,geometry.opacity*strength);
+ ctx.fillStyle='#203131';
+ ctx.filter='blur('+geometry.blur+'px)';
+ // Long, continuous ground contact over the full log instead of a dot.
+ ctx.beginPath();
+ ctx.ellipse(geometry.x,geometry.y,geometry.rx,geometry.ry,
+  geometry.angle,0,Math.PI*2);
+ ctx.fill();
+ // Project the log's TRUE alpha onto the ground, flattened and shifted
+ // leftwards. Sparse/diagonal logs therefore retain their own outline.
+ ctx.save();
+ ctx.translate(p.x-geometry.width*.16,p.y+geometry.width*.04);
+ ctx.transform(.98,.03,.24,-.12,0,0);
+ ctx.drawImage(silhouette.canvas,-geometry.width*ax,-height*ay,
+  geometry.width,height);
+ ctx.restore();
+ ctx.restore();
+}
 function drawNatureGrounding(obj,p){
  if(!obj.natureMeta)return;
+ if(isFallenLog(obj)){drawFallenLogShadow(obj,p);return;}
  const meta=obj.natureMeta,kind=meta.kind,ww=obj.w*state.zoom;
  const strength=kind==='ground_cover'?.32:kind==='tree'?1:.76;
  window.VedrasShadows.contact(ctx,p,ww,'nature',strength*sceneShadowStrength());
@@ -1025,7 +1070,9 @@ function drawMapObjects(){if(!state.objects)return;
       shape.opacity*sceneShadowStrength()*.8,shape.softness*.5,shape);
    }
    else if(o.type==='unit')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.35*sceneShadowStrength());
-   const sh=pairedShadow(o);
+   // A fallen log receives exactly one specialized shadow, never the old
+    // generic/custom paired-shadow sprite on top of it.
+    const sh=isFallenLog(o)?null:pairedShadow(o);
    if(sh?.img?.naturalWidth){
     if(o.natureMeta)drawNatureShadow(sh,o,p);
     else{
