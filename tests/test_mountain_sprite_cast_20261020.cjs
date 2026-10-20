@@ -19,12 +19,12 @@ for(const token of [
  assert(app.includes(token),'Sprite mountain shade missing: '+token);
 assert(app.indexOf('drawMountainShadows(objs);')<app.indexOf('drawSprite(o);'),
  'ground shadows generated before actual sprite pass');
-const begin=app.indexOf('function spriteMountainCasts(obj,left,top,width,height){');
+const begin=app.indexOf('const OBJECT_DISPLAY_SCALE_Y=.965');
 const end=app.indexOf('function drawNatureShadow(sh,obj,p){',begin);
 assert(begin>=0&&end>begin,'sprite shader extractable');
 const drawCalls=[],shadeCalls=[];
 function context(target){return {
- setTransform(){},clearRect(){},save(){},restore(){},
+ setTransform(){},clearRect(){},save(){},restore(){},translate(){},transform(){},
  drawImage(...args){target.push({args,mode:this.globalCompositeOperation,filter:this.filter});}
 };}
 const ctx=context(drawCalls),scratch=context(shadeCalls);
