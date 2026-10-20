@@ -77,5 +77,5 @@ G.registerFeature({id:'extension.fungi',place:({hex,config})=>
 const extra=G.generateWorld('fungi-test',{width:15,height:15});
 if(G.getWorldCell(extra,2,3).surfaceClass==='land')
  assert(G.getWorldCell(extra,2,3).features.includes('extension.fungi'));
-console.log('PASS Worldgen v2.1: expansion stable; permanent ocean terrains; coast;
- river EDGE topology; wood statistics; lake monotonicity; all-animal quota; extensions.');
+console.log('PASS Worldgen v2.1: expansion stable; permanent ocean terrains; coast; '+
+ 'river EDGE topology; wood statistics; lake monotonicity; all-animal quota; extensions.');
