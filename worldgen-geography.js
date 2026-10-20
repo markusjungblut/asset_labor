@@ -6,19 +6,18 @@
  */
 (function (root) {
   "use strict";
-  const VERSION = "geography-v2.0.0";
+  const VERSION = "geography-v2.1.0";
   const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
   const definitions = [
-    ["Welt / Wasser","water.fraction","Wasseranteil",0.25,0.05,0.65,0.01,"Zielanteil Wasser an der Gesamtfläche"],
+    ["Welt / Wasser","water.fraction","Wasser-Zielanteil",0.25,0.05,0.65,0.01,"Statistischer Wasseranteil statt exakter Quote jedes Kartenausschnitts"],
     ["Welt / Wasser","water.scale","Größe der Wasserlandschaften",25,5,85,1,"Höher bedeutet größere zusammenhängende Meere und Seen"],
     ["Welt / Wasser","water.coastDetail","Küstenunregelmäßigkeit",0.28,0,0.65,0.01,"Kleinräumige Buchten und Vorsprünge"],
-    ["Welt / Wasser","water.lakeInfluence","Binnengewässer",0.10,0,0.4,0.01,"Kleinere Seen zusätzlich zu großen Wasserflächen"],
-    ["Welt / Wasser","water.stormChance","Stürmischer Ozean",0.22,0,0.8,0.01,"Anteil entsprechender Tiefwasserregionen, keine Wettervorhersage"],
+    ["Welt / Wasser","water.lakeInfluence","Binnengewässer",0.10,0,0.4,0.01,"Mehr kleine Seen durch Wasserwert-Absenkung"],
+    ["Welt / Wasser","water.stormChance","Stürmischer Ozean (dauerhaft)",0.22,0,0.8,0.01,"Fester Terrain-Typ ohne dynamisches Wetter"],
     ["Welt / Wasser","water.iceTemperature","Temperaturgrenze eisiger Ozean",0.19,0,0.5,0.01,"Nur Ozean ohne direkte Landberührung"],
     ["Klima","climate.scale","Größe der Klimazonen",23,6,90,1,"Zusammenhang von Temperatur und Feuchtigkeit"],
     ["Klima","climate.temperature","Mittlere Temperatur",0.57,0.15,0.9,0.01,"Normierter Temperatur-Grundwert"],
     ["Klima","climate.tempVariation","Temperaturabweichung",0.43,0,0.9,0.01,"Regional unterschiedliche Wärme"],
-    ["Klima","climate.latitudeCooling","Breitenabhängige Abkühlung",0.20,0,0.6,0.01,"An beiden Kartenenden kälter"],
     ["Klima","climate.humidity","Mittlere Feuchtigkeit",0.51,0.1,0.9,0.01,"Normierter Feuchtigkeits-Grundwert"],
     ["Klima","climate.humidityVariation","Feuchteabweichung",0.49,0,0.9,0.01,"Regionale Trockenheit und Regengebiete"],
     ["Klima","climate.coastalHumidity","Wassernähe-Feuchtebonus",0.12,0,0.35,0.01,"Verblasst mit der Entfernung von Wasser"],
@@ -28,16 +27,17 @@
     ["Biome / Geologie","biomes.wetThreshold","Feuchtgebietsgrenze",0.72,0.5,0.95,0.01,"Ab wann passende Biome Moor/Sumpf/Marschland werden"],
     ["Biome / Geologie","geology.scale","Größe der Boden-Unterregionen",7,2,30,1,"Sand, Stein, Lehm und Mischböden in zusammenhängenden Feldern"],
     ["Biome / Geologie","geology.sandBias","Sandanteil in Trockenregionen",0.50,0,1,0.01,"Verschiebt die Wüstenuntertypen"],
-    ["Relief","relief.hillFraction","Hügelanteil an Land",0.31,0,0.75,0.01,"Anteil Hügel ohne Berge"],
-    ["Relief","relief.mountainFraction","Berganteil an Land",0.075,0,0.25,0.005,"Unpassierbare Bergfelder"],
+    ["Relief","relief.hillFraction","Hügel-Zielanteil",0.31,0,0.75,0.01,"Statistisch, nicht pro Ausschnitt erzwungen"],
+    ["Relief","relief.mountainFraction","Berg-Zielanteil",0.075,0,0.25,0.005,"Feste unpassierbare Berghexe, keine Umverteilung bei Erweiterung"],
     ["Relief","relief.scale","Reliefregionen",14,4,45,1,"Zusammenhängende Hügel- und Berglandschaften"],
     ["Relief","relief.chainLength","Länge der Bergformationen",23,5,70,1,"Längliche Gebirgsstrukturen statt verstreuter Einzelberge"],
     ["Relief","relief.chainWidth","Breite der Gebirgszüge",0.4,0.05,0.95,0.01,"Breiter oder schmaler Gebirgskern"],
     ["Relief","relief.hillVariation","Hügelprofil-Variation",0.65,0,1,0.01,"Von sanften Kuppen bis steilen Rücken"],
     ["Gewässer / Flüsse","rivers.sourcesPer100","Flussquellen pro 100 Landhexe",0.75,0,5,0.05,"Zielwert für die Zahl natürlicher Flussläufe"],
-    ["Gewässer / Flüsse","rivers.minLength","Mindestlänge eines Flusses",5,2,25,1,"In Hexverbindungen zur nächsten Wasserfläche"],
+    ["Gewässer / Flüsse","rivers.minLength","Mindestlänge eines Flusses",5,2,25,1,"Flusswege werden grafisch an HEXKANTEN dargestellt"],
+    ["Gewässer / Flüsse","rivers.maxLength","Maximale Fluss-Routenlänge",28,10,50,1,"Lokale Flussroute, unabhängig vom Kartenausschnitt"],
     ["Gewässer / Flüsse","rivers.meander","Flusskrümmung",0.25,0,1,0.01,"Varianz zwischen geeigneten Abflussnachbarn"],
-    ["Vegetation","forest.coverage","Waldanteil geeigneter Landregionen",0.36,0,0.9,0.01,"Bewaldung als Overlay; Grundbiom bleibt erhalten"],
+    ["Vegetation","forest.coverage","Waldintensität",0.36,0,0.9,0.01,"Bewaldungswahrscheinlichkeit; tatsächlicher Waldanteil wird auf der Karte angezeigt"],
     ["Vegetation","forest.patchScale","Größe der Waldgruppen",8,2,30,1,"Räumlicher Zusammenhang lichter und dichter Wälder"],
     ["Vegetation","forest.denseThreshold","Schwelle dichter Wald",0.72,0.35,0.95,0.01,"Ab welcher regionalen Dichte ein Wald als dicht gilt"],
     ["Klima / Details","climate.coastalDecay","Feuchtereichweite der Küsten",3,1,20,0.5,"Entfernung, über die Gewässer die Landfeuchte beeinflussen"],
@@ -50,7 +50,7 @@
     ["Biomgrenzen","biomes.semiDesertMargin","Übergang Halbwüste zu Wüste",0.045,0,0.18,0.005,"Breite der Halbwüstenzone in ariden Regionen"],
     ["Boden-Untertypen","geology.grassSparseHumidity","Karges Weideland bis Feuchte",0.36,0.1,0.7,0.01,"Trockenere Grasregionen erzeugen karges Weideland"],
     ["Boden-Untertypen","geology.pastureSoil","Weideland nach Bodenwert",0.37,0,1,0.01,"Untertyp-Mischung innerhalb Grasregionen"],
-    ["Boden-Untertypen","geology.highlandSoil","Hochland nach Bodenwert",0.78,0.2,1,0.01,"Hochland-Untertyp in geeigneten kalten Regionen"],
+    ["Boden-Untertypen","geology.highlandSoil","Hochland-Gesteinsausprägung",0.78,0.2,1,0.01,"Materialausprägung in kühlen Regionen; kein echtes Höhenmodell"],
     ["Boden-Untertypen","geology.wetlandSoil","Moor/Marschland nach Bodenwert",0.50,0,1,0.01,"Steuert die Untertypen in gemäßigten Feuchtgebieten"],
     ["Boden-Untertypen","geology.aridRockyBadlands","Steinige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridBadlands","Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
@@ -62,9 +62,8 @@
     ["Boden-Untertypen","geology.aridWasteland","Ödland Gewicht",15,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Vegetation","forest.lightThreshold","Grenze lichter Wald",0.12,0.02,0.4,0.01,"Dichte für lichte Waldklassen"],
     ["Vegetation","forest.denseFactor","Dichtefaktor dichter Wald",0.65,0.4,1,0.01,"Zusammen mit der Waldschwelle ergibt dies dichten Wald"],
-    ["Fundorte / Tiere","features.horseShare","Pferdeanteil auf geeigneten Tierhexen",0.50,0,1,0.01,"Pferde in Grasland/Savanne; andere geeignete Tierhexe können Schweine tragen"],
     ["Fundorte / Tiere","features.ironPer1000","Eisenvorkommen pro 1000 Landhexe",27,0,150,1,"Geologische Rohstoffvorkommen (Testverteilung)"],
-    ["Fundorte / Tiere","features.animalsPer1000","Tierhexe pro 1000 geeignete Landhexe",75,0,250,1,"Pferde und Schweine als erste Testgruppen"],
+    ["Fundorte / Tiere","features.animalsPer1000","Tieranteil: Tierhexe pro 1000 geeignete Landhexe",75,0,250,1,"Tierhexe insgesamt; Tierart folgt dem Habitat"],
     ["Fundorte / Tiere","features.ruinsPer1000","Ruinen pro 1000 Landhexe",6,0,40,1,"Erkundbare Orte; weitere Fundorttypen bleiben ergänzbar"],
     ["Fundorte / Tiere","features.wrecksPer1000","Schiffswracks pro 1000 Wasserhexe",5,0,40,1,"Besondere Erkundungsorte im Wasser"],
     ["Fundorte / Tiere","features.oasesPer1000","Oasen pro 1000 Wüstenhexe",12,0,80,1,"Seltene Besonderheiten in ariden Landschaften"],
@@ -180,215 +179,284 @@
     }
     return picked;
   }
+
+  // Sampling uses fixed absolute world coordinates. A crop can NEVER change
+  // water, relief or climate already generated elsewhere.
+  const hexDist=(a,b)=>Math.max(Math.abs(a.q-b.q),Math.abs(a.r-b.r),
+    Math.abs(a.q+a.r-b.q-b.r));
+  function globalCut(seed,label,part,score,eligible=()=>true){
+    if(part<=0)return Infinity;
+    const values=[];
+    for(let i=0;i<1900;i++){
+      const q=Math.floor((unit(seed,i,0,"sampleQ:"+label)-.5)*6900);
+      const r=Math.floor((unit(seed,i,1,"sampleR:"+label)-.5)*6900);
+      if(eligible(q,r))values.push(score(q,r));
+    }
+    if(!values.length)return Infinity;
+    values.sort((a,b)=>b-a);
+    return values[Math.min(values.length-1,Math.floor(clamp(part)*values.length))];
+  }
   function generateWorld(seed, options={}) {
-    if(typeof seed!=="string"||seed.length<1||seed.length>256)throw Error("World Seed muss 1–256 Zeichen lang sein.");
+    if(typeof seed!=="string"||seed.length<1||seed.length>256)
+      throw Error("World Seed muss 1–256 Zeichen lang sein.");
     const width=options.width===undefined?100:Number(options.width);
     const height=options.height===undefined?80:Number(options.height);
-    if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width<10||height<10||
-       width*height>60000)throw RangeError("Weltgröße: mindestens 10×10, maximal 60.000 Hexfelder.");
+    const originQ=options.originQ===undefined?0:Number(options.originQ);
+    const originR=options.originR===undefined?0:Number(options.originR);
+    if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
+       width<10||height<10||width*height>60000)
+      throw RangeError("Kartenausschnitt mindestens 10×10, maximal 60.000 Hexfelder.");
+    if(!Number.isSafeInteger(originQ)||!Number.isSafeInteger(originR)||
+       Math.abs(originQ)>1000000||Math.abs(originR)>1000000)
+      throw RangeError("Ungültige Weltkoordinaten.");
     const c=normalizeConfig(options.config),s=hashString(VERSION+":"+seed);
-    const cells=[],byKey=new Map();
-    const temp=(q,r)=>clamp(c["climate.temperature"]+
-      (noise(s,q,r,c["climate.scale"],"temp")-.5)*2*c["climate.tempVariation"]-
-      Math.abs((r+.5)/height-.5)*2*c["climate.latitudeCooling"]);
-    const moisture=(q,r)=>clamp(c["climate.humidity"]+
+    const cacheWater=new Map(),cacheRelief=new Map(),cacheField=new Map();
+    const spot=(q,r)=>key(q,r);
+    const temperature=(q,r)=>clamp(c["climate.temperature"]+
+      (noise(s,q,r,c["climate.scale"],"temp")-.5)*2*c["climate.tempVariation"]);
+    const humidity=(q,r)=>clamp(c["climate.humidity"]+
       (noise(s,q,r,c["climate.scale"]*.9,"wet")-.5)*2*c["climate.humidityVariation"]);
-    for(let r=0;r<height;r++)for(let q=0;q<width;q++){
+    function waterScore(q,r) {
       const wide=noise(s,q,r,c["water.scale"],"sea");
       const detail=noise(s,q,r,Math.max(2,c["water.scale"]*.21),"shore");
       const lakes=noise(s,q,r,4.2,"lakes");
-      const waterScore=wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]+
-        Math.max(0,lakes-.72)*c["water.lakeInfluence"];
-      const cell={q,r,waterScore,temperature:temp(q,r),humidity:moisture(q,r),
-        regionId:"",baseBiome:null,terrainId:null,surfaceClass:"land",reliefClass:"flat",
-        hillProfile:null,hillStrength:0,mountainClass:null,forestClass:"none",
-        forestDensity:0,riverPotential:0,river:false,riverEdges:[],features:[]};
-      cells.push(cell);byKey.set(key(q,r),cell);
+      // Lower values mean water; MORE lakeInfluence means MORE water.
+      return wide*(1-c["water.coastDetail"])+detail*c["water.coastDetail"]-
+        Math.max(0,lakes-.68)*c["water.lakeInfluence"];
     }
-    const count=Math.round(cells.length*c["water.fraction"]);
-    const ranked=[...cells].sort((a,b)=>a.waterScore-b.waterScore||hash(s,a.q,a.r,"tie")-hash(s,b.q,b.r,"tie"));
-    for(let i=0;i<count;i++)ranked[i].surfaceClass="water";
-    // Coast classification is ALWAYS based on all six FINAL neighboring hexes.
-    for(const cell of cells)if(cell.surfaceClass==="water"){
-      cell.surfaceClass=neighbours(cell,byKey).some(n=>n.surfaceClass==="land")?"coastal_water":"deep_water";
+    const waterCut=globalCut(s,"water",c["water.fraction"],(q,r)=>-waterScore(q,r));
+    function wet(q,r){
+      const k=spot(q,r);if(cacheWater.has(k))return cacheWater.get(k);
+      const v=-waterScore(q,r)>=waterCut;cacheWater.set(k,v);return v;
     }
-    // Existence of shore never depends on the selected ocean texture.
-    for(const cell of cells)if(cell.surfaceClass==="deep_water"){
-      const storm=noise(s,cell.q,cell.r,c["water.scale"]*.8,"storm");
-      cell.surfaceClass=cell.temperature<c["water.iceTemperature"]?"icy_ocean":
-        storm>1-c["water.stormChance"]?"stormy_ocean":"ocean";
+    function relief(q,r){
+      const k=spot(q,r);if(cacheRelief.has(k))return cacheRelief.get(k);
+      const mass=noise(s,q,r,c["relief.scale"],"relief");
+      const ridge=1-Math.abs(noise(s,q*.58+r*.3,r*1.5,
+        c["relief.chainLength"],"ridge")-.5)*2;
+      const obj={mass,mountain:(mass*.60+ridge*.40)*c["relief.chainWidth"]+
+        mass*(1-c["relief.chainWidth"]),
+        hill:mass*.75+noise(s,q,r,c["relief.scale"]*.46,"hills")*.25};
+      cacheRelief.set(k,obj);return obj;
     }
-    // Multi-source water-distance map for moisture and river routing.
-    const distances=new Map(),queue=[];
-    for(const cell of cells)if(cell.surfaceClass!=="land"){
-      distances.set(key(cell.q,cell.r),0);queue.push(cell);
-    }
-    for(let i=0;i<queue.length;i++){
-      const cur=queue[i],d=distances.get(key(cur.q,cur.r));
-      for(const n of neighbours(cur,byKey)){
-        const k=key(n.q,n.r);if(!distances.has(k)){distances.set(k,d+1);queue.push(n);}
-      }
-    }
-    const regionClimate=new Map(),mountainRank=[],forestable=[];
-    for(const cell of cells){
-      if(cell.surfaceClass!=="land"){cell.terrainId=cell.surfaceClass;continue;}
-      const distance=distances.get(key(cell.q,cell.r))??100;
-      cell.humidity=clamp(cell.humidity+c["climate.coastalHumidity"]*Math.exp(-distance/c["climate.coastalDecay"]));
-      const center=region(s,cell.q,cell.r,c);
-      cell.regionId=center.id;
-      if(!regionClimate.has(center.id))
-        regionClimate.set(center.id,{t:temp(center.x,center.y),h:moisture(center.x,center.y)});
-      const climate=regionClimate.get(center.id);
-      const coherence=c["biomes.regionClimateMix"];
-      const t=clamp(climate.t*coherence+cell.temperature*(1-coherence)),
-        h=clamp(climate.h*coherence+cell.humidity*(1-coherence));
-      const family=biomeFamily(t,h,c),soil=noise(s,cell.q,cell.r,c["geology.scale"],"soil");
-      cell.baseBiome=family;
-      cell.terrainId=terrainFrom(family,t,h,soil,c);
-      const ridge=1-Math.abs(noise(s,cell.q*.58+cell.r*.3,cell.r*1.5,c["relief.chainLength"],"ridge")-.5)*2;
-      const mass=noise(s,cell.q,cell.r,c["relief.scale"],"relief");
-      const mountainScore=(mass*.60+ridge*.40)*c["relief.chainWidth"]+
-        mass*(1-c["relief.chainWidth"]);
-      const hillScore=mass*.75+noise(s,cell.q,cell.r,c["relief.scale"]*.46,"hills")*.25;
-      cell._mountainScore=mountainScore;cell._hillScore=hillScore;
-      mountainRank.push(cell);
-      const suitability=family==="grassland"?.86:family==="jungle"?1:
-        family==="wetland"?.76:family==="savanna"?.46:family==="cold"?.25:.08;
-      const forestNoise=noise(s,cell.q,cell.r,c["forest.patchScale"],"forest");
-      const forestValue=clamp((forestNoise-.5)*1.6+c["forest.coverage"]-.3+
-        (cell.humidity-.5)*.35)*suitability;
-      cell.forestDensity=clamp(forestValue);
-      cell.riverPotential=clamp(cell.humidity*.68+mass*.18+Math.min(distance,15)/30);
-      forestable.push(cell);
-    }
-    // Fractions affect LAND only. Mountain always takes precedence over hills.
-    const totalLand=mountainRank.length, mountains=Math.round(totalLand*c["relief.mountainFraction"]);
-    const sortedM=[...mountainRank].sort((a,b)=>b._mountainScore-a._mountainScore);
-    for(let i=0;i<mountains;i++){
-      const x=sortedM[i];x.reliefClass="mountain";x.mountainClass="massif";x.forestDensity=0;
-    }
-    const hills=Math.round(totalLand*c["relief.hillFraction"]);
-    const sortedH=mountainRank.filter(x=>x.reliefClass==="flat").sort((a,b)=>b._hillScore-a._hillScore);
-    const hillStyles=["rounded","steep","chain","plateau","ridge"];
-    for(let i=0;i<Math.min(hills,sortedH.length);i++){
-      const x=sortedH[i];x.reliefClass="hills";x.hillStrength=clamp(x._hillScore*c["relief.hillVariation"]+
-        (1-c["relief.hillVariation"])*.40);
-      x.hillProfile=hillStyles[Math.floor(unit(s,Math.floor(x.q/3),Math.floor(x.r/3),"hill-style")*hillStyles.length)];
-    }
-    for(const cell of forestable){
-      if(cell.reliefClass==="mountain"){cell.forestClass="none";continue;}
-      if(cell.baseBiome==="jungle"){cell.forestClass="dense_forest";cell.forestDensity=Math.max(.76,cell.forestDensity);}
-      else if(cell.forestDensity>=c["forest.denseThreshold"]*c["forest.denseFactor"])cell.forestClass="dense_forest";
-      else if(cell.forestDensity>c["forest.lightThreshold"])cell.forestClass="light_forest";
-    }
-    // A source must be able to reach water via traversable, adjacent hexes.
-    const steps=new Map(),streamQueue=[];
-    for(const cell of cells)if(cell.surfaceClass!=="land"){steps.set(key(cell.q,cell.r),0);streamQueue.push(cell);}
-    for(let i=0;i<streamQueue.length;i++){
-      const cur=streamQueue[i],dist=steps.get(key(cur.q,cur.r));
-      for(const n of neighbours(cur,byKey)){
-        if(n.reliefClass==="mountain")continue;
-        const k=key(n.q,n.r);if(!steps.has(k)){steps.set(k,dist+1);streamQueue.push(n);}
-      }
-    }
-    const sources=forestable.filter(x=>x.reliefClass!=="mountain" &&
-      (steps.get(key(x.q,x.r))??0)>=c["rivers.minLength"]).sort((a,b)=>
-        (b.riverPotential+unit(s,b.q,b.r,"headwater")*.22)-
-        (a.riverPotential+unit(s,a.q,a.r,"headwater")*.22));
-    const wanted=Math.round(totalLand*c["rivers.sourcesPer100"]/100);
-    const riverPaths=[],origins=[];
-    for(const candidate of sources){
-      if(riverPaths.length>=wanted)break;
-      if(origins.some(o=>Math.max(Math.abs(o.q-candidate.q),Math.abs(o.r-candidate.r),
-          Math.abs(o.q+o.r-candidate.q-candidate.r))<c["rivers.minLength"]))continue;
-      const path=[candidate];let cur=candidate,valid=false;
-      for(let n=0;n<width+height+1;n++){
-        const dist=steps.get(key(cur.q,cur.r));
-        if(dist===0){valid=true;break;}
-        const choices=neighbours(cur,byKey).filter(x=>x.reliefClass!=="mountain" &&
-          steps.get(key(x.q,x.r))===dist-1).sort((a,b)=>
-            (a._hillScore||0)-(b._hillScore||0)+c["rivers.meander"]*
-            (unit(s,cur.q,cur.r,key(a.q,a.r))-unit(s,cur.q,cur.r,key(b.q,b.r))));
-        if(!choices.length)break;
-        cur=choices[0];path.push(cur);
-      }
-      if(!valid||path.length-1<c["rivers.minLength"])continue;
-      riverPaths.push(path.map(x=>[x.q,x.r]));origins.push(candidate);
-      for(let i=0;i<path.length;i++){
-        const x=path[i];if(x.surfaceClass!=="land")continue;
-        x.river=true;
-        for(const other of [path[i-1],path[i+1]]){
-          if(!other)continue;
-          const dir=DIRS.findIndex(([dq,dr])=>x.q+dq===other.q&&x.r+dr===other.r);
-          if(dir>=0&&!x.riverEdges.includes(dir))x.riverEdges.push(dir);
+    const mountainCut=globalCut(s,"mountain",c["relief.mountainFraction"],
+      (q,r)=>relief(q,r).mountain,(q,r)=>!wet(q,r));
+    const isMountain=(q,r)=>!wet(q,r)&&relief(q,r).mountain>=mountainCut;
+    const hillCut=globalCut(s,"hills",c["relief.hillFraction"],
+      (q,r)=>relief(q,r).hill,(q,r)=>!wet(q,r)&&!isMountain(q,r));
+    const isHill=(q,r)=>!wet(q,r)&&!isMountain(q,r)&&relief(q,r).hill>=hillCut;
+    // The water-distance calculation includes neighbors OUTSIDE the preview.
+    const searchRadius=Math.min(16,Math.max(3,Math.ceil(c["climate.coastalDecay"]*3)));
+    const distances=new Map();
+    function distanceToWater(q,r){
+      const k=spot(q,r);if(distances.has(k))return distances.get(k);
+      if(wet(q,r)){distances.set(k,0);return 0;}
+      let found=searchRadius+1;
+      search:for(let d=1;d<=searchRadius;d++){
+        for(let a=-d;a<=d;a++){
+          const minB=Math.max(-d,-a-d),maxB=Math.min(d,-a+d);
+          for(let b=minB;b<=maxB;b++){
+            if(Math.max(Math.abs(a),Math.abs(b),Math.abs(a+b))!==d)continue;
+            if(wet(q+a,r+b)){found=d;break search;}
+          }
         }
       }
+      distances.set(k,found);return found;
     }
-    // Geographic features exist before exploration and are independent of sprites.
+    const regions=new Map();
+    function field(q,r){
+      const k=spot(q,r);if(cacheField.has(k))return cacheField.get(k);
+      const t=temperature(q,r),baseHumidity=humidity(q,r),
+        distance=distanceToWater(q,r);
+      const h=clamp(baseHumidity+c["climate.coastalHumidity"]*
+        Math.exp(-distance/c["climate.coastalDecay"]));
+      const center=region(s,q,r,c);
+      if(!regions.has(center.id))regions.set(center.id,
+        {t:temperature(center.x,center.y),h:humidity(center.x,center.y)});
+      const avg=regions.get(center.id),mix=c["biomes.regionClimateMix"];
+      const biomeT=clamp(avg.t*mix+t*(1-mix));
+      const biomeH=clamp(avg.h*mix+h*(1-mix));
+      const family=biomeFamily(biomeT,biomeH,c),
+        soil=noise(s,q,r,c["geology.scale"],"soil"),
+        landRelief=relief(q,r);
+      const result={t,h,center,family,soil,landRelief,
+        riverPotential:clamp(h*.68+landRelief.mass*.18+
+          Math.min(distance,15)/30)};
+      cacheField.set(k,result);return result;
+    }
+    function surface(q,r){
+      if(!wet(q,r))return "land";
+      if(DIRS.some(([dq,dr])=>!wet(q+dq,r+dr)))return "coastal_water";
+      if(temperature(q,r)<c["water.iceTemperature"])return "icy_ocean";
+      // This is a permanent OCEAN TERRAIN, not a dynamic weather event.
+      return noise(s,q,r,c["water.scale"]*.8,"storm")>
+        1-c["water.stormChance"]?"stormy_ocean":"ocean";
+    }
+    const cells=[],byKey=new Map();
+    for(let r=originR;r<originR+height;r++)
+      for(let q=originQ;q<originQ+width;q++){
+        const surfaceClass=surface(q,r),land=surfaceClass==="land",
+          info=land?field(q,r):null;
+        const mountain=land&&isMountain(q,r),hills=land&&!mountain&&isHill(q,r);
+        const suit=!land?0:info.family==="jungle"?1:
+          info.family==="grassland"?.86:info.family==="wetland"?.76:
+          info.family==="savanna"?.46:info.family==="cold"?.25:.08;
+        const value=land?(noise(s,q,r,c["forest.patchScale"],"forest")-.5)*1.6+
+          c["forest.coverage"]-.3+(info.h-.5)*.35:0;
+        const forestDensity=mountain?0:info?.family==="jungle"?Math.max(.76,clamp(value)):clamp(value)*suit;
+        const forestClass=mountain?"none":info?.family==="jungle"?"dense_forest":
+          forestDensity>=c["forest.denseThreshold"]*c["forest.denseFactor"]?"dense_forest":
+          forestDensity>c["forest.lightThreshold"]?"light_forest":"none";
+        const cell={q,r,temperature:info?.t??temperature(q,r),
+          humidity:info?.h??humidity(q,r),regionId:info?.center.id??"",
+          baseBiome:info?.family??null,
+          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c):surfaceClass,
+          surfaceClass,reliefClass:mountain?"mountain":hills?"hills":"flat",
+          hillProfile:hills?["rounded","steep","chain","plateau","ridge"][
+            Math.floor(unit(s,Math.floor(q/3),Math.floor(r/3),"hill-style")*5)]:null,
+          hillStrength:hills?clamp(info.landRelief.hill*c["relief.hillVariation"]+
+            (1-c["relief.hillVariation"])*.4):0,
+          mountainClass:mountain?"massif":null,
+          forestDensity,forestClass,riverPotential:info?.riverPotential??0,
+          river:false,riverEdges:[],features:[]};
+        cells.push(cell);byKey.set(spot(q,r),cell);
+      }
+    // Route topology uses axial adjacency. The graphics renderer explicitly
+    // builds a continuous path ALONG HEX SIDES/CORNERS from each route.
+    const maxLength=c["rivers.maxLength"],minLength=c["rivers.minLength"];
+    const halo=maxLength+1,extent=2*maxLength+2;
+    const distanceGrid=new Map(),queue=[];
+    for(let r=originR-extent;r<originR+height+extent;r++)
+      for(let q=originQ-extent;q<originQ+width+extent;q++)
+        if(wet(q,r)){distanceGrid.set(spot(q,r),0);queue.push({q,r});}
+    const minQ=originQ-extent,maxQ=originQ+width+extent-1,
+      minR=originR-extent,maxR=originR+height+extent-1;
+    for(let i=0;i<queue.length;i++){
+      const n=queue[i],d=distanceGrid.get(spot(n.q,n.r));
+      if(d>=maxLength)continue;
+      for(const [dq,dr] of DIRS){
+        const q=n.q+dq,r=n.r+dr,k=spot(q,r);
+        if(q<minQ||q>maxQ||r<minR||r>maxR||isMountain(q,r))continue;
+        if(!distanceGrid.has(k)){distanceGrid.set(k,d+1);queue.push({q,r});}
+      }
+    }
+    const riverPaths=[],countedRoutes=[];
+    function markEdge(a,b){
+      for(const [p,o] of [[a,b],[b,a]]){
+        const cell=byKey.get(spot(p.q,p.r));
+        if(!cell||cell.surfaceClass!=="land")continue;
+        cell.river=true;
+        const index=DIRS.findIndex(([dq,dr])=>p.q+dq===o.q&&p.r+dr===o.r);
+        if(index>=0&&!cell.riverEdges.includes(index))cell.riverEdges.push(index);
+      }
+    }
+    for(let r=originR-halo;r<originR+height+halo;r++)
+      for(let q=originQ-halo;q<originQ+width+halo;q++){
+        if(wet(q,r)||isMountain(q,r))continue;
+        if(unit(s,q,r,"river-source")>=c["rivers.sourcesPer100"]/100)continue;
+        const distance=distanceGrid.get(spot(q,r));
+        if(distance===undefined||distance<minLength||field(q,r).riverPotential<.36)continue;
+        const route=[{q,r}];let current={q,r};
+        for(let n=0;n<maxLength;n++){
+          const d=distanceGrid.get(spot(current.q,current.r));
+          if(d===0)break;
+          const eligible=DIRS.map(([dq,dr])=>
+            ({q:current.q+dq,r:current.r+dr}))
+            .filter(p=>distanceGrid.get(spot(p.q,p.r))===d-1);
+          if(!eligible.length)break;
+          const score=p=>relief(p.q,p.r).hill*(1-c["rivers.meander"])+
+            unit(s,p.q,p.r,"river-turn")*c["rivers.meander"];
+          eligible.sort((a,b)=>score(a)-score(b));
+          current=eligible[0];route.push(current);
+        }
+        if(!wet(current.q,current.r)||route.length-1<minLength)continue;
+        if(!route.some(p=>byKey.has(spot(p.q,p.r))))continue;
+        countedRoutes.push(route);
+        // Existing edge renderer needs source-to-real-water paths wholly
+        // inside its small test scene; partial segments remain as riverEdges.
+        if(route.every(p=>byKey.has(spot(p.q,p.r))))
+          riverPaths.push(route.map(p=>[p.q,p.r]));
+        for(let n=1;n<route.length;n++)markEdge(route[n-1],route[n]);
+      }
+    // Habitat-first animals: the adjustable count refers to ALL animal types.
     for(const x of cells){
-      const chance=(type,per1000)=>unit(s,x.q,x.r,"feature:"+type)<per1000/1000;
+      const chance=(name,per1000)=>unit(s,x.q,x.r,"feature:"+name)<per1000/1000;
       if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"){
-        if(chance("iron",c["features.ironPer1000"])&&x._mountainScore>.30)x.features.push("iron");
-        if(chance("animals",c["features.animalsPer1000"])){
-          if(["grassland","savanna"].includes(x.baseBiome)&&
-             (x.baseBiome==="savanna"||unit(s,x.q,x.r,"animal-ratio")<c["features.horseShare"]))x.features.push("horses");
-          else if(["wetland","grassland","jungle"].includes(x.baseBiome))x.features.push("pigs");
+        if(chance("iron",c["features.ironPer1000"])&&
+          field(x.q,x.r).landRelief.mountain>.30)x.features.push("iron");
+        if(["grassland","savanna","wetland","jungle"].includes(x.baseBiome)&&
+          chance("animals",c["features.animalsPer1000"])){
+          if(x.baseBiome==="wetland"||x.baseBiome==="jungle")x.features.push("pigs");
+          else if(x.baseBiome==="savanna"||x.terrainId==="sparse_pasture")
+            x.features.push("horses");
+          else x.features.push(unit(s,x.q,x.r,"species")>.5?"pigs":"horses");
         }
         if(chance("ruins",c["features.ruinsPer1000"]))x.features.push("ruins");
         if(chance("obelisk",c["features.obelisksPer1000"]))x.features.push("obelisk");
-        if(x.baseBiome==="arid"&&chance("oasis",c["features.oasesPer1000"]))x.features.push("oasis");
+        if(x.baseBiome==="arid"&&chance("oasis",c["features.oasesPer1000"]))
+          x.features.push("oasis");
       }else if(x.surfaceClass!=="land"&&chance("wreck",c["features.wrecksPer1000"]))
         x.features.push("wreck");
-      for(const extension of extraFeatures){
-        const placed=extension.place({hex:x,config:c,seed,random:(salt)=>unit(s,x.q,x.r,extension.id+":"+salt)});
-        if(placed) x.features.push(extension.id);
-      }
-      delete x.waterScore;delete x._hillScore;delete x._mountainScore;
+      for(const ext of extraFeatures)
+        if(ext.place({hex:x,config:c,seed,random:salt=>
+          unit(s,x.q,x.r,ext.id+":"+salt)}))x.features.push(ext.id);
+      x.riverEdges.sort((a,b)=>a-b);
     }
-    const stats={total:cells.length,land:totalLand,water:cells.length-totalLand,coast:0,
-      hills:0,mountains:0,rivers:riverPaths.length,forest:0,biomes:{},terrains:{},features:{}};
+    const totalLand=cells.filter(x=>x.surfaceClass==="land").length;
+    const stats={total:cells.length,land:totalLand,water:cells.length-totalLand,
+      coast:0,hills:0,mountains:0,rivers:riverPaths.length,
+      riverCrossingCount:countedRoutes.length,riverHexes:0,forest:0,
+      forestEligible:0,forestPercentLand:0,forestPercentEligible:0,
+      biomes:{},terrains:{},features:{}},cores=new Map();
     for(const x of cells){
       if(x.surfaceClass==="coastal_water")stats.coast++;
       if(x.reliefClass==="hills")stats.hills++;
       if(x.reliefClass==="mountain")stats.mountains++;
+      if(x.river)stats.riverHexes++;
       if(x.forestClass!=="none")stats.forest++;
-      if(x.baseBiome)stats.biomes[x.baseBiome]=(stats.biomes[x.baseBiome]||0)+1;
+      if(x.baseBiome){
+        stats.biomes[x.baseBiome]=(stats.biomes[x.baseBiome]||0)+1;
+        cores.set(x.regionId,(cores.get(x.regionId)||0)+1);
+      }
+      if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"&&
+        ["grassland","savanna","jungle","wetland","cold"].includes(x.baseBiome))
+        stats.forestEligible++;
       stats.terrains[x.terrainId]=(stats.terrains[x.terrainId]||0)+1;
       for(const f of x.features)stats.features[f]=(stats.features[f]||0)+1;
     }
-    const regionSizes=new Map();
-    for(const x of cells)if(x.surfaceClass==="land")
-      regionSizes.set(x.regionId,(regionSizes.get(x.regionId)||0)+1);
-    const sizes=[...regionSizes.values()].sort((a,b)=>a-b);
+    stats.forestPercentLand=totalLand?+(100*stats.forest/totalLand).toFixed(1):0;
+    stats.forestPercentEligible=stats.forestEligible?
+      +(100*stats.forest/stats.forestEligible).toFixed(1):0;
+    const sizes=[...cores.values()].sort((a,b)=>a-b);
     stats.biomeRegions={count:sizes.length,min:sizes[0]||0,
-      average:sizes.length?Math.round(totalLand/sizes.length*10)/10:0,
+      average:sizes.length?+(totalLand/sizes.length).toFixed(1):0,
       median:sizes.length?sizes[Math.floor(sizes.length/2)]:0,
-      max:sizes.at(-1)||0,
-      within30to90:sizes.filter(n=>n>=30&&n<=90).length};
-    function largestComponent(isTarget){
+      max:sizes.at(-1)||0,within30to90:sizes.filter(n=>n>=30&&n<=90).length};
+    function largestComponent(predicate){
       const visited=new Set();let maximum=0;
       for(const x of cells){
-        if(!isTarget(x)||visited.has(key(x.q,x.r)))continue;
-        const pending=[x];visited.add(key(x.q,x.r));
-        for(let i=0;i<pending.length;i++){
-          for(const neighbour of neighbours(pending[i],byKey)){
-            const k=key(neighbour.q,neighbour.r);
-            if(isTarget(neighbour)&&!visited.has(k)){visited.add(k);pending.push(neighbour);}
+        const k=spot(x.q,x.r);if(visited.has(k)||!predicate(x))continue;
+        const queue=[x];visited.add(k);
+        for(let i=0;i<queue.length;i++)
+          for(const n of neighbours(queue[i],byKey)){
+            const id=spot(n.q,n.r);
+            if(predicate(n)&&!visited.has(id)){visited.add(id);queue.push(n);}
           }
-        }
-        maximum=Math.max(maximum,pending.length);
+        maximum=Math.max(maximum,queue.length);
       }
       return maximum;
     }
     stats.connectedLandPercent=totalLand?
-      Math.round(1000*largestComponent(x=>x.surfaceClass==="land")/totalLand)/10:0;
+      +(100*largestComponent(x=>x.surfaceClass==="land")/totalLand).toFixed(1):0;
     stats.largestWaterBody=largestComponent(x=>x.surfaceClass!=="land");
-    return {version:VERSION,seed,width,height,config:c,cells,riverPaths,stats};
+    return {version:VERSION,seed,width,height,originQ,originR,config:c,
+      cells,riverPaths,stats,riverGeometry:"hex-edges"};
   }
   const api={VERSION,DIRS,parameterSchema,defaultConfig,normalizeConfig,
     registerParameter,registerFeature,generateWorld,getWorldCell:(world,q,r)=>{
-      if(q<0||r<0||q>=world.width||r>=world.height)return null;
-      return world.cells[r*world.width+q]??null;
+      const oq=world.originQ??0,or=world.originR??0;
+      if(q<oq||r<or||q>=oq+world.width||r>=or+world.height)return null;
+      return world.cells[(r-or)*world.width+(q-oq)]??null;
     }};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
   root.VedrasGeography=api;
