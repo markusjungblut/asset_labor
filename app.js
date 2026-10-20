@@ -143,7 +143,8 @@ function deviceRatio(){const requested=state.quality==='auto'?Math.min(window.de
  return Math.max(1,Math.min(requested,4,Math.sqrt(18000000/Math.max(1,W*H)),4096/Math.max(1,W),4096/Math.max(1,H)));}
 function resize(){const b=canvas.getBoundingClientRect();const nw=Math.max(100,Math.round(b.width)),nh=Math.max(100,Math.round(b.height));W=nw;H=nh;state.dpr=deviceRatio();canvas.width=Math.round(W*state.dpr);canvas.height=Math.round(H*state.dpr);requestDraw();updateDiagnostics();}
 let terrainRasterCache={signature:null,raster:null};
-function invalidateTerrain(){terrainRasterCache={signature:null,raster:null};shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();}
+let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
+function invalidateTerrain(){terrainRasterCache={signature:null,raster:null};reliefRasterCache={signature:null,raster:null,hits:0,misses:0};shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();}
 function currentRelief(){
  const r=state.relief;
  // Water and shoreline are level 0 regardless of the land profile or relief seed.
@@ -271,8 +272,17 @@ function drawGround(){
   terrainRasterCache.buildMs=performance.now()-start;
  }
  window.__vedrasTerrainRaster=terrainRasterCache.raster;
- const reliefRaster=terrainRasterCache.raster?(state.relief.enabled?
-   window.VedrasRelief.make(terrainRasterCache.raster.landLayer,currentRelief()):terrainRasterCache.raster):null;
+ // Height raster follows terrain and relief, NOT pan/roads/selection.
+ let reliefRaster=terrainRasterCache.raster;
+ if(reliefRaster&&state.relief.enabled){
+  const reliefSignature=JSON.stringify([terrainRasterCache.signature,state.relief]);
+  if(reliefRasterCache.signature!==reliefSignature){
+   reliefRasterCache={signature:reliefSignature,
+    raster:window.VedrasRelief.make(terrainRasterCache.raster.landLayer,currentRelief()),
+    hits:reliefRasterCache.hits,misses:reliefRasterCache.misses+1};
+  }else reliefRasterCache.hits++;
+  reliefRaster=reliefRasterCache.raster;
+ }
  window.__vedrasReliefRaster=reliefRaster;
  if(reliefRaster){
   // Union silhouette is clipped once, after compositing: no per-hex alpha fringes.
