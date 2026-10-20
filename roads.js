@@ -75,7 +75,16 @@ window.VedrasRoads=(()=>{
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Seeded low-amplitude bends vanish at t=0, 1/2, and 1:
  // the shared side is crossed EXACTLY at its midpoint, even across relief.
+ const roadCourseCache=new Map();
  function course(edge,hex=256,groundY=null){
+  // The same centre-line is reused by painting, collisions and plant
+  // placement. Cache unprojected world curves; relief projects a copy.
+  const id=identity(edge.a,edge.b);
+  const cacheKey=id+'@'+hex;
+  if(groundY){
+   return course(edge,hex,null).map(p=>({x:p.x,y:groundY(p.x,p.y)}));
+  }
+  if(roadCourseCache.has(cacheKey))return roadCourseCache.get(cacheKey);
   const a=asPoint(edge.a),b=asPoint(edge.b),p=center(a,hex),z=center(b,hex);
   const vx=z.x-p.x,vy=z.y-p.y,length=Math.hypot(vx,vy),nx=-vy/length,ny=vx/length;
   const noise=hash(a.q+b.q,a.r+b.r,hash(a.q-b.q,a.r-b.r,11));
@@ -83,7 +92,11 @@ window.VedrasRoads=(()=>{
   for(let i=0;i<=16;i++){
    const t=i/16,jitter=bend*Math.sin(t*2*Math.PI);
    const x=p.x+vx*t+nx*jitter,y=p.y+vy*t+ny*jitter;
-   points.push({x,y:groundY?groundY(x,y):y});
+   points.push({x,y});
+  }
+  if(id){
+   roadCourseCache.set(cacheKey,points);
+   if(roadCourseCache.size>1400)roadCourseCache.delete(roadCourseCache.keys().next().value);
   }
   return points;
  }
@@ -207,7 +220,7 @@ window.VedrasRoads=(()=>{
    drawEdges(ctx,group,hex,groundY,p.width,fill);
    drawNodes(ctx,group,hex,groundY,p.width,fill);
    ctx.restore();
-   detail(ctx,group,level,hex,groundY);
+   if(options.detail!==false)detail(ctx,group,level,hex,groundY);
   }
   ctx.restore();return {edges:normalized.length,nodes:allNodes.size};
  }
@@ -223,8 +236,15 @@ window.VedrasRoads=(()=>{
   const p={x,y};
   for(const edge of edges||[]){
    if(!identity(edge.a,edge.b))continue;
-   const pts=course(edge,hex),radius=profiles[type(edge.level)].outer*.5+Math.max(0,padding);
-   if(pts.slice(1).some((v,i)=>distanceToSegment(p,pts[i],v)<=radius))return true;
+   const radius=profiles[type(edge.level)].outer*.5+Math.max(0,padding),
+     a=center(asPoint(edge.a),hex),b=center(asPoint(edge.b),hex),
+     bound=radius+6;
+   // Reject nearly all road segments cheaply before point-to-segment math.
+   if(x<Math.min(a.x,b.x)-bound||x>Math.max(a.x,b.x)+bound||
+      y<Math.min(a.y,b.y)-bound||y>Math.max(a.y,b.y)+bound)continue;
+   const pts=course(edge,hex);
+   for(let i=1;i<pts.length;i++)
+    if(distanceToSegment(p,pts[i-1],pts[i])<=radius)return true;
   }
   return false;
  }
