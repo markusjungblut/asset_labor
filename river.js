@@ -258,6 +258,7 @@ window.VedrasRivers=(()=>{
  let collisionRouteCache=new WeakMap();
  function clearGeometryCache(){collisionRouteCache=new WeakMap();}
  function collisionRoutePoints(route,cells,isWet,width){
+  if(!route||typeof route!=='object')return [];
   const signature=JSON.stringify([route.hexes,route.corner]);
   const old=collisionRouteCache.get(route);
   if(old&&old.cells===cells&&old.width===width&&old.signature===signature)return old.points;
