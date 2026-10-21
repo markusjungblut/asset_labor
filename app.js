@@ -1099,10 +1099,10 @@ function drawMapObjects(){if(!state.objects)return;
    else if(o.type==='unit')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.35*sceneShadowStrength());
    // A fallen log receives exactly one specialized shadow, never the old
     // generic/custom paired-shadow sprite on top of it.
-    // Manually placed hex shadow art stays; disable automatic PNG pairings
-   // while procedural directional shadows are active to avoid doubles.
-   const sh=window.VedrasSpriteShadows?
-    (o.cell&&state.hexShadow[o.cell]?useAsset(state.hexShadow[o.cell]):null):
+    // Unified shadows supersede ALL legacy PNG pairings. Old asset/hex
+   // assignments remain saved for rollback but do not add wrong-direction
+   // shadows on top of the calibrated shared sun.
+   const sh=window.VedrasSpriteShadows?null:
     (isFallenLog(o)?null:pairedShadow(o));
    if(sh?.img?.naturalWidth){
     if(o.natureMeta)drawNatureShadow(sh,o,p);
