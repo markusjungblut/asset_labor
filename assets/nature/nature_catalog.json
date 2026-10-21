@@ -13927,12 +13927,16 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions"
+        "grass_pasture",
+        "warm_regions",
+        "wetlands"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
         "frozen_tundra",
-        "snowfields"
+        "snowfields",
+        "tundra",
+        "highland"
       ],
       "placement": {
         "weight": 1,
