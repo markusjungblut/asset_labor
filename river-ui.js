@@ -34,7 +34,7 @@ window.VedrasRiverUI=(()=>{
    (wet===0?' · Ohne Wasser-Mündung: „Testfluss mit Wasserhex“ verwenden.':'');
  }
  function persist(terrainChanged=false){
-  if(terrainChanged)core.invalidateTerrain();
+  if(terrainChanged)core.invalidateTerrain('cells');
   core.persistScene();
   core.requestDraw();
   window.dispatchEvent(new Event('vedras:river-changed'));
