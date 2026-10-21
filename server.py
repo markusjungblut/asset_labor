@@ -15,7 +15,7 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.11.0'
+VERSION = '0.12.0'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
@@ -134,6 +134,45 @@ def validate_nature_catalog(c):
         if item.get('artStatus') not in {'candidate', 'test', 'approved', 'deprecated'} or not isinstance(item.get('tags'), list) or len(item['tags']) > 30 or any(not isinstance(x, str) or len(x) > 50 for x in item['tags']):
             raise ValueError('Status oder Tags ungültig')
 
+# Versioned, independent shadow profile catalog. Do not touch Nature sprites,
+# shadow PNGs, user-edited Nature rules or image sidecars.
+def validate_sprite_shadows(data):
+    if not isinstance(data, dict) or data.get('schemaVersion') != 1:
+        raise ValueError('Ungültige Schattenprofil-Version')
+    global_values = data.get('global')
+    profiles = data.get('profiles')
+    if not isinstance(global_values, dict) or not isinstance(profiles, dict) or len(profiles) > 10000:
+        raise ValueError('Ungültiges Schattenprofil-Format')
+    limits = {
+        'angle': (105, 215), 'opacity': (0, .75),
+        'length': (.15, 2.6), 'width': (.2, 1.8),
+        'softness': (0, 30), 'offsetX': (-.8, .8),
+        'offsetY': (-.5, .5), 'contact': (0, .7),
+        'strength': (0, 2)
+    }
+    if set(global_values) != set(limits):
+        raise ValueError('Unvollständige oder unbekannte globale Schattenparameter')
+    def check(values, allow_strength=False):
+        if not isinstance(values, dict):
+            raise ValueError('Ungültiges Sprite-Schattenprofil')
+        for key, value in values.items():
+            if key == 'enabled' and not allow_strength:
+                if not isinstance(value, bool):
+                    raise ValueError('Ungültiger Schatten-Schalter')
+                continue
+            if key not in limits or key == 'strength' and not allow_strength:
+                raise ValueError('Unbekannter Schattenwert: ' + key)
+            lo, hi = limits[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not lo <= value <= hi:
+                raise ValueError('Schattenwert außerhalb des Bereichs: ' + key)
+    check(global_values, True)
+    for asset_path, profile in profiles.items():
+        if not isinstance(asset_path, str) or len(asset_path) > 300 or '..' in asset_path or '\\' in asset_path or not re.fullmatch(
+            r'assets/(?:nature|buildings|units)/[A-Za-z0-9_./-]+\.(?:png|webp|jpg|jpeg|svg|gif|avif)', asset_path, re.I
+        ):
+            raise ValueError('Ungültiger Profil-Spritepfad')
+        check(profile)
+
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -157,7 +196,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         endpoint = urlparse(self.path).path
-        if endpoint not in ('/api/terrain-catalog', '/api/nature-catalog'):
+        if endpoint not in ('/api/terrain-catalog', '/api/nature-catalog', '/api/sprite-shadows'):
             self._failure(404, 'Unbekannte API')
             return
         if self.headers.get('Origin') not in (None, f'http://{HOST}:{self.server.server_port}'):
@@ -172,6 +211,9 @@ class Handler(SimpleHTTPRequestHandler):
             if endpoint == '/api/nature-catalog':
                 validate_nature_catalog(catalog)
                 dest = ASSETS / 'nature' / 'nature_catalog.json'
+            elif endpoint == '/api/sprite-shadows':
+                validate_sprite_shadows(catalog)
+                dest = ASSETS / 'shadows' / 'sprite_shadow_profiles.json'
             else:
                 validate_catalog(catalog)
                 dest = ASSETS / 'terrain' / 'terrain_catalog.json'
@@ -196,6 +238,13 @@ class Handler(SimpleHTTPRequestHandler):
                 'folder': BASE.name,
                 'serverRoot': str(BASE),
             })
+            return
+        if parsed.path in ('/api/sprite-shadows','/api/sprite-shadows-backup'):
+            filename = 'sprite_shadow_profiles.json' + ('.bak' if parsed.path.endswith('-backup') else '')
+            try:
+                self._send_json(json.loads((ASSETS / 'shadows' / filename).read_text('utf-8')))
+            except (OSError, ValueError):
+                self._failure(404, 'Schattenprofil-Datei oder Sicherung fehlt')
             return
         if parsed.path == '/api/nature-catalog-backup':
             try:

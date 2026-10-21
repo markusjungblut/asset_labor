@@ -664,6 +664,18 @@ function mountainShadowSettings(o){
  if(Number.isFinite(placed.shadowSpread)&&!Number.isFinite(placed.shadowRootWidth))cfg.rootWidth=.26*placed.shadowSpread/1.28;
  if(Number.isFinite(placed.shadowContact)&&!Number.isFinite(placed.shadowContactWidth))cfg.contactWidth=.16*placed.shadowContact/1.10;
  for(const [k,name] of Object.entries(fields))if(Number.isFinite(placed[name]))cfg[k]=placed[name];
+ // Same sun angle/strength as Nature/buildings; retain the specialized
+ // mountain silhouette and large ground projection.
+ const tuned=window.VedrasSpriteShadows?.profile(o.asset);
+ if(tuned){
+  cfg.angle=tuned.angle;cfg.opacity=tuned.enabled===false?0:tuned.opacity;
+  cfg.length=Math.min(1.6,tuned.length);cfg.softness=tuned.softness;
+  cfg.originX=tuned.offsetX;cfg.originY=tuned.offsetY;
+  cfg.rootWidth=Math.max(.07,Math.min(.70,tuned.width*.43));
+  cfg.midWidth=Math.max(.04,Math.min(.60,tuned.width*.34));
+  cfg.tipWidth=Math.max(.03,Math.min(.30,tuned.width*.18));
+  cfg.contactWidth=Math.max(.04,Math.min(.45,tuned.contact*.72));
+ }
  return window.VedrasShadows.settings(cfg);
 }
 function sceneShadowStrength(){return window.VedrasShadows.globalStrength(state.shadowGlobal);}
@@ -991,6 +1003,12 @@ function drawFallenLogShadow(obj,p){
 }
 function drawNatureGrounding(obj,p){
  if(!obj.natureMeta)return;
+ const shared=window.VedrasSpriteShadows;
+ if(shared){
+  shared.draw(ctx,obj,p,obj.w*state.zoom,shadowSilhouette(obj.asset.img),
+   obj.natureMeta.anchor||{x:.5,y:.96},sceneShadowStrength());
+  return;
+ }
  if(isFallenLog(obj)){drawFallenLogShadow(obj,p);return;}
  const meta=obj.natureMeta,kind=meta.kind,ww=obj.w*state.zoom;
  const strength=kind==='ground_cover'?.32:kind==='tree'?1:.76;
@@ -1061,6 +1079,11 @@ function drawMapObjects(){if(!state.objects)return;
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
    if(o.natureMeta)drawNatureGrounding(o,p);
+   else if(o.type==='building'&&window.VedrasSpriteShadows){
+    window.VedrasSpriteShadows.draw(ctx,o,p,o.w*state.zoom,
+     shadowSilhouette(o.asset.img),o.asset?.meta?.anchor||{x:.5,y:.90},
+     sceneShadowStrength());
+   }
    else if(o.type==='building'){
     const w=o.w*state.zoom,preset=state.shadowAssetPresets?.[o.asset.path]||{};
     const shape=window.VedrasShadows.settings({opacity:.37,reach:.55,spread:1.05,originX:-.06,originY:0,contact:.75,...preset});
@@ -1069,10 +1092,18 @@ function drawMapObjects(){if(!state.objects)return;
     window.VedrasShadows.cast(ctx,silhouette,p,w,height,o.asset.meta?.anchor||{x:.5,y:.90},shape.reach,'nature',
       shape.opacity*sceneShadowStrength()*.8,shape.softness*.5,shape);
    }
+   else if(o.type==='unit'&&window.VedrasSpriteShadows)
+    window.VedrasSpriteShadows.draw(ctx,o,p,o.w*state.zoom,
+     shadowSilhouette(o.asset.img),o.asset?.meta?.anchor||{x:.5,y:.96},
+     sceneShadowStrength());
    else if(o.type==='unit')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.35*sceneShadowStrength());
    // A fallen log receives exactly one specialized shadow, never the old
     // generic/custom paired-shadow sprite on top of it.
-    const sh=isFallenLog(o)?null:pairedShadow(o);
+    // Unified shadows supersede ALL legacy PNG pairings. Old asset/hex
+   // assignments remain saved for rollback but do not add wrong-direction
+   // shadows on top of the calibrated shared sun.
+   const sh=window.VedrasSpriteShadows?null:
+    (isFallenLog(o)?null:pairedShadow(o));
    if(sh?.img?.naturalWidth){
     if(o.natureMeta)drawNatureShadow(sh,o,p);
     else{
@@ -1731,4 +1762,4 @@ $('geographyImportFile').addEventListener('change',async event=>{
 window.addEventListener('vedras:nature-catalog-changed',()=>renderAssetsList());
 window.addEventListener('vedras:terrain-catalog-changed',terrainTestOptions);
 window.addEventListener('vedras:assets-loaded',()=>{terrainTestOptions();syncTerrainTestUI();});
-window.VedrasAssetLabor={roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
+window.VedrasAssetLabor={shadowSprites:{bounds:visibleBounds,silhouette:shadowSilhouette},roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};

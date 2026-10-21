@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vedras Reiche – Asset-Labor v0.11.9</title><link rel="stylesheet" href="style.css?v=0.12.1"></head>
+<title>Vedras Reiche – Asset-Labor v0.12.0</title><link rel="stylesheet" href="style.css?v=0.34.0"></head>
 <body>
 <div class="app">
 <header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.11.9</small></h1></div></div>
@@ -118,11 +118,55 @@
 <button id="forestClearJungle" class="button ghost block" type="button">Dschungelmarkierungen entfernen</button>
 <div class="infobox" id="forestStatus" role="status">Waldverteilung wird berechnet…</div>
 </details>
+<section class="control-section" id="spriteShadowLab">
+<h3>Schatten-Editor · alle Sprite-Grafiken</h3>
+<p class="muted">Einheitliches Licht von rechts oben: alle Schatten zeigen grundsätzlich nach links. Einzelne Sprites kannst du separat korrigieren. Die PNGs bleiben unverändert.</p>
+<div class="shadow-editor-search">
+<label>Sprite-Gruppe<select id="ssCategory"><option value="all">Alle Grafiken</option><option value="nature">Natur & Berge</option><option value="buildings">Gebäude</option><option value="units">Einheiten</option></select></label>
+<label>Sprite suchen<input id="ssSearch" type="search" placeholder="z. B. Baumstumpf, Tanne, Berg"></label>
+</div>
+<div class="shadow-editor-current"><strong id="ssCurrent">Sprite wird geladen…</strong><span id="ssOverride">Gemeinsamer Standard</span></div>
+<canvas id="ssPreview" width="370" height="260" role="img" aria-label="Live-Vorschau des Sprites mit Schatten auf Bodenfläche"></canvas>
+<div class="shadow-editor-nav"><button id="ssPrevious" class="button outline" type="button">← Vorheriges</button><span id="ssIndex">0 / 0</span><button id="ssNext" class="button outline" type="button">Nächstes →</button></div>
+<details class="shadow-editor-details" open><summary>Globale Schattenregeln – alle Sprites</summary>
+<p class="muted">Gemeinsame Richtung und Grundform; diese Werte wirken auf nicht individuell angepasste Grafiken.</p>
+<label class="ss-range">Lichtrichtung · alle Schatten nach links (Grad) <output id="ssGlobal_angleValue">160</output><input type="range" id="ssGlobal_angle" min="105" max="215" step="1" value="160"></label>
+<label class="ss-range">Schatten-Deckkraft <output id="ssGlobal_opacityValue">0.4</output><input type="range" id="ssGlobal_opacity" min="0" max="0.75" step="0.01" value="0.4"></label>
+<label class="ss-range">Schattenlänge × Spritebreite <output id="ssGlobal_lengthValue">1.05</output><input type="range" id="ssGlobal_length" min="0.15" max="2.6" step="0.01" value="1.05"></label>
+<label class="ss-range">Schattenbreite / Ausdehnung <output id="ssGlobal_widthValue">0.62</output><input type="range" id="ssGlobal_width" min="0.2" max="1.8" step="0.01" value="0.62"></label>
+<label class="ss-range">Weichzeichnung (Pixel) <output id="ssGlobal_softnessValue">6</output><input type="range" id="ssGlobal_softness" min="0" max="30" step="0.5" value="6"></label>
+<label class="ss-range">Schattenursprung X (− nach links) <output id="ssGlobal_offsetXValue">-0.07</output><input type="range" id="ssGlobal_offsetX" min="-0.8" max="0.8" step="0.01" value="-0.07"></label>
+<label class="ss-range">Schattenursprung Y (− nach oben) <output id="ssGlobal_offsetYValue">0.025</output><input type="range" id="ssGlobal_offsetY" min="-0.5" max="0.5" step="0.01" value="0.025"></label>
+<label class="ss-range">Bodenkontakt / Grundschatten <output id="ssGlobal_contactValue">0.21</output><input type="range" id="ssGlobal_contact" min="0" max="0.7" step="0.01" value="0.21"></label>
+<label class="ss-range">Globale Stärke (0–200 %) <output id="ssGlobal_strengthValue">68 %</output><input type="range" id="ssGlobal_strength" min="0" max="2" step=".01" value=".68"></label>
+</details>
+<details class="shadow-editor-details" open><summary>Ausgewählte Grafik feinjustieren</summary>
+<p class="muted">Ändert nur das gewählte Sprite. Grün markierte Bodenkante und gelbes Kreuz zeigen den Anker der Grafik.</p>
+<label class="checkbox"><input type="checkbox" id="ssEnabled" checked> Schatten für diese Grafik aktivieren</label>
+<label class="ss-range">Lichtrichtung · alle Schatten nach links (Grad) <output id="ssSprite_angleValue">160</output><input type="range" id="ssSprite_angle" min="105" max="215" step="1" value="160"></label>
+<label class="ss-range">Schatten-Deckkraft <output id="ssSprite_opacityValue">0.4</output><input type="range" id="ssSprite_opacity" min="0" max="0.75" step="0.01" value="0.4"></label>
+<label class="ss-range">Schattenlänge × Spritebreite <output id="ssSprite_lengthValue">1.05</output><input type="range" id="ssSprite_length" min="0.15" max="2.6" step="0.01" value="1.05"></label>
+<label class="ss-range">Schattenbreite / Ausdehnung <output id="ssSprite_widthValue">0.62</output><input type="range" id="ssSprite_width" min="0.2" max="1.8" step="0.01" value="0.62"></label>
+<label class="ss-range">Weichzeichnung (Pixel) <output id="ssSprite_softnessValue">6</output><input type="range" id="ssSprite_softness" min="0" max="30" step="0.5" value="6"></label>
+<label class="ss-range">Schattenursprung X (− nach links) <output id="ssSprite_offsetXValue">-0.07</output><input type="range" id="ssSprite_offsetX" min="-0.8" max="0.8" step="0.01" value="-0.07"></label>
+<label class="ss-range">Schattenursprung Y (− nach oben) <output id="ssSprite_offsetYValue">0.025</output><input type="range" id="ssSprite_offsetY" min="-0.5" max="0.5" step="0.01" value="0.025"></label>
+<label class="ss-range">Bodenkontakt / Grundschatten <output id="ssSprite_contactValue">0.21</output><input type="range" id="ssSprite_contact" min="0" max="0.7" step="0.01" value="0.21"></label>
+<div class="shadow-editor-actions"><button type="button" id="ssResetOne" class="button outline">Dieses Sprite auf global zurücksetzen</button>
+<button type="button" id="ssResetAll" class="button ghost">Alle Einzelkorrekturen zurücksetzen …</button></div>
+</details>
+<div class="shadow-editor-actions"><button type="button" class="button primary" id="ssSave">Profile speichern</button>
+<button type="button" class="button outline" id="ssRestoreGlobal">Globale Ausgangswerte</button>
+<button type="button" class="button outline" id="ssBackup">Letztes Backup laden</button>
+<button type="button" class="button outline" id="ssExport">JSON exportieren</button>
+<label class="shadow-editor-file">JSON importieren<input type="file" accept=".json,application/json" id="ssImport"></label></div>
+<div id="ssStatus" class="infobox" role="status">Schatten-Editor wird geladen …</div>
+</section>
 <div id="mountainTools" class="control-section"><h3>Große Berge · v0.11.2</h3>
 <label>Platzierungsmodus<select id="mountainMode"><option value="single">Einzelberg – Abstand zu anderen Bergen</option><option value="chain">Bergkette – gemeinsame Einflusszone</option></select></label>
 <label>Bergketten-ID <input id="mountainChainId" maxlength="50" value="alpen_01" placeholder="z. B. nordkette_01"></label>
 <label>Kettenabstand<select id="mountainSpacing"><option value="tight">Eng – mehr Überdeckung</option><option value="normal" selected>Normal – ausgeglichen</option><option value="wide">Weit – wenig Überdeckung</option></select></label>
-<div class="mountain-shadow-controls"><strong>Gemeinsames Schattensystem · Berge, Pflanzen, Gebäude</strong>
+<div class="mountain-shadow-controls"><strong>Bisherige Berg-Schattenparameter (Kompatibilität)</strong>
+<p class="muted">Die neue gemeinsame Richtung, Stärke und individuelle Grafikprofile stellst du oben im <strong>Schatten-Editor</strong> ein. Diese älteren Regler bleiben für gespeicherte Szenen erhalten, werden aber bei aktivierter einheitlicher Schattenlogik übersteuert.</p>
 <p class="muted">Licht von rechts oben. Die globale Stärke gilt für ALLE Bodenschatten; Objektregler verändern ausschließlich die Geometrie und die relative Stärke. Alle Werte werden in Szenen gespeichert.</p>
 <label>Globale Schattenstärke <output id="shadowGlobalText">68 %</output><input id="shadowGlobalStrength" type="range" min="0" max="200" step="1" value="68"></label>
 <p class="muted">Über 100 % werden Berg-, Baum- und Gebäudeschatten sichtbar dunkler. Gilt auch für bereits platzierte Objekte.</p>
@@ -255,5 +299,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.32.0"></script><script src="forest-ground.js?v=0.22.0"></script><script src="nature-balance.js?v=0.32.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="app.js?v=0.32.2"></script><script src="nature-ui.js?v=0.33.1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.11.2"></script><script src="forest-ui.js?v=0.18.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.32.0"></script><script src="forest-ground.js?v=0.22.0"></script><script src="nature-balance.js?v=0.32.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.11.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.34.3"></script><script src="app.js?v=0.34.2"></script><script src="nature-ui.js?v=0.33.1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.18.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
