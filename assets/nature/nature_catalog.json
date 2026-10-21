@@ -6216,8 +6216,9 @@
       "sourceReference": "Bestandsdatei: thymian_01.png",
       "family": "herbs",
       "kind": "ground_cover",
-      "sizeClass": "tiny",
+      "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 17,
       "logicalWidth": 28,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -6259,8 +6260,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 10
+      ]
     },
     "nature/thymian_02.png": {
       "id": "existing_thymian_02",
@@ -6268,8 +6268,9 @@
       "sourceReference": "Bestandsdatei: thymian_02.png",
       "family": "herbs",
       "kind": "ground_cover",
-      "sizeClass": "tiny",
+      "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 17,
       "logicalWidth": 28,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -6311,8 +6312,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 10
+      ]
     },
     "nature/thymian_03.png": {
       "id": "existing_thymian_03",
@@ -6320,8 +6320,9 @@
       "sourceReference": "Bestandsdatei: thymian_03.png",
       "family": "herbs",
       "kind": "ground_cover",
-      "sizeClass": "tiny",
+      "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 17,
       "logicalWidth": 28,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -6363,8 +6364,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 10
+      ]
     },
     "nature/tree_12.png": {
       "id": "kapok_tree_12",
@@ -7826,9 +7826,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_01.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7880,9 +7880,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_02.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7934,9 +7934,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_03.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -7988,9 +7988,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_04.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8042,9 +8042,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_05.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8096,9 +8096,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_06.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8150,9 +8150,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_07.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -8204,9 +8204,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_08.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -9710,8 +9710,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_01.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.92,
       "scaleMax": 1.08,
@@ -9730,18 +9731,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -9764,8 +9765,7 @@
         "deadwood",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fern_01.png": {
       "id": "existing_fern_01",
@@ -11452,8 +11452,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_02.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11472,18 +11473,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11505,8 +11506,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_03.png": {
       "id": "existing_fallen_log_03",
@@ -11514,8 +11514,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_03.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11534,18 +11535,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11567,8 +11568,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_04.png": {
       "id": "existing_fallen_log_04",
@@ -11576,8 +11576,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_04.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11596,18 +11597,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11629,8 +11630,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_05.png": {
       "id": "existing_fallen_log_05",
@@ -11638,8 +11638,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_05.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11658,18 +11659,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11691,8 +11692,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_06.png": {
       "id": "existing_fallen_log_06",
@@ -11700,8 +11700,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_06.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11720,18 +11721,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11753,8 +11754,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_07.png": {
       "id": "existing_fallen_log_07",
@@ -11762,8 +11762,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_07.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11782,18 +11783,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11815,8 +11816,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_08.png": {
       "id": "existing_fallen_log_08",
@@ -11824,8 +11824,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_08.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11844,18 +11845,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11877,8 +11878,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_09.png": {
       "id": "existing_fallen_log_09",
@@ -11886,8 +11886,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_09.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11906,18 +11907,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -11939,8 +11940,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_10.png": {
       "id": "existing_fallen_log_10",
@@ -11948,8 +11948,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_10.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -11968,18 +11969,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -12001,8 +12002,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_11.png": {
       "id": "existing_fallen_log_11",
@@ -12560,8 +12560,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_21.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -12580,18 +12581,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -12613,8 +12614,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_22.png": {
       "id": "existing_fallen_log_22",
@@ -12622,8 +12622,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_22.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -12642,18 +12643,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -12675,8 +12676,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_23.png": {
       "id": "existing_fallen_log_23",
@@ -12684,8 +12684,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_23.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -12704,18 +12705,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -12737,8 +12738,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fallen_log_24.png": {
       "id": "existing_fallen_log_24",
@@ -12746,8 +12746,9 @@
       "sourceReference": "Bestandsdatei: fallen_log_24.png",
       "family": "fallen_logs",
       "kind": "cluster",
-      "sizeClass": "large",
+      "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 69,
       "logicalWidth": 140,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -12766,18 +12767,18 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
+        "tundra",
         "grassland",
         "pasture",
         "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp",
         "forest_floor",
         "hilly_ground",
-        "highland",
-        "tundra",
-        "swamp",
-        "marshland",
-        "moor",
-        "savanna",
-        "jungle"
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -12799,8 +12800,7 @@
         "needs_art_review",
         "user_supplied",
         "needs_visual_qa"
-      ],
-      "targetHeight": 69
+      ]
     },
     "nature/fern_02.png": {
       "id": "existing_fern_02",
@@ -13529,9 +13529,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_09.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13583,9 +13583,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_10.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13637,9 +13637,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_11.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13907,9 +13907,9 @@
       "sourceReference": "Bestandsdatei: Baumstumpf_16.png",
       "family": "deadwood",
       "kind": "special",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "targetHeight": 75,
+      "targetHeight": 36,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -13934,8 +13934,8 @@
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
         "frozen_tundra",
-        "snowfields",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "placement": {
@@ -16057,12 +16057,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16075,9 +16076,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16100,8 +16101,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_02.png": {
       "id": "snowy_bush_02",
@@ -16111,12 +16111,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16129,9 +16130,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16154,8 +16155,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_03.png": {
       "id": "snowy_bush_03",
@@ -16165,12 +16165,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16183,9 +16184,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16208,8 +16209,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_04.png": {
       "id": "snowy_bush_04",
@@ -16219,12 +16219,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16237,9 +16238,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16262,8 +16263,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_05.png": {
       "id": "snowy_bush_05",
@@ -16273,12 +16273,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16291,9 +16292,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16316,8 +16317,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_06.png": {
       "id": "snowy_bush_06",
@@ -16327,15 +16327,16 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
-        "mode": "generic_small_round",
+        "mode": "generic_small_wide",
         "path": "",
         "offsetX": -0.24,
         "offsetY": 0,
@@ -16345,9 +16346,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16370,8 +16371,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_07.png": {
       "id": "snowy_bush_07",
@@ -16381,12 +16381,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16399,9 +16400,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16424,8 +16425,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_08.png": {
       "id": "snowy_bush_08",
@@ -16435,12 +16435,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16453,9 +16454,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16478,8 +16479,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_09.png": {
       "id": "snowy_bush_09",
@@ -16489,12 +16489,13 @@
       "kind": "shrub",
       "sizeClass": "small",
       "sizeMode": "class",
+      "targetHeight": 34,
       "logicalWidth": 52,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
         "x": 0.5,
-        "y": 0.96
+        "y": 0.7
       },
       "shadow": {
         "mode": "generic_small_round",
@@ -16507,9 +16508,9 @@
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
-        "snowfields",
         "frozen_tundra",
         "tundra",
+        "snowfields",
         "highland"
       ],
       "excludedTerrainTypes": [],
@@ -16532,8 +16533,7 @@
         "needs_art_review",
         "needs_species_review",
         "winter_bush"
-      ],
-      "targetHeight": 34
+      ]
     },
     "nature/snowy_bush_10.png": {
       "id": "snowy_bush_10",
@@ -16542,6 +16542,685 @@
       "family": "snow_bushes",
       "kind": "shrub",
       "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 34,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.7
+      },
+      "shadow": {
+        "mode": "generic_small_wide",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.18,
+        "minSpacing": 35,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "winter_bush"
+      ]
+    },
+    "nature/Baumstumpf_17.png": {
+      "id": "existing_baumstumpf_17",
+      "description": "Baumstumpf – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: Baumstumpf_17.png",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 36,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields",
+        "highland"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "temperate_stump"
+      ]
+    },
+    "nature/Baumstumpf_18.png": {
+      "id": "existing_baumstumpf_18",
+      "description": "Baumstumpf – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: Baumstumpf_18.png",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 36,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields",
+        "highland"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "temperate_stump"
+      ]
+    },
+    "nature/Baumstumpf_19.png": {
+      "id": "existing_baumstumpf_19",
+      "description": "Baumstumpf – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: Baumstumpf_19.png",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 36,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields",
+        "highland"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "temperate_stump"
+      ]
+    },
+    "nature/Baumstumpf_20.png": {
+      "id": "existing_baumstumpf_20",
+      "description": "Baumstumpf – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: Baumstumpf_20.png",
+      "family": "deadwood",
+      "kind": "special",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 36,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "savanna",
+        "jungle",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields",
+        "highland"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.045,
+        "minSpacing": 74,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "temperate_stump"
+      ]
+    },
+    "nature/berg_14.png": {
+      "id": "existing_berg_14",
+      "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_14.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "snowfields_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_15.png": {
+      "id": "existing_berg_15",
+      "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_15.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "snowfields_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_16.png": {
+      "id": "existing_berg_16",
+      "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_16.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "snowfields_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_17.png": {
+      "id": "existing_berg_17",
+      "description": "Berg für gemäßigte Landschaften – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_17.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "temperate_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_18.png": {
+      "id": "existing_berg_18",
+      "description": "Berg für gemäßigte Landschaften – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_18.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "temperate_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_20.png": {
+      "id": "existing_berg_20",
+      "description": "Berg für gemäßigte Landschaften – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_20.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "temperate_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/berg_21.png": {
+      "id": "existing_berg_21",
+      "description": "Berg für gemäßigte Landschaften – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: berg_21.png",
+      "family": "mountains",
+      "kind": "mountain",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "moor",
+        "marshland",
+        "swamp"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0,
+        "minSpacing": 44,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "temperate_mountain"
+      ],
+      "targetHeight": 310
+    },
+    "nature/boulder_31.png": {
+      "id": "boulder_31",
+      "description": "Kalter Findling 31 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_31.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
       "sizeMode": "class",
       "logicalWidth": 52,
       "scaleMin": 0.85,
@@ -16569,8 +17248,8 @@
       "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
-        "density": 0.18,
-        "minSpacing": 35,
+        "density": 0.12,
+        "minSpacing": 24,
         "canCluster": true,
         "edgeMargin": 12
       },
@@ -16585,9 +17264,1043 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "winter_bush"
+        "winter_boulder"
       ],
-      "targetHeight": 34
+      "targetHeight": 110
+    },
+    "nature/boulder_32.png": {
+      "id": "boulder_32",
+      "description": "Kalter Findling 32 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_32.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "winter_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_33.png": {
+      "id": "boulder_33",
+      "description": "Kalter Findling 33 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_33.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "winter_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_34.png": {
+      "id": "boulder_34",
+      "description": "Kalter Findling 34 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_34.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "winter_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_35.png": {
+      "id": "boulder_35",
+      "description": "Kalter Findling 35 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_35.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "winter_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_36.png": {
+      "id": "boulder_36",
+      "description": "Warmer Findling 36 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_36.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_37.png": {
+      "id": "boulder_37",
+      "description": "Warmer Findling 37 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_37.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_38.png": {
+      "id": "boulder_38",
+      "description": "Warmer Findling 38 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_38.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_39.png": {
+      "id": "boulder_39",
+      "description": "Warmer Findling 39 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_39.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_40.png": {
+      "id": "boulder_40",
+      "description": "Warmer Findling 40 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_40.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_41.png": {
+      "id": "boulder_41",
+      "description": "Warmer Findling 41 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_41.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_42.png": {
+      "id": "boulder_42",
+      "description": "Warmer Findling 42 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_42.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_43.png": {
+      "id": "boulder_43",
+      "description": "Warmer Findling 43 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_43.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_44.png": {
+      "id": "boulder_44",
+      "description": "Warmer Findling 44 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_44.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "savanna",
+        "jungle",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "semi_desert",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "warm_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/ice_block_01.png": {
+      "id": "ice_block_01",
+      "description": "Eisblock 1 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: ice_block_01.png",
+      "family": "ice_blocks",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.11,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "ice_block"
+      ]
+    },
+    "nature/ice_block_02.png": {
+      "id": "ice_block_02",
+      "description": "Eisblock 2 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: ice_block_02.png",
+      "family": "ice_blocks",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.11,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "ice_block"
+      ]
+    },
+    "nature/ice_block_03.png": {
+      "id": "ice_block_03",
+      "description": "Eisblock 3 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: ice_block_03.png",
+      "family": "ice_blocks",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.11,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "ice_block"
+      ]
+    },
+    "nature/ice_block_04.png": {
+      "id": "ice_block_04",
+      "description": "Eisblock 4 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: ice_block_04.png",
+      "family": "ice_blocks",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.11,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "ice_block"
+      ]
+    },
+    "nature/ice_block_05.png": {
+      "id": "ice_block_05",
+      "description": "Eisblock 5 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: ice_block_05.png",
+      "family": "ice_blocks",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "frozen_tundra",
+        "tundra",
+        "snowfields"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.11,
+        "minSpacing": 44,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "ice_block"
+      ]
     }
   }
 }
