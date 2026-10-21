@@ -149,7 +149,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const shape={canvas:silhouette,aspect};
   if(kind==='mountain'){
    const sh=window.VedrasShadows,pf=Engine.profile(a);
-   const mountainCfg=sh.settings({angle:pf.angle,opacity:pf.opacity,
+   const mountainCfg=sh.settings({angle:pf.angle,opacity:pf.enabled===false?0:pf.opacity,
     length:pf.length,softness:pf.softness,originX:pf.offsetX,originY:pf.offsetY,
     rootWidth:pf.width*.43,midWidth:pf.width*.34,tipWidth:pf.width*.18,
     contactWidth:pf.contact*.72});
@@ -223,7 +223,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   try{
    const res=await fetch('/api/sprite-shadows',{cache:'no-store'});
    if(!res.ok)throw Error('Lokaler Schatten-Profilserver nicht erreichbar');
-   Engine.set(await res.json());loaded=true;editable=true;
+   const incoming=await res.json();if(dirty)return;
+   Engine.set(incoming);loaded=true;editable=true;
    core.state.shadowGlobal=Engine.get().global.strength;core.persistScene();
    allControls();refresh();core.requestDraw();
    text('Schattenprofile geladen. Pro Sprite justieren und anschließend speichern.');
@@ -237,7 +238,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  $('ssEnabled').addEventListener('change',e=>{
   const a=asset();if(!a)return;const d=Engine.get();
   Engine.set({...d,profiles:{...d.profiles,[a.path]:{...(d.profiles[a.path]||{}),
-   enabled:e.target.checked}}});modified();preview();
+   enabled:e.target.checked}}});refresh();modified();
  });
  $('ssResetOne').addEventListener('click',()=>{
   const a=asset();if(!a)return;
