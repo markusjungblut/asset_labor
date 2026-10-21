@@ -93,7 +93,7 @@ window.VedrasSpriteShadows=(()=>{
  const api={fields,shapeKeys,defaults,valid,set,get,profile,draw};
  return api;
 })();
-(()=>{
+window.addEventListener('DOMContentLoaded',()=>{
  const $=id=>document.getElementById(id),Engine=window.VedrasSpriteShadows,
   core=window.VedrasAssetLabor,panel=$('spriteShadowLab');
  if(!core||!panel)return;
@@ -123,7 +123,7 @@ window.VedrasSpriteShadows=(()=>{
   const n=$(prefix+field),value=$(prefix+field+'Value');
   if(!n)return;
   n.value=String(v);
-  value.textContent=Number(v).toFixed(field==='angle'?0:2)+(field==='angle'?'°':'');
+  value.textContent=field==='strength'?Math.round(v*100)+' %':Number(v).toFixed(field==='angle'?0:2)+(field==='angle'?'°':'');
  }
  function allControls(){
   for(const field of inputs.global)setRange('ssGlobal_',field,Engine.get().global[field]);
@@ -271,4 +271,4 @@ window.VedrasSpriteShadows=(()=>{
   if(Math.abs(Engine.get().global.strength-value)>.0001)updateGlobal('strength',value);
  });
  allControls();list();load();
-})();
+});
