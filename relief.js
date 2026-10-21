@@ -9,11 +9,14 @@ window.VedrasRelief = (()=>{
  const smooth=(v)=>{v=clamp(v,0,1);return v*v*(3-2*v);};
  const G=8; // cached height-grid world units, independent of camera zoom
  const surfaceCache=new Map();
+ const geoIndexCache=new WeakMap();
  const noise=(s)=>{let n=(s|0)^0x6d2b79f5;n=Math.imul(n^(n>>>15),1|n);n^=n+Math.imul(n^(n>>>7),61|n);return ((n^(n>>>14))>>>0)/4294967296;};
- const defaults=()=>({enabled:false,profile:'rounded',strength:45,lighting:true,connected:true,debug:false,padBuildings:true,seed:43781,center:'0,0'});
+ const defaults=()=>({enabled:false,mode:'legacy',profile:'rounded',strength:45,lighting:true,connected:true,debug:false,padBuildings:true,seed:43781,center:'0,0'});
  function valid(raw){const d=defaults(),v={...d,...(raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{})};
   v.enabled=!!v.enabled;v.lighting=!!v.lighting;v.connected=!!v.connected;v.debug=!!v.debug;v.padBuildings=!!v.padBuildings;
   v.pads=Array.isArray(v.pads)?v.pads.slice(0,60):[];
+  v.mode=v.mode==='geography'?'geography':'legacy';
+  v.geoHills=Array.isArray(v.geoHills)?v.geoHills:[];
   if(!['rounded','steep','chain','plateau','ridge'].includes(v.profile))v.profile=d.profile;
   v.strength=clamp(Number(v.strength)||0,0,100);v.seed=Number.isInteger(Number(v.seed))?clamp(Number(v.seed),0,2147483647):d.seed;
   if(!/^-?\d+,-?\d+$/.test(v.center))v.center=d.center;return v;
@@ -24,7 +27,60 @@ window.VedrasRelief = (()=>{
  function valueNoise(x,y,seed,scale){const xx=x/scale,yy=y/scale,ix=Math.floor(xx),iy=Math.floor(yy),tx=smooth(xx-ix),ty=smooth(yy-iy);
   const p=(a,b)=>noise((seed|0)^Math.imul(a+12973,374761393)^Math.imul(b+8901,668265263));
   const a=p(ix,iy),b=p(ix+1,iy),c=p(ix,iy+1),d=p(ix+1,iy+1);return 2*(a*(1-tx)*(1-ty)+b*tx*(1-ty)+c*(1-tx)*ty+d*tx*ty)-1;}
+ 
+ // Worldgen v2.1 continuous, coordinate-derived hill regions.
+ // Multiple overlapping source hexes produce one seamless heightfield.
+ function geographyIndex(hills){
+  const found=geoIndexCache.get(hills);if(found)return found;
+  const byHex=new Map();
+  for(const h of hills){
+   if(!Number.isSafeInteger(h?.q)||!Number.isSafeInteger(h?.r))continue;
+   byHex.set(h.q+','+h.r,h);
+  }
+  geoIndexCache.set(hills,byHex);
+  return byHex;
+ }
+ function geoHeight(x,y,o){
+  const hills=o.geoHills||[];
+  if(!hills.length)return 0;
+  const rf=y/(1.5*(256/Math.sqrt(3))),qf=x/256-rf/2;
+  const q0=Math.round(qf),r0=Math.round(rf),index=geographyIndex(hills);
+  let volume=0;
+  for(let r=r0-2;r<=r0+2;r++)for(let q=q0-2;q<=q0+2;q++){
+   const h=index.get(q+','+r);
+   if(!h)continue;
+   const dx=x-256*(q+r/2),dy=y-1.5*(256/Math.sqrt(3))*r;
+   const code=((Math.imul(q,73856093)^Math.imul(r,19349663)^o.seed)>>>0);
+   const rotation=(noise(code)-.5)*1.7;
+   const ca=Math.cos(rotation),sa=Math.sin(rotation),
+    u=dx*ca+dy*sa,v=-dx*sa+dy*ca;
+   const shape=h.profile||'rounded';
+   let w=0;
+   if(shape==='ridge')w=Math.exp(-.5*((u/310)**2+(v/116)**2));
+   else if(shape==='chain')w=Math.exp(-.5*((u/285)**2+(v/151)**2));
+   else if(shape==='steep')w=Math.exp(-.65*Math.pow(Math.hypot(u/175,v/162),3.1));
+   else if(shape==='plateau'){
+    const distance=Math.hypot(u/191,v/174);
+    w=1-smooth((distance-.57)/.82);
+   }else w=Math.exp(-.5*((u/180)**2+(v/185)**2));
+   const strength=clamp(Number(h.strength)||0,0,1);
+   volume+=w*(.38+.62*strength);
+  }
+  return 67*(o.strength/100)*Math.min(1.28,volume*.74);
+ }
+ function containsGeographyHills(raster,o){
+  const hills=o.geoHills||[];
+  if(!hills.length)return false;
+  const left=raster.x-390,right=raster.x+raster.width+390;
+  const top=raster.y-390,bottom=raster.y+raster.height+390;
+  return hills.some(h=>{
+   const x=256*(h.q+h.r/2),y=1.5*(256/Math.sqrt(3))*h.r;
+   return x>=left&&x<=right&&y>=top&&y<=bottom;
+  });
+ }
+
  function rawField(x,y,o){if(!o.enabled||o.strength<=0)return 0;
+  if(o.mode==='geography')return geoHeight(x,y,o);
   const c=center(o),dx=x-c.x,dy=y-c.y,wide=o.connected?1.0:.46;
   const phase=(noise(o.seed)-.5)*1.6;
   const v1=valueNoise(x,y,o.seed+177,205),v2=valueNoise(x,y,o.seed+991,105);
@@ -78,7 +134,8 @@ window.VedrasRelief = (()=>{
   }
   return {height,left,top,gw,gh};
  }
- function make(source,options){const o=valid(options);if(!o.enabled||o.strength===0)return source;
+ function make(source,options){const o=valid(options);if(!o.enabled||o.strength===0||
+  (o.mode==='geography'&&!containsGeographyHills(source,o)))return source;
   const sig=JSON.stringify({raster:source._reliefId||source._cacheStamp||source.canvas?.width+'x'+source.canvas?.height,scene:{...options,landMask:undefined},maskKey:options.maskKey||''});
   const cached=surfaceCache.get(sig);if(cached&&cached.base===source)return cached.result;
   const density=source.density,extra=89;const target=document.createElement('canvas');
@@ -122,5 +179,6 @@ window.VedrasRelief = (()=>{
   surfaceCache.clear();surfaceCache.set(sig,{base:source,result});return result;
  }
  function at(x,y,o){o=valid(o);return field(x,y,o);}
- return {defaults,valid,at,rawAt:(x,y,o)=>rawField(x,y,valid(o)),make,clear:()=>surfaceCache.clear()};
+ return {defaults,valid,at,rawAt:(x,y,o)=>rawField(x,y,valid(o)),make,
+  geographyHeight:(x,y,opts)=>geoHeight(x,y,valid(opts)),clear:()=>surfaceCache.clear()};
 })();
