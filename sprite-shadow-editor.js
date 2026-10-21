@@ -57,6 +57,9 @@ window.VedrasSpriteShadows=(()=>{
   return {...current.global,...(current.profiles[path]||{})};
  }
  function draw(ctx,obj,p,width,silhouette,anchor={x:.5,y:.96},strength=null){
+  // Mountains own their native large 2.5D ground projection. No generic
+  // silhouette/contact cast may supplement it, even in old legacy placements.
+  if(obj?.type==='mountain'||obj?.natureMeta?.kind==='mountain')return;
   if(!silhouette?.canvas||!(width>0))return;
   const x=profile(obj.asset),family=obj.natureMeta?.family,
     log=family==='fallen_logs'||family==='snow_fallen_logs',
@@ -106,6 +109,9 @@ window.addEventListener('DOMContentLoaded',()=>{
  };
  const text=s=>{$('ssStatus').textContent=s;};
  const asset=()=>visible[cursor]||null;
+ const isMountainAsset=a=>a?.category==='nature'&&
+  (window.VedrasNature?.entryFor(a)?.kind==='mountain'||
+   core.state.mountainInstances?.some(m=>m.assetPath===a.path));
  const labelFor=a=>a?.category==='nature'?'Natur':a?.category==='buildings'?'Gebäude':'Einheiten';
  const numeric=(id)=>Number($(id).value);
  function list(){
@@ -153,13 +159,13 @@ window.addEventListener('DOMContentLoaded',()=>{
    g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
    shape={canvas:cv,aspect};
   }
-  if(kind==='mountain'){
-   const sh=window.VedrasShadows,pf=Engine.profile(a);
-   const mountainCfg=sh.settings({angle:pf.angle,opacity:pf.enabled===false?0:pf.opacity,
-    length:pf.length,softness:pf.softness,originX:pf.offsetX,originY:pf.offsetY,
-    rootWidth:pf.width*.43,midWidth:pf.width*.34,tipWidth:pf.width*.18,
-    contactWidth:pf.contact*.72});
-   sh.paintMountain(ctx,{x:p.x-w*.14,y:p.y+w*.02},w,mountainCfg,Engine.get().global.strength);
+  if(isMountainAsset(a)){
+   // Preview uses the mountain section (default -> asset -> instance).
+   const sh=window.VedrasShadows;
+   const mountainCfg=core.shadowSprites?.mountainSettingsForAsset?.(a)||
+    sh.settings(core.state.mountainShadowDefaults||{});
+   sh.paintMountain(ctx,{x:p.x-w*.14,y:p.y+w*.02},w,
+    mountainCfg,core.state.shadowGlobal);
   }else Engine.draw(ctx,{asset:a,natureMeta:meta},p,w,shape,anchor,Engine.get().global.strength);
   ctx.save();
   ctx.translate(p.x,p.y);
@@ -178,7 +184,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('ssIndex').textContent=visible.length?(cursor+1)+' / '+visible.length:'0 / 0';
   $('ssPrevious').disabled=cursor===0;
   $('ssNext').disabled=cursor>=visible.length-1;
-  $('ssOverride').textContent=a&&Engine.get().profiles[a.path]?'Individuell angepasst':'Gemeinsamer Standard';
+  const mountain=isMountainAsset(a);
+  $('ssOverride').textContent=mountain?'Bergsektion hat Vorrang':
+   a&&Engine.get().profiles[a.path]?'Individuell angepasst':'Gemeinsamer Standard';
+  $('ssMountainNotice').hidden=!mountain;
+  $('ssSpriteDetails').hidden=mountain;
   const p=a?Engine.profile(a):Engine.get().global;
   for(const k of inputs.sprite)setRange('ssSprite_',k,p[k]);
   $('ssEnabled').checked=a?Engine.get().profiles[a.path]?.enabled!==false:true;
@@ -205,7 +215,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   refresh();modified();
  }
  function updateSprite(field,v){
-  const a=asset();if(!a)return;
+  const a=asset();if(!a||isMountainAsset(a))return;
   const data=Engine.get(),next={...data,profiles:{...data.profiles,
    [a.path]:{...(data.profiles[a.path]||{}),[field]:v}}};
   Engine.set(next);refresh();modified();
@@ -248,12 +258,12 @@ window.addEventListener('DOMContentLoaded',()=>{
  for(const field of inputs.sprite)$('ssSprite_'+field).addEventListener('input',e=>
   updateSprite(field,Number(e.target.value)));
  $('ssEnabled').addEventListener('change',e=>{
-  const a=asset();if(!a)return;const d=Engine.get();
+  const a=asset();if(!a||isMountainAsset(a))return;const d=Engine.get();
   Engine.set({...d,profiles:{...d.profiles,[a.path]:{...(d.profiles[a.path]||{}),
    enabled:e.target.checked}}});refresh();modified();
  });
  $('ssResetOne').addEventListener('click',()=>{
-  const a=asset();if(!a)return;
+  const a=asset();if(!a||isMountainAsset(a))return;
   const d=Engine.get(),profiles={...d.profiles};delete profiles[a.path];
   Engine.set({...d,profiles});refresh();modified();
  });
@@ -291,6 +301,16 @@ window.addEventListener('DOMContentLoaded',()=>{
  });
  $('ssPrevious').addEventListener('click',()=>{cursor=Math.max(0,cursor-1);refresh()});
  $('ssNext').addEventListener('click',()=>{cursor=Math.min(visible.length-1,cursor+1);refresh()});
+ $('ssOpenMountain').addEventListener('click',()=>{
+  // The right-hand mountain section sits inside a collapsed native drawer.
+  // Use its existing shortcut so the drawer opens before scrolling.
+  if($('shortcutMountain'))$('shortcutMountain').click();
+  else{
+   const drawer=$('drawer_mountainTools');
+   if(drawer)drawer.open=true;
+   (drawer||$('mountainTools'))?.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+ });
  $('ssSearch').addEventListener('input',list);$('ssCategory').addEventListener('change',list);
  window.addEventListener('beforeunload',e=>{
   if(!dirty)return;
@@ -298,6 +318,15 @@ window.addEventListener('DOMContentLoaded',()=>{
  });
  window.addEventListener('vedras:assets-loaded',list);
  window.addEventListener('vedras:shadow-changed',()=>{if(!dirty){allControls();refresh();}});
+ window.addEventListener('vedras:hex-selected',()=>{
+  if(isMountainAsset(asset()))preview();
+ });
+ for(const id of ['mountainCastOpacity','mountainCastSoft','mountainOriginX',
+  'mountainOriginY','mountainAngle','mountainLength','mountainRootWidth',
+  'mountainMidWidth','mountainTipWidth','mountainContactWidth',
+  'mountainContactLength'])$(id)?.addEventListener('input',()=>{
+   if(isMountainAsset(asset()))preview();
+  });
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.
  for(const id of ['shadowGlobalStrength','shadowGeneralStrength'])$(id)?.addEventListener('input',()=>{
   const value=Number($(id).value)/100;

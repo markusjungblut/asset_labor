@@ -58,8 +58,13 @@ assert(app.includes('window.VedrasSpriteShadows.draw(ctx,o'),
  'shared shader must serve buildings and units');
 assert(app.includes('shared.draw(ctx,obj,p'),
  'shared shader must serve Nature and fallen logs');
-assert(app.includes('cfg.angle=tuned.angle'),
- 'mountains must follow the global shadow angle');
+const start=app.indexOf('function mountainShadowSettings(o){');
+const end=app.indexOf('function sceneShadowStrength(){',start);
+const mountainConfig=app.slice(start,end);
+assert(start>=0&&end>start&&!mountainConfig.includes('VedrasSpriteShadows'),
+ 'mountain form and angle come from the dedicated Berg controls, not generic sprite profiles');
+assert(app.includes('shadowLocalMask(width,cfg,strength)'),
+ 'mountain casts still obey one shared 0–200% master intensity');
 assert(server.includes('def validate_sprite_shadows(')&&
  server.includes("'/api/sprite-shadows'"),
  'secure persistent JSON endpoint missing');

@@ -688,18 +688,11 @@ function mountainShadowSettings(o){
  if(Number.isFinite(placed.shadowSpread)&&!Number.isFinite(placed.shadowRootWidth))cfg.rootWidth=.26*placed.shadowSpread/1.28;
  if(Number.isFinite(placed.shadowContact)&&!Number.isFinite(placed.shadowContactWidth))cfg.contactWidth=.16*placed.shadowContact/1.10;
  for(const [k,name] of Object.entries(fields))if(Number.isFinite(placed[name]))cfg[k]=placed[name];
- // Same sun angle/strength as Nature/buildings; retain the specialized
- // mountain silhouette and large ground projection.
- const tuned=window.VedrasSpriteShadows?.profile(o.asset);
- if(tuned){
-  cfg.angle=tuned.angle;cfg.opacity=tuned.enabled===false?0:tuned.opacity;
-  cfg.length=Math.min(1.6,tuned.length);cfg.softness=tuned.softness;
-  cfg.originX=tuned.offsetX;cfg.originY=tuned.offsetY;
-  cfg.rootWidth=Math.max(.07,Math.min(.70,tuned.width*.43));
-  cfg.midWidth=Math.max(.04,Math.min(.60,tuned.width*.34));
-  cfg.tipWidth=Math.max(.03,Math.min(.30,tuned.width*.18));
-  cfg.contactWidth=Math.max(.04,Math.min(.45,tuned.contact*.72));
- }
+ // Mountain-specific settings are AUTHORITATIVE: scene defaults <
+ // mountain asset preset < placed instance. The generic sprite editor must
+ // not override angle, form, opacity or origin for mountain sprites.
+ // The shared 0–200% master strength is applied exactly once in
+ // drawMountainShadows() via sceneShadowStrength().
  return window.VedrasShadows.settings(cfg);
 }
 function sceneShadowStrength(){return window.VedrasShadows.globalStrength(state.shadowGlobal);}
@@ -1796,4 +1789,12 @@ $('geographyImportFile').addEventListener('change',async event=>{
 window.addEventListener('vedras:nature-catalog-changed',()=>renderAssetsList());
 window.addEventListener('vedras:terrain-catalog-changed',terrainTestOptions);
 window.addEventListener('vedras:assets-loaded',()=>{terrainTestOptions();syncTerrainTestUI();});
-window.VedrasAssetLabor={shadowSprites:{bounds:visibleBounds,silhouette:shadowSilhouette},roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
+window.VedrasAssetLabor={shadowSprites:{
+ bounds:visibleBounds,silhouette:shadowSilhouette,
+ // The editor preview resolves the same mountain settings as the map.
+ mountainSettingsForAsset:(asset)=>{
+  const selected=(state.mountainInstances||[]).find(m=>
+   m.assetPath===asset?.path&&key(m.q,m.r)===state.selected);
+  return mountainShadowSettings({asset,mountainInstance:selected||null});
+ }
+},roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
