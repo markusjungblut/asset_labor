@@ -100,8 +100,19 @@
 <button id="nCleanup" class="button outline block">Fehlplatzierungen prüfen und bereinigen (Biome / Flüsse)</button>
 <details id="forestTools" class="forest-tools">
 <summary>Wälder & Dschungel – Vegetationsschicht</summary>
-<p class="muted">Dschungel ist ein eigenes Biom; lichte und dichte Wälder können zusätzlich auf Grasland-, Sumpf-, Warm- und Kälte-Hexen liegen. Angrenzende Hexfelder bekommen abgestuft mehr Bäume. Keine neuen Gelände-PNGs notwendig.</p>
+<p class="muted">Dschungel bleibt ein eigenes Biom. Das Geografie-Labor legt Lage, Klasse und Waldintensität fest. Hier wählst du, wie geschlossen die Baumkronen darüber erscheinen. Original-PNGs und Terrainarten bleiben unverändert.</p>
+<label>Waldgeneration zum A/B-Vergleich<select id="forestMode">
+<option value="classic">Bisherig – lockere Baumverteilung</option>
+<option value="dense">Dichter – mehr Baumgruppen</option>
+<option value="canopy" selected>Geschlossener Wald – Kronendach und Lichtungen</option>
+</select></label>
+<label>Kronenbedeckung – Zielwert im dichten Wald <output id="forestCanopyValue">82 %</output>
+<input id="forestCanopyCover" type="range" min="35" max="98" step="1" value="82"></label>
+<label>Lichtungsanteil im geschlossenen Wald <output id="forestGladeValue">10 %</output>
+<input id="forestGladeRate" type="range" min="0" max="30" step="1" value="10"></label>
+<p class="muted">Die Kronenbedeckung steuert die angestrebte Bestandsfülle, ist kein pixelgenau gemessener Flächenanteil. Nur der Modus „Geschlossener Wald“ erzeugt zusammenhängende Lichtungen. Lichte Waldhexe bleiben luftiger; Geo-`forestDensity` und manuelle Waldklassen bleiben erhalten.</p>
 <label class="checkbox"><input type="checkbox" id="forestEnabled" checked> Zusammenhängende Waldflächen generieren</label>
+<p class="muted">Waldanteil beeinflusst vor allem Demo-/Zufallswälder; bei importierten Geografie-Karten bleibt deren festgelegter Waldanteil maßgeblich.</p>
 <label>Waldanteil <output id="forestCoverageValue">38 %</output><input type="range" id="forestCoverage" min="0" max="100" step="2" value="38"></label>
 <label>Waldrand-Auslauf <output id="forestEdgeValue">72 %</output><input type="range" id="forestEdge" min="0" max="100" step="2" value="72"></label>
 <label class="checkbox"><input type="checkbox" id="forestDebug"> Waldklassen und Dschungelgrenzen farbig anzeigen</label>
@@ -304,5 +315,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.32.0"></script><script src="forest-ground.js?v=0.22.0"></script><script src="nature-balance.js?v=0.32.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.34.3"></script><script src="app.js?v=0.35.0"></script><script src="nature-ui.js?v=0.33.1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.18.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.36.0"></script><script src="forest-ground.js?v=0.36.0"></script><script src="nature-balance.js?v=0.36.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.34.3"></script><script src="app.js?v=0.36.0"></script><script src="nature-ui.js?v=0.36.0"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
