@@ -55,7 +55,7 @@ assert(ui.includes("forestClass==='dense_forest'?.72"),
  'forest spacing must permit a fuller canopy');
 assert(chunks.includes('ctx.rect(t.x-bleed,t.y-bleed,size+2*bleed,size+2*bleed)'),
  'terrain chunks need a sampling-safe overlap');
-assert(html.includes('app.js?v=0.32.0')&&html.includes('nature-ui.js?v=0.32.0'),
+assert(/app\.js\?v=[0-9.]+/.test(html)&&/nature-ui\.js\?v=[0-9.]+/.test(html),
  'cache-busting protects local START_WINDOWS installs');
 // Exercise the actual mountain placement helper with two neighboring
 // geography mountain cells. No PNGs or server catalog writes are required.
