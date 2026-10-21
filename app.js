@@ -368,7 +368,7 @@ function drawGround(){
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  const fallback=baseImage();const selected=worldCells.map(c=>imageForBiome(c)||fallback);
  const selectedMap=new Map(worldCells.map((c,i)=>[key(c.q,c.r),selected[i]]));
- const signature=JSON.stringify({cells:worldCells.map((c,i)=>[c.q,c.r,c.biome,selected[i]?.path,selected[i]?.mtime]),
+ const signature=JSON.stringify({cells:worldCells.map((c,i)=>[c.q,c.r,c.biome,effectiveBiome(c),selected[i]?.path,selected[i]?.mtime]),
   scales:state.materialScales,polish:state.visualPolish.terrain,
   blend:state.edgeBlend,variants:state.blendVariants,waterSampling:state.waterSampling,width:state.edgeWidth,
   irregularity:state.edgeIrregularity,cornerBlend:state.cornerBlend,catalog:catalog.assets,types:catalog.terrainTypes});
