@@ -15,7 +15,7 @@ window.VedrasForest=(()=>{
  const jungleAllowed=base=>['jungle','savanna'].includes(base);
  const defaults=()=>({enabled:true,seed:12345,coverage:0.38,edgeStrength:0.72,
   mode:'canopy',canopyCover:.82,gladeRate:.10,debug:false,
-  overrides:{},densityOverrides:{},jungleHexes:{}});
+  overrides:{},densityOverrides:{},geographyHexes:{},jungleHexes:{}});
  function valid(raw){
   const d=defaults(),v=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const numeric=(n,fallback,min,max)=>Number.isFinite(Number(n))?clamp(Number(n),min,max):fallback;
@@ -27,6 +27,10 @@ window.VedrasForest=(()=>{
   for(const [k,value] of Object.entries(v.densityOverrides&&typeof v.densityOverrides==='object'&&!Array.isArray(v.densityOverrides)?v.densityOverrides:{})){
    if(validKey(k)&&Number.isFinite(Number(value)))densityOverrides[k]=clamp(Number(value),0,1);
   }
+  const geographyHexes={};
+  for(const [k,value] of Object.entries(v.geographyHexes&&typeof v.geographyHexes==='object'&&!Array.isArray(v.geographyHexes)?v.geographyHexes:{})){
+   if(validKey(k)&&value===true)geographyHexes[k]=true;
+  }
   const jungleHexes={};
   for(const [k,value] of Object.entries(v.jungleHexes&&typeof v.jungleHexes==='object'&&!Array.isArray(v.jungleHexes)?v.jungleHexes:{})){
    if(validKey(k)&&value===true)jungleHexes[k]=true;
@@ -36,7 +40,7 @@ window.VedrasForest=(()=>{
    mode:['classic','dense','canopy'].includes(v.mode)?v.mode:d.mode,
    canopyCover:numeric(v.canopyCover,d.canopyCover,.35,.98),
    gladeRate:numeric(v.gladeRate,d.gladeRate,0,.30),
-   debug:v.debug===true,overrides,densityOverrides,jungleHexes};
+   debug:v.debug===true,overrides,densityOverrides,geographyHexes,jungleHexes};
  }
  function suitability(terrainType,c,biome){
   if(terrainType?.materialClass==='water'||terrainType?.materialClass==='shoreline')return 0;
@@ -113,7 +117,7 @@ window.VedrasForest=(()=>{
   // a manually forced dense hex is not turned into a clearing.
   if(options.enabled&&options.mode==='canopy'&&options.gladeRate>0){
    const dense=info.filter(c=>c.forestClass==='dense_forest'&&!c.jungle&&
-    !options.overrides[c.key]);
+    (!options.overrides[c.key]||options.geographyHexes[c.key]===true));
    const interior=dense.filter(c=>DIRS.filter(([dq,dr])=>
     byKey.get(key(c.q+dq,c.r+dr))?.forestClass==='dense_forest').length>=2);
    const pool=(interior.length?interior:dense).sort((a,b)=>
@@ -128,7 +132,7 @@ window.VedrasForest=(()=>{
     c.glade=true;
     const neighbors=DIRS.map(([dq,dr])=>byKey.get(key(c.q+dq,c.r+dr)))
      .filter(v=>v&&v.forestClass==='dense_forest'&&!v.jungle&&
-      !options.overrides[v.key])
+      (!options.overrides[v.key]||options.geographyHexes[v.key]===true))
      .sort((a,b)=>random(options.seed,a.q,a.r,1953)-
       random(options.seed,b.q,b.r,1953));
     if(neighbors.length&&random(options.seed,c.q,c.r,1954)<.84)
