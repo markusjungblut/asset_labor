@@ -69,6 +69,10 @@ assert(!eligible(old,'snowfields'));
 const oldMountain=make('berg_01.png');
 assert(eligible(oldMountain,'snowfields'),'existing cold mountain rules survive');
 const ui=get('nature-ui.js');
+assert(ui.includes("if(existing?.group==='ice_block')"),
+ 'explicit iceblock metadata must override older broad sprite-plan information');
+assert(ui.includes("const proposed=existing?.group==='ice_block'?"),
+ 'batch-import path must also prioritize no-highland ice rules');
 assert(ui.includes('N.mountainAllowed(entryFor(a),terrain,terrainRegistry(),catalog)'),
  'automatic mountain spawning must honor terrain');
 assert(ui.includes('if(!startCell||!N.mountainAllowed'),
