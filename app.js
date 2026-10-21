@@ -288,8 +288,8 @@ function drawForestFloor(){
  const signature=JSON.stringify({
   asset:[asset.path,asset.mtime,asset.img.naturalWidth,asset.img.naturalHeight],
   size:textureSize,resolution:Math.round(resolution*10)/10,
-  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.jungle,c.baseBiome,c.ground,c.categoryId]),
-  version:'region-mask-v1'
+  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.jungle,c.baseBiome,c.ground,c.categoryId]),
+  version:'region-mask-glades-v2'
  });
  if(forestFloorRasterCache.signature!==signature){
   const start=performance.now();
