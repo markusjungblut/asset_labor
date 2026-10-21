@@ -7,7 +7,7 @@
  // Separate mountain tools from Nature generation. Editing and mountain tools are independent workflows.
  const mountain=$('mountainTools'),natureTools=$('natureLabTools');
  if(mountain&&natureTools)natureTools.after(mountain);
- const captions={natureLabTools:'Natur auf Karte verteilen',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',};
+ const captions={natureLabTools:'Natur auf Karte verteilen',spriteShadowLab:'Schatten-Editor: alle Sprites',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',};
  // Set up native accessible disclosure containers, no reimplementation of existing event handlers.
  function accordion(element,open){
   const wrap=document.createElement('details');wrap.className='lab-accordion';wrap.id='drawer_'+element.id;wrap.open=!!open;
@@ -15,7 +15,7 @@
   element.before(wrap);wrap.append(head,element);element.querySelector('h3')?.classList.add('visually-hidden');
   return wrap;
  }
- for(const id of ['natureLabTools','mountainTools','terrainTests','reliefPanel','shorelinePanel']){const el=$(id);if(el)accordion(el,id==='natureLabTools');}
+ for(const id of ['natureLabTools','spriteShadowLab','mountainTools','terrainTests','reliefPanel','shorelinePanel']){const el=$(id);if(el)accordion(el,id==='natureLabTools');}
  for(const section of [...inspector.children].filter(x=>x.classList?.contains('control-section')&&x.id!=='natureInspector'&&x.id!=='assetTerrainTypeRow'))accordion(section,false);
  // Divide long metadata form into three independently collapsible groups.
  const form=$('natureInspector')?.querySelector('.nature-form');
@@ -30,7 +30,7 @@
  }
  // Sticky quick actions are always one click away, rather than buried after metadata.
  const shortcuts=document.createElement('nav');shortcuts.className='inspector-shortcuts';shortcuts.setAttribute('aria-label','Schnellzugriff');
- shortcuts.innerHTML='<button type="button" id="shortcutGeography">Geografie-Labor</button><button type="button" id="shortcutGeographyImport">Geografie-JSON importieren</button><button type="button" id="shortcutNature">Natur verteilen</button><button type="button" id="shortcutMountain">Berge</button><button type="button" id="shortcutMap">Testkarte</button>';
+ shortcuts.innerHTML='<button type="button" id="shortcutGeography">Geografie-Labor</button><button type="button" id="shortcutGeographyImport">Geografie-JSON importieren</button><button type="button" id="shortcutNature">Natur verteilen</button><button type="button" id="shortcutMountain">Berge</button><button type="button" id="shortcutShadows">Schatten</button><button type="button" id="shortcutMap">Testkarte</button>';
  inspector.querySelector('.paneheader')?.after(shortcuts);
  function openDrawer(id){const drawer=$('drawer_'+id);if(drawer)drawer.open=true;drawer?.scrollIntoView({behavior:'smooth',block:'start'});}
  const populate=()=>{openDrawer('natureLabTools');$('nPopulate')?.click();};
@@ -41,6 +41,7 @@
   $('shortcutGeographyImport')?.addEventListener('click',()=>$('geographyImport')?.click());
  const openMountain=()=>openDrawer('mountainTools');
  $('quickMountains')?.addEventListener('click',openMountain);$('shortcutMountain')?.addEventListener('click',openMountain);
+ $('shortcutShadows')?.addEventListener('click',()=>openDrawer('spriteShadowLab'));
  $('quick37')?.addEventListener('click',()=>{$('sceneSize').value='37';$('sceneSize').dispatchEvent(new Event('change',{bubbles:true}));});
  $('shortcutMap')?.addEventListener('click',()=>openDrawer('terrainTests'));
  // Planned sprite library; explicit filenames and catalog defaults, no user record overwritten.
