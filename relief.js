@@ -70,7 +70,9 @@ window.VedrasRelief = (()=>{
    const strength=h.strength;
    volume+=w*(.38+.62*strength);
   }
-  return 67*(o.strength/100)*Math.min(1.28,volume*.74);
+  // Asymptotic blend, not a hard cap: even extensive hill regions
+  // retain readable changes in slope, unlike a flat saturated plateau.
+  return 67*(o.strength/100)*1.2*(1-Math.exp(-volume*.55));
  }
  function containsGeographyHills(raster,o){
   const hills=o.geoHills||[];
