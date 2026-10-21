@@ -42,6 +42,7 @@ window.VedrasExistingAssets = (() => {
  const habitat = {
    stones:[['cold_regions','grass_pasture','arid_regions','warm_regions','wetlands'],.12,24],
    snow_bushes:[['cold_regions'],.18,35],
+   ice_blocks:[['cold_regions'],.11,44],
   savanna_trees:[['warm_regions','arid_regions'],.07,130],
   deciduous_trees:[['grass_pasture','wetlands','cold_regions'],.14,90],
   heath:[['cold_regions','grass_pasture'],.25,26],
@@ -75,11 +76,30 @@ window.VedrasExistingAssets = (() => {
   const base = stem(asset.name);
   const boulder=/^boulder[_ -]?(\d+)$/.exec(base);
   if(boulder){
-   const number=Number(boulder[1]),winter=number>=21&&number<=30;
+   const number=Number(boulder[1]),winter=number>=21&&number<=35,
+    hot=number>=36&&number<=44;
    return {id:'boulder_'+String(number).padStart(2,'0'),
-    name:(winter?'Kalter Findling ':'Findling ')+number,
+    name:(winter?'Kalter Findling ':hot?'Warmer Findling ':'Findling ')+number,
     family:'stones',kind:'rock',sizeClass:'large',
-    confirmedSpecies:false,group:winter?'winter_boulder':'boulder'};
+    confirmedSpecies:false,group:winter?'winter_boulder':hot?'warm_boulder':'boulder'};
+  }
+  const iceBlock=/^(?:eis[_ -]?block|ice[_ -]?block)[_ -]?(\d+)$/.exec(base);
+  if(iceBlock&&Number(iceBlock[1])>=1&&Number(iceBlock[1])<=5)return {
+   id:'ice_block_'+String(Number(iceBlock[1])).padStart(2,'0'),
+   name:'Eisblock '+Number(iceBlock[1]),family:'ice_blocks',kind:'rock',
+   sizeClass:'medium',confirmedSpecies:true,group:'ice_block'};
+  const stump=/^baumstumpf_?(\d+)$/.exec(base);
+  if(stump&&Number(stump[1])>=16&&Number(stump[1])<=20)return {
+   id:'existing_baumstumpf_'+String(Number(stump[1])).padStart(2,'0'),
+   name:'Baumstumpf',family:'deadwood',kind:'special',sizeClass:'medium',
+   confirmedSpecies:true,group:'temperate_stump'};
+  const mountain=/^berg_(\d+)$/.exec(base);
+  if(mountain&&Number(mountain[1])>=14&&Number(mountain[1])<=21){
+   const n=Number(mountain[1]);
+   return {id:'existing_berg_'+String(n).padStart(2,'0'),
+    name:n<=16?'Schneefeldberg':'Berg für gemäßigte Landschaften',
+    family:'mountains',kind:'mountain',sizeClass:'giant',
+    confirmedSpecies:false,group:n<=16?'snowfields_mountain':'temperate_mountain'};
   }
   const snowyBush=/^snowy[_ -]?bush(?:[_ -]?(\d+))?$/.exec(base);
   if(snowyBush)return {
@@ -149,8 +169,19 @@ window.VedrasExistingAssets = (() => {
    fallen_logs:['grassland','pasture','sparse_pasture','forest_floor','hilly_ground','highland','tundra','swamp','marshland','moor','savanna','jungle'],
    ferns:['forest_floor','grassland','pasture','moor','swamp','marshland','jungle']
   };
-  const winterOnly=info.group==='winter_boulder'||info.family==='snow_bushes';
   const winterBiomes=['snowfields','frozen_tundra','tundra','highland'];
+  const warmBiomes=['savanna','jungle','rocky_desert','sandy_desert',
+   'clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert',
+   'sandy_badlands','rocky_badlands','desert'];
+  const temperateBiomes=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
+  const specialTypes=info.group==='winter_boulder'?winterBiomes:
+   info.group==='warm_boulder'?warmBiomes:
+   info.group==='temperate_stump'?
+     ['grassland','pasture','sparse_pasture','savanna','jungle','moor','marshland','swamp']:
+   info.group==='snowfields_mountain'?['snowfields']:
+   info.group==='temperate_mountain'?temperateBiomes:
+   info.group==='ice_block'?['snowfields','frozen_tundra','tundra']:
+   info.family==='snow_bushes'?winterBiomes:null;
   const groundWood=['deadwood','fallen_logs','snow_fallen_logs'].includes(info.family);
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
@@ -160,7 +191,7 @@ window.VedrasExistingAssets = (() => {
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
    shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
-   terrainPresetId:'',allowedTerrainCategories:winterOnly?[]:(preciseTypes[info.family]||['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories),allowedTerrainTypes:winterOnly?winterBiomes:(preciseTypes[info.family]||(info.group==='kapok'?['jungle']:(restrict[info.family]||[]))),excludedTerrainTypes:info.family==='deadwood'?['snowfields','frozen_tundra']:[],
+   terrainPresetId:'',allowedTerrainCategories:specialTypes?[]:(preciseTypes[info.family]||['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories),allowedTerrainTypes:specialTypes||(preciseTypes[info.family]||(info.group==='kapok'?['jungle']:(restrict[info.family]||[]))),excludedTerrainTypes:info.group==='temperate_stump'?winterBiomes:(info.family==='deadwood'?['snowfields','frozen_tundra']:[]),
    placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
