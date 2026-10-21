@@ -1703,7 +1703,7 @@ function importGeographyWorld(world){
   cq=(world.originQ??0)+Math.floor(world.width/2),
   cr=(world.originR??0)+Math.floor(world.height/2);
  const byPosition=new Map(world.cells.map(c=>[key(c.q,c.r),c]));
- const next=[],forestOverrides={},densityOverrides={},jungleHexes={};
+ const next=[],forestOverrides={},densityOverrides={},geographyHexes={},jungleHexes={};
  for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
   if(Math.abs(q+r)>radius)continue;
   const source=byPosition.get(key(q+cq,r+cr));
@@ -1721,6 +1721,7 @@ function importGeographyWorld(world){
   next.push(item);
   if(source.forestClass==='light_forest'||source.forestClass==='dense_forest'){
    forestOverrides[key(q,r)]=source.forestClass;
+   geographyHexes[key(q,r)]=true;
    // Preserve the numeric density as well as the broad forest class.
    if(Number.isFinite(source.forestDensity))
     densityOverrides[key(q,r)]=source.forestDensity;
@@ -1735,7 +1736,7 @@ function importGeographyWorld(world){
  state.hexObject={};state.hexShadow={};state.natureInstances=[];state.mountainInstances=[];
  state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;
  state.forest=window.VedrasForest.valid({...window.VedrasForest.defaults(),
-  enabled:true,seed:state.natureSeed,overrides:forestOverrides,densityOverrides,jungleHexes});
+  enabled:true,seed:state.natureSeed,overrides:forestOverrides,densityOverrides,geographyHexes,jungleHexes});
  const view=new Set(next.map(c=>key(c.q,c.r)));
  const candidateRoutes=(world.riverPaths||[]).map(path=>({
   hexes:path.map(([q,r])=>[q-cq,r-cr])
