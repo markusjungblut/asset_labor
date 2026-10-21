@@ -1664,7 +1664,7 @@ $('reliefBuildingTest').addEventListener('click',()=>{
  state.sceneSize=19;$('sceneSize').value='19';assignBiomes();
  const selected=assets.filter(isTerrainValid).find(a=>typeOfAsset(a)==='grassland')||assets.find(isTerrainValid);
  state.hexTerrain={};if(selected)for(const c of worldCells)state.hexTerrain[key(c.q,c.r)]=selected.path;
- state.relief={...state.relief,enabled:true,profile:'steep',strength:95,center:'0,0',connected:true,padBuildings:true};
+ state.relief={...state.relief,mode:'legacy',enabled:true,profile:'steep',strength:95,center:'0,0',connected:true,padBuildings:true};
  state.objects=true;state.river=false;state.showLegacyNature=false;$('objectsToggle').checked=true;$('riverToggle').checked=false;$('nShowDemo').checked=false;
  invalidateTerrain();state.panX=0;state.panY=0;setView('map');applyZoom(.85);reliefChange();
 });
@@ -1675,7 +1675,7 @@ $('reliefGrassTest').addEventListener('click',()=>{
  state.objects=true;state.river=false;state.grid=false;
  $('objectsToggle').checked=true;$('riverToggle').checked=false;$('gridToggle').checked=false;
  state.showLegacyNature=true;$('nShowDemo').checked=true;
- state.relief={...state.relief,center:'0,0',enabled:true,profile:'rounded',strength:85,connected:true};
+ state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'rounded',strength:85,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('reliefBiomesTest').addEventListener('click',()=>{
  state.sceneSize=19;$('sceneSize').value='19';assignBiomes();state.hexTerrain={};
@@ -1685,7 +1685,7 @@ $('reliefBiomesTest').addEventListener('click',()=>{
  state.objects=true;state.river=false;state.grid=false;state.edgeBlend=true;
  $('objectsToggle').checked=true;$('riverToggle').checked=false;$('gridToggle').checked=false;$('edgeBlendToggle').checked=true;
  state.showLegacyNature=true;$('nShowDemo').checked=true;
- state.relief={...state.relief,center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
+ state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('objectsToggle').checked=state.objects;
 restoreScene();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes(true);reloadFromServer();
