@@ -1,3 +1,11 @@
+## v0.12.3 – Bergschatten haben Vorrang vor generischen Sprite-Schatten (21.10.2026)
+
+Bergsprites benutzen ausschließlich den spezialisierten Bergschatten-Renderer. Der allgemeine Sprite-Schatten-Editor zeichnet bei Bergobjekten keine zusätzliche Silhouette/Kontaktellipse und überschreibt nicht mehr die Werte von mountainShadowSettings(). **Priorität:** Berg-Standardwerte → optionales Berggrafik-Preset → einzelne platzierte Berginstanz. Die gemeinsame globale Schattenstärke von 0–200 % bleibt erhalten und wirkt einmal auf die Bergprojektion.
+
+Bei Auswahl eines Bergsprites im Schatten-Editor werden generische individuelle Regler verborgen. Die Schaltfläche **„Bergschatten einstellen“** öffnet die maßgebliche Sektion **Große Berge → Form und Ursprung**, selbst wenn sie zugeklappt ist. Die Bergvorschau verwendet dieselbe Bergkonfiguration wie die Karte. Vorherige generische Bergprofile im separaten Schatten-JSON bleiben erhalten, werden aber bei Bergobjekten ignoriert (kein destruktiver Katalogeingriff). Original-PNGs, Nature-Kataloge und Instanzwerte werden nicht verändert.
+
+Regressionen: tests/test_mountain_shadow_priority_20261021.cjs, tests/test_sprite_shadow_editor_20261021.cjs und tests/test_mountain_sprite_cast_20261020.cjs bestanden in isolierter JavaScript-Ausführung. Visuelle Kontrolle im Browser mit mehreren benachbarten Bergen ist weiterhin empfohlen.
+
 ## v0.12.2 – Neue Waldgeneration mit Kronenziel und Lichtungen (21.10.2026)
 
 **Bedienung:** Im Asset-Labor **Wälder & Dschungel – Vegetationsschicht** öffnen. **Waldgeneration zum A/B-Vergleich** bietet drei Stufen: **Bisherig** (unveränderte historische Grundquote), **Dichter** (mehr Bäume/Gruppen) und **Geschlossener Wald** (Standard; sehr dichte Waldkerne mit überlappenden Baumkronen und kleinen zusammenhängenden Lichtungen). **Kronenbedeckung – Zielwert** regelt die angestrebte Dichte im geschlossenen Bestand (Standard 82 %; Näherung aus gerenderter Baumkronenbreite, **keine pixelgenaue Deckungsmessung**). **Lichtungsanteil** regelt kleine, deterministische Gladen im geschlossenen Bestand (Standard 10 %; statistischer Zielwert, nicht je Hex erzwungen). Nach jeder Auswahl wird **Natur verteilen** für die Testszene erneut berechnet. Waldränder und lichte Wälder bleiben abgestuft offener als Waldkerne.
