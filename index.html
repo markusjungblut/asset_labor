@@ -151,7 +151,13 @@
 <label class="ss-range">Bodenkontakt / Grundschatten <output id="ssGlobal_contactValue">0.21</output><input type="range" id="ssGlobal_contact" min="0" max="0.7" step="0.01" value="0.21"></label>
 <label class="ss-range">Globale Stärke (0–200 %) <output id="ssGlobal_strengthValue">68 %</output><input type="range" id="ssGlobal_strength" min="0" max="2" step=".01" value=".68"></label>
 </details>
-<details class="shadow-editor-details" open><summary>Ausgewählte Grafik feinjustieren</summary>
+<div id="ssMountainNotice" class="infobox" hidden>
+<strong>Bergschatten: eigene Regelung hat Vorrang.</strong>
+Diese Grafik nutzt ausschließlich die Einstellungen unter <strong>Große Berge → Form und Ursprung</strong>.
+Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globale Stärke (0–200 %) gilt weiterhin für alle.
+<button id="ssOpenMountain" class="button outline block" type="button">Bergschatten einstellen</button>
+</div>
+<details class="shadow-editor-details" id="ssSpriteDetails" open><summary>Ausgewählte Grafik feinjustieren</summary>
 <p class="muted">Ändert nur das gewählte Sprite. Grün markierte Bodenkante und gelbes Kreuz zeigen den Anker der Grafik.</p>
 <label class="checkbox"><input type="checkbox" id="ssEnabled" checked> Schatten für diese Grafik aktivieren</label>
 <label class="ss-range">Lichtrichtung · alle Schatten nach links (Grad) <output id="ssSprite_angleValue">160</output><input type="range" id="ssSprite_angle" min="105" max="215" step="1" value="160"></label>
@@ -176,8 +182,8 @@
 <label>Platzierungsmodus<select id="mountainMode"><option value="single">Einzelberg – Abstand zu anderen Bergen</option><option value="chain">Bergkette – gemeinsame Einflusszone</option></select></label>
 <label>Bergketten-ID <input id="mountainChainId" maxlength="50" value="alpen_01" placeholder="z. B. nordkette_01"></label>
 <label>Kettenabstand<select id="mountainSpacing"><option value="tight">Eng – mehr Überdeckung</option><option value="normal" selected>Normal – ausgeglichen</option><option value="wide">Weit – wenig Überdeckung</option></select></label>
-<div class="mountain-shadow-controls"><strong>Bisherige Berg-Schattenparameter (Kompatibilität)</strong>
-<p class="muted">Die neue gemeinsame Richtung, Stärke und individuelle Grafikprofile stellst du oben im <strong>Schatten-Editor</strong> ein. Diese älteren Regler bleiben für gespeicherte Szenen erhalten, werden aber bei aktivierter einheitlicher Schattenlogik übersteuert.</p>
+<div class="mountain-shadow-controls"><strong>Maßgebliche Bergschatten-Einstellungen</strong>
+<p class="muted">Berge verwenden ausschließlich die hier festgelegte Schattenform, Richtung, Weichheit und relative Intensität. Einstellungen des generischen Sprite-Schatten-Editors überschreiben diese Werte nicht. Nur die gemeinsame globale Stärke von 0–200 % beeinflusst weiterhin alle Objekte.</p>
 <p class="muted">Licht von rechts oben. Die globale Stärke gilt für ALLE Bodenschatten; Objektregler verändern ausschließlich die Geometrie und die relative Stärke. Alle Werte werden in Szenen gespeichert.</p>
 <label>Globale Schattenstärke <output id="shadowGlobalText">68 %</output><input id="shadowGlobalStrength" type="range" min="0" max="200" step="1" value="68"></label>
 <p class="muted">Über 100 % werden Berg-, Baum- und Gebäudeschatten sichtbar dunkler. Gilt auch für bereits platzierte Objekte.</p>
@@ -315,5 +321,5 @@
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.36.0"></script><script src="forest-ground.js?v=0.36.0"></script><script src="nature-balance.js?v=0.36.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.34.3"></script><script src="app.js?v=0.36.0"></script><script src="nature-ui.js?v=0.36.0"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="autotile.js?v=0.30.0"></script><script src="chunks.js?v=0.32.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.36.0"></script><script src="forest-ground.js?v=0.36.0"></script><script src="nature-balance.js?v=0.36.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.29.0"></script><script src="river.js?v=0.28.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.36.2"></script><script src="app.js?v=0.36.2"></script><script src="nature-ui.js?v=0.36.0"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.14.1"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
