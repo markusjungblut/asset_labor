@@ -66,3 +66,30 @@ test('397-hex world uses a small set of visible chunks and caches completed tile
  assert.equal(engine.stats().painted,small.length);
  assert.ok(engine.stats().cacheHits>=small.length);
 });
+
+test('single local edit rebuilds only the stamped viewport chunk',()=>{
+ const sandbox={window:{},performance:{now:()=>0},
+  requestIdleCallback:task=>task(),console:{error:()=>{}}};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'chunks.js'),'utf8'),sandbox);
+ const C=sandbox.window.VedrasChunks;
+ const cells=[];for(let r=-4;r<=4;r++)for(let q=-4;q<=4;q++)
+  if(Math.abs(q+r)<=4)cells.push({q,r});
+ const bounds={x:-300,y:-300,width:600,height:600};
+ const tiles=C.visible(bounds,cells);
+ assert.ok(tiles.length>1);
+ const changed=tiles[0].id;
+ let revision=0,builds=0;
+ const engine=C.create({size:512,maxTiles:20,maxPixels:1000000});
+ engine.configure('same-global-materials',{worldCells:cells,
+  stampTile:tile=>tile.id===changed?'local-revision-'+revision:'unchanged',
+  buildTile:tile=>{builds++;return {raster:{
+   canvas:{width:64,height:64},x:tile.x,y:tile.y,width:512,height:512
+  }};},redraw:()=>{}});
+ const ctx={save(){},beginPath(){},rect(){},clip(){},restore(){}};
+ engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
+ assert.equal(builds,tiles.length);
+ revision=1;
+ engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
+ assert.equal(builds,tiles.length+1);
+ assert.equal(engine.stats().painted,tiles.length);
+});
