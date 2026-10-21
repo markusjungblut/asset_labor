@@ -234,7 +234,13 @@ window.VedrasNature=(()=>{
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
    if(near.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));
-    const spacing=Math.max(spacingFactor<.6?10:14,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor*areaScale);
+    // Canopies may overlap, but trunks must still keep distance from rocks,
+    // buildings, deadwood and other non-canopy objects.
+    const canopyPair=window.VedrasNatureBalance.isCanopy(meta)&&
+      window.VedrasNatureBalance.isCanopy(other);
+    const pairFactor=canopyPair?spacingFactor:Math.max(.85,spacingFactor);
+    const spacing=Math.max(canopyPair&&pairFactor<.6?10:14,
+      Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*pairFactor*areaScale);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
    return {assetPath:a.path,assetId:meta.id,q,r,dx:Math.round(dx*100)/100,dy:Math.round(dy*100)/100,scale:Math.round(scale*1000)/1000};
   }return null;
