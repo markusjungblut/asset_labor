@@ -105,6 +105,21 @@ function assignBiomes(restoreGeography=false){
 function useAsset(path){return assetByPath.get(path)||null;}
 function allAssets(){return assets.filter(a=>a.img&&a.img.complete&&a.img.naturalWidth>0);}
 function findAsset(category,stem){return assets.find(a=>a.category===category&&(a.name===stem||a.name.startsWith(stem)))||null;}
+// Group validated source textures once per library/catalog revision. Hundreds of
+// asset scans per map frame otherwise scale with cells × library size.
+let terrainAssetGroups=null;
+function terrainAssetsByType(type){
+ if(!terrainAssetGroups){
+  terrainAssetGroups=new Map();
+  for(const asset of assets){
+   if(!isTerrainValid(asset))continue;
+   const id=typeOfAsset(asset);if(!id)continue;
+   if(!terrainAssetGroups.has(id))terrainAssetGroups.set(id,[]);
+   terrainAssetGroups.get(id).push(asset);
+  }
+ }
+ return terrainAssetGroups.get(type)||[];
+}
 function imageForBiome(c){
  // Forest-floor PNGs are overlay materials. Never use them as the opaque
  // ground of a moor (or any other base biome), even when painted manually.
@@ -115,14 +130,14 @@ function imageForBiome(c){
  const chosen=state.biomeTerrain[c.biome];
  if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
  const typeId=typeOfCell(c),jungle=typeId==='jungle';
- let matches=assets.filter(a=>isTerrainValid(a)&&typeOfAsset(a)===typeId);
+ let matches=terrainAssetsByType(typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
- if(jungle&&!matches.length)matches=assets.filter(a=>isTerrainValid(a)&&typeOfAsset(a)==='forest_floor');
+ if(jungle&&!matches.length)matches=terrainAssetsByType('forest_floor');
  return matches.length?matches[hash(c.q,c.r,11)%matches.length]:null;
 }
 function effectiveBiome(c){return typeOfCell(c);}
-function baseImage(){const fallback=assets.find(a=>isTerrainValid(a)&&typeOfAsset(a)==='grassland');return fallback||null;}
+function baseImage(){return terrainAssetsByType('grassland')[0]||null;}
 // Asset geometry contract: terrain is a square/rectangular, opaque repeatable MATERIAL.
 // Hex borders are generated only by the renderer. A pre-painted 3D hex is not normalizable automatically.
 const stampCache=new Map();
@@ -204,7 +219,7 @@ function invalidateTerrain(scope='all'){
   reliefRasterCache={signature:null,raster:null,hits:reliefRasterCache.hits,misses:reliefRasterCache.misses};
   reliefFieldCache={signature:null,value:null};window.VedrasRelief.clear();return;
  }
- geographyMaterialTiles.clear();terrainRasterCache={signature:null,raster:null};
+ terrainAssetGroups=null;geographyMaterialTiles.clear();terrainRasterCache={signature:null,raster:null};
  reliefRasterCache={signature:null,raster:null,hits:reliefRasterCache.hits,misses:reliefRasterCache.misses};
  reliefFieldCache={signature:null,value:null};
  terrainChunks.clear();window.VedrasAutotile.clearCache();window.VedrasRelief.clear();
