@@ -1,7 +1,7 @@
 /* Cold-only nature habitat regression.
  * Run: node tests/test_cold_habitat_boulders_bushes_20261020.cjs
  * The four established cold terrains: snowfields, frozen_tundra, tundra,
- * highland. All other terrains must reject boulder_21..30 & snowy_bush.
+ * highland. All other terrains must reject boulder_21..35 & snowy_bush.
  */
 'use strict';
 const assert=require('node:assert/strict');
@@ -19,7 +19,7 @@ const notCold=['grassland','pasture','sparse_pasture','jungle','savanna',
  'badlands','wasteland','semi_desert'];
 const context=(baseBiome,biome=baseBiome)=>({baseBiome,biome,forestClass:'none',neighborTypes:[]});
 const allowed=(meta,biome)=>N.canPlace(meta,context(biome),terrain,catalog);
-for(let number=21;number<=30;number++){
+for(let number=21;number<=35;number++){
  const filename='boulder_'+number+'.png';
  const info=E.classify({category:'nature',name:filename});
  assert(info&&info.group==='winter_boulder','winter classification: '+filename);
@@ -67,7 +67,7 @@ broadBush.allowedTerrainCategories=['grass_pasture','warm_regions'];
 assert(!allowed(broadBush,'grassland'));
 assert(allowed(broadBush,'tundra'));
 // Original stones remain unchanged, including their snowfield exclusion.
-for(const number of [1,20,31]){
+for(const number of [1,20,45]){
  const filename='boulder_'+String(number).padStart(2,'0')+'.png';
  const info=E.classify({category:'nature',name:filename});
  assert(info&&info.group==='boulder');
@@ -76,4 +76,4 @@ for(const number of [1,20,31]){
  for(const biome of ['snowfields','frozen_tundra'])
   assert(!allowed(meta,biome),'ordinary boulder still excluded from '+biome);
 }
-console.log('PASS cold-only boulder_21–30 and snowy_bush; legacy boulders unchanged; existing catalog correct.');
+console.log('PASS cold-only boulder_21–35 and snowy_bush; legacy boulders unchanged; existing catalog correct.');
