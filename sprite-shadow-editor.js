@@ -31,6 +31,7 @@ window.VedrasSpriteShadows=(()=>{
   function numeric(obj,allowStrength){
    if(!obj||Array.isArray(obj)||typeof obj!=='object')throw Error('Ungültige Schattenwerte.');
    for(const [k,v] of Object.entries(obj)){
+    if(k==='enabled'&&!allowStrength&&typeof v==='boolean')continue;
     const rule=fields[k];if(!rule||(k==='strength'&&!allowStrength)||
       typeof v!=='number'||!Number.isFinite(v)||v<rule.min||v>rule.max)
      throw Error('Schattenwert außerhalb des Bereichs: '+k);
