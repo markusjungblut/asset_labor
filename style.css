@@ -105,3 +105,29 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .inspector-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
 #shortcutGeography{background:#376653;border-color:#8dbca1;color:#f0ffe8}
 #openGeography{background:#376653;border-color:#8dbca1;color:#f0ffe8}
+
+/* v0.34: one-light, per-sprite shadow calibration workbench */
+#spriteShadowLab{display:flex;flex-direction:column;gap:9px}
+#spriteShadowLab h3{margin:2px 0 4px}
+#spriteShadowLab p{font-size:11px;line-height:1.5}
+.shadow-editor-search{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shadow-editor-search label{font-size:11px;display:flex;flex-direction:column;gap:5px}
+.shadow-editor-search input,.shadow-editor-search select{width:100%;min-width:0;background:#132c2b;border:1px solid #608476;color:#e6f3e7;padding:7px 5px;border-radius:6px}
+.shadow-editor-current{display:flex;gap:7px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:11px}
+#ssOverride{font-size:10px;color:#b6dab4}
+#ssPreview{width:100%;height:auto;display:block;max-width:400px;border:1px solid #638578;background:#26443c;border-radius:8px;image-rendering:auto}
+.shadow-editor-nav{display:flex;align-items:center;gap:6px;justify-content:space-between;font-size:11px}
+.shadow-editor-nav button{flex:1;min-width:0}
+.shadow-editor-details{border:1px solid #466d5b;border-radius:8px;background:#1b3430;padding:9px 10px}
+.shadow-editor-details>summary{font-size:12px;font-weight:750;color:#d9f3d3;cursor:pointer}
+.shadow-editor-details>p{font-size:10px;color:#b3cdbb}
+.ss-range{display:block;margin:11px 0 6px;font-size:11px}
+.ss-range output{float:right;color:#e0eec8;font-variant-numeric:tabular-nums}
+.ss-range input[type=range]{width:100%;display:block;accent-color:#9cce98;margin-top:6px}
+.shadow-editor-actions{display:flex;gap:6px;flex-wrap:wrap}
+.shadow-editor-actions button{font-size:11px;min-width:0;flex:1;white-space:normal}
+.shadow-editor-file{position:relative;display:flex;align-items:center;justify-content:center;flex:1;min-height:32px;border-radius:5px;background:#284741;color:#e5efdc;border:1px solid #638977;font-size:11px;cursor:pointer;text-align:center}
+.shadow-editor-file input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer}
+#ssStatus{line-height:1.45;font-size:11px}
+#shortcutShadows{background:#375b52;border-color:#9bc9ac;color:#f2fff0}
+@media(max-width:490px){.shadow-editor-search{grid-template-columns:1fr}}
