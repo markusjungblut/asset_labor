@@ -91,5 +91,8 @@ test('single local edit rebuilds only the stamped viewport chunk',()=>{
  revision=1;
  engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
  assert.equal(builds,tiles.length+1);
+ // The first frame enqueues + builds the dirty tile; next frame paints it.
+ engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
+ assert.equal(builds,tiles.length+1);
  assert.equal(engine.stats().painted,tiles.length);
 });
