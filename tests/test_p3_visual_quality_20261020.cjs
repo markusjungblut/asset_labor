@@ -69,7 +69,7 @@ const asset={name:'berg_01.png',category:'nature',path:'assets/nature/berg_01.pn
  img:{naturalWidth:256}};
 const meta={id:'berg_01',family:'mountains',kind:'mountain',
  mountain:{radius:1,coreRadius:0},excludedTerrainTypes:[]};
-const core={cells:()=>scene,effectiveBiome:()=> 'grassland'};
+const core={cells:()=>scene,effectiveBiome:()=> 'grassland',baseBiomeOf:()=> 'grassland'};
 const state={mountainInstances:[],natureInstances:[],hexObject:{},
  mountainShadowDefaults:{},shadowAssetPresets:{}};
 const calls=[];
@@ -78,9 +78,9 @@ const shadowEnv={VedrasMountains:{
  config:()=>({radius:1}),candidate:(...args)=>{calls.push(args);return {ok:true};}
 },VedrasShadows:{settings:()=>({})}};
 const place=new Function('core','state','entryFor','terrainRegistry','random',
- 'mountainGeometry','encodeInstanceShadow','window',helper+';return autoGeoMountains;')
+ 'mountainGeometry','encodeInstanceShadow','window','N',helper+';return autoGeoMountains;')
  (core,state,()=>meta,()=>({terrainTypes:[{id:'grassland',materialClass:'ground'}]}),
- ()=>.2,()=>({width:360,aspect:1}),()=>({}),shadowEnv);
+ ()=>.2,()=>({width:360,aspect:1}),()=>({}),shadowEnv,{mountainAllowed:()=>true});
 const placed=place(123,[asset]);
 assert.equal(placed.placed,2,'both geographic mountain hexes should get mountains');
 assert.equal(state.mountainInstances.length,2);
