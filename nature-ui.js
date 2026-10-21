@@ -10,8 +10,13 @@ window.VedrasNature=(()=>{
  function status(){ const values=Object.values(catalog.entries);if($('nSizeAudit'))$('nSizeAudit').textContent=`${values.filter(e=>e.kind!=='mountain'&&e.sizeMode==='class').length} von ${values.filter(e=>e.kind!=='mountain').length} vorhandenen nicht-Berg-Sprites verwenden bereits die normierte sichtbare Höhe. Bisherige manuelle Breiten bleiben erhalten.`; $('nCatalogState').textContent=`${Object.keys(catalog.entries).length} Sprites · ${Object.keys(catalog.presets||{}).length} Presets · ${dirty?(serverWritable?'Speichern offen':'Export nötig'):(serverWritable?'gespeichert':'nur lokal')}`;}
  const slug=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,55);
  function suggest(a){const m=(a?.meta?.assetType==='nature_sprite'&&a.meta.data)?a.meta.data:(a?.meta||{}),r={...N.template(),...m};r.id=N.idOK(m.id)?m.id:(slug(a.name.replace(/\.[^.]+$/,''))||'asset')+'_01';
+  const existing=window.VedrasExistingAssets?.classify(a);
+  // The older sprite plan still treats ice_block_01 as generic cold_regions
+  // (including highland). The user's explicit 1–5 ice-block habitat wins.
+  if(existing?.group==='ice_block')
+   return window.VedrasExistingAssets.metadata(existing,N.template(),a.name);
   const plan=window.VedrasSpritePlanner?.match(a);if(plan)return window.VedrasSpritePlanner.metadata(plan,N.template());
-  const existing=window.VedrasExistingAssets?.classify(a);if(existing)return window.VedrasExistingAssets.metadata(existing,N.template(),a.name);
+  if(existing)return window.VedrasExistingAssets.metadata(existing,N.template(),a.name);
   // Bei unbenannten PNGs niemals raten: generische, nicht spawnende Kategorie.
   r.family=N.idOK(m.family)?m.family:'unclassified';
   if(!N.kinds.includes(m.kind))r.kind='special';
@@ -662,7 +667,10 @@ window.VedrasNature=(()=>{
      if(!raw?.id||!raw?.kind){
       const plan=window.VedrasSpritePlanner?.match(a);
       const existing=window.VedrasExistingAssets?.classify(a);
-      const proposed=plan?window.VedrasSpritePlanner.metadata(plan,N.template()):existing?window.VedrasExistingAssets.metadata(existing,N.template(),a.name):null;
+      const proposed=existing?.group==='ice_block'?
+       window.VedrasExistingAssets.metadata(existing,N.template(),a.name):
+       plan?window.VedrasSpritePlanner.metadata(plan,N.template()):
+       existing?window.VedrasExistingAssets.metadata(existing,N.template(),a.name):null;
       if(proposed){const trial=structuredClone(catalog);trial.entries[a.relPath]=proposed;
        if(!N.validate(trial,terrainRegistry()).length){catalog.entries[a.relPath]=proposed;count++;}else skipped.push(a.name);}
       continue;
