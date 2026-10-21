@@ -60,14 +60,18 @@ window.VedrasNatureBalance=(()=>{
  // Reserve small, adjacent clusters of buildable hexes (not merely isolated
  // dots). A reserve suppresses AUTO decoration, never an explicit manual asset.
  // Real building/mountain footprints remain separately protected by the caller.
- function reserveClearings(cells,forests,seed,isGround,occupied){
+ function reserveClearings(cells,forests,seed,isGround,occupied,mode='classic'){
   const forestByHex=forests instanceof Map?forests:new Map((forests||[]).map(f=>[f.key||key(f),f]));
   const legal=(cells||[]).filter(c=>isGround(c)&&!occupied?.has(key(c)));
   const target=Math.min(legal.length,Math.max(1,Math.round(legal.length*.18)));
   const chosen=new Set(),pool=new Map(legal.map(c=>[key(c),c]));
   const score=c=>{
    const f=forestByHex.get(key(c)),stand=f?.forestClass;
-   const priority=stand==='dense_forest'?.30:stand==='light_forest'?.15:0;
+   // In the canopy modes, place building/free-space reserves outside the
+   // forest core whenever possible. In-forest glades are chosen separately.
+   const priority=mode==='classic'?
+    (stand==='dense_forest'?.30:stand==='light_forest'?.15:0):
+    f?.glade?-.8:stand==='dense_forest'?2.1:stand==='light_forest'?1.15:0;
    return stable(seed,c.q,c.r,601)+priority;
   };
   const ordered=legal.slice().sort((a,b)=>score(a)-score(b)||key(a).localeCompare(key(b)));
