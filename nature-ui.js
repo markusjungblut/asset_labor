@@ -212,7 +212,7 @@ window.VedrasNature=(()=>{
  // Simple deterministic, order-independent per asset + hex. Never uses Math.random().
  function hash(seed,q,r,k){let h=(seed|0)^Math.imul(q+97,374761393)^Math.imul(r+513,668265263)^Math.imul(k+11,2246822519);h^=h>>>13;h=Math.imul(h,1274126177);return (h^(h>>>16))>>>0;}
  const random=(seed,q,r,k)=>hash(seed,q,r,k)/4294967296;
- function makeInstance(a,q,r,index,all,seed,spacingFactor=1,forestByHex=null){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
+ function makeInstance(a,q,r,index,all,seed,spacingFactor=1,forestByHex=null,neighborsByHex=null){const meta=entryFor(a);if(!meta||meta.kind==='mountain')return null;
   const cellKey=q+','+r;
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(cellKey)))return null;
   // Never plant into a building or legacy footprint, even if the caller uses
@@ -220,7 +220,12 @@ window.VedrasNature=(()=>{
   if(state.hexObject?.[cellKey]||cellKey==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return null;
   if(!eligible(meta,q,r,forestByHex))return null;
   const margin=meta.placement.edgeMargin;const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*random(seed,q,r,index*47+7);
-  const p=pts(q,r);for(let j=0;j<72;j++){
+  // Local collision search, not an O(total-sprites) scan for each dense-tree
+   // trial. Include a 2-hex halo to preserve inter-hex trunk spacing.
+   const near=neighborsByHex?Array.from({length:5},(_,i)=>i-2)
+    .flatMap(dr=>Array.from({length:5},(_,i)=>i-2)
+     .flatMap(dq=>neighborsByHex.get((q+dq)+','+(r+dr))||[])):all;
+   const p=pts(q,r);for(let j=0;j<72;j++){
    const kind=meta.kind==='tree'?'tree':meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
    const {dx,dy}=window.VedrasPolish.localOffset(seed,q,r,kind,index,j,state.visualPolish?.composition??1);
    if(!inside(dx,dy,margin))continue;
@@ -228,8 +233,8 @@ window.VedrasNature=(()=>{
    if(blocksRiver(q,r,dx,dy,meta)||blocksRoad(q,r,dx,dy))continue;
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
-   if(all.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));
-    const spacing=Math.max(14,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor*areaScale);
+   if(near.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));
+    const spacing=Math.max(spacingFactor<.6?10:14,Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*spacingFactor*areaScale);
      return Math.hypot(x-v.x-i.dx,y-v.y-i.dy)<spacing;}))continue;
    return {assetPath:a.path,assetId:meta.id,q,r,dx:Math.round(dx*100)/100,dy:Math.round(dy*100)/100,scale:Math.round(scale*1000)/1000};
   }return null;
@@ -317,12 +322,22 @@ window.VedrasNature=(()=>{
   if(assets.some(a=>a.category==='buildings'&&a.name.startsWith('mine_lvl01__main')))occupied.add('0,0');
   // Deterministic two-hex clearing patches are deliberately left without
   // generated sprites. Existing manual plants are never deleted by this pass.
-  const clearings=B.reserveClearings(core.cells(),forestByHex,seed,ground,occupied);
+  const clearings=B.reserveClearings(core.cells(),forestByHex,seed,ground,occupied,state.forest.mode);
   const limits=B.accentLimits(core.cells().filter(ground).length);
   const accents={dead_trees:0,fallen_logs:0};
   for(const n of all){
    const a=assets.find(v=>v.path===n.assetPath),group=B.accentGroup(entryFor(a));
    if(group)accents[group]++;
+  }
+  // Group all instances by hex to keep dense-crown placement responsive.
+  const neighborsByHex=new Map();
+  const record=inst=>{all.push(inst);const k=inst.q+','+inst.r;
+   if(!neighborsByHex.has(k))neighborsByHex.set(k,[]);
+   neighborsByHex.get(k).push(inst);};
+  for(const inst of all){
+   const k=inst.q+','+inst.r;
+   if(!neighborsByHex.has(k))neighborsByHex.set(k,[]);
+   neighborsByHex.get(k).push(inst);
   }
   let suitableCells=0,forestTrees=0,newBoulders=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
@@ -357,7 +372,12 @@ window.VedrasNature=(()=>{
    // rather than filling every woodland hex with exactly the same quota.
    if(wantedTrees>1&&window.VedrasPolish.patch(seed,c.q,c.r,'tree',state.visualPolish?.composition??1)<.58)wantedTrees--;
    const objectCap=F.maxObjects(f);
-   const spacingFactor=f?.forestClass==='dense_forest'?.72:f?.forestClass==='light_forest'?.92:1;
+   const mode=state.forest.mode;
+   const spacingFactor=mode==='canopy'?
+    (f?.forestClass==='dense_forest'?.34:f?.forestClass==='light_forest'?.59:.88):
+    mode==='dense'?
+    (f?.forestClass==='dense_forest'?.52:f?.forestClass==='light_forest'?.73:1):
+    (f?.forestClass==='dense_forest'?.72:f?.forestClass==='light_forest'?.92:1);
    const placed=all.filter(n=>n.q===c.q&&n.r===c.r);
    let count=placed.length,treeCount=placed.filter(n=>{
     const a=assets.find(v=>v.path===n.assetPath);return B.isCanopy(entryFor(a));
@@ -365,15 +385,15 @@ window.VedrasNature=(()=>{
    // Reuse available tree species in a coherent grove, not one per PNG.
    for(let slot=0;slot<wantedTrees&&count<objectCap&&trees.length;slot++){
     if(treeCount>=wantedTrees)break;
-    const a=trees[slot%trees.length];
-    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
-    if(inst){all.push(inst);treeCount++;count++;forestTrees++;}
+    const a=trees[slot%Math.min(trees.length,5)];
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex,neighborsByHex);
+    if(inst){record(inst);treeCount++;count++;forestTrees++;}
    }
    // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
    // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
-   if(!wantedTrees&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.06&&count<objectCap){
-    const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed,1,forestByHex);
-    if(inst){all.push(inst);count++;forestTrees++;}
+   if(!wantedTrees&&!f?.glade&&f?.source!=='manual'&&trees.length&&rank(trees[0],c,311)<.06&&count<objectCap){
+    const inst=makeInstance(trees[0],c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+    if(inst){record(inst);count++;forestTrees++;}
    }
    // Draw all currently imported boulder_NN variants via a stable choice.
    // Do not independently spawn only the first catalog entry.
@@ -382,8 +402,8 @@ window.VedrasNature=(()=>{
     const first=Math.floor(random(seed,c.q,c.r,1602)*boulders.length);
     for(let j=0;j<boulders.length;j++){
      const a=boulders[(first+j)%boulders.length];
-     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex);
-     if(inst){all.push(inst);count++;newBoulders++;break;}
+     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+     if(inst){record(inst);count++;newBoulders++;break;}
     }
    }
    let accentOnHex=placed.some(n=>{const a=assets.find(v=>v.path===n.assetPath);return B.isAccent(entryFor(a));});
@@ -396,8 +416,8 @@ window.VedrasNature=(()=>{
     const patch=window.VedrasPolish.patch(seed,c.q,c.r,groupName,state.visualPolish?.composition??1);
     const chance=Math.min(.82,meta.placement.density*Math.min(1,meta.placement.weight)*factor*B.chanceMultiplier(meta)*patch);
     if(rank(a,c,312)>=chance)continue;
-    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex);
-    if(inst){all.push(inst);count++;if(group){accents[group]++;accentOnHex=true;}}
+    const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex,neighborsByHex);
+    if(inst){record(inst);count++;if(group){accents[group]++;accentOnHex=true;}}
    }
   }
   state.natureInstances=all;state.showLegacyNature=false;$('nShowDemo').checked=false;
@@ -405,9 +425,11 @@ window.VedrasNature=(()=>{
   saved();window.dispatchEvent(new Event('vedras:forest-changed'));
   const dense=forest.filter(c=>c.forestClass==='dense_forest').length,light=forest.filter(c=>c.forestClass==='light_forest').length;
   const edge=forest.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
+  const glades=forest.filter(c=>c.glade).length;
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Wald: '+dense+' dicht, '+light+' licht, '+edge+' Rand.');
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
+    edge+' Rand, '+glades+' Lichtungshexe.');
  }
 
  function mountainGeometry(m){
