@@ -18362,10 +18362,11 @@
       "id": "existing_zeder10",
       "description": "Zeder – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: zeder10.png",
-      "family": "conifers",
+      "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -18383,8 +18384,7 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
@@ -18405,17 +18405,17 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/zeder11.png": {
       "id": "existing_zeder11",
       "description": "Zeder – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: zeder11.png",
-      "family": "conifers",
+      "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -18433,8 +18433,7 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
@@ -18455,17 +18454,17 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/zeder7.png": {
       "id": "existing_zeder7",
       "description": "Zeder – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: zeder7.png",
-      "family": "conifers",
+      "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -18483,8 +18482,7 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
@@ -18505,17 +18503,17 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/zeder8.png": {
       "id": "existing_zeder8",
       "description": "Zeder – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: zeder8.png",
-      "family": "conifers",
+      "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -18533,8 +18531,7 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
@@ -18555,17 +18552,17 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/zeder9.png": {
       "id": "existing_zeder9",
       "description": "Zeder – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: zeder9.png",
-      "family": "conifers",
+      "family": "snow_conifers",
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -18583,8 +18580,7 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "cold_regions",
-        "grass_pasture"
+        "cold_regions"
       ],
       "allowedTerrainTypes": [],
       "excludedTerrainTypes": [],
@@ -18605,8 +18601,7 @@
       "tags": [
         "existing",
         "needs_art_review"
-      ],
-      "targetHeight": 174
+      ]
     }
   }
 }
