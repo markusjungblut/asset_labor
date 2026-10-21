@@ -267,20 +267,16 @@ window.VedrasNature=(()=>{
   let placed=0;
   groups.forEach((group,index)=>{
    for(const c of group){
-    const terrain=core.effectiveBiome(c);
-    const snowy=['snowfields','frozen_tundra','tundra'].includes(terrain);
-    const pool=candidates.filter(a=>{
-     const m=entryFor(a);
-     return (snowy||m.family!=='snowy_mountains')&&
-      !(m.excludedTerrainTypes||[]).includes(terrain);
-    });
+    const terrain=core.baseBiomeOf(c);
+    const pool=candidates.filter(a=>
+     N.mountainAllowed(entryFor(a),terrain,terrainRegistry(),catalog));
     if(!pool.length)continue;
     const start=Math.floor(random(seed,c.q,c.r,2002)*pool.length);
     for(let j=0;j<pool.length;j++){
      const a=pool[(start+j)%pool.length],meta=entryFor(a);
      const cfg=window.VedrasMountains.config(meta);
      const valid=window.VedrasMountains.candidate(scene,c.q,c.r,cfg.radius,
-      target=>terrainRegistry().terrainTypes.some(t=>t.id===core.effectiveBiome(target)&&t.materialClass==='ground'),
+      target=>N.mountainAllowed(meta,core.baseBiomeOf(target),terrainRegistry(),catalog),
       {coreRadius:0,mode:'chain',chainId:'geography_'+index,
        spacing:'tight',visualInfo:mountainGeometry({assetPath:a.path}),
        visualInfoOf:mountainGeometry});
@@ -490,11 +486,14 @@ window.VedrasNature=(()=>{
   const a=core.assets().find(a=>a.path===state.asset),meta=entryFor(a);
   if(a?.category!=='nature'||meta?.kind!=='mountain'){message('Wähle ein katalogisiertes Nature-Sprite der Klasse Berg.');return;}
   const [q,r]=state.selected.split(',').map(Number),config=window.VedrasMountains.config(meta);
-  const eligible=new Set(resolveForMeta(meta));
+  const startCell=core.cells().find(cell=>cell.q===q&&cell.r===r);
+  if(!startCell||!N.mountainAllowed(meta,core.baseBiomeOf(startCell),terrainRegistry(),catalog)){
+   message('Dieser Bergtyp ist für das ausgewählte Biom nicht freigegeben.');return;
+  }
   const mode=$('mountainMode').value==='chain'?'chain':'single',chainId=$('mountainChainId').value.trim();
   if(mode==='chain'&&!/^[a-zA-Z0-9_-]{1,50}$/.test(chainId)){message('Bergketten-ID: 1–50 Zeichen (Buchstaben, Zahlen, - oder _).');return;}
   const result=window.VedrasMountains.candidate({cells:core.cells(),mountains:state.mountainInstances||[],nature:state.natureInstances||[],objects:state.hexObject||{}},q,r,config.radius,
-    cell=>{const t=core.effectiveBiome(cell),tt=core.catalog().terrainTypes.find(v=>v.id===t);return tt?.materialClass==='ground'&&eligible.has(t);},
+    cell=>N.mountainAllowed(meta,core.baseBiomeOf(cell),terrainRegistry(),catalog),
     {coreRadius:config.coreRadius,mode,chainId,spacing:state.mountainSpacing||'normal',visualInfo:mountainGeometry({assetPath:a.path}),visualInfoOf:mountainGeometry});
   if(!result.ok){message('Berg nicht platziert: '+result.reason);$('mountainStatus').textContent=result.reason;return;}
   const sh=window.VedrasShadows.settings({...state.mountainShadowDefaults,...(state.shadowAssetPresets?.[a.path]||{})});
@@ -506,7 +505,7 @@ window.VedrasNature=(()=>{
   const mountains=core.assets().filter(a=>a.category==='nature'&&entryFor(a)?.kind==='mountain'&&a.img?.naturalWidth);
   if(!mountains.length){message('Erst mindestens einen Berg mit Nature-Metadaten katalogisieren.');return;}
   if(!confirm('19-Hex-Bergketten-Test ersetzen: Bisherige Terrain- und Objektplatzierungen dieser Testszene werden überschrieben. Fortfahren?'))return;
-  const terrain=core.assets().find(a=>a.category==='terrain'&&core.isTerrainValid(a)&&core.typeOfAsset(a)&&core.catalog().terrainTypes.some(t=>t.id===core.typeOfAsset(a)&&t.materialClass==='ground')&&mountains.every(m=>resolveForMeta(entryFor(m)).has(core.typeOfAsset(a))));
+  const terrain=core.assets().find(a=>a.category==='terrain'&&core.isTerrainValid(a)&&core.typeOfAsset(a)&&core.catalog().terrainTypes.some(t=>t.id===core.typeOfAsset(a)&&t.materialClass==='ground')&&mountains.every(m=>N.mountainAllowed(entryFor(m),core.typeOfAsset(a),terrainRegistry(),catalog)));
   if(!terrain){message('Für die Bergkette fehlt eine gemeinsame, für alle Berge freigegebene Landtextur.');return;}
   state.sceneSize=19;$('sceneSize').value='19';core.assignBiomes();
   state.hexTerrain=Object.fromEntries(core.cells().map(c=>[c.q+','+c.r,terrain.path]));state.biomeTerrain={};
