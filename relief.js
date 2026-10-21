@@ -30,31 +30,35 @@ window.VedrasRelief = (()=>{
  
  // Worldgen v2.1 continuous, coordinate-derived hill regions.
  // Multiple overlapping source hexes produce one seamless heightfield.
- function geographyIndex(hills){
-  const found=geoIndexCache.get(hills);if(found)return found;
+ function geographyIndex(hills,seed){
+  const found=geoIndexCache.get(hills);if(found?.seed===seed)return found.byHex;
   const byHex=new Map();
   for(const h of hills){
    if(!Number.isSafeInteger(h?.q)||!Number.isSafeInteger(h?.r))continue;
-   byHex.set(h.q+','+h.r,h);
+   const worldQ=Number.isSafeInteger(h.worldQ)?h.worldQ:h.q,
+     worldR=Number.isSafeInteger(h.worldR)?h.worldR:h.r;
+   const code=((Math.imul(worldQ,73856093)^Math.imul(worldR,19349663)^seed)>>>0);
+   const rotation=(noise(code)-.5)*1.7;
+   byHex.set(h.q+','+h.r,{x:256*(h.q+h.r/2),
+    y:1.5*(256/Math.sqrt(3))*h.r,
+    ca:Math.cos(rotation),sa:Math.sin(rotation),
+    profile:h.profile||'rounded',strength:clamp(Number(h.strength)||0,0,1)});
   }
-  geoIndexCache.set(hills,byHex);
+  geoIndexCache.set(hills,{seed,byHex});
   return byHex;
  }
  function geoHeight(x,y,o){
   const hills=o.geoHills||[];
   if(!hills.length)return 0;
   const rf=y/(1.5*(256/Math.sqrt(3))),qf=x/256-rf/2;
-  const q0=Math.round(qf),r0=Math.round(rf),index=geographyIndex(hills);
+  const q0=Math.round(qf),r0=Math.round(rf),index=geographyIndex(hills,o.seed);
   let volume=0;
-  for(let r=r0-2;r<=r0+2;r++)for(let q=q0-2;q<=q0+2;q++){
+  for(let r=r0-3;r<=r0+3;r++)for(let q=q0-3;q<=q0+3;q++){
    const h=index.get(q+','+r);
    if(!h)continue;
-   const dx=x-256*(q+r/2),dy=y-1.5*(256/Math.sqrt(3))*r;
-   const code=((Math.imul(q,73856093)^Math.imul(r,19349663)^o.seed)>>>0);
-   const rotation=(noise(code)-.5)*1.7;
-   const ca=Math.cos(rotation),sa=Math.sin(rotation),
-    u=dx*ca+dy*sa,v=-dx*sa+dy*ca;
-   const shape=h.profile||'rounded';
+   const dx=x-h.x,dy=y-h.y;
+   const u=dx*h.ca+dy*h.sa,v=-dx*h.sa+dy*h.ca;
+   const shape=h.profile;
    let w=0;
    if(shape==='ridge')w=Math.exp(-.5*((u/310)**2+(v/116)**2));
    else if(shape==='chain')w=Math.exp(-.5*((u/285)**2+(v/151)**2));
@@ -63,7 +67,7 @@ window.VedrasRelief = (()=>{
     const distance=Math.hypot(u/191,v/174);
     w=1-smooth((distance-.57)/.82);
    }else w=Math.exp(-.5*((u/180)**2+(v/185)**2));
-   const strength=clamp(Number(h.strength)||0,0,1);
+   const strength=h.strength;
    volume+=w*(.38+.62*strength);
   }
   return 67*(o.strength/100)*Math.min(1.28,volume*.74);
