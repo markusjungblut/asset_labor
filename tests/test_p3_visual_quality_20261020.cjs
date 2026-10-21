@@ -34,7 +34,7 @@ assert(N.canPlace(stoneMeta,{baseBiome:'grassland',biome:'grassland',
  forestClass:'none',neighborTypes:[]},terrain),'boulders remain available on grassland');
 const cells=[{q:0,r:0,biome:'grassland',terrainTypeId:'grassland'},
  {q:1,r:0,biome:'grassland',terrainTypeId:'grassland'}];
-const layer=F.generate(cells,terrain,{...F.defaults(),
+const layer=F.generate(cells,terrain,{...F.defaults(),mode:'classic',
  overrides:{'0,0':'dense_forest','1,0':'light_forest'},
  densityOverrides:{'0,0':.97,'1,0':.5}},c=>c.terrainTypeId,c=>c.terrainTypeId);
 const thick=layer.find(c=>c.key==='0,0'),thin=layer.find(c=>c.key==='1,0');
@@ -55,7 +55,7 @@ assert(ui.includes("forestClass==='dense_forest'?.72"),
  'forest spacing must permit a fuller canopy');
 assert(chunks.includes('ctx.rect(t.x-bleed,t.y-bleed,size+2*bleed,size+2*bleed)'),
  'terrain chunks need a sampling-safe overlap');
-assert(html.includes('app.js?v=0.32.0')&&html.includes('nature-ui.js?v=0.32.0'),
+assert(/app\.js\?v=[0-9.]+/.test(html)&&/nature-ui\.js\?v=[0-9.]+/.test(html),
  'cache-busting protects local START_WINDOWS installs');
 // Exercise the actual mountain placement helper with two neighboring
 // geography mountain cells. No PNGs or server catalog writes are required.
@@ -69,7 +69,7 @@ const asset={name:'berg_01.png',category:'nature',path:'assets/nature/berg_01.pn
  img:{naturalWidth:256}};
 const meta={id:'berg_01',family:'mountains',kind:'mountain',
  mountain:{radius:1,coreRadius:0},excludedTerrainTypes:[]};
-const core={cells:()=>scene,effectiveBiome:()=> 'grassland'};
+const core={cells:()=>scene,effectiveBiome:()=> 'grassland',baseBiomeOf:()=> 'grassland'};
 const state={mountainInstances:[],natureInstances:[],hexObject:{},
  mountainShadowDefaults:{},shadowAssetPresets:{}};
 const calls=[];
@@ -78,9 +78,9 @@ const shadowEnv={VedrasMountains:{
  config:()=>({radius:1}),candidate:(...args)=>{calls.push(args);return {ok:true};}
 },VedrasShadows:{settings:()=>({})}};
 const place=new Function('core','state','entryFor','terrainRegistry','random',
- 'mountainGeometry','encodeInstanceShadow','window',helper+';return autoGeoMountains;')
+ 'mountainGeometry','encodeInstanceShadow','window','N','catalog',helper+';return autoGeoMountains;')
  (core,state,()=>meta,()=>({terrainTypes:[{id:'grassland',materialClass:'ground'}]}),
- ()=>.2,()=>({width:360,aspect:1}),()=>({}),shadowEnv);
+ ()=>.2,()=>({width:360,aspect:1}),()=>({}),shadowEnv,{mountainAllowed:()=>true},{});
 const placed=place(123,[asset]);
 assert.equal(placed.placed,2,'both geographic mountain hexes should get mountains');
 assert.equal(state.mountainInstances.length,2);

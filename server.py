@@ -15,7 +15,7 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.12.0'
+VERSION = '0.12.2'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}

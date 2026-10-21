@@ -17,7 +17,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'auto',
  selected:'0,0',grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:false,workerTerrain:true,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
  shoreline:{enabled:true,mode:'temp',width:34,outer:10},
- asset:null,compareA:null,compareB:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
+ asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
 let terrainLod='high'; // Hysteresis: <=48% coarse, >=76% high.
 function updateTerrainLod(zoom){
@@ -89,7 +89,14 @@ function fromScreen(x,y){return {x:(x-W/2-state.panX)/state.zoom,y:(y-H/2-state.
 const SCENE_SIZES=[7,19,37,91,169,271,397];
 function sceneRadius(size){return ({7:1,19:2,37:3,91:5,169:7,271:9,397:11})[size]||3;}
 function suggestedSceneZoom(size){return clamp(3.1/sceneRadius(size),ZMIN,.80);}
-function assignBiomes(){const cs=[];const radius=sceneRadius(state.sceneSize);for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){if(Math.abs(q+r)>radius)continue;
+function assignBiomes(restoreGeography=false){
+ if(restoreGeography&&state.geographyScene?.size===state.sceneSize&&
+  Array.isArray(state.geographyScene.cells)&&
+  state.geographyScene.cells.length===state.sceneSize){
+  worldCells=state.geographyScene.cells;invalidateTerrain();requestDraw();return;
+ }
+ state.geographyScene=null;
+ const cs=[];const radius=sceneRadius(state.sceneSize);for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){if(Math.abs(q+r)>radius)continue;
  const fixed={"0,0":'plains',"-1,0":'forest',"-1,1":'forest',"0,-1":'hills',"1,-1":'mountain',"0,1":'plains',"1,0":'plains'};
  const h=hash(q,r,13)%12;const biome=fixed[key(q,r)]||(h<2?'forest':h===2?'mountain':h<5?'hills':'plains');cs.push({q,r,biome,terrainTypeId:demoTypes[biome],name:{plains:'Grasland',forest:'Waldboden',hills:'Hügel',mountain:'Gebirge'}[biome]});}
  worldCells=cs;invalidateTerrain();requestDraw();}
@@ -156,13 +163,14 @@ const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:120,maxPixels:
 let lastChunkStats=null;
 let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
-function invalidateTerrain(){terrainRasterCache={signature:null,raster:null};reliefRasterCache={signature:null,raster:null,hits:0,misses:0};reliefFieldCache={signature:null,value:null};terrainChunks.clear();shorelineChunks.clear();shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();window.VedrasRivers.clearGeometryCache?.();}
+const geographyMaterialTiles=new Map(); // terrain textures independent of relief
+function invalidateTerrain(){geographyMaterialTiles.clear();terrainRasterCache={signature:null,raster:null};reliefRasterCache={signature:null,raster:null,hits:0,misses:0};reliefFieldCache={signature:null,value:null};terrainChunks.clear();shorelineChunks.clear();shorelineCache={signature:null,raster:null};window.VedrasAutotile.clearCache();window.VedrasRelief.clear();window.VedrasRivers.clearGeometryCache?.();}
 function currentRelief(){
  // This field was rebuilt once per displayed Nature sprite. Its map, coast
  // lookup and building pads depend on scene edits, not per-frame camera pan.
  const signature=JSON.stringify([state.relief,terrainRasterCache.signature,
   state.hexTerrain,state.biomeTerrain,state.hexObject,state.mountainInstances,
-  worldCells.map(c=>[c.q,c.r,c.biome])]);
+  worldCells.map(c=>[c.q,c.r,c.biome,c.reliefClass,c.hillProfile,c.hillStrength])]);
  if(reliefFieldCache.signature===signature)return reliefFieldCache.value;
  const r=state.relief;
  // Water and shoreline are level 0 regardless of the land profile or relief seed.
@@ -180,7 +188,10 @@ function currentRelief(){
   }
   return fade;
  };
- const base={...r,landMask:coastFade,maskKey:terrainRasterCache.signature};
+ const geoHills=r.mode==='geography'?worldCells.filter(c=>c.reliefClass==='hills')
+  .map(c=>({q:c.q,r:c.r,worldQ:c.worldQ??c.q,worldR:c.worldR??c.r,
+   profile:c.hillProfile||'rounded',strength:clamp(Number(c.hillStrength)||.5,0,1)})):[];
+ const base={...r,geoHills,landMask:coastFade,maskKey:terrainRasterCache.signature};
  if(!r.enabled){reliefFieldCache={signature,value:base};return base;}
  // Buildings remain upright. Small world-space platforms flatten only their footprints.
  const pads=(r.padBuildings?genericObjects().filter(o=>o.type==='building'):[]).map(o=>({x:o.x,y:o.y,radius:Math.max(27,Math.min(72,o.w*.34)),transition:Math.max(30,Math.min(75,o.w*.28)),height:window.VedrasRelief.rawAt(o.x,o.y,r)}));
@@ -277,8 +288,8 @@ function drawForestFloor(){
  const signature=JSON.stringify({
   asset:[asset.path,asset.mtime,asset.img.naturalWidth,asset.img.naturalHeight],
   size:textureSize,resolution:Math.round(resolution*10)/10,
-  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.jungle,c.baseBiome,c.ground,c.categoryId]),
-  version:'region-mask-v1'
+  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.jungle,c.baseBiome,c.ground,c.categoryId]),
+  version:'region-mask-glades-v2'
  });
  if(forestFloorRasterCache.signature!==signature){
   const start=performance.now();
@@ -326,11 +337,15 @@ function drawGround(){
  window.__vedrasLastAutotile=graph;
  if(chunkMode){
   terrainRasterCache.signature=signature;
-  const workerActive=state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
+  const geographyRelief=state.relief.enabled&&state.relief.mode==='geography';
+  // Cached base autotile canvases allow reprojecting hills without repainting
+  // ground textures. The legacy Worker lacks a persistent raw terrain layer.
+  const workerActive=!geographyRelief&&state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
   const lod=updateTerrainLod(state.zoom);
-  const chunkFamily=JSON.stringify([signature,state.relief,
+  const chunkFamily=JSON.stringify([signature,
+   geographyRelief?'geography-materials':state.relief,
    state.mountainInstances,state.hexObject,workerActive?'worker':'main-thread']);
-  const chunkSignature=JSON.stringify([chunkFamily,lod]);
+  const chunkSignature=JSON.stringify([chunkFamily,lod,state.relief]);
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
    worldCells,
@@ -339,7 +354,10 @@ function drawGround(){
      width:tile.size+window.VedrasChunks.HALO*2,height:tile.size+window.VedrasChunks.HALO*2,
      lowResolution:true};
     const localBuild=()=>{
-     const raster=window.VedrasAutotile.build(nearby,
+     const geoKey=geographyRelief?signature+'|'+lod+'|'+tile.id:null;
+     let raster=geoKey?geographyMaterialTiles.get(geoKey):null;
+     if(raster){geographyMaterialTiles.delete(geoKey);geographyMaterialTiles.set(geoKey,raster);}
+     if(!raster)raster=window.VedrasAutotile.build(nearby,
       c=>selectedMap.get(key(c.q,c.r))||fallback,effectiveBiome,{
       bounds,band:state.edgeWidth,blendVariants:state.blendVariants,
       waterSampling:state.waterSampling,irregularity:state.edgeIrregularity,
@@ -351,6 +369,11 @@ function drawGround(){
       materialClassOf:id=>window.VedrasCatalog.terrainType(catalog,id)?.materialClass||'ground'
      });
      if(!raster)return null;
+     if(geoKey&&!geographyMaterialTiles.has(geoKey)){
+      geographyMaterialTiles.set(geoKey,raster);
+      while(geographyMaterialTiles.size>36)
+       geographyMaterialTiles.delete(geographyMaterialTiles.keys().next().value);
+     }
      return {raster,relief:relief?window.VedrasRelief.make(raster.landLayer,relief):raster};
     };
     if(!workerActive)return localBuild();
@@ -401,8 +424,9 @@ function drawGround(){
    lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
    ' gebaut · '+Math.round(lastChunkStats.pixels*4/1048576)+' MiB gepuffert · '+
    lastChunkStats.lastMs.toFixed(0)+' ms letzter Chunk · '+
-   (workerActive?'Worker/OffscreenCanvas aktiv':state.workerTerrain===false?
-    'Worker deaktiviert':'Hauptthread-Fallback')+
+   (geographyRelief?'Geografie-Relief, '+geographyMaterialTiles.size+
+     ' Grundtextur-Chunks gecacht':workerActive?'Worker/OffscreenCanvas aktiv':
+    state.workerTerrain===false?'Worker deaktiviert':'Hauptthread-Fallback')+
    ' · Worker abgeschlossen: '+window.VedrasTerrainWorker.status().completed;
  }else{
   terrainChunks.clear();
@@ -447,7 +471,7 @@ function drawGround(){
  drawForestFloor();
  drawShorelines();
  if(state.edgeDebug)window.VedrasAutotile.drawDebug(ctx,graph,{mode:state.transitionDebugMode,band:state.edgeWidth});
- const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
+ const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.mode==='geography'?'Geografie-Hügelfeld':state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
  const padLabel=$('buildingPadStats');if(padLabel){
   const houses=genericObjects().filter(o=>o.type==='building');
   if(!state.relief.enabled||!houses.length)padLabel.textContent=state.relief.enabled?'Keine Gebäude in dieser Szene.':'Bauplätze: Relief ausgeschaltet.';
@@ -1252,7 +1276,7 @@ function applyRoadChanges(next){
  return {removed:clear.removed,edges:edges.length};
 }
 function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
-const savedFields=['terrainTest','relief','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','workerTerrain','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline'];
+const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','workerTerrain','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline'];
 function persistScene(){try{
  // A freshly placed mountain permanently invalidates roads through its
  // stand/influence cells instead of letting hidden edges reappear later.
@@ -1620,14 +1644,18 @@ window.addEventListener('resize',resize);
 new ResizeObserver(()=>resize()).observe(canvas);
 let lastDeviceRatio=window.devicePixelRatio||1;setInterval(()=>{const n=window.devicePixelRatio||1;if(n!==lastDeviceRatio){lastDeviceRatio=n;resize();}},950);
 function syncReliefUI(){const r=state.relief;
- $('reliefOn').checked=r.enabled;$('reliefProfile').value=r.profile;$('reliefStrength').value=String(r.strength);$('reliefStrengthText').textContent=String(r.strength);
+ $('reliefOn').checked=r.enabled;$('reliefMode').value=r.mode||'legacy';
+ $('reliefProfile').disabled=r.mode==='geography';
+ $('reliefProfile').value=r.profile;$('reliefStrength').value=String(r.strength);$('reliefStrengthText').textContent=String(r.strength);
  $('reliefLighting').checked=r.lighting;$('reliefConnected').checked=r.connected;$('reliefDebug').checked=r.debug;$('reliefPadBuildings').checked=r.padBuildings;
  $('reliefSeed').value=String(r.seed);$('reliefCenter').textContent=r.center;
  $('reliefFlatCompare').textContent=r.enabled?'A/B: Flachland anzeigen':'A/B: Relief anzeigen';}
 function reliefChange(){state.relief=window.VedrasRelief.valid(state.relief);syncReliefUI();window.VedrasRelief.clear();persistScene();requestDraw();}
 $('reliefOn').addEventListener('change',e=>{state.relief.enabled=e.target.checked;reliefChange();});
+$('reliefMode').addEventListener('change',e=>{state.relief.mode=e.target.value;reliefChange();});
 $('reliefProfile').addEventListener('change',e=>{state.relief.profile=e.target.value;reliefChange();});
-$('reliefStrength').addEventListener('input',e=>{state.relief.strength=+e.target.value;reliefChange();});
+$('reliefStrength').addEventListener('input',e=>{$('reliefStrengthText').textContent=e.target.value;});
+$('reliefStrength').addEventListener('change',e=>{state.relief.strength=+e.target.value;reliefChange();});
 for(const [id,prop] of [['reliefLighting','lighting'],['reliefConnected','connected'],['reliefDebug','debug'],['reliefPadBuildings','padBuildings']])$(id).addEventListener('change',e=>{state.relief[prop]=e.target.checked;reliefChange();});
 $('reliefSeed').addEventListener('change',e=>{state.relief.seed=+e.target.value;reliefChange();});
 $('reliefSetCenter').addEventListener('click',()=>{state.relief.center=state.selected;reliefChange();});
@@ -1636,7 +1664,7 @@ $('reliefBuildingTest').addEventListener('click',()=>{
  state.sceneSize=19;$('sceneSize').value='19';assignBiomes();
  const selected=assets.filter(isTerrainValid).find(a=>typeOfAsset(a)==='grassland')||assets.find(isTerrainValid);
  state.hexTerrain={};if(selected)for(const c of worldCells)state.hexTerrain[key(c.q,c.r)]=selected.path;
- state.relief={...state.relief,enabled:true,profile:'steep',strength:95,center:'0,0',connected:true,padBuildings:true};
+ state.relief={...state.relief,mode:'legacy',enabled:true,profile:'steep',strength:95,center:'0,0',connected:true,padBuildings:true};
  state.objects=true;state.river=false;state.showLegacyNature=false;$('objectsToggle').checked=true;$('riverToggle').checked=false;$('nShowDemo').checked=false;
  invalidateTerrain();state.panX=0;state.panY=0;setView('map');applyZoom(.85);reliefChange();
 });
@@ -1647,7 +1675,7 @@ $('reliefGrassTest').addEventListener('click',()=>{
  state.objects=true;state.river=false;state.grid=false;
  $('objectsToggle').checked=true;$('riverToggle').checked=false;$('gridToggle').checked=false;
  state.showLegacyNature=true;$('nShowDemo').checked=true;
- state.relief={...state.relief,center:'0,0',enabled:true,profile:'rounded',strength:85,connected:true};
+ state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'rounded',strength:85,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('reliefBiomesTest').addEventListener('click',()=>{
  state.sceneSize=19;$('sceneSize').value='19';assignBiomes();state.hexTerrain={};
@@ -1657,10 +1685,10 @@ $('reliefBiomesTest').addEventListener('click',()=>{
  state.objects=true;state.river=false;state.grid=false;state.edgeBlend=true;
  $('objectsToggle').checked=true;$('riverToggle').checked=false;$('gridToggle').checked=false;$('edgeBlendToggle').checked=true;
  state.showLegacyNature=true;$('nShowDemo').checked=true;
- state.relief={...state.relief,center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
+ state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('objectsToggle').checked=state.objects;
-restoreScene();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes();reloadFromServer();
+restoreScene();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes(true);reloadFromServer();
 // Shared v2 geography preview: explicit opt-in; never touches source assets.
 let geographyPopup=null;
 $('openGeography').addEventListener('click',()=>{
@@ -1675,7 +1703,7 @@ function importGeographyWorld(world){
   cq=(world.originQ??0)+Math.floor(world.width/2),
   cr=(world.originR??0)+Math.floor(world.height/2);
  const byPosition=new Map(world.cells.map(c=>[key(c.q,c.r),c]));
- const next=[],forestOverrides={},densityOverrides={},jungleHexes={};
+ const next=[],forestOverrides={},densityOverrides={},geographyHexes={},jungleHexes={};
  for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
   if(Math.abs(q+r)>radius)continue;
   const source=byPosition.get(key(q+cq,r+cr));
@@ -1685,13 +1713,15 @@ function importGeographyWorld(world){
    $('catalogMessage').textContent='Geografie-Vorschau nicht übernommen: Terrain-ID fehlt im Katalog: '+id;
    return;
   }
-  const item={q,r,biome:id,terrainTypeId:id,name:id,
+  const item={q,r,worldQ:source.q,worldR:source.r,biome:id,terrainTypeId:id,name:id,
    reliefClass:source.reliefClass,hillProfile:source.hillProfile,
+   hillStrength:Number.isFinite(source.hillStrength)?source.hillStrength:0.5,
    features:Array.isArray(source.features)?source.features:[],
    temperature:source.temperature,humidity:source.humidity};
   next.push(item);
   if(source.forestClass==='light_forest'||source.forestClass==='dense_forest'){
    forestOverrides[key(q,r)]=source.forestClass;
+   geographyHexes[key(q,r)]=true;
    // Preserve the numeric density as well as the broad forest class.
    if(Number.isFinite(source.forestDensity))
     densityOverrides[key(q,r)]=source.forestDensity;
@@ -1701,16 +1731,19 @@ function importGeographyWorld(world){
  if(!window.confirm('Die aktuelle Testszene wird durch '+next.length+
   ' geografisch generierte Hexfelder ersetzt. Platzierte Objekte, Wege und Flüsse in der Testszene werden zurückgesetzt. Die originale Grafikbibliothek und beide Asset-Kataloge bleiben unangetastet. Fortfahren?'))return;
  worldCells=next;
+ state.geographyScene={size:state.sceneSize,cells:next};
  state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};
  state.hexObject={};state.hexShadow={};state.natureInstances=[];state.mountainInstances=[];
  state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;
  state.forest=window.VedrasForest.valid({...window.VedrasForest.defaults(),
-  enabled:true,seed:state.natureSeed,overrides:forestOverrides,densityOverrides,jungleHexes});
+  enabled:true,seed:state.natureSeed,overrides:forestOverrides,densityOverrides,geographyHexes,jungleHexes});
  const view=new Set(next.map(c=>key(c.q,c.r)));
  const candidateRoutes=(world.riverPaths||[]).map(path=>({
   hexes:path.map(([q,r])=>[q-cq,r-cr])
  })).filter(route=>route.hexes.every(([q,r])=>view.has(key(q,r))));
  state.riverPaths=window.VedrasRivers.normalizeRoutes(candidateRoutes,worldCells,wetHex);
+ state.relief=window.VedrasRelief.valid({...state.relief,mode:'geography',enabled:true});
+ syncReliefUI();
  state.river=true;state.selected='0,0';
  $('riverToggle').checked=true;
  state.panX=0;state.panY=20;
@@ -1719,8 +1752,9 @@ function importGeographyWorld(world){
  persistScene();requestDraw();
  for(const type of ['forest','river','road'])window.dispatchEvent(new Event('vedras:'+type+'-changed'));
  window.VedrasNature?.renderPlaced?.();
- $('catalogMessage').textContent='Geografie v2 übernommen: '+next.length+
-  ' Hexe als Testausschnitt (Mitte der vorab generierten Welt). Gebirge und spezielle Fundorte sind als Daten übernommen; deren automatische Sprite-Inszenierung bleibt ein eigener Integrationsschritt.';
+ $('catalogMessage').textContent='Geografie v2.1 übernommen: '+next.length+' Hexe. Relief aus der Geografie aktiv: '+
+  next.filter(c=>c.reliefClass==='hills').length+' Hügelhexe mit eigenen Profilen, '+
+  next.filter(c=>c.reliefClass==='mountain').length+' Berghexe. Bodentexturen separat gecacht.';
 }
 window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==geographyPopup||

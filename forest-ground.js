@@ -92,6 +92,23 @@ window.VedrasForestGround=(()=>{
   sg.filter='blur('+(feather*scale).toFixed(2)+'px)';
   sg.drawImage(mask,0,0);
   sg.filter='none';
+  // Forest glades have soft, irregularly positioned openings in the unified
+  // forest-floor mask. Never erase an entire hex polygon: there must be no
+  // hexagonal seams around small clearings or among neighboring forest cells.
+  const glades=(cells||[]).filter(c=>c.glade&&eligible(c));
+  if(glades.length){
+   sg.save();sg.globalCompositeOperation='destination-out';
+   sg.setTransform(scale,0,0,scale,-left*scale,-top*scale);
+   for(const c of glades){
+    const p=pos(c),rad=58;
+    const gradient=sg.createRadialGradient(p.x,p.y,rad*.10,p.x,p.y,rad);
+    gradient.addColorStop(0,'rgba(0,0,0,1)');
+    gradient.addColorStop(.48,'rgba(0,0,0,.88)');
+    gradient.addColorStop(1,'rgba(0,0,0,0)');
+    sg.fillStyle=gradient;sg.fillRect(p.x-rad,p.y-rad,rad*2,rad*2);
+   }
+   sg.restore();
+  }
   const output=make(),g=output.getContext('2d');
   const imgW=image.naturalWidth,imgH=image.naturalHeight||imgW;
   const tileSize=Math.max(160,Math.min(1536,Number(options.textureSize)||256));
