@@ -37,10 +37,11 @@ window.VedrasForestUI=(()=>{
  function setOverride(kind){
   const f=config(),cell=core.forestCells().find(c=>c.key===selectedKey());
   if(!cell)return;
-  if(kind==='auto')delete f.overrides[cell.key];
+  if(kind==='auto'){delete f.overrides[cell.key];delete f.geographyHexes[cell.key];}
   else{
    if(cell.suitability===0)return; // Wasser darf auch manuell keinen Wald erhalten.
    f.overrides[cell.key]=kind;
+   delete f.geographyHexes[cell.key];
   }
   changed(true);
  }
