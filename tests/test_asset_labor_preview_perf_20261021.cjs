@@ -59,8 +59,8 @@ test('397-hex world uses a small set of visible chunks and caches completed tile
   }};},redraw:()=>{}});
  const ctx={save(){},beginPath(){},rect(){},clip(){},restore(){}};
  const bounds={x:-300,y:-300,width:600,height:600};
- engine.draw(ctx,bounds,{drawRaster:()=>{}});
- engine.draw(ctx,bounds,{drawRaster:()=>{}});
+ engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
+ engine.draw(ctx,bounds,{drawRaster:()=>{},margin:0});
  assert.equal(builds,small.length);
  assert.equal(engine.stats().pending,0);
  assert.equal(engine.stats().painted,small.length);
