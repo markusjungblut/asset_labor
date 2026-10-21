@@ -44,7 +44,7 @@ window.VedrasChunks=(()=>{
   let cache=new Map();const retired=new Map(),queue=new Map();
   let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
    stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0};
-  let cells=[],build=()=>null,requestDraw=()=>{};
+  let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature;
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
     item?.raster?.landLayer?.canvas,item?.relief?.canvas];
@@ -66,7 +66,7 @@ window.VedrasChunks=(()=>{
    dropCache();queue.clear();protectedIds.clear();
    signature='';family='';epoch++;scheduled=false;inFlight=false;
   }
-  function configure(next,{worldCells,buildTile,redraw,family:nextFamily=''}){
+  function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
    if(next!==signature){
     queue.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
     if(nextFamily&&nextFamily===family){
@@ -85,6 +85,7 @@ window.VedrasChunks=(()=>{
     signature=next;family=nextFamily;
    }
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
+    stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
   }
   function use(k){
    const data=cache.get(k);
@@ -117,18 +118,23 @@ window.VedrasChunks=(()=>{
     const next=queue.entries().next().value;
     if(!next)return;
     const [id,t]=next;queue.delete(id);
+     const expectedStamp=stampForTile(t);
     const t0=typeof performance!=='undefined'?performance.now():0;
     const complete=item=>{
      if(generation!==epoch){release(item);return;}
+      if(expectedStamp!==stampForTile(t)){
+       // A pixel-changing edit occurred during a background job.
+       release(item);requestDraw();if(queue.size)schedule();return;
+      }
      if(!item){
-      cache.set(id,{raster:null,relief:null,pixels:0});
+      cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
      }else{
       const pixels=(item.raster?.canvas?.width||0)*(item.raster?.canvas?.height||0)+
        (item.raster?.waterLayer?.canvas?.width||0)*(item.raster?.waterLayer?.canvas?.height||0)+
        (item.raster?.landLayer?.canvas?.width||0)*(item.raster?.landLayer?.canvas?.height||0)+
        (item.relief?.canvas&&item.relief.canvas!==item.raster?.landLayer?.canvas?
         item.relief.canvas.width*item.relief.canvas.height:0);
-      cache.set(id,{...item,pixels});stats.pixels+=pixels;stats.built++;
+      cache.set(id,{...item,pixels,stamp:expectedStamp});stats.pixels+=pixels;stats.built++;
      }
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
@@ -170,7 +176,10 @@ window.VedrasChunks=(()=>{
    const keep=new Set(tiles.map(t=>t.id));
    for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
    for(const t of tiles){
-    const result=use(t.id);
+    let result=use(t.id);
+    if(result&&result.stamp!==stampForTile(t)){
+     cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
+    }
     if(!result&&!queue.has(t.id))queue.set(t.id,t);
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
