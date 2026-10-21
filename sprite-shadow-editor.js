@@ -141,12 +141,17 @@ window.addEventListener('DOMContentLoaded',()=>{
     (a.category==='buildings'?{x:.5,y:.9}:{x:.5,y:.96});
   // In the preview use the same visible alpha crop and shadow engine
   // as the map, with the original transparent PNG placed on top.
-  const img=a.img,sw=img.naturalWidth,sh=img.naturalHeight,aspect=sh/sw;
-  const silhouette=document.createElement('canvas');
-  silhouette.width=Math.min(512,sw);silhouette.height=Math.max(8,Math.round(silhouette.width*aspect));
-  const g=silhouette.getContext('2d');g.drawImage(img,0,0,silhouette.width,silhouette.height);
-  g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,silhouette.width,silhouette.height);
-  const shape={canvas:silhouette,aspect};
+  const img=a.img,b=core.shadowSprites?.bounds(img)||{
+   sx:0,sy:0,sw:img.naturalWidth,sh:img.naturalHeight},
+   aspect=b.sh/b.sw;
+  let shape=core.shadowSprites?.silhouette(img);
+  if(!shape){
+   const cv=document.createElement('canvas');cv.width=256;
+   cv.height=Math.max(8,Math.round(cv.width*aspect));
+   const g=cv.getContext('2d');g.drawImage(img,b.sx,b.sy,b.sw,b.sh,0,0,cv.width,cv.height);
+   g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
+   shape={canvas:cv,aspect};
+  }
   if(kind==='mountain'){
    const sh=window.VedrasShadows,pf=Engine.profile(a);
    const mountainCfg=sh.settings({angle:pf.angle,opacity:pf.enabled===false?0:pf.opacity,
@@ -156,7 +161,11 @@ window.addEventListener('DOMContentLoaded',()=>{
    sh.paintMountain(ctx,{x:p.x-w*.14,y:p.y+w*.02},w,mountainCfg,Engine.get().global.strength);
   }else Engine.draw(ctx,{asset:a,natureMeta:meta},p,w,shape,anchor,Engine.get().global.strength);
   ctx.save();
-  ctx.drawImage(img,p.x-w*anchor.x,p.y-w*aspect*anchor.y,w,w*aspect);
+  ctx.translate(p.x,p.y);
+  ctx.transform(1,0,.012,.965,0,0);
+  ctx.translate(-p.x,-p.y);
+  ctx.drawImage(img,b.sx,b.sy,b.sw,b.sh,
+   p.x-w*anchor.x,p.y-w*aspect*anchor.y,w,w*aspect);
   ctx.restore();
   ctx.strokeStyle='#f2ce76';ctx.lineWidth=1.5;ctx.beginPath();
   ctx.moveTo(p.x-8,p.y);ctx.lineTo(p.x+8,p.y);
