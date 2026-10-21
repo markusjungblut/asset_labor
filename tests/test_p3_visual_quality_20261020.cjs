@@ -34,7 +34,7 @@ assert(N.canPlace(stoneMeta,{baseBiome:'grassland',biome:'grassland',
  forestClass:'none',neighborTypes:[]},terrain),'boulders remain available on grassland');
 const cells=[{q:0,r:0,biome:'grassland',terrainTypeId:'grassland'},
  {q:1,r:0,biome:'grassland',terrainTypeId:'grassland'}];
-const layer=F.generate(cells,terrain,{...F.defaults(),
+const layer=F.generate(cells,terrain,{...F.defaults(),mode:'classic',
  overrides:{'0,0':'dense_forest','1,0':'light_forest'},
  densityOverrides:{'0,0':.97,'1,0':.5}},c=>c.terrainTypeId,c=>c.terrainTypeId);
 const thick=layer.find(c=>c.key==='0,0'),thin=layer.find(c=>c.key==='1,0');
