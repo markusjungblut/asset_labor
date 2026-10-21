@@ -189,6 +189,11 @@ let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all'){
  // Forest, rivers, relief and terrain have independent cache lifetimes.
+ if(scope==='cells'){
+  terrainRasterCache.signature=null;terrainRasterCache.graph=null;
+  reliefRasterCache.signature=null;reliefFieldCache.signature=null;
+  return; // Stamp checks invalidate only chunks intersecting changed hexes.
+ }
  if(scope==='forest'){forestMemoSignature='';forestFloorRasterCache={signature:null,raster:null,buildMs:0};return;}
  if(scope==='rivers'){
   riverRasterCache.clear();bridgeCrossingsCache={signature:null,crossings:[]};
@@ -387,14 +392,22 @@ function drawGround(){
   // ground textures. The legacy Worker lacks a persistent raw terrain layer.
   const workerActive=state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
   const lod=updateTerrainLod(state.zoom);
-  const chunkFamily=JSON.stringify([signature,
-   geographyRelief?'geography-materials':state.relief,
+  const materialFamily=JSON.stringify([state.materialScales,state.visualPolish.terrain,
+    state.edgeBlend,state.blendVariants,state.waterSampling,state.edgeWidth,
+    state.edgeIrregularity,state.cornerBlend,catalog.assets,catalog.terrainTypes]);
+   const chunkFamily=JSON.stringify([materialFamily,
+    geographyRelief?'geography-materials':state.relief,
    state.mountainInstances,state.hexObject,workerActive?'worker':'main-thread']);
   const chunkSignature=JSON.stringify([chunkFamily,lod,state.relief,previewDensity()]);
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
-   worldCells,
-   buildTile:(tile,nearby)=>{
+    worldCells,
+    stampTile:tile=>JSON.stringify(window.VedrasChunks.neighbors(tile,worldCells).map(c=>{
+     const asset=selectedMap.get(key(c.q,c.r))||fallback;
+     return [c.q,c.r,c.biome,effectiveBiome(c),asset?.path,asset?.mtime,
+      c.reliefClass,c.hillProfile,c.hillStrength,c.worldQ,c.worldR];
+    })),
+    buildTile:(tile,nearby)=>{
     const bounds={x:tile.x-window.VedrasChunks.HALO,y:tile.y-window.VedrasChunks.HALO,
      width:tile.size+window.VedrasChunks.HALO*2,height:tile.size+window.VedrasChunks.HALO*2,
      lowResolution:true};
@@ -1297,7 +1310,7 @@ function applySelected(toBiome){const a=useAsset(state.asset);if(!a)return;if(a.
      state.baseBiomeByHex[state.selected]=next==='forest_floor'?previous:next;
      state.hexTerrain[state.selected]=a.path;
     }
-    stampCache.clear();invalidateTerrain();window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));
+    stampCache.clear();invalidateTerrain('cells');window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));
  }else if(a.category==='shadows'){state.hexShadow[state.selected]=a.path;}
  else if(!toBiome&&a.category==='nature'){window.VedrasNature?.placeSelected();return;}
  else if(!toBiome){state.hexObject[state.selected]={path:a.path,width:state.width};}
@@ -1313,7 +1326,7 @@ function applyRoadChanges(next){
  window.VedrasNature?.renderPlaced?.();persistScene();requestDraw();
  return {removed:clear.removed,edges:edges.length};
 }
-function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
+function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];invalidateTerrain('cells');window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
 const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','workerTerrain','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline'];
 function persistScene(){try{
  // A freshly placed mountain permanently invalidates roads through its
