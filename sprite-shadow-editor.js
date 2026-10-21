@@ -302,7 +302,14 @@ window.addEventListener('DOMContentLoaded',()=>{
  $('ssPrevious').addEventListener('click',()=>{cursor=Math.max(0,cursor-1);refresh()});
  $('ssNext').addEventListener('click',()=>{cursor=Math.min(visible.length-1,cursor+1);refresh()});
  $('ssOpenMountain').addEventListener('click',()=>{
-  $('mountainTools')?.scrollIntoView({behavior:'smooth',block:'start'});
+  // The right-hand mountain section sits inside a collapsed native drawer.
+  // Use its existing shortcut so the drawer opens before scrolling.
+  if($('shortcutMountain'))$('shortcutMountain').click();
+  else{
+   const drawer=$('drawer_mountainTools');
+   if(drawer)drawer.open=true;
+   (drawer||$('mountainTools'))?.scrollIntoView({behavior:'smooth',block:'start'});
+  }
  });
  $('ssSearch').addEventListener('input',list);$('ssCategory').addEventListener('change',list);
  window.addEventListener('beforeunload',e=>{
