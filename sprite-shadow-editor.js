@@ -188,18 +188,20 @@ window.addEventListener('DOMContentLoaded',()=>{
   dirty=true;seq++;text('Ungespeicherte Schattenänderungen – mit „Profile speichern“ sichern.');
   core.requestDraw();
  }
+ function syncSceneStrength(){
+  const v=Engine.get().global.strength,percent=Math.round(100*v);
+  core.state.shadowGlobal=v;
+  for(const [slider,out] of [['shadowGeneralStrength','shadowGeneralText'],
+    ['shadowGlobalStrength','shadowGlobalText']]){
+   if($(slider))$(slider).value=String(percent);
+   if($(out))$(out).textContent=percent+' %';
+  }
+  core.persistScene();
+ }
  function updateGlobal(field,v){
   const prev=Engine.get(),next={...prev,global:{...prev.global,[field]:v}};
   Engine.set(next);setRange('ssGlobal_',field,v);
-  if(field==='strength'){
-   core.state.shadowGlobal=v;
-   for(const [slider,out] of [['shadowGeneralStrength','shadowGeneralText'],
-    ['shadowGlobalStrength','shadowGlobalText']]){
-    if($(slider))$(slider).value=String(Math.round(100*v));
-    if($(out))$(out).textContent=Math.round(v*100)+' %';
-   }
-   core.persistScene();
-  }
+  if(field==='strength')syncSceneStrength();
   refresh();modified();
  }
  function updateSprite(field,v){
@@ -235,7 +237,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    if(!res.ok)throw Error('Lokaler Schatten-Profilserver nicht erreichbar');
    const incoming=await res.json();if(dirty)return;
    Engine.set(incoming);loaded=true;editable=true;
-   core.state.shadowGlobal=Engine.get().global.strength;core.persistScene();
+   syncSceneStrength();
    allControls();refresh();core.requestDraw();
    text('Schattenprofile geladen. Pro Sprite justieren und anschließend speichern.');
   }catch(e){loaded=true;allControls();refresh();
@@ -263,8 +265,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!confirm('Die gemeinsamen Schattenwerte auf den Ausgangszustand zurücksetzen? Individuelle Sprite-Profile bleiben erhalten.'))return;
   const data=Engine.get();
   Engine.set({...data,global:Engine.defaults().global});
-  core.state.shadowGlobal=Engine.get().global.strength;
-  core.persistScene();allControls();refresh();modified();
+  syncSceneStrength();allControls();refresh();modified();
  });
  $('ssBackup').addEventListener('click',async()=>{
   try{
@@ -272,8 +273,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    if(!response.ok)throw Error('Keine Schattenprofil-Sicherung vorhanden.');
    const backup=Engine.valid(await response.json());
    if(!confirm('Die letzte gespeicherte Schatten-Sicherung laden? Danach „Profile speichern“ klicken.'))return;
-   Engine.set(backup);core.state.shadowGlobal=backup.global.strength;
-   core.persistScene();allControls();refresh();modified();
+   Engine.set(backup);syncSceneStrength();allControls();refresh();modified();
    text('Backup geladen. Noch nicht gespeichert.');
   }catch(e){text('Backup konnte nicht geladen werden: '+e.message);}
  });
