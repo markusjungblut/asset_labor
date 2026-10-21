@@ -23,9 +23,29 @@ window.VedrasNatureCatalog=(()=>{
  // Shared cold-region definition from the Terrain catalog.
  const COLD_BIOMES=['snowfields','frozen_tundra','tundra','highland'];
  const winterBoulder=meta=>meta?.family==='stones'&&
-   /^boulder_(?:2[1-9]|30)$/.test(meta.id||'');
+   /^boulder_(?:2[1-9]|3[0-5])$/.test(meta.id||'');
+ const warmBoulder=meta=>meta?.family==='stones'&&
+   /^boulder_(?:3[6-9]|4[0-4])$/.test(meta.id||'');
  const snowyBush=meta=>meta?.family==='snow_bushes'||
    /^snowy_bush(?:_\d+)?$/.test(meta?.id||'');
+ // These are hard constraints independent of user-edited old category presets.
+ const WARM_BIOMES=['savanna','jungle','rocky_desert','sandy_desert','clay_desert',
+   'badlands','wasteland','semi_desert','sandy_rocky_desert',
+   'sandy_badlands','rocky_badlands','desert'];
+ const TEMPERATE_BIOMES=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
+ const STUMP_BIOMES=[...TEMPERATE_BIOMES,'savanna','jungle'];
+ function strictHabitat(meta){
+  if(!meta)return null;
+  const id=String(meta.id||'');
+  if(winterBoulder(meta)||snowyBush(meta))return COLD_BIOMES;
+  if(warmBoulder(meta))return WARM_BIOMES;
+  if(/^(?:existing_)?baumstumpf_(?:1[6-9]|20)$/.test(id))return STUMP_BIOMES;
+  if(/^(?:existing_)?berg_(?:1[4-6])$/.test(id))return ['snowfields'];
+  if(/^(?:existing_)?berg_(?:1[7-9]|2[01])$/.test(id))return TEMPERATE_BIOMES;
+  if(/^ice_block_0?[1-5]$/.test(id)||/^(?:existing_)?eisblock_0?[1-5]$/.test(id)||
+     meta.family==='ice_blocks')return ['snowfields','frozen_tundra','tundra'];
+  return null;
+ }
  // Hard ecological guard, independent of category presets and edited metadata.
  // Both generated and manually placed sprites MUST pass it. The anchor stays on
  // LAND; a mangrove crown may overhang adjacent water without spawning in it.
@@ -38,9 +58,8 @@ window.VedrasNatureCatalog=(()=>{
   const nearWater=[...neighbors].some(id=>registry.find(v=>v.id===id)?.materialClass==='water'||registry.find(v=>v.id===id)?.materialClass==='shoreline');
   const nearWarm=[...neighbors].some(id=>id==='jungle'||id==='savanna');
   const among=(...v)=>v.includes(t);
-  // Winter boulders 21–30 and snowy_bush belong ONLY to cold biomes.
-  // Their hard rule also overrides obsolete, overly broad catalog settings.
-  if(winterBoulder(meta)||snowyBush(meta))return COLD_BIOMES.includes(t);
+  const restricted=strictHabitat(meta);
+  if(restricted)return restricted.includes(t);
   if(f==='mangroves')return among('swamp','marshland')&&(nearWater||nearWarm);
   if(f==='palms')return among('jungle','savanna','tropical_coast');
   if(f==='jungle_trees'||f==='tropical_bushes')return among('jungle');
@@ -69,8 +88,9 @@ window.VedrasNatureCatalog=(()=>{
   const baseInfo=all.find(x=>x.id===base),logicalInfo=all.find(x=>x.id===biome);
   if(baseInfo?.materialClass!=='ground'||logicalInfo?.materialClass!=='ground')return false;
   const wet=['moor','swamp','marshland'],cold=['snowfields','frozen_tundra','tundra','highland'];
-  if(winterBoulder(meta)||snowyBush(meta)){
-   if(!COLD_BIOMES.includes(base))return false;
+  const strict=strictHabitat(meta);
+  if(strict){
+   if(!strict.includes(base))return false;
   }else if(meta.family==='stones'&&['snowfields','frozen_tundra'].includes(base))return false;
   const warm=['jungle','savanna'];
   const forest=['light_forest','dense_forest'].includes(context.forestClass);
@@ -87,13 +107,22 @@ window.VedrasNatureCatalog=(()=>{
   if(!listed)return false;
   const neighbors=context.neighborTypes||[];
   // Forest-floor overlays must not overwrite the real cold base biome.
-  if(winterBoulder(meta)||snowyBush(meta))
-   return habitatOK(meta,base,neighbors,terrain);
+  if(strict)return habitatOK(meta,base,neighbors,terrain);
   // All plants other than explicit tropical-jungle species must survive the
   // original habitat test, even after a forest overlay changed their artwork.
   if(!['jungle_trees','tropical_bushes'].includes(meta.family)&&!habitatOK(meta,base,neighbors,terrain))return false;
   if(!habitatOK(meta,biome,neighbors,terrain))return false;
   return true;
+ }
+ // Mountains are not conventional Nature sprites; they have their own
+ // placement path and must be checked on BOTH automatic and manual placement.
+ function mountainAllowed(meta,baseTerrain,terrain,catalog=null){
+  if(meta?.kind!=='mountain'||!baseTerrain)return false;
+  const type=terrain?.terrainTypes?.find(x=>x.id===baseTerrain);
+  if(!type||type.materialClass!=='ground')return false;
+  const hard=strictHabitat(meta);
+  if(hard&&!hard.includes(baseTerrain))return false;
+  return effectiveTypes(meta,terrain,catalog).has(baseTerrain);
  }
  function validate(catalog,terrain=null){const err=[];
   if(!catalog||catalog.schemaVersion!==1||!catalog.entries||Array.isArray(catalog.entries)||typeof catalog.entries!=='object')return ['Ungültiges Nature-Katalogformat.'];
@@ -137,5 +166,6 @@ window.VedrasNatureCatalog=(()=>{
   }
   return err;
  }
- return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,habitatOK,canPlace,rules};
+ return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,
+  habitatOK,canPlace,mountainAllowed,strictHabitat,rules};
 })();
