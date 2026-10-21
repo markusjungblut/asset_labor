@@ -1625,6 +1625,36 @@ $('sceneImport').addEventListener('change',async e=>{
  }catch(err){alert('Szenenimport abgelehnt: '+err.message);}e.target.value='';
 });
 $('saveScene').addEventListener('click',exportScene);
+// A final image is recomposed from source assets; NEVER upscale a low-res
+// editor screenshot. JSON scene exports and original RGBA PNGs are untouched.
+$('exportMapPng').addEventListener('click',async()=>{
+ if(finalRendering)return;
+ const button=$('exportMapPng');button.disabled=true;
+ try{
+  // Wait for pending debounced slider edits before taking the snapshot.
+  if(deferredEdits.size)await new Promise(resolve=>setTimeout(resolve,210));
+  finalRendering=true;resize();requestDraw();
+  let ready=false;
+  for(let attempt=0;attempt<250;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,120));
+   const chunked=state.chunkRendering||state.sceneSize>37;
+   const t=terrainChunks.stats(),shore=shorelineChunks.stats(),road=roadChunks.stats();
+   if((!chunked||(t.visible>0&&t.pending===0&&t.painted===t.visible&&t.stalePainted===0))&&
+      (!state.shoreline.enabled||shore.pending===0)&&(!state.roadShown||road.pending===0)){
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    ready=true;break;
+   }
+   requestDraw();
+  }
+  if(!ready)throw Error('Nicht alle sichtbaren Chunks konnten für das Finalbild fertiggestellt werden.');
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(
+   result=>result?resolve(result):reject(Error('Die PNG-Ausgabe konnte nicht erstellt werden.')),'image/png'));
+  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+  anchor.href=url;anchor.download='vedras_kartenansicht_final.png';anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+ }catch(err){alert('Finalbild-Export fehlgeschlagen: '+(err?.message||String(err)));}
+ finally{finalRendering=false;resize();requestDraw();button.disabled=false;}
+});
 $('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.natureInstances=[];window.VedrasNature?.renderPlaced?.();state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;window.dispatchEvent(new Event('vedras:road-changed'));if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 let points=new Map(),moved=false,initialPinch=null,shadowDrag=null;
