@@ -259,6 +259,24 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!confirm('Alle individuell gespeicherten Schattenkorrekturen entfernen und gemeinsame Standardwerte verwenden? Die PNGs bleiben unverändert. Zuvor JSON exportieren, falls die Profile erhalten bleiben sollen.'))return;
   const d=Engine.get();Engine.set({...d,profiles:{}});refresh();modified();
  });
+ $('ssRestoreGlobal').addEventListener('click',()=>{
+  if(!confirm('Die gemeinsamen Schattenwerte auf den Ausgangszustand zurücksetzen? Individuelle Sprite-Profile bleiben erhalten.'))return;
+  const data=Engine.get();
+  Engine.set({...data,global:Engine.defaults().global});
+  core.state.shadowGlobal=Engine.get().global.strength;
+  core.persistScene();allControls();refresh();modified();
+ });
+ $('ssBackup').addEventListener('click',async()=>{
+  try{
+   const response=await fetch('/api/sprite-shadows-backup',{cache:'no-store'});
+   if(!response.ok)throw Error('Keine Schattenprofil-Sicherung vorhanden.');
+   const backup=Engine.valid(await response.json());
+   if(!confirm('Die letzte gespeicherte Schatten-Sicherung laden? Danach „Profile speichern“ klicken.'))return;
+   Engine.set(backup);core.state.shadowGlobal=backup.global.strength;
+   core.persistScene();allControls();refresh();modified();
+   text('Backup geladen. Noch nicht gespeichert.');
+  }catch(e){text('Backup konnte nicht geladen werden: '+e.message);}
+ });
  $('ssSave').addEventListener('click',save);
  $('ssExport').addEventListener('click',download);
  $('ssImport').addEventListener('change',async event=>{
@@ -274,6 +292,10 @@ window.addEventListener('DOMContentLoaded',()=>{
  $('ssPrevious').addEventListener('click',()=>{cursor=Math.max(0,cursor-1);refresh()});
  $('ssNext').addEventListener('click',()=>{cursor=Math.min(visible.length-1,cursor+1);refresh()});
  $('ssSearch').addEventListener('input',list);$('ssCategory').addEventListener('change',list);
+ window.addEventListener('beforeunload',e=>{
+  if(!dirty)return;
+  e.preventDefault();e.returnValue='';
+ });
  window.addEventListener('vedras:assets-loaded',list);
  window.addEventListener('vedras:shadow-changed',()=>{if(!dirty){allControls();refresh();}});
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.
