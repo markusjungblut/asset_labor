@@ -318,6 +318,18 @@ window.VedrasNature=(()=>{
   const assets=core.assets(),generatedMountains=autoGeoMountains(seed,assets);
   const F=window.VedrasForest,B=window.VedrasNatureBalance,forest=core.forestCells();
   const forestByHex=new Map(forest.map(c=>[c.key,c]));
+  const crownArea=new Map(),HEX_AREA=256*256*Math.sqrt(3)/2;
+  const crownCoverage=(asset,scale=1)=>{
+   if(!asset?.img?.naturalWidth)return 0;
+   if(!crownArea.has(asset.path)){
+    const m=entryFor(asset),crop=core.shadowSprites?.bounds?.(asset.img);
+    const width=(window.VedrasSpritePlanner?.visualWidth(m,asset.img,crop)||
+     m?.logicalWidth||52)*(window.VedrasNatureBalance.sizeFactor(m)||1);
+    // Visible crown width is a coverage proxy, not literal measured pixels.
+    crownArea.set(asset.path,.72*width*width/HEX_AREA);
+   }
+   return crownArea.get(asset.path)*scale*scale;
+  };
   // Keep valid hand-placed instances when refreshing a forest. Old generated
   // instances without provenance are intentionally regenerated.
   const all=(state.natureInstances||[]).filter(n=>n.source==='manual'&&validInstance(n,forestByHex)===true);
@@ -385,15 +397,22 @@ window.VedrasNature=(()=>{
     (f?.forestClass==='dense_forest'?.52:f?.forestClass==='light_forest'?.73:1):
     (f?.forestClass==='dense_forest'?.72:f?.forestClass==='light_forest'?.92:1);
    const placed=all.filter(n=>n.q===c.q&&n.r===c.r);
-   let count=placed.length,treeCount=placed.filter(n=>{
-    const a=assets.find(v=>v.path===n.assetPath);return B.isCanopy(entryFor(a));
-   }).length;
-   // Reuse available tree species in a coherent grove, not one per PNG.
-   for(let slot=0;slot<wantedTrees&&count<objectCap&&trees.length;slot++){
-    if(treeCount>=wantedTrees)break;
+   let count=placed.length,treeCount=0,estimatedCover=0;
+   for(const n of placed){
+    const a=assets.find(v=>v.path===n.assetPath);
+    if(B.isCanopy(entryFor(a))){treeCount++;estimatedCover+=crownCoverage(a,n.scale||1);}
+   }
+   // In canopy mode, continue planting until the rendered crown-size proxy
+   // reaches the requested coverage (or the safe object cap is reached).
+   const targetCover=mode==='canopy'&&f?.forestClass!=='none'?
+    f?.canopyCoverage||0:0;
+   const treeSlots=targetCover?Math.max(wantedTrees,objectCap-2):wantedTrees;
+   for(let slot=0;slot<treeSlots&&count<objectCap&&trees.length;slot++){
+    if(treeCount>=wantedTrees&&(!targetCover||estimatedCover>=targetCover))break;
     const a=trees[slot%Math.min(trees.length,5)];
     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,spacingFactor,forestByHex,neighborsByHex);
-    if(inst){record(inst);treeCount++;count++;forestTrees++;}
+    if(inst){record(inst);treeCount++;count++;forestTrees++;
+     estimatedCover+=crownCoverage(a,inst.scale||1);}
    }
    // Auf offenen Hexen bleiben vereinzelte Bäume erhalten, ohne gleich einen
    // Wald zu erzeugen. Wald- und Randhexe bekommen zuerst ihre Baumquote.
