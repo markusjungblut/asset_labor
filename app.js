@@ -300,11 +300,11 @@ function drawShorelines(){
    ' sichtbar · '+stats.pending+' geplant';
  }else{
   shorelineChunks.clear();
-  if(shorelineCache.signature!==signature||!shorelineCache.raster){
+  if(shorelineCache.signature!==signature||shorelineCache.density!==previewDensity()||!shorelineCache.raster){
    const imgs=files.map(a=>a?.img?.naturalWidth?a.img:null);
    const t0=performance.now();
    shorelineCache.raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{...opts,resolution:finalRendering?1.5:Math.max(.65,previewDensity()),mouthPortals});
-   shorelineCache.signature=signature;shorelineCache.buildMs=performance.now()-t0;
+   shorelineCache.signature=signature;shorelineCache.density=previewDensity();shorelineCache.buildMs=performance.now()-t0;
   }
   const r=shorelineCache.raster;
   if(r?.canvas)ctx.drawImage(r.canvas,r.x,r.y,r.width,r.height);
@@ -385,7 +385,7 @@ function drawGround(){
   const geographyRelief=state.relief.enabled&&state.relief.mode==='geography';
   // Cached base autotile canvases allow reprojecting hills without repainting
   // ground textures. The legacy Worker lacks a persistent raw terrain layer.
-  const workerActive=!geographyRelief&&state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
+  const workerActive=state.workerTerrain!==false&&window.VedrasTerrainWorker.available();
   const lod=updateTerrainLod(state.zoom);
   const chunkFamily=JSON.stringify([signature,
    geographyRelief?'geography-materials':state.relief,
@@ -469,14 +469,14 @@ function drawGround(){
    lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
    ' gebaut · '+Math.round(lastChunkStats.pixels*4/1048576)+' MiB gepuffert · '+
    lastChunkStats.lastMs.toFixed(0)+' ms letzter Chunk · '+
-   (geographyRelief?'Geografie-Relief, '+geographyMaterialTiles.size+
+   (geographyRelief&&!workerActive?'Geografie-Relief, '+geographyMaterialTiles.size+
      ' Grundtextur-Chunks gecacht':workerActive?'Worker/OffscreenCanvas aktiv':
     state.workerTerrain===false?'Worker deaktiviert':'Hauptthread-Fallback')+
    ' · Worker abgeschlossen: '+window.VedrasTerrainWorker.status().completed;
  }else{
   terrainChunks.clear();
-  if(terrainRasterCache.signature!==signature||!terrainRasterCache.raster){
-   terrainRasterCache.signature=signature;const start=performance.now();
+  if(terrainRasterCache.signature!==signature||terrainRasterCache.density!==previewDensity()||!terrainRasterCache.raster){
+   terrainRasterCache.signature=signature;terrainRasterCache.density=previewDensity();const start=performance.now();
    terrainRasterCache.raster=window.VedrasAutotile.build(worldCells,
     c=>selectedMap.get(key(c.q,c.r))||fallback,effectiveBiome,{
     band:state.edgeWidth,blendVariants:state.blendVariants,waterSampling:state.waterSampling,
@@ -492,7 +492,7 @@ function drawGround(){
   window.__vedrasTerrainRaster=terrainRasterCache.raster;
   let reliefRaster=terrainRasterCache.raster;
   if(reliefRaster&&state.relief.enabled){
-   const reliefSignature=JSON.stringify([terrainRasterCache.signature,state.relief]);
+   const reliefSignature=JSON.stringify([terrainRasterCache.signature,state.relief,previewDensity()]);
    if(reliefRasterCache.signature!==reliefSignature){
     reliefRasterCache={signature:reliefSignature,
      raster:window.VedrasRelief.make(terrainRasterCache.raster.landLayer,currentRelief()),
