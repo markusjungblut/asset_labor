@@ -136,14 +136,15 @@ window.addEventListener('DOMContentLoaded',()=>{
   ctx.moveTo(0,canvas.height*.70);ctx.lineTo(canvas.width,canvas.height*.70);ctx.stroke();
   if(!a){ctx.fillStyle='#d4e9d3';ctx.font='15px sans-serif';ctx.fillText('Keine passende Sprite-Datei geladen.',16,35);return;}
   const meta=window.VedrasNature?.entryFor(a)||null,kind=meta?.kind||a.category,
-   w=kind==='mountain'?150:Math.min(135,kind==='tree'?105:110),
-   p={x:canvas.width*.57,y:canvas.height*.70},anchor=meta?.anchor||
-    (a.category==='buildings'?{x:.5,y:.9}:{x:.5,y:.96});
-  // In the preview use the same visible alpha crop and shadow engine
-  // as the map, with the original transparent PNG placed on top.
+   anchor=meta?.anchor||(a.category==='buildings'?{x:.5,y:.9}:{x:.5,y:.96});
+  // Use the game's visible alpha crop and scale the preview to fit tall
+  // trees/buildings/mountains without cutting off their crowns or peaks.
   const img=a.img,b=core.shadowSprites?.bounds(img)||{
    sx:0,sy:0,sw:img.naturalWidth,sh:img.naturalHeight},
-   aspect=b.sh/b.sw;
+   aspect=b.sh/b.sw,
+   p={x:canvas.width*.57,y:canvas.height*.70},
+   maxWidth=kind==='mountain'?165:145,
+   w=Math.max(30,Math.min(maxWidth,(p.y-16)/Math.max(.25,aspect*anchor.y)));
   let shape=core.shadowSprites?.silhouette(img);
   if(!shape){
    const cv=document.createElement('canvas');cv.width=256;
