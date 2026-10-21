@@ -8,16 +8,26 @@ window.VedrasForestUI=(()=>{
  function selectedKey(){return state.selected;}
  function render(){
   const f=config(),cells=core.forestCells(),selected=cells.find(c=>c.key===selectedKey());
-  $('forestEnabled').checked=f.enabled;$('forestCoverage').value=String(Math.round(f.coverage*100));
+  $('forestEnabled').checked=f.enabled;
+  $('forestMode').value=f.mode;
+  $('forestCanopyCover').value=String(Math.round(f.canopyCover*100));
+  $('forestCanopyValue').textContent=Math.round(f.canopyCover*100)+' %';
+  $('forestGladeRate').value=String(Math.round(f.gladeRate*100));
+  $('forestGladeValue').textContent=Math.round(f.gladeRate*100)+' %';
+  $('forestGladeRate').disabled=f.mode!=='canopy';
+  $('forestCoverage').value=String(Math.round(f.coverage*100));
   $('forestEdge').value=String(Math.round(f.edgeStrength*100));$('forestDebug').checked=f.debug;
   $('forestCoverageValue').textContent=Math.round(f.coverage*100)+' %';
   $('forestEdgeValue').textContent=Math.round(f.edgeStrength*100)+' %';
   const dense=cells.filter(c=>c.forestClass==='dense_forest').length,light=cells.filter(c=>c.forestClass==='light_forest').length;
   const edges=cells.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
-  const jungle=cells.filter(c=>c.jungle).length;
+  const jungle=cells.filter(c=>c.jungle).length,glades=cells.filter(c=>c.glade).length;
   const name=selected?.jungle?'Dschungel über '+selected.baseBiome:selected?.baseBiome||'–';
   const cls=selected?.forestClass==='dense_forest'?'dicht':selected?.forestClass==='light_forest'?'licht':selected?.edgeInfluence>.05?'Waldrand':'offen';
-  $('forestStatus').textContent=cells.length+' Hexe · '+dense+' dicht · '+light+' licht · '+edges+' Waldrand · '+jungle+' Dschungel · ausgewählt: '+name+', '+cls+' ('+Math.round((selected?.density||0)*100)+' % Waldintensität).';
+  $('forestStatus').textContent=cells.length+' Hexe · '+dense+' dicht · '+light+' licht · '+edges+' Waldrand · '+jungle+' Dschungel · ausgewählt: '+name+', '+cls+' ('+Math.round((selected?.density||0)*100)+' % geografische Waldintensität, '+
+   Math.round((selected?.canopyCoverage||0)*100)+' % Kronenziel). '+
+   'Modus: '+({classic:'bisherig',dense:'dichter',canopy:'geschlossen'}[f.mode])+
+   ' · '+glades+' Lichtungshexe.';
  }
  function changed(repopulate=false){
   config();core.persistScene();core.requestDraw();window.dispatchEvent(new Event('vedras:forest-changed'));
@@ -35,6 +45,19 @@ window.VedrasForestUI=(()=>{
   changed(true);
  }
  $('forestEnabled').addEventListener('change',e=>{config().enabled=e.target.checked;changed(true);});
+ $('forestMode').addEventListener('change',e=>{config().mode=e.target.value;changed(true);});
+ $('forestCanopyCover').addEventListener('input',e=>{
+  $('forestCanopyValue').textContent=e.target.value+' %';
+ });
+ $('forestCanopyCover').addEventListener('change',e=>{
+  config().canopyCover=Number(e.target.value)/100;changed(true);
+ });
+ $('forestGladeRate').addEventListener('input',e=>{
+  $('forestGladeValue').textContent=e.target.value+' %';
+ });
+ $('forestGladeRate').addEventListener('change',e=>{
+  config().gladeRate=Number(e.target.value)/100;changed(true);
+ });
  $('forestCoverage').addEventListener('input',e=>{$('forestCoverageValue').textContent=e.target.value+' %';});
  $('forestCoverage').addEventListener('change',e=>{config().coverage=Number(e.target.value)/100;changed(true);});
  $('forestEdge').addEventListener('input',e=>{$('forestEdgeValue').textContent=e.target.value+' %';});
