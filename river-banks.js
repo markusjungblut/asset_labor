@@ -172,7 +172,15 @@ window.VedrasRiverBanks=(()=>{
    l.maxY>=bounds.y-pad&&l.minY<=bounds.y+bounds.height+pad))return null;
   const density=clamp(Number(options.resolution)||1,.5,1.6);
   const scale=Math.min(density,Math.sqrt(900000/(bounds.width*bounds.height)));
-  const field=nearestField(prepared,bounds,scale),{w,h}=field;
+  // Align every chunk to the SAME world-pixel lattice even at 0.6x preview
+  // resolution. Otherwise 512-world-unit chunk offsets create fractional
+  // texel shifts and a fine seam at the overlap.
+  const left=Math.floor(bounds.x*scale),top=Math.floor(bounds.y*scale);
+  const right=Math.ceil((bounds.x+bounds.width)*scale);
+  const bottom=Math.ceil((bounds.y+bounds.height)*scale);
+  const aligned={x:left/scale,y:top/scale,width:(right-left)/scale,
+   height:(bottom-top)/scale};
+  const field=nearestField(prepared,aligned,scale),{w,h}=field;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
   const g=canvas.getContext('2d',{willReadFrequently:true}),bank=g.createImageData(w,h);
   const waterMasks=new Map();
@@ -182,7 +190,7 @@ window.VedrasRiverBanks=(()=>{
    const lineIndex=field.lineId[i];if(lineIndex<0)continue;
    const rawDistance=Math.sqrt(field.distances[i]);
    if(rawDistance>half+40)continue;
-   const py=Math.floor(i/w),px=i-py*w,wx=bounds.x+(px+.5)/scale,wy=bounds.y+(py+.5)/scale;
+   const py=Math.floor(i/w),px=i-py*w,wx=aligned.x+(px+.5)/scale,wy=aligned.y+(py+.5)/scale;
    const line=prepared.lines[lineIndex],t=field.along[i],posX=line.a.x+t*line.dx,
     posY=line.a.y+t*line.dy,distX=wx-posX,distY=wy-posY;
    const normalSign=Math.sign(-line.dy*distX+line.dx*distY)||1;
@@ -234,7 +242,7 @@ window.VedrasRiverBanks=(()=>{
     image.data[j]=255;image.data[j+1]=255;image.data[j+2]=255;image.data[j+3]=mask[i];
    }
    wg.putImageData(image,0,0);
-   wg.save();wg.setTransform(scale,0,0,scale,-bounds.x*scale,-bounds.y*scale);
+   wg.save();wg.setTransform(scale,0,0,scale,-aligned.x*scale,-aligned.y*scale);
    wg.globalCompositeOperation='source-in';
    const source=prepared.images[id],pattern=source?.naturalWidth?wg.createPattern(source,'repeat'):null;
    if(pattern){
@@ -244,10 +252,10 @@ window.VedrasRiverBanks=(()=>{
     }
     wg.fillStyle=pattern;
    }else wg.fillStyle='#4397b2';
-   wg.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);
+   wg.fillRect(aligned.x,aligned.y,aligned.width,aligned.height);
    wg.restore();g.drawImage(waterCanvas,0,0);
   }
-  return {canvas,x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height,
+  return {canvas,x:aligned.x,y:aligned.y,width:aligned.width,height:aligned.height,
    routes:prepared.routeCount,sections:prepared.lines.length,bankPixels,waterPixels};
  }
  return {material,paletteAt,bankSample,prepare,nearestField,render};
