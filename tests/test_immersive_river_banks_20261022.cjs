@@ -94,7 +94,7 @@ test('world-space bank and stone masks match across overlapping chunk margins',(
  // Both canvases represent the same world positions where their halos overlap.
  // Sample pixels with identical integer-world centres.
  let matched=0;
- for(let y=200;y<540;y+=23)for(let x=270;x<500;x+=19){
+ for(let y=-180;y<420;y+=23)for(let x=15;x<470;x+=19){
   const ai=((y+256)*a.canvas.width+(x+256))*4;
   const bi=((y+256)*b.canvas.width+x)*4;
   for(let c=0;c<4;c++)assert.equal(a.canvas.snapshot[ai+c],b.canvas.snapshot[bi+c]);
@@ -102,12 +102,33 @@ test('world-space bank and stone masks match across overlapping chunk margins',(
  }
  assert.ok(matched>100);
 });
+
+test('0.6x editor riverbank pixels align exactly across world-anchored chunks',()=>{
+ const {R,B}=setup(),{cells,routes,isWet}=fixture(R);
+ const prepared=B.prepare([routes[0],routes[1]],cells,isWet,{width:40});
+ const left={x:-256,y:-256,width:768,height:768};
+ const right={x:0,y:-256,width:768,height:768};
+ const a=B.render(prepared,{bounds:left,resolution:.6,bankStrength:.8});
+ const b=B.render(prepared,{bounds:right,resolution:.6,bankStrength:.8});
+ const density=.6,ax=Math.floor(left.x*density),bx=Math.floor(right.x*density);
+ const ay=Math.floor(left.y*density),by=Math.floor(right.y*density);
+ let checked=0;
+ for(let gy=-120;gy<230;gy+=11)for(let gx=5;gx<245;gx+=11){
+  const ia=((gy-ay)*a.canvas.width+(gx-ax))*4;
+  const ib=((gy-by)*b.canvas.width+(gx-bx))*4;
+  for(let k=0;k<4;k++)assert.equal(a.canvas.snapshot[ia+k],b.canvas.snapshot[ib+k]);
+  checked++;
+ }
+ assert.ok(checked>400);
+});
+
 test('old river data structures and scene exports remain usable',()=>{
  assert.match(app,/window\.VedrasRiverBanks\.prepare\(routes,bankCells,wetHex/);
  assert.match(app,/window\.VedrasRiverBanks\.render\(riverNetworkCache\.prepared/);
  assert.match(app,/riverNetworkCache=\{signature,prepared,occupancy\}/);
  assert.match(app,/riverBanks:state\.riverBanks,riverBankStrength:state\.riverBankStrength/);
  assert.match(app,/state\.riverBanks=scene\.riverBanks!==false/);
+ assert.match(app,/river\.painted===river\.visible&&river\.stalePainted===0/);
  assert.match(html,/id="riverBanks"/);
  assert.match(html,/id="riverBankStrength"/);
  assert.match(html,/river-banks\.js\?v=/);
