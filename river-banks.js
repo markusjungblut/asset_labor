@@ -197,6 +197,17 @@ window.VedrasRiverBanks=(()=>{
   return {alpha,red:clamp(r,0,255),green:clamp(g,0,255),
    blue:clamp(b,0,255),stone,reeds};
  }
+ // End the rocky bank on the LAND side of the actual hex-edge mouth.
+ // The last bank corridor may continue across the mouth as part of the river
+ // centreline; the water mask does, the cliff/earth overlay must not.
+ function mouthLandFade(x,y,mouth,width){
+  const cross=mouth.cross,tip=mouth.tip;
+  const dx=tip.x-cross.x,dy=tip.y-cross.y,len=Math.hypot(dx,dy)||1;
+  const rx=x-cross.x,ry=y-cross.y;
+  if(Math.hypot(rx,ry)>Math.max(170,width*3+45))return 1;
+  const towardSea=(rx*dx+ry*dy)/len;
+  return 1-smooth((towardSea+20)/20);
+ }
  // Only the bank is rasterized here. Previously this module replaced the
  // old textured water with its own flat-color composite, a visual regression.
  function render(prepared,options={}){
@@ -243,12 +254,9 @@ window.VedrasRiverBanks=(()=>{
    const pixel=bankSample(distance,half,style,bankStrength,wx,wy,
     directionalLight,line.dx/length,line.dy/length);
    if(pixel.alpha<.004)continue;
-   // A shoreline mouth becomes part of the sea coast, not a rock wall
-   // extending across open water. Match the original portal fade.
-   const cross=line.mouth.cross,tip=line.mouth.tip;
-   const mx=tip.x-cross.x,my=tip.y-cross.y,m2=mx*mx+my*my||1;
-   const towardWater=clamp(((wx-cross.x)*mx+(wy-cross.y)*my)/m2,0,1);
-   const fade=1-smooth(towardWater);
+   // Cut away every bank pixel on the water side of the coastal edge.
+   // Only the original textured river water is permitted beyond this line.
+   const fade=mouthLandFade(wx,wy,line.mouth,prepared.width);
    const alpha=Math.round(pixel.alpha*fade*255);
    if(!alpha)continue;
    const j=i*4;
@@ -261,5 +269,5 @@ window.VedrasRiverBanks=(()=>{
    routes:prepared.routeCount,sections:prepared.lines.length,bankPixels,
    waterPixels:0,layer:'bank-only'};
  }
- return {material,paletteAt,bankSample,prepare,nearestField,render};
+ return {material,paletteAt,bankSample,mouthLandFade,prepare,nearestField,render};
 })();
