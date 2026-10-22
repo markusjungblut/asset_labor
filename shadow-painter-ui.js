@@ -123,8 +123,9 @@ window.VedrasShadowPainter=(()=>{
   if(prev.length>=12){
    $('ssDrawStatus').textContent='Maximal zwölf getrennte Konturen.';return;
   }
-  commit([...prev,window.VedrasManualShadows.simplify(draft,180)]);
+  const shape=window.VedrasManualShadows.simplify(draft,180);
   draft=[];
+  commit([...prev,shape]);
   $('ssDrawStatus').textContent='Ausgefüllt. Mit „Profile speichern“ dauerhaft sichern.';
  }
  function undo(){
@@ -132,7 +133,12 @@ window.VedrasShadowPainter=(()=>{
   const p=polygons();
   if(p.length)commit(p.slice(0,-1));
  }
- function remove(){draft=[];drag=null;commit([]);}
+ function remove(){
+  draft=[];drag=null;
+  if(polygons().length)commit([]);
+  else ui()?.preview();
+  $('ssDrawStatus').textContent='Zeichnung entfernt; vorhandene Reglerwerte bleiben erhalten.';
+ }
  window.addEventListener('DOMContentLoaded',()=>{
   const cv=$('ssPreview');if(!cv)return;
   cv.addEventListener('pointerdown',down);
