@@ -9,12 +9,12 @@ window.VedrasRiverBanks=(()=>{
  const HEX=256,R=HEX/Math.sqrt(3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
  const palettes={
-  earth:[110,91,65,0],
-  forest:[80,80,60,.14],
-  rock:[113,111,101,.95],
-  marsh:[76,86,66,.22],
-  sand:[161,134,95,.08],
-  frost:[171,185,185,.04]
+  earth:[151,125,93,.20],
+  forest:[113,111,84,.24],
+  rock:[166,157,137,.95],
+  marsh:[101,105,77,.13],
+  sand:[185,150,105,.22],
+  frost:[177,186,186,.28]
  };
  const hash=(x,y)=>{
   let n=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^0x5e1ba83;
@@ -49,7 +49,7 @@ window.VedrasRiverBanks=(()=>{
    if(c.bankMaterial==='marsh')marsh+=w;
    sum+=w;
   }
-  if(!sum)return {r:110,g:91,b:65,rock:0,marsh:0};
+  if(!sum)return {r:151,g:125,b:93,rock:.20,marsh:0};
   return {r:r/sum,g:g/sum,b:b/sum,rock:rock/sum,marsh:marsh/sum};
  }
  function positionPalette(p,cells,memo){
@@ -146,38 +146,77 @@ window.VedrasRiverBanks=(()=>{
   }
   return coverage;
  }
- function bankSample(distance,half,style,strength,x,y,normalLight=0,tx=1,ty=0){
-  const wobble=1.35*Math.sin(x*.069+y*.051)+.85*Math.sin(x*.109-y*.072);
-  const d=distance+wobble;
-  if(d>half+36)return {alpha:0,red:style.r,green:style.g,blue:style.b,stone:0,reeds:0};
-  const reach=20+style.marsh*10+style.rock*3;
-  const lip=1-smooth((d-half+1)/reach);
-  const cut=Math.exp(-Math.pow((d-half-3)/6.6,2));
-  const crown=Math.exp(-Math.pow((d-half-15)/7.8,2));
-  const debrisBand=(1-smooth(Math.abs(d-half-15)/14));
-  const stone=style.rock>.12&&debrisBand>.03?
-   style.rock*debrisBand*debris(x,y,tx,ty,'rock'):0;
-  const reeds=style.marsh>.12&&debrisBand>.03?
-   style.marsh*debrisBand*debris(x,y,tx,ty,'reeds'):0;
-  const damp=style.marsh;
-  const alpha=clamp(strength*(.15*lip+.32*cut+.15*crown+
-   .32*stone+.13*reeds+.055*damp*lip),0,.76);
-  const light=clamp(1+normalLight*.105+crown*.08-cut*.12+stone*.32,-1,2);
-  return {alpha,red:clamp(style.r*light-stone*9-reeds*18,0,255),
-   green:clamp(style.g*light+reeds*18,0,255),
-   blue:clamp(style.b*light-stone*4-reeds*13,0,255),stone,reeds};
+
+ // The bank occupies a genuinely visible 2.5-D cross-section: wet cut,
+ // faceted ledge/earth wall, sunlit crest, then a terrain-transparent shoulder.
+ // All detail is derived from world coordinates so it works in all 6 headings.
+ function facets(x,y){
+  const pitch=29,gx=Math.floor(x/pitch),gy=Math.floor(y/pitch);
+  let first=Infinity,second=Infinity,tint=0;
+  for(let iy=gy-1;iy<=gy+1;iy++)for(let ix=gx-1;ix<=gx+1;ix++){
+   const fx=(ix+.5+(hash(ix+29,iy-11)-.5)*.72)*pitch;
+   const fy=(iy+.5+(hash(ix-12,iy+17)-.5)*.72)*pitch;
+   const d=Math.hypot(x-fx,y-fy);
+   if(d<first){second=first;first=d;tint=hash(ix+7,iy+3)*2-1;}
+   else if(d<second)second=d;
+  }
+  const crack=1-smooth((second-first-1.25)/3.5);
+  return {plane:tint,crack:clamp(crack,0,1)};
  }
+ function bankSample(distance,half,style,strength,x,y,normalLight=0,tx=1,ty=0){
+  const base={alpha:0,red:style.r,green:style.g,blue:style.b,stone:0,reeds:0};
+  // No shoreline effect inside the actual water envelope; water is rendered
+  // afterward by the original VedrasRivers.render without any alterations.
+  if(distance<half-2||distance>half+47||strength<=0)return base;
+  const warp=2.1*Math.sin(x*.061+y*.043)+
+   1.35*Math.sin(x*.123-y*.079)+.8*Math.sin(x*.23+y*.17);
+  const d=distance-half+warp;
+  if(d<-.5||d>44)return base;
+  const enter=smooth((d+.6)/2.6);
+  const foot=(1-smooth((d-2)/8))*enter;
+  const wall=(1-smooth((d-18)/8))*smooth((d-.5)/5);
+  const crest=Math.exp(-Math.pow((d-23.5)/5.0,2));
+  const shoulder=(1-smooth((d-26)/16))*smooth((d-22)/6);
+  if(foot+wall+crest+shoulder<.001)return base;
+  const rockMix=clamp(style.rock*.83+.21,0,1);
+  const facet=facets(x,y),broken=facet.crack*rockMix;
+  const looseBand=(1-smooth(Math.abs(d-29)/15));
+  const stone=looseBand*rockMix*debris(x,y,tx,ty,'rock');
+  const reeds=style.marsh*.9*looseBand*debris(x,y,tx,ty,'reeds');
+  // Dense, but translucent cliff faces preserve hints of the original
+  // terrain. On the outside, shoulder transparency fades to exactly zero.
+  const alpha=clamp(strength*(
+   foot*.68+wall*.90+crest*.75+shoulder*.25+
+   stone*.35+reeds*.20),0,.94);
+  const direction=clamp(normalLight,-1,1);
+  // Individual stones form differently lit polygonal facets with hairline
+  // shadow seams, rather than a uniformly colored rectangular river outline.
+  const rockShade=facet.plane*.20*rockMix-broken*.25+
+   stone*.27;
+  const tone=1+wall*(-.18+direction*.27+rockShade)+
+   foot*(-.38)+crest*(.32+direction*.10)+
+   shoulder*(.05+facet.plane*.04);
+  const stoneBlend=clamp((wall+crest*.4)*rockMix*.35+stone*.60,0,.7);
+  const r=(style.r*(1-stoneBlend)+173*stoneBlend)*tone;
+  const g=(style.g*(1-stoneBlend)+163*stoneBlend)*tone+reeds*10;
+  const b=(style.b*(1-stoneBlend)+142*stoneBlend)*tone-reeds*12;
+  return {alpha,red:clamp(r,0,255),green:clamp(g,0,255),
+   blue:clamp(b,0,255),stone,reeds};
+ }
+ // Only the bank is rasterized here. Previously this module replaced the
+ // old textured water with its own flat-color composite, a visual regression.
  function render(prepared,options={}){
   const bounds=options.bounds;
   if(!bounds||!prepared?.lines.length)return null;
-  const pad=prepared.width/2+42;
+  const bankStrength=clamp(Number(options.bankStrength??.85),0,1);
+  if(bankStrength<=0)return null;
+  const pad=prepared.width/2+50;
   if(!prepared.lines.some(l=>l.maxX>=bounds.x-pad&&l.minX<=bounds.x+bounds.width+pad&&
    l.maxY>=bounds.y-pad&&l.minY<=bounds.y+bounds.height+pad))return null;
   const density=clamp(Number(options.resolution)||1,.5,1.6);
   const scale=Math.min(density,Math.sqrt(900000/(bounds.width*bounds.height)));
-  // Align every chunk to the SAME world-pixel lattice even at 0.6x preview
-  // resolution. Otherwise 512-world-unit chunk offsets create fractional
-  // texel shifts and a fine seam at the overlap.
+  // World-aligned pixel origin prevents seams at chunk boundaries for
+  // fractional preview quality as well as final-quality rasterization.
   const left=Math.floor(bounds.x*scale),top=Math.floor(bounds.y*scale);
   const right=Math.ceil((bounds.x+bounds.width)*scale);
   const bottom=Math.ceil((bounds.y+bounds.height)*scale);
@@ -185,20 +224,21 @@ window.VedrasRiverBanks=(()=>{
    height:(bottom-top)/scale};
   const field=nearestField(prepared,aligned,scale),{w,h}=field;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-  const g=canvas.getContext('2d',{willReadFrequently:true}),bank=g.createImageData(w,h);
-  const waterMasks=new Map();
-  const half=prepared.width/2,strength=clamp(Number(options.bankStrength??.85),0,1);
-  let bankPixels=0,waterPixels=0;
+  const g=canvas.getContext('2d',{willReadFrequently:true}),image=g.createImageData(w,h);
+  const half=prepared.width/2;
+  let bankPixels=0;
   for(let i=0;i<field.lineId.length;i++){
    const lineIndex=field.lineId[i];if(lineIndex<0)continue;
-   const rawDistance=Math.sqrt(field.distances[i]);
-   if(rawDistance>half+40)continue;
-   const py=Math.floor(i/w),px=i-py*w,wx=aligned.x+(px+.5)/scale,wy=aligned.y+(py+.5)/scale;
-   const line=prepared.lines[lineIndex],t=field.along[i],posX=line.a.x+t*line.dx,
-    posY=line.a.y+t*line.dy,distX=wx-posX,distY=wy-posY;
-   const normalSign=Math.sign(-line.dy*distX+line.dx*distY)||1;
+   const distance=Math.sqrt(field.distances[i]);
+   if(distance<half-2||distance>half+47)continue;
+   const py=Math.floor(i/w),px=i-py*w,
+    wx=aligned.x+(px+.5)/scale,wy=aligned.y+(py+.5)/scale;
+   const line=prepared.lines[lineIndex],t=field.along[i];
+   const posX=line.a.x+t*line.dx,posY=line.a.y+t*line.dy,
+    distX=wx-posX,distY=wy-posY;
+   const sign=Math.sign(-line.dy*distX+line.dx*distY)||1;
    const length=Math.sqrt(line.length2);
-   const normalLight=normalSign*((-line.dy/length)*(-.6)+(line.dx/length)*(-.8));
+   const directionalLight=sign*((-line.dy/length)*(-.6)+(line.dx/length)*(-.8));
    const style={
     r:line.start.r*(1-t)+line.end.r*t,
     g:line.start.g*(1-t)+line.end.g*t,
@@ -206,60 +246,26 @@ window.VedrasRiverBanks=(()=>{
     rock:line.start.rock*(1-t)+line.end.rock*t,
     marsh:line.start.marsh*(1-t)+line.end.marsh*t
    };
-   // The same disturbance shapes water and bank; the channel stays joined.
-   const wobble=1.35*Math.sin(wx*.069+wy*.051)+.85*Math.sin(wx*.109-wy*.072);
-   const d=rawDistance+wobble;
-   const texFade=(()=>{
-    const cross=line.mouth.cross,tip=line.mouth.tip,dx=tip.x-cross.x,dy=tip.y-cross.y;
-    const endLen=dx*dx+dy*dy||1;
-    const forward=clamp(((wx-cross.x)*dx+(wy-cross.y)*dy)/endLen,0,1);
-    return 1-smooth(forward);
-   })();
+   const pixel=bankSample(distance,half,style,bankStrength,wx,wy,
+    directionalLight,line.dx/length,line.dy/length);
+   if(pixel.alpha<.004)continue;
+   // A shoreline mouth becomes part of the sea coast, not a rock wall
+   // extending across open water. Match the original portal fade.
+   const cross=line.mouth.cross,tip=line.mouth.tip;
+   const mx=tip.x-cross.x,my=tip.y-cross.y,m2=mx*mx+my*my||1;
+   const towardWater=clamp(((wx-cross.x)*mx+(wy-cross.y)*my)/m2,0,1);
+   const fade=1-smooth(towardWater);
+   const alpha=Math.round(pixel.alpha*fade*255);
+   if(!alpha)continue;
    const j=i*4;
-   if(strength>0){
-    const bankValue=bankSample(rawDistance,half,style,strength,wx,wy,normalLight,line.dx/length,line.dy/length);
-    if(bankValue.alpha>.004){
-     bank.data[j]=bankValue.red;
-     bank.data[j+1]=bankValue.green;
-     bank.data[j+2]=bankValue.blue;
-     bank.data[j+3]=Math.round(bankValue.alpha*255*texFade);
-     bankPixels++;
-    }
-   }
-   const waterAlpha=Math.round(window.VedrasRivers.alphaAtDistance(d,prepared.width)*255*texFade);
-   if(waterAlpha>0){
-    const id=line.waterIndex;let mask=waterMasks.get(id);
-    if(!mask){mask=new Uint8Array(w*h);waterMasks.set(id,mask);}
-    mask[i]=waterAlpha;waterPixels++;
-   }
+   image.data[j]=pixel.red;image.data[j+1]=pixel.green;
+   image.data[j+2]=pixel.blue;image.data[j+3]=alpha;
+   bankPixels++;
   }
-  g.putImageData(bank,0,0);
-  // River textures are sampled in world coordinates, not individual hex
-  // stamps. Separate source textures remain possible across tributaries.
-  for(const [id,mask] of waterMasks){
-   const waterCanvas=document.createElement('canvas');waterCanvas.width=w;waterCanvas.height=h;
-   const wg=waterCanvas.getContext('2d',{willReadFrequently:true});
-   const image=wg.createImageData(w,h);
-   for(let i=0;i<mask.length;i++){
-    if(!mask[i])continue;const j=i*4;
-    image.data[j]=255;image.data[j+1]=255;image.data[j+2]=255;image.data[j+3]=mask[i];
-   }
-   wg.putImageData(image,0,0);
-   wg.save();wg.setTransform(scale,0,0,scale,-aligned.x*scale,-aligned.y*scale);
-   wg.globalCompositeOperation='source-in';
-   const source=prepared.images[id],pattern=source?.naturalWidth?wg.createPattern(source,'repeat'):null;
-   if(pattern){
-    if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
-     const factor=HEX/Math.max(1,source.naturalWidth);
-     pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
-    }
-    wg.fillStyle=pattern;
-   }else wg.fillStyle='#4397b2';
-   wg.fillRect(aligned.x,aligned.y,aligned.width,aligned.height);
-   wg.restore();g.drawImage(waterCanvas,0,0);
-  }
+  g.putImageData(image,0,0);
   return {canvas,x:aligned.x,y:aligned.y,width:aligned.width,height:aligned.height,
-   routes:prepared.routeCount,sections:prepared.lines.length,bankPixels,waterPixels};
+   routes:prepared.routeCount,sections:prepared.lines.length,bankPixels,
+   waterPixels:0,layer:'bank-only'};
  }
  return {material,paletteAt,bankSample,prepare,nearestField,render};
 })();
