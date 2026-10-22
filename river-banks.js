@@ -13,7 +13,8 @@ window.VedrasRiverBanks=(()=>{
   forest:[80,80,60,.14],
   rock:[113,111,101,.95],
   marsh:[76,86,66,.22],
-  sand:[161,134,95,.08]
+  sand:[161,134,95,.08],
+  frost:[171,185,185,.04]
  };
  const hash=(x,y)=>{
   let n=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^0x5e1ba83;
@@ -22,6 +23,8 @@ window.VedrasRiverBanks=(()=>{
  function material(cell,type=''){
   const id=String(type||cell?.terrainTypeId||cell?.baseBiome||cell?.biome||'').toLowerCase();
   const relief=String(cell?.reliefClass||'').toLowerCase();
+  if(/snow|frozen|tundra|glaci|icefield|winter|schnee|eisfeld/.test(id))
+   return 'frost';
   if(relief==='mountain'||/mountain|highland|cliff|stone|rock|alpine|hilly|ridge|volcan|gebirg|fels/.test(id))
    return 'rock';
   if(/swamp|marsh|bog|mire|wetland|moor|mangrove|sumpf|feucht|floodplain/.test(id))
