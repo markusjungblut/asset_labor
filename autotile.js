@@ -49,18 +49,24 @@ window.VedrasAutotile = (() => {
  // Every ground/water material uses the same unmodified source pixels.
  // Water can opt into a source-once-per-hex sampler: this never wraps inside
  // a hex, so wrecks, reefs and other recognizable motifs remain intact.
- function texData(a,textureScales){
+ function texData(a,textureScales,water=false){
   const size=clamp(Number(textureScales[a.path]||a.meta?.textureWorldSize)||256,160,1536);
   // Multiple terrain chunks reuse decoded source texels, not one huge
   // getImageData allocation per chunk for each shared terrain asset.
   let bySize=textureCache.get(a.img);
-  if(bySize?.has(size))return bySize.get(size);
+  const cacheKey=size+'|'+(water?'water':'ground');
+   if(bySize?.has(cacheKey))return bySize.get(cacheKey);
   const w=Math.min(1536,Math.max(512,(a.img.naturalWidth||a.img.width))),h=Math.min(1536,Math.max(512,(a.img.naturalHeight||a.img.height)));
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(a.img,0,0,w,h);
-  const sample={path:a.path,size,pixels:g.getImageData(0,0,w,h).data,width:w,height:h};
+  const pixels=g.getImageData(0,0,w,h).data;
+   // Only water materials receive guarded repeat-edge and isolated centre-
+   // stripe correction. Source PNGs and all non-water terrain stay intact.
+   const corrected=water&&window.VedrasWaterTexture?.repairPixels?
+    window.VedrasWaterTexture.repairPixels(pixels,w,h):pixels;
+   const sample={path:a.path,size,pixels:corrected,width:w,height:h};
   if(!bySize){bySize=new Map();textureCache.set(a.img,bySize);}
-  bySize.set(size,sample);
+  bySize.set(cacheKey,sample);
   return sample;
  }
  function clamp(n,lo,hi){return Math.max(lo,Math.min(hi,n));}
@@ -95,7 +101,8 @@ window.VedrasAutotile = (() => {
   const {band=28,blendVariants=true,irregularity=5,blend=true,cornerBlend=true,resolution=1.55,maxPixels=4200000,materialScales={},transitionMode,materialClassOf=()=> 'ground',waterSampling='hex',terrainTone=null,bounds=null}=opts;
   const data=[],samples=new Map();
   for(const cell of cells){const a=textureOf(cell);if(!a?.img||!(a.img.naturalWidth||a.img.width))return null;
-   if(!samples.has(a.path))samples.set(a.path,texData(a,materialScales));
+   if(!samples.has(a.path))samples.set(a.path,texData(a,materialScales,
+    materialClassOf(typeOf(cell))==='water'));
    const p=pos(cell.q,cell.r);data.push({...cell,terrainTypeId:typeOf(cell),x:p.x,y:p.y,asset:a,sample:samples.get(a.path),materialClass:materialClassOf(typeOf(cell))});
   }
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
