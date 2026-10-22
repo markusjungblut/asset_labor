@@ -32,6 +32,7 @@ window.VedrasSpriteShadows=(()=>{
    if(!obj||Array.isArray(obj)||typeof obj!=='object')throw Error('Ungültige Schattenwerte.');
    for(const [k,v] of Object.entries(obj)){
     if(k==='enabled'&&!allowStrength&&typeof v==='boolean')continue;
+    if(k==='manual'&&!allowStrength){window.VedrasManualShadows.valid(v);continue;}
     const rule=fields[k];if(!rule||(k==='strength'&&!allowStrength)||
       typeof v!=='number'||!Number.isFinite(v)||v<rule.min||v>rule.max)
      throw Error('Schattenwert außerhalb des Bereichs: '+k);
@@ -68,6 +69,10 @@ window.VedrasSpriteShadows=(()=>{
   const globalStrength=strength===null?current.global.strength:strength;
   const alpha=clamp(globalStrength*x.opacity*(small?.28:1)*(family==='snow_fallen_logs'?.8:1),0,.95);
   if(alpha<=0)return;
+  if(x.manual?.polygons?.length){
+   window.VedrasManualShadows.render(ctx,x.manual,p,width,alpha,Math.min(30,x.softness));
+   return; // manual footprints supersede generic contact/silhouette
+  }
   const height=width*silhouette.aspect,ax=clamp(Number(anchor.x??.5),0,1),
     ay=clamp(Number(anchor.y??.96),0,1),rad=x.angle*Math.PI/180,
     reach=width*x.length,castX=reach*Math.cos(rad),castY=reach*Math.sin(rad)*(log?.14:.30),
