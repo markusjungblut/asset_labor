@@ -1704,8 +1704,7 @@ $('exportMapPng').addEventListener('click',async()=>{
     road=roadChunks.stats(),river=riverChunks.stats();
    if((!chunked||(t.visible>0&&t.pending===0&&t.painted===t.visible&&t.stalePainted===0))&&
       (!state.shoreline.enabled||shore.pending===0)&&(!state.roadShown||road.pending===0)&&
-      (!state.river||!riverRoutes().length||(river.visible>0&&river.pending===0&&
-       river.painted===river.visible&&river.stalePainted===0))){
+      (!state.river||!riverRoutes().length||(river.visible>0&&river.pending===0&&river.stalePainted===0))){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     ready=true;break;
    }
