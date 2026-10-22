@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vedras Reiche – Asset-Labor v0.12.9</title><link rel="stylesheet" href="style.css?v=0.36.0"></head>
+<title>Vedras Reiche – Asset-Labor v0.13.0</title><link rel="stylesheet" href="style.css?v=0.37.0"></head>
 <body>
 <div class="app">
-<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.12.9</small></h1></div></div>
+<header class="topbar"><div class="branding"><div class="emblem">⬡</div><div><div class="overline">VEDRAS REICHE · KARTENGRAFIK</div><h1>Asset-Labor <small>v0.13.0</small></h1></div></div>
 <div class="toptools"><span class="status" id="serverStatus">Lade Asset-Bibliothek…</span><button id="reloadBtn" title="Ordner erneut einlesen">↻ Neu einlesen</button><label class="button outline" for="folderInput">Ordner importieren</label><input id="folderInput" type="file" webkitdirectory multiple hidden accept="image/*,.svg,.json"/></div></header>
 <div class="layout">
 <aside class="library"><div class="paneheader"><h2>Grafikbibliothek</h2><div class="subtle">Dateien in <code>assets/</code> ablegen</div></div>
@@ -134,10 +134,25 @@
 <p class="muted">Einheitliches Licht von rechts oben: alle Schatten zeigen grundsätzlich nach links. Einzelne Sprites kannst du separat korrigieren. Die PNGs bleiben unverändert.</p>
 <div class="shadow-editor-search">
 <label>Sprite-Gruppe<select id="ssCategory"><option value="all">Alle Grafiken</option><option value="nature">Natur & Berge</option><option value="buildings">Gebäude</option><option value="units">Einheiten</option></select></label>
-<label>Sprite suchen<input id="ssSearch" type="search" placeholder="z. B. Baumstumpf, Tanne, Berg"></label>
+<label>Sprite suchen<input id="ssSearch" type="search" placeholder="z. B. snow_patch_01, Baumstumpf, Tanne"></label>
+<label>Sortierung<select id="ssSort"><option value="recent">Neueste Dateien zuerst</option><option value="name">Dateiname A–Z</option><option value="category">Kategorie / Name</option></select></label>
+<label class="checkbox"><input id="ssUnprofiled" type="checkbox"> Nur Grafiken ohne eigenes Schattenprofil</label>
 </div>
+<p class="muted" id="ssFileDate">Dateidatum wird geladen. Falls kein Erstellungsdatum verfügbar ist, gilt das Änderungsdatum.</p>
 <div class="shadow-editor-current"><strong id="ssCurrent">Sprite wird geladen…</strong><span id="ssOverride">Gemeinsamer Standard</span></div>
-<canvas id="ssPreview" width="370" height="260" role="img" aria-label="Live-Vorschau des Sprites mit Schatten auf Bodenfläche"></canvas>
+<canvas id="ssPreview" width="370" height="260" role="img" aria-label="Live-Vorschau und Zeichenfläche für den gefüllten Schatten des Sprites"></canvas>
+<details class="shadow-editor-details" id="ssDrawTools" open>
+<summary>Schattenfläche zeichnen und ausfüllen (einzelnes Sprite)</summary>
+<p class="muted">Zeichne die gewünschte Bodenschattenform direkt in die Vorschau. Klicke Eckpunkte oder zeichne frei mit gedrückter Maustaste. „Fläche füllen“ schließt die Kontur. Vorhandene orange Punkte kannst du verschieben. Mehrere getrennte Konturen sind möglich.</p>
+<div class="shadow-editor-actions">
+<label>Werkzeug<select id="ssDrawMode"><option value="polygon">Polygon · Eckpunkte setzen</option><option value="freehand">Freihand · ziehen</option><option value="edit">Konturpunkte verschieben</option></select></label>
+<button id="ssNewContour" type="button">Neue Kontur</button>
+<button id="ssFillContour" class="button primary" type="button">Fläche füllen</button>
+<button id="ssUndoPoint" type="button">Rückgängig</button>
+<button id="ssClearManual" class="button ghost" type="button">Zeichnung entfernen</button>
+</div>
+<div class="muted" id="ssDrawStatus">Neue Kontur beginnen. Die Originalgrafik bleibt unverändert.</div>
+</details>
 <div class="shadow-editor-nav"><button id="ssPrevious" class="button outline" type="button">← Vorheriges</button><span id="ssIndex">0 / 0</span><button id="ssNext" class="button outline" type="button">Nächstes →</button></div>
 <details class="shadow-editor-details" open><summary>Globale Schattenregeln – alle Sprites</summary>
 <p class="muted">Gemeinsame Richtung und Grundform; diese Werte wirken auf nicht individuell angepasste Grafiken.</p>
@@ -324,5 +339,5 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 </aside></div>
 <footer class="footer">Lokales Asset-Labor · modulare Grafikdateien · zwei Zoom-Darstellungen · Terrain-Materialien als separate Oberflächen · Hexblöcke ungeeignet · keine Internetverbindung erforderlich</footer>
 </div>
-<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="water-texture.js?v=0.1.0"></script><script src="autotile.js?v=0.31.0"></script><script src="chunks.js?v=0.33.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.36.0"></script><script src="forest-ground.js?v=0.36.0"></script><script src="nature-balance.js?v=0.36.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.30.0"></script><script src="river.js?v=0.29.0"></script><script src="river-banks.js?v=0.2.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="sprite-shadow-editor.js?v=0.36.2"></script><script src="app.js?v=0.39.0"></script><script src="nature-ui.js?v=0.36.0"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="worldgen-geography.js?v=2.1.0"></script><script src="catalog.js?v=0.18.0"></script><script src="terrain-source-rules.js?v=0.18.0"></script><script src="water-texture.js?v=0.1.0"></script><script src="autotile.js?v=0.31.0"></script><script src="chunks.js?v=0.33.0"></script><script src="terrain-worker-client.js?v=0.30.0"></script><script src="nature_catalog.js?v=0.33.0"></script><script src="flora-plan.js?v=0.17.0"></script><script src="terrain-plan.js?v=0.18.0"></script><script src="sprite-planner.js?v=0.16.0"></script><script src="existing-asset-rules.js?v=0.33.0"></script><script src="forest.js?v=0.36.0"></script><script src="forest-ground.js?v=0.36.0"></script><script src="nature-balance.js?v=0.36.0"></script><script src="polish.js?v=0.21.0"></script><script src="relief.js?v=0.35.0"></script><script src="shoreline.js?v=0.30.0"></script><script src="river.js?v=0.29.0"></script><script src="river-banks.js?v=0.2.0"></script><script src="mountain.js?v=0.11.0"></script><script src="roads.js?v=0.31.0"></script><script src="bridges.js?v=0.28.0"></script><script src="shadow-system.js?v=0.31.0"></script><script src="shadow-shapes.js?v=0.1.0"></script><script src="sprite-shadow-editor.js?v=0.37.0"></script><script src="shadow-painter-ui.js?v=0.1.0"></script><script src="app.js?v=0.39.0"></script><script src="nature-ui.js?v=0.36.0"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.34.0"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>

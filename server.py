@@ -15,7 +15,7 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.12.3'
+VERSION = '0.13.0'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
@@ -160,6 +160,23 @@ def validate_sprite_shadows(data):
                 if not isinstance(value, bool):
                     raise ValueError('Ungültiger Schatten-Schalter')
                 continue
+
+            if key == 'manual' and not allow_strength:
+                if not isinstance(value, dict) or value.get('mode') != 'polygons':
+                    raise ValueError('Ungültige Schattenzeichnung')
+                polygons = value.get('polygons')
+                if not isinstance(polygons, list) or len(polygons) > 12:
+                    raise ValueError('Zu viele Schattenkonturen')
+                for polygon in polygons:
+                    if not isinstance(polygon, list) or not 3 <= len(polygon) <= 180:
+                        raise ValueError('Ungültige Schattenkontur')
+                    for point in polygon:
+                        if not isinstance(point, list) or len(point) != 2 or any(
+                            isinstance(x, bool) or not isinstance(x, (int, float)) or
+                            not -3 <= x <= 3 for x in point
+                        ):
+                            raise ValueError('Ungültiger Schattenpunkt')
+                continue
             if key not in limits or key == 'strength' and not allow_strength:
                 raise ValueError('Unbekannter Schattenwert: ' + key)
             lo, hi = limits[key]
@@ -242,7 +259,16 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path in ('/api/sprite-shadows','/api/sprite-shadows-backup'):
             filename = 'sprite_shadow_profiles.json' + ('.bak' if parsed.path.endswith('-backup') else '')
             try:
-                self._send_json(json.loads((ASSETS / 'shadows' / filename).read_text('utf-8')))
+                shadow_path = ASSETS / 'shadows' / filename
+                if not shadow_path.exists() and not parsed.path.endswith('-backup'):
+                    for alias in ('shadow.json', 'shadows.json', 'schatten.json'):
+                        candidate = ASSETS / 'shadows' / alias
+                        if candidate.exists():
+                            shadow_path = candidate
+                            break
+                data = json.loads(shadow_path.read_text('utf-8'))
+                validate_sprite_shadows(data)
+                self._send_json(data)
             except (OSError, ValueError):
                 self._failure(404, 'Schattenprofil-Datei oder Sicherung fehlt')
             return
@@ -286,6 +312,9 @@ class Handler(SimpleHTTPRequestHandler):
                     'category': rel.split('/')[0],
                     'bytes': stat.st_size,
                     'mtime': stat.st_mtime_ns,
+                    # Birthdate if genuinely supported, never Linux st_ctime.
+                    'createdNs': int(stat.st_birthtime * 1_000_000_000)
+                        if getattr(stat, 'st_birthtime', None) else None,
                     'meta': metadata,
                 })
             self._send_json({'assets': result, 'count': len(result), 'version': VERSION})
