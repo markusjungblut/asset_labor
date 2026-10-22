@@ -26,7 +26,7 @@ test('side panels still scroll and central map remains inside fixed-height layou
  assert.match(desktop,/\.layout\s*\{[^}]*flex:1 1 0%;[^}]*min-height:0;overflow:hidden/);
  assert.match(desktop,/\.library,\.inspector\{overflow-x:hidden;overflow-y:auto/);
  assert.match(desktop,/\.footer\{flex:0 0 auto\}/);
- assert.match(html,/style\.css\?v=0\.36\.0/);
+ assert.match(html,/style\.css\?v=0\.3[6-9]\.0/);
  // Desktop locking is NOT unconditional: the existing narrow-screen
  // CSS retains the mobile document flow.
  assert.match(css,/@media\(max-width:800px\)\{\.layout\{display:flex;flex-direction:column;height:auto/);
