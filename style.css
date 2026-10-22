@@ -166,3 +166,17 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .library,.inspector{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
   .footer{flex:0 0 auto}
 }
+
+/* v0.13.0: sprite-shadow painter – sortable recent assets and editable
+ * terrain-footprint contours. Only the preview captures pointer drawing. */
+#ssPreview{touch-action:none;cursor:crosshair}
+#ssDrawTools{margin:9px 0 12px}
+#ssDrawTools .shadow-editor-actions{margin-top:9px}
+#ssDrawTools .shadow-editor-actions button{min-width:95px}
+#ssDrawMode{width:100%;max-width:175px;padding:6px;background:#15292d;color:#eaf4e4;border:1px solid #52716b;border-radius:5px}
+#ssDrawTools label{font-size:11px;color:#c8e1c5}
+#ssDrawStatus{padding:6px 0;color:#d0e8bc}
+#ssFileDate{margin:6px 0 10px}
+.shadow-editor-search{grid-template-columns:repeat(2,minmax(0,1fr))}
+.shadow-editor-search .checkbox{align-items:center;flex-direction:row;align-self:end;margin:4px 0}
+@media(max-width:490px){.shadow-editor-search{grid-template-columns:minmax(0,1fr)}}
