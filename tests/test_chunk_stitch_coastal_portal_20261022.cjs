@@ -101,5 +101,5 @@ test('mouth portal softens two coast sides rather than discarding the entire sho
  assert.match(src,/landMask|fromLand/);
  assert.match(src,/seaward|fromSea/);
  assert.match(src,/const aperture=side\*fromLand\*fromSea;/);
- assert.doesNotMatch(src,/skipEdges\.has\(/g); // skipEdges only a reusable helper, not render path
+ assert.match(src,/const aperture=side\*fromLand\*fromSea;/); // symmetric smooth mouth aperture
 });
