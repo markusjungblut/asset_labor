@@ -124,6 +124,55 @@ test('0.6x editor riverbank pixels align exactly across world-anchored chunks',(
  assert.ok(checked>400);
 });
 
+
+test('the original water compositor remains responsible for texture and blending',()=>{
+ const river=fs.readFileSync(path.join(root,'river.js'),'utf8');
+ const bank=fs.readFileSync(path.join(root,'river-banks.js'),'utf8');
+ assert.match(river,/function render\(ctx,route,cells,isWet,waterImage,options=\{\}\)/);
+ assert.match(river,/createPattern\(waterImage,'repeat'\)/);
+ assert.match(river,/globalCompositeOperation='source-in'/);
+ assert.match(app,/window\.VedrasRivers\.render\(ctx,route,worldCells,wetHex/);
+ assert.match(app,/water\?\.img,\{width,groundY:/);
+ assert.ok(app.indexOf('window.__vedrasRiverBankStats=riverChunks.draw')<
+  app.indexOf('window.VedrasRivers.render(ctx,route,worldCells,wetHex'));
+ assert.doesNotMatch(bank,/createPattern\(/);
+ assert.doesNotMatch(bank,/waterMasks/);
+ assert.doesNotMatch(bank,/globalCompositeOperation='source-in'/);
+});
+test('rocky cliffs are visibly modeled but feather into the underlying terrain',()=>{
+ const {B}=setup(),style={r:151,g:125,b:93,rock:.2,marsh:0};
+ const half=20,x=101,y=79,strength=.8;
+ const inner=B.bankSample(half+3,half,style,strength,x,y,.6);
+ const wall=B.bankSample(half+9,half,style,strength,x,y,.6);
+ const ledge=B.bankSample(half+22,half,style,strength,x,y,.6);
+ const feather=B.bankSample(half+38,half,style,strength,x,y,.6);
+ const outside=B.bankSample(half+50,half,style,strength,x,y,.6);
+ assert.ok(inner.alpha>.4);
+ assert.ok(wall.alpha>.5);
+ assert.ok(ledge.red>wall.red+15);
+ assert.ok(feather.alpha<wall.alpha*.25);
+ assert.equal(outside.alpha,0);
+ const moreRock={...style,rock:.95};
+ assert.notDeepEqual(B.bankSample(half+9,half,style,strength,x,y,.6),
+  B.bankSample(half+9,half,moreRock,strength,x,y,.6));
+});
+test('riverbanks never paint over the original river core or leak water pixels',()=>{
+ const {R,B}=setup(),{cells,routes,isWet}=fixture(R);
+ const prepared=B.prepare([routes[2]],cells,isWet,{width:40});
+ const raster=B.render(prepared,{
+  bounds:{x:-400,y:-400,width:800,height:800},resolution:.6,bankStrength:.8
+ });
+ assert.equal(raster.layer,'bank-only');
+ assert.equal(raster.waterPixels,0);
+ assert.ok(raster.bankPixels>0);
+ const bank=B.bankSample(6,20,{r:151,g:125,b:93,rock:.3,marsh:0},.8,80,50);
+ assert.equal(bank.alpha,0);
+ const disabled=B.render(prepared,{
+  bounds:{x:-400,y:-400,width:800,height:800},resolution:.6,bankStrength:0
+ });
+ assert.equal(disabled,null);
+});
+
 test('old river data structures and scene exports remain usable',()=>{
  assert.match(app,/window\.VedrasRiverBanks\.prepare\(routes,bankCells,wetHex/);
  assert.match(app,/window\.VedrasRiverBanks\.render\(riverNetworkCache\.prepared/);
