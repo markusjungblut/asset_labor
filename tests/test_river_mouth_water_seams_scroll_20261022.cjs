@@ -66,6 +66,8 @@ test('fixed centre-line artefacts are repaired only when very consistent',()=>{
  for(let y=0;y<height;y++){
   const k=(y*width+32)*4;
   isolated[k]=y%6===0?250:26;
+  isolated[k+1]=y%6===0?250:105;
+  isolated[k+2]=y%6===0?255:177;
  }
  const repaired=repair(isolated,width,height);
  assert.equal(repaired[(7*width+32)*4],26);
