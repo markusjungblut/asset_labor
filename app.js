@@ -602,23 +602,16 @@ function drawRoads(){
   const forestMap=new Map(forestCells().map(c=>[key(c.q,c.r),c]));
   const bankCells=worldCells.map(c=>({...c,
    forestClass:forestMap.get(key(c.q,c.r))?.forestClass||c.forestClass||null}));
-  const waterForRoute=route=>{
-   const mouth=route.hexes.at(-1),c=byKey.get(mouth.join(','));
-   return c?imageForBiome(c):null;
-  };
-  const sources=routes.map(route=>{
-   const a=waterForRoute(route);return [a?.path,a?.mtime,a?.img?.naturalWidth];
-  });
   const signature=JSON.stringify({routes,width,relief:state.relief,
    mountains:state.mountainInstances,buildings:state.relief.padBuildings?state.hexObject:null,
-   bank:state.riverBanks,strength:state.riverBankStrength,sources,
+   bank:state.riverBanks,strength:state.riverBankStrength,
    terrain:bankCells.map(c=>[c.q,c.r,c.biome,effectiveBiome(c),
     c.forestClass,c.reliefClass,c.hillProfile,c.hillStrength]),
    version:'immersive-river-network-1'});
   if(riverNetworkCache.signature!==signature){
    const prepared=window.VedrasRiverBanks.prepare(routes,bankCells,wetHex,{
     width,groundY:state.relief.enabled?displayGroundY:null,
-    typeForCell:effectiveBiome,waterForRoute
+    typeForCell:effectiveBiome
    });
    // Fractional axial points along actual bank segments are occupancy hints,
    // so a river at an outer hex corner cannot disappear between chunks.
