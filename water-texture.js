@@ -36,22 +36,23 @@ window.VedrasWaterTexture=(()=>{
   }
   // Source textures are not necessarily authored as perfect repeat tiles.
   // Blend just the outer 8 texels of each side into their wrapped partner.
-  const stable=output.slice(),band=Math.min(8,Math.floor(Math.min(width,height)/6));
+  const band=Math.min(8,Math.floor(Math.min(width,height)/6));
   for(let y=0;y<height;y++)for(let d=0;d<band;d++){
    const weight=.5*(1-smooth(d/band));
    const a=(y*width+d)*4,b=(y*width+(width-1-d))*4;
    for(let c=0;c<4;c++){
-    output[a+c]=Math.round(stable[a+c]*(1-weight)+stable[b+c]*weight);
-    output[b+c]=Math.round(stable[b+c]*(1-weight)+stable[a+c]*weight);
+    const first=output[a+c],last=output[b+c];
+    output[a+c]=Math.round(first*(1-weight)+last*weight);
+    output[b+c]=Math.round(last*(1-weight)+first*weight);
    }
   }
-  const lateral=output.slice();
   for(let x=0;x<width;x++)for(let d=0;d<band;d++){
    const weight=.5*(1-smooth(d/band));
    const a=(d*width+x)*4,b=((height-1-d)*width+x)*4;
    for(let c=0;c<4;c++){
-    output[a+c]=Math.round(lateral[a+c]*(1-weight)+lateral[b+c]*weight);
-    output[b+c]=Math.round(lateral[b+c]*(1-weight)+lateral[a+c]*weight);
+    const first=output[a+c],last=output[b+c];
+    output[a+c]=Math.round(first*(1-weight)+last*weight);
+    output[b+c]=Math.round(last*(1-weight)+first*weight);
    }
   }
   return output;
