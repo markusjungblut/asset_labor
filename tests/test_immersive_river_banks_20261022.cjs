@@ -54,6 +54,8 @@ test('land materials choose distinct rocky, wet, vegetated and soft-earth banks'
  assert.equal(B.material({terrainTypeId:'moorground'}),'marsh');
  assert.equal(B.material({terrainTypeId:'forest'}),'forest');
  assert.equal(B.material({terrainTypeId:'grassland'}),'earth');
+ assert.equal(B.material({terrainTypeId:'snowfields'}),'frost');
+ assert.equal(B.material({terrainTypeId:'frozen_tundra'}),'frost');
  const rocky=B.paletteAt(0,0,[{q:0,r:0,bankMaterial:'rock'}]);
  const marsh=B.paletteAt(0,0,[{q:0,r:0,bankMaterial:'marsh'}]);
  assert.ok(rocky.rock>marsh.rock&&marsh.marsh>rocky.marsh);
@@ -128,7 +130,7 @@ test('old river data structures and scene exports remain usable',()=>{
  assert.match(app,/riverNetworkCache=\{signature,prepared,occupancy\}/);
  assert.match(app,/riverBanks:state\.riverBanks,riverBankStrength:state\.riverBankStrength/);
  assert.match(app,/state\.riverBanks=scene\.riverBanks!==false/);
- assert.match(app,/river\.painted===river\.visible&&river\.stalePainted===0/);
+ assert.match(app,/river\.visible>0&&river\.pending===0&&river\.stalePainted===0/);
  assert.match(html,/id="riverBanks"/);
  assert.match(html,/id="riverBankStrength"/);
  assert.match(html,/river-banks\.js\?v=/);
