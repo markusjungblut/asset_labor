@@ -1,3 +1,15 @@
+## v0.12.6 – Korrektur: Originalwasser + plastisch modellierte Böschungsufer (22.10.2026)
+
+**Wasser wieder unverändert:** PR #18 hatte die bis dahin hochwertige Flussoberfläche unbeabsichtigt durch eine eigene, optisch flachere Wasserfüllung ersetzt. Dieser Fehler ist korrigiert: `app.js` zeichnet die Flüsse wieder über die **unveränderte** Funktion `VedrasRivers.render` aus `river.js`, mit derselben Original-Wassertextur des Mündungshexes, derselben Rand-/Quell-/Mündungsmaske und demselben Flussverlauf wie vor der Uferänderung. Der neue Renderer zeichnet **keine Wasserpixel** mehr; er liefert ausschließlich eine transparente Böschungs-Ebene **unter** der alten Wasseroberfläche.
+
+**Stilisierte Uferböschungen:** Deutlich erkennbare 2,5D-Ufer aus dunkler feuchter Fußkante, schräg modellierter Erd-/Felswand mit prozeduralen steinigen Facetten und einem beleuchteten Rand, der durch abnehmende Deckkraft in den bestehenden Terrain-Untergrund übergeht. Böschungsschatten variieren mit lokalen Flusstangenten/-normalen und einer festen Lichtrichtung, nicht mit sechs separat aufgekleben Ufersprites. Terrainabhängige Materialprofile (Fels/Gebirge/Hügel, Wald, Moor/Feuchtland, Gras-/Erdland, Wüste/Steppe, Schnee/Tundra) mischen sich entlang der Hexkanten; der Auslauf ist nicht auf Grasland beschränkt.
+
+**Topologie und vorhandene Naturregeln bewahrt:** Das bestehende Hexkanten-Flussnetz, alle sechs Richtungen, Quelle, Mündung, Kurven, Zusammenflüsse, Fluss-/Baum-Kollisionsabstände und überhängende Pflanzen-Sprites bleiben unverändert. Die gemeinsamen Böschungsmasken verhindern doppelt dunkel überzeichnete Ufer an Zusammenflüssen. Ufer werden wie zuvor in sichtbaren weltverankerten Chunks mit Halo und LRU-Cache gerendert. „Natürliche Flussufer einbetten“ lässt sich abschalten: dann bleibt **ausschließlich das alte Wasser** erhalten. „Uferplastizität“ skaliert nur die Böschung, nicht die Wasserfarbe.
+
+**Regressionen:** 16/16 gezielte JavaScript-Tests im isolierten Test-Harness bestanden (10 Fluss-/Bank-Tests einschließlich wiederhergestelltem Wasserpfad, facettierter Uferprofilierung, Core-Ausnahme, Biome, sechs Richtungen, Zusammenflüssen, Chunk-Nähten; 6 Preview-Performance-Tests). Syntax der betroffenen Skripte erfolgreich geprüft. **Eine visuelle Browser-Abnahme mit echten Terrain- und Wasser-PNGs sowie FPS-Messungen steht noch aus.** Die Änderung liegt im bestehenden PR #18, der weiterhin auf PR #17 aufbaut; weder Original-Assets noch Kataloge oder bestehende Nature-Verteilungslogik wurden geändert.
+
+---
+
 ## v0.12.5 – Immersive Flussufer und zusammenhängende Flussnetze (22.10.2026)
 
 **Priorität 2 umgesetzt – visuelle Einbettung statt separater Fluss-Sprites:** `river-banks.js` führt die bisherigen hexkantengenauen, geglätteten Flusskurse zu einer gemeinsamen geometrischen **MIN-Distanzfeld-Vereinigung** zusammen. Ufer werden ausschließlich an der äußeren Flussgrenze schattiert: an Ecken, Richtungswechseln und Zusammenflüssen entstehen keine additiv dunklen doppelten Uferstreifen. Alle sechs Hexrichtungen nutzen lokale Tangente und Normale und eine einheitliche weltkoordinatenbasierte Rasterung.
