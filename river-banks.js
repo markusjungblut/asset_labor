@@ -62,12 +62,7 @@ window.VedrasRiverBanks=(()=>{
   const groundY=typeof options.groundY==='function'?options.groundY:null;
   const classified=cells.filter(c=>!isWet(c)).map(c=>({...c,
    bankMaterial:material(c,typeof options.typeForCell==='function'?options.typeForCell(c):'')}));
-  const colors=new Map(),lines=[],paths=[],imageList=[],imageMap=new Map();
-  function textureId(image){
-   if(!image?.naturalWidth)return -1;
-   if(!imageMap.has(image)){imageMap.set(image,imageList.length);imageList.push(image);}
-   return imageMap.get(image);
-  }
+  const colors=new Map(),lines=[],paths=[];
   for(const route of routes||[]){
    const sections=RIVERS.sections(route,cells,isWet);
    if(!sections.length)continue;
@@ -77,8 +72,7 @@ window.VedrasRiverBanks=(()=>{
    const cross=RIVERS.mouthCross(sections);
    const tail=projected.at(-1);
    const mouth={cross:{x:cross.x,y:groundY?groundY(cross.x,cross.y):cross.y},tip:tail};
-   const image=typeof options.waterForRoute==='function'?options.waterForRoute(route):null;
-   const waterIndex=textureId(image);
+
    const pathStyles=raw.map(p=>positionPalette(p,classified,colors));
    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
    for(let i=1;i<projected.length;i++){
@@ -88,13 +82,13 @@ window.VedrasRiverBanks=(()=>{
     const id=lines.length;
     lines.push({a,b,dx,dy,length2,start:pathStyles[i-1],end:pathStyles[i],
      minX:Math.min(a.x,b.x),maxX:Math.max(a.x,b.x),
-     minY:Math.min(a.y,b.y),maxY:Math.max(a.y,b.y),waterIndex,mouth});
+     minY:Math.min(a.y,b.y),maxY:Math.max(a.y,b.y),mouth});
     minX=Math.min(minX,a.x,b.x);minY=Math.min(minY,a.y,b.y);
     maxX=Math.max(maxX,a.x,b.x);maxY=Math.max(maxY,a.y,b.y);
    }
    paths.push({points:projected,bounds:{minX,minY,maxX,maxY}});
   }
-  return {lines,paths,images:imageList,width,routeCount:paths.length};
+  return {lines,paths,width,routeCount:paths.length};
  }
  // Single MIN-distance union: at a corner, fork or confluence, the bank exists
  // only at the exterior boundary. No alpha accumulation or double shore line.
