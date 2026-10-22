@@ -84,10 +84,18 @@ window.VedrasWaterTexture=(()=>{
   const tw=worldSize,th=worldSize*height/width;
   const x0=Math.floor(rect.x/tw)*tw,y0=Math.floor(rect.y/th)*th;
   const right=rect.x+rect.width,bottom=rect.y+rect.height;
-  // Always start at the world origin, not at the bounding rectangle origin.
-  // Only subpixel overlap is necessary once source edges are reconciled.
-  for(let y=y0;y<bottom;y+=th)for(let x=x0;x<right;x+=tw)
-   ctx.drawImage(tile,x,y,tw+.015,th+.015);
+  // A single source-in operation clears pixels outside that source's
+  // footprint. Repeating several drawImage calls with source-in would erase
+  // ALL previous tiles, leaving only the final rectangle painted. Source-
+  // atop retains the existing mask while filling it one texture tile at a
+  // time; transparent terrain outside the mask remains transparent.
+  const previous=ctx.globalCompositeOperation;
+  if(previous==='source-in')ctx.globalCompositeOperation='source-atop';
+  try{
+   // Always start at the world origin, never the bounding box origin.
+   for(let y=y0;y<bottom;y+=th)for(let x=x0;x<right;x+=tw)
+    ctx.drawImage(tile,x,y,tw+.015,th+.015);
+  }finally{ctx.globalCompositeOperation=previous;}
   return true;
  }
  return {repairPixels,seamlessTile,fillWorld};
