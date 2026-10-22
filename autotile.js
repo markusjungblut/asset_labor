@@ -110,7 +110,14 @@ window.VedrasAutotile = (() => {
    top=Math.floor(top-1);bottom=Math.ceil(bottom+1);
   }
   let density=clamp(resolution,bounds?.lowResolution?.5:1,3);const maxPix=Math.max(160000,Math.min(4200000,Number(maxPixels)||4200000));density=Math.min(density,Math.sqrt(maxPix/((right-left)*(bottom-top))));
-  const width=Math.ceil((right-left)*density),height=Math.ceil((bottom-top)*density);
+  // All terrain and water chunks must share the SAME world-anchored pixel
+  // sampling phase. Fractional 0.6x preview otherwise produces hairline
+  // vertical stripes where a pair of 512-world-unit chunks overlap.
+  const leftPx=Math.floor(left*density),topPx=Math.floor(top*density),
+   rightPx=Math.ceil(right*density),bottomPx=Math.ceil(bottom*density);
+  left=leftPx/density;top=topPx/density;
+  right=rightPx/density;bottom=bottomPx/density;
+  const width=rightPx-leftPx,height=bottomPx-topPx;
   const image=document.createElement('canvas');image.width=width;image.height=height;
   const context=image.getContext('2d',{willReadFrequently:true});const img=context.createImageData(width,height),pixels=img.data;
   const seaCanvas=document.createElement('canvas'),landCanvas=document.createElement('canvas');
