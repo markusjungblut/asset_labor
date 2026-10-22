@@ -131,3 +131,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #ssStatus{line-height:1.45;font-size:11px}
 #shortcutShadows{background:#375b52;border-color:#9bc9ac;color:#f2fff0}
 @media(max-width:490px){.shadow-editor-search{grid-template-columns:1fr}}
+
+/* The editor is a viewport application: do not scroll the document itself.
+ * Independent library and inspector panes retain their own scrollbars. */
+@media (min-width:801px){
+  html,body{height:100%;width:100%;overflow:hidden;overscroll-behavior:none}
+  .app{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+  .layout{flex:1 1 auto;height:auto;min-height:0;overflow:hidden}
+  .workarea,.library,.inspector{min-height:0}
+  .library,.inspector{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+}
