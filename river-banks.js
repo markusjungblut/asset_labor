@@ -146,6 +146,7 @@ window.VedrasRiverBanks=(()=>{
  function bankSample(distance,half,style,strength,x,y,normalLight=0,tx=1,ty=0){
   const wobble=1.35*Math.sin(x*.069+y*.051)+.85*Math.sin(x*.109-y*.072);
   const d=distance+wobble;
+  if(d>half+36)return {alpha:0,red:style.r,green:style.g,blue:style.b,stone:0,reeds:0};
   const reach=20+style.marsh*10+style.rock*3;
   const lip=1-smooth((d-half+1)/reach);
   const cut=Math.exp(-Math.pow((d-half-3)/6.6,2));
