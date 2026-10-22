@@ -597,7 +597,7 @@ function drawRoads(){
  const sw=fromScreen(-140,-140),ne=fromScreen(W+140,H+140);
  const bounds={x:Math.min(sw.x,ne.x),y:Math.min(sw.y,ne.y),
   width:Math.abs(ne.x-sw.x),height:Math.abs(ne.y-sw.y)};
- if(routes.length){
+ if(routes.length&&state.riverBanks!==false&&Number(state.riverBankStrength)>0){
   const width=clamp(Number(state.riverWidth)||32,12,70);
   const forestMap=new Map(forestCells().map(c=>[key(c.q,c.r),c]));
   const bankCells=worldCells.map(c=>({...c,
@@ -647,6 +647,37 @@ function drawRoads(){
   });
  }else{
   riverChunks.clear();window.__vedrasRiverBankStats=null;
+ }
+ // Original pre-PR #18 water renderer, unmodified. Cliff banks are behind it.
+ // Texture, shape, source/mouth alpha, and water drawing now all come from
+ // VedrasRivers.render, not the new bank renderer.
+ const visibleRiver=route=>(route.hexes||[]).some(([q,r])=>{
+  const p=axialPos(q,r);
+  return p.x>=bounds.x-360&&p.x<=bounds.x+bounds.width+360&&
+   p.y>=bounds.y-360&&p.y<=bounds.y+bounds.height+360;
+ });
+ for(const route of routes){
+  if(!visibleRiver(route))continue;
+  const width=clamp(Number(state.riverWidth)||32,12,70);
+  const mouth=route.hexes.at(-1),cell=byKey.get(mouth.join(','));
+  const water=cell?imageForBiome(cell):null;
+  const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,
+   width,asset:water?.path,mtime:water?.mtime,
+   img:water?.img?.naturalWidth||0,relief:state.relief,mask:'original-water-sdf-v5'});
+  const cached=riverRasterCache.get(signature);
+  if(cached)ctx.drawImage(cached.canvas,cached.x,cached.y,cached.width,cached.height);
+  else{
+   const rendered=window.VedrasRivers.render(ctx,route,worldCells,wetHex,
+    water?.img,{width,groundY:state.relief.enabled?displayGroundY:null});
+   if(rendered){
+    riverRasterCache.set(signature,{
+     canvas:rendered.canvas,x:rendered.x,y:rendered.y,
+     width:rendered.widthWorld,height:rendered.heightWorld
+    });
+    while(riverRasterCache.size>16)
+     riverRasterCache.delete(riverRasterCache.keys().next().value);
+   }
+  }
  }
  // Diagnostics and provisional editing follow real hex SIDES and CORNERS.
  if($('riverDebug')?.checked)for(const route of routes){
