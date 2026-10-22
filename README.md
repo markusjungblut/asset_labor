@@ -1,3 +1,15 @@
+## v0.12.8 – Chunk-Kreuze und Übergang Küste → Flussmündung (22.10.2026)
+
+**Nahtfreies Chunk-Compositing:** Der alte `VedrasChunks.draw`-Pass ließ jedes überlagernde Chunk-Canvas um zwei Welt-Einheiten über die eigene 512er-Grenze hinaus zeichnen. Gerade bei transparenten Küsten-/Böschungslayern führte das am Treffpunkt von vier Kacheln zu sichtbaren dunklen oder hellen **Kreuzen**. Die neue Funktion `clipCore` berechnet aus der tatsächlichen Canvas-Transformation identische, gerundete **Backing-Store-Pixelkanten** für jedes angrenzende Chunk. Jedes Zielpixel wird exakt einem Chunk zugeordnet, ohne Lücken und ohne doppelte Alphakomposition. Die Quelltexturen behalten weiterhin ihren Raster-Halo. Der Renderer stellt nach dem Clipping dieselbe World-Space-Transformation wieder her und verschiebt oder streckt die Originalgrafiken **nicht**. Ein sicherer World-Space-Fallback besteht für reine Test-Contexts ohne `getTransform`.
+
+**Küstenmündung ohne Streifen:** `shoreline.js` richtet nun Küsten-Chunk-Samples mit einem gemeinsamen, weltverankerten Pixelraster aus, auch wenn der Editor mit 0,8× oder anderen fraktionalen Stufen rendert. Die Mündungsmaske nutzt die tatsächliche Wasser-Normale der sechseckigen Land↔Wasser-Kante; der Strand wird entlang des Flusskanals geöffnet und sowohl land- als auch seewärts weich ausgeblendet. Seitlich schließen die normalen Küstenüberlagerungen glatt an die schon vorhandene Flussböschung an. Keine ganzen Küstenkanten entfallen und das Wasser bleibt verbunden.
+
+**Kompatibilität:** Der hochwertige Wasserlook, Materialassets, River-Topologie in sechs Richtungen, Küsten-Grafik-Assets, Seed-Determinismus und Nature-/Sprite-Überhänge bleiben unverändert. `index.html` erhöht die Asset-Labor-Anzeige auf **v0.12.8** und aktualisiert die Browser-Cache-Versionen für `chunks.js`/`shoreline.js`.
+
+**Prüfung:** `tests/test_chunk_stitch_coastal_portal_20261022.cjs` überprüft die gemeinsame gerundete Pixelgrenze an Vierfach-Kreuzungen bei mehreren Zoom-/Pan-/DPR-Werten, den Fallback und die übereinstimmende RGBA-Mündungsmaske in zwei überlappenden 0,8×-Küstenchunks. Die frühere Performance-/Fluss-/Wassernaht-Testreihe bleibt erhalten. Eine visuelle Browser-Abnahme auf dem lokalen Asset-Labor-Server mit Originalgrafiken und ein FPS-Profil stehen vor dem Merge weiterhin aus.
+
+---
+
 ## v0.12.7 – Flussmündungen, Wassernaht und äußere Scrollbar (22.10.2026)
 
 **Saubere Flussmündungen:** Zwei getrennte Uferanteile wurden bislang ins Wasser über den Küstenübergang hinweg gezeichnet: die neue facettierte Böschung aus `river-banks.js` und der ältere dunkle Wasserrand aus `river.js`. Beide Randmasken enden jetzt auf der **Landseite** der hexkantengenauen Mündung und laufen innerhalb der letzten ca. 20 Welt-Einheiten sanft aus. Der eigentliche Fluss-Wasserkanal und die Mündungsöffnung bleiben durchlässig; Wasser und Küstengeometrie, Brücken, Flusskollision und Vegetationsüberhang bleiben erhalten. Dies funktioniert über Richtungsvektoren in **allen sechs** Hexrichtungen.

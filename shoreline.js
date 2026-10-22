@@ -58,7 +58,12 @@ window.VedrasShoreline=(()=>{
   }else{
    left=Math.floor(left);top=Math.floor(top);right=Math.ceil(right);bottom=Math.ceil(bottom);
   }
-  const width=Math.ceil((right-left)*density),height=Math.ceil((bottom-top)*density);
+  // All shoreline chunks share one world-space texel lattice, also at .8x.
+  const leftPx=Math.floor(left*density),topPx=Math.floor(top*density),
+   rightPx=Math.ceil(right*density),bottomPx=Math.ceil(bottom*density);
+  left=leftPx/density;top=topPx/density;
+  right=rightPx/density;bottom=bottomPx/density;
+  const width=rightPx-leftPx,height=bottomPx-topPx;
   const output=document.createElement('canvas');output.width=width;output.height=height;
   const outContext=output.getContext('2d',{willReadFrequently:true});
   const result=outContext.createImageData(width,height),dst=result.data;
@@ -72,7 +77,8 @@ window.VedrasShoreline=(()=>{
     sc.save();sc.scale(density,density);drawTemporary(sc,s,options);sc.restore();
    }
    const src=sc.getImageData(0,0,tileSize,tileSize).data;
-   const originX=Math.round((s.center.x-256-left)*density),originY=Math.round((s.center.y-256-top)*density);
+   const originX=Math.round((s.center.x-256)*density)-leftPx,
+    originY=Math.round((s.center.y-256)*density)-topPx;
    const startY=Math.max(0,-originY),endY=Math.min(tileSize,height-originY),startX=Math.max(0,-originX),endX=Math.min(tileSize,width-originX);
    // MAX-alpha union, never source-over: two shores meeting at a vertex do not
    // darken, lighten or create a double-thickness patch at their shared corner.
@@ -83,30 +89,37 @@ window.VedrasShoreline=(()=>{
     }
    }
   }
-  // Gradually reveal the river THROUGH the existing beach. Removing
-  // the entire shoreline EDGE made the source water hex lose its coast.
-  // This anisotropic aperture follows the correct side tangent/normal.
+
+  // A curved opening in the existing beach follows the ACTUAL land-to-water
+  // normal of the last hex side; do not abruptly clip an entire coastal edge.
+  // Both side and depth feathers converge on the river, avoiding shore bands.
   for(const portal of portals){
    const host=cells.find(c=>c.q===portal.landQ&&c.r===portal.landR);
    if(!host||!Number.isInteger(portal.side)||portal.side<0||portal.side>=6)continue;
-   const end=vertices(host),a=end[portal.side],b=end[(portal.side+1)%6];
-   const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
-   const tx=dx/len,ty=dy/len,nx=-ty,ny=tx;
-   const base=Math.max(12,Math.min(70,Number(portal.width)||32));
-   const half=base*.5,core=half+2,edge=half+28,depth=base*.70+25;
-   const px=Math.round((portal.x-left)*density),py=Math.round((portal.y-top)*density);
-   const reach=Math.ceil(Math.max(edge,depth)*density);
+   const [dq,dr]=DIRS[portal.side],land=pos(host),
+    water=pos({q:host.q+dq,r:host.r+dr});
+   const dx=water.x-land.x,dy=water.y-land.y,len=Math.hypot(dx,dy)||1;
+   const nx=dx/len,ny=dy/len,tx=-ny,ty=nx;
+   const riverWidth=Math.max(12,Math.min(70,Number(portal.width)||32)),
+    core=riverWidth/2+4,blend=Math.max(15,Math.min(36,Number(options.width||34)*.68)),
+    outer=core+blend;
+   const inland=Math.max(22,Number(options.width||34)+9),
+    seaward=Math.max(25,Number(options.outer||10)+30);
+   const px=Math.round(portal.x*density)-leftPx,py=Math.round(portal.y*density)-topPx,
+    reach=Math.ceil(Math.max(outer,inland,seaward)*density)+2;
    for(let iy=Math.max(0,py-reach);iy<Math.min(height,py+reach);iy++){
     const wy=top+(iy+.5)/density-portal.y;
     for(let ix=Math.max(0,px-reach);ix<Math.min(width,px+reach);ix++){
-     const wx=left+(ix+.5)/density-portal.x,along=Math.abs(wx*tx+wy*ty),across=Math.abs(wx*nx+wy*ny);
-     if(along>=edge||across>=depth)continue;
-     const t=Math.max(0,Math.min(1,(along-core)/Math.max(1,edge-core)));
-     const feather=t*t*(3-2*t);
-     const transverse=Math.max(0,Math.min(1,(depth-across)/(depth*.27)));
-     const passage=(1-feather)*transverse;
-     const alphaIndex=(iy*width+ix)*4+3;
-     dst[alphaIndex]=Math.round(dst[alphaIndex]*(1-passage));
+     const wx=left+(ix+.5)/density-portal.x,
+      along=Math.abs(wx*tx+wy*ty),across=wx*nx+wy*ny;
+     if(along>=outer||across<=-inland||across>=seaward)continue;
+     const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
+     const side=1-smooth((along-core)/blend);
+     const fromLand=smooth((across+inland)/(inland*.45));
+     const fromSea=1-smooth((across-(seaward-seaward*.45))/(seaward*.45));
+     const aperture=side*fromLand*fromSea;
+     const alpha=(iy*width+ix)*4+3;
+     dst[alpha]=Math.round(dst[alpha]*(1-aperture));
     }
    }
   }

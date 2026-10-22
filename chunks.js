@@ -165,6 +165,29 @@ window.VedrasChunks=(()=>{
    else if(typeof setTimeout==='function')setTimeout(task,0);
    else task();
   }
+  // Rasters keep their source halos, but each chunk exclusively owns a
+  // device-pixel-aligned output rectangle. Two separate semi-transparent
+  // rasters must never overlap at the four-way tile cross.
+  function clipCore(ctx,t){
+   const m=typeof ctx.getTransform==='function'?ctx.getTransform():null;
+   if(m&&typeof ctx.setTransform==='function'&&
+      Math.abs(m.b)<1e-9&&Math.abs(m.c)<1e-9&&
+      Number.isFinite(m.a)&&Number.isFinite(m.d)&&
+      Number.isFinite(m.e)&&Number.isFinite(m.f)){
+    const x0=Math.round(t.x*m.a+m.e),
+     x1=Math.round((t.x+t.size)*m.a+m.e),
+     y0=Math.round(t.y*m.d+m.f),
+     y1=Math.round((t.y+t.size)*m.d+m.f);
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.beginPath();
+    ctx.rect(Math.min(x0,x1),Math.min(y0,y1),Math.abs(x1-x0),Math.abs(y1-y0));
+    ctx.clip();
+    ctx.setTransform(m); // keep water and terrain sampling unchanged
+    return {x0,y0,x1,y1,space:'device'};
+   }
+   ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
+   return {space:'world'};
+  }
   function draw(ctx,bounds,{water=true,drawRaster,margin=80}={}){
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
@@ -185,12 +208,9 @@ window.VedrasChunks=(()=>{
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
-    // Each terrain raster is built WITH a world-space halo. Allow adjacent
-    // chunks to overlap by two world units rather than clipping on exactly
-    // the same fractional screen pixel. This avoids hairline square seams
-    // under fractional zoom/DPR without changing PNGs or terrain coordinates.
-    const bleed=2;
-    ctx.save();ctx.beginPath();ctx.rect(t.x-bleed,t.y-bleed,size+2*bleed,size+2*bleed);ctx.clip();
+    // The source halo is still present. Its destination is clipped to one
+    // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
+    ctx.save();clipCore(ctx,t);
     if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer);
     if(artwork.relief)drawRaster(ctx,artwork.relief);
     else if(artwork.raster)drawRaster(ctx,artwork.raster);
@@ -200,7 +220,7 @@ window.VedrasChunks=(()=>{
    schedule();
    return {...stats,cached:cache.size,variants:retired.size};
   }
-  return {configure,draw,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size}),
+  return {configure,draw,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
  return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create};
