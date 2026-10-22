@@ -23,6 +23,9 @@ window.VedrasRiverUI=(()=>{
   if(draft&&!draft.every(([q,r])=>cellFor(q+','+r)))state.riverDraft=null;
   $('riverWidth').value=String(state.riverWidth||32);
   $('riverWidthValue').textContent=String(state.riverWidth||32);
+  $('riverBanks').checked=state.riverBanks!==false;
+  $('riverBankStrength').value=String(state.riverBankStrength??80);
+  $('riverBankStrengthValue').textContent=String(state.riverBankStrength??80)+' %';
   $('riverDebug').checked=!!state.riverDebug;
   $('riverPaint').textContent=state.riverDraft?'Zeichenmodus abbrechen':'Fluss Hex für Hex zeichnen';
   $('riverPaint').classList.toggle('active',!!state.riverDraft);
@@ -120,6 +123,13 @@ window.VedrasRiverUI=(()=>{
  $('riverPaint').addEventListener('click',beginPaint);
  $('riverWidth').addEventListener('input',e=>{$('riverWidthValue').textContent=e.target.value;});
  $('riverWidth').addEventListener('change',e=>{state.riverWidth=Number(e.target.value);persist();});
+ $('riverBanks').addEventListener('change',e=>{state.riverBanks=e.target.checked;persist();});
+ $('riverBankStrength').addEventListener('input',e=>{
+  $('riverBankStrengthValue').textContent=e.target.value+' %';
+ });
+ $('riverBankStrength').addEventListener('change',e=>{
+  state.riverBankStrength=Number(e.target.value);persist();
+ });
  $('riverRemove').addEventListener('click',()=>{
   state.riverPaths=(state.riverPaths||[]).slice(0,-1);persist();refresh('Letzten Fluss entfernt (Wasserhexe bleiben erhalten)');
  });
