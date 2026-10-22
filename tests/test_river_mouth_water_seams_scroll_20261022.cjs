@@ -69,7 +69,7 @@ test('fixed centre-line artefacts are repaired only when very consistent',()=>{
  }
  const repaired=repair(isolated,width,height);
  assert.equal(repaired[(7*width+32)*4],26);
- assert.equal(repaired[(6*width+32)*4],250);
+ assert.equal(repaired[(12*width+32)*4],250); // outside the 8px repeat-edge blend
 });
 test('water texture repeat borders are made continuous without changing the source',()=>{
  const W=load(['water-texture.js']),repair=W.VedrasWaterTexture.repairPixels;
