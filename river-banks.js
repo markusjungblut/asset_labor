@@ -125,21 +125,41 @@ window.VedrasRiverBanks=(()=>{
  }
  // A small irregular, sloped cross-section: darker moist cut nearest water,
  // lighter elevated lip farther inland. Coordinates are world-anchored.
- function bankSample(distance,half,style,strength,x,y,normalLight=0){
+ // Sparse deterministic elliptical rocks / grassy tufts aligned with the
+ // local river tangent. No six-angle sprite variants and no square tiling.
+ function debris(x,y,tx,ty,kind){
+  const pitch=19,gx=Math.floor(x/pitch),gy=Math.floor(y/pitch);
+  let coverage=0;
+  for(let iy=gy-1;iy<=gy+1;iy++)for(let ix=gx-1;ix<=gx+1;ix++){
+   const seed=hash(ix,iy);
+   if(seed>(kind==='rock'?.32:.17))continue;
+   const jx=hash(ix+17,iy-31)-.5,jy=hash(ix-39,iy+13)-.5;
+   const cx=(ix+.5+jx*.42)*pitch,cy=(iy+.5+jy*.42)*pitch;
+   const dx=x-cx,dy=y-cy,along=dx*tx+dy*ty,across=-dx*ty+dy*tx;
+   const wide=kind==='rock'?3.1+hash(ix+7,iy)*2.4:2.0;
+   const high=kind==='rock'?1.5+hash(ix,iy-6)*1.5:4.0;
+   const d=Math.hypot(along/wide,across/high);
+   coverage=Math.max(coverage,1-smooth((d-.55)/.45));
+  }
+  return coverage;
+ }
+ function bankSample(distance,half,style,strength,x,y,normalLight=0,tx=1,ty=0){
   const wobble=1.35*Math.sin(x*.069+y*.051)+.85*Math.sin(x*.109-y*.072);
   const d=distance+wobble;
   const reach=20+style.marsh*10+style.rock*3;
   const lip=1-smooth((d-half+1)/reach);
   const cut=Math.exp(-Math.pow((d-half-3)/6.6,2));
   const crown=Math.exp(-Math.pow((d-half-15)/7.8,2));
-  const grain=hash(Math.floor(x/8),Math.floor(y/8));
-  const stone=(grain>.77?1:0)*style.rock*Math.max(0,1-Math.abs(d-half-15)/11);
+  const debrisBand=(1-smooth(Math.abs(d-half-15)/14));
+  const stone=style.rock*debrisBand*debris(x,y,tx,ty,'rock');
+  const reeds=style.marsh*debrisBand*debris(x,y,tx,ty,'reeds');
   const damp=style.marsh;
   const alpha=clamp(strength*(.15*lip+.32*cut+.15*crown+
-   .21*stone+.055*damp*lip),0,.72);
-  const light=clamp(1+normalLight*.105+crown*.08-cut*.12+stone*.19,-1,2);
-  return {alpha,red:clamp(style.r*light,0,255),green:clamp(style.g*light,0,255),
-   blue:clamp(style.b*light,0,255),stone};
+   .32*stone+.13*reeds+.055*damp*lip),0,.76);
+  const light=clamp(1+normalLight*.105+crown*.08-cut*.12+stone*.32,-1,2);
+  return {alpha,red:clamp(style.r*light-stone*9-reeds*18,0,255),
+   green:clamp(style.g*light+reeds*18,0,255),
+   blue:clamp(style.b*light-stone*4-reeds*13,0,255),stone,reeds};
  }
  function render(prepared,options={}){
   const bounds=options.bounds;
@@ -183,7 +203,7 @@ window.VedrasRiverBanks=(()=>{
    })();
    const j=i*4;
    if(strength>0){
-    const bankValue=bankSample(rawDistance,half,style,strength,wx,wy,normalLight);
+    const bankValue=bankSample(rawDistance,half,style,strength,wx,wy,normalLight,line.dx/length,line.dy/length);
     if(bankValue.alpha>.004){
      bank.data[j]=bankValue.red;
      bank.data[j+1]=bankValue.green;
