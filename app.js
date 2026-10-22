@@ -1700,9 +1700,12 @@ $('exportMapPng').addEventListener('click',async()=>{
   for(let attempt=0;attempt<250;attempt++){
    await new Promise(resolve=>setTimeout(resolve,120));
    const chunked=state.chunkRendering||state.sceneSize>37;
-   const t=terrainChunks.stats(),shore=shorelineChunks.stats(),road=roadChunks.stats();
+   const t=terrainChunks.stats(),shore=shorelineChunks.stats(),
+    road=roadChunks.stats(),river=riverChunks.stats();
    if((!chunked||(t.visible>0&&t.pending===0&&t.painted===t.visible&&t.stalePainted===0))&&
-      (!state.shoreline.enabled||shore.pending===0)&&(!state.roadShown||road.pending===0)){
+      (!state.shoreline.enabled||shore.pending===0)&&(!state.roadShown||road.pending===0)&&
+      (!state.river||!riverRoutes().length||(river.visible>0&&river.pending===0&&
+       river.painted===river.visible&&river.stalePainted===0))){
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     ready=true;break;
    }
