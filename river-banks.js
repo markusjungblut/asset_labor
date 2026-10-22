@@ -57,7 +57,7 @@ window.VedrasRiverBanks=(()=>{
  function prepare(routes,cells,isWet,options={}){
   const RIVERS=window.VedrasRivers,width=clamp(Number(options.width)||40,12,70);
   const groundY=typeof options.groundY==='function'?options.groundY:null;
-  const classified=cells.map(c=>({...c,
+  const classified=cells.filter(c=>!isWet(c)).map(c=>({...c,
    bankMaterial:material(c,typeof options.typeForCell==='function'?options.typeForCell(c):'')}));
   const colors=new Map(),lines=[],paths=[],imageList=[],imageMap=new Map();
   function textureId(image){
@@ -151,8 +151,10 @@ window.VedrasRiverBanks=(()=>{
   const cut=Math.exp(-Math.pow((d-half-3)/6.6,2));
   const crown=Math.exp(-Math.pow((d-half-15)/7.8,2));
   const debrisBand=(1-smooth(Math.abs(d-half-15)/14));
-  const stone=style.rock*debrisBand*debris(x,y,tx,ty,'rock');
-  const reeds=style.marsh*debrisBand*debris(x,y,tx,ty,'reeds');
+  const stone=style.rock>.12&&debrisBand>.03?
+   style.rock*debrisBand*debris(x,y,tx,ty,'rock'):0;
+  const reeds=style.marsh>.12&&debrisBand>.03?
+   style.marsh*debrisBand*debris(x,y,tx,ty,'reeds'):0;
   const damp=style.marsh;
   const alpha=clamp(strength*(.15*lip+.32*cut+.15*crown+
    .32*stone+.13*reeds+.055*damp*lip),0,.76);
