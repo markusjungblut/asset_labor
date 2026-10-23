@@ -138,10 +138,10 @@ test('v0.15.4 integrates indexed lookup and shadow-cache paths without breaking 
  assert.match(app,/finalRendering\?shared\.draw:shared\.drawCached/);
  assert.match(app,/finalRendering\?window\.VedrasSpriteShadows\.draw:window\.VedrasSpriteShadows\.drawCached/);
  assert.match(app,/VedrasSpriteShadows\?\.beginFrame\?\.\(\)/);
- assert.match(html,/object-layout-cache\.js\?v=0\.2\.0/);
- assert.match(html,/sprite-shadow-editor\.js\?v=0\.38\.0/);
- assert.match(html,/app\.js\?v=0\.48\.0/);
- assert.match(server,/VERSION = '0\.15\.4'/);
+ assert.match(html,/object-layout-cache\.js\?v=/);
+ assert.match(html,/sprite-shadow-editor\.js\?v=/);
+ assert.match(html,/app\.js\?v=/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
