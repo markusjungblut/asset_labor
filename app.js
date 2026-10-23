@@ -1772,6 +1772,35 @@ $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(sug
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();requestDraw();updateDiagnostics();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;state.chunkRenderingOverride=true;invalidateTerrain();persistScene();requestDraw();});
+function precomputeAllStaticTerrain(){
+ const info=$('terrainBakeStatus');
+ if(!worldCells.length){info.textContent='Keine Karte zum Vorberechnen vorhanden.';return;}
+ if(state.mode==='far'){
+  state.mode='normal';applyZoom(Math.max(state.zoom,.25));
+ }
+ // A previous frame has already configured the tile renderer with the
+ // current material/biome/relief snapshot. No camera movement is required.
+ const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c));
+ const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.4;
+ const left=Math.min(...xs)-pad,top=Math.min(...ys)-pad,
+  right=Math.max(...xs)+pad,bottom=Math.max(...ys)+pad;
+ const tiles=window.VedrasChunks.visible({
+  x:left,y:top,width:right-left,height:bottom-top
+ },worldCells);
+ if(!tiles.length){info.textContent='Keine gültigen Gelände-Chunks gefunden.';return;}
+ const result=terrainChunks.warm(tiles,{
+  progress:stats=>{
+   const disk=staticTerrain?.status();
+   info.textContent='Vorberechnung: '+stats.warmDone+' / '+stats.warmTotal+
+    ' Chunks abgeschlossen · '+(disk?.saved||0)+' auf Datenträger gespeichert'+
+    (stats.warmDone>=stats.warmTotal?' · Fertig':' · sichtbare Karte hat Vorrang');
+  }
+ });
+ info.textContent='Terrain-Vorbereitung gestartet: '+result.total+' Welt-Chunks.';
+ return result;
+}
+window.__vedrasPrecomputeTerrain=precomputeAllStaticTerrain;
+$('terrainBake').addEventListener('click',precomputeAllStaticTerrain);
 // Atlas building runs as an OFFLINE local-server job, never on startup
 // or on a map frame. No original image or path is modified by the builder.
 $('atlasBuild').addEventListener('click',async()=>{
