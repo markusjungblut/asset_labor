@@ -18,6 +18,10 @@ const gpuCanvas=$('gpuCanvas'),
  gpuTerrain=window.VedrasGpuTerrain?.create(gpuCanvas,{
   maxBytes:128*1024*1024,maxTextures:112})||null;
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
+const spriteAtlas=window.VedrasSpriteAtlas?.create({
+ base:'atlases/',limitPages:6,onReady:()=>requestDraw()
+})||null;
+spriteAtlas?.open().then(available=>{if(available)requestDraw();});
 const imagePool=window.VedrasImagePool.create({
  parallel:4,maxBytes:192*1024*1024,protectMs:24000,
  onReady:a=>{
@@ -1116,7 +1120,10 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
   ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
   objectPerspective(ctx,p);
-  ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);ctx.restore();
+  if(!spriteAtlas?.draw(ctx,obj.asset.path,b,{
+   x:left,y:top,w:width,h:height
+  }))ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);
+  ctx.restore();
   return;
  }
  // Keep scratch backing store bounded even for large zoomed mountains.
@@ -1424,7 +1431,9 @@ function draw(){if(!ctx||!canvas.width)return;
   ' · GPU '+Math.round((gpu?.gpuBytes||0)/1048576)+' MiB / '+
   (gpu?.textureCount||0)+' Texturen · Uploads '+(gpu?.uploads||0)+
   ' · Bilder '+mem.resident+' resident, '+mem.queued+' wartend / '+
-  Math.round(mem.decodedBytes/1048576)+' MiB geschätzt';
+  Math.round(mem.decodedBytes/1048576)+' MiB geschätzt'+
+  (spriteAtlas?.info().active?' · Atlas '+spriteAtlas.info().pages+
+   ' Seiten ('+spriteAtlas.info().tier+')':'');
  $('modeBadge').textContent=state.mode==='normal'?'NORMAL':'FERNANSICHT';}
 function updateDiagnostics(){const pixels=canvas.width*canvas.height,mb=(pixels*4/1048576).toFixed(1);$('renderStats').textContent=`Canvas ${canvas.width}×${canvas.height} px · ${state.dpr.toFixed(2)}× Pixelratio · ${mb} MiB Bildpuffer`;
  const a=useAsset(state.asset);if(!a?.img?.naturalWidth){$('sharpnessInfo').textContent='Bitte eine Grafik auswählen.';return;}
