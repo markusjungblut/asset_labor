@@ -131,7 +131,7 @@ test('outer page scrollbar is disabled without affecting panel scrolling',()=>{
  const css=read('style.css'),html=read('index.html');
  assert.match(css,/@media\s*\(min-width:801px\)\s*\{[\s\S]*html,body\{[^}]*overflow:hidden/);
  assert.match(css,/\.library,\.inspector\{overflow-y:auto;overflow-x:hidden/);
- assert.match(html,/style\.css\?v=0\.35\.0/);
+ assert.match(html,/style\.css\?v=0\.3[5-9]\.0/);
  assert.match(html,/water-texture\.js\?v=0\.1\.0/);
  const worker=read('terrain-worker.js');
  assert.match(worker,/importScripts\('water-texture\.js\?v=0\.1\.0'/);

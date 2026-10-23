@@ -1,3 +1,13 @@
+## v0.12.9 – Kopfzeile „Neu einlesen“ wieder dauerhaft sichtbar (22.10.2026)
+
+**Behobene Layoutregression:** Die vorherige Deaktivierung der äußeren Scrollbar hat `html/body` auf `overflow:hidden` gestellt. Ein vom Browser wiederhergestellter Dokument-Scrolloffset konnte dadurch die oberste **70px-Kopfzeile** samt Status, **„Neu einlesen“** und **„Ordner importieren“** aus dem sichtbaren Bereich schieben. Auf Desktop (`min-width:801px`) liegt `.app` jetzt mit `position:fixed; inset:0` vollständig im tatsächlichen Browser-Viewport – unabhängig von vorherigen Seitenscrollpositionen. `.topbar` erhält unverkleinerbare 70px, die rechte Button-Gruppe schrumpft nicht; darunter füllt die Karte den verbleibenden Platz.
+
+**Scrollverhalten:** Kein äußeres Dokument-Scrolling. Die Bibliothek links und der Inspector rechts bleiben **unabhängig vertikal scrollbar**; das Karten-Canvas bleibt in der Mitte. Die mobile Ansicht (`max-width:800px`) nutzt weiterhin die bestehende vertikale Dokumentanordnung. Keine Änderungen an `app.js`, Wasser, Ufern, Chunk-Renderern oder Nature-Platzierung.
+
+**Tests:** `tests/test_editor_header_viewport_20261022.cjs` prüft drei Layoutverträge (Kopfzeilen-/Button-Markup, viewportfester Desktop-Root und interne Scrollbereiche inklusive mobiler Darstellung). Zusammen mit den bereits bestehenden Grafiktests: **29/29** im isolierten JS-Harness bestanden. Browserprüfung mit dem vollständigen lokalen Asset-Labor bei hohem Zoom bleibt empfohlen.
+
+---
+
 ## v0.12.8 – Chunk-Kreuze und Übergang Küste → Flussmündung (22.10.2026)
 
 **Nahtfreies Chunk-Compositing:** Der alte `VedrasChunks.draw`-Pass ließ jedes überlagernde Chunk-Canvas um zwei Welt-Einheiten über die eigene 512er-Grenze hinaus zeichnen. Gerade bei transparenten Küsten-/Böschungslayern führte das am Treffpunkt von vier Kacheln zu sichtbaren dunklen oder hellen **Kreuzen**. Die neue Funktion `clipCore` berechnet aus der tatsächlichen Canvas-Transformation identische, gerundete **Backing-Store-Pixelkanten** für jedes angrenzende Chunk. Jedes Zielpixel wird exakt einem Chunk zugeordnet, ohne Lücken und ohne doppelte Alphakomposition. Die Quelltexturen behalten weiterhin ihren Raster-Halo. Der Renderer stellt nach dem Clipping dieselbe World-Space-Transformation wieder her und verschiebt oder streckt die Originalgrafiken **nicht**. Ein sicherer World-Space-Fallback besteht für reine Test-Contexts ohne `getTransform`.

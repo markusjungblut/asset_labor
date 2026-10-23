@@ -3,7 +3,7 @@
   "revision": 0,
   "global": {
     "angle": 142,
-    "opacity": 0.44,
+    "opacity": 0.62,
     "length": 0.68,
     "width": 0.91,
     "softness": 4.5,
@@ -14,16 +14,1080 @@
   },
   "profiles": {
     "assets/nature/Baumstumpf_01.png": {
-      "width": 1.49,
+      "width": 1.26,
       "length": 1.3,
       "offsetY": -0.15,
       "offsetX": 0.11
     },
     "assets/nature/Baumstumpf_02.png": {
-      "width": 1.21,
+      "width": 1.33,
+      "length": 1.3,
+      "offsetY": -0.15,
+      "offsetX": 0.11
+    },
+    "assets/nature/Baumstumpf_03.png": {
+      "width": 1.29,
+      "length": 1.3,
+      "offsetY": -0.15,
+      "offsetX": 0.11
+    },
+    "assets/nature/Baumstumpf_04.png": {
+      "width": 1.1,
+      "length": 1.3,
+      "offsetY": -0.15,
+      "offsetX": 0.11
+    },
+    "assets/nature/Baumstumpf_05.png": {
+      "width": 1.06,
+      "length": 1.3,
+      "offsetY": -0.15,
+      "offsetX": 0.11
+    },
+    "assets/nature/Baumstumpf_06.png": {
+      "width": 1.16,
+      "length": 1.3,
+      "offsetY": -0.15,
+      "offsetX": 0.11
+    },
+    "assets/nature/Baumstumpf_07.png": {
+      "width": 1.22,
+      "length": 1.01,
+      "offsetY": -0.19
+    },
+    "assets/nature/Baumstumpf_08.png": {
+      "offsetY": -0.16,
+      "length": 1.27,
+      "width": 0.72,
+      "contact": 0.7,
+      "offsetX": 0.29,
+      "angle": 215,
+      "opacity": 0.69,
+      "softness": 4.5
+    },
+    "assets/nature/Baumstumpf_09.png": {
+      "offsetY": -0.07,
+      "offsetX": -0.08,
+      "width": 1.4
+    },
+    "assets/nature/Baumstumpf_10.png": {
+      "offsetX": -0.02,
+      "offsetY": -0.04,
+      "length": 0.86
+    },
+    "assets/nature/Baumstumpf_11.png": {
+      "width": 1.13,
+      "offsetY": -0.09,
+      "offsetX": 0.01,
+      "length": 0.8
+    },
+    "assets/nature/Baumstumpf_12.png": {
+      "offsetY": -0.05,
+      "width": 1.1,
+      "offsetX": 0.1
+    },
+    "assets/nature/Baumstumpf_13.png": {
+      "angle": 215,
+      "length": 0.68,
+      "width": 1.1,
+      "offsetX": 0.1,
+      "offsetY": -0.21
+    },
+    "assets/nature/Baumstumpf_14.png": {
+      "angle": 186,
+      "length": 1.39,
+      "offsetY": -0.23,
+      "offsetX": -0.03,
+      "width": 1.25
+    },
+    "assets/nature/Baumstumpf_15.png": {
+      "width": 1.15,
+      "length": 0.74,
+      "offsetY": -0.09,
+      "offsetX": 0.02,
+      "angle": 129
+    },
+    "assets/nature/Baumstumpf_16.png": {
+      "offsetY": -0.15,
+      "length": 1.25,
+      "width": 1,
+      "offsetX": 0.07
+    },
+    "assets/nature/Baumstumpf_17.png": {
+      "offsetY": -0.15,
+      "offsetX": 0.13,
+      "length": 1.04,
+      "width": 1.24
+    },
+    "assets/nature/Baumstumpf_18.png": {
+      "width": 1.16,
+      "length": 0.94,
+      "offsetY": -0.1
+    },
+    "assets/nature/Baumstumpf_19.png": {
+      "offsetY": -0.14,
+      "length": 0.92
+    },
+    "assets/nature/Baumstumpf_20.png": {
+      "offsetY": -0.09,
+      "length": 1.24
+    },
+    "assets/nature/berg_01.png": {
+      "enabled": true
+    },
+    "assets/nature/berg_08.png": {
+      "enabled": true
+    },
+    "assets/nature/besenheide1.png": {
+      "softness": 2.5
+    },
+    "assets/nature/besenheide2.png": {
+      "softness": 1.5,
+      "length": 1.06
+    },
+    "assets/nature/besenheide3.png": {
+      "softness": 1
+    },
+    "assets/nature/boulder_01.png": {
+      "offsetY": -0.09,
+      "width": 1.18,
+      "length": 0.95,
+      "offsetX": 0.17
+    },
+    "assets/nature/boulder_02.png": {
+      "width": 1.05,
+      "offsetY": -0.05
+    },
+    "assets/nature/boulder_03.png": {
+      "length": 1.21,
+      "width": 1.25,
+      "offsetY": -0.12,
+      "offsetX": 0.06
+    },
+    "assets/nature/boulder_04.png": {
+      "offsetX": 0.05,
+      "offsetY": -0.08,
+      "length": 0.89
+    },
+    "assets/nature/boulder_05.png": {
+      "offsetY": -0.05,
+      "offsetX": 0.04,
+      "width": 1,
+      "length": 0.82
+    },
+    "assets/nature/boulder_06.png": {
+      "offsetY": -0.17,
+      "width": 1.29,
+      "length": 0.74,
+      "offsetX": 0.02
+    },
+    "assets/nature/boulder_07.png": {
+      "offsetY": -0.17,
+      "length": 1.02,
+      "width": 1.1,
+      "offsetX": 0.08,
+      "contact": 0.7
+    },
+    "assets/nature/boulder_08.png": {
+      "offsetY": -0.14,
+      "length": 0.96,
+      "width": 1.07
+    },
+    "assets/nature/boulder_09.png": {
+      "offsetY": -0.07,
+      "offsetX": 0.04,
+      "length": 0.99,
+      "width": 1.03
+    },
+    "assets/nature/boulder_10.png": {
+      "offsetY": -0.11,
+      "length": 0.97,
+      "width": 1.02
+    },
+    "assets/nature/boulder_11.png": {
+      "offsetY": -0.13,
+      "width": 0.75,
+      "length": 0.96
+    },
+    "assets/nature/boulder_12.png": {
+      "offsetY": -0.13,
+      "width": 1.03
+    },
+    "assets/nature/boulder_13.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/boulder_14.png": {
+      "length": 1.05,
+      "width": 1.05,
+      "offsetY": -0.1,
+      "offsetX": 0.03
+    },
+    "assets/nature/boulder_15.png": {
       "offsetY": -0.22,
-      "offsetX": -0.14,
-      "length": 1.1
+      "length": 1.08,
+      "width": 1.24,
+      "offsetX": 0.24,
+      "opacity": 0.63
+    },
+    "assets/nature/boulder_16.png": {
+      "offsetY": -0.15,
+      "length": 1,
+      "width": 1.06
+    },
+    "assets/nature/boulder_17.png": {
+      "offsetY": -0.11,
+      "length": 0.77,
+      "width": 1.09
+    },
+    "assets/nature/boulder_18.png": {
+      "length": 0.93,
+      "offsetY": -0.12,
+      "width": 1.05
+    },
+    "assets/nature/boulder_19.png": {
+      "angle": 105,
+      "offsetY": -0.28,
+      "width": 1.15,
+      "length": 1.09,
+      "offsetX": 0.06,
+      "softness": 6
+    },
+    "assets/nature/boulder_20.png": {
+      "offsetY": -0.16,
+      "width": 1.2,
+      "length": 1.08,
+      "offsetX": 0.13
+    },
+    "assets/nature/boulder_21.png": {
+      "offsetY": -0.09,
+      "width": 1.04
+    },
+    "assets/nature/boulder_22.png": {
+      "offsetY": -0.2,
+      "offsetX": 0.17,
+      "length": 0.93,
+      "width": 1.06
+    },
+    "assets/nature/boulder_23.png": {
+      "length": 0.97,
+      "width": 1.05,
+      "offsetY": -0.11
+    },
+    "assets/nature/boulder_24.png": {
+      "angle": 105,
+      "offsetY": -0.21,
+      "length": 0.9,
+      "width": 1.03
+    },
+    "assets/nature/boulder_25.png": {
+      "offsetY": -0.16,
+      "length": 0.74,
+      "width": 1.02
+    },
+    "assets/nature/boulder_26.png": {
+      "offsetY": -0.17,
+      "width": 1.03,
+      "length": 0.91
+    },
+    "assets/nature/boulder_27.png": {
+      "offsetY": -0.09
+    },
+    "assets/nature/boulder_28.png": {
+      "offsetY": -0.21,
+      "width": 1.18,
+      "length": 0.98,
+      "offsetX": 0.09
+    },
+    "assets/nature/boulder_29.png": {
+      "angle": 215,
+      "width": 1.16,
+      "offsetY": -0.24,
+      "offsetX": 0.11,
+      "length": 0.84
+    },
+    "assets/nature/boulder_30.png": {
+      "offsetY": -0.12,
+      "width": 1.07,
+      "length": 0.82
+    },
+    "assets/nature/boulder_31.png": {
+      "offsetY": -0.13,
+      "width": 1.08,
+      "length": 0.86
+    },
+    "assets/nature/boulder_32.png": {
+      "offsetY": -0.1,
+      "length": 1,
+      "width": 1.05
+    },
+    "assets/nature/boulder_33.png": {
+      "offsetY": -0.14,
+      "length": 0.68,
+      "width": 1
+    },
+    "assets/nature/boulder_34.png": {
+      "offsetY": -0.17,
+      "length": 1.13,
+      "width": 1.07
+    },
+    "assets/nature/boulder_35.png": {
+      "offsetY": -0.18,
+      "length": 1.2,
+      "width": 1.24,
+      "offsetX": 0.11
+    },
+    "assets/nature/boulder_36.png": {
+      "offsetY": -0.15,
+      "length": 0.83,
+      "width": 1.15,
+      "offsetX": 0.07
+    },
+    "assets/nature/boulder_37.png": {
+      "offsetY": -0.16,
+      "width": 1.08,
+      "length": 0.88
+    },
+    "assets/nature/boulder_38.png": {
+      "length": 1.11,
+      "offsetY": -0.19,
+      "width": 1.06,
+      "offsetX": 0.06
+    },
+    "assets/nature/boulder_39.png": {
+      "offsetY": -0.11,
+      "length": 0.85
+    },
+    "assets/nature/boulder_40.png": {
+      "length": 0.95,
+      "offsetY": -0.15
+    },
+    "assets/nature/boulder_41.png": {
+      "offsetY": -0.06,
+      "length": 0.91
+    },
+    "assets/nature/boulder_42.png": {
+      "offsetY": -0.11,
+      "length": 0.91
+    },
+    "assets/nature/boulder_43.png": {
+      "offsetY": -0.09,
+      "length": 0.93
+    },
+    "assets/nature/boulder_44.png": {
+      "offsetY": -0.11,
+      "length": 0.87
+    },
+    "assets/nature/bush_15.png": {
+      "offsetY": -0.1
+    },
+    "assets/nature/bush_17.png": {
+      "offsetY": -0.11
+    },
+    "assets/nature/bush_18.png": {
+      "offsetY": -0.08
+    },
+    "assets/nature/bush_19.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_20.png": {
+      "offsetY": -0.09
+    },
+    "assets/nature/bush_21.png": {
+      "offsetY": -0.09
+    },
+    "assets/nature/bush_22.png": {
+      "offsetY": -0.09
+    },
+    "assets/nature/bush_23.png": {
+      "offsetY": -0.08
+    },
+    "assets/nature/bush_24.png": {
+      "offsetY": -0.08
+    },
+    "assets/nature/bush_25.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_26.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_27.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_28.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_29.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_30.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_31.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_13.png": {
+      "offsetY": -0.05
+    },
+    "assets/nature/bush_12.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_11.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_10.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_09.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_07.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_06.png": {
+      "offsetY": -0.05
+    },
+    "assets/nature/bush_05.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_04.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_03.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_02.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_01.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_32.png": {
+      "offsetY": -0.05
+    },
+    "assets/nature/bush_33.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_34.png": {
+      "offsetY": -0.23,
+      "length": 0.92,
+      "width": 1.07,
+      "angle": 128,
+      "offsetX": 0.07
+    },
+    "assets/nature/bush_35.png": {
+      "offsetY": -0.17,
+      "length": 1.28,
+      "width": 1.11,
+      "offsetX": 0.11
+    },
+    "assets/nature/bush_36.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/bush_37.png": {
+      "offsetY": -0.09,
+      "length": 0.9,
+      "width": 1.02,
+      "offsetX": 0.05
+    },
+    "assets/nature/bush_38.png": {
+      "offsetX": 0.13,
+      "offsetY": -0.2,
+      "length": 0.99,
+      "width": 1.09
+    },
+    "assets/nature/bush_39.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/bush_40.png": {
+      "offsetY": -0.13,
+      "offsetX": 0.09,
+      "length": 0.96
+    },
+    "assets/nature/bush_41.png": {
+      "offsetY": -0.08
+    },
+    "assets/nature/bush_jungle_01.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/dead_tree_01.png": {
+      "length": 1.31,
+      "offsetY": -0.13
+    },
+    "assets/nature/dead_tree_02.png": {
+      "length": 0.87
+    },
+    "assets/nature/dead_tree_03.png": {
+      "length": 1.03,
+      "offsetY": -0.1,
+      "width": 1
+    },
+    "assets/nature/dead_tree_04.png": {
+      "length": 1.22,
+      "offsetY": -0.1,
+      "width": 1.03
+    },
+    "assets/nature/dead_tree_05.png": {
+      "length": 1.02,
+      "offsetY": -0.08
+    },
+    "assets/nature/dead_tree_06.png": {
+      "offsetY": -0.16,
+      "length": 1.01,
+      "width": 1.08
+    },
+    "assets/nature/dead_tree_07.png": {
+      "length": 1.27,
+      "offsetY": -0.14,
+      "width": 1.03
+    },
+    "assets/nature/dead_tree_08.png": {
+      "offsetY": -0.17,
+      "length": 1.12
+    },
+    "assets/nature/dead_tree_09.png": {
+      "length": 1.51,
+      "width": 1.22,
+      "offsetY": -0.11
+    },
+    "assets/nature/dead_tree_10.png": {
+      "offsetY": -0.1,
+      "length": 1.39
+    },
+    "assets/nature/dead_tree_11.png": {
+      "offsetY": -0.09,
+      "length": 1.11
+    },
+    "assets/nature/dead_tree_12.png": {
+      "offsetY": -0.09,
+      "length": 1.02,
+      "width": 1.03
+    },
+    "assets/nature/dead_tree_13.png": {
+      "width": 1.22,
+      "length": 0.99,
+      "offsetY": -0.13
+    },
+    "assets/nature/dead_tree_14.png": {
+      "length": 1.2,
+      "width": 1.14,
+      "offsetY": -0.11
+    },
+    "assets/nature/dead_tree_15.png": {
+      "offsetY": -0.09,
+      "length": 1.16,
+      "width": 1.11
+    },
+    "assets/nature/fallen_log_01.png": {
+      "offsetY": -0.11,
+      "offsetX": 0.07,
+      "length": 0.56,
+      "width": 0.48,
+      "angle": 189
+    },
+    "assets/nature/fallen_log_02.png": {
+      "angle": 147,
+      "offsetY": -0.23,
+      "length": 1.31,
+      "width": 0.56,
+      "offsetX": 0.31
+    },
+    "assets/nature/fallen_log_03.png": {
+      "angle": 112,
+      "offsetY": -0.11,
+      "offsetX": -0.17,
+      "length": 0.74,
+      "width": 0.86
+    },
+    "assets/nature/fallen_log_04.png": {
+      "length": 0.98,
+      "width": 0.66,
+      "angle": 125,
+      "offsetY": -0.09,
+      "offsetX": -0.23
+    },
+    "assets/nature/fallen_log_05.png": {
+      "offsetY": -0.1,
+      "length": 0.3,
+      "width": 0.65
+    },
+    "assets/nature/fallen_log_06.png": {
+      "length": 0.96,
+      "width": 0.73,
+      "angle": 111,
+      "offsetX": -0.16,
+      "offsetY": -0.16
+    },
+    "assets/nature/fallen_log_07.png": {
+      "angle": 105,
+      "length": 0.29,
+      "width": 0.44,
+      "offsetX": 0.05,
+      "offsetY": -0.16
+    },
+    "assets/nature/fallen_log_08.png": {
+      "length": 0.79,
+      "width": 0.44,
+      "angle": 215,
+      "offsetY": -0.04,
+      "offsetX": -0.05
+    },
+    "assets/nature/fallen_log_09.png": {
+      "length": 0.41,
+      "width": 0.66,
+      "offsetY": -0.09
+    },
+    "assets/nature/fallen_log_10.png": {
+      "angle": 210,
+      "width": 0.51,
+      "offsetY": -0.05,
+      "offsetX": -0.2
+    },
+    "assets/nature/fallen_log_11.png": {
+      "width": 0.69,
+      "angle": 190,
+      "offsetY": -0.13,
+      "offsetX": -0.17
+    },
+    "assets/nature/fallen_log_12.png": {
+      "width": 0.64,
+      "angle": 105,
+      "offsetY": -0.09,
+      "offsetX": -0.24,
+      "length": 1.04
+    },
+    "assets/nature/fallen_log_13.png": {
+      "offsetY": -0.15,
+      "width": 0.46,
+      "angle": 105,
+      "length": 1.63,
+      "offsetX": 0.22
+    },
+    "assets/nature/fallen_log_14.png": {
+      "width": 0.51,
+      "angle": 210,
+      "offsetY": -0.04,
+      "offsetX": -0.18,
+      "length": 0.33
+    },
+    "assets/nature/fallen_log_15.png": {
+      "length": 0.45,
+      "width": 0.56,
+      "angle": 214
+    },
+    "assets/nature/fallen_log_16.png": {
+      "width": 0.34,
+      "angle": 114,
+      "offsetX": -0.23,
+      "length": 0.63,
+      "offsetY": -0.05
+    },
+    "assets/nature/fallen_log_17.png": {
+      "width": 0.53,
+      "angle": 180
+    },
+    "assets/nature/fallen_log_18.png": {
+      "width": 0.51,
+      "offsetY": -0.1,
+      "length": 0.95
+    },
+    "assets/nature/fallen_log_19.png": {
+      "length": 0.72,
+      "width": 0.43,
+      "offsetY": -0.04
+    },
+    "assets/nature/fallen_log_20.png": {
+      "width": 0.54,
+      "angle": 111,
+      "length": 0.19,
+      "offsetX": -0.31
+    },
+    "assets/nature/fallen_log_21.png": {
+      "width": 0.64,
+      "offsetY": -0.07,
+      "offsetX": -0.13
+    },
+    "assets/nature/fallen_log_22.png": {
+      "width": 0.61,
+      "softness": 7.5,
+      "opacity": 0.75,
+      "angle": 187,
+      "offsetX": -0.22,
+      "length": 0.3
+    },
+    "assets/nature/fallen_log_23.png": {
+      "width": 0.62,
+      "offsetY": -0.04
+    },
+    "assets/nature/fallen_log_24.png": {
+      "width": 0.62,
+      "offsetY": -0.05
+    },
+    "assets/nature/fern_01.png": {
+      "softness": 2,
+      "opacity": 0.75
+    },
+    "assets/nature/fern_02.png": {
+      "opacity": 0.75,
+      "softness": 1
+    },
+    "assets/nature/fern_03.png": {
+      "softness": 2.5,
+      "opacity": 0.75
+    },
+    "assets/nature/fern_04.png": {
+      "opacity": 0.75,
+      "softness": 1.5
+    },
+    "assets/nature/fern_05.png": {
+      "opacity": 0.75,
+      "softness": 2,
+      "offsetY": -0.07
+    },
+    "assets/nature/fern_06.png": {
+      "opacity": 0.75,
+      "softness": 2
+    },
+    "assets/nature/fern_07.png": {
+      "opacity": 0.75,
+      "softness": 2
+    },
+    "assets/nature/fern_08.png": {
+      "opacity": 0.75,
+      "softness": 1.5
+    },
+    "assets/nature/fern_09.png": {
+      "opacity": 0.75,
+      "softness": 1.5
+    },
+    "assets/nature/fern_10.png": {
+      "opacity": 0.75,
+      "softness": 2.5
+    },
+    "assets/nature/ginster1.png": {
+      "opacity": 0.74,
+      "offsetY": -0.07
+    },
+    "assets/nature/ginster2.png": {
+      "length": 1.06
+    },
+    "assets/nature/haselstrauch3.png": {
+      "length": 0.84
+    },
+    "assets/nature/ice_block_01.png": {
+      "length": 1.09,
+      "width": 1.2,
+      "offsetY": -0.15,
+      "offsetX": 0.07
+    },
+    "assets/nature/ice_block_02.png": {
+      "offsetY": -0.09,
+      "width": 1.11,
+      "length": 0.77
+    },
+    "assets/nature/ice_block_03.png": {
+      "offsetY": -0.1,
+      "length": 1.05,
+      "width": 1.1
+    },
+    "assets/nature/ice_block_04.png": {
+      "length": 1.32,
+      "width": 1.12,
+      "offsetY": -0.11,
+      "offsetX": 0.02
+    },
+    "assets/nature/ice_block_05.png": {
+      "offsetY": -0.1,
+      "length": 0.68,
+      "width": 1.06
+    },
+    "assets/nature/palme_08.png": {
+      "length": 1,
+      "width": 1.06
+    },
+    "assets/nature/palme_09.png": {
+      "offsetX": -0.21
+    },
+    "assets/nature/palme_10.png": {
+      "offsetX": -0.16
+    },
+    "assets/nature/palme_11.png": {
+      "offsetX": -0.14
+    },
+    "assets/nature/schilf1.png": {
+      "length": 0.93
+    },
+    "assets/nature/schilf2.png": {
+      "length": 0.96
+    },
+    "assets/nature/schilf3.png": {
+      "length": 0.82
+    },
+    "assets/nature/schilf4.png": {
+      "length": 0.93
+    },
+    "assets/nature/snowy_bush_01.png": {
+      "offsetY": -0.02,
+      "length": 1.34,
+      "width": 1.02,
+      "offsetX": 0.06
+    },
+    "assets/nature/snowy_bush_02.png": {
+      "offsetY": -0.01,
+      "length": 0.95,
+      "width": 0.9,
+      "angle": 127
+    },
+    "assets/nature/snowy_bush_03.png": {
+      "offsetY": 0.05,
+      "length": 1.16,
+      "angle": 130
+    },
+    "assets/nature/snowy_bush_04.png": {
+      "offsetY": 0.03,
+      "angle": 130,
+      "length": 1.11
+    },
+    "assets/nature/snowy_bush_05.png": {
+      "angle": 122,
+      "width": 1.01,
+      "length": 1.42,
+      "offsetX": 0.04
+    },
+    "assets/nature/snowy_bush_06.png": {
+      "offsetY": 0.02,
+      "offsetX": 0.03,
+      "length": 1.2,
+      "angle": 120,
+      "opacity": 0.62
+    },
+    "assets/nature/snowy_bush_07.png": {
+      "offsetY": 0.03,
+      "offsetX": -0.15,
+      "angle": 129,
+      "length": 1
+    },
+    "assets/nature/snowy_bush_08.png": {
+      "offsetY": 0.06,
+      "angle": 129,
+      "length": 1.15,
+      "width": 1
+    },
+    "assets/nature/snowy_bush_09.png": {
+      "offsetY": 0,
+      "angle": 136,
+      "length": 0.87
+    },
+    "assets/nature/snowy_bush_10.png": {
+      "offsetY": 0.04,
+      "angle": 130,
+      "length": 1,
+      "width": 1.06,
+      "offsetX": 0.01
+    },
+    "assets/nature/sukkulent1.png": {
+      "opacity": 0.75,
+      "softness": 1,
+      "offsetY": -0.12,
+      "length": 0.72,
+      "width": 1.08,
+      "angle": 125
+    },
+    "assets/nature/sukkulent2.png": {
+      "opacity": 0.75,
+      "angle": 132,
+      "length": 0.97,
+      "softness": 1,
+      "offsetY": -0.09
+    },
+    "assets/nature/sukkulent3.png": {
+      "opacity": 0.75,
+      "angle": 133,
+      "length": 0.92,
+      "softness": 1.5,
+      "offsetY": -0.08
+    },
+    "assets/nature/tanne_01.png": {
+      "length": 1.01
+    },
+    "assets/nature/tanne_02.png": {
+      "length": 0.93
+    },
+    "assets/nature/tanne_03.png": {
+      "length": 0.96
+    },
+    "assets/nature/tanne_05.png": {
+      "length": 0.77
+    },
+    "assets/nature/tanne_06.png": {
+      "length": 0.84
+    },
+    "assets/nature/tanne_07.png": {
+      "length": 0.79
+    },
+    "assets/nature/tanne_08.png": {
+      "length": 0.78
+    },
+    "assets/nature/tanne_09.png": {
+      "length": 0.79
+    },
+    "assets/nature/tanne_10.png": {
+      "length": 0.79
+    },
+    "assets/nature/tanne_11.png": {
+      "length": 0.77
+    },
+    "assets/nature/tanne_schnee_01.png": {
+      "length": 0.8
+    },
+    "assets/nature/tanne_schnee_02.png": {
+      "length": 0.79
+    },
+    "assets/nature/tanne_schnee_03.png": {
+      "length": 0.77
+    },
+    "assets/nature/tanne_schnee_04.png": {
+      "length": 0.78
+    },
+    "assets/nature/tanne_schnee_05.png": {
+      "length": 0.75
+    },
+    "assets/nature/tanne_schnee_06.png": {
+      "length": 0.77
+    },
+    "assets/nature/tanne_schnee_07.png": {
+      "length": 0.83
+    },
+    "assets/nature/tanne_schnee_08.png": {
+      "length": 0.79
+    },
+    "assets/nature/tanne_schnee_09.png": {
+      "length": 0.82
+    },
+    "assets/nature/tanne_schnee_10.png": {
+      "length": 0.77
+    },
+    "assets/nature/thymian_01.png": {
+      "length": 0.77,
+      "angle": 128,
+      "opacity": 0.75,
+      "softness": 1,
+      "offsetY": -0.09
+    },
+    "assets/nature/thymian_02.png": {
+      "length": 0.88,
+      "angle": 129,
+      "softness": 2,
+      "opacity": 0.75,
+      "offsetY": -0.1
+    },
+    "assets/nature/thymian_03.png": {
+      "opacity": 0.75,
+      "softness": 1.5,
+      "angle": 129,
+      "length": 0.95,
+      "offsetY": -0.09
+    },
+    "assets/nature/tree_12.png": {
+      "offsetY": 0.12
+    },
+    "assets/nature/tree_13.png": {
+      "offsetY": 0.12
+    },
+    "assets/nature/tree_14.png": {
+      "offsetY": 0.13
+    },
+    "assets/nature/tree_15.png": {
+      "offsetY": 0.15
+    },
+    "assets/nature/tree_16.png": {
+      "offsetY": 0.15,
+      "length": 0.79
+    },
+    "assets/nature/tree_17.png": {
+      "offsetY": 0.09
+    },
+    "assets/nature/tree_18.png": {
+      "offsetY": 0.08,
+      "length": 0.86
+    },
+    "assets/nature/tree_19.png": {
+      "offsetY": 0.11,
+      "length": 0.82
+    },
+    "assets/nature/Tundra_Zwergstrauch1.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/Tundra_Zwergstrauch2.png": {
+      "offsetY": -0.07
+    },
+    "assets/nature/Tundra_Zwergstrauch3.png": {
+      "offsetY": -0.06
+    },
+    "assets/nature/Tundra_Zwergstrauch4.png": {
+      "offsetY": -0.04
+    },
+    "assets/nature/wacholder_06.png": {
+      "length": 0.93
+    },
+    "assets/nature/wacholder2.png": {
+      "length": 0.98
+    },
+    "assets/nature/Weide1.png": {
+      "offsetX": -0.11
+    },
+    "assets/nature/zeder1.png": {
+      "length": 0.82
+    },
+    "assets/nature/zeder2.png": {
+      "length": 0.8
+    },
+    "assets/nature/zeder3.png": {
+      "length": 0.89
+    },
+    "assets/nature/zeder4.png": {
+      "length": 0.75
+    },
+    "assets/nature/zeder5.png": {
+      "length": 0.79
+    },
+    "assets/nature/zeder6.png": {
+      "length": 0.78
+    },
+    "assets/nature/zeder7.png": {
+      "length": 0.79
+    },
+    "assets/nature/zeder8.png": {
+      "length": 0.79
+    },
+    "assets/nature/zeder9.png": {
+      "length": 1.01
+    },
+    "assets/nature/zeder10.png": {
+      "length": 0.8
+    },
+    "assets/nature/zeder11.png": {
+      "length": 0.84
+    },
+    "assets/nature/zypresse1.png": {
+      "length": 2.1,
+      "opacity": 0.61,
+      "softness": 3.5,
+      "offsetX": 0.09
+    },
+    "assets/nature/zypresse2.png": {
+      "length": 2.19,
+      "offsetX": 0.1
+    },
+    "assets/nature/zypresse3.png": {
+      "length": 2.19,
+      "offsetX": 0.09
+    },
+    "assets/nature/zypresse4.png": {
+      "length": 2.19,
+      "offsetX": 0.02
+    },
+    "assets/nature/zypresse5.png": {
+      "length": 2.04,
+      "offsetX": 0.08
     }
   }
 }
