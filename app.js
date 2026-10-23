@@ -1546,6 +1546,9 @@ function draw(){if(!ctx||!canvas.width)return;
  }
  imagePool.protect(pinned);
  if(++frameNumber%120===0)imagePool.prune();
+ // The background signature must see the CURRENT tier before paint() decides
+ // whether to reuse a raster. Direct zoom/scene restore can skip applyZoom().
+ updateTerrainLod(state.zoom);
  const t0=performance.now();
  gpuFrame=!finalRendering&&state.view==='map'&&state.gpuTerrain!==false&&
   (state.chunkRendering||state.sceneSize>37)&&!!gpuTerrain?.available()&&
