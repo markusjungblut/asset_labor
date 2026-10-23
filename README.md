@@ -1,3 +1,76 @@
+## v0.18.0 – Adaptives Gelände-, Fluss- und Straßen-LOD (24.10.2026)
+
+**Ziel:** Nach dem v0.17-Hintergrundcache sollen neu zu erstellende
+Terrain-/Gewässer-/Straßen-Chunks beim Herauszoomen deutlich weniger
+Rasterpixel erzeugen. Eine LOD-Stufe gilt **einheitlich für alle
+sichtbaren Chunks**, damit an Biome-, Fluss- oder Straßenübergängen
+keine unterschiedlichen world-space-Geometrien entstehen.
+
+- **Neues Modul `adaptive-lod.js`:** Drei Vorschau-Stufen
+  `far` (Fern), `mid` (Mittel) und `near` (Nah), mit Hysterese:
+  Fern → Mittel ab 49 % Zoom; Mittel → Fern bei höchstens 38 %,
+  Mittel → Nah ab 106 % und Nah → Mittel bei höchstens 92 %.
+  Bei der erstmaligen Auswahl liegen die mittleren Trennwerte
+  bei 44 % und 99 %. Große Zoomsprünge können direkt von
+  Fern zu Nah bzw. umgekehrt wechseln. Das verhindert flackernde
+  Qualität und unkontrolliertes Neuberechnen an Schwellen.
+- **LOD-Faktoren relativ zur bisher gewählten Editorqualität:**
+
+  | Renderpfad | Fern | Mittel | Nah |
+  | --- | ---: | ---: | ---: |
+  | Terrain-Autotiling / Worker / Reliefquelle | 0,60× | 0,83× | 1,00× |
+  | Küsten- und Ufermasken | 0,72× | 0,90× | 1,00× |
+  | Flussuferbänke | 0,76× | 0,90× | 1,00× |
+  | Flusswasser-SDF | 0,72× | 0,86× | 1,00× |
+  | Straßenraster | 0,62× | 0,82× | 1,00× |
+  | Waldboden-Overlay | 0,78× | 0,90× | 1,00× |
+
+  Bestehende Pixelbudget-/Mindestauflösungsgrenzen einzelner Module
+  gelten weiterhin. In Fernansicht entfallen zusätzlich feine
+  dekorative Straßenstriche; Straßenlage und Brückenkreuzungen
+  bleiben identisch.
+- **Originalgeometrie bleibt unverändert:** Hexgröße und -projektion,
+  Auto-Tiling-Bänder, gesamte Küsten- und Flussführung, echte
+  Flussmündungen, Schattenpositionen, Straßenkorridore und Brücken
+  werden nicht vereinfacht. Die Fluss-SDF verwendet nur einen
+  kleineren Rastermaßstab. Ein echter River-Render-Test prüft,
+  dass Position, Weltbreite und Welthöhe identisch bleiben, aber
+  weniger Pixel berechnet werden.
+- **Nahtsichere Chunkvarianten:** Die bestehenden
+  `VedrasChunks`-Caches halten bei gleicher Material-/Geometriefamilie
+  alte Auflösungen als Fallback sichtbar, bis die neue Version fertig
+  ist. Für Ufer und Flussuferbänke wird jetzt ebenfalls die
+  Familienidentität verwendet; Straßen und Terrain hatten diese
+  Mechanik bereits. Asynchrone Terrain-Worker-Aufträge halten ihre
+  ursprünglich angeforderte LOD-Auflösung fest.
+- **Vergleichsschalter:** Im Editor `Adaptives LOD für Gelände,
+  Flüsse und Straßen`. Deaktiviert wird das gesamte Bild in
+  der regulären gewählten Vorschauqualität ohne weitere LOD-Senkung
+  gerendert. Die Einstellung ist lokal szenengespeichert,
+  verändert aber keine Game- oder Geografiedaten.
+- **PNG-Finalexport:** Erzwingt unverändert Vollauflösung unabhängig
+  von der Editor-Einstellung und stellt danach die interaktive
+  LOD-Stufe wieder her. Keine Änderungen am Exportformat.
+- **Profiler:** `LOD Fern/Mittel/Nah`, Zoom, effektive
+  Terrain-/Ufer-/Fluss-/Straßen-Auflösungen, Anzahl der
+  Schwellenwechsel und noch gehaltene ältere Chunkvarianten.
+  JavaScript: `window.__vedrasRenderProfile.lod` sowie
+  `VedrasAssetLabor.lodStats()`.
+
+**Tests:** `node --test tests/test_adaptive_lod_v018_20261024.cjs`
+und die unveränderten/versionsunabhängig aktualisierten
+Regressionstests aus v0.15.3–v0.17.0. Zusätzlich ist die
+Flusswasser-Rasterisierung real gegen einen minimalen
+zweizelligen Fluss ausgeführt worden. Die Tests wurden in
+einer isolierten JS-Umgebung gegen die GitHub-Quelldateien
+ausgeführt. Native Kompletttests, visueller Browservergleich
+und tatsächliche Frametimings auf dem Ziel-PC sind noch offen.
+
+**Grenze von v0.18:** LOD spart vor allem Aufbereitung bei
+Zoom und erstmalig geladenen Chunks; es beseitigt nicht die
+Wartezeit durch wirklich neue, nicht vorbereitete Weltregionen.
+Das nachfolgende v0.19-Weltstreaming kann darauf aufbauen.
+
 ## v0.17.0 – Gelände-, Straßen- und Flusspipeline schneller wiederverwenden (23.10.2026)
 
 **Messbasis:** 169-Hex-Karte unter v0.16.1, 370,1 ms pro gezeichnetem
