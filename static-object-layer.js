@@ -5,7 +5,7 @@
  */
 'use strict';
 window.VedrasStaticObjects=(()=>{
- function create({padding=420,maxPixels=6000000}={}){
+ function create({padding=420,maxPixels=12000000,minPadding=64}={}){
   let entry=null,builds=0,hits=0,misses=0,disabled=0;
   let lastBuildMs=0,lastCompositeMs=0;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
@@ -23,18 +23,41 @@ window.VedrasStaticObjects=(()=>{
    let rebuilt=false,buildMs=0;
    if(!compatible(entry,v)){
     misses++;
-    // Keep enough overlap for tall crowns and existing 450px sprite culls.
-    const pad=Math.max(180,Math.min(720,Math.ceil(padding)));
-    const width=v.width+pad*2,height=v.height+pad*2;
-    const physicalWidth=Math.ceil(width*v.dpr),
-     physicalHeight=Math.ceil(height*v.dpr);
-    if(physicalWidth*physicalHeight>maxPixels||
-     physicalWidth>8192||physicalHeight>8192){
+    // First fit the actual viewport, then reserve as much overscan as the
+    // physical pixel budget permits. v0.16.0 disabled the entire cache on
+    // high-resolution monitors if the fixed 440px border exceeded 6M px.
+    const preferred=Math.max(64,Math.min(720,Math.ceil(padding)));
+    const minimum=Math.max(0,Math.min(preferred,Math.ceil(minPadding)));
+    const dimensions=pad=>{
+     const width=v.width+pad*2,height=v.height+pad*2;
+     const physicalWidth=Math.ceil(width*v.dpr),
+      physicalHeight=Math.ceil(height*v.dpr);
+     return {width,height,physicalWidth,physicalHeight,
+      pixels:physicalWidth*physicalHeight};
+    };
+    const fits=pad=>{
+     const d=dimensions(pad);
+     return d.pixels<=maxPixels&&d.physicalWidth<=8192&&d.physicalHeight<=8192;
+    };
+    if(!fits(minimum)){
+     const needed=dimensions(minimum),viewport=dimensions(0);
      disabled++;clear();gpu?.hide?.();
      drawScene({ctx,width:v.width,height:v.height,offscreen:false});
      return {cached:false,enabled:false,buildMs:0,compositeMs:0,
-      mode:'direct',builds,hits,misses,reason:'raster budget'};
+      mode:'direct',builds,hits,misses,
+      reason:'viewport budget',requestedPixels:needed.pixels,
+      viewportPixels:viewport.pixels,budgetPixels:maxPixels};
     }
+    let pad=preferred;
+    if(!fits(preferred)){
+     let low=minimum,high=preferred;
+     while(low<high){
+      const probe=Math.ceil((low+high+1)/2);
+      if(fits(probe))low=probe;else high=probe-1;
+     }
+     pad=low;
+    }
+    const {width,height,physicalWidth,physicalHeight}=dimensions(pad);
     const canvas=document.createElement('canvas');
     canvas.width=physicalWidth;canvas.height=physicalHeight;
     const g=canvas.getContext('2d',{alpha:true});
@@ -74,7 +97,8 @@ window.VedrasStaticObjects=(()=>{
    return {cached:!rebuilt,enabled:true,rebuilt,buildMs,
     compositeMs:lastCompositeMs,mode,builds,hits,misses,
     bytes:entry.canvas.width*entry.canvas.height*4,
-    pad:entry.pad,objectProfile:entry.objectProfile};
+    pad:entry.pad,requestedPixels:entry.canvas.width*entry.canvas.height,
+    budgetPixels:maxPixels,objectProfile:entry.objectProfile};
   }
   function stats(){return {builds,hits,misses,disabled,lastBuildMs,
    lastCompositeMs,bytes:entry?entry.canvas.width*entry.canvas.height*4:0,

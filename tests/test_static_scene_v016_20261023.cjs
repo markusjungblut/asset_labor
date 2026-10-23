@@ -122,7 +122,8 @@ test('actual GPU compositor uploads once for pans and reuploads changed source',
 
 test('integration retains export quality and editor overlays on direct renderer',()=>{
  const app=read('app.js'),html=read('index.html'),style=read('style.css'),server=read('server.py');
- assert.match(app,/const direct=finalRendering\|\|!state\.objects/);
+ assert.match(app,/if\(finalRendering\)blockers\.push\('Final-PNG-Export'\)/);
+ assert.match(app,/if\(!state\.objects\)blockers\.push\('Objekte ausgeblendet'\)/);
  assert.match(app,/drawScene:\(\{ctx:layerCtx,width,height\}\)=>/);
  assert.match(app,/try\{\s*ctx=layerCtx;W=width;H=height;/);
  assert.match(app,/finally\{ctx=originalCtx;W=originalW;H=originalH;\}/);
@@ -133,7 +134,7 @@ test('integration retains export quality and editor overlays on direct renderer'
  assert.ok(html.indexOf('static-object-layer.js')<html.indexOf('app.js'));
  assert.ok(html.indexOf('gpu-sprite-layer.js')<html.indexOf('app.js'));
  assert.match(style,/#canvasOuter>#gpuSpriteCanvas\{[^}]*pointer-events:none/);
- assert.match(server,/VERSION = '0\.16\.0'/);
+ assert.match(server,/VERSION = '0\.16\.[01]'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });

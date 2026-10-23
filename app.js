@@ -26,7 +26,7 @@ const gpuCanvas=$('gpuCanvas'),
  gpuTerrain=window.VedrasGpuTerrain?.create(gpuCanvas,{
   maxBytes:128*1024*1024,maxTextures:112})||null;
 const gpuSprites=window.VedrasGpuSprites?.create($('gpuSpriteCanvas'))||null;
-const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:6000000});
+const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:12000000,minPadding:64});
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 const spriteAtlas=window.VedrasSpriteAtlas?.create({
  base:'atlases/',limitPages:6,onReady:()=>requestDraw()
@@ -1491,12 +1491,25 @@ function draw(){if(!ctx||!canvas.width)return;
   // Static vegetation, casts and occlusion keep their exact Canvas2D draw
   // order within the staging canvas. Only the final transparent composite is
   // reprojected during camera pans. Zooms/edits rebuild at native DPR.
-  const direct=finalRendering||!state.objects||state.view!=='map'||
-   state.mountainShadowDebug||state.shadowHandles||state.mountainDebug||
-   state.bounds||state.natureShadowDebug||state.forest?.debug;
+  // The first v0.16 build fell back silently if any debug checkbox was
+  // active. Only controls drawn INSIDE the sprite pass require direct mode.
+  // Outside overlays (bounds, forest and mountain footprints) can reuse the
+  // cached scene in Canvas mode; they must stay direct in GPU overlay mode,
+  // because a higher-z-order GPU canvas would otherwise cover them.
+  const blockers=[];
+  if(finalRendering)blockers.push('Final-PNG-Export');
+  if(!state.objects)blockers.push('Objekte ausgeblendet');
+  if(state.view!=='map')blockers.push('andere Kartenansicht');
+  if(state.mountainShadowDebug)blockers.push('Bergschatten-Debug');
+  if(state.shadowHandles)blockers.push('Schatten-Bearbeitung');
+  if(state.natureShadowDebug)blockers.push('Nature-Schatten-Debug');
+  if(state.gpuSprites&&(state.mountainDebug||state.bounds||state.forest?.debug))
+   blockers.push('Debug-Overlay über GPU-Ebene');
+  const direct=blockers.length>0;
   if(direct){
    gpuSprites?.hide();drawMapObjects();
-   sceneryProfile={mode:'direct',enabled:false,cached:false,buildMs:0,compositeMs:0};
+   sceneryProfile={mode:'direct',enabled:false,cached:false,buildMs:0,compositeMs:0,
+    reason:blockers.join(', ')};
   }else{
    const sceneSignature=JSON.stringify([
     objectLayoutCache.stats().revision,
@@ -1569,6 +1582,10 @@ function draw(){if(!ctx||!canvas.width)return;
   ' · Cache '+(objProfile.cacheBuilds||0)+' Builds / '+(objProfile.cacheHits||0)+' Treffer'+
   ' · Szene '+(sceneryProfile?.mode||'direkt')+
   (sceneryProfile?.cached?' wiederverwendet':' neu')+
+  (sceneryProfile?.reason?' · Grund: '+sceneryProfile.reason:'')+
+  (sceneryProfile?.pad!==undefined?' · Rand '+sceneryProfile.pad+' px':'')+
+  (sceneryProfile?.requestedPixels?
+   ' · Ebenenraster '+(sceneryProfile.requestedPixels/1e6).toFixed(1)+' MP':'')+
   ' · Komposition '+(sceneryProfile?.compositeMs||0).toFixed(1)+' ms'+
   ' · GPU-Uploads '+(gpuSpriteStats.uploads||0);
  const gpu=gpuTerrain?.stats(),mem=imagePool.report(),g=$('gpuStatus');
