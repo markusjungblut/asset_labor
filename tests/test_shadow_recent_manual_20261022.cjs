@@ -17,16 +17,16 @@ test('recent sprite ordering uses birth timestamp where available, otherwise mti
   {path:'assets/nature/snow_patch_01.png',name:'snow_patch_01.png',category:'nature',mtime:1500,createdNs:3300,img:{naturalWidth:64}},
   {path:'assets/nature/snow_patch_10.png',name:'snow_patch_10.png',category:'nature',mtime:2400,img:{naturalWidth:64}},
   {path:'assets/nature/missing_timestamp.png',name:'missing_timestamp.png',category:'nature',mtime:0,img:{naturalWidth:64}},
-  {path:'assets/nature/removed_maple.png',name:'removed_maple.png',category:'nature',mtime:9999,img:null}
+  {path:'assets/nature/unloaded_snow_patch.png',name:'unloaded_snow_patch.png',category:'nature',mtime:9999,img:null}
  ];
  const recent=shape.sort(entries,{},'recent').map(x=>x.name);
  assert.deepEqual(Array.from(recent),[
-  'snow_patch_01.png','snow_patch_10.png','old_maple.png','missing_timestamp.png'
+  'unloaded_snow_patch.png','snow_patch_01.png','snow_patch_10.png','old_maple.png','missing_timestamp.png'
  ]);
  const newestFiltered=shape.sort(entries,{
   'assets/nature/old_maple.png':{enabled:true}
  },'recent',true);
- assert.equal(newestFiltered.length,3);
+ assert.equal(newestFiltered.length,4);
  assert.ok(!newestFiltered.some(a=>a.name==='old_maple.png'));
  const names=shape.sort(entries,{},'name').map(x=>x.name);
  assert.equal(names[0],'missing_timestamp.png');
