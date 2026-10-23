@@ -67,9 +67,17 @@ window.VedrasChunks=(()=>{
  }
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
-  let cache=new Map();const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),warmRemaining=new Set();
-  let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
-   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0};
+  let cache=new Map();
+  const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
+   prefetchQueue=new Map(),warmRemaining=new Set();
+  let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
+   inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
+   viewportWanted=new Set(),prefetchWanted=new Set(),prefetchRejected=new Set(),
+   lastDrawnVersions=new Map(),rasterVersion=0,lastFocus=null,
+   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,
+    painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0,
+    prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
+    visibleRevision:0,prefetchPending:0,manualPending:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
@@ -89,12 +97,18 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
-   dropCache();queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();
-   signature='';family='';epoch++;scheduled=false;inFlight=false;
+   dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+   warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
+   prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();lastFocus=null;
+   signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
+   inFlightInteractive=false;inFlightBackground=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
    if(next!==signature){
-    queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
+    prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();
+    lastFocus=null;epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
     stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
@@ -112,7 +126,7 @@ window.VedrasChunks=(()=>{
     signature=next;family=nextFamily;
    }
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
-    stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
+   stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
   }
   function use(k){
    const data=cache.get(k);
@@ -139,75 +153,187 @@ window.VedrasChunks=(()=>{
   function markWarm(id){
    if(warmRemaining.delete(id)){stats.warmDone++;onWarmProgress({...stats});}
   }
+  // A foreground slot is independent of the speculative/explicit warm slot:
+  // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
-   if(scheduled||inFlight||(!queue.size&&!backgroundQueue.size))return;
-   scheduled=true;const generation=epoch;
+   const foreground=queue.size>0&&!inFlightInteractive;
+   const background=!inFlightBackground&&(backgroundQueue.size||prefetchQueue.size);
+   if(!foreground&&!background)return;
+   // Two scheduled callbacks allow a fresh visible request to bypass an
+   // already pending requestIdleCallback for speculative background work.
+   const urgent=foreground;
+   if(urgent?urgentScheduled:scheduled)return;
+   if(urgent)urgentScheduled=true;else scheduled=true;
+   const generation=epoch;
    const task=()=>{
     if(generation!==epoch)return;
-    scheduled=false;
-    const interactive=queue.size>0;
-    const targetQueue=interactive?queue:backgroundQueue;
+    if(urgent)urgentScheduled=false;else scheduled=false;
+    const interactive=urgent&&queue.size>0&&!inFlightInteractive;
+    const warm=!urgent&&!inFlightBackground&&backgroundQueue.size>0;
+    const predictive=!urgent&&!warm&&!inFlightBackground&&prefetchQueue.size>0;
+    if(!interactive&&!warm&&!predictive){schedule();return;}
+    const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
+    const isVisible=viewportWanted.has(id)||protectedIds.has(id);
+    if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
+     stats.prefetchDiscarded++;schedule();return;
+    }
     if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)){
      markWarm(id);schedule();return;
     }
-     const expectedStamp=stampForTile(t);
+    const expectedStamp=stampForTile(t);
     const t0=typeof performance!=='undefined'?performance.now():0;
+    const countPixels=item=>{
+     const resources=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
+      item?.raster?.landLayer?.canvas,item?.relief?.canvas];
+     const seen=new Set();
+     return resources.reduce((sum,c)=>{
+      if(!c||seen.has(c))return sum;
+      seen.add(c);return sum+(c.width||0)*(c.height||0);
+     },0);
+    };
     const complete=item=>{
-     if(generation!==epoch){release(item);return;}
-      if(expectedStamp!==stampForTile(t)){
-       // A pixel-changing edit occurred during a background job.
-       release(item);if(interactive)requestDraw();
-       markWarm(id);
-       if(queue.size||backgroundQueue.size)schedule();return;
-      }
-     // An offscreen precompute can supersede a stale cached variant.
-     // Account for and close the previous raster before replacing its key.
-     const old=cache.get(id);
-     if(old){stats.pixels-=old.pixels||0;release(old);}
-     if(!item){
-      cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
-     }else{
-      const pixels=(item.raster?.canvas?.width||0)*(item.raster?.canvas?.height||0)+
-       (item.raster?.waterLayer?.canvas?.width||0)*(item.raster?.waterLayer?.canvas?.height||0)+
-       (item.raster?.landLayer?.canvas?.width||0)*(item.raster?.landLayer?.canvas?.height||0)+
-       (item.relief?.canvas&&item.relief.canvas!==item.raster?.landLayer?.canvas?
-        item.relief.canvas.width*item.relief.canvas.height:0);
-      cache.set(id,{...item,pixels,stamp:expectedStamp});stats.pixels+=pixels;stats.built++;
+     if(generation!==epoch){release(item);stats.obsolete++;return;}
+     const visibleNow=viewportWanted.has(id)||protectedIds.has(id);
+     // Ignore obsolete speculative jobs rather than filling the LRU with
+     // a distant region after the player turns around.
+     if(expectedStamp!==stampForTile(t)||
+       (predictive&&!visibleNow&&!prefetchWanted.has(id))){
+      release(item);stats.obsolete++;markWarm(id);schedule();return;
      }
+     const pixels=countPixels(item);
+     const old=cache.get(id);
+     // Background prefetch is not allowed to evict the current viewport
+     // or a fallback LOD. Reserve 15% of this layer's pixel budget.
+     if(predictive&&!visibleNow&&
+       (cache.size>=Math.max(1,maxTiles-4)||
+        stats.pixels-(old?.pixels||0)+pixels>maxPixels*.85)){
+      release(item);stats.prefetchDiscarded++;
+      prefetchRejected.add(id);
+      schedule();return;
+     }
+     if(old){stats.pixels-=old.pixels||0;release(old);}
+     if(!item)cache.set(id,{raster:null,relief:null,pixels:0,
+      stamp:expectedStamp,version:++rasterVersion});
+     else{
+      cache.set(id,{...item,pixels,stamp:expectedStamp,
+       version:++rasterVersion});
+      stats.pixels+=pixels;stats.built++;
+      if(predictive&&!visibleNow)stats.prefetched++;
+     }
+     if(visibleNow){stats.visibleRevision++;queue.delete(id);}
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
-     if(interactive||protectedIds.has(id))requestDraw();
+     if(visibleNow)requestDraw();
      markWarm(id);
-     if(queue.size||backgroundQueue.size)schedule();
+     schedule();
     };
     const fail=error=>{
      if(generation!==epoch)return;
      stats.errors++;
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     if(interactive)requestDraw();
-     markWarm(id);
-     if(queue.size||backgroundQueue.size)schedule();
+     if(interactive||viewportWanted.has(id))requestDraw();
+     markWarm(id);schedule();
+    };
+    if(interactive)inFlightInteractive=true;
+    else inFlightBackground=true;
+    const finish=()=>{
+     if(generation!==epoch)return;
+     if(interactive)inFlightInteractive=false;
+     else inFlightBackground=false;
     };
     try{
      const output=build(t,neighbors(t,cells));
      if(output&&typeof output.then==='function'){
-      inFlight=true;
-      output.then(item=>{
-       if(generation===epoch)inFlight=false;
-       complete(item);
-      },err=>{
-       if(generation===epoch)inFlight=false;
-       fail(err);
-      });
-     }else complete(output);
-    }catch(err){fail(err);}
+      output.then(item=>{finish();complete(item);},
+       err=>{finish();fail(err);});
+     }else{finish();complete(output);}
+    }catch(err){finish();fail(err);}
+    // If another lane has work, it can run without waiting for this Promise.
+    if(queue.size&&!inFlightInteractive)schedule();
    };
-   if(typeof requestIdleCallback==='function')requestIdleCallback(task,{timeout:250});
-   else if(typeof setTimeout==='function')setTimeout(task,0);
+   // Foreground tiles must never wait for idle time under continuous input.
+   if(urgent&&typeof setTimeout==='function')setTimeout(task,0);
+   else if(typeof requestIdleCallback==='function')
+    requestIdleCallback(task,{timeout:1000});
+   else if(typeof setTimeout==='function')setTimeout(task,16);
    else task();
+  }
+  // Planning is camera-driven but world-aligned. Neighbors are merely
+  // queued and never painted until they intersect the actual viewport.
+  function updateStreaming(viewport,tiles,prefetch){
+   const keep=new Set(tiles.map(t=>t.id));
+   viewportWanted=keep;
+   protectedIds=new Set(keep);
+   for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
+   const cx=viewport.x+viewport.width/2,cy=viewport.y+viewport.height/2;
+   const old=lastFocus;
+   lastFocus={x:cx,y:cy};
+   const enabled=!!prefetch?.enabled&&cells.length>0;
+   if(!enabled){prefetchQueue.clear();prefetchWanted.clear();return;}
+   const ring=clamp(Math.floor(prefetch.ring??1),1,3);
+   const limit=clamp(Math.floor(prefetch.limit??8),1,18);
+   const dx=old?clamp((cx-old.x)*2,-size*2,size*2):0;
+   const dy=old?clamp((cy-old.y)*2,-size*2,size*2):0;
+   const pad=ring*size;
+   const expanded={x:viewport.x-pad,y:viewport.y-pad,
+    width:viewport.width+2*pad,height:viewport.height+2*pad};
+   const prediction={...expanded,x:expanded.x+dx,y:expanded.y+dy};
+   const union=new Map();
+   for(const t of [...visible(expanded,cells,size),...visible(prediction,cells,size)])
+    if(!keep.has(t.id))union.set(t.id,t);
+   const predictedX=cx+dx,predictedY=cy+dy;
+   const chosen=[...union.values()].sort((a,b)=>
+    ((a.x+size/2-predictedX)**2+(a.y+size/2-predictedY)**2)-
+    ((b.x+size/2-predictedX)**2+(b.y+size/2-predictedY)**2)
+   ).slice(0,limit);
+   if(stats.pixels<maxPixels*.60)prefetchRejected.clear();
+   prefetchWanted=new Set(chosen.map(t=>t.id));
+   for(const id of [...prefetchQueue.keys()])
+    if(!prefetchWanted.has(id))prefetchQueue.delete(id);
+   // Reorder on a directional change; opposite camera movement does not
+   // keep scheduling the old route's background chunks first.
+   const previous=new Map(prefetchQueue);
+   prefetchQueue.clear();
+   for(const t of chosen){
+    const cached=cache.get(t.id);
+    if((cached&&cached.stamp===stampForTile(t))||
+      prefetchRejected.has(t.id)||
+      queue.has(t.id)||backgroundQueue.has(t.id))continue;
+    prefetchQueue.set(t.id,previous.get(t.id)||t);
+    if(!previous.has(t.id))stats.prefetchQueued++;
+   }
+  }
+  // Used when the v0.17 static background itself was reused. Without this
+  // hook, a warm camera pan would never reach draw() to update prefetch.
+  function prime(bounds,{prefetch=null}={}){
+   if(!signature||!cells?.length)return {...stats};
+   const tiles=visible(bounds,cells,size);
+   stats.visible=tiles.length;
+   updateStreaming(bounds,tiles,prefetch);
+   trim();
+   let unseenReady=false;
+   for(const t of tiles){
+    const data=cache.get(t.id);
+    const ready=data&&data.stamp===stampForTile(t);
+    if(ready&&lastDrawnVersions.get(t.id)!==data.version)
+     unseenReady=true;
+    if(!ready&&!queue.has(t.id)){
+     prefetchQueue.delete(t.id);
+     queue.set(t.id,t);
+    }
+   }
+   // A speculative result can be ready before entering the visible region,
+   // yet absent in v0.17's already cached, oversized background canvas.
+   // Force only that newly seen region to refresh once when it enters view.
+   if(unseenReady){stats.visibleRevision++;requestDraw();}
+   stats.prefetchPending=prefetchQueue.size;
+   stats.manualPending=backgroundQueue.size;
+   stats.pending=queue.size+(inFlightInteractive?1:0);
+   schedule();
+   return {...stats};
   }
   // Rasters keep their source halos, but each chunk exclusively owns a
   // device-pixel-aligned output rectangle. Two separate semi-transparent
@@ -232,16 +358,14 @@ window.VedrasChunks=(()=>{
    ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
    return {space:'world'};
   }
-  function draw(ctx,bounds,{water=true,drawRaster,margin=80}={}){
+  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null}={}){
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
-   protectedIds=new Set(tiles.map(t=>t.id));trim();
-   // Remove tiles that a changed camera no longer needs. Old cached tiles
-   // remain until LRU eviction, allowing cheap return-pans.
-   const keep=new Set(tiles.map(t=>t.id));
-   for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
+   updateStreaming(viewport,tiles,prefetch);
+   trim();
+   const paintedVersions=new Map();
    for(const t of tiles){
     let result=use(t.id);
     if(result&&result.stamp!==stampForTile(t)){
@@ -254,6 +378,7 @@ window.VedrasChunks=(()=>{
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
+    paintedVersions.set(t.id,artwork.version);
     // The source halo is still present. Its destination is clipped to one
     // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
     ctx.save();clipCore(ctx,t);
@@ -262,7 +387,10 @@ window.VedrasChunks=(()=>{
     else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
     ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
-   stats.pending=queue.size+(inFlight?1:0);
+   lastDrawnVersions=paintedVersions;
+   stats.pending=queue.size+(inFlightInteractive?1:0);
+   stats.prefetchPending=prefetchQueue.size;
+   stats.manualPending=backgroundQueue.size;
    schedule();
    return {...stats,cached:cache.size,variants:retired.size};
   }
@@ -281,7 +409,12 @@ window.VedrasChunks=(()=>{
    backgroundQueue.clear();warmRemaining.clear();stats.warmTotal=stats.warmDone;
    onWarmProgress({...stats});
   }
-  return {configure,draw,warm,stopWarm,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size,warmPending:backgroundQueue.size}),
+  return {configure,draw,prime,warm,stopWarm,clipCore,clear,
+   stats:()=>({...stats,cached:cache.size,variants:retired.size,
+    warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
+    manualPending:backgroundQueue.size,
+    inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
+    bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
  return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create,

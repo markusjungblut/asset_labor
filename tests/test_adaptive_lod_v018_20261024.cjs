@@ -104,7 +104,7 @@ test('river sampling, coast and road LOD remain separate from river/road geometr
 test('LOD switch and saved preferences do not invalidate unrelated sprite placement',()=>{
  const app=read('app.js'),html=read('index.html');
  assert.match(app,/adaptiveLod:true/);
- assert.match(app,/'gpuSprites','adaptiveLod','materialScales'/);
+ assert.match(app,/'gpuSprites','adaptiveLod','worldStreaming','materialScales'/);
  assert.match(app,/state\.adaptiveLod=state\.adaptiveLod!==false/);
  assert.match(app,/\$\('adaptiveLod'\)\.addEventListener\('change',e=>\{/);
  assert.match(app,/backgroundScene\.clear\(\);\s*persistScene\(false\);\s*requestDraw\(\);/);
@@ -156,8 +156,8 @@ test('PNG export and legacy pipeline remain available at full precision',()=>{
  assert.match(app,/canvas\.toBlob\(/);
  assert.match(html,/adaptive-lod\.js\?v=0\.1\.0/);
  assert.ok(html.indexOf('adaptive-lod.js')<html.indexOf('app.js'));
- assert.match(html,/Asset-Labor v0\.18\.0/);
- assert.match(server,/VERSION = '0\.18\.0'/);
+ assert.match(html,/Asset-Labor v0\.\d+\.\d+/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });

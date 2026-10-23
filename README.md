@@ -1,3 +1,105 @@
+## v0.19.0 – Priorisiertes, vorausschauendes Welt-Chunk-Streaming (24.10.2026)
+
+**Ziel:** Ergänzung der bisherigen kameragesteuerten 512er-Chunks
+um vorausschauende Nachbarregionen, priorisierte Aufträge, robuste
+Invalidierung bei Kameraschwenks und begrenzten Raster-Speicher.
+Aufbau auf v0.17 (gecachter Hintergrund) und v0.18 (LOD-Varianten).
+
+### Architektur und Priorität
+
+- **Priorität 1, Bildschirm:** Alle fehlenden sichtbaren Chunks
+  werden sofort mit `setTimeout(...,0)` vorbereitet und
+  nie an `requestIdleCallback` gebunden. Eine separate
+  Foreground-Auftragsspur kann starten, selbst wenn bereits
+  ein spekulativer Hintergrundauftrag ausgeführt wird oder auf
+  das nächste Browser-Idle-Ereignis wartet.
+- **Priorität 2, explizite Vorberechnung:** Die existierende
+  Schaltfläche `Statische Terrain-Chunks vorberechnen` behält
+  ihre eigene Warteschlange, progressives Feedback und den
+  persistenten Datenträger-Cache. Sie läuft weiterhin
+  hinter der sichtbaren Karte, aber **vor** spekulativem
+  Streaming im Hintergrund.
+- **Priorität 3, automatische Vorladung:** Eine begrenzte
+  Anzahl benachbarter und in Schwenkrichtung vorausliegender
+  512er-Chunks wird zur Idle-Zeit vorbereitet, ohne sie
+  außerhalb des Sichtfelds darzustellen. Die Auswahl basiert
+  auf exakten Chunk-/Weltbelegungen, Kameraausschnitt und
+  Verschiebung des Kamerazentrums. Ein Ring (große Szenen ab
+  271 Hex: zwei Ringe); maximal 12 vorgemerkte Gelände-,
+  8 Straßen-, 6 Ufer- bzw. 6 Flussufer-Chunks je Layer.
+  Nach Richtungswechsel wird die Vormerkliste neu sortiert.
+- **Stale- und Generationserkennung:** Bei Zoom-/LOD-/Szene-
+  Änderungen werden die Warteschlangen zurückgesetzt und
+  erledigte Ergebnisse früherer Generationen freigegeben.
+  Wird eine vorab geladene Region während der Arbeit
+  irrelevant, werden die Raster verworfen. Die vorhandenen
+  Terrain-Worker können bereits gestartete, tatsächlich
+  ausgeführte Aufgaben nicht physisch abbrechen; ihre
+  **veralteten Ergebnisse werden jedoch nicht übernommen**.
+- **Speicher:** Die bestehenden Layer-LRU-Budgets bleiben
+  verbindlich (Gelände: 24 Mio. Rasterpixel, Ufer: 8,5 Mio.,
+  Flussufer: 12 Mio., Straßen: 12 Mio., plus maximale Tile-
+  Anzahlen). Automatische Vorladung darf höchstens rund
+  85 % der pro Layer reservierten Rasterpixel belegen;
+  ein Rest ist für sichtbare Raster und LOD-Ersatz gedacht.
+  Abgewiesene spekulative Chunks werden nicht fortlaufend
+  erneut berechnet. Sichtbare Raster und derzeit notwendige
+  alte LOD-Fallbacks bleiben vorrangig; wenn der **sichtbare**
+  Bereich selbst größer als das Budget ist, kann die
+  momentane Belegung höher sein.
+- **Warm-Frame-Streaming:** Die vollständig gecachte
+  Hintergrundkomposition aus v0.17 führt beim Kameraschwenk
+  normalerweise keinen `chunk.draw()`-Aufruf aus.
+  Neu: `chunk.prime()` informiert alle relevanten Layer
+  bei einem wiederverwendeten Bild über das aktuelle
+  Sichtfeld. So funktioniert vorausschauendes Nachladen
+  auch während die fertige Hintergrundgrafik nur verschoben
+  wird. Vorab geladene Tiles erhalten eine Rasterversion.
+  Wenn ein solches Tile erstmalig sichtbar wird, erkennt
+  `prime()`, dass die alte Szenenkomposition es noch nicht
+  enthält, und fordert **einmalig** ein neues Hintergrundbild.
+- **Sichtbare Neuberechnungen** statt aller fertiggestellten
+  Hintergrundjobs steuern die Signatur des statischen
+  Hintergrunds. Damit verursacht die Fertigstellung eines
+  _noch unsichtbaren_ Chunks nicht bereits ein teures
+  Neuzeichnen der aktuellen Karte.
+
+### Editor, Diagnose und Verträge
+
+- Der Szenenschalter `Vorausschauendes Chunk-Streaming`
+  ist standardmäßig aktiv und kann für A/B-Messungen
+  deaktiviert werden. Seine Einstellung wird lokal gespeichert,
+  ohne die geografischen Kartendaten anzutasten.
+- Neue Anzeige `Chunk-Streaming`: zuletzt sichtbare /
+  gemalte Chunks, im Voraus fertiggestellte und vorgemerkte
+  Chunks, dringend wartende Aufträge, verworfene
+  Generationsergebnisse, LRU-Verdrängungen sowie
+  aktuelle RGBA-Bytes und Layer-Budgets. Die Vorlade- und
+  Verdrängungszähler sind kumulativ.
+- Programmgesteuert:
+  `VedrasAssetLabor.streamingStats()` und
+  `window.__vedrasStreamingProfile`.
+- Unverändert: Quellassets, exportierte Szenen, Weltkoordinaten,
+  Flussgeometrie, Auto-Tiling, Schatten, GPU-Terrain-
+  Vergleichsmodus und **hochwertiger PNG-Export**
+  (keine spekulative Hintergrundladung im Finalrendering).
+  Ein eigenständiger Server/CDN-Datenstream für beliebig
+  große, noch nicht im Browser vorhandene Welten ist
+  damit **noch nicht** eingeführt. Aktuell verwaltet die
+  Engine die Weltzellen weiterhin vollständig im Speicher;
+  v0.19 streamt ihre **Rasterdarstellung**.
+
+**Tests:** `node --test tests/test_priority_chunk_streaming_v019_20261024.cjs`
+sowie bestehende Regressionstests. Prüfungen umfassen
+sichtbare Priorität, bereits wartende Idle-Callbacks, Warm-Canvas-
+Pans, Richtungswechsel, Speicherschranken, manuelles Baking,
+LOD-Fallback, veraltete asynchrone Ergebnisse,
+Rasterversionen und die HTML-/Python-/Exportintegration.
+Tests wurden in einer isolierten JavaScript-Ausführungsumgebung
+gegen den Branch-Quelltext ausgeführt. Ein echter Browser-FPS-
+und Speichertest auf dem Zielrechner sowie der vollständige
+native Node-Testlauf stehen noch aus.
+
 ## v0.18.0 – Adaptives Gelände-, Fluss- und Straßen-LOD (24.10.2026)
 
 **Ziel:** Nach dem v0.17-Hintergrundcache sollen neu zu erstellende
