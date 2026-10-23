@@ -10,7 +10,7 @@ let catalogRevision=0,catalogAutosaveTimer=null,catalogSaveInFlight=null;
 const CATALOG_AUTOSAVE_DELAY=300;
 
 const HEX=256, R=HEX/Math.sqrt(3), PROJECT_Y=.85, MAX_BUILD=HEX*.75, SEED=309175;
-const ZMIN=.12,ZMAX=2.40,FAR_ENTER=.17,FAR_LEAVE=.23;
+const ZMIN=.25,ZMAX=2.00;
 const $=id=>document.getElementById(id);
 const canvas=$('mapCanvas'),viewport=$('canvasOuter'),
  ctx=canvas.getContext('2d',{alpha:true,desynchronized:false});
@@ -38,7 +38,7 @@ const imagePool=window.VedrasImagePool.create({
 let finalRendering=false;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
- selected:'0,0',grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
+ selected:'0,0',strategyOverlay:'both',grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
  shoreline:{enabled:true,mode:'temp',width:34,outer:10},
  asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
@@ -1340,6 +1340,30 @@ function drawForestDebug(){
 }
 let perfSamples=[],frameNumber=0;
 function draw(){if(!ctx||!canvas.width)return;
+ if(state.mode==='far'){
+  gpuFrame=false;gpuTerrain?.hide();
+  const centers=[];
+  for(const [id,o] of Object.entries(state.hexObject||{})){
+   const [q,r]=id.split(',').map(Number);
+   const a=assetByPath.get(o?.path);
+   if(Number.isFinite(q)&&Number.isFinite(r)&&
+    (o?.type==='building'||a?.category==='buildings'))
+    centers.push({q,r,name:a?.meta?.displayName||a?.name||'Zentrum'});
+  }
+  const overview=window.VedrasStrategic.draw(ctx,{
+   cells:worldCells,dimensions:{width:W,height:H},zoom:state.zoom,
+   panX:state.panX,panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y,
+   hexWidth:HEX,typeFor:c=>effectiveBiome(c),
+   nameFor:t=>window.VedrasCatalog.terrainType(catalog,t)?.name||t,
+   categoryFor:t=>window.VedrasCatalog.terrainType(catalog,t)?.categoryId,
+   centers,selected:state.selected,overlay:state.strategyOverlay
+  });
+  const stats=$('perfStats');if(stats)stats.textContent='Strategische Übersicht · '+
+   overview.regions+' Biomregionen · '+overview.labels+' lesbare Beschriftungen · '+
+   overview.centers+' Zentren · kein Terrain-/Sprite-Neuaufbau';
+  $('modeBadge').textContent='STRATEGIE';
+  return;
+ }
  // Protect all shared terrain sources and the sprite images intersecting the
  // camera. Without this, the cache evicts a visible tree and the next frame
  // immediately re-decodes it, producing endless add/remove flicker.
@@ -1412,8 +1436,27 @@ function updateDiagnostics(){const pixels=canvas.width*canvas.height,mb=(pixels*
  (isSvg?'Vektorgrafik: in dieser Darstellung ohne quellbedingtes Rasterlimit.':`Quellpixel pro Ausgabepixel bei ${terrain?"Terrainmaterial":"Objektbreite"} ${logical}: <strong>${density.toFixed(2)}×</strong> (${density>=1?'ausreichende Quelldichte':'Hochskalierung – kann weich wirken'})`)+
  '<br>Hinweis: hohe Quelldichte garantiert keine feinen Details in einer KI-Illustration.';
 }
-function applyZoom(zoom,pivotX=W/2,pivotY=H/2){zoom=clamp(zoom,ZMIN,ZMAX);const world=fromScreen(pivotX,pivotY);state.zoom=zoom;updateTerrainLod(zoom);state.panX=pivotX-W/2-world.x*zoom;state.panY=pivotY-H/2-world.y*PROJECT_Y*zoom;
- if(state.mode==='normal'&&state.zoom<FAR_ENTER)state.mode='far';else if(state.mode==='far'&&state.zoom>FAR_LEAVE)state.mode='normal';$('zoomSlider').value=Math.round(zoom*100);$('zoomText').textContent=Math.round(zoom*100)+' %';requestDraw();updateDiagnostics();}
+function syncStrategicControls(){
+ const far=state.mode==='far';
+ const toggle=$('strategyToggle');if(toggle)toggle.textContent=far?'Detailansicht':'Strategieansicht';
+ const layers=$('strategyOverlay');if(layers)layers.hidden=!far;
+ $('modeBadge').textContent=far?'STRATEGIE':'NORMAL';
+}
+function applyZoom(requested,pivotX=W/2,pivotY=H/2){
+ const before=state.zoom,zoom=clamp(requested,ZMIN,ZMAX),
+  world=fromScreen(pivotX,pivotY);
+ if(requested<ZMIN&&state.mode!=='far')state.mode='far';
+ else if(state.mode==='far'&&zoom>ZMIN)state.mode='normal';
+ state.zoom=zoom;
+ if(before!==zoom){
+  updateTerrainLod(zoom);
+  state.panX=pivotX-W/2-world.x*zoom;
+  state.panY=pivotY-H/2-world.y*PROJECT_Y*zoom;
+ }
+ $('zoomSlider').value=Math.round(zoom*100);
+ $('zoomText').textContent=Math.round(zoom*100)+' %';
+ syncStrategicControls();requestDraw();updateDiagnostics();
+}
 function setView(view){if(view!=='map')gpuTerrain?.hide();state.view=view;for(const [id,name] of [['viewMap','map'],['viewSolo','solo'],['viewCompare','compare']])$(id).classList.toggle('active',view===name);
  $('mapCanvas').classList.toggle('hidden',view!=='map');$('mapLegend').classList.toggle('hidden',view!=='map');$('mapFooter').classList.toggle('hidden',view!=='map');
  $('soloPane').classList.toggle('hidden',view!=='solo');$('comparePane').classList.toggle('hidden',view!=='compare');if(view==='map')resize();}
@@ -1495,7 +1538,7 @@ function applyRoadChanges(next){
  return {removed:clear.removed,edges:edges.length};
 }
 function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];invalidateTerrain('cells');window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
-const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverBanks','riverBankStrength','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','chunkRenderingOverride','workerTerrain','gpuTerrain','gpuTerrainUserEnabled','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline'];
+const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverBanks','riverBankStrength','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','chunkRenderingOverride','workerTerrain','gpuTerrain','gpuTerrainUserEnabled','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline','strategyOverlay'];
 function persistScene(){try{
  // A freshly placed mountain permanently invalidates roads through its
  // stand/influence cells instead of letting hidden edges reappear later.
@@ -1682,6 +1725,13 @@ for(const [id,key] of [['polishNature','nature'],['polishTerrain','terrain'],['p
  });
 }
 $('materialScale').addEventListener('input',e=>{const a=useAsset(state.asset);if(!isTerrainValid(a))return;const size=Number(e.target.value);state.materialScales[a.path]=size;$('materialScaleLabel').textContent=String(size);deferSceneRender('terrain',()=>invalidateTerrain('material'));updateDiagnostics();});
+$('strategyToggle').addEventListener('click',()=>{
+ if(state.mode==='normal'){state.mode='far';applyZoom(ZMIN);}
+ else{state.mode='normal';applyZoom(Math.max(.36,state.zoom));}
+});
+$('strategyOverlay').addEventListener('change',e=>{
+ state.strategyOverlay=e.target.value;persistScene();requestDraw();
+});
 $('zoomSlider').addEventListener('input',e=>applyZoom(Number(e.target.value)/100));$('zoomIn').addEventListener('click',()=>applyZoom(state.zoom*1.16));$('zoomOut').addEventListener('click',()=>applyZoom(state.zoom/1.16));
 $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize));});
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();requestDraw();updateDiagnostics();});
@@ -1990,7 +2040,13 @@ $('reliefBiomesTest').addEventListener('click',()=>{
  state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('objectsToggle').checked=state.objects;
-restoreScene();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes(true);reloadFromServer();
+restoreScene();
+ state.zoom=clamp(state.zoom,ZMIN,ZMAX);
+ state.mode='normal'; // migrate old 12-24% micro-label view to normal >=25%
+ state.strategyOverlay=['biomes','centers','both'].includes(state.strategyOverlay)?
+  state.strategyOverlay:'both';
+ $('strategyOverlay').value=state.strategyOverlay;
+ syncStrategicControls();syncPolishControls();$('riverToggle').checked=state.river;$('zoomSlider').value=Math.round(state.zoom*100);$('zoomText').textContent=Math.round(state.zoom*100)+' %';$('mountainDebug').checked=!!state.mountainDebug;$('mountainMode').value=state.mountainMode==='chain'?'chain':'single';$('mountainChainId').value=state.mountainChainId||'alpen_01';$('mountainSpacing').value=state.mountainSpacing;$('mountainShadowDebug').checked=!!state.mountainShadowDebug;syncReliefUI();$('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;$('transitionDebugMode').value=state.transitionDebugMode;$('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;$('edgeDebugToggle').checked=state.edgeDebug;$('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);syncShorelineControls();assignBiomes(true);reloadFromServer();
 // Shared v2 geography preview: explicit opt-in; never touches source assets.
 let geographyPopup=null;
 $('openGeography').addEventListener('click',()=>{
