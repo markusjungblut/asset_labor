@@ -1008,7 +1008,7 @@ function genericObjects(view=null){
    }
    if(blocked.has(key(n.q,n.r)))continue;
    if(window.VedrasNature?.validInstance(n)===false)continue;
-   const a=useAsset(n.assetPath);if(!a)continue;
+   const a=useAsset(n.assetPath);if(!a?.img?.naturalWidth)continue;
    const m=window.VedrasNature?.entryFor(a);if(!m)continue;
    const p=axialPos(n.q,n.r);
    const crop=visibleBounds(a.img);const baseWidth=window.VedrasSpritePlanner?.visualWidth(m,a.img,crop)??m.logicalWidth;
@@ -1018,7 +1018,8 @@ function genericObjects(view=null){
    objs.push({asset:a,x:p.x+n.dx,y:p.y+n.dy,w:baseWidth*n.scale*balance,type:'nature',natureMeta:m,cell:key(n.q,n.r)});
  }
  for(const m of validMountains()){
-  const a=useAsset(m.assetPath),meta=window.VedrasNature.entryFor(a),p=axialPos(m.q,m.r);
+  const a=useAsset(m.assetPath);if(!a?.img?.naturalWidth)continue;
+  const meta=window.VedrasNature.entryFor(a),p=axialPos(m.q,m.r);
   if(!inView(p.x,p.y+20,Math.max(400,meta?.logicalWidth||600)))continue;
   objs.push({asset:a,x:p.x,y:p.y+20,w:meta.logicalWidth,type:'mountain',natureMeta:meta,mountainInstance:m,cell:key(m.q,m.r)});
  }
