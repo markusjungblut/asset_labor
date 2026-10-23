@@ -486,6 +486,7 @@ function drawGround(){
  const graph=terrainRasterCache.graph,chunkMode=state.chunkRendering||state.sceneSize>37;
  const chunkInfo=$('chunkStats');
  window.__vedrasLastAutotile=graph;
+ const rasterStart=performance.now();
  if(chunkMode){
   terrainRasterCache.signature=signature;
   // Signatures and selected source images are valid until scene invalidation.
@@ -645,8 +646,14 @@ function drawGround(){
   lastChunkStats=null;
   if(chunkInfo)chunkInfo.textContent='Klassischer zusammenhängender Geländerenderer (Chunk-Test optional).';
  }
+ const rasterMs=performance.now()-rasterStart;
+ const forestStart=performance.now();
  drawForestFloor();
+ const forestMs=performance.now()-forestStart;
+ const shoreStart=performance.now();
  drawShorelines();
+ const shoreMs=performance.now()-shoreStart;
+ const diagnosticsStart=performance.now();
  if(state.edgeDebug)window.VedrasAutotile.drawDebug(ctx,graph,{mode:state.transitionDebugMode,band:state.edgeWidth});
  const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.mode==='geography'?'Geografie-Hügelfeld':state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
  const padLabel=$('buildingPadStats');if(padLabel){
@@ -679,6 +686,11 @@ function drawGround(){
  if(state.grid){for(const c of worldCells){const pts=hexPoints(c.q,c.r);ctx.beginPath();ctx.moveTo(...pts[0]);for(let i=1;i<6;i++)ctx.lineTo(...pts[i]);ctx.closePath();
   ctx.strokeStyle=state.selected===key(c.q,c.r)?'#fff4ba':'rgba(45,87,57,.46)';ctx.lineWidth=state.selected===key(c.q,c.r)?2.4:1.15;ctx.stroke();}}
  const [q,r]=state.selected.split(',').map(Number);hexPath(q,r);ctx.fillStyle='rgba(246,237,153,.035)';ctx.fill();ctx.restore();
+ window.__vedrasGroundDetail={
+  preparationMs:groundPrepMs,rasterMs,forestMs,shoreMs,
+  diagnosticsMs:performance.now()-diagnosticsStart,
+  chunked:chunkMode,graphRebuilt:graphMissing
+ };
 }
 
 let bridgeCrossingsCache={signature:null,crossings:[]};
@@ -690,7 +702,11 @@ function roadInView(edge,bounds){
   Math.max(a.y,b.y)>=bounds.y-80&&Math.min(a.y,b.y)<=bounds.y+bounds.height+80;
 }
 function drawRoads(){
- if(!state.river&&!state.roadShown)return;
+ if(!state.river&&!state.roadShown){
+  window.__vedrasRoadPreparation={ms:0,riverMs:0,roadsMs:0};
+  return;
+ }
+ const riverPassStart=performance.now();
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  // First draw rivers. Their water remains unchanged: paths and bridges are
@@ -827,6 +843,7 @@ function drawRoads(){
   }
   ctx.setLineDash([]);ctx.restore();
  }
+ const roadsPassStart=performance.now();
  if(state.roadShown){
   const projection=state.relief.enabled?displayGroundY:null;
   const visibleEdges=roadEdges.filter(e=>roadInView(e,bounds));
@@ -873,7 +890,8 @@ function drawRoads(){
   const label=$('roadBridgeStats');if(label)label.textContent='Wege ausgeblendet';
  }
  ctx.restore();
- window.__vedrasRoadPreparation={ms:roadPrepMs,cached:roadPrepMs<1};
+ window.__vedrasRoadPreparation={ms:roadPrepMs,
+  riverMs:roadsPassStart-riverPassStart,roadsMs:performance.now()-roadsPassStart};
 }
 function validMountains(){
  const lookup=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
@@ -1651,6 +1669,7 @@ function draw(){if(!ctx||!canvas.width)return;
  window.__vedrasRenderProfile={...sample,averageMs:mean('totalMs'),
   averageTerrainMs:mean('terrainMs'),averageRoadsMs:mean('roadsMs'),
   averageObjectsMs:mean('objectsMs'),object:objProfile,background:backgroundProfile,
+  terrainDetail:window.__vedrasGroundDetail,roadsDetail:window.__vedrasRoadPreparation,
   preparation:frameMemo.stats(),samples:perfSamples.length};
  const status=$('perfStats');
  if(status)status.textContent='Ø '+mean('totalMs').toFixed(1)+' ms / Frame · Gelände '+
@@ -1658,6 +1677,16 @@ function draw(){if(!ctx||!canvas.width)return;
   mean('roadsMs').toFixed(1)+' ms · Sprites/Schatten '+
   mean('objectsMs').toFixed(1)+' ms · Schatten-Cache '+
   sample.shadowCacheHits+' Treffer / '+sample.shadowCacheMisses+' neu';
+ const groundDetail=window.__vedrasGroundDetail||{},roadDetail=window.__vedrasRoadPreparation||{};
+ const detailStatus=$('terrainDetailStats');
+ if(detailStatus)detailStatus.textContent='Letzter Hintergrundaufbau: Geländequelle '+
+  (groundDetail.preparationMs||0).toFixed(1)+' ms · Chunk/Graph '+
+  (groundDetail.rasterMs||0).toFixed(1)+' ms · Waldboden '+
+  (groundDetail.forestMs||0).toFixed(1)+' ms · Ufer '+
+  (groundDetail.shoreMs||0).toFixed(1)+' ms · Diagnose '+
+  (groundDetail.diagnosticsMs||0).toFixed(1)+' ms · Flüsse/Uferbänke '+
+  (roadDetail.riverMs||0).toFixed(1)+' ms · Straßen/Brücken '+
+  (roadDetail.roadsMs||0).toFixed(1)+' ms';
  const bgStatus=$('backgroundPerfStats');
  if(bgStatus)bgStatus.textContent='Hintergrund: '+(backgroundProfile?.mode||'direct')+
   (backgroundProfile?.cached?' wiederverwendet':' neu')+
