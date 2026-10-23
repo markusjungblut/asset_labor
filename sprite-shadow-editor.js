@@ -51,7 +51,7 @@ window.VedrasSpriteShadows=(()=>{
   return {schemaVersion:1,revision:Number.isSafeInteger(input.revision)&&input.revision>=0?input.revision:0,
    global:{...input.global},profiles:Object.fromEntries(keys.map(k=>[k,{...input.profiles[k]}]))};
  }
- function set(data){current=valid(data);return current;}
+ function set(data){current=valid(data);clearRasterCache();return current;}
  function get(){return current;}
  function profile(asset){
   const path=typeof asset==='string'?asset:asset?.path||'';
@@ -98,7 +98,117 @@ window.VedrasSpriteShadows=(()=>{
   ctx.drawImage(silhouette.canvas,-width*ax,-height*ay,width,height);
   ctx.restore();
  }
- const api={fields,shapeKeys,defaults,valid,set,get,profile,draw};
+
+ // Sprite casts do not change when the camera pans. Rasterize their costly
+ // filter/blur/transforms once per image, quantized size and shadow profile.
+ // The editor still calls draw() directly; final PNG exports also use draw().
+ const rasterCache=new Map();
+ const rasterIds=new WeakMap();
+ let rasterNextId=0,rasterBytes=0;
+ const rasterBudget=18*1024*1024,rasterLimit=144;
+ const rasterStats={hits:0,misses:0,evicted:0,fallback:0,paintMs:0,
+  frameHits:0,frameMisses:0,frameFallback:0};
+ function beginFrame(){rasterStats.frameHits=0;rasterStats.frameMisses=0;rasterStats.frameFallback=0;}
+ function clearRasterCache(){rasterCache.clear();rasterBytes=0;}
+ function cacheStats(){return {...rasterStats,entries:rasterCache.size,bytes:rasterBytes};}
+ function imageId(silhouette){
+  let id=rasterIds.get(silhouette.canvas);
+  if(!id){id=++rasterNextId;rasterIds.set(silhouette.canvas,id);}
+  return id;
+ }
+ function shadowBounds(width,shape,anchor,aspect,log){
+  const height=width*aspect,ax=clamp(Number(anchor.x??.5),0,1),
+   ay=clamp(Number(anchor.y??.96),0,1),rad=shape.angle*Math.PI/180,
+   castX=width*shape.length*Math.cos(rad),
+   castY=width*shape.length*Math.sin(rad)*(log?.14:.30),
+   ox=width*shape.offsetX,oy=width*shape.offsetY,
+   horiz=clamp(shape.width,.2,1.8),slant=log?.01:.035;
+  if(!(height>0))return null;
+  const xs=[-width*ax,width*(1-ax)],ys=[-height*ay,0];
+  let minX=0,maxX=0,minY=0,maxY=0;
+  for(const x of xs)for(const y of ys){
+   const px=ox+horiz*x-castX*y/height,
+    py=oy+slant*x-castY*y/height;
+   minX=Math.min(minX,px);maxX=Math.max(maxX,px);
+   minY=Math.min(minY,py);maxY=Math.max(maxY,py);
+  }
+  if(shape.contact>0){
+   const centerX=ox+castX*(log?.40:.22),
+    centerY=oy+castY*(log?.36:.20),
+    rx=width*(log?.53:.24)*Math.max(.25,shape.width)*(1+shape.contact),
+    ry=width*(log?.075:.085)*(shape.contact+.25),
+    radius=Math.max(rx,ry);
+   minX=Math.min(minX,centerX-radius);maxX=Math.max(maxX,centerX+radius);
+   minY=Math.min(minY,centerY-radius);maxY=Math.max(maxY,centerY+radius);
+  }
+  const pad=Math.ceil(3*Math.min(30,Math.max(0,shape.softness))+5);
+  const left=Math.floor(minX)-pad,top=Math.floor(minY)-pad;
+  const right=Math.ceil(maxX)+pad,bottom=Math.ceil(maxY)+pad;
+  return {left,top,width:right-left,height:bottom-top};
+ }
+ function drawCached(ctx,obj,p,width,silhouette,anchor={x:.5,y:.96},strength=null){
+  const kind=obj?.natureMeta?.kind;
+  if(obj?.type==='mountain'||kind==='mountain')return;
+  if(!silhouette?.canvas||!(width>0))return;
+  const x=profile(obj.asset),family=obj.natureMeta?.family,
+   log=family==='fallen_logs'||family==='snow_fallen_logs';
+  const globalStrength=strength===null?current.global.strength:strength;
+  const alpha=globalStrength*x.opacity*(kind==='ground_cover'?.28:1)*
+   (family==='snow_fallen_logs'?.8:1);
+  if(x.enabled===false||!(alpha>0))return;
+  // Hand-painted masks, very small objects, and unsupported canvases keep
+  // the original exact renderer. No cached stamp can override manual art.
+  if(x.manual?.polygons?.length||width<8||typeof document==='undefined'){
+   rasterStats.fallback++;rasterStats.frameFallback++;
+   return draw(ctx,obj,p,width,silhouette,anchor,strength);
+  }
+  const step=width>256?8:4;
+  const nominal=Math.max(8,Math.round(width/step)*step);
+  const ratio=width/nominal;
+  const bounds=shadowBounds(nominal,x,anchor,silhouette.aspect,log);
+  if(!bounds||bounds.width<1||bounds.height<1||
+   bounds.width>1300||bounds.height>1300||
+   bounds.width*bounds.height>750000){
+   rasterStats.fallback++;rasterStats.frameFallback++;
+   return draw(ctx,obj,p,width,silhouette,anchor,strength);
+  }
+  // A style's mutating edits cannot reuse a previous silhouette's image;
+  // Engine.set() also flushes all cached bitmaps immediately.
+  const id=JSON.stringify([imageId(silhouette),obj.asset?.path,
+   nominal,anchor.x??.5,anchor.y??.96,globalStrength,
+   family||'',kind||'',x.angle,x.opacity,x.length,x.width,x.softness,
+   x.offsetX,x.offsetY,x.contact]);
+  let raster=rasterCache.get(id);
+  if(raster){
+   rasterCache.delete(id);rasterCache.set(id,raster);
+   rasterStats.hits++;rasterStats.frameHits++;
+  }else{
+   const start=typeof performance!=='undefined'?performance.now():Date.now();
+   const canvas=document.createElement('canvas');
+   canvas.width=bounds.width;canvas.height=bounds.height;
+   const g=canvas.getContext('2d',{alpha:true});
+   if(!g){
+    rasterStats.fallback++;rasterStats.frameFallback++;
+    return draw(ctx,obj,p,width,silhouette,anchor,strength);
+   }
+   g.translate(-bounds.left,-bounds.top);
+   draw(g,obj,{x:0,y:0},nominal,silhouette,anchor,strength);
+   raster={canvas,...bounds,bytes:canvas.width*canvas.height*4};
+   rasterCache.set(id,raster);rasterBytes+=raster.bytes;
+   rasterStats.misses++;rasterStats.frameMisses++;
+   rasterStats.paintMs+=(typeof performance!=='undefined'?performance.now():Date.now())-start;
+   while(rasterCache.size>rasterLimit||rasterBytes>rasterBudget){
+    const old=rasterCache.keys().next().value,entry=rasterCache.get(old);
+    rasterCache.delete(old);rasterBytes-=entry.bytes;rasterStats.evicted++;
+    // Do not assign canvas.width=0: it may be used by the current draw.
+   }
+  }
+  ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';
+  ctx.drawImage(raster.canvas,p.x+raster.left*ratio,p.y+raster.top*ratio,
+   raster.width*ratio,raster.height*ratio);
+  ctx.restore();
+ }
+ const api={fields,shapeKeys,defaults,valid,set,get,profile,draw,drawCached,beginFrame,cacheStats};
  return api;
 })();
 window.addEventListener('DOMContentLoaded',()=>{
