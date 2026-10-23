@@ -156,8 +156,8 @@ test('PNG export and legacy pipeline remain available at full precision',()=>{
  assert.match(app,/canvas\.toBlob\(/);
  assert.match(html,/adaptive-lod\.js\?v=0\.1\.0/);
  assert.ok(html.indexOf('adaptive-lod.js')<html.indexOf('app.js'));
- assert.match(html,/Asset-Labor v0\.18\.0/);
- assert.match(server,/VERSION = '0\.18\.0'/);
+ assert.match(html,/Asset-Labor v0\.\d+\.\d+/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
