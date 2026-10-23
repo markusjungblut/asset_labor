@@ -45,8 +45,8 @@ diese Messung ist ausdrücklich **nicht** das Ergebnis von v0.15.4.
   `VedrasAssetLabor.spriteGpuStats()`.
 
 **Regression:** `node --test tests/test_static_scene_v016_20261023.cjs`
-(sieben Tests: Kamera-Pan, Zoom/Edits, Rastergrenze, Grafikbudget,
-GPU-Fallback, Schattenprofiländerung und Integration). Tests wurden
+(acht Tests: Kamera-Pan, Zoom/Edits, Rastergrenze, Grafikbudget,
+GPU-Fallback, echte WebGL2-Upload-Wiederverwendung, Schattenprofiländerung und Integration). Tests wurden
 gegen die tatsächlichen Dateien im Branch in einer isolierten
 JavaScript-Testlaufzeit ausgeführt. Eine vollständige native
 Node-Testsuite sowie ein realer Browser-FPS-Test mit der
