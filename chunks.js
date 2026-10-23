@@ -13,18 +13,43 @@ window.VedrasChunks=(()=>{
   return a.x < b.x+b.width && a.x+a.width>b.x &&
    a.y < b.y+b.height && a.y+a.height>b.y;
  }
+ // All layers in one scene query the SAME cell positions many times per
+ // frame. Build covered tile IDs once per cell-array identity and tile size.
+ // Recheck the original occupancy inequalities at the edges: no new seams.
+ let spatial=new WeakMap(),spatialBuilds=0,spatialHits=0;
+ function invalidateGeometry(cells){
+  if(cells&&typeof cells==='object')spatial.delete(cells);
+  else spatial=new WeakMap();
+ }
+ function spatialFor(cells,size){
+  let bySize=spatial.get(cells);
+  if(!bySize){bySize=new Map();spatial.set(cells,bySize);}
+  const existing=bySize.get(size);
+  if(existing){spatialHits++;return existing;}
+  const positions=cells.map(worldPos),occupied=new Set();
+  for(const p of positions){
+   // Expand by one additional candidate cell and retain only exact matches.
+   // This also supports fractional river-bank occupancy hints.
+   const minX=Math.floor((p.x-150)/size)-1,maxX=Math.floor((p.x+150)/size)+1;
+   const minY=Math.floor((p.y-150)/size)-1,maxY=Math.floor((p.y+150)/size)+1;
+   for(let cy=minY;cy<=maxY;cy++)for(let cx=minX;cx<=maxX;cx++){
+    const x=cx*size,y=cy*size;
+    if(p.x>=x-150&&p.x<x+size+150&&
+     p.y>=y-150&&p.y<y+size+150)occupied.add(key(cx,cy));
+   }
+  }
+  const entry={positions,occupied};
+  bySize.set(size,entry);spatialBuilds++;return entry;
+ }
  function visible(bounds,cells,size=SIZE){
   const present=[];
   if(!bounds||!cells?.length)return present;
   const left=Math.floor(bounds.x/size),right=Math.floor((bounds.x+bounds.width)/size),
    top=Math.floor(bounds.y/size),bottom=Math.floor((bounds.y+bounds.height)/size);
-  const occupancy=cells.map(c=>worldPos(c));
+  const covered=spatialFor(cells,size).occupied;
   const xEnd=Math.min(right,left+60),yEnd=Math.min(bottom,top+60);
-  for(let cy=top;cy<=yEnd;cy++)for(let cx=left;cx<=xEnd;cx++){
-   const t=tile(cx,cy,size);
-   if(occupancy.some(p=>p.x>=t.x-150&&p.x<t.x+size+150&&
-     p.y>=t.y-150&&p.y<t.y+size+150))present.push(t);
-  }
+  for(let cy=top;cy<=yEnd;cy++)for(let cx=left;cx<=xEnd;cx++)
+   if(covered.has(key(cx,cy)))present.push(tile(cx,cy,size));
   return present.sort((a,b)=>{
    const mx=bounds.x+bounds.width/2,my=bounds.y+bounds.height/2;
    return ((a.x+a.size/2-mx)**2+(a.y+a.size/2-my)**2)-
@@ -34,8 +59,9 @@ window.VedrasChunks=(()=>{
  function neighbors(tile,cells,halo=470){
   const xmin=tile.x-halo,xmax=tile.x+tile.size+halo,
     ymin=tile.y-halo,ymax=tile.y+tile.size+halo;
-  return cells.filter(c=>{
-   const p=worldPos(c);
+  const positions=spatialFor(cells,tile.size).positions;
+  return cells.filter((c,i)=>{
+   const p=positions[i];
    return p.x>=xmin&&p.x<=xmax&&p.y>=ymin&&p.y<=ymax;
   });
  }
@@ -258,5 +284,6 @@ window.VedrasChunks=(()=>{
   return {configure,draw,warm,stopWarm,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size,warmPending:backgroundQueue.size}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
- return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create};
+ return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create,
+  invalidateGeometry,spatialStats:()=>({builds:spatialBuilds,hits:spatialHits})};
 })();
