@@ -1092,7 +1092,11 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
  const ax=Number.isFinite(Number(anchor.x))?clamp(Number(anchor.x),0,1):.5;
  const ay=Number.isFinite(Number(anchor.y))?clamp(Number(anchor.y),0,1):.96;
  const left=p.x-width*ax,top=p.y-height*ay;
- const casts=spriteMountainCasts(obj,left,top,width,height);
+ // At map-overview zoom levels, tiny 2D sprite-on-sprite mountain casts
+ // cost repeated offscreen compositing without readable detail. Preserve the
+ // mountain's GROUND shadow, original sprites and ALL detail in PNG export.
+ const casts=!finalRendering&&state.zoom<.46?
+  []:spriteMountainCasts(obj,left,top,width,height);
  const filter=obj.natureMeta?window.VedrasPolish.natureFilter(obj.natureMeta,state.visualPolish.nature):'none';
  if(!casts.length){
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
@@ -1388,7 +1392,7 @@ function setSelectedAsset(path){state.asset=path;const a=useAsset(path);if(!a)re
  $('previewImg').src=a.url;$('soloImage').src=a.url;$('soloEmpty').classList.add('hidden');
  const meta=a.meta||{},isBuilding=a.category==='buildings'||meta.category==='building',terrain=isTerrain(a),isReference=a.category==='references'||meta.assetType==='concept_hex'||meta.assetType==='legacy_hex_block';const logical=Number(meta.logicalWidth)||(isBuilding?160:80);
  $('spriteWidth').max=isBuilding?192:350;$('spriteWidth').min=isBuilding?24:16;$('spriteWidth').value=clamp(logical,Number($('spriteWidth').min),Number($('spriteWidth').max));state.width=Number($('spriteWidth').value);$('widthText').textContent=terrain?'Hexgeometrie: automatisch':String(state.width);$('spriteWidth').disabled=terrain;
- $('assetInfo').innerHTML=`<strong>Geländeart:</strong> ${escapeHtml(window.VedrasCatalog.terrainType(catalog,typeOfAsset(a))?.name||'Nicht zugeordnet')}<br><strong>Kategorie:</strong> ${escapeHtml(a.category)}<br><strong>Pixel:</strong> ${a.img?.naturalWidth||'?'} × ${a.img?.naturalHeight||'?'}<br><strong>Metadaten:</strong> ${Object.keys(meta).length?'vorhanden':'noch keine JSON-Datei'}<br><strong>Status:</strong> ${escapeHtml(meta.artStatus||'Testgrafik')}<br><strong>Schatten:</strong> ${escapeHtml(meta.shadowMode||'nicht festgelegt')}`;
+ $('assetInfo').innerHTML=`<strong>Geländeart:</strong> ${escapeHtml(window.VedrasCatalog.terrainType(catalog,typeOfAsset(a))?.name||'Nicht zugeordnet')}<br><strong>Kategorie:</strong> ${escapeHtml(a.category)}<br><strong>Pixel:</strong> ${a.sourceDimensions?.width||a.img?.naturalWidth||'?'} × ${a.sourceDimensions?.height||a.img?.naturalHeight||'?'}<br><strong>Metadaten:</strong> ${Object.keys(meta).length?'vorhanden':'noch keine JSON-Datei'}<br><strong>Status:</strong> ${escapeHtml(meta.artStatus||'Testgrafik')}<br><strong>Schatten:</strong> ${escapeHtml(meta.shadowMode||'nicht festgelegt')}`;
  const verdict=terrain?a.terrainCheck:null;
  $('terrainValidation').classList.toggle('hidden',!terrain&&!isReference);
  $('terrainValidation').classList.toggle('warning',isReference||(terrain&&!verdict?.ok));
@@ -1398,7 +1402,7 @@ function setSelectedAsset(path){state.asset=path;const a=useAsset(path);if(!a)re
  $('assetTerrainTypeRow').classList.toggle('hidden',!terrain);$('assetTerrainType').value=typeOfAsset(a)||'';
  $('materialScaleRow').classList.toggle('hidden',!terrain);if(terrain){const size=Number(state.materialScales[a.path]||meta.textureWorldSize)||256;$('materialScale').value=clamp(size,160,768);$('materialScaleLabel').textContent=String($('materialScale').value);}
  window.VedrasNature?.onSelect(a);
- $('soloMeta').textContent=`${a.name}\n${a.img?.naturalWidth||'?'} × ${a.img?.naturalHeight||'?'} px\n${a.relPath}`;
+ $('soloMeta').textContent=`${a.name}\n${a.sourceDimensions?.width||a.img?.naturalWidth||'?'} × ${a.sourceDimensions?.height||a.img?.naturalHeight||'?'} px\n${a.relPath}`;
  renderAssetsList();updateDiagnostics();}
 function renderAssetsList(){
  const filter=$('categoryFilter').value,q=$('assetSearch').value.trim().toLowerCase();
@@ -1487,7 +1491,7 @@ async function loadLibrary(list,mode){
  const proposed=sourceRules?.propose(catalog,assets,isTerrainValid)||{assigned:0,skipped:[]};
  if(typesAdded||proposed.assigned){catalogDirty=true;catalogRevision++;}
  if(proposed.assigned)$('catalogMessage').textContent=proposed.assigned+' vorhandene Terrainvarianten per eindeutigem Dateinamen zugeordnet; vorhandene Zuweisungen bleiben erhalten.';
- const loaded=allAssets().length;$('serverStatus').textContent=`${loaded}/${assets.length} Grafiken · ${mode}`;
+ const loaded=allAssets().length;$('serverStatus').textContent=`${assets.length} Grafiken · ${loaded} vorab dekodiert · ${mode}`;
  const categories=[...new Set(assets.map(a=>a.category))].sort(),select=$('categoryFilter'),current=select.value;select.innerHTML='<option value="all">Alle</option>'+categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');select.value=categories.includes(current)?current:'all';
  renderAssetsList();const first=assetByPath.has(old)?old:assets.find(a=>isTerrainValid(a))?.path||assets[0]?.path;if(first)setSelectedAsset(first);refreshCatalog();resize();window.dispatchEvent(new Event('vedras:assets-loaded'));}
 // "Neu einlesen" must refresh the asset FILE LIST, never discard unsaved catalog assignments.
@@ -1511,9 +1515,9 @@ async function reloadFromServer(){
   catalogCanSave=response.ok||response.status===404;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
-  if(d.version!=='0.11.0'){
+  if(d.version&&!/^0\.(?:13|14)\./.test(d.version)){
    $('serverStatus').textContent+=' · VERSION KONFLIKT';
-   $('nRecoveryStatus').textContent=`Achtung: Programmoberfläche v0.11.0 und Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
+   $('nRecoveryStatus').textContent=`Achtung: Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
   }
 
  }catch(err){
@@ -1784,9 +1788,32 @@ $('saveScene').addEventListener('click',exportScene);
 $('exportMapPng').addEventListener('click',async()=>{
  if(finalRendering)return;
  const button=$('exportMapPng');button.disabled=true;
+ let restoreSourceTextures=null;
  try{
   // Wait for pending debounced slider edits before taking the snapshot.
   if(deferredEdits.size)await new Promise(resolve=>setTimeout(resolve,210));
+  // Preview textures are downsampled, but PNG export uses the actual
+  // originals of the materials USED in this scene.
+  const paths=new Set(worldCells.map(c=>imageForBiome(c)?.path).filter(Boolean));
+  for(const a of assets)if(a.category==='shorelines'||
+    (isTerrain(a)&&typeOfAsset(a)==='forest_floor'))paths.add(a.path);
+  // Sprite previews may also be downsampled. Final export restores every
+  // active object image, including newly placed graphics not decoded yet.
+  const placedPaths=[
+   ...(state.natureInstances||[]).map(n=>n.assetPath),
+   ...(state.mountainInstances||[]).map(m=>m.assetPath),
+   ...Object.values(state.hexObject||{}).map(o=>o.path),
+   ...Object.values(state.hexShadow||{})
+  ].filter(path=>typeof path==='string'&&assetByPath.has(path));
+  await Promise.all([...new Set(placedPaths)].map(path=>
+   imagePool.ensure(assetByPath.get(path),12)));
+  for(const path of placedPaths)paths.add(path);
+  for(const a of assets)if(a.img?.naturalWidth&&
+    ['nature','buildings','units'].includes(a.category))paths.add(a.path);
+  restoreSourceTextures=await imagePool.originals(
+   [...paths].map(path=>assetByPath.get(path)).filter(Boolean));
+  window.VedrasTerrainWorker.restart();
+  invalidateTerrain('all');
   finalRendering=true;resize();requestDraw();
   let ready=false;
   for(let attempt=0;attempt<250;attempt++){
@@ -1810,7 +1837,13 @@ $('exportMapPng').addEventListener('click',async()=>{
   anchor.href=url;anchor.download='vedras_kartenansicht_final.png';anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
  }catch(err){alert('Finalbild-Export fehlgeschlagen: '+(err?.message||String(err)));}
- finally{finalRendering=false;resize();requestDraw();button.disabled=false;}
+ finally{
+  if(restoreSourceTextures){
+   restoreSourceTextures();window.VedrasTerrainWorker.restart();
+   invalidateTerrain('all');
+  }
+  finalRendering=false;resize();requestDraw();button.disabled=false;
+ }
 });
 $('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.natureInstances=[];window.VedrasNature?.renderPlaced?.();state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;window.dispatchEvent(new Event('vedras:road-changed'));if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});

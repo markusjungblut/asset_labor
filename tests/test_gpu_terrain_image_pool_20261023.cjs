@@ -2,14 +2,19 @@
 const test=require('node:test'),assert=require('node:assert/strict'),
  fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-function imagePool(){
+function imagePool({withCanvas=false}={}){
  const pending=[],clock={value:1000};
  class FakeImage {
   constructor(){this.naturalWidth=1024;this.naturalHeight=1024;this.complete=false;this.onload=null;}
   set src(v){this._src=v;pending.push(this);}
   get src(){return this._src;}
  }
- const sandbox={window:{},Image:FakeImage,performance:{now:()=>clock.value}};
+ const sandbox={window:{},Image:FakeImage,performance:{now:()=>clock.value},
+  document:withCanvas?{createElement:tag=>{
+   assert.equal(tag,'canvas');
+   return {width:0,height:0,getContext:()=>({drawImage(){},
+    imageSmoothingEnabled:false,imageSmoothingQuality:''})};
+  }}:undefined};
  vm.runInNewContext(read('asset-image-pool.js'),sandbox);
  return {Pool:sandbox.window.VedrasImagePool,pending,clock,
   flush:()=>{const img=pending.shift();assert.ok(img);img.complete=true;img.onload();}};
@@ -47,6 +52,24 @@ test('image LRU releases old image references under a configurable memory limit'
  const reload=pool.ensure(a);assert.ok(pending.length>0);flush();await reload;
  assert.ok(a.img?.naturalWidth);
 });
+test('large terrain preview is limited to 512px while PNG export reloads native pixels',async()=>{
+ const {Pool,pending,flush}=imagePool({withCanvas:true});
+ const pool=Pool.create({parallel:2,maxBytes:192*1024*1024,previewTerrainPx:512});
+ const terrain={...entry(20),category:'terrain'};
+ const job=pool.ensure(terrain);flush();await job;
+ assert.equal(terrain.img.naturalWidth,512);
+ assert.equal(terrain.img.naturalHeight,512);
+ assert.equal(terrain.sourceDimensions.width,1024);
+ assert.equal(pool.report().decodedBytes,512*512*4);
+ const preview=terrain.img;
+ const exporting=pool.originals([terrain]);
+ assert.equal(pending.length,1);
+ flush();const restore=await exporting;
+ assert.equal(terrain.img.naturalWidth,1024,'final renderer must use original resolution');
+ restore();
+ assert.equal(terrain.img,preview,'return to compact memory after export');
+ assert.equal(pool.report().decodedBytes,512*512*4);
+});
 function fakeGL(){
  const gl={
   VERTEX_SHADER:1,FRAGMENT_SHADER:2,COMPILE_STATUS:3,LINK_STATUS:4,
@@ -58,7 +81,7 @@ function fakeGL(){
   TEXTURE0:22,RGBA:23,UNSIGNED_BYTE:24,TRIANGLE_STRIP:25,
   MAX_TEXTURE_SIZE:26,COLOR_BUFFER_BIT:27
  };
- const record={uploads:[],vertices:[],draws:0};
+ const record={uploads:[],vertices:[],draws:0,pixelStore:[]};
  for(const name of ['createShader','createProgram','createVertexArray','createBuffer',
   'createTexture','getUniformLocation'])gl[name]=()=>({});
  for(const name of ['shaderSource','compileShader','attachShader','linkProgram',
@@ -67,6 +90,7 @@ function fakeGL(){
   'enable','disable','blendFunc','pixelStorei','texParameteri','uniform2f',
   'viewport','clearColor','clear','activeTexture','bindTexture','deleteTexture'])
  gl[name]=()=>{};
+ gl.pixelStorei=(...args)=>record.pixelStore.push(args);
  gl.getShaderParameter=()=>true;gl.getProgramParameter=()=>true;
  gl.getParameter=()=>8192;
  gl.texImage2D=(...args)=>record.uploads.push(args);
@@ -95,7 +119,10 @@ test('WebGL2 compositor submits camera-snapped geometry and reuses GPU tile text
  assert.equal(v[0],300);assert.equal(v[1],200);
  assert.equal(v[4],812);assert.equal(v[5],200);
  assert.ok(Math.abs(v[2]-128/768)<1e-5);
- assert.ok(Math.abs(v[3]-(1-128/768))<1e-5);
+ assert.ok(Math.abs(v[3]-128/768)<1e-5);
+ assert.ok(Math.abs(v[11]-(128+512)/768)<1e-5);
+ assert.ok(record.pixelStore.some(([flag,value])=>flag===gl.UNPACK_FLIP_Y_WEBGL&&value===false),
+  'Worker ImageBitmap ignores UNPACK_FLIP_Y_WEBGL; all sources must upload unflipped');
  assert.equal(gpu.stats().textureCount,1);
 });
 test('GPU feature falls back cleanly when WebGL2 is unavailable',()=>{
