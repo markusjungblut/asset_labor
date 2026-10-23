@@ -1513,9 +1513,59 @@ function draw(){if(!ctx||!canvas.width)return;
    originX:W/2+state.panX,originY:H/2+state.panY},state.seamCheck);
  if(!gpuFrame)gpuTerrain?.hide();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,W,H);
- drawGround();const t1=performance.now();
- drawRoads();const t2=performance.now();
- drawForestDebug();
+ let terrainElapsed=0,roadsElapsed=0;
+ let backgroundProfile=null;
+ const renderBackground=()=>{
+  const groundStart=performance.now();
+  drawGround();terrainElapsed=performance.now()-groundStart;
+  const roadsStart=performance.now();
+  drawRoads();roadsElapsed=performance.now()-roadsStart;
+  drawForestDebug();
+ };
+ // Terrain chunks and water renderers are already buffered, yet painting
+ // every completed canvas again consumed ~70% of warm frame time.
+ // Cache the COMPLETE background only if no editor overlay requires freshly
+ // evaluated outlines and the terrain GPU is not drawing below this canvas.
+ const interactiveBackground=finalRendering||state.view!=='map'||gpuFrame||
+  state.edgeDebug||state.grid||state.riverDebug||state.riverDraft?.length||
+  state.roadPaintMode||state.relief?.debug||state.seamCheck;
+ if(interactiveBackground){
+  renderBackground();
+  backgroundProfile={mode:'direct',cached:false,
+   reason:finalRendering?'Final-PNG-Export':gpuFrame?'GPU-Terrain aktiv':'Editor-/Debug-Overlay',
+   compositeMs:0,buildMs:0};
+ }else{
+  const backgroundSignature=[
+   frameMemo.stats().revision,state.selected,state.roadShown,state.river,
+   state.shoreline?.enabled,terrainLod,previewDensity(),
+   terrainChunks.stats().built,roadChunks.stats().built,
+   shorelineChunks.stats().built,riverChunks.stats().built,
+   window.VedrasTerrainWorker?.status?.().completed||0
+  ].join('|');
+  let builtTerrain=0,builtRoads=0;
+  backgroundProfile=backgroundScene.paint({
+   ctx,signature:backgroundSignature,
+   view:{width:W,height:H,dpr:state.dpr,zoom:state.zoom,
+    panX:state.panX,panY:state.panY},
+   drawScene:({ctx:layerCtx,width,height})=>{
+    const oldCtx=ctx,oldW=W,oldH=H;
+    try{
+     ctx=layerCtx;W=width;H=height;
+     renderBackground();
+     builtTerrain=terrainElapsed;builtRoads=roadsElapsed;
+    }finally{ctx=oldCtx;W=oldW;H=oldH;}
+   }
+  });
+  if(backgroundProfile.cached){
+   terrainElapsed=backgroundProfile.compositeMs;
+   roadsElapsed=0;
+  }else{
+   terrainElapsed=builtTerrain+(backgroundProfile.compositeMs||0);
+   roadsElapsed=builtRoads;
+  }
+ }
+ window.__vedrasBackgroundProfile=backgroundProfile;
+ const t2=performance.now();
  spriteAtlas?.beginFrame();
  window.VedrasSpriteShadows?.beginFrame?.();
  let sceneryProfile=null;
@@ -1579,7 +1629,7 @@ function draw(){if(!ctx||!canvas.width)return;
  objProfile.shadowRaster=shadowRaster;
  objProfile.staticLayer=sceneryProfile;
  const gpuSpriteStats=gpuSprites?.stats?.()||{};
- const sample={terrainMs:t1-t0,roadsMs:t2-t1,objectsMs:t3-t2,totalMs:t3-t0,
+ const sample={terrainMs:terrainElapsed,roadsMs:roadsElapsed,objectsMs:t3-t2,totalMs:t3-t0,
   objectLayoutMs:objProfile.layoutMs||0,objectOcclusionMs:objProfile.occlusionMs||0,
   objectSortMs:objProfile.sortMs||0,objectShadowsMs:objProfile.shadowPassMs||0,
   objectSpritesMs:objProfile.spritePassMs||0,
@@ -1590,13 +1640,26 @@ function draw(){if(!ctx||!canvas.width)return;
  const mean=k=>perfSamples.reduce((v,s)=>v+s[k],0)/perfSamples.length;
  window.__vedrasRenderProfile={...sample,averageMs:mean('totalMs'),
   averageTerrainMs:mean('terrainMs'),averageRoadsMs:mean('roadsMs'),
-  averageObjectsMs:mean('objectsMs'),object:objProfile,samples:perfSamples.length};
+  averageObjectsMs:mean('objectsMs'),object:objProfile,background:backgroundProfile,
+  preparation:frameMemo.stats(),samples:perfSamples.length};
  const status=$('perfStats');
  if(status)status.textContent='Ø '+mean('totalMs').toFixed(1)+' ms / Frame · Gelände '+
   mean('terrainMs').toFixed(1)+' ms · Wege/Flüsse '+
   mean('roadsMs').toFixed(1)+' ms · Sprites/Schatten '+
   mean('objectsMs').toFixed(1)+' ms · Schatten-Cache '+
   sample.shadowCacheHits+' Treffer / '+sample.shadowCacheMisses+' neu';
+ const bgStatus=$('backgroundPerfStats');
+ if(bgStatus)bgStatus.textContent='Hintergrund: '+(backgroundProfile?.mode||'direct')+
+  (backgroundProfile?.cached?' wiederverwendet':' neu')+
+  (backgroundProfile?.reason?' · '+backgroundProfile.reason:'')+
+  (backgroundProfile?.pad!==undefined?' · Rand '+backgroundProfile.pad+' px':'')+
+  (backgroundProfile?.requestedPixels?
+   ' · '+(backgroundProfile.requestedPixels/1e6).toFixed(1)+' MP':'')+
+  ' · Komposition '+(backgroundProfile?.compositeMs||0).toFixed(1)+' ms'+
+  ' · Signatur-Cache '+frameMemo.stats().hits+' Treffer / '+
+  frameMemo.stats().misses+' Neuaufbauten'+
+  ' · Chunk-Index '+window.VedrasChunks.spatialStats().hits+' Treffer / '+
+  window.VedrasChunks.spatialStats().builds+' Aufbauten';
  const objectStatus=$('objectPerfStats');
  if(objectStatus)objectStatus.textContent='Objekte '+(objProfile.visible||0)+'/'+
   (objProfile.total||0)+' vorbereitet · '+(objProfile.drawnSprites||0)+
@@ -2437,4 +2500,5 @@ window.VedrasAssetLabor={shadowSprites:{
 },ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
  gpuStats:()=>gpuTerrain?.stats()||{ready:false},
  sceneryStats:()=>staticScenery.stats(),spriteGpuStats:()=>gpuSprites?.stats()||{ready:false},
+ backgroundStats:()=>backgroundScene.stats(),preparationStats:()=>frameMemo.stats(),
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
