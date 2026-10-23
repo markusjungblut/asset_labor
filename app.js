@@ -1336,6 +1336,30 @@ function drawForestDebug(){
 }
 let perfSamples=[],frameNumber=0;
 function draw(){if(!ctx||!canvas.width)return;
+ // Protect all shared terrain sources and the sprite images intersecting the
+ // camera. Without this, the cache evicts a visible tree and the next frame
+ // immediately re-decodes it, producing endless add/remove flicker.
+ const pinned=new Set();
+ for(const a of assets)if(['terrain','terrain_base','shorelines'].includes(a.category))
+  pinned.add(a.path);
+ const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
+ const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
+  minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
+  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450)
+   pinned.add(m.assetPath);
+ }
+ for(const [cell,object] of Object.entries(state.hexObject||{})){
+  const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
+  if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
+   pinned.add(object?.path);
+ }
+ imagePool.protect(pinned);
  if(++frameNumber%120===0)imagePool.prune();
  const t0=performance.now();
  gpuFrame=!finalRendering&&state.view==='map'&&state.gpuTerrain!==false&&
