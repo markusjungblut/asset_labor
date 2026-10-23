@@ -19,7 +19,7 @@ window.VedrasSpriteShadows=(()=>{
  const defaults=()=>({schemaVersion:1,revision:0,
   global:Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,v.default])),
   profiles:{}});
- let current=defaults();
+ let current=defaults(),changeToken=0;
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
  function valid(input){
   if(!input||input.schemaVersion!==1||!input.global||
@@ -51,7 +51,7 @@ window.VedrasSpriteShadows=(()=>{
   return {schemaVersion:1,revision:Number.isSafeInteger(input.revision)&&input.revision>=0?input.revision:0,
    global:{...input.global},profiles:Object.fromEntries(keys.map(k=>[k,{...input.profiles[k]}]))};
  }
- function set(data){current=valid(data);clearRasterCache();return current;}
+ function set(data){current=valid(data);changeToken++;clearRasterCache();return current;}
  function get(){return current;}
  function profile(asset){
   const path=typeof asset==='string'?asset:asset?.path||'';
@@ -219,7 +219,7 @@ window.VedrasSpriteShadows=(()=>{
    raster.width*ratio,raster.height*ratio);
   ctx.restore();
  }
- const api={fields,shapeKeys,defaults,valid,set,get,profile,draw,drawCached,beginFrame,cacheStats};
+ const api={fields,shapeKeys,defaults,valid,set,get,revision:()=>changeToken,profile,draw,drawCached,beginFrame,cacheStats};
  return api;
 })();
 window.addEventListener('DOMContentLoaded',()=>{
