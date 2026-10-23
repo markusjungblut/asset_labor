@@ -6,7 +6,7 @@ const source=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('onReady does not reset every landscape chunk for each arriving image',()=>{
  const app=source('app.js');
- const block=app.slice(app.indexOf(' onReady:a=>{'),app.indexOf('\n });',app.indexOf(' onReady:a=>{')));
+ const block=app.slice(app.indexOf(' onReady:a=>{'),app.indexOf('\n});',app.indexOf(' onReady:a=>{')));
  assert.ok(block.includes('terrainRasterCache.signature=null'));
  assert.doesNotMatch(block,/invalidateTerrain\(/);
  assert.match(block,/assetReadyTimer=setTimeout\(/);
