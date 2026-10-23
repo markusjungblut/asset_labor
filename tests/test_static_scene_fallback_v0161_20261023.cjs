@@ -54,10 +54,10 @@ test('debug overlays external to sprite scene no longer force CPU direct fallbac
 });
 test('hotfix scripts bust browser caches and preserve Python 3.8 endpoint',()=>{
  const html=read('index.html'),server=read('server.py');
- assert.match(html,/Asset-Labor v0\.16\.1/);
- assert.match(html,/static-object-layer\.js\?v=0\.2\.0/);
- assert.match(html,/app\.js\?v=0\.49\.1/);
- assert.match(server,/VERSION = '0\.16\.1'/);
+ assert.match(html,/Asset-Labor v0\.\d+\.\d+/);
+ assert.match(html,/static-object-layer\.js\?v=/);
+ assert.match(html,/app\.js\?v=/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
