@@ -67,9 +67,16 @@ window.VedrasChunks=(()=>{
  }
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
-  let cache=new Map();const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),warmRemaining=new Set();
-  let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
-   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0};
+  let cache=new Map();
+  const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
+   prefetchQueue=new Map(),warmRemaining=new Set();
+  let signature='',family='',epoch=0,scheduled=false,
+   inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
+   viewportWanted=new Set(),prefetchWanted=new Set(),lastFocus=null,
+   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,
+    painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0,
+    prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
+    visibleRevision:0,prefetchPending:0,manualPending:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
@@ -89,12 +96,18 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
-   dropCache();queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();
-   signature='';family='';epoch++;scheduled=false;inFlight=false;
+   dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+   warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
+   prefetchWanted.clear();lastFocus=null;
+   signature='';family='';epoch++;scheduled=false;
+   inFlightInteractive=false;inFlightBackground=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
    if(next!==signature){
-    queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
+    prefetchWanted.clear();lastFocus=null;
+    epoch++;scheduled=false;inFlightInteractive=false;inFlightBackground=false;
     stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
@@ -112,7 +125,7 @@ window.VedrasChunks=(()=>{
     signature=next;family=nextFamily;
    }
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
-    stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
+   stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
   }
   function use(k){
    const data=cache.get(k);
@@ -139,74 +152,105 @@ window.VedrasChunks=(()=>{
   function markWarm(id){
    if(warmRemaining.delete(id)){stats.warmDone++;onWarmProgress({...stats});}
   }
+  // A foreground slot is independent of the speculative/explicit warm slot:
+  // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
-   if(scheduled||inFlight||(!queue.size&&!backgroundQueue.size))return;
-   scheduled=true;const generation=epoch;
+   if(scheduled)return;
+   const foreground=queue.size>0&&!inFlightInteractive;
+   const background=!inFlightBackground&&(backgroundQueue.size||prefetchQueue.size);
+   if(!foreground&&!background)return;
+   scheduled=true;
+   const generation=epoch;
    const task=()=>{
     if(generation!==epoch)return;
     scheduled=false;
-    const interactive=queue.size>0;
-    const targetQueue=interactive?queue:backgroundQueue;
+    const interactive=queue.size>0&&!inFlightInteractive;
+    const warm=!interactive&&!inFlightBackground&&backgroundQueue.size>0;
+    const predictive=!interactive&&!warm&&!inFlightBackground&&prefetchQueue.size>0;
+    if(!interactive&&!warm&&!predictive)return;
+    const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
+    const isVisible=viewportWanted.has(id)||protectedIds.has(id);
+    if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
+     stats.prefetchDiscarded++;schedule();return;
+    }
     if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)){
      markWarm(id);schedule();return;
     }
-     const expectedStamp=stampForTile(t);
+    const expectedStamp=stampForTile(t);
     const t0=typeof performance!=='undefined'?performance.now():0;
+    const countPixels=item=>{
+     const resources=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
+      item?.raster?.landLayer?.canvas,item?.relief?.canvas];
+     const seen=new Set();
+     return resources.reduce((sum,c)=>{
+      if(!c||seen.has(c))return sum;
+      seen.add(c);return sum+(c.width||0)*(c.height||0);
+     },0);
+    };
     const complete=item=>{
-     if(generation!==epoch){release(item);return;}
-      if(expectedStamp!==stampForTile(t)){
-       // A pixel-changing edit occurred during a background job.
-       release(item);if(interactive)requestDraw();
-       markWarm(id);
-       if(queue.size||backgroundQueue.size)schedule();return;
-      }
-     // An offscreen precompute can supersede a stale cached variant.
-     // Account for and close the previous raster before replacing its key.
-     const old=cache.get(id);
-     if(old){stats.pixels-=old.pixels||0;release(old);}
-     if(!item){
-      cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
-     }else{
-      const pixels=(item.raster?.canvas?.width||0)*(item.raster?.canvas?.height||0)+
-       (item.raster?.waterLayer?.canvas?.width||0)*(item.raster?.waterLayer?.canvas?.height||0)+
-       (item.raster?.landLayer?.canvas?.width||0)*(item.raster?.landLayer?.canvas?.height||0)+
-       (item.relief?.canvas&&item.relief.canvas!==item.raster?.landLayer?.canvas?
-        item.relief.canvas.width*item.relief.canvas.height:0);
-      cache.set(id,{...item,pixels,stamp:expectedStamp});stats.pixels+=pixels;stats.built++;
+     if(generation!==epoch){release(item);stats.obsolete++;return;}
+     const visibleNow=viewportWanted.has(id)||protectedIds.has(id);
+     // Ignore obsolete speculative jobs rather than filling the LRU with
+     // a distant region after the player turns around.
+     if(expectedStamp!==stampForTile(t)||
+       (predictive&&!visibleNow&&!prefetchWanted.has(id))){
+      release(item);stats.obsolete++;markWarm(id);schedule();return;
      }
+     const pixels=countPixels(item);
+     const old=cache.get(id);
+     // Background prefetch is not allowed to evict the current viewport
+     // or a fallback LOD. Reserve 15% of this layer's pixel budget.
+     if(predictive&&!visibleNow&&
+       (cache.size>=Math.max(1,maxTiles-4)||
+        stats.pixels-(old?.pixels||0)+pixels>maxPixels*.85)){
+      release(item);stats.prefetchDiscarded++;schedule();return;
+     }
+     if(old){stats.pixels-=old.pixels||0;release(old);}
+     if(!item)cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
+     else{
+      cache.set(id,{...item,pixels,stamp:expectedStamp});
+      stats.pixels+=pixels;stats.built++;
+      if(predictive&&!visibleNow)stats.prefetched++;
+     }
+     if(visibleNow){stats.visibleRevision++;queue.delete(id);}
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
-     if(interactive||protectedIds.has(id))requestDraw();
+     if(visibleNow)requestDraw();
      markWarm(id);
-     if(queue.size||backgroundQueue.size)schedule();
+     schedule();
     };
     const fail=error=>{
      if(generation!==epoch)return;
      stats.errors++;
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     if(interactive)requestDraw();
-     markWarm(id);
-     if(queue.size||backgroundQueue.size)schedule();
+     if(interactive||viewportWanted.has(id))requestDraw();
+     markWarm(id);schedule();
+    };
+    if(interactive)inFlightInteractive=true;
+    else inFlightBackground=true;
+    const finish=()=>{
+     if(generation!==epoch)return;
+     if(interactive)inFlightInteractive=false;
+     else inFlightBackground=false;
     };
     try{
      const output=build(t,neighbors(t,cells));
      if(output&&typeof output.then==='function'){
-      inFlight=true;
-      output.then(item=>{
-       if(generation===epoch)inFlight=false;
-       complete(item);
-      },err=>{
-       if(generation===epoch)inFlight=false;
-       fail(err);
-      });
-     }else complete(output);
-    }catch(err){fail(err);}
+      output.then(item=>{finish();complete(item);},
+       err=>{finish();fail(err);});
+     }else{finish();complete(output);}
+    }catch(err){finish();fail(err);}
+    // If another lane has work, it can run without waiting for this Promise.
+    if(queue.size&&!inFlightInteractive)schedule();
    };
-   if(typeof requestIdleCallback==='function')requestIdleCallback(task,{timeout:250});
-   else if(typeof setTimeout==='function')setTimeout(task,0);
+   // Foreground tiles must never wait for idle time under continuous input.
+   if(foreground&&typeof setTimeout==='function')setTimeout(task,0);
+   else if(typeof requestIdleCallback==='function')
+    requestIdleCallback(task,{timeout:1000});
+   else if(typeof setTimeout==='function')setTimeout(task,16);
    else task();
   }
   // Rasters keep their source halos, but each chunk exclusively owns a
