@@ -15,13 +15,39 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.13.0'
+VERSION = '0.15.0'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
 HOST = '127.0.0.1'
 DEFAULT_PORT = 8780
 PORT = int(os.environ.get('VEDRAS_PORT', DEFAULT_PORT))
+ATLAS_LOCK = threading.Lock()
+ATLAS_STATUS = {'state': 'idle', 'error': '', 'sprites': 0, 'pages': 0}
+
+def schedule_atlas_build():
+    """Explicit offline job; NEVER compete with terrain rendering on startup."""
+    with ATLAS_LOCK:
+        if ATLAS_STATUS['state'] == 'building':
+            return False
+        ATLAS_STATUS.update(state='building', error='')
+    def task():
+        try:
+            from scripts.build_sprite_atlases import build
+            manifest = build(ASSETS, BASE / 'atlases')
+            desktop = manifest['tiers']['desktop']
+            with ATLAS_LOCK:
+                ATLAS_STATUS.update(state='ready', sprites=len(desktop['sprites']),
+                                    pages=len(desktop['pages']), error='')
+        except ImportError:
+            with ATLAS_LOCK:
+                ATLAS_STATUS.update(state='error', error='Pillow fehlt: python -m pip install Pillow')
+        except Exception as exc:
+            with ATLAS_LOCK:
+                ATLAS_STATUS.update(state='error', error=str(exc)[:200])
+    threading.Thread(target=task, name='offline-sprite-atlas', daemon=True).start()
+    return True
+
 
 
 def validate_catalog(c):
@@ -213,11 +239,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         endpoint = urlparse(self.path).path
-        if endpoint not in ('/api/terrain-catalog', '/api/nature-catalog', '/api/sprite-shadows'):
-            self._failure(404, 'Unbekannte API')
-            return
         if self.headers.get('Origin') not in (None, f'http://{HOST}:{self.server.server_port}'):
             self._failure(403, 'Fremde Browser-Herkunft nicht erlaubt')
+            return
+        if endpoint == '/api/build-atlases':
+            self._send_json({'started': schedule_atlas_build(), **ATLAS_STATUS})
+            return
+        if endpoint not in ('/api/terrain-catalog', '/api/nature-catalog', '/api/sprite-shadows'):
+            self._failure(404, 'Unbekannte API')
             return
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -248,6 +277,11 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/atlas-status':
+            with ATLAS_LOCK:
+                info = ATLAS_STATUS.copy()
+            self._send_json(info)
+            return
         if parsed.path == '/api/version':
             self._send_json({
                 'version': VERSION,
