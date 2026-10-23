@@ -103,13 +103,14 @@ window.VedrasSpriteShadows=(()=>{
  // filter/blur/transforms once per image, quantized size and shadow profile.
  // The editor still calls draw() directly; final PNG exports also use draw().
  const rasterCache=new Map();
+ const rasterPinned=new Set();
  const rasterIds=new WeakMap();
  let rasterNextId=0,rasterBytes=0;
  const rasterBudget=18*1024*1024,rasterLimit=144;
  const rasterStats={hits:0,misses:0,evicted:0,fallback:0,paintMs:0,
   frameHits:0,frameMisses:0,frameFallback:0};
- function beginFrame(){rasterStats.frameHits=0;rasterStats.frameMisses=0;rasterStats.frameFallback=0;}
- function clearRasterCache(){rasterCache.clear();rasterBytes=0;}
+ function beginFrame(){rasterPinned.clear();rasterStats.frameHits=0;rasterStats.frameMisses=0;rasterStats.frameFallback=0;}
+ function clearRasterCache(){rasterCache.clear();rasterPinned.clear();rasterBytes=0;}
  function cacheStats(){return {...rasterStats,entries:rasterCache.size,bytes:rasterBytes};}
  function imageId(silhouette){
   let id=rasterIds.get(silhouette.canvas);
@@ -181,8 +182,22 @@ window.VedrasSpriteShadows=(()=>{
   let raster=rasterCache.get(id);
   if(raster){
    rasterCache.delete(id);rasterCache.set(id,raster);
+   rasterPinned.add(id);
    rasterStats.hits++;rasterStats.frameHits++;
   }else{
+   // Keep all previously used bitmaps resident throughout this frame.
+   // When a dense scene exceeds the budget, use the original renderer for
+   // extra casts rather than thrashing the LRU every frame.
+   const bytes=bounds.width*bounds.height*4;
+   while(rasterCache.size>=rasterLimit||rasterBytes+bytes>rasterBudget){
+    const old=[...rasterCache.keys()].find(k=>!rasterPinned.has(k));
+    if(old===undefined){
+     rasterStats.fallback++;rasterStats.frameFallback++;
+     return draw(ctx,obj,p,width,silhouette,anchor,strength);
+    }
+    const entry=rasterCache.get(old);
+    rasterCache.delete(old);rasterBytes-=entry.bytes;rasterStats.evicted++;
+   }
    const start=typeof performance!=='undefined'?performance.now():Date.now();
    const canvas=document.createElement('canvas');
    canvas.width=bounds.width;canvas.height=bounds.height;
@@ -194,14 +209,9 @@ window.VedrasSpriteShadows=(()=>{
    g.translate(-bounds.left,-bounds.top);
    draw(g,obj,{x:0,y:0},nominal,silhouette,anchor,strength);
    raster={canvas,...bounds,bytes:canvas.width*canvas.height*4};
-   rasterCache.set(id,raster);rasterBytes+=raster.bytes;
+   rasterCache.set(id,raster);rasterPinned.add(id);rasterBytes+=raster.bytes;
    rasterStats.misses++;rasterStats.frameMisses++;
    rasterStats.paintMs+=(typeof performance!=='undefined'?performance.now():Date.now())-start;
-   while(rasterCache.size>rasterLimit||rasterBytes>rasterBudget){
-    const old=rasterCache.keys().next().value,entry=rasterCache.get(old);
-    rasterCache.delete(old);rasterBytes-=entry.bytes;rasterStats.evicted++;
-    // Do not assign canvas.width=0: it may be used by the current draw.
-   }
   }
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';
   ctx.drawImage(raster.canvas,p.x+raster.left*ratio,p.y+raster.top*ratio,
