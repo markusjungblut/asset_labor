@@ -72,7 +72,8 @@ window.VedrasChunks=(()=>{
    prefetchQueue=new Map(),warmRemaining=new Set();
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
-   viewportWanted=new Set(),prefetchWanted=new Set(),lastFocus=null,
+   viewportWanted=new Set(),prefetchWanted=new Set(),prefetchRejected=new Set(),
+   lastDrawnVersions=new Map(),rasterVersion=0,lastFocus=null,
    stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,
     painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0,
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
@@ -98,7 +99,7 @@ window.VedrasChunks=(()=>{
   function clear(){
    dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
-   prefetchWanted.clear();lastFocus=null;
+   prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();lastFocus=null;
    signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
    inFlightInteractive=false;inFlightBackground=false;
   }
@@ -106,8 +107,8 @@ window.VedrasChunks=(()=>{
    if(next!==signature){
     queue.clear();backgroundQueue.clear();prefetchQueue.clear();
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
-    prefetchWanted.clear();lastFocus=null;
-    epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
+    prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();
+    lastFocus=null;epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
     stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
@@ -209,12 +210,16 @@ window.VedrasChunks=(()=>{
      if(predictive&&!visibleNow&&
        (cache.size>=Math.max(1,maxTiles-4)||
         stats.pixels-(old?.pixels||0)+pixels>maxPixels*.85)){
-      release(item);stats.prefetchDiscarded++;schedule();return;
+      release(item);stats.prefetchDiscarded++;
+      prefetchRejected.add(id);
+      schedule();return;
      }
      if(old){stats.pixels-=old.pixels||0;release(old);}
-     if(!item)cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
+     if(!item)cache.set(id,{raster:null,relief:null,pixels:0,
+      stamp:expectedStamp,version:++rasterVersion});
      else{
-      cache.set(id,{...item,pixels,stamp:expectedStamp});
+      cache.set(id,{...item,pixels,stamp:expectedStamp,
+       version:++rasterVersion});
       stats.pixels+=pixels;stats.built++;
       if(predictive&&!visibleNow)stats.prefetched++;
      }
@@ -284,6 +289,7 @@ window.VedrasChunks=(()=>{
     ((a.x+size/2-predictedX)**2+(a.y+size/2-predictedY)**2)-
     ((b.x+size/2-predictedX)**2+(b.y+size/2-predictedY)**2)
    ).slice(0,limit);
+   if(stats.pixels<maxPixels*.60)prefetchRejected.clear();
    prefetchWanted=new Set(chosen.map(t=>t.id));
    for(const id of [...prefetchQueue.keys()])
     if(!prefetchWanted.has(id))prefetchQueue.delete(id);
@@ -294,6 +300,7 @@ window.VedrasChunks=(()=>{
    for(const t of chosen){
     const cached=cache.get(t.id);
     if((cached&&cached.stamp===stampForTile(t))||
+      prefetchRejected.has(t.id)||
       queue.has(t.id)||backgroundQueue.has(t.id))continue;
     prefetchQueue.set(t.id,previous.get(t.id)||t);
     if(!previous.has(t.id))stats.prefetchQueued++;
@@ -307,13 +314,21 @@ window.VedrasChunks=(()=>{
    stats.visible=tiles.length;
    updateStreaming(bounds,tiles,prefetch);
    trim();
+   let unseenReady=false;
    for(const t of tiles){
     const data=cache.get(t.id);
-    if((!data||data.stamp!==stampForTile(t))&&!queue.has(t.id)){
+    const ready=data&&data.stamp===stampForTile(t);
+    if(ready&&lastDrawnVersions.get(t.id)!==data.version)
+     unseenReady=true;
+    if(!ready&&!queue.has(t.id)){
      prefetchQueue.delete(t.id);
      queue.set(t.id,t);
     }
    }
+   // A speculative result can be ready before entering the visible region,
+   // yet absent in v0.17's already cached, oversized background canvas.
+   // Force only that newly seen region to refresh once when it enters view.
+   if(unseenReady){stats.visibleRevision++;requestDraw();}
    stats.prefetchPending=prefetchQueue.size;
    stats.manualPending=backgroundQueue.size;
    stats.pending=queue.size+(inFlightInteractive?1:0);
@@ -350,6 +365,7 @@ window.VedrasChunks=(()=>{
    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
    updateStreaming(viewport,tiles,prefetch);
    trim();
+   const paintedVersions=new Map();
    for(const t of tiles){
     let result=use(t.id);
     if(result&&result.stamp!==stampForTile(t)){
@@ -362,6 +378,7 @@ window.VedrasChunks=(()=>{
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
+    paintedVersions.set(t.id,artwork.version);
     // The source halo is still present. Its destination is clipped to one
     // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
     ctx.save();clipCore(ctx,t);
@@ -370,6 +387,7 @@ window.VedrasChunks=(()=>{
     else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
     ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
+   lastDrawnVersions=paintedVersions;
    stats.pending=queue.size+(inFlightInteractive?1:0);
    stats.prefetchPending=prefetchQueue.size;
    stats.manualPending=backgroundQueue.size;
