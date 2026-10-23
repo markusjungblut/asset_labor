@@ -689,21 +689,46 @@ function drawRoads(){
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  // First draw rivers. Their water remains unchanged: paths and bridges are
  // constructed ABOVE water rather than being submerged beneath its mask.
- const routes=state.river?riverRoutes():[],byKey=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
+ const roadPrepStart=performance.now();
+ const roadPrep=frameMemo.use('road-prep',
+  String(state.river)+'|'+state.roadShown+'|'+previewDensity()+'|'+finalRendering,
+  ()=>{
+   const routes=state.river?riverRoutes():[];
+   const byKey=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
+   const width=clamp(Number(state.riverWidth)||32,12,70);
+   let bankCells=[],bankSignature='';
+   if(routes.length&&state.riverBanks!==false&&Number(state.riverBankStrength)>0){
+    const forestMap=new Map(forestCells().map(c=>[key(c.q,c.r),c]));
+    bankCells=worldCells.map(c=>({...c,
+     forestClass:forestMap.get(key(c.q,c.r))?.forestClass||c.forestClass||null}));
+    bankSignature=JSON.stringify({routes,width,relief:state.relief,
+     mountains:state.mountainInstances,buildings:state.relief.padBuildings?state.hexObject:null,
+     bank:state.riverBanks,strength:state.riverBankStrength,
+     terrain:bankCells.map(c=>[c.q,c.r,c.biome,effectiveBiome(c),
+      c.forestClass,c.reliefClass,c.hillProfile,c.hillStrength]),
+     version:'immersive-river-network-1'});
+   }
+   const routeVisual=routes.map(route=>{
+    const mouth=route.hexes.at(-1),cell=byKey.get(mouth.join(','));
+    const water=cell?imageForBiome(cell):null;
+    const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,
+     width,asset:water?.path,mtime:water?.mtime,
+     img:water?.img?.naturalWidth||0,relief:state.relief,mask:'original-water-sdf-v5'});
+    return {route,water,signature};
+   });
+   const roadEdges=state.roadShown?visibleRoadEdges():[];
+   const roadFamily=JSON.stringify([roadEdges,state.relief,state.mountainInstances,state.hexObject]);
+   const bridgeSignature=JSON.stringify([roadEdges,routes,state.riverWidth,
+    worldCells.map(c=>[c.q,c.r])]);
+   return {routes,bankCells,bankSignature,routeVisual,roadEdges,roadFamily,bridgeSignature,width};
+  });
+ const {routes,bankCells,bankSignature,routeVisual,roadEdges,roadFamily,bridgeSignature,width}=roadPrep;
+ const roadPrepMs=performance.now()-roadPrepStart;
  const sw=fromScreen(-140,-140),ne=fromScreen(W+140,H+140);
  const bounds={x:Math.min(sw.x,ne.x),y:Math.min(sw.y,ne.y),
   width:Math.abs(ne.x-sw.x),height:Math.abs(ne.y-sw.y)};
  if(routes.length&&state.riverBanks!==false&&Number(state.riverBankStrength)>0){
-  const width=clamp(Number(state.riverWidth)||32,12,70);
-  const forestMap=new Map(forestCells().map(c=>[key(c.q,c.r),c]));
-  const bankCells=worldCells.map(c=>({...c,
-   forestClass:forestMap.get(key(c.q,c.r))?.forestClass||c.forestClass||null}));
-  const signature=JSON.stringify({routes,width,relief:state.relief,
-   mountains:state.mountainInstances,buildings:state.relief.padBuildings?state.hexObject:null,
-   bank:state.riverBanks,strength:state.riverBankStrength,
-   terrain:bankCells.map(c=>[c.q,c.r,c.biome,effectiveBiome(c),
-    c.forestClass,c.reliefClass,c.hillProfile,c.hillStrength]),
-   version:'immersive-river-network-1'});
+  const signature=bankSignature;
   if(riverNetworkCache.signature!==signature){
    const prepared=window.VedrasRiverBanks.prepare(routes,bankCells,wetHex,{
     width,groundY:state.relief.enabled?displayGroundY:null,
@@ -745,14 +770,8 @@ function drawRoads(){
   return p.x>=bounds.x-360&&p.x<=bounds.x+bounds.width+360&&
    p.y>=bounds.y-360&&p.y<=bounds.y+bounds.height+360;
  });
- for(const route of routes){
+ for(const {route,water,signature} of routeVisual){
   if(!visibleRiver(route))continue;
-  const width=clamp(Number(state.riverWidth)||32,12,70);
-  const mouth=route.hexes.at(-1),cell=byKey.get(mouth.join(','));
-  const water=cell?imageForBiome(cell):null;
-  const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,
-   width,asset:water?.path,mtime:water?.mtime,
-   img:water?.img?.naturalWidth||0,relief:state.relief,mask:'original-water-sdf-v5'});
   const cached=riverRasterCache.get(signature);
   if(cached)ctx.drawImage(cached.canvas,cached.x,cached.y,cached.width,cached.height);
   else{
@@ -803,12 +822,10 @@ function drawRoads(){
   ctx.setLineDash([]);ctx.restore();
  }
  if(state.roadShown){
-  const roadEdges=visibleRoadEdges();
   const projection=state.relief.enabled?displayGroundY:null;
   const visibleEdges=roadEdges.filter(e=>roadInView(e,bounds));
   if(state.chunkRendering||state.sceneSize>37){
    const distant=updateTerrainLod(state.zoom)==='coarse',density=(distant?.55:1)*previewDensity();
-   const roadFamily=JSON.stringify([roadEdges,state.relief,state.mountainInstances,state.hexObject]);
    const signature=JSON.stringify([roadFamily,distant,previewDensity()]);
    roadChunks.configure(signature,{
     worldCells,
@@ -832,8 +849,6 @@ function drawRoads(){
    window.VedrasRoads.render(ctx,visibleEdges,{hex:HEX,groundY:projection,
     detail:state.zoom>=.80});
   }
-  const bridgeSignature=JSON.stringify([roadEdges,routes,state.riverWidth,
-   worldCells.map(c=>[c.q,c.r])]);
   if(bridgeCrossingsCache.signature!==bridgeSignature)
    bridgeCrossingsCache={signature:bridgeSignature,crossings:window.VedrasBridges.candidates(
     roadEdges,routes,worldCells,wetHex,state.riverWidth)};
@@ -848,6 +863,7 @@ function drawRoads(){
   const label=$('roadBridgeStats');if(label)label.textContent='Wege ausgeblendet';
  }
  ctx.restore();
+ window.__vedrasRoadPreparation={ms:roadPrepMs,cached:roadPrepMs<1};
 }
 function validMountains(){
  const lookup=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
