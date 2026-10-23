@@ -41,10 +41,10 @@ window.VedrasChunks=(()=>{
  }
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
-  let cache=new Map();const retired=new Map(),queue=new Map();
+  let cache=new Map();const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),warmRemaining=new Set();
   let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
-   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0};
-  let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature;
+   stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0};
+  let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
     item?.raster?.landLayer?.canvas,item?.relief?.canvas];
@@ -63,12 +63,13 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
-   dropCache();queue.clear();protectedIds.clear();
+   dropCache();queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();
    signature='';family='';epoch++;scheduled=false;inFlight=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
    if(next!==signature){
-    queue.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
      // old variant and reuse it immediately if the user zooms back.
@@ -109,23 +110,37 @@ window.VedrasChunks=(()=>{
   }
   // buildTile may return a concrete canvas group OR a Promise of transferred
   // ImageBitmaps. While the Worker is busy, input and the compositor stay free.
+  function markWarm(id){
+   if(warmRemaining.delete(id)){stats.warmDone++;onWarmProgress({...stats});}
+  }
   function schedule(){
-   if(scheduled||inFlight||!queue.size)return;
+   if(scheduled||inFlight||(!queue.size&&!backgroundQueue.size))return;
    scheduled=true;const generation=epoch;
    const task=()=>{
     if(generation!==epoch)return;
     scheduled=false;
-    const next=queue.entries().next().value;
+    const interactive=queue.size>0;
+    const targetQueue=interactive?queue:backgroundQueue;
+    const next=targetQueue.entries().next().value;
     if(!next)return;
-    const [id,t]=next;queue.delete(id);
+    const [id,t]=next;targetQueue.delete(id);
+    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)){
+     markWarm(id);schedule();return;
+    }
      const expectedStamp=stampForTile(t);
     const t0=typeof performance!=='undefined'?performance.now():0;
     const complete=item=>{
      if(generation!==epoch){release(item);return;}
       if(expectedStamp!==stampForTile(t)){
        // A pixel-changing edit occurred during a background job.
-       release(item);requestDraw();if(queue.size)schedule();return;
+       release(item);if(interactive)requestDraw();
+       markWarm(id);
+       if(queue.size||backgroundQueue.size)schedule();return;
       }
+     // An offscreen precompute can supersede a stale cached variant.
+     // Account for and close the previous raster before replacing its key.
+     const old=cache.get(id);
+     if(old){stats.pixels-=old.pixels||0;release(old);}
      if(!item){
       cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
      }else{
@@ -138,14 +153,17 @@ window.VedrasChunks=(()=>{
      }
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
-     requestDraw();
-     if(queue.size)schedule();
+     if(interactive||protectedIds.has(id))requestDraw();
+     markWarm(id);
+     if(queue.size||backgroundQueue.size)schedule();
     };
     const fail=error=>{
      if(generation!==epoch)return;
      stats.errors++;
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     requestDraw();if(queue.size)schedule();
+     if(interactive)requestDraw();
+     markWarm(id);
+     if(queue.size||backgroundQueue.size)schedule();
     };
     try{
      const output=build(t,neighbors(t,cells));
@@ -203,7 +221,9 @@ window.VedrasChunks=(()=>{
     if(result&&result.stamp!==stampForTile(t)){
      cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
     }
-    if(!result&&!queue.has(t.id))queue.set(t.id,t);
+    if(!result&&!queue.has(t.id)){
+     backgroundQueue.delete(t.id);queue.set(t.id,t);
+    }
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
@@ -220,7 +240,22 @@ window.VedrasChunks=(()=>{
    schedule();
    return {...stats,cached:cache.size,variants:retired.size};
   }
-  return {configure,draw,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size}),
+  function warm(tiles,{progress=()=>{}}={}){
+   backgroundQueue.clear();warmRemaining.clear();onWarmProgress=progress;
+   stats.warmTotal=tiles.length;stats.warmDone=0;
+   for(const t of tiles){
+    const existing=cache.get(t.id);
+    if(existing&&existing.stamp===stampForTile(t))stats.warmDone++;
+    else{warmRemaining.add(t.id);backgroundQueue.set(t.id,t);}
+   }
+   onWarmProgress({...stats});schedule();
+   return {total:stats.warmTotal,queued:backgroundQueue.size};
+  }
+  function stopWarm(){
+   backgroundQueue.clear();warmRemaining.clear();stats.warmTotal=stats.warmDone;
+   onWarmProgress({...stats});
+  }
+  return {configure,draw,warm,stopWarm,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size,warmPending:backgroundQueue.size}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
  return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create};
