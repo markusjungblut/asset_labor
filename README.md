@@ -1,3 +1,42 @@
+## v0.15.3 – Objekt-Layoutcache und erweiterter Performance-Profiler (23.10.2026)
+
+**Ausgangsmessung (Nutzer, 169 Hexfelder):** insgesamt 832,9 ms/Frame;
+Gelände 237,3 ms, Wege/Flüsse 71,8 ms, Sprites/Schatten 523,8 ms;
+Bergschatten-Cache 0 Treffer / 0 neu. Der Bergschatten-Zähler misst
+**nicht** die normalen Sprite-Bodenschatten, daher ist 0/0 kein Beleg
+für deren Abwesenheit.
+
+- **Objektpositionen und Reliefhöhe nur bei Szenenänderung vorbereiten.**
+  `object-layout-cache.js` hält die vollständige vorbereitete Szenen-Objektliste
+  unabhängig von der Kamera. Verschieben/Zoomen filtert nur sichtbar
+  gewordene Elemente; Straßen- und Flussplatzierungsprüfungen,
+  Natur-Metadatenabfragen und die komplexe Geländehöhenberechnung
+  (`displayGroundY`/`currentRelief`) werden nicht bei jedem Frame für jedes
+  Objekt wiederholt. Die bisherige Bild-/Schatten-Zeichenreihenfolge
+  bleibt unverändert.
+- **Gezielte Cache-Invalidierung:** Änderungen an Welt-/Terrain-/
+  Reliefparametern, platzierter Szene, Nature-Katalog, Wald, oder
+  neuen Sprite-Bilddaten erzwingen einen neuen Aufbau. Die
+  Original-Grafiken und gespeicherten Szenen bleiben unverändert.
+- **Separates Objektleistungsprofil** unter dem vorhandenen
+  Frame-Profil: Objekte gesamt/sichtbar, gezeichnete Sprites und geprüfte Schattenkandidaten,
+  Layoutkosten inkl. Cache-Hit, Berg-Überdeckungsprüfung,
+  Sortierung, Bodenschatten-Pass und Sprite-Pass. Außerdem
+  `window.__vedrasObjectProfile` und
+  `window.__vedrasRenderProfile.object` für Browserdiagnosen.
+- **Wichtige Messgrenze:** Der bisherige globale Wert
+  `Sprites/Schatten` umfasst auch Wald-Debug-Zeichnung,
+  Berg-Footprints und Frame-Verwaltung; der neue detaillierte
+  Profiler erfasst den eigentlichen Objektpass. Die
+  `requestAnimationFrame`-Callback-Zeit ist noch keine verlässliche
+  Framerate oder vollständige asynchrone Worker-Ausführungszeit.
+- **Regression:** `node --test tests/test_object_layout_cache_20261023.cjs`.
+  Für eine reale Performance-Beurteilung vor/nach dem Update dieselbe
+  169-Hex-Karte, denselben Zoom und dieselbe Renderqualität verwenden;
+  erste Frames nach Szenenänderungen getrennt von warmen
+  Cache-Frames betrachten. Gemessene Beschleunigungen werden erst
+  nach dieser Browserabnahme angegeben.
+
 ## v0.15.2 – Stabile Sprite-Ausschnitte und Atlas-Seiten (23.10.2026)
 
 - **Korrektur von wandernden und falsch vergrößerten Sprites:** Das Asset-Labor verwendet zur schnellen Vorschau teilweise auf maximal 1024 Pixel verkleinerte Natur-/Gebäude-/Einheiten-Grafiken. Der Atlas-Renderer rechnet jetzt die Vorschau-Ausschnittkoordinaten vor der Atlas-Abtastung zurück in die Originalauflösung; Zielgröße und Anker bleiben dabei unverändert.
