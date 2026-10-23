@@ -26,15 +26,18 @@ window.VedrasAdaptiveLOD=(()=>{
    const z=Math.max(.05,Math.min(4,zoom));
    if(!active)active=z<.44?'far':z<.99?'mid':'near';
    else {
-    // 0.08 / 0.14 hysteresis: successive wheel events near thresholds
-    // cannot flip between alternate raster variants on each draw.
-    if(active==='far'&&z>=.49)active='mid';
-    else if(active==='mid'&&z<=.38)active='far';
-    else if(active==='mid'&&z>=1.06)active='near';
-    else if(active==='near'&&z<=.92)active='mid';
-    // Large jumps should not get trapped in an intermediate tier.
-    if(active==='far'&&z>=1.06)active='near';
-    if(active==='near'&&z<=.38)active='far';
+    // Hysteresis prevents zoom-wheel jitter near level boundaries, while
+    // large jumps can skip intermediate tiers in a single update.
+    if(active==='far'){
+     if(z>=1.06)active='near';
+     else if(z>=.49)active='mid';
+    }else if(active==='mid'){
+     if(z<=.38)active='far';
+     else if(z>=1.06)active='near';
+    }else if(active==='near'){
+     if(z<=.38)active='far';
+     else if(z<=.92)active='mid';
+    }
    }
    if(active!==update.lastActive){changes++;update.lastActive=active;}
    return TIERS[active];
