@@ -8,7 +8,7 @@ function harness(initialKeys=[]){
  const key='a'.repeat(64),served=[],events=[];
  class Picture{
   naturalWidth=8;naturalHeight=6;decoding='async';
-  set src(v){this.url=v;queueMicrotask(()=>this.onload?.());}
+  set src(v){this.url=v;Promise.resolve().then(()=>this.onload?.());}
  }
  const fakeManifest={schemaVersion:2,key,land:{
   x:-20,y:20,width:16,height:12,density:.5,
@@ -26,7 +26,7 @@ function harness(initialKeys=[]){
   Image:Picture,fetch:requests,setTimeout:fn=>fn(),
   requestIdleCallback:fn=>fn(),console:{warn(){},error(){}},document:{
    createElement:()=>({width:8,height:6,getContext:()=>({drawImage(){}}),
-    toBlob:fn=>fn(new Blob(['fake png'],{type:'image/png'}))})
+    toBlob:fn=>fn({size:8,type:'image/png'})})
   },
   FileReader:class{readAsDataURL(){this.result='data:image/png;base64,aGVsbG8=';this.onload();}}
  };
