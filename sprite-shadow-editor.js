@@ -147,6 +147,14 @@ window.addEventListener('DOMContentLoaded',()=>{
   ctx.strokeStyle='#76948a';ctx.lineWidth=1;ctx.beginPath();
   ctx.moveTo(0,canvas.height*.70);ctx.lineTo(canvas.width,canvas.height*.70);ctx.stroke();
   if(!a){ctx.fillStyle='#d4e9d3';ctx.font='15px sans-serif';ctx.fillText('Keine passende Sprite-Datei geladen.',16,35);return;}
+  if(!a.img?.naturalWidth){
+   ctx.fillStyle='#d4e9d3';ctx.font='14px sans-serif';
+   ctx.fillText('Grafik wird bei Bedarf geladen…',16,35);
+   core.ensureAsset?.(a).then(()=>{
+    if(asset()?.path===a.path&&a.img?.naturalWidth)refresh();
+   });
+   return;
+  }
   const meta=window.VedrasNature?.entryFor(a)||null,kind=meta?.kind||a.category,
    anchor=meta?.anchor||(a.category==='buildings'?{x:.5,y:.9}:{x:.5,y:.96});
   // Use the game's visible alpha crop and scale the preview to fit tall
