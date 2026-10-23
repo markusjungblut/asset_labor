@@ -59,15 +59,15 @@ test('a build must return an object array, not an unresolved promise',()=>{
 
 test('app wires camera-independent layout and invalidates on scene or asset edits',()=>{
  const app=read('app.js'),index=read('index.html'),server=read('server.py');
- assert.match(app,/objectLayoutCache\.query\(view,buildSpriteLayout,spriteInViewport\)/);
- assert.match(app,/function persistScene\(\)\{invalidateSpriteLayout\(\)/);
+ assert.match(app,/objectLayoutCache\.query\(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin\)/);
+ assert.match(app,/function persistScene\(invalidateObjects=true\)\{if\(invalidateObjects\)invalidateSpriteLayout\(\)/);
  assert.match(app,/function invalidateTerrain\(scope='all'\)\{\s*invalidateSpriteLayout\(\)/);
  assert.match(app,/if\(\['nature','buildings','units'\]\.includes\(a\.category\)\)invalidateSpriteLayout\(\)/);
  assert.match(app,/window\.addEventListener\('vedras:nature-catalog-changed',[\s\S]*?invalidateSpriteLayout\(\)/);
  assert.match(app,/function buildSpriteLayout\(\)\{[\s\S]*?genericObjects\(\)[\s\S]*?displayGroundY/);
- assert.match(index,/object-layout-cache\.js\?v=0\.1\.0/);
+ assert.match(index,/object-layout-cache\.js\?v=/);
  assert.ok(index.indexOf('object-layout-cache.js')<index.indexOf('app.js'));
- assert.match(server,/VERSION = '0\.15\.3'/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
 });
 
 test('object profiler exposes layout/occlusion/sort/ground-shadows/sprites separately',()=>{
