@@ -417,12 +417,13 @@ function drawGround(){
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  const fallback=baseImage();const selected=worldCells.map(c=>imageForBiome(c)||fallback);
  const selectedMap=new Map(worldCells.map((c,i)=>[key(c.q,c.r),selected[i]]));
- const signature=JSON.stringify({cells:worldCells.map((c,i)=>[c.q,c.r,c.biome,effectiveBiome(c),selected[i]?.path,selected[i]?.mtime]),
+ const signature=JSON.stringify({cells:worldCells.map((c,i)=>[c.q,c.r,c.biome,effectiveBiome(c),selected[i]?.path,selected[i]?.mtime,selected[i]?.imageRevision||0]),
   scales:state.materialScales,polish:state.visualPolish.terrain,
   blend:state.edgeBlend,variants:state.blendVariants,waterSampling:state.waterSampling,width:state.edgeWidth,
   irregularity:state.edgeIrregularity,cornerBlend:state.cornerBlend,catalog:catalog.assets,types:catalog.terrainTypes});
  const graphMissing=terrainRasterCache.signature!==signature||!terrainRasterCache.graph;
  if(graphMissing){
+  terrainRasterCache.tileStamps=new Map();
   terrainRasterCache.graph=window.VedrasAutotile.graph(worldCells,effectiveBiome,
    c=>selectedMap.get(key(c.q,c.r))||fallback,{blendVariants:state.blendVariants});
  }
@@ -446,11 +447,17 @@ function drawGround(){
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
     worldCells,
-    stampTile:tile=>JSON.stringify(window.VedrasChunks.neighbors(tile,worldCells).map(c=>{
-     const asset=selectedMap.get(key(c.q,c.r))||fallback;
-     return [c.q,c.r,c.biome,effectiveBiome(c),asset?.path,asset?.mtime,
-      c.reliefClass,c.hillProfile,c.hillStrength,c.worldQ,c.worldR];
-    })),
+    stampTile:tile=>{
+     const cached=terrainRasterCache.tileStamps?.get(tile.id);
+     if(cached)return cached;
+     const stamp=JSON.stringify(window.VedrasChunks.neighbors(tile,worldCells).map(c=>{
+      const asset=selectedMap.get(key(c.q,c.r))||fallback;
+      return [c.q,c.r,c.biome,effectiveBiome(c),asset?.path,asset?.mtime,
+       asset?.imageRevision||0,c.reliefClass,c.hillProfile,c.hillStrength,c.worldQ,c.worldR];
+     }));
+     terrainRasterCache.tileStamps?.set(tile.id,stamp);
+     return stamp;
+    },
     buildTile:(tile,nearby)=>{
     const bounds={x:tile.x-window.VedrasChunks.HALO,y:tile.y-window.VedrasChunks.HALO,
      width:tile.size+window.VedrasChunks.HALO*2,height:tile.size+window.VedrasChunks.HALO*2,
