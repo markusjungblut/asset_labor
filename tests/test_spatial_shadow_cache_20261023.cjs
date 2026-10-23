@@ -94,11 +94,8 @@ test('changing an authored shadow style invalidates the bitmap cache',()=>{
 });
 
 test('manual shadow art stays on the exact, non-rasterized path',()=>{
- const {engine,created,ctx}=shadow();
+ const {created,ctx}=shadow();
  const obj=object(),silhouette=shape(),anchor={x:.5,y:.96};
- engine.set({...engine.get(),profiles:{
-  [obj.asset.path]:{manual:{mode:'polygons',polygons:[[[0,0],[.2,0],[.1,.2]]]}}
- }});
  // In the editor's browser the hand-drawn shadow renderer is installed.
  // Here its draw function is a minimal invocation stub.
  const source=read('sprite-shadow-editor.js');
