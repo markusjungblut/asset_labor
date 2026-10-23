@@ -41,7 +41,7 @@ window.VedrasChunks=(()=>{
  }
  function create({size=SIZE,maxTiles=28,maxPixels=12500000}={}){
   size=clamp(Math.floor(size),256,1024);
-  let cache=new Map();const retired=new Map(),queue=new Map(),backgroundQueue=new Map();
+  let cache=new Map();const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),warmRemaining=new Set();
   let signature='',family='',epoch=0,scheduled=false,inFlight=false,protectedIds=new Set(),
    stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
@@ -63,12 +63,12 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
-   dropCache();queue.clear();backgroundQueue.clear();protectedIds.clear();
+   dropCache();queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();
    signature='';family='';epoch++;scheduled=false;inFlight=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
    if(next!==signature){
-    queue.clear();backgroundQueue.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
+    queue.clear();backgroundQueue.clear();warmRemaining.clear();protectedIds.clear();epoch++;scheduled=false;inFlight=false;
     stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
@@ -110,6 +110,9 @@ window.VedrasChunks=(()=>{
   }
   // buildTile may return a concrete canvas group OR a Promise of transferred
   // ImageBitmaps. While the Worker is busy, input and the compositor stay free.
+  function markWarm(id){
+   if(warmRemaining.delete(id)){stats.warmDone++;onWarmProgress({...stats});}
+  }
   function schedule(){
    if(scheduled||inFlight||(!queue.size&&!backgroundQueue.size))return;
    scheduled=true;const generation=epoch;
@@ -121,8 +124,8 @@ window.VedrasChunks=(()=>{
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
-    if(!interactive&&cache.has(id)){
-     stats.warmDone++;onWarmProgress({...stats});schedule();return;
+    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)){
+     markWarm(id);schedule();return;
     }
      const expectedStamp=stampForTile(t);
     const t0=typeof performance!=='undefined'?performance.now():0;
@@ -131,7 +134,7 @@ window.VedrasChunks=(()=>{
       if(expectedStamp!==stampForTile(t)){
        // A pixel-changing edit occurred during a background job.
        release(item);if(interactive)requestDraw();
-       if(!interactive){stats.warmDone++;onWarmProgress({...stats});}
+       markWarm(id);
        if(queue.size||backgroundQueue.size)schedule();return;
       }
      if(!item){
@@ -147,7 +150,7 @@ window.VedrasChunks=(()=>{
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
      if(interactive||protectedIds.has(id))requestDraw();
-     if(!interactive){stats.warmDone++;onWarmProgress({...stats});}
+     markWarm(id);
      if(queue.size||backgroundQueue.size)schedule();
     };
     const fail=error=>{
@@ -155,7 +158,7 @@ window.VedrasChunks=(()=>{
      stats.errors++;
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
      if(interactive)requestDraw();
-     if(!interactive){stats.warmDone++;onWarmProgress({...stats});}
+     markWarm(id);
      if(queue.size||backgroundQueue.size)schedule();
     };
     try{
@@ -234,17 +237,18 @@ window.VedrasChunks=(()=>{
    return {...stats,cached:cache.size,variants:retired.size};
   }
   function warm(tiles,{progress=()=>{}}={}){
-   backgroundQueue.clear();onWarmProgress=progress;
+   backgroundQueue.clear();warmRemaining.clear();onWarmProgress=progress;
    stats.warmTotal=tiles.length;stats.warmDone=0;
    for(const t of tiles){
-    if(cache.has(t.id))stats.warmDone++;
-    else backgroundQueue.set(t.id,t);
+    const existing=cache.get(t.id);
+    if(existing&&existing.stamp===stampForTile(t))stats.warmDone++;
+    else{warmRemaining.add(t.id);backgroundQueue.set(t.id,t);}
    }
    onWarmProgress({...stats});schedule();
    return {total:stats.warmTotal,queued:backgroundQueue.size};
   }
   function stopWarm(){
-   backgroundQueue.clear();stats.warmTotal=stats.warmDone;
+   backgroundQueue.clear();warmRemaining.clear();stats.warmTotal=stats.warmDone;
    onWarmProgress({...stats});
   }
   return {configure,draw,warm,stopWarm,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size,warmPending:backgroundQueue.size}),
