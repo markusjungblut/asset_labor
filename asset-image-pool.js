@@ -20,7 +20,7 @@ window.VedrasImagePool=(()=>{
     stats.decodedBytes-=entry.bytes;entry.asset.img=null;
     // Old Image elements remain referenced by active draw operations only;
     // neither the asset catalogue nor our LRU holds them after eviction.
-    entry.img.src='';entry.img=null;stats.evicted++;
+    entry.img=null;stats.evicted++;
    }
   }
   function pump(){
@@ -39,7 +39,7 @@ window.VedrasImagePool=(()=>{
       r.img=img;r.asset.img=img;r.bytes=size(img);r.lastUsed=now();
       stats.decodedBytes+=r.bytes;stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
       stats.ready++;r.resolve(img);onReady(r.asset);prune();
-     }else{stats.failed++;resources.delete(r.asset.path);r.resolve(null);}
+     }else{stats.failed++;r.failed=true;r.resolve(null);}
      pump();
     };
     img.onload=()=>finish(!!img.naturalWidth);
@@ -65,7 +65,7 @@ window.VedrasImagePool=(()=>{
    generation++;
    for(const r of queue)r.resolve(null);
    queue=[];
-   for(const r of resources.values())if(r.ready){r.asset.img=null;r.img.src='';}
+   for(const r of resources.values())if(r.ready){r.asset.img=null;}
    resources.clear();stats.decodedBytes=0;
   }
   function report(){return {...stats,active,queued:queue.length,resident:resources.size,
