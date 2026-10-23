@@ -81,6 +81,45 @@ test('shadow profile updates advance the invalidation generation',()=>{
  engine.set(engine.get());
  assert.equal(engine.revision(),before+1);
 });
+test('actual GPU compositor uploads once for pans and reuploads changed source',()=>{
+ const observed={uploads:0,draws:0};
+ const gl={
+  VERTEX_SHADER:1,FRAGMENT_SHADER:2,COMPILE_STATUS:3,LINK_STATUS:4,
+  ARRAY_BUFFER:5,DYNAMIC_DRAW:6,FLOAT:7,TEXTURE_2D:8,TEXTURE_MIN_FILTER:9,
+  TEXTURE_MAG_FILTER:10,LINEAR:11,TEXTURE_WRAP_S:12,TEXTURE_WRAP_T:13,
+  CLAMP_TO_EDGE:14,UNPACK_FLIP_Y_WEBGL:15,UNPACK_PREMULTIPLY_ALPHA_WEBGL:16,
+  DEPTH_TEST:17,CULL_FACE:18,MAX_TEXTURE_SIZE:19,RGBA:20,
+  UNSIGNED_BYTE:21,TEXTURE0:22,COLOR_BUFFER_BIT:23,TRIANGLE_STRIP:24,
+  createShader:()=>({}),shaderSource(){},compileShader(){},
+  getShaderParameter:()=>true,getShaderInfoLog:()=>'',createProgram:()=>({}),
+  attachShader(){},linkProgram(){},deleteShader(){},
+  getProgramParameter:()=>true,getProgramInfoLog:()=>'',createVertexArray:()=>({}),
+  bindVertexArray(){},createBuffer:()=>({}),bindBuffer(){},bufferData(){},
+  enableVertexAttribArray(){},vertexAttribPointer(){},
+  getUniformLocation:()=>({}),useProgram(){},uniform1i(){},disable(){},
+  pixelStorei(){},createTexture:()=>({}),bindTexture(){},texParameteri(){},
+  texImage2D(){observed.uploads++},deleteTexture(){},viewport(){},
+  clearColor(){},clear(){},uniform2f(){},activeTexture(){},bufferSubData(){},
+  drawArrays(){observed.draws++},getParameter:()=>8192
+ };
+ const canvas={style:{},width:0,height:0,addEventListener(){},
+  getContext:type=>type==='webgl2'?gl:null};
+ const sandbox={window:{}};
+ vm.runInNewContext(read('gpu-sprite-layer.js'),sandbox);
+ const gpu=sandbox.window.VedrasGpuSprites.create(canvas);
+ assert.equal(gpu.available(),true);
+ const first={width:1600,height:1200},second={width:1600,height:1200};
+ const view={width:1000,height:600,dpr:1,dx:0,dy:-300};
+ assert.equal(gpu.draw(first,view),true);
+ assert.equal(gpu.draw(first,{...view,dx:80}),true);
+ assert.equal(observed.uploads,1);
+ assert.equal(observed.draws,2);
+ assert.equal(gpu.draw(second,view),true);
+ assert.equal(observed.uploads,2);
+ gpu.hide();
+ assert.equal(canvas.style.display,'none');
+});
+
 test('integration retains export quality and editor overlays on direct renderer',()=>{
  const app=read('app.js'),html=read('index.html'),style=read('style.css'),server=read('server.py');
  assert.match(app,/const direct=finalRendering\|\|!state\.objects/);
