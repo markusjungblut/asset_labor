@@ -20,7 +20,7 @@ test('old v0.14.1 GPU setting is migrated to safe Canvas unless explicitly enabl
  assert.match(app,/gpuTerrain:false,gpuTerrainUserEnabled:false/);
  assert.match(app,/state\.gpuTerrain=state\.gpuTerrain===true&&state\.gpuTerrainUserEnabled===true/);
  assert.match(app,/state\.gpuTerrainUserEnabled=e\.target\.checked/);
- assert.match(html,/Asset-Labor v0\.14\.2/);
+ assert.match(html,/Asset-Labor v0\.(?:14\.[2-9]|15\.\d+)/);
 });
 
 function poolHarness(){

@@ -14,7 +14,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from PIL import Image, ImageChops
+from PIL import Image
 
 KINDS = ("nature", "buildings", "units")
 TIERS = {"desktop": 1024, "mobile": 512}
@@ -27,10 +27,12 @@ def fingerprint(paths: list[Path], root: Path) -> str:
     digest = hashlib.sha256()
     digest.update(f"vedras-atlas-v1:{PAGE}:{GUTTER}:{TIERS}".encode())
     for path in paths:
-        stat = path.stat()
-        digest.update(
-            f"{path.relative_to(root).as_posix()}:{stat.st_size}:{stat.st_mtime_ns}\n".encode()
-        )
+        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        with path.open("rb") as original:
+            for block in iter(lambda: original.read(1024 * 1024), b""):
+                digest.update(block)
+        digest.update(b"\0")
     return digest.hexdigest()
 
 

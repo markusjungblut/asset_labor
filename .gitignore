@@ -13,3 +13,7 @@ Thumbs.db
 .env
 .vscode/
 # Neue lokale Grafikdateien nicht versehentlich öffentlich committen.
+
+# Rebuildable outputs: atlas CI artifact and per-scene on-disk terrain cache
+/atlases/
+/precomputed/

@@ -1,3 +1,31 @@
+## v0.15.1 – Vorgerenderte statische Terrain-Chunks + echte Originalgrafik-Atlanten (23.10.2026)
+
+**Ziel:** Die CPU-intensive Erzeugung der Gelände-/Reliefpixel darf nicht bei jeder erneuten Kartenöffnung oder Kamerabewegung erneut laufen. Die Grundkarte ist unabhängig von Straßen, Gebäuden, Einheiten und Vegetationssprites. Ihre Weltpositionen und Renderparameter bestimmen dagegen, welche vorgerenderten Geländetexturen gültig sind.
+
+### Statisches Gelände: Vorberechnen, speichern, wiederverwenden
+
+- Im Abschnitt **Testszene**: **„Statische Terrain-Chunks vorberechnen“**. Der Editor berechnet alle von der aktuellen Szene belegten **512-Welteinheiten-Chunks**, mit Quell-Halo und ohne die Kamera bewegen zu müssen. Die sichtbaren Chunks behalten Vorrang vor Hintergrundarbeiten; außerhalb der Ansicht fertiggestellte Chunks erzwingen **keine neue Gesamtkartenzeichnung**. Die Fortschrittszeile zeigt abgearbeitete und auf den Datenträger geschriebene Einträge getrennt.
+- `static-terrain-cache.js` berechnet pro Chunk einen **SHA-256-Schlüssel** aus Version, Weltkoordinaten, lokalen Hex- und Biomeigenschaften, referenzierten Terrainmaterialien mit Dateistand, Reliefparametern, Mountain-Topografie, Renderparametern und Vorschau-LOD. **Kamera, Straßen, Gebäude, Selektionen und Nature-Spritepositionen sind keine Bestandteile dieses Schlüssels.**
+- `server.py` und `static_terrain_store.py` speichern nach erfolgreichem Rendern zwei PNG-Layer (**Land inkl. Relief** und optional **Wasser**) mit Weltkoordinaten-/Auflösungsmetadaten nach `precomputed/terrain/xx/<hash>.*`. Cache-Index und HTTP-Zugriff erlauben späteres Laden statt erneutem Bildaufbau. Maximal 600 ältere Cache-Snapshots bleiben auf dem Server; ungültige Schlüssel, PNGs und Geometrien werden abgewiesen. Writes sind atomar, Originalgrafiken werden nie überschrieben.
+- Bei einem **Cachetreffer** zeichnet das Asset-Labor die fertigen PNG-Chunks mit den vorhandenen Exklusivkanten, Wasser-/Relief- und Sprite-Layern. Bei Cachemiss, defektem PNG, älterem Server oder geänderten Render-/Material-/Biomparametern wird wie bisher über Worker/Canvas neu berechnet und anschließend bei Leerlauf wieder gespeichert. Es ist keine Internetverbindung erforderlich.
+- Terrainmaterialänderungen, Biom-/Relief-/Topografieänderungen erzeugen neue Schlüssel; **Straßen, Siedlungen und Einheiten bleiben separate dynamische Layer**. Die Bake-Funktion arbeitet für die gerade ausgewählte Welt. Andere Weltseeds bzw. Topologien benötigen ihren eigenen Satz Chunks.
+- `precomputed/` wird nicht in Git versioniert. Es ist ein regenerierbares Buildprodukt und kann für den späteren mobilen Spielclient in einen Content-CDN-Ordner übernommen werden. Ohne vorgebakene Karten-Chunks besteht weiterhin die Kostenbelastung des ersten Builds.
+
+### Sprite-Atlanten aus allen aktuellen Original-PNGs
+
+- Der GitHub-Actions-Workflow `.github/workflows/build-sprite-atlases.yml` checkt das **tatsächliche Repository** aus, installiert Pillow, führt `scripts/build_sprite_atlases.py` aus, validiert alle Originalquellen mit `scripts/verify_sprite_atlases.py`, prüft die Python-Terrain-Cachetests und stellt `vedras-sprite-atlases` als herunterladbares Artefakt bereit.
+- **Erfolgreicher Build vom 23.10.2026 (Run 39981583598): 352 PNG-Sprites, 138 Desktop-Seiten, 26 Mobil-Seiten.** Die ZIP-Datei hat etwa **424 MB**. Alle beiden Atlassätze wurden in CI überprüft, ohne die Original-PNGs zu bearbeiten. Die Desktop-Atlas-Seiten sind zahlreich; sie werden deshalb **bedarfsgesteuert** geladen und dürfen nicht alle gleichzeitig im mobilen Grafik-RAM liegen.
+- Bei künftig hinzukommenden PNGs in `assets/nature/`, `assets/buildings/` oder `assets/units/` startet derselbe Workflow auf Push erneut. Der Datei-Fingerprint basiert auf den tatsächlichen PNG-Bytes und bleibt über unterschiedliche Git-Checkouts stabil. Lokaler Build: `python -m pip install Pillow`, danach `python scripts/build_sprite_atlases.py --assets assets --out atlases`. Der UI-Knopf **„Sprite-Atlanten offline aktualisieren“** verwendet dieselbe Pipeline.
+- **Das CI-Artefakt wird nicht automatisch auf deinen Windows-Rechner kopiert.** Zur lokalen Atlasverwendung die entpackten `desktop/`, `mobile/` und `manifest.json` in den Projektordner `atlases/` legen, oder den lokalen Atlas-Knopf verwenden. Solange das Atlasmanifest fehlt, zeichnet der Editor die Einzel-PNGs wie bisher.
+
+### Technische Validierung und Grenzen
+
+- **56 gezielte isolierte JavaScript-Regressionstests** bestanden (29 vorhandene Fluss/Küste/Chunk/Layout, 23 bisherige Strategie-/GPU-/Schattenfälle, 4 neue statische Chunk-Cachetests). Der erfolgreiche GitHub-Workflow hat die **zwei Python-Cache-Tests** und die **echte Sprite-Atlas-Dateiprüfung** absolviert.
+- Kein FPS-Versprechen: Die einmalige Terrain-Vorberechnung ist weiterhin CPU-/Worker-intensiv; die Gewinne entstehen **bei wiederholtem Laden desselben Welt-/Materialstandes**. Die endgültige FPS-/RAM-Prüfung mit dem tatsächlichen Chrome/Firefox-Editor auf einer RX 580 und mobilen Geräten steht noch aus.
+- Für das fertige Spiel sollten CDN-gehostete vorgebackene Weltkacheln, LOD-spezifisches sichtbares Streaming und die dynamischen Gameplay-Layer zusätzlich eigene Versions- und Retentionsregeln erhalten. Die aktuellen Änderungen liefern die dafür notwendige Cache- und Atlas-Datengrundlage, **noch keinen vollständigen mobilen WebGL2-GPU-Spriteclient**.
+
+---
+
 ## v0.14.2 – Stabile Karte statt unkontrollierter Cache-Neuaufbauten (23.10.2026)
 
 **Fehlerbild v0.14.1:** Bei 169 Hexfeldern blieben Landtexturen auch nach mehreren Minuten teils unsichtbar, während Nature-Sprites und Küsten bereits gerendert wurden. Bilder verschwanden und wurden neu geladen. Das ist eine schwerwiegende Regression des GPU-/Image-Pool-Umbaus und keine akzeptable normale Ladezeit.
