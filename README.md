@@ -1,3 +1,20 @@
+## Python 3.8: Lokaler Terrain-Cache ohne HTTP-Tracebacks (23.10.2026)
+
+Der lokale Editor-Server unterstützt bei der Terrain-Cache-Abfrage wieder Python 3.8:
+`GET /api/static-terrain/<hash>` verwendet keine erst ab Python 3.9 verfügbare
+`str.removeprefix()`-Methode mehr. Fehlende oder ungültige Chunk-Schlüssel
+liefern kontrolliert HTTP 404, statt einen `AttributeError` pro Chunk-Anfrage
+auszulösen. Der bestehende Disk-Cache und die Original-PNGs werden nicht
+verändert.
+
+Regressionstests ohne externe Bibliotheken:
+`python -m unittest discover -s tests -p test_python38_static_terrain_api.py -v`.
+Wenn weitere andere Fehler auftreten, bitte den ersten vollständigen Traceback
+separat prüfen – nicht jeder HTTP-Verbindungsabbruch ist dieser Python-Fehler.
+Für sehr große lokale Atlas-Builds ist eine aktuelle **64-Bit-Python-Version**
+wegen des erhöhten Speicherbedarfs zu bevorzugen; dies ist unabhängig von dem
+hier behobenen Python-3.8-Fehler.
+
 ## v0.15.1 – Vorgerenderte statische Terrain-Chunks + echte Originalgrafik-Atlanten (23.10.2026)
 
 **Ziel:** Die CPU-intensive Erzeugung der Gelände-/Reliefpixel darf nicht bei jeder erneuten Kartenöffnung oder Kamerabewegung erneut laufen. Die Grundkarte ist unabhängig von Straßen, Gebäuden, Einheiten und Vegetationssprites. Ihre Weltpositionen und Renderparameter bestimmen dagegen, welche vorgerenderten Geländetexturen gültig sind.
