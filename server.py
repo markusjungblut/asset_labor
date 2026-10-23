@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import json
 import os
+from static_terrain_store import store as store_tile, load as load_tile, index as tile_index, MAX_REQUEST as MAX_TERRAIN_POST
 import shutil
 import re
 import webbrowser
@@ -15,9 +16,10 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.15.0'
+VERSION = '0.15.1'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
+STATIC_TERRAIN = BASE / 'precomputed' / 'terrain'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
 HOST = '127.0.0.1'
 DEFAULT_PORT = 8780
@@ -245,6 +247,20 @@ class Handler(SimpleHTTPRequestHandler):
         if endpoint == '/api/build-atlases':
             self._send_json({'started': schedule_atlas_build(), **ATLAS_STATUS})
             return
+        if endpoint == '/api/static-terrain':
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 1 <= length <= MAX_TERRAIN_POST:
+                    self._failure(413, 'Terrain-Chunk zu groß')
+                    return
+                data = json.loads(self.rfile.read(length).decode('utf-8'))
+                result = store_tile(STATIC_TERRAIN, data)
+                self._send_json({'stored': True, 'key': result['key']})
+            except (ValueError, UnicodeDecodeError, TypeError) as exc:
+                self._failure(400, str(exc))
+            except OSError as exc:
+                self._failure(500, 'Terrain-Cache nicht schreibbar: ' + str(exc))
+            return
         if endpoint not in ('/api/terrain-catalog', '/api/nature-catalog', '/api/sprite-shadows'):
             self._failure(404, 'Unbekannte API')
             return
@@ -277,6 +293,17 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == '/api/static-terrain-index':
+            self._send_json(tile_index(STATIC_TERRAIN))
+            return
+        if parsed.path.startswith('/api/static-terrain/'):
+            key = parsed.path.removeprefix('/api/static-terrain/')
+            tile = load_tile(STATIC_TERRAIN, key)
+            if tile is None:
+                self._failure(404, 'Kein vorgerenderter Gelände-Chunk')
+            else:
+                self._send_json(tile)
+            return
         if parsed.path == '/api/atlas-status':
             with ATLAS_LOCK:
                 info = ATLAS_STATUS.copy()
