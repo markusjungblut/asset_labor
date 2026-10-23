@@ -5,7 +5,26 @@
 'use strict';
 window.VedrasImagePool=(()=>{
  const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
- function create({parallel=4,maxBytes=192*1024*1024,protectMs=18000,onReady=()=>{}}={}){
+ function create({parallel=4,maxBytes=192*1024*1024,protectMs=18000,
+  previewTerrainPx=512,onReady=()=>{}}={}){
+  function prepare(asset,image){
+   if(!['terrain','terrain_base','shorelines'].includes(asset.category)||
+      !previewTerrainPx||typeof document==='undefined'||!document.createElement)
+    return image;
+   const longest=Math.max(image.naturalWidth||0,image.naturalHeight||0);
+   if(longest<=previewTerrainPx)return image;
+   const scale=previewTerrainPx/longest,w=Math.max(1,Math.round(image.naturalWidth*scale)),
+    h=Math.max(1,Math.round(image.naturalHeight*scale));
+   const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+   const ctx=cv.getContext('2d',{alpha:true});if(!ctx)return image;
+   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+   ctx.drawImage(image,0,0,w,h);
+   // Compatible with the engine's original HTMLImageElement dimension checks.
+   cv.naturalWidth=w;cv.naturalHeight=h;cv.complete=true;
+   asset.sourceDimensions={width:image.naturalWidth,height:image.naturalHeight};
+   asset.previewReduced=true;
+   return cv;
+  }
   let active=0,queue=[],resources=new Map(),generation=0;
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,peakBytes:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
@@ -13,7 +32,11 @@ window.VedrasImagePool=(()=>{
    if(stats.decodedBytes<=maxBytes&&!force)return;
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
     (force||now()-r.lastUsed>protectMs))
-    .sort((a,b)=>a.lastUsed-b.lastUsed);
+    .sort((a,b)=>{
+     // Small shared terrain materials are preferred over transient sprites.
+     const priority=e=>['terrain','terrain_base','shorelines'].includes(e.asset.category)?1:0;
+     return priority(a)-priority(b)||a.lastUsed-b.lastUsed;
+    });
    for(const entry of candidates){
     if(stats.decodedBytes<=maxBytes&&!force)break;
     resources.delete(entry.asset.path);
@@ -36,9 +59,10 @@ window.VedrasImagePool=(()=>{
      if(r.generation!==generation){r.resolve(null);pump();return;}
      r.ready=successful;r.failed=!successful;
      if(successful){
-      r.img=img;r.asset.img=img;r.bytes=size(img);r.lastUsed=now();
+      const source=prepare(r.asset,img);
+       r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
       stats.decodedBytes+=r.bytes;stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
-      stats.ready++;r.resolve(img);onReady(r.asset);prune();
+      stats.ready++;r.resolve(source);onReady(r.asset);prune();
      }else{stats.failed++;r.failed=true;r.resolve(null);}
      pump();
     };
@@ -68,9 +92,31 @@ window.VedrasImagePool=(()=>{
    for(const r of resources.values())if(r.ready){r.asset.img=null;}
    resources.clear();stats.decodedBytes=0;
   }
+  async function originals(assets){
+   const list=[...new Map((assets||[]).filter(a=>a?.previewReduced&&a.url)
+    .map(a=>[a.path,a])).values()];
+   const restored=[];
+   try{
+    for(let i=0;i<list.length;i+=parallel){
+     await Promise.all(list.slice(i,i+parallel).map(a=>new Promise((resolve,reject)=>{
+      const img=new Image();img.decoding='async';
+      img.onload=()=>{
+       if(!img.naturalWidth){reject(Error('Ungültige Originalgrafik: '+a.path));return;}
+       const preview=a.img;restored.push({a,preview});a.img=img;resolve();
+      };
+      img.onerror=()=>reject(Error('Originalgrafik fehlt: '+a.path));
+      img.src=a.url;
+     })));
+    }
+   }catch(err){
+    for(const {a,preview} of restored)a.img=preview;
+    throw err;
+   }
+   return ()=>{for(const {a,preview} of restored)a.img=preview;};
+  }
   function report(){return {...stats,active,queued:queue.length,resident:resources.size,
    limitBytes:maxBytes};}
-  return {ensure,clear,prune,report};
+  return {ensure,clear,prune,report,originals};
  }
  return {create};
 })();
