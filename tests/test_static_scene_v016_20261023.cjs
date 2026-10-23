@@ -122,7 +122,8 @@ test('actual GPU compositor uploads once for pans and reuploads changed source',
 
 test('integration retains export quality and editor overlays on direct renderer',()=>{
  const app=read('app.js'),html=read('index.html'),style=read('style.css'),server=read('server.py');
- assert.match(app,/const direct=finalRendering\|\|!state\.objects/);
+ assert.match(app,/if\(finalRendering\)blockers\.push\('Final-PNG-Export'\)/);
+ assert.match(app,/if\(!state\.objects\)blockers\.push\('Objekte ausgeblendet'\)/);
  assert.match(app,/drawScene:\(\{ctx:layerCtx,width,height\}\)=>/);
  assert.match(app,/try\{\s*ctx=layerCtx;W=width;H=height;/);
  assert.match(app,/finally\{ctx=originalCtx;W=originalW;H=originalH;\}/);
