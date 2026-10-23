@@ -166,13 +166,6 @@ window.VedrasSpriteShadows=(()=>{
   const step=width>256?8:4;
   const nominal=Math.max(8,Math.round(width/step)*step);
   const ratio=width/nominal;
-  const bounds=shadowBounds(nominal,x,anchor,silhouette.aspect,log);
-  if(!bounds||bounds.width<1||bounds.height<1||
-   bounds.width>1300||bounds.height>1300||
-   bounds.width*bounds.height>750000){
-   rasterStats.fallback++;rasterStats.frameFallback++;
-   return draw(ctx,obj,p,width,silhouette,anchor,strength);
-  }
   // A style's mutating edits cannot reuse a previous silhouette's image;
   // Engine.set() also flushes all cached bitmaps immediately.
   const id=JSON.stringify([imageId(silhouette),obj.asset?.path,
@@ -185,6 +178,14 @@ window.VedrasSpriteShadows=(()=>{
    rasterPinned.add(id);
    rasterStats.hits++;rasterStats.frameHits++;
   }else{
+   // Cache hits avoid *all* bounds computations and offscreen allocations.
+   const bounds=shadowBounds(nominal,x,anchor,silhouette.aspect,log);
+   if(!bounds||bounds.width<1||bounds.height<1||
+    bounds.width>1300||bounds.height>1300||
+    bounds.width*bounds.height>750000){
+    rasterStats.fallback++;rasterStats.frameFallback++;
+    return draw(ctx,obj,p,width,silhouette,anchor,strength);
+   }
    // Keep all previously used bitmaps resident throughout this frame.
    // When a dense scene exceeds the budget, use the original renderer for
    // extra casts rather than thrashing the LRU every frame.
