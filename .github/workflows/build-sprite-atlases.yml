@@ -1,0 +1,44 @@
+name: Build Vedras Sprite Atlases
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "assets/nature/**/*.png"
+      - "assets/buildings/**/*.png"
+      - "assets/units/**/*.png"
+      - "scripts/build_sprite_atlases.py"
+      - ".github/workflows/build-sprite-atlases.yml"
+concurrency:
+  group: atlas-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  atlas:
+    name: Build and validate original PNG atlases
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Pillow
+        run: python -m pip install "Pillow>=10,<13"
+      - name: Reuse identical atlas output by content hash
+        uses: actions/cache@v4
+        with:
+          path: atlases
+          key: vedras-atlases-v1-${{ hashFiles('assets/nature/**/*.png', 'assets/buildings/**/*.png', 'assets/units/**/*.png', 'scripts/build_sprite_atlases.py') }}
+      - name: Build atlases from repository originals
+        run: python scripts/build_sprite_atlases.py --assets assets --out atlases
+      - name: Verify atlas metadata, transparent trim, and manifest pages
+        run: python scripts/verify_sprite_atlases.py --assets assets --atlas atlases
+      - name: Upload both tiers (mobile and desktop)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vedras-sprite-atlases
+          path: atlases/
+          retention-days: 30
+          if-no-files-found: error
