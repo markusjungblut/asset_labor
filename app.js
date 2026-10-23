@@ -23,7 +23,10 @@ const imagePool=window.VedrasImagePool.create({
  onReady:a=>{
   a.terrainCheck=inspectTerrain(a);
   if(imagePoolPriming)return;
-  if(a.category==='terrain'){terrainAssetGroups=null;invalidateTerrain('material');}
+  // Updating one delayed PNG must NOT drop every completed terrain chunk.
+  // Per-tile stamps below track the image generation and replace only users
+  // of that image, while loaded sprites simply request a new composition.
+  if(isTerrain(a)){terrainAssetGroups=null;terrainRasterCache.signature=null;}
   requestDraw();
   window.dispatchEvent(new CustomEvent('vedras:asset-image-loaded',{detail:{path:a.path}}));
  }
