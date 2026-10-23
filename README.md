@@ -1,3 +1,52 @@
+## v0.15.4 – Räumlicher Objektindex + wiederverwendete Sprite-Schatten (23.10.2026)
+
+**Ziel:** Die warmen Render-Frames großer Nature-Szenen beschleunigen,
+ohne Grafikdateien, Spielstand oder Projektionsregeln zu verändern.
+Baseline des Nutzers vor v0.15.3 auf einer 169-Hex-Szene:
+832,9 ms/Frame insgesamt, davon 523,8 ms für Sprites/Schatten.
+
+- **Objektindex:** `object-layout-cache.js` ordnet das in v0.15.3 vorbereitete
+  Weltlayout jetzt konservativen 512-Welt-Einheiten-Rastern zu.
+  Die Originalreihenfolge bleibt erhalten, jedes Objekt wird höchstens
+  einmal zurückgegeben, negative Koordinaten und überhängende Kronen
+  sind berücksichtigt. Besonders große Objekte bleiben über einen
+  abgesicherten Overflow-Pfad erreichbar. Der vorhandene
+  Sichtbarkeitsfilter kontrolliert jedes gefundene Objekt erneut.
+- **Sprite-Schattenraster:** `VedrasSpriteShadows.drawCached()`
+  zeichnet Schattenfilter, Silhouetten und Richtungsprojektionen in
+  einen begrenzten lokalen Canvas und zeichnet diesen bei identischer
+  Sprite-Bildquelle, Schattenvorlage, Breitenklasse und Schattenstärke
+  kostengünstig erneut. Größen werden für die Vorschau in 4- bzw.
+  8-Pixel-Klassen gruppiert; dies kann geringe Abweichungen im
+  weichgezeichneten Schattenrand bewirken. Die PNG-Exportroutine
+  (`finalRendering`) verwendet weiter `draw()` in Originalauflösung.
+- **Cache-Stabilität:** maximal 144 Schattenraster und 18 MiB.
+  Ein Frame reserviert die Raster aller bereits verwendeten Schatten;
+  bei ausgeschöpftem Budget erfolgt direkter Legacy-Fallback statt
+  permanentem Verdrängen, Nachberechnen und erneutem Verdrängen.
+  Ein neues Schattenprofil über `set()` leert den Rastercache sofort.
+  Individuell gezeichnete Schatten bleiben stets auf dem präzisen
+  `VedrasManualShadows`-Renderer.
+- **Profiler erweitert:** Objektanzeige meldet
+  `Index N Kandidaten / M Zellen` und
+  `Schattenraster X Treffer / Y neu / Z direkt (MiB)`.
+  Weitere Statistiken:
+  `window.VedrasSpriteShadows.cacheStats()` und
+  `window.__vedrasRenderProfile.object.shadowRaster`.
+- **Prüfung:** `node --test tests/test_spatial_shadow_cache_20261023.cjs`
+  (acht neue Regressionstests). Die acht Tests wurden mit dem
+  tatsächlichen Branch-Code erfolgreich in einer isolierten
+  JavaScript-Testumgebung ausgeführt; die vollständige native
+  Node-Suite und die visuelle Browserabnahme stehen noch aus.
+  Python-3.8-Support und v0.15.2-Atlas-Fix bleiben erhalten.
+
+**Nächster Vergleich:** Dieselbe 169-Hex-Karte bei identischem Zoom,
+Quality und Sichtbarkeit zuerst neu öffnen, nach dem Aufwärmen erneut
+schwenken. `Schattenraster Treffer` sollte mit wiederholter
+Sichtbarkeit steigen; `direkt` zeigt bewusst nicht gecachte
+Varianten. Performance-Auswirkungen sind noch **nicht** durch
+einen Browserbenchmark auf dem Zielrechner belegt.
+
 ## v0.15.3 – Objekt-Layoutcache und erweiterter Performance-Profiler (23.10.2026)
 
 **Ausgangsmessung (Nutzer, 169 Hexfelder):** insgesamt 832,9 ms/Frame;
