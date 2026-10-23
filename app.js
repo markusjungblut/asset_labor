@@ -1555,7 +1555,7 @@ function draw(){if(!ctx||!canvas.width)return;
  const objectStatus=$('objectPerfStats');
  if(objectStatus)objectStatus.textContent='Objekte '+(objProfile.visible||0)+'/'+
   (objProfile.total||0)+' vorbereitet · '+(objProfile.drawnSprites||0)+
-  ' Sprites und '+(objProfile.shadowCandidates||0)+' Schatten geprüft · '+
+  (sceneryProfile?.cached?' Sprites / '+(objProfile.shadowCandidates||0)+' Schatten im gespeicherten Layer · ':' Sprites und '+(objProfile.shadowCandidates||0)+' Schatten geprüft · ')+
   'Layout '+mean('objectLayoutMs').toFixed(1)+' ms'+
   (objProfile.rebuilt?' (Szene neu aufgebaut)':' (Szenen-Cache)')+
   ' · Bergüberschneidung '+mean('objectOcclusionMs').toFixed(1)+' ms'+
@@ -1695,7 +1695,7 @@ function applyRoadChanges(next){
 }
 function clearCell(){state.natureInstances=(state.natureInstances||[]).filter(n=>key(n.q,n.r)!==state.selected);window.VedrasNature?.renderPlaced();delete state.hexTerrain[state.selected];delete state.baseBiomeByHex[state.selected];invalidateTerrain('cells');window.dispatchEvent(new Event('vedras:terrain-catalog-changed'));delete state.hexObject[state.selected];delete state.hexShadow[state.selected];persistScene();requestDraw();}
 const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','forest','river','riverPaths','riverWidth','riverBanks','riverBankStrength','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','chunkRenderingOverride','workerTerrain','gpuTerrain','gpuTerrainUserEnabled','gpuSprites','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline','strategyOverlay'];
-function persistScene(){invalidateSpriteLayout();try{
+function persistScene(invalidateObjects=true){if(invalidateObjects)invalidateSpriteLayout();try{
  // A freshly placed mountain permanently invalidates roads through its
  // stand/influence cells instead of letting hidden edges reappear later.
  if(worldCells.length&&assets.length&&state.roadEdges?.length)
@@ -1954,7 +1954,8 @@ $('atlasBuild').addEventListener('click',async()=>{
 });
 $('gpuSprites').addEventListener('change',e=>{
  state.gpuSprites=e.target.checked;
- persistScene();requestDraw();
+ // Switching the compositor does not change any sprite or shadow pixels.
+ persistScene(false);requestDraw();
 });
 $('gpuTerrain').addEventListener('change',e=>{
  state.gpuTerrain=e.target.checked;
