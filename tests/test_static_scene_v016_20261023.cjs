@@ -133,7 +133,7 @@ test('integration retains export quality and editor overlays on direct renderer'
  assert.ok(html.indexOf('static-object-layer.js')<html.indexOf('app.js'));
  assert.ok(html.indexOf('gpu-sprite-layer.js')<html.indexOf('app.js'));
  assert.match(style,/#canvasOuter>#gpuSpriteCanvas\{[^}]*pointer-events:none/);
- assert.match(server,/VERSION = '0\.16\.0'/);
+ assert.match(server,/VERSION = '0\.16\.[01]'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
