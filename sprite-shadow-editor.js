@@ -32,6 +32,7 @@ window.VedrasSpriteShadows=(()=>{
    if(!obj||Array.isArray(obj)||typeof obj!=='object')throw Error('Ungültige Schattenwerte.');
    for(const [k,v] of Object.entries(obj)){
     if(k==='enabled'&&!allowStrength&&typeof v==='boolean')continue;
+    if(k==='manual'&&!allowStrength){window.VedrasManualShadows.valid(v);continue;}
     const rule=fields[k];if(!rule||(k==='strength'&&!allowStrength)||
       typeof v!=='number'||!Number.isFinite(v)||v<rule.min||v>rule.max)
      throw Error('Schattenwert außerhalb des Bereichs: '+k);
@@ -68,6 +69,10 @@ window.VedrasSpriteShadows=(()=>{
   const globalStrength=strength===null?current.global.strength:strength;
   const alpha=clamp(globalStrength*x.opacity*(small?.28:1)*(family==='snow_fallen_logs'?.8:1),0,.95);
   if(alpha<=0)return;
+  if(x.manual?.polygons?.length){
+   window.VedrasManualShadows.render(ctx,x.manual,p,width,alpha,Math.min(30,x.softness));
+   return; // manual footprints supersede generic contact/silhouette
+  }
   const height=width*silhouette.aspect,ax=clamp(Number(anchor.x??.5),0,1),
     ay=clamp(Number(anchor.y??.96),0,1),rad=x.angle*Math.PI/180,
     reach=width*x.length,castX=reach*Math.cos(rad),castY=reach*Math.sin(rad)*(log?.14:.30),
@@ -102,6 +107,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(!core||!panel)return;
  let cursor=0,visible=[],dirty=false,saveInProgress=false,seq=0;
  let loaded=false,editable=false;
+ let drawingFrame=null;
  const canvas=$('ssPreview'),ctx=canvas.getContext('2d');
  const inputs={
   global:Engine.shapeKeys.concat('strength'),
@@ -115,15 +121,15 @@ window.addEventListener('DOMContentLoaded',()=>{
  const labelFor=a=>a?.category==='nature'?'Natur':a?.category==='buildings'?'Gebäude':'Einheiten';
  const numeric=(id)=>Number($(id).value);
  function list(){
-  const query=$('ssSearch').value.toLowerCase().trim(),category=$('ssCategory').value;
-  const prior=asset()?.path;
-  visible=core.assets().filter(a=>['nature','buildings','units'].includes(a.category)&&a.img?.naturalWidth&&
+  const query=$('ssSearch').value.toLowerCase().trim(),category=$('ssCategory').value,
+   old=asset()?.path;
+  const matching=core.assets().filter(a=>
    (category==='all'||a.category===category)&&
-   (!query||(a.name+' '+a.path).toLowerCase().includes(query)))
-   .sort((a,b)=>a.category.localeCompare(b.category)||a.name.localeCompare(b.name,undefined,{numeric:true}));
-  cursor=Math.max(0,visible.findIndex(a=>a.path===prior));
-  if(cursor>=visible.length)cursor=0;
-  refresh();
+   (!query||(a.name+' '+a.path).toLowerCase().includes(query)));
+  visible=window.VedrasManualShadows.sort(matching,Engine.get().profiles,
+   $('ssSort').value,$('ssUnprofiled').checked);
+  const index=visible.findIndex(a=>a.path===old);
+  cursor=index>=0?index:0;refresh();
  }
  function setRange(prefix,field,v){
   const n=$(prefix+field),value=$(prefix+field+'Value');
@@ -135,12 +141,20 @@ window.addEventListener('DOMContentLoaded',()=>{
   for(const field of inputs.global)setRange('ssGlobal_',field,Engine.get().global[field]);
  }
  function preview(){
-  const a=asset();ctx.clearRect(0,0,canvas.width,canvas.height);
+  const a=asset();drawingFrame=null;ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#29443d';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#344f46';ctx.fillRect(0,canvas.height*.70,canvas.width,canvas.height*.30);
   ctx.strokeStyle='#76948a';ctx.lineWidth=1;ctx.beginPath();
   ctx.moveTo(0,canvas.height*.70);ctx.lineTo(canvas.width,canvas.height*.70);ctx.stroke();
   if(!a){ctx.fillStyle='#d4e9d3';ctx.font='15px sans-serif';ctx.fillText('Keine passende Sprite-Datei geladen.',16,35);return;}
+  if(!a.img?.naturalWidth){
+   ctx.fillStyle='#d4e9d3';ctx.font='14px sans-serif';
+   ctx.fillText('Grafik wird bei Bedarf geladen…',16,35);
+   core.ensureAsset?.(a).then(()=>{
+    if(asset()?.path===a.path&&a.img?.naturalWidth)refresh();
+   });
+   return;
+  }
   const meta=window.VedrasNature?.entryFor(a)||null,kind=meta?.kind||a.category,
    anchor=meta?.anchor||(a.category==='buildings'?{x:.5,y:.9}:{x:.5,y:.96});
   // Use the game's visible alpha crop and scale the preview to fit tall
@@ -151,6 +165,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    p={x:canvas.width*.57,y:canvas.height*.70},
    maxWidth=kind==='mountain'?165:145,
    w=Math.max(30,Math.min(maxWidth,(p.y-16)/Math.max(.25,aspect*anchor.y)));
+  drawingFrame={p,w};
   let shape=core.shadowSprites?.silhouette(img);
   if(!shape){
    const cv=document.createElement('canvas');cv.width=256;
@@ -177,6 +192,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   ctx.strokeStyle='#f2ce76';ctx.lineWidth=1.5;ctx.beginPath();
   ctx.moveTo(p.x-8,p.y);ctx.lineTo(p.x+8,p.y);
   ctx.moveTo(p.x,p.y-8);ctx.lineTo(p.x,p.y+8);ctx.stroke();
+  window.VedrasShadowPainter?.overlay(ctx,drawingFrame,a);
  }
  function refresh(){
   const a=asset();
@@ -185,6 +201,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('ssPrevious').disabled=cursor===0;
   $('ssNext').disabled=cursor>=visible.length-1;
   const mountain=isMountainAsset(a);
+  $('ssDrawTools').hidden=mountain||!a;
+  const date=window.VedrasManualShadows.time(a);
+  $('ssFileDate').textContent=a?(date?
+   ((a.createdNs?'Erstellt: ':'Geändert: ')+new Date(date).toLocaleString('de-DE')+' · '+a.path):
+   ('Kein Zeitstempel verfügbar · '+a.path)):'Keine Sprite-Datei';
   $('ssOverride').textContent=mountain?'Bergsektion hat Vorrang':
    a&&Engine.get().profiles[a.path]?'Individuell angepasst':'Gemeinsamer Standard';
   $('ssMountainNotice').hidden=!mountain;
@@ -299,6 +320,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   }catch(e){text('Import abgelehnt: '+e.message);}
   finally{event.target.value='';}
  });
+ $('ssSort').addEventListener('change',list);
+ $('ssUnprofiled').addEventListener('change',list);
  $('ssPrevious').addEventListener('click',()=>{cursor=Math.max(0,cursor-1);refresh()});
  $('ssNext').addEventListener('click',()=>{cursor=Math.min(visible.length-1,cursor+1);refresh()});
  $('ssOpenMountain').addEventListener('click',()=>{
@@ -332,5 +355,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const value=Number($(id).value)/100;
   if(Math.abs(Engine.get().global.strength-value)>.0001)updateGlobal('strength',value);
  });
+ window.__vedrasShadowEditor={asset,refresh,preview,list,modified,Engine,
+  frame:()=>drawingFrame,isMountainAsset};
  allControls();list();load();
 });

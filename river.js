@@ -234,20 +234,33 @@ window.VedrasRivers=(()=>{
     image.data[base+3]=Math.round(mask[idx]*fade);
     const rim=Math.max(0,bank[idx]-mask[idx]*.62);
     bankImage.data[base]=66;bankImage.data[base+1]=83;bankImage.data[base+2]=64;
-    bankImage.data[base+3]=Math.round(rim*.20*fade);
+    // The original dark water lip belongs on land only. Before this fix
+    // its fade continued into the sea alongside the new raised bank overlay.
+    const signedShore=((worldX-cross.x)*dx+(worldY-cross.y)*dy)/Math.sqrt(len2);
+    const cut=Math.max(0,Math.min(1,(signedShore+20)/20));
+    const landFade=1-cut*cut*(3-2*cut);
+    bankImage.data[base+3]=Math.round(rim*.20*fade*landFade);
    }
    wg.putImageData(image,0,0);
    wg.save();wg.setTransform(scale,0,0,scale,-x*scale,-y*scale);
    wg.globalCompositeOperation='source-in';
-   const pattern=waterImage?.naturalWidth?wg.createPattern(waterImage,'repeat'):null;
-   if(pattern){
-    if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
-     const factor=HEX/Math.max(1,waterImage.naturalWidth);
-     pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
-    }
-    wg.fillStyle=pattern;
-   }else wg.fillStyle='#4397b2';
-   wg.fillRect(x,y,dw,dh);wg.restore();
+   // Preserve the original textured water source and shape. Source
+   // pixels now repeat on a globally anchored, edge-feathered tile, which
+   // prevents a vertical join in only some camera/hex placements.
+   if(window.VedrasWaterTexture?.fillWorld)
+    window.VedrasWaterTexture.fillWorld(wg,waterImage,{x,y,width:dw,height:dh},HEX);
+   else{
+    const pattern=waterImage?.naturalWidth?wg.createPattern(waterImage,'repeat'):null;
+    if(pattern){
+     if(pattern.setTransform&&typeof DOMMatrix!=='undefined'){
+      const factor=HEX/Math.max(1,waterImage.naturalWidth);
+      pattern.setTransform(new DOMMatrix([factor,0,0,factor,0,0]));
+     }
+     wg.fillStyle=pattern;
+    }else wg.fillStyle='#4397b2';
+    wg.fillRect(x,y,dw,dh);
+   }
+   wg.restore();
    g.putImageData(bankImage,0,0);g.drawImage(waterLayer,0,0);
    ctx.drawImage(canvas,x,y,dw,dh);
   return {segments,width,x,y,canvas,widthWorld:dw,heightWorld:dh,mask:'smooth-distance-field-max-alpha',source:'rounded-edge-fillets',mouth:'shore-midpoint-fade'};
