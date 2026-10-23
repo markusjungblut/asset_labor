@@ -297,7 +297,10 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(tile_index(STATIC_TERRAIN))
             return
         if parsed.path.startswith('/api/static-terrain/'):
-            key = parsed.path.removeprefix('/api/static-terrain/')
+            # Python 3.8 compatibility: str.removeprefix was added in 3.9.
+            # The preceding startswith check guarantees this is a safe slice.
+            prefix = '/api/static-terrain/'
+            key = parsed.path[len(prefix):]
             tile = load_tile(STATIC_TERRAIN, key)
             if tile is None:
                 self._failure(404, 'Kein vorgerenderter Gelände-Chunk')
