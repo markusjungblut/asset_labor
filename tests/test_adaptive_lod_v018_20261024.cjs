@@ -113,6 +113,35 @@ test('LOD transitions keep old terrain/shore/river raster variants until replace
  assert.match(app,/redraw:requestDraw,family:roadFamily/);
  assert.match(app,/drawRaster:\(g,r,t\)=>\{/);
 });
+test('real river SDF uses fewer pixels without moving the mouth or changing footprint',()=>{
+ const canvasContext=()=>({
+  createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),
+  putImageData(){},save(){},restore(){},setTransform(){},
+  createPattern:()=>null,fillRect(){},drawImage(){},
+  set globalCompositeOperation(v){},set fillStyle(v){}
+ });
+ const sandbox={
+  window:{},
+  document:{createElement(type){
+   assert.equal(type,'canvas');
+   const c={width:0,height:0};
+   c.getContext=()=>canvasContext();
+   return c;
+  }}
+ };
+ vm.runInNewContext(read('river.js'),sandbox);
+ const rivers=sandbox.window.VedrasRivers;
+ const cells=[{q:0,r:0},{q:1,r:0}],route={hexes:[[0,0],[1,0]]};
+ const wet=c=>c.q===1;
+ assert.ok(rivers.valid(route,cells,wet));
+ const full=rivers.render(canvasContext(),route,cells,wet,null,{width:32,detailScale:1});
+ const far=rivers.render(canvasContext(),route,cells,wet,null,{width:32,detailScale:.72});
+ assert.equal(far.x,full.x);assert.equal(far.y,full.y);
+ assert.equal(far.widthWorld,full.widthWorld);assert.equal(far.heightWorld,full.heightWorld);
+ assert.ok(far.canvas.width<full.canvas.width);
+ assert.ok(far.canvas.height<full.canvas.height);
+ assert.ok(far.canvas.width*far.canvas.height<full.canvas.width*full.canvas.height*.55);
+});
 test('PNG export and legacy pipeline remain available at full precision',()=>{
  const app=read('app.js'),html=read('index.html'),server=read('server.py');
  assert.match(app,/enabled:state\.adaptiveLod!==false,final:finalRendering/);
