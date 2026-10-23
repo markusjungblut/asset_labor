@@ -180,3 +180,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .shadow-editor-search{grid-template-columns:repeat(2,minmax(0,1fr))}
 .shadow-editor-search .checkbox{align-items:center;flex-direction:row;align-self:end;margin:4px 0}
 @media(max-width:490px){.shadow-editor-search{grid-template-columns:minmax(0,1fr)}}
+
+/* v0.14: WebGL2 terrain viewport behind transparent Canvas2D overlays.
+   Both canvases use the same device-resolution and CSS world viewport. */
+#canvasOuter>#gpuCanvas{position:absolute;inset:0;z-index:0;width:100%;height:100%;display:block;pointer-events:none;cursor:default}
+#canvasOuter>#mapCanvas{position:relative;z-index:1;background:transparent}
+#gpuStatus{font-size:11px;color:#bad0c8;line-height:1.4;padding:6px 2px}
