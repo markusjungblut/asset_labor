@@ -110,7 +110,7 @@ test('terrain and rivers use revision memo and background compositor with worker
  assert.match(app,/frameMemo\.use\('routes'/);
  assert.match(app,/backgroundScene\.paint\(/);
  for(const prefix of ['terrainChunks','roadChunks','shorelineChunks','riverChunks'])
-  assert.ok(app.includes(prefix+'.stats().built'),prefix+' invalidation');
+  assert.ok(app.includes(prefix+'.stats().visibleRevision'),prefix+' invalidation');
  assert.match(app,/window\.__vedrasBackgroundProfile=backgroundProfile/);
  assert.match(app,/finalRendering\|\|state\.view!=='map'\|\|gpuFrame/);
  assert.match(app,/frameMemo\.invalidate\(\);backgroundScene\.clear\(\)/);
