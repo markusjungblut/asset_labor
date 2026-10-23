@@ -70,7 +70,7 @@ window.VedrasChunks=(()=>{
   let cache=new Map();
   const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
    prefetchQueue=new Map(),warmRemaining=new Set();
-  let signature='',family='',epoch=0,scheduled=false,
+  let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
    viewportWanted=new Set(),prefetchWanted=new Set(),lastFocus=null,
    stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,
@@ -99,7 +99,7 @@ window.VedrasChunks=(()=>{
    dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
    prefetchWanted.clear();lastFocus=null;
-   signature='';family='';epoch++;scheduled=false;
+   signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
    inFlightInteractive=false;inFlightBackground=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
@@ -107,7 +107,7 @@ window.VedrasChunks=(()=>{
     queue.clear();backgroundQueue.clear();prefetchQueue.clear();
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
     prefetchWanted.clear();lastFocus=null;
-    epoch++;scheduled=false;inFlightInteractive=false;inFlightBackground=false;
+    epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
     stats.warmTotal=0;stats.warmDone=0;
     if(nextFamily&&nextFamily===family){
      // Swapping visual LOD must NEVER blank an on-screen tile. Preserve the
@@ -155,19 +155,22 @@ window.VedrasChunks=(()=>{
   // A foreground slot is independent of the speculative/explicit warm slot:
   // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
-   if(scheduled)return;
    const foreground=queue.size>0&&!inFlightInteractive;
    const background=!inFlightBackground&&(backgroundQueue.size||prefetchQueue.size);
    if(!foreground&&!background)return;
-   scheduled=true;
+   // Two scheduled callbacks allow a fresh visible request to bypass an
+   // already pending requestIdleCallback for speculative background work.
+   const urgent=foreground;
+   if(urgent?urgentScheduled:scheduled)return;
+   if(urgent)urgentScheduled=true;else scheduled=true;
    const generation=epoch;
    const task=()=>{
     if(generation!==epoch)return;
-    scheduled=false;
-    const interactive=queue.size>0&&!inFlightInteractive;
-    const warm=!interactive&&!inFlightBackground&&backgroundQueue.size>0;
-    const predictive=!interactive&&!warm&&!inFlightBackground&&prefetchQueue.size>0;
-    if(!interactive&&!warm&&!predictive)return;
+    if(urgent)urgentScheduled=false;else scheduled=false;
+    const interactive=urgent&&queue.size>0&&!inFlightInteractive;
+    const warm=!urgent&&!inFlightBackground&&backgroundQueue.size>0;
+    const predictive=!urgent&&!warm&&!inFlightBackground&&prefetchQueue.size>0;
+    if(!interactive&&!warm&&!predictive){schedule();return;}
     const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
@@ -247,7 +250,7 @@ window.VedrasChunks=(()=>{
     if(queue.size&&!inFlightInteractive)schedule();
    };
    // Foreground tiles must never wait for idle time under continuous input.
-   if(foreground&&typeof setTimeout==='function')setTimeout(task,0);
+   if(urgent&&typeof setTimeout==='function')setTimeout(task,0);
    else if(typeof requestIdleCallback==='function')
     requestIdleCallback(task,{timeout:1000});
    else if(typeof setTimeout==='function')setTimeout(task,16);
