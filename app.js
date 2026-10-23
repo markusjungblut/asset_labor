@@ -1511,9 +1511,9 @@ async function reloadFromServer(){
   catalogCanSave=response.ok||response.status===404;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
-  if(d.version!=='0.11.0'){
+  if(d.version&&!/^0\.(?:13|14)\./.test(d.version)){
    $('serverStatus').textContent+=' · VERSION KONFLIKT';
-   $('nRecoveryStatus').textContent=`Achtung: Programmoberfläche v0.11.0 und Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
+   $('nRecoveryStatus').textContent=`Achtung: Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
   }
 
  }catch(err){
@@ -1784,9 +1784,19 @@ $('saveScene').addEventListener('click',exportScene);
 $('exportMapPng').addEventListener('click',async()=>{
  if(finalRendering)return;
  const button=$('exportMapPng');button.disabled=true;
+ let restoreSourceTextures=null;
  try{
   // Wait for pending debounced slider edits before taking the snapshot.
   if(deferredEdits.size)await new Promise(resolve=>setTimeout(resolve,210));
+  // Preview textures are downsampled, but PNG export uses the actual
+  // originals of the materials USED in this scene.
+  const paths=new Set(worldCells.map(c=>imageForBiome(c)?.path).filter(Boolean));
+  for(const a of assets)if(a.category==='shorelines'||
+    (isTerrain(a)&&typeOfAsset(a)==='forest_floor'))paths.add(a.path);
+  restoreSourceTextures=await imagePool.originals(
+   [...paths].map(path=>assetByPath.get(path)).filter(Boolean));
+  window.VedrasTerrainWorker.restart();
+  invalidateTerrain('all');
   finalRendering=true;resize();requestDraw();
   let ready=false;
   for(let attempt=0;attempt<250;attempt++){
@@ -1810,7 +1820,13 @@ $('exportMapPng').addEventListener('click',async()=>{
   anchor.href=url;anchor.download='vedras_kartenansicht_final.png';anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
  }catch(err){alert('Finalbild-Export fehlgeschlagen: '+(err?.message||String(err)));}
- finally{finalRendering=false;resize();requestDraw();button.disabled=false;}
+ finally{
+  if(restoreSourceTextures){
+   restoreSourceTextures();window.VedrasTerrainWorker.restart();
+   invalidateTerrain('all');
+  }
+  finalRendering=false;resize();requestDraw();button.disabled=false;
+ }
 });
 $('resetScene').addEventListener('click',()=>{state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};state.hexObject={};state.hexShadow={};state.natureInstances=[];window.VedrasNature?.renderPlaced?.();state.materialScales={};state.mountainInstances=[];state.riverPaths=[];state.riverDraft=null;state.riverDebug=false;state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;window.dispatchEvent(new Event('vedras:road-changed'));if($('riverDebug'))$('riverDebug').checked=false;riverRasterCache.clear();window.dispatchEvent(new Event('vedras:river-changed'));state.forest=window.VedrasForest.defaults();window.dispatchEvent(new Event('vedras:forest-changed'));persistScene();stampCache.clear();requestDraw();});
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect();applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);},{passive:false});
