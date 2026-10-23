@@ -24,18 +24,18 @@ window.VedrasAdaptiveLOD=(()=>{
    if(!enabled)return TIERS.full;
    if(!Number.isFinite(zoom))throw Error('LOD zoom must be finite');
    const z=Math.max(.05,Math.min(4,zoom));
-   if(!active)active=z<.44?'far':z<.99?'mid':'near';
+   if(!active)active=z<.51?'far':z<.99?'mid':'near';
    else {
     // Hysteresis prevents zoom-wheel jitter near level boundaries, while
     // large jumps can skip intermediate tiers in a single update.
     if(active==='far'){
      if(z>=1.06)active='near';
-     else if(z>=.49)active='mid';
+     else if(z>=.55)active='mid';
     }else if(active==='mid'){
-     if(z<=.38)active='far';
+     if(z<=.47)active='far';
      else if(z>=1.06)active='near';
     }else if(active==='near'){
-     if(z<=.38)active='far';
+     if(z<=.47)active='far';
      else if(z<=.92)active='mid';
     }
    }
