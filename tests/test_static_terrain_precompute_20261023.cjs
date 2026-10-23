@@ -24,7 +24,7 @@ function harness(initialKeys=[]){
  const sandbox={window:{},crypto:{subtle:{digest:async(_,bytes)=>new Uint8Array(32).fill(bytes.length%20).buffer}},
   TextEncoder:class{encode(s){return Uint8Array.from([...s].map(c=>c.charCodeAt(0))) }},
   Image:Picture,fetch:requests,setTimeout:fn=>fn(),
-  requestIdleCallback:fn=>fn(),console,document:{
+  requestIdleCallback:fn=>fn(),console:{warn(){},error(){}},document:{
    createElement:()=>({width:8,height:6,getContext:()=>({drawImage(){}}),
     toBlob:fn=>fn(new Blob(['fake png'],{type:'image/png'}))})
   },
