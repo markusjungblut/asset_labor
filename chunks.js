@@ -253,6 +253,70 @@ window.VedrasChunks=(()=>{
    else if(typeof setTimeout==='function')setTimeout(task,16);
    else task();
   }
+  // Planning is camera-driven but world-aligned. Neighbors are merely
+  // queued and never painted until they intersect the actual viewport.
+  function updateStreaming(viewport,tiles,prefetch){
+   const keep=new Set(tiles.map(t=>t.id));
+   viewportWanted=keep;
+   protectedIds=new Set(keep);
+   for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
+   const cx=viewport.x+viewport.width/2,cy=viewport.y+viewport.height/2;
+   const old=lastFocus;
+   lastFocus={x:cx,y:cy};
+   const enabled=!!prefetch?.enabled&&cells.length>0;
+   if(!enabled){prefetchQueue.clear();prefetchWanted.clear();return;}
+   const ring=clamp(Math.floor(prefetch.ring??1),1,3);
+   const limit=clamp(Math.floor(prefetch.limit??8),1,18);
+   const dx=old?clamp((cx-old.x)*2,-size*2,size*2):0;
+   const dy=old?clamp((cy-old.y)*2,-size*2,size*2):0;
+   const pad=ring*size;
+   const expanded={x:viewport.x-pad,y:viewport.y-pad,
+    width:viewport.width+2*pad,height:viewport.height+2*pad};
+   const prediction={...expanded,x:expanded.x+dx,y:expanded.y+dy};
+   const union=new Map();
+   for(const t of [...visible(expanded,cells,size),...visible(prediction,cells,size)])
+    if(!keep.has(t.id))union.set(t.id,t);
+   const predictedX=cx+dx,predictedY=cy+dy;
+   const chosen=[...union.values()].sort((a,b)=>
+    ((a.x+size/2-predictedX)**2+(a.y+size/2-predictedY)**2)-
+    ((b.x+size/2-predictedX)**2+(b.y+size/2-predictedY)**2)
+   ).slice(0,limit);
+   prefetchWanted=new Set(chosen.map(t=>t.id));
+   for(const id of [...prefetchQueue.keys()])
+    if(!prefetchWanted.has(id))prefetchQueue.delete(id);
+   // Reorder on a directional change; opposite camera movement does not
+   // keep scheduling the old route's background chunks first.
+   const previous=new Map(prefetchQueue);
+   prefetchQueue.clear();
+   for(const t of chosen){
+    const cached=cache.get(t.id);
+    if((cached&&cached.stamp===stampForTile(t))||
+      queue.has(t.id)||backgroundQueue.has(t.id))continue;
+    prefetchQueue.set(t.id,previous.get(t.id)||t);
+    if(!previous.has(t.id))stats.prefetchQueued++;
+   }
+  }
+  // Used when the v0.17 static background itself was reused. Without this
+  // hook, a warm camera pan would never reach draw() to update prefetch.
+  function prime(bounds,{prefetch=null}={}){
+   if(!signature||!cells?.length)return {...stats};
+   const tiles=visible(bounds,cells,size);
+   stats.visible=tiles.length;
+   updateStreaming(bounds,tiles,prefetch);
+   trim();
+   for(const t of tiles){
+    const data=cache.get(t.id);
+    if((!data||data.stamp!==stampForTile(t))&&!queue.has(t.id)){
+     prefetchQueue.delete(t.id);
+     queue.set(t.id,t);
+    }
+   }
+   stats.prefetchPending=prefetchQueue.size;
+   stats.manualPending=backgroundQueue.size;
+   stats.pending=queue.size+(inFlightInteractive?1:0);
+   schedule();
+   return {...stats};
+  }
   // Rasters keep their source halos, but each chunk exclusively owns a
   // device-pixel-aligned output rectangle. Two separate semi-transparent
   // rasters must never overlap at the four-way tile cross.
@@ -276,16 +340,13 @@ window.VedrasChunks=(()=>{
    ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
    return {space:'world'};
   }
-  function draw(ctx,bounds,{water=true,drawRaster,margin=80}={}){
+  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null}={}){
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
-   protectedIds=new Set(tiles.map(t=>t.id));trim();
-   // Remove tiles that a changed camera no longer needs. Old cached tiles
-   // remain until LRU eviction, allowing cheap return-pans.
-   const keep=new Set(tiles.map(t=>t.id));
-   for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
+   updateStreaming(viewport,tiles,prefetch);
+   trim();
    for(const t of tiles){
     let result=use(t.id);
     if(result&&result.stamp!==stampForTile(t)){
@@ -306,7 +367,9 @@ window.VedrasChunks=(()=>{
     else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
     ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
-   stats.pending=queue.size+(inFlight?1:0);
+   stats.pending=queue.size+(inFlightInteractive?1:0);
+   stats.prefetchPending=prefetchQueue.size;
+   stats.manualPending=backgroundQueue.size;
    schedule();
    return {...stats,cached:cache.size,variants:retired.size};
   }
@@ -325,7 +388,12 @@ window.VedrasChunks=(()=>{
    backgroundQueue.clear();warmRemaining.clear();stats.warmTotal=stats.warmDone;
    onWarmProgress({...stats});
   }
-  return {configure,draw,warm,stopWarm,clipCore,clear,stats:()=>({...stats,cached:cache.size,variants:retired.size,warmPending:backgroundQueue.size}),
+  return {configure,draw,prime,warm,stopWarm,clipCore,clear,
+   stats:()=>({...stats,cached:cache.size,variants:retired.size,
+    warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
+    manualPending:backgroundQueue.size,
+    inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
+    bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
  return {SIZE,HALO,tile,worldPos,neighbors,visible,intersects,create,
