@@ -6,14 +6,14 @@
 window.VedrasImagePool=(()=>{
  const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
  function create({parallel=4,maxBytes=192*1024*1024,protectMs=18000,
-  previewTerrainPx=512,onReady=()=>{}}={}){
+  previewTerrainPx=512,previewSpritePx=1024,onReady=()=>{}}={}){
   function prepare(asset,image){
-   if(!['terrain','terrain_base','shorelines'].includes(asset.category)||
-      !previewTerrainPx||typeof document==='undefined'||!document.createElement)
-    return image;
+   const limit=['terrain','terrain_base','shorelines'].includes(asset.category)?
+    previewTerrainPx:['nature','buildings','units'].includes(asset.category)?previewSpritePx:0;
+   if(!limit||typeof document==='undefined'||!document.createElement)return image;
    const longest=Math.max(image.naturalWidth||0,image.naturalHeight||0);
-   if(longest<=previewTerrainPx)return image;
-   const scale=previewTerrainPx/longest,w=Math.max(1,Math.round(image.naturalWidth*scale)),
+   if(longest<=limit)return image;
+   const scale=limit/longest,w=Math.max(1,Math.round(image.naturalWidth*scale)),
     h=Math.max(1,Math.round(image.naturalHeight*scale));
    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
    const ctx=cv.getContext('2d',{alpha:true});if(!ctx)return image;
