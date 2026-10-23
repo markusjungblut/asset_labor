@@ -17,7 +17,7 @@ const canvas=$('mapCanvas'),viewport=$('canvasOuter'),
 const gpuCanvas=$('gpuCanvas'),
  gpuTerrain=window.VedrasGpuTerrain?.create(gpuCanvas,{
   maxBytes:128*1024*1024,maxTextures:112})||null;
-let gpuFrame=false,imagePoolPriming=false;
+let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 const imagePool=window.VedrasImagePool.create({
  parallel:4,maxBytes:192*1024*1024,protectMs:24000,
  onReady:a=>{
@@ -27,8 +27,12 @@ const imagePool=window.VedrasImagePool.create({
   // Per-tile stamps below track the image generation and replace only users
   // of that image, while loaded sprites simply request a new composition.
   if(isTerrain(a)){terrainAssetGroups=null;terrainRasterCache.signature=null;}
-  requestDraw();
-  window.dispatchEvent(new CustomEvent('vedras:asset-image-loaded',{detail:{path:a.path}}));
+  // Batch sprite image completions. A 100ms decode burst used to provoke
+  // one expensive terrain/forest/sprite pass per settled image promise.
+  if(!assetReadyTimer)assetReadyTimer=setTimeout(()=>{
+   assetReadyTimer=null;requestDraw();
+   window.dispatchEvent(new Event('vedras:asset-image-loaded'));
+  },100);
  }
 });
 let finalRendering=false;
