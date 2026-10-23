@@ -1,3 +1,82 @@
+## v0.17.0 – Gelände-, Straßen- und Flusspipeline schneller wiederverwenden (23.10.2026)
+
+**Messbasis:** 169-Hex-Karte unter v0.16.1, 370,1 ms pro gezeichnetem
+Frame, davon Gelände 257,4 ms, Wege/Flüsse 73,9 ms und
+Sprites/Schatten 38,7 ms. Die Objekt-/Schattenebene wurde bereits
+erfolgreich wiederverwendet. Diese Zahlen stammen **vor** v0.17.0.
+
+**Optimierung:**
+- `frame-preparation-cache.js`: Szenenrevision statt erneuter
+  vollständiger `JSON.stringify`-Vergleiche aller Zellen und
+  Katalogeinträge pro Kamera-Frame. Terrain-Materialauswahl,
+  Auto-Tiling- und Worker-/LOD-Familien, normalisierte Flussrouten,
+  Ufersignaturen, Wald- und Reliefvorbereitung sowie
+  Flussbank-, Straßen- und Brückensignaturen werden bis zur nächsten
+  Szenen-/Katalog-/Assetänderung wiederverwendet. Bei Fehlern in
+  der Berechnung wird kein unvollständiger Cacheeintrag angelegt.
+  Neue Bilder und relevante Editoren-Aktionen invalidieren die
+  abhängigen Vorbereitungen.
+- `chunks.js`: Weltzellen werden je Array-Identität und
+  Chunkgröße in einen räumlichen Belegungsindex aufgenommen.
+  `visible()` prüft die ursprünglichen Grenzbedingungen exakt,
+  jedoch über eine vorberechnete Menge belegter Kacheln statt
+  pro Kandidat erneut alle Weltzellen zu durchsuchen.
+  `neighbors()` verwendet die vorberechneten Weltkoordinaten.
+  Bei expliziter Zell- oder Weltänderung wird der Geometrieindex
+  invalidiert. Reihenfolge und Halo-Ränder bleiben erhalten.
+- **Fertiger Hintergrund-Layer:** Gelände, Flussufer, Wasserstraßen,
+  Wege und Brücken werden gemeinsam als transparentes bzw.
+  hintergrundgefülltes, über den sichtbaren Ausschnitt
+  hinausreichendes Canvas vorbereitet. Während warmen
+  Kameraschwenks bei konstantem Zoom wird nur ein Raster auf
+  das Haupt-Canvas komposited. Der Layer kann maximal
+  12 Mio. Gerätepixel beanspruchen, passt den Sicherheitsrand
+  an und fällt bei Überschreitung auf die Originalrenderer zurück.
+- **Keine eingefrorenen Worker-Ergebnisse:** Cache-Schlüssel
+  berücksichtigen die Fertigstellungszähler der Terrain-,
+  Straßen-, Ufer- und Fluss-Chunks und den Terrain-Worker-Status.
+  Nachgeladene Kacheln lösen weiterhin ein neues Zeichnen aus;
+  die fertigen Kacheln werden im folgenden Hintergrundaufbau
+  sichtbar. Zusätzliche Asset-Load- und Edit-Invalidierungen
+  erhalten korrekte Biom-/Flussänderungen.
+- **Direkter Präzisionsweg erhalten:** PNG-Finalexport,
+  experimentelle GPU-Terrain-Darstellung und interaktive
+  Debug-/Straßen-/Fluss-Overlays umgehen den statischen
+  Hintergrund-Cache. Die bisherige statische Objektebene
+  v0.16.1 und ihr optionaler GPU-Kompositor bleiben erhalten.
+  Die beiden Optimierungen können unabhängig voneinander
+  wirken.
+- **Diagnose:** Unter dem allgemeinen Leistungsprofil erscheint
+  `Hintergrund: canvas wiederverwendet`, bei Abweichungen
+  `direct` samt Ursache, außerdem Kompositionszeit,
+  Sicherheitsrand, physische Rastergröße, Signaturcache- und
+  Chunk-Belegungsindex-Treffer. Programmgesteuert über
+  `window.__vedrasRenderProfile.background`,
+  `VedrasAssetLabor.backgroundStats()` und
+  `VedrasAssetLabor.preparationStats()`.
+  Zusätzlich trennt `terrainDetailStats` beim letzten
+  Hintergrundaufbau Quellvorbereitung, Chunk-/Autotile-Zeichnung,
+  Waldboden, Ufer, Diagnostik, Flussuferbänke und
+  Straßen/Brücken. Diese Detailwerte beziehen sich bei
+  `canvas wiederverwendet` auf den **letzten tatsächlichen Aufbau**,
+  nicht auf ausgeführte Arbeit des gerade angezeigten Frames.
+  Der nachgeladene Brücken-SVG-Assetpfad invalidiert den
+  Szenen-Cache ebenfalls ausdrücklich.
+
+**Tests:** `node --test tests/test_terrain_frame_cache_v017_20261023.cjs`
+plus die bestehenden v0.15.3–v0.16.1-Regressionstests.
+Ein lokaler Browser-Grafikvergleich und die native Node-Gesamtsuite
+müssen weiterhin auf dem Entwicklungsrechner erfolgen.
+
+**Leistungsgrenzen:** Der erste Bildaufbau, Kamerazoom,
+Szenenänderungen, Worker-Chunk-Fertigstellungen und große
+Schwenks über den Cache-Rand können weiterhin teurer werden.
+Dies ist noch kein vollständiges unendliches
+Weltstreaming und auch kein Pixel-Instancing aller Terrain-
+und Flusssegmente auf der GPU. Es werden **keine gemessenen
+v0.17.0-FPS-Ergebnisse behauptet**, bevor die identische
+169-Hex-Szene erneut getestet wurde.
+
 ## v0.16.1 – Statische Szenenebene bei großen Fenstern aktivieren (23.10.2026)
 
 **Rückmeldung aus v0.16.0 auf einer 169-Hex-Karte:**
