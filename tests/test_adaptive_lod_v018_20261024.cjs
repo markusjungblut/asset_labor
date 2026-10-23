@@ -32,6 +32,12 @@ test('lower boundary hysteresis prevents thrashing around the 169-hex zoom',()=>
  assert.equal(c.update(.48).id,'mid');
  assert.equal(c.update(.47).id,'far');
 });
+test('169-hex recommended zoom selects far LOD after a medium-range view',()=>{
+ const c=module().create();
+ assert.equal(c.update(.8).id,'mid');
+ assert.equal(c.update(3.1/7).id,'far');
+ assert.equal(module().create().update(3.1/7).id,'far');
+});
 test('upper boundary hysteresis stabilizes 92-106 percent zoom',()=>{
  const c=module().create();
  assert.equal(c.update(.7).id,'mid');
