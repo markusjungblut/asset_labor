@@ -8,10 +8,10 @@ keine unterschiedlichen world-space-Geometrien entstehen.
 
 - **Neues Modul `adaptive-lod.js`:** Drei Vorschau-Stufen
   `far` (Fern), `mid` (Mittel) und `near` (Nah), mit Hysterese:
-  Fern → Mittel ab 49 % Zoom; Mittel → Fern bei höchstens 38 %,
+  Fern → Mittel ab 55 % Zoom; Mittel → Fern bei höchstens 47 %,
   Mittel → Nah ab 106 % und Nah → Mittel bei höchstens 92 %.
   Bei der erstmaligen Auswahl liegen die mittleren Trennwerte
-  bei 44 % und 99 %. Große Zoomsprünge können direkt von
+  bei 51 % und 99 %. Große Zoomsprünge können direkt von
   Fern zu Nah bzw. umgekehrt wechseln. Das verhindert flackernde
   Qualität und unkontrolliertes Neuberechnen an Schwellen.
 - **LOD-Faktoren relativ zur bisher gewählten Editorqualität:**
