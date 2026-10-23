@@ -1283,6 +1283,8 @@ function buildSpriteLayout(){
  });
 }
 function spriteInViewport(o,view){
+ // Image-pool LRU can evict decoded sources without changing scene geometry.
+ if(!o.asset?.img?.naturalWidth)return false;
  // A generous world-space halo retains overhanging plants and mountain casts.
  // The final pixel-space check below remains the authoritative culling gate.
  const margin=o.type==='mountain'?Math.max(400,o.w||0):
@@ -1294,7 +1296,7 @@ function spriteInViewport(o,view){
 function drawMapObjects(){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
-   sortMs:0,shadowPassMs:0,spritePassMs:0,drawnSprites:0,drawnShadows:0,
+   sortMs:0,shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0,
    rebuilt:false};
   return;
  }
@@ -1309,7 +1311,7 @@ function drawMapObjects(){
  const profile={layoutMs:performance.now()-frameStart,buildMs:prepared.buildMs,
   rebuilt:prepared.rebuilt,total:prepared.total,visible:objs.length,
   cacheHits:prepared.hits,cacheBuilds:prepared.builds,occlusionMs:0,sortMs:0,
-  shadowPassMs:0,spritePassMs:0,drawnSprites:0,drawnShadows:0};
+  shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0};
  if(state.mode==='far'){
    // Far view deliberately uses simplified strategic markers, not the detailed sprites.
    for(const o of objs){if(o.type!=='building'&&o.type!=='unit'&&o.type!=='mountain')continue;const p=toScreen(o.x,o.y);
@@ -1348,7 +1350,7 @@ function drawMapObjects(){
   for(const o of objs){
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
-   profile.drawnShadows++;
+   profile.shadowCandidates++;
    if(o.natureMeta)drawNatureGrounding(o,p);
    else if(o.type==='building'&&window.VedrasSpriteShadows){
     window.VedrasSpriteShadows.draw(ctx,o,p,o.w*state.zoom,
@@ -1504,7 +1506,7 @@ function draw(){if(!ctx||!canvas.width)return;
  const objectStatus=$('objectPerfStats');
  if(objectStatus)objectStatus.textContent='Objekte '+(objProfile.visible||0)+'/'+
   (objProfile.total||0)+' vorbereitet · '+(objProfile.drawnSprites||0)+
-  ' Sprites und '+(objProfile.drawnShadows||0)+' Schatten gezeichnet · '+
+  ' Sprites und '+(objProfile.shadowCandidates||0)+' Schatten geprüft · '+
   'Layout '+mean('objectLayoutMs').toFixed(1)+' ms'+
   (objProfile.rebuilt?' (Szene neu aufgebaut)':' (Szenen-Cache)')+
   ' · Bergüberschneidung '+mean('objectOcclusionMs').toFixed(1)+' ms'+
