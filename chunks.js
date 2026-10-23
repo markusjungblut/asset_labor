@@ -137,6 +137,10 @@ window.VedrasChunks=(()=>{
        markWarm(id);
        if(queue.size||backgroundQueue.size)schedule();return;
       }
+     // An offscreen precompute can supersede a stale cached variant.
+     // Account for and close the previous raster before replacing its key.
+     const old=cache.get(id);
+     if(old){stats.pixels-=old.pixels||0;release(old);}
      if(!item){
       cache.set(id,{raster:null,relief:null,pixels:0,stamp:expectedStamp});
      }else{
