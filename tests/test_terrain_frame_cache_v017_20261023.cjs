@@ -122,6 +122,22 @@ test('terrain and rivers use revision memo and background compositor with worker
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
 
+test('bridge SVG loading and terrain image decoding cannot freeze the cached background',()=>{
+ const app=read('app.js');
+ assert.match(app,/requestDraw:\(\)=>\{[\s\S]*?backgroundScene\.clear\(\);requestDraw\(\);/);
+ assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
+ assert.match(app,/if\(affectsGround\)\{frameMemo\.invalidate\(\);backgroundScene\.clear\(\);\}/);
+ assert.match(app,/if\(\['nature','buildings','units'\]\.includes\(a\.category\)\)invalidateSpriteLayout\(\)/);
+});
+test('detailed terrain profiler partitions expensive cold renders without corrupting frame timings',()=>{
+ const app=read('app.js'),html=read('index.html');
+ assert.match(app,/window\.__vedrasGroundDetail=\{/);
+ for(const field of ['preparationMs','rasterMs','forestMs','shoreMs','diagnosticsMs'])
+  assert.ok(app.includes(field),field);
+ assert.match(app,/window\.__vedrasRoadPreparation=\{ms:roadPrepMs/);
+ assert.match(app,/terrainDetail:window\.__vedrasGroundDetail,roadsDetail:window\.__vedrasRoadPreparation/);
+ assert.match(html,/id="terrainDetailStats"/);
+});
 test('existing final PNG renderer and GPU terrain path are not replaced by cached preview',()=>{
  const app=read('app.js');
  assert.match(app,/const interactiveBackground=finalRendering/);
