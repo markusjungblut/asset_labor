@@ -63,7 +63,11 @@ window.VedrasSpriteAtlas=(()=>{
    active:!!manifest,tier,pages:pages.size,pending:pending.size,
    sprites:Object.keys(manifest?.tiers?.[tier]?.sprites||{}).length,failed
   };}
-  return {open,draw,info};
+  async function reload(){
+   loaded=false;failed=false;manifest=null;pages.clear();pending.clear();
+   const ok=await open();if(ok)onReady();return ok;
+  }
+  return {open,reload,draw,info};
  }
  return {create};
 })();
