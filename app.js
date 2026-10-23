@@ -1241,7 +1241,7 @@ function drawNatureGrounding(obj,p){
  if(!obj.natureMeta)return;
  const shared=window.VedrasSpriteShadows;
  if(shared){
-  shared.draw(ctx,obj,p,obj.w*state.zoom,shadowSilhouette(obj.asset.img),
+  (finalRendering?shared.draw:shared.drawCached||shared.draw)(ctx,obj,p,obj.w*state.zoom,shadowSilhouette(obj.asset.img),
    obj.natureMeta.anchor||{x:.5,y:.96},sceneShadowStrength());
   return;
  }
@@ -1282,13 +1282,15 @@ function buildSpriteLayout(){
   return {...o,groundY,y:displayGroundY(o.x,groundY)};
  });
 }
+function spriteIndexMargin(o){
+ return o.type==='mountain'?Math.max(400,o.w||0):
+  o.type==='nature'?Math.max(320,o.w||0):480;
+}
 function spriteInViewport(o,view){
  // Image-pool LRU can evict decoded sources without changing scene geometry.
  if(!o.asset?.img?.naturalWidth)return false;
- // A generous world-space halo retains overhanging plants and mountain casts.
- // The final pixel-space check below remains the authoritative culling gate.
- const margin=o.type==='mountain'?Math.max(400,o.w||0):
-  o.type==='nature'?Math.max(320,o.w||0):480;
+ // The spatial grid includes the same overhang margin used by final culling.
+ const margin=spriteIndexMargin(o);
  const groundY=o.groundY;
  return o.x>=view.x-margin&&o.x<=view.x+view.width+margin&&
   groundY>=view.y-margin&&groundY<=view.y+view.height+margin;
@@ -1304,13 +1306,14 @@ function drawMapObjects(){
  const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
  const view={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
   width:Math.abs(b.x-a.x),height:Math.abs(b.y-a.y)};
- const prepared=objectLayoutCache.query(view,buildSpriteLayout,spriteInViewport);
+ const prepared=objectLayoutCache.query(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin);
  // Depth order is still evaluated each frame; source positions and expensive
  // river/road placement/relief operations are not.
  const objs=prepared.objects.map(o=>({...o,sortY:o.y}));
  const profile={layoutMs:performance.now()-frameStart,buildMs:prepared.buildMs,
   rebuilt:prepared.rebuilt,total:prepared.total,visible:objs.length,
-  cacheHits:prepared.hits,cacheBuilds:prepared.builds,occlusionMs:0,sortMs:0,
+  cacheHits:prepared.hits,cacheBuilds:prepared.builds,
+  candidates:prepared.candidates,buckets:prepared.buckets,occlusionMs:0,sortMs:0,
   shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0};
  if(state.mode==='far'){
    // Far view deliberately uses simplified strategic markers, not the detailed sprites.
@@ -1353,7 +1356,7 @@ function drawMapObjects(){
    profile.shadowCandidates++;
    if(o.natureMeta)drawNatureGrounding(o,p);
    else if(o.type==='building'&&window.VedrasSpriteShadows){
-    window.VedrasSpriteShadows.draw(ctx,o,p,o.w*state.zoom,
+    (finalRendering?window.VedrasSpriteShadows.draw:window.VedrasSpriteShadows.drawCached||window.VedrasSpriteShadows.draw)(ctx,o,p,o.w*state.zoom,
      shadowSilhouette(o.asset.img),o.asset?.meta?.anchor||{x:.5,y:.90},
      sceneShadowStrength());
    }
@@ -1366,7 +1369,7 @@ function drawMapObjects(){
       shape.opacity*sceneShadowStrength()*.8,shape.softness*.5,shape);
    }
    else if(o.type==='unit'&&window.VedrasSpriteShadows)
-    window.VedrasSpriteShadows.draw(ctx,o,p,o.w*state.zoom,
+    (finalRendering?window.VedrasSpriteShadows.draw:window.VedrasSpriteShadows.drawCached||window.VedrasSpriteShadows.draw)(ctx,o,p,o.w*state.zoom,
      shadowSilhouette(o.asset.img),o.asset?.meta?.anchor||{x:.5,y:.96},
      sceneShadowStrength());
    else if(o.type==='unit')window.VedrasShadows.contact(ctx,p,o.w*state.zoom,'nature',.35*sceneShadowStrength());
@@ -1480,11 +1483,14 @@ function draw(){if(!ctx||!canvas.width)return;
  drawRoads();const t2=performance.now();
  drawForestDebug();
  spriteAtlas?.beginFrame();
+ window.VedrasSpriteShadows?.beginFrame?.();
  try{drawMapObjects();}finally{spriteAtlas?.endFrame();}
  drawMountainFootprints();drawBounds();
  if(gpuFrame)gpuTerrain.end();
  const t3=performance.now();
  const objProfile=window.__vedrasObjectProfile||{};
+ const shadowRaster=window.VedrasSpriteShadows?.cacheStats?.()||{};
+ objProfile.shadowRaster=shadowRaster;
  const sample={terrainMs:t1-t0,roadsMs:t2-t1,objectsMs:t3-t2,totalMs:t3-t0,
   objectLayoutMs:objProfile.layoutMs||0,objectOcclusionMs:objProfile.occlusionMs||0,
   objectSortMs:objProfile.sortMs||0,objectShadowsMs:objProfile.shadowPassMs||0,
@@ -1513,6 +1519,10 @@ function draw(){if(!ctx||!canvas.width)return;
   ' · Sortierung '+mean('objectSortMs').toFixed(1)+' ms'+
   ' · Bodenschatten '+mean('objectShadowsMs').toFixed(1)+' ms'+
   ' · Sprite-Zeichnung '+mean('objectSpritesMs').toFixed(1)+' ms'+
+  ' · Index '+(objProfile.candidates||0)+' Kandidaten / '+(objProfile.buckets||0)+' Zellen'+
+  ' · Schattenraster '+(shadowRaster.frameHits||0)+' Treffer / '+
+  (shadowRaster.frameMisses||0)+' neu / '+(shadowRaster.frameFallback||0)+' direkt'+
+  ' ('+Math.round((shadowRaster.bytes||0)/1048576)+' MiB)'+
   ' · Cache '+(objProfile.cacheBuilds||0)+' Builds / '+(objProfile.cacheHits||0)+' Treffer';
  const gpu=gpuTerrain?.stats(),mem=imagePool.report(),g=$('gpuStatus');
  if(g)g.textContent=(gpu?.ready?
