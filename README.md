@@ -1,3 +1,57 @@
+## v0.16.1 – Statische Szenenebene bei großen Fenstern aktivieren (23.10.2026)
+
+**Rückmeldung aus v0.16.0 auf einer 169-Hex-Karte:**
+776,3 ms/Frame, Gelände 301,6 ms, Wege/Flüsse 71,0 ms,
+Sprites/Schatten 403,6 ms, davon Objektlayout 119,0 ms,
+Bodenschatten 180,3 ms, Sprite-Zeichnung 103,9 ms.
+Entscheidend: Der Profiler meldete `Szene direct neu`;
+der in v0.16.0 eingeführte statische Layer war also nicht aktiv.
+
+**Ursachen und Maßnahmen:**
+- v0.16.0 nutzte einen **fixen 440px-Sicherheitsrand** und ein
+  6-Millionen-Pixel-Limit für den erweiterten Szenen-Canvas.
+  Auf größeren Browserfenstern reichte dies schon für einen
+  stillen Fallback in die vollständige Einzelobjekt-Zeichnung.
+  v0.16.1 verwendet ein auf 12 Mio. Gerätepixel begrenztes
+  Cache-Budget und **verkleinert den Rand automatisch** bis
+  mindestens 64px, bevor es auf den direkten Renderer
+  zurückfällt. Auf extrem großen Displays, bei denen selbst
+  der Mindestpuffer zu groß ist, bleibt der sichere Fallback.
+  Mehr Cache verbraucht auch mehr Speicher (bis ca. 48 MiB RGBA
+  für diese Ebene, ggf. zusätzlich eine GPU-Textur).
+- Nicht-interaktive Diagnose-Overlays für Gebäudebereiche,
+  Walddiagnose und Bergfootprints deaktivieren die **Canvas**
+  -Szenenebene nicht länger, da sie ohnehin außerhalb des
+  Spritepasses gezeichnet werden. Bei aktiviertem experimentellem
+  GPU-Spritekompositor bleibt für diese Debug-Overlays der direkte
+  Weg nötig, damit sie nicht vom höherliegenden GPU-Canvas
+  verdeckt werden. Schattenbearbeitungs- und Schatten-Debugmodi
+  verwenden weiterhin den direkten Renderer.
+- **Diagnose im Objektprofil:** `Szene direct neu · Grund:
+  <Ursache>` zeigt nun aktive Debug-Flags oder einen
+  überschrittenen Pixel-Rahmen explizit.
+  Wenn der Layer nutzbar ist, zeigt der Profiler
+  `Szene canvas neu` und bei folgenden Schwenks
+  `Szene canvas wiederverwendet`,
+  den tatsächlich gewählten Rand in CSS-Pixeln sowie die
+  Größe des Puffers in Megapixeln.
+- Vorhandene Kartenbilder, gespeicherte Szenen und die
+  Python-3.8-Server-Kompatibilität sind unverändert.
+  Der hochwertige PNG-Export bleibt auf dem direkten Renderer.
+- **Regressionstests:** 
+  `node --test tests/test_object_layout_cache_20261023.cjs tests/test_spatial_shadow_cache_20261023.cjs tests/test_static_scene_v016_20261023.cjs tests/test_static_scene_fallback_v0161_20261023.cjs`.
+  Insgesamt 27 Tests wurden gegen die aktuellen Branch-Quelltexte
+  in einer isolierten JavaScript-Testlaufzeit bestanden. Eine
+  vollständige native Node-Gesamtsuite oder ein echter Browsertest
+  auf der 169-Hex-Karte wurde nicht ausgeführt.
+
+**Wichtig:** Auch nach erfolgreichem Layer-Reuse wird der
+Canvas-Hintergrund mit Gelände, Flüssen und Straßen noch einzeln
+gezeichnet. Der Hotfix behebt eine Bypass-Ursache für die neue
+statische Objektkomposition, ist aber kein vollständiger Umbau
+der Gelände-/Flusspipeline. Eine tatsächliche Beschleunigung
+muss mit warmen Frames und unverändertem Zoom gemessen werden.
+
 ## v0.16.0 – Statische Szene statt 756 Objekte bei jedem Schwenk (23.10.2026)
 
 **Ausgangslage, Messung des Nutzers auf 169 Hexfeldern unter v0.15.3:**
