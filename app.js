@@ -856,7 +856,11 @@ function drawRoads(){
   window.VedrasBridges.render(ctx,crossings.filter(b=>
    b.x>=bounds.x-200&&b.x<=bounds.x+bounds.width+200&&
    b.y>=bounds.y-200&&b.y<=bounds.y+bounds.height+200),
-   {groundY:projection,requestDraw});
+   {groundY:projection,requestDraw:()=>{
+    // Bridges are standalone SVGs, not image-pool assets. Their asynchronous
+    // onload must invalidate the composed background before requesting a frame.
+    backgroundScene.clear();requestDraw();
+   }});
   const label=$('roadBridgeStats');
   if(label)label.textContent=crossings.length+' Brücke(n) an tatsächlichen Flussquerungen · sechs Richtungsbilder';
  }else{
