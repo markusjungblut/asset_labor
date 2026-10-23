@@ -5,7 +5,25 @@
 window.VedrasSpriteAtlas=(()=>{
  function create({base='atlases/',limitPages=6,onReady=()=>{}}={}){
   let manifest=null,tier='desktop',failed=false,loaded=false;
-  const pages=new Map(),pending=new Map();
+  const pages=new Map(),pending=new Map(),failedPages=new Set();
+  const capacity=Math.max(1,Math.floor(limitPages));
+  // A frame reserves at most 'capacity' pages. Extra sprites use their original
+  // PNG instead of constantly evicting/reloading atlas pages every redraw.
+  let selectedPages=null;
+  function beginFrame(){selectedPages=new Set();}
+  function endFrame(){selectedPages=null;}
+  function freeSlot(){
+   if(pages.size+pending.size<capacity)return true;
+   for(const id of pages.keys()){
+    if(!selectedPages?.has(id)){pages.delete(id);return true;}
+   }
+   for(const [id,image] of pending){
+    if(!selectedPages?.has(id)){
+     pending.delete(id);image.onload=null;image.onerror=null;return true;
+    }
+   }
+   return false;
+  }
   const tierName=()=>{
    const small=typeof navigator!=='undefined'&&navigator.maxTouchPoints>0&&
     (typeof window==='undefined'||Math.min(window.innerWidth,window.innerHeight)<1200);
@@ -28,33 +46,51 @@ window.VedrasSpriteAtlas=(()=>{
    const info=manifest?.tiers?.[tier]?.pages?.[index];
    if(!info)return null;
    const id=tier+'/'+index;
+   if(selectedPages&&!selectedPages.has(id)){
+    if(selectedPages.size>=capacity)return null;
+    selectedPages.add(id);
+   }
    if(pages.has(id)){
     const image=pages.get(id);pages.delete(id);pages.set(id,image);
     return image;
    }
-   if(pending.has(id))return null;
+   if(pending.has(id)||failedPages.has(id)||!freeSlot())return null;
    const image=new Image();image.decoding='async';
    pending.set(id,image);
    image.onload=()=>{
+    if(pending.get(id)!==image)return;
     pending.delete(id);pages.set(id,image);
-    while(pages.size>limitPages)pages.delete(pages.keys().next().value);
     onReady();
    };
-   image.onerror=()=>pending.delete(id);
+   image.onerror=()=>{
+    if(pending.get(id)!==image)return;
+    pending.delete(id);failedPages.add(id);onReady();
+   };
    image.src=base+info.file;
    return null;
   }
-  function draw(ctx,path,b,dest){
+  function draw(ctx,path,b,dest,previewSize=null){
    const t=manifest?.tiers?.[tier],entry=t?.sprites?.[path];
    if(!entry||!b?.sw||!b?.sh)return false;
    const img=page(entry.page);if(!img?.naturalWidth)return false;
    const [tx,ty,tw,th]=entry.trim,[ax,ay,aw,ah]=entry.rect;
-   const sx=Math.max(tx,b.sx),sy=Math.max(ty,b.sy),
-    ex=Math.min(tx+tw,b.sx+b.sw),ey=Math.min(ty+th,b.sy+b.sh);
+   // 'b' is measured from the decoded preview (often downsampled to 1024px),
+   // while atlas trim/rect coordinates belong to the full-resolution source.
+   // Convert BOTH origin and dimensions before sampling. Destination geometry
+   // must still use that same crop for a stable anchor and silhouette size.
+   const [nativeW,nativeH]=entry.source||[];
+   const factorX=nativeW>0&&previewSize?.width>0?
+    nativeW/previewSize.width:1;
+   const factorY=nativeH>0&&previewSize?.height>0?
+    nativeH/previewSize.height:1;
+   const bx=b.sx*factorX,by=b.sy*factorY,
+    bw=b.sw*factorX,bh=b.sh*factorY;
+   const sx=Math.max(tx,bx),sy=Math.max(ty,by),
+    ex=Math.min(tx+tw,bx+bw),ey=Math.min(ty+th,by+bh);
    if(ex<=sx||ey<=sy)return false;
-   const x=dest.x+(sx-b.sx)/b.sw*dest.w,
-    y=dest.y+(sy-b.sy)/b.sh*dest.h,
-    w=(ex-sx)/b.sw*dest.w,h=(ey-sy)/b.sh*dest.h;
+   const x=dest.x+(sx-bx)/bw*dest.w,
+    y=dest.y+(sy-by)/bh*dest.h,
+    w=(ex-sx)/bw*dest.w,h=(ey-sy)/bh*dest.h;
    ctx.drawImage(img,ax+(sx-tx)*aw/tw,ay+(sy-ty)*ah/th,
     (ex-sx)*aw/tw,(ey-sy)*ah/th,x,y,w,h);
    return true;
@@ -65,9 +101,10 @@ window.VedrasSpriteAtlas=(()=>{
   };}
   async function reload(){
    loaded=false;failed=false;manifest=null;pages.clear();pending.clear();
+   failedPages.clear();selectedPages=null;
    const ok=await open();if(ok)onReady();return ok;
   }
-  return {open,reload,draw,info};
+  return {open,reload,draw,beginFrame,endFrame,info};
  }
  return {create};
 })();

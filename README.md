@@ -1,3 +1,9 @@
+## v0.15.2 – Stabile Sprite-Ausschnitte und Atlas-Seiten (23.10.2026)
+
+- **Korrektur von wandernden und falsch vergrößerten Sprites:** Das Asset-Labor verwendet zur schnellen Vorschau teilweise auf maximal 1024 Pixel verkleinerte Natur-/Gebäude-/Einheiten-Grafiken. Der Atlas-Renderer rechnet jetzt die Vorschau-Ausschnittkoordinaten vor der Atlas-Abtastung zurück in die Originalauflösung; Zielgröße und Anker bleiben dabei unverändert.
+- **Kein permanentes Atlas-Neuladen:** Maximal sechs Atlas-Seiten werden je Frame reserviert; bei mehr sichtbaren Seiten wird für weitere Sprites zuverlässig die ohnehin geladene Original-/Vorschau-PNG gezeichnet. Die sechs Seiten dürfen erst beim Wechsel der sichtbaren Szene verdrängt werden.
+- Neue Regressionstests in `tests/test_sprite_atlas_stability_20261023.cjs`. Die Atlas-Erstellung und der Terrain-Chunk-Cache aus v0.15.1 bleiben unverändert.
+
 ## Python 3.8: Lokaler Terrain-Cache ohne HTTP-Tracebacks (23.10.2026)
 
 Der lokale Editor-Server unterstützt bei der Terrain-Cache-Abfrage wieder Python 3.8:

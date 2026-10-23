@@ -1148,6 +1148,8 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
   objectPerspective(ctx,p);
   if(!spriteAtlas?.draw(ctx,obj.asset.path,b,{
    x:left,y:top,w:width,h:height
+  },{
+   width:obj.asset.img.naturalWidth,height:obj.asset.img.naturalHeight
   }))ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);
   ctx.restore();
   return;
@@ -1432,7 +1434,10 @@ function draw(){if(!ctx||!canvas.width)return;
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,W,H);
  drawGround();const t1=performance.now();
  drawRoads();const t2=performance.now();
- drawForestDebug();drawMapObjects();drawMountainFootprints();drawBounds();
+ drawForestDebug();
+ spriteAtlas?.beginFrame();
+ try{drawMapObjects();}finally{spriteAtlas?.endFrame();}
+ drawMountainFootprints();drawBounds();
  if(gpuFrame)gpuTerrain.end();
  const t3=performance.now();
  const sample={terrainMs:t1-t0,roadsMs:t2-t1,objectsMs:t3-t2,totalMs:t3-t0,
