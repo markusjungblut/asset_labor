@@ -93,5 +93,5 @@ test('map sprite draw uses preview dimensions and reserves atlas pages for a fra
  const app=read('app.js');
  assert.match(app,/spriteAtlas\?\.draw\(ctx,obj\.asset\.path,b,[\s\S]*?width:obj\.asset\.img\.naturalWidth/);
  assert.match(app,/spriteAtlas\?\.beginFrame\(\)/);
- assert.match(app,/finally\{spriteAtlas\?\.endFrame\(\)\}/);
+ assert.match(app,/finally\{spriteAtlas\?\.endFrame\(\);?\}/);
 });
