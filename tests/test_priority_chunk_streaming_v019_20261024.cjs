@@ -112,7 +112,10 @@ test('prefetched completed pixels refresh an existing cached background only on 
 });
 test('disabling streaming cancels speculative queued work without invalidating visible rasters',()=>{
  const s=setup();s.renderer.prime(view(),{prefetch:stream});
- s.pump('urgent');const revision=s.stats().visibleRevision;
+ s.pump('urgent');
+ const ctx={save(){},restore(){},beginPath(){},rect(){},clip(){}};
+ s.renderer.draw(ctx,view(),{prefetch:stream,drawRaster:()=>{},margin:0});
+ const revision=s.stats().visibleRevision;
  s.renderer.prime(view(),{prefetch:{enabled:false}});
  assert.equal(s.stats().prefetchPending,0);
  assert.equal(s.stats().visibleRevision,revision);
