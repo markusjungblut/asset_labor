@@ -1405,7 +1405,7 @@ function renderAssetsList(){
   const summary=document.createElement('summary');summary.textContent=`${name} · ${items.length}`;details.append(summary);
   const body=document.createElement('div');body.className='asset-group-content';
   for(const a of items){const button=document.createElement('button');button.className='asset-card'+(a.path===state.asset?' selected':'');
-   const img=document.createElement('img');img.className='asset-thumb';img.src=a.url;
+   const img=document.createElement('img');img.className='asset-thumb';img.loading='lazy';img.decoding='async';img.src=a.url;
    const box=document.createElement('div');box.innerHTML=`<div class="asset-title">${escapeHtml(a.name)}</div><div class="asset-desc">${escapeHtml(a.meta?.artStatus||'Testdatei')} · ${a.img?.naturalWidth||'…'} px</div>`;
    button.append(img,box);button.addEventListener('click',()=>setSelectedAsset(a.path));body.append(button);}
   details.append(body);details.addEventListener('toggle',()=>{if(!q){openState[id]=details.open;try{localStorage.setItem('vedras_library_groups',JSON.stringify(openState));}catch{}}});list.append(details);
