@@ -213,7 +213,11 @@ window.VedrasRivers=(()=>{
   const y=Math.floor(Math.min(...projected.map(p=>p.y))-pad);
   const xmax=Math.ceil(Math.max(...projected.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...projected.map(p=>p.y))+pad);
   const dw=xmax-x,dh=ymax-y;
-  const scale=Math.min(1.55,2500/Math.max(dw,dh)),canvas=document.createElement('canvas');
+  // Visual LOD only changes sampling density; exact world-space course,
+  // silhouette, river width and mouth projection remain untouched.
+  const detailScale=Math.max(.5,Math.min(1,Number(options.detailScale)||1));
+  const scale=Math.min(1.55*detailScale,2500/Math.max(dw,dh)),
+   canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d',{willReadFrequently:true});
   const mask=maskData(projected,width,x,y,scale,canvas.width,canvas.height);

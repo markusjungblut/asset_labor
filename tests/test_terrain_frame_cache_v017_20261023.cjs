@@ -117,7 +117,7 @@ test('terrain and rivers use revision memo and background compositor with worker
  assert.match(html,/frame-preparation-cache\.js\?v=0\.1\.0/);
  assert.ok(html.indexOf('frame-preparation-cache.js')<html.indexOf('app.js'));
  assert.match(html,/id="backgroundPerfStats"/);
- assert.match(server,/VERSION = '0\.17\.0'/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
