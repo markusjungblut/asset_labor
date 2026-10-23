@@ -87,6 +87,29 @@ test('speculative memory budget reserves resources for the viewport and LOD fall
  assert.ok(s.stats().prefetchPending<=stream.limit);
  assert.ok(s.stats().bytes<=s.stats().budgetBytes||s.stats().visible>0);
 });
+test('prefetched completed pixels refresh an existing cached background only on first visibility',()=>{
+ const s=setup({maxPixels:1500000});
+ s.renderer.prime(view(),{prefetch:stream});
+ s.pump('urgent');
+ const canvasContext={save(){},restore(){},beginPath(){},rect(){},clip(){},
+  drawImage(){}};
+ s.renderer.draw(canvasContext,view(),{prefetch:stream,drawRaster:()=>{},margin:0});
+ const urgentCount=s.builds.length,revision=s.stats().visibleRevision;
+ s.pump('idle',20);
+ const prefetched=s.builds.slice(urgentCount);
+ assert.ok(prefetched.length>0,'a nearby tile must have been prepared in advance');
+ const [x,y]=prefetched[0].split(',').map(Number);
+ const newViewport=view(x*512+20,y*512+20);
+ const before=s.redraws();
+ s.renderer.prime(newViewport,{prefetch:stream});
+ assert.ok(s.stats().visibleRevision>revision);
+ assert.ok(s.redraws()>before,'cached background is invalidated to expose the prepared pixels');
+ s.pump('urgent');
+ s.renderer.draw(canvasContext,newViewport,{prefetch:stream,drawRaster:()=>{},margin:0});
+ const after=s.stats().visibleRevision;
+ s.renderer.prime(newViewport,{prefetch:stream});
+ assert.equal(s.stats().visibleRevision,after,'no repeated invalidation after the new raster was painted');
+});
 test('disabling streaming cancels speculative queued work without invalidating visible rasters',()=>{
  const s=setup();s.renderer.prime(view(),{prefetch:stream});
  s.pump('urgent');const revision=s.stats().visibleRevision;
