@@ -22,15 +22,15 @@ test('three tiers preserve deterministic zoom thresholds',()=>{
  assert.equal(far.roadDetail,false);
  assert.equal(mid.roadDetail,true);
 });
-test('lower boundary hysteresis prevents thrashing near .44 zoom',()=>{
+test('lower boundary hysteresis prevents thrashing around the 169-hex zoom',()=>{
  const c=module().create();
  assert.equal(c.update(.3).id,'far');
- assert.equal(c.update(.46).id,'far');
- assert.equal(c.update(.48).id,'far');
- assert.equal(c.update(.49).id,'mid');
- assert.equal(c.update(.44).id,'mid');
- assert.equal(c.update(.39).id,'mid');
- assert.equal(c.update(.38).id,'far');
+ assert.equal(c.update(.51).id,'far');
+ assert.equal(c.update(.54).id,'far');
+ assert.equal(c.update(.55).id,'mid');
+ assert.equal(c.update(.50).id,'mid');
+ assert.equal(c.update(.48).id,'mid');
+ assert.equal(c.update(.47).id,'far');
 });
 test('upper boundary hysteresis stabilizes 92-106 percent zoom',()=>{
  const c=module().create();
