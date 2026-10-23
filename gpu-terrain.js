@@ -39,7 +39,9 @@ window.VedrasGpuTerrain=(()=>{
    gl.useProgram(program);gl.uniform1i(gl.getUniformLocation(program,'u_texture'),0);
    gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
    gl.disable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
-   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+   // ImageBitmap ignores UNPACK_FLIP_Y_WEBGL. Using an unflipped upload
+   // for BOTH Canvas2D and ImageBitmap gives one consistent UV convention.
+   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
    canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();disable('GPU-Kontext verloren');});
    canvas.addEventListener('webglcontextrestored',()=>disable('GPU-Kontext muss neu initialisiert werden'));
@@ -87,7 +89,11 @@ window.VedrasGpuTerrain=(()=>{
     const sx=Math.max(0,(core.x-r.x)/r.width),ex=Math.min(1,(core.x+core.size-r.x)/r.width),
      sy=Math.max(0,(core.y-r.y)/r.height),ey=Math.min(1,(core.y+core.size-r.y)/r.height);
     if(x1<=x0||y1<=y0||ex<=sx||ey<=sy)return true;
-    const a=new Float32Array([x0,y0,sx,1-sy,x1,y0,ex,1-sy,x0,y1,sx,1-ey,x1,y1,ex,1-ey]);
+    // Uploads are unflipped (including worker-transferred ImageBitmaps).
+    // OpenGL's v=0 samples the first, top pixel row of an unflipped source.
+    // Negating v flipped every worker chunk independently and produced
+    // alternating horizontal landscape strips at 4-way intersections.
+    const a=new Float32Array([x0,y0,sx,sy,x1,y0,ex,sy,x0,y1,sx,ey,x1,y1,ex,ey]);
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);
     gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.bufferSubData(gl.ARRAY_BUFFER,0,a);
     gl.drawArrays(gl.TRIANGLE_STRIP,0,4);metrics.draws++;return true;
