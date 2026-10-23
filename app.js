@@ -1092,7 +1092,11 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
  const ax=Number.isFinite(Number(anchor.x))?clamp(Number(anchor.x),0,1):.5;
  const ay=Number.isFinite(Number(anchor.y))?clamp(Number(anchor.y),0,1):.96;
  const left=p.x-width*ax,top=p.y-height*ay;
- const casts=spriteMountainCasts(obj,left,top,width,height);
+ // At map-overview zoom levels, tiny 2D sprite-on-sprite mountain casts
+ // cost repeated offscreen compositing without readable detail. Preserve the
+ // mountain's GROUND shadow, original sprites and ALL detail in PNG export.
+ const casts=!finalRendering&&state.zoom<.46?
+  []:spriteMountainCasts(obj,left,top,width,height);
  const filter=obj.natureMeta?window.VedrasPolish.natureFilter(obj.natureMeta,state.visualPolish.nature):'none';
  if(!casts.length){
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
