@@ -1746,6 +1746,34 @@ $('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(sug
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();requestDraw();updateDiagnostics();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;state.chunkRenderingOverride=true;invalidateTerrain();persistScene();requestDraw();});
+// Atlas building runs as an OFFLINE local-server job, never on startup
+// or on a map frame. No original image or path is modified by the builder.
+$('atlasBuild').addEventListener('click',async()=>{
+ const button=$('atlasBuild'),status=$('atlasBuildStatus');
+ button.disabled=true;status.textContent='Atlas-Aufbereitung startet …';
+ try{
+  const response=await fetch('/api/build-atlases',{method:'POST'});
+  if(!response.ok)throw Error('Lokaler Server unterstützt diesen Atlas-Build nicht.');
+  const started=await response.json();
+  if(started.state==='error')throw Error(started.error||'Atlas-Build fehlgeschlagen');
+  for(let attempt=0;attempt<300;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,1000));
+   const check=await fetch('/api/atlas-status',{cache:'no-store'});
+   if(!check.ok)throw Error('Atlasstatus nicht erreichbar');
+   const job=await check.json();
+   if(job.state==='error')throw Error(job.error||'Atlas-Build fehlgeschlagen');
+   if(job.state==='ready'){
+    await spriteAtlas?.reload();
+    status.textContent='Fertig: '+job.sprites+' Sprites, '+job.pages+
+     ' Desktop-Atlas-Seiten. Mobile-Atlas ebenfalls erstellt.';
+    return;
+   }
+   status.textContent='Sprite-Atlanten werden offline erstellt; Karte bleibt bedienbar …';
+  }
+  status.textContent='Atlas-Build läuft weiter. Status bei erneutem Öffnen prüfen.';
+ }catch(err){status.textContent=String(err?.message||err);}
+ finally{button.disabled=false;}
+});
 $('gpuTerrain').addEventListener('change',e=>{
  state.gpuTerrain=e.target.checked;
  state.gpuTerrainUserEnabled=e.target.checked;
