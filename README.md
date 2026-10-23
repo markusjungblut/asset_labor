@@ -1,3 +1,65 @@
+## v0.16.0 – Statische Szene statt 756 Objekte bei jedem Schwenk (23.10.2026)
+
+**Ausgangslage, Messung des Nutzers auf 169 Hexfeldern unter v0.15.3:**
+684,6 ms/Frame, Gelände 284,8 ms, Wege/Flüsse 73,4 ms,
+Sprites/Schatten 326,5 ms. Im Objektprofil: Layout 0,2 ms,
+Bergüberdeckung 0,1 ms, Sortierung 0,2 ms, Bodenschatten 213,4 ms
+und Spritezeichnung 112,5 ms bei 756 vorbereiteten Objekten.
+v0.15.4 hat bereits einen Index und Schattenraster-LRU ergänzt;
+diese Messung ist ausdrücklich **nicht** das Ergebnis von v0.15.4.
+
+**Neu in v0.16.0:**
+- `static-object-layer.js`: Die **gesamte statische Objektkomposition**
+  (Bodenschatten, Bergausschnitte, tiefensortierte Spritegrafiken) wird
+  in einen transparenten, über die Ansicht hinausreichenden Canvas
+  gerendert. Solange die Kamera innerhalb des Overscans bleibt und
+  derselbe Zoom, DPR und Szenen-/Schattenstand gelten, rendert die
+  Karte nicht erneut alle Sprites; es genügt **ein Canvas-Bild**.
+  Beim Überschreiten des Ausschnitts, Zoom, Resize, neuer
+  Bildquelle oder Szenenänderung wird neu zusammengesetzt.
+- Cache-Budget: 6 Mio. Gerätepixel (ca. 24 MiB reine RGBA-Daten),
+  maximal 8192 px je Seite. Bei Überschreitung direkter
+  Canvas2D-Fallback ohne gigantische Offscreen-Texturen.
+  Pro Szene nur ein Raster; keine Änderung an den PNG-Assets.
+- `gpu-sprite-layer.js`: **Optionaler** WebGL2-Vergleichskompositor
+  für die fertige statische Objekt-/Schattenebene. Bei einem
+  Szenenaufbau wird eine GPU-Textur hochgeladen; Kameraschwenks
+  zeichnen anschließend nur ein Textur-Quad ohne weiteren Upload.
+  Dies ist **noch kein individuelles GPU-Instancing der einzelnen
+  Sprites** – die Vorbereitung aller Objekte erfolgt weiterhin auf
+  Canvas2D. Standard bleibt die kompatible Canvas-Komposition;
+  experimentellen Schalter in der Testszene aktivieren, um
+  CPU-Canvas versus GPU-Ausgabe zu vergleichen.
+- Editor- und PNG-Sicherheit: Bei der hochwertigen PNG-Ausgabe,
+  ausgewählten Debugmodi und Editorüberlagerungen bleibt der
+  vorherige direkte Zeichenpfad erhalten. Bei fehlendem WebGL2
+  funktioniert automatisch weiterhin Canvas2D.
+- Der Schattenprofil-Editor besitzt einen Versionszähler;
+  Profiländerungen invalidieren die statische Komposition.
+  Die Szenenversion aus v0.15.3 bleibt maßgeblich für Objektänderungen.
+  Der GPU-Vergleichsschalter selbst invalidiert **keine** Bilddaten.
+- Diagnose unter `Objekte`: Ebenenmodus (`canvas`/`webgl`/
+  `direct`), `wiederverwendet`/`neu`, Kompositionszeit und
+  kumulierte GPU-Uploads. Zusätzliche Kennzahlen:
+  `VedrasAssetLabor.sceneryStats()`,
+  `VedrasAssetLabor.spriteGpuStats()`.
+
+**Regression:** `node --test tests/test_static_scene_v016_20261023.cjs`
+(sieben Tests: Kamera-Pan, Zoom/Edits, Rastergrenze, Grafikbudget,
+GPU-Fallback, Schattenprofiländerung und Integration). Tests wurden
+gegen die tatsächlichen Dateien im Branch in einer isolierten
+JavaScript-Testlaufzeit ausgeführt. Eine vollständige native
+Node-Testsuite sowie ein realer Browser-FPS-Test mit der
+169-Hex-Szene fehlen noch.
+
+**Performance-Grenzen:** Das erstmalige Zusammensetzen einer
+Szene und Zoom-/Editoränderungen können weiterhin viel CPU-Zeit
+beanspruchen. Gelände und Flüsse/Straßen bleiben unverändert in
+ihrer bisherigen Renderpipeline, weshalb die ursprünglichen
+284,8 ms Gelände und 73,4 ms Wege/Flüsse nicht mit diesem
+Patch allein verschwinden. Erst neue Vergleichsmessungen
+zeigen den tatsächlichen Geschwindigkeitsgewinn.
+
 ## v0.15.4 – Räumlicher Objektindex + wiederverwendete Sprite-Schatten (23.10.2026)
 
 **Ziel:** Die warmen Render-Frames großer Nature-Szenen beschleunigen,
