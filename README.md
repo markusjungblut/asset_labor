@@ -19,7 +19,7 @@ für deren Abwesenheit.
   neuen Sprite-Bilddaten erzwingen einen neuen Aufbau. Die
   Original-Grafiken und gespeicherten Szenen bleiben unverändert.
 - **Separates Objektleistungsprofil** unter dem vorhandenen
-  Frame-Profil: Objekte gesamt/sichtbar, dargestellte Sprites/Schatten,
+  Frame-Profil: Objekte gesamt/sichtbar, gezeichnete Sprites und geprüfte Schattenkandidaten,
   Layoutkosten inkl. Cache-Hit, Berg-Überdeckungsprüfung,
   Sortierung, Bodenschatten-Pass und Sprite-Pass. Außerdem
   `window.__vedrasObjectProfile` und
