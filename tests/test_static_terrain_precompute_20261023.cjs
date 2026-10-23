@@ -22,7 +22,8 @@ function harness(initialKeys=[]){
   throw Error('Unexpected fetch URL: '+url);
  };
  const sandbox={window:{},crypto:{subtle:{digest:async(_,bytes)=>new Uint8Array(32).fill(bytes.length%20).buffer}},
-  TextEncoder,Image:Picture,fetch:requests,setTimeout:fn=>fn(),
+  TextEncoder:class{encode(s){return Uint8Array.from([...s].map(c=>c.charCodeAt(0))) }},
+  Image:Picture,fetch:requests,setTimeout:fn=>fn(),
   requestIdleCallback:fn=>fn(),console,document:{
    createElement:()=>({width:8,height:6,getContext:()=>({drawImage(){}}),
     toBlob:fn=>fn(new Blob(['fake png'],{type:'image/png'}))})
