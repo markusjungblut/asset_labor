@@ -60,7 +60,7 @@ test('a build must return an object array, not an unresolved promise',()=>{
 test('app wires camera-independent layout and invalidates on scene or asset edits',()=>{
  const app=read('app.js'),index=read('index.html'),server=read('server.py');
  assert.match(app,/objectLayoutCache\.query\(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin\)/);
- assert.match(app,/function persistScene\(invalidateObjects=true\)\{if\(invalidateObjects\)invalidateSpriteLayout\(\)/);
+ assert.match(app,/function persistScene\(invalidateObjects=true\)\{if\(invalidateObjects\)\{invalidateSpriteLayout\(\)/);
  assert.match(app,/function invalidateTerrain\(scope='all'\)\{\s*invalidateSpriteLayout\(\)/);
  assert.match(app,/if\(\['nature','buildings','units'\]\.includes\(a\.category\)\)invalidateSpriteLayout\(\)/);
  assert.match(app,/window\.addEventListener\('vedras:nature-catalog-changed',[\s\S]*?invalidateSpriteLayout\(\)/);
