@@ -11,7 +11,7 @@ window.VedrasStaticTerrainCache=(()=>{
  const VERSION=2;
  async function sha256(value){
   const bytes=new TextEncoder().encode(JSON.stringify([VERSION,value]));
-  if(!globalThis.crypto?.subtle)throw Error('Secure hashing unavailable');
+  if(typeof crypto==='undefined'||!crypto.subtle)throw Error('Secure hashing unavailable');
   const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
   return [...hash].map(b=>b.toString(16).padStart(2,'0')).join('');
  }
