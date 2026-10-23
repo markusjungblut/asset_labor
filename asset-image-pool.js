@@ -25,12 +25,13 @@ window.VedrasImagePool=(()=>{
    asset.previewReduced=true;
    return cv;
   }
-  let active=0,queue=[],resources=new Map(),generation=0;
+  let active=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,peakBytes:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
   function prune(force=false){
    if(stats.decodedBytes<=maxBytes&&!force)return;
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
+    !protectedPaths.has(r.asset.path)&&
     (force||now()-r.lastUsed>protectMs))
     .sort((a,b)=>{
      // Small shared terrain materials are preferred over transient sprites.
@@ -61,6 +62,7 @@ window.VedrasImagePool=(()=>{
      if(successful){
       const source=prepare(r.asset,img);
        r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
+       r.asset.imageRevision=(r.asset.imageRevision||0)+1;
       stats.decodedBytes+=r.bytes;stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
       stats.ready++;r.resolve(source);onReady(r.asset);prune();
      }else{stats.failed++;r.failed=true;r.resolve(null);}
@@ -85,7 +87,9 @@ window.VedrasImagePool=(()=>{
    r.promise=new Promise(resolve=>{r.resolve=resolve;});
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
+  function protect(paths){protectedPaths=new Set(paths||[]);}
   function clear(){
+   protectedPaths.clear();
    generation++;
    for(const r of queue)r.resolve(null);
    queue=[];
@@ -116,7 +120,7 @@ window.VedrasImagePool=(()=>{
   }
   function report(){return {...stats,active,queued:queue.length,resident:resources.size,
    limitBytes:maxBytes};}
-  return {ensure,clear,prune,report,originals};
+  return {ensure,clear,prune,report,originals,protect};
  }
  return {create};
 })();
