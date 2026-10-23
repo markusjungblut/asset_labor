@@ -1793,6 +1793,19 @@ $('exportMapPng').addEventListener('click',async()=>{
   const paths=new Set(worldCells.map(c=>imageForBiome(c)?.path).filter(Boolean));
   for(const a of assets)if(a.category==='shorelines'||
     (isTerrain(a)&&typeOfAsset(a)==='forest_floor'))paths.add(a.path);
+  // Sprite previews may also be downsampled. Final export restores every
+  // active object image, including newly placed graphics not decoded yet.
+  const placedPaths=[
+   ...(state.natureInstances||[]).map(n=>n.assetPath),
+   ...(state.mountainInstances||[]).map(m=>m.assetPath),
+   ...Object.values(state.hexObject||{}).map(o=>o.path),
+   ...Object.values(state.hexShadow||{})
+  ].filter(path=>typeof path==='string'&&assetByPath.has(path));
+  await Promise.all([...new Set(placedPaths)].map(path=>
+   imagePool.ensure(assetByPath.get(path),12)));
+  for(const path of placedPaths)paths.add(path);
+  for(const a of assets)if(a.img?.naturalWidth&&
+    ['nature','buildings','units'].includes(a.category))paths.add(a.path);
   restoreSourceTextures=await imagePool.originals(
    [...paths].map(path=>assetByPath.get(path)).filter(Boolean));
   window.VedrasTerrainWorker.restart();
