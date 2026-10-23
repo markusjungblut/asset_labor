@@ -1377,6 +1377,13 @@ function setView(view){if(view!=='map')gpuTerrain?.hide();state.view=view;for(co
  $('soloPane').classList.toggle('hidden',view!=='solo');$('comparePane').classList.toggle('hidden',view!=='compare');if(view==='map')resize();}
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function setSelectedAsset(path){state.asset=path;const a=useAsset(path);if(!a)return;
+ if(!a.img?.naturalWidth){
+  $('selectedName').textContent=a.name;
+  imagePool.ensure(a,12).then(()=>{
+   if(a.img?.naturalWidth&&state.asset===path)setSelectedAsset(path);
+  });
+  return;
+ }
  $('selectedName').textContent=a.name;$('selectedPath').textContent=a.relPath;
  $('previewImg').src=a.url;$('soloImage').src=a.url;$('soloEmpty').classList.add('hidden');
  const meta=a.meta||{},isBuilding=a.category==='buildings'||meta.category==='building',terrain=isTerrain(a),isReference=a.category==='references'||meta.assetType==='concept_hex'||meta.assetType==='legacy_hex_block';const logical=Number(meta.logicalWidth)||(isBuilding?160:80);
