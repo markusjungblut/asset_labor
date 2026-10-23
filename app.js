@@ -14,6 +14,14 @@ const ZMIN=.25,ZMAX=2.00;
 const $=id=>document.getElementById(id);
 const canvas=$('mapCanvas'),viewport=$('canvasOuter'),
  ctx=canvas.getContext('2d',{alpha:true,desynchronized:false});
+const staticTerrain=window.VedrasStaticTerrainCache?.create({
+ onStatus:stats=>{
+  const el=$('terrainBakeCacheStatus');
+  if(el)el.textContent='Datenträger: '+stats.stored+' vorberechnete Chunks · '+
+   stats.hits+' wiederverwendet · '+stats.saved+' gespeichert'+
+   (stats.supported?'':' · ohne lokalen Cache');
+ }
+})||null;
 const gpuCanvas=$('gpuCanvas'),
  gpuTerrain=window.VedrasGpuTerrain?.create(gpuCanvas,{
   maxBytes:128*1024*1024,maxTextures:112})||null;
@@ -450,7 +458,7 @@ function drawGround(){
     state.edgeIrregularity,state.cornerBlend,catalog.assets,catalog.terrainTypes]);
    const chunkFamily=JSON.stringify([materialFamily,
     geographyRelief?'geography-materials':state.relief,
-   state.mountainInstances,state.hexObject,workerActive?'worker':'main-thread']);
+   state.mountainInstances,workerActive?'worker':'main-thread']);
   const chunkSignature=JSON.stringify([chunkFamily,lod,state.relief,previewDensity()]);
   const relief=state.relief.enabled?currentRelief():null;
   terrainChunks.configure(chunkSignature,{
@@ -466,7 +474,24 @@ function drawGround(){
      terrainRasterCache.tileStamps?.set(tile.id,stamp);
      return stamp;
     },
-    buildTile:(tile,nearby)=>{
+    buildTile:async(tile,nearby)=>{
+     const diskKey=staticTerrain?await staticTerrain.keyFor({
+      engine:'terrain-static-v2',tile:tile.id,materialFamily,lod,
+      relief:state.relief,geographyRelief,density:previewDensity(),
+      mountains:state.mountainInstances,
+      cells:nearby.map(c=>{
+       const a=selectedMap.get(key(c.q,c.r))||fallback;
+       return [c.q,c.r,c.biome,effectiveBiome(c),c.reliefClass,
+        c.hillProfile,c.hillStrength,c.worldQ,c.worldR,a?.path,a?.mtime,
+        a?.meta?.textureWorldSize||256];
+      })
+     }):null;
+     const precomputed=diskKey?await staticTerrain.read(diskKey):null;
+     if(precomputed)return precomputed;
+     const persist=item=>{
+      if(item&&diskKey&&!finalRendering)staticTerrain.store(diskKey,item);
+      return item;
+     };
     const bounds={x:tile.x-window.VedrasChunks.HALO,y:tile.y-window.VedrasChunks.HALO,
      width:tile.size+window.VedrasChunks.HALO*2,height:tile.size+window.VedrasChunks.HALO*2,
      lowResolution:true};
@@ -493,13 +518,13 @@ function drawGround(){
      }
      return {raster,relief:relief?window.VedrasRelief.make(raster.landLayer,relief):raster};
     };
-    if(!workerActive)return localBuild();
+    if(!workerActive)return persist(localBuild());
     const assets=[...new Map(nearby.map(c=>{
      const image=selectedMap.get(key(c.q,c.r))||fallback;
      return [image?.path,image];
     })).values()].filter(a=>a?.path&&a?.img?.naturalWidth);
     if(!assets.length||assets.length!==new Set(nearby.map(c=>
-     (selectedMap.get(key(c.q,c.r))||fallback)?.path)).size)return localBuild();
+     (selectedMap.get(key(c.q,c.r))||fallback)?.path)).size)return persist(localBuild());
     const {landMask,...safeRelief}=relief||{};
     const data={
      bounds,options:{
@@ -519,11 +544,12 @@ function drawGround(){
      maskCells:relief?worldCells.map(c=>({q:c.q,r:c.r,wet:isWaterTerrain(typeOfCell(c))})):[],
      maskKey:signature
     };
-    return window.VedrasTerrainWorker.render(data,assets).catch(err=>{
+    try{return persist(await window.VedrasTerrainWorker.render(data,assets));}
+    catch(err){
      console.warn('Terrain Worker unavailable; local chunk fallback:',err);
      window.VedrasTerrainWorker.disable(err);
-     return localBuild();
-    });
+     return persist(localBuild());
+    }
    },
    redraw:requestDraw,family:chunkFamily
   });
