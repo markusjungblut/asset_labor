@@ -54,6 +54,14 @@ erfolgreich wiederverwendet. Diese Zahlen stammen **vor** v0.17.0.
   `window.__vedrasRenderProfile.background`,
   `VedrasAssetLabor.backgroundStats()` und
   `VedrasAssetLabor.preparationStats()`.
+  Zusätzlich trennt `terrainDetailStats` beim letzten
+  Hintergrundaufbau Quellvorbereitung, Chunk-/Autotile-Zeichnung,
+  Waldboden, Ufer, Diagnostik, Flussuferbänke und
+  Straßen/Brücken. Diese Detailwerte beziehen sich bei
+  `canvas wiederverwendet` auf den **letzten tatsächlichen Aufbau**,
+  nicht auf ausgeführte Arbeit des gerade angezeigten Frames.
+  Der nachgeladene Brücken-SVG-Assetpfad invalidiert den
+  Szenen-Cache ebenfalls ausdrücklich.
 
 **Tests:** `node --test tests/test_terrain_frame_cache_v017_20261023.cjs`
 plus die bestehenden v0.15.3–v0.16.1-Regressionstests.
