@@ -34,6 +34,8 @@ jobs:
         run: python scripts/build_sprite_atlases.py --assets assets --out atlases
       - name: Verify atlas metadata, transparent trim, and manifest pages
         run: python scripts/verify_sprite_atlases.py --assets assets --atlas atlases
+      - name: Validate static terrain disk-cache format
+        run: python -m unittest discover -s tests -p "test_static_terrain_store.py" -v
       - name: Upload both tiers (mobile and desktop)
         uses: actions/upload-artifact@v4
         with:
