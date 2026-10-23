@@ -38,7 +38,13 @@ const imagePool=window.VedrasImagePool.create({
  parallel:4,maxBytes:192*1024*1024,protectMs:24000,
  onReady:a=>{
   a.terrainCheck=inspectTerrain(a);
-  frameMemo.invalidate();backgroundScene.clear();
+  // A newly decoded tree changes the SPRITE layer, not the terrain.
+  // Clearing the full ground cache for hundreds of independent Nature PNGs
+  // caused repeated 250ms+ terrain rebuilds during background image loading.
+  const affectsGround=isTerrain(a)||a.category==='shorelines'||
+   (state.relief?.enabled&&(a.category==='buildings'||
+    state.mountainInstances?.some(m=>m.assetPath===a.path)));
+  if(affectsGround){frameMemo.invalidate();backgroundScene.clear();}
   if(['nature','buildings','units'].includes(a.category))invalidateSpriteLayout();
   if(imagePoolPriming)return;
   // Updating one delayed PNG must NOT drop every completed terrain chunk.
