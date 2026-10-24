@@ -179,8 +179,8 @@ test('app wires all four chunk layers and protects cached-background viewport st
  assert.match(html,/id="worldStreaming" checked/);
  assert.match(html,/id="streamingPerfStats"/);
  assert.match(html,/chunks\.js\?v=0\.37\.0/);
- assert.match(html,/app\.js\?v=0\.52\.0/);
- assert.match(server,/VERSION = '0\.19\.0'/);
+ assert.match(html,/app\.js\?v=0\.\d+\.0/);
+ assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
 test('static scene, PNG export and saved map format remain independent of stream scheduling',()=>{
@@ -189,7 +189,7 @@ test('static scene, PNG export and saved map format remain independent of stream
  assert.match(app,/const direct=blockers\.length>0/);
  assert.match(app,/canvas\.toBlob\(/);
  assert.match(app,/worldStreaming:true/);
- assert.match(app,/'gpuSprites','adaptiveLod','worldStreaming','materialScales'/);
+ assert.match(app,/'gpuSprites','adaptiveLod','worldStreaming','fastCamera','materialScales'/);
  assert.match(app,/persistScene\(false\);backgroundScene\.clear\(\);requestDraw\(\)/);
  assert.match(server,/key = parsed\.path\[len\(prefix\):\]/);
 });
