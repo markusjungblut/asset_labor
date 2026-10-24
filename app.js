@@ -49,12 +49,17 @@ function fastRender(){
 function beginFastCamera(){
  if(fastInteracting)return true;
  if(!fastAllowed())return false;
- fastInteracting=true;fastRender();return true;
+ fastInteracting=true;
+ for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+  chunks.setInteractive(true);
+ fastRender();return true;
 }
 function endFastCamera(repair=true){
  clearTimeout(fastWheelTimer);fastWheelTimer=null;
  if(!fastInteracting)return;
  fastInteracting=false;
+ for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+  chunks.setInteractive(false);
  // The realtime layer stays in front while the precise scene is rebuilt,
  // avoiding a flash of old pan/zoom before the next complete frame.
  if(repair)requestDraw();
@@ -1765,6 +1770,12 @@ function draw(){
   else realtimeMap.setSnapshots([]);
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
+ const ready=$('fastCameraStats');
+ if(ready&&state.fastCamera!==false&&!fastInteracting)
+  ready.textContent=realtimeMap.snapshotReady()?
+   'Live-Kamera bereit · Gelände + Objekte zwischengespeichert · beim Wischen keine Neuaufbauten · zuletzt '+
+    fastFrames+' schnelle Bilder, '+fastLastMs.toFixed(1)+' ms Komposition':
+   'Live-Kamera wartet auf vorbereitete Canvas-Ebenen. GPU-Terrain, GPU-Sprites oder Editor-Overlays für diesen Vergleich abschalten.';
  const t3=performance.now();
  const objProfile=window.__vedrasObjectProfile||{};
  const shadowRaster=window.VedrasSpriteShadows?.cacheStats?.()||{};
