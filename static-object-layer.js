@@ -100,10 +100,19 @@ window.VedrasStaticObjects=(()=>{
     pad:entry.pad,requestedPixels:entry.canvas.width*entry.canvas.height,
     budgetPixels:maxPixels,objectProfile:entry.objectProfile};
   }
+  // Immutable reference to the most recent correctly painted padded
+  // layer. A realtime compositor can reproject it without rebuilding the
+  // world. The underlying canvas is never transferred or mutated here.
+  function snapshot(){
+   if(!entry)return null;
+   return {canvas:entry.canvas,width:entry.width,height:entry.height,
+    zoom:entry.zoom,panX:entry.panX,panY:entry.panY,dpr:entry.dpr,
+    pad:entry.pad,signature:entry.signature};
+  }
   function stats(){return {builds,hits,misses,disabled,lastBuildMs,
    lastCompositeMs,bytes:entry?entry.canvas.width*entry.canvas.height*4:0,
    active:!!entry};}
-  return {paint,clear,stats};
+  return {paint,clear,stats,snapshot};
  }
  return {create};
 })();

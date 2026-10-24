@@ -104,7 +104,7 @@ test('river sampling, coast and road LOD remain separate from river/road geometr
 test('LOD switch and saved preferences do not invalidate unrelated sprite placement',()=>{
  const app=read('app.js'),html=read('index.html');
  assert.match(app,/adaptiveLod:true/);
- assert.match(app,/'gpuSprites','adaptiveLod','worldStreaming','materialScales'/);
+ assert.match(app,/'gpuSprites','adaptiveLod','worldStreaming','fastCamera','materialScales'/);
  assert.match(app,/state\.adaptiveLod=state\.adaptiveLod!==false/);
  assert.match(app,/\$\('adaptiveLod'\)\.addEventListener\('change',e=>\{/);
  assert.match(app,/backgroundScene\.clear\(\);\s*persistScene\(false\);\s*requestDraw\(\);/);
