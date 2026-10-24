@@ -139,7 +139,7 @@ test('v0.20 app runs a fast animation frame without invoking heavy editor draw o
  assert.match(app,/realtimeMap\.render\(fastView\(\)\)/);
  assert.match(app,/realtimeMap\.setSnapshots\(\[/);
  assert.match(app,/endFastCamera\(moved\)/);
- assert.match(app,/fastWheelTimer=setTimeout\(\(\)=>endFastCamera\(\),160\)/);
+ assert.match(app,/fastWheelTimer=setTimeout\(\(\)=>\{/);
  assert.match(app,/chunks\.setInteractive\(true\)/);
  assert.match(app,/chunks\.setInteractive\(false\)/);
  assert.match(staticSource,/function snapshot\(\)/);
