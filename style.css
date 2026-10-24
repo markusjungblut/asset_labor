@@ -198,3 +198,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
  background:#223c38;color:#f1f8e9;border:1px solid #52736b;border-radius:5px}
 #strategyOverlay[hidden]{display:none!important}
 @media(max-width:1150px){#strategyToggle{font-size:10px;padding:5px}}
+
+/* v0.20: transient real-time camera compositor above prepared editor layers.
+ * Pointer/touch events continue going to #mapCanvas below this overlay.
+ * It is deliberately hidden outside a pan/pinch/wheel gesture. */
+#canvasOuter>#realtimeCanvas{
+ position:absolute;inset:0;z-index:3;width:100%;height:100%;
+ pointer-events:none;display:none;touch-action:none;
+}
