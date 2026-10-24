@@ -71,6 +71,7 @@ window.VedrasChunks=(()=>{
   const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
    prefetchQueue=new Map(),warmRemaining=new Set();
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
+   backgroundPaused=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
    viewportWanted=new Set(),prefetchWanted=new Set(),prefetchRejected=new Set(),
    lastDrawnVersions=new Map(),rasterVersion=0,lastFocus=null,
@@ -157,7 +158,8 @@ window.VedrasChunks=(()=>{
   // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
    const foreground=queue.size>0&&!inFlightInteractive;
-   const background=!inFlightBackground&&(backgroundQueue.size||prefetchQueue.size);
+   const background=!backgroundPaused&&!inFlightBackground&&
+    (backgroundQueue.size||prefetchQueue.size);
    if(!foreground&&!background)return;
    // Two scheduled callbacks allow a fresh visible request to bypass an
    // already pending requestIdleCallback for speculative background work.
@@ -169,8 +171,9 @@ window.VedrasChunks=(()=>{
     if(generation!==epoch)return;
     if(urgent)urgentScheduled=false;else scheduled=false;
     const interactive=urgent&&queue.size>0&&!inFlightInteractive;
-    const warm=!urgent&&!inFlightBackground&&backgroundQueue.size>0;
-    const predictive=!urgent&&!warm&&!inFlightBackground&&prefetchQueue.size>0;
+    const warm=!urgent&&!backgroundPaused&&!inFlightBackground&&backgroundQueue.size>0;
+    const predictive=!urgent&&!backgroundPaused&&!warm&&
+     !inFlightBackground&&prefetchQueue.size>0;
     if(!interactive&&!warm&&!predictive){schedule();return;}
     const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
@@ -409,11 +412,18 @@ window.VedrasChunks=(()=>{
    backgroundQueue.clear();warmRemaining.clear();stats.warmTotal=stats.warmDone;
    onWarmProgress({...stats});
   }
-  return {configure,draw,prime,warm,stopWarm,clipCore,clear,
+  // Gestures suspend optional background CPU work, but do not lose any
+  // prepared raster or block an urgently requested visible chunk.
+  function setInteractive(active){
+   backgroundPaused=!!active;
+   if(!backgroundPaused)schedule();
+  }
+  return {configure,draw,prime,warm,stopWarm,clipCore,clear,setInteractive,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
     inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
+    backgroundPaused,
     bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
