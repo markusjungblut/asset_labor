@@ -1,3 +1,117 @@
+## v0.20.0 – Echtzeit-Kartenrenderer: Fast-Pan / Zoom und wiederverwendbarer Tile-Compositor (24.10.2026)
+
+**Ziel:** Beim Wischen und Zoomen nicht mehr die gesamte teure
+Terrain-, Fluss-, Wald-, Straßen- und Objekterzeugung anstoßen.
+Der neue Präsentationsrenderer ist vom Generatorzustand getrennt
+und kann später vorab berechnete Weltgrafiken aus dem Spiel anzeigen.
+
+### Neue gemeinsam nutzbare Komponente
+
+`realtime-map-renderer.js` stellt `window.VedrasRealtimeMap.create({canvas,maxTiles,maxPixels})`
+bereit. Das Modul kennt keine Hexgenerierung, keine Datenbank,
+keine Bildquellenregeln und keine Editorwerkzeuge.
+
+- **Raster-Snapshot-Modus:** `setSnapshots([{role:'ground',canvas,
+  width,height,pad,dpr,zoom,panX,panY}, ...])` verwendet die
+  tatsächlich gerenderten Canvas-Ebenen und ihre Weltkoordinaten.
+  `render(camera)` berechnet nur ihre Kameratransformation und
+  schneidet ausschließlich den benötigten Bildausschnitt per
+  9-Parameter-`drawImage` zu. Kein Nachrendern der Wald-/Berg-
+  schatten und kein erneutes Autotiling pro Kameraframe.
+- **Weltkachel-Modus:** `putTile({id,layer,image,x,y,width,height,
+  revision,owned})` nimmt **fertige** Kartenkacheln mit globalen
+  Weltkoordinaten auf; `render(camera)` prüft ihre Sichtbarkeit,
+  respektiert `projectY` und rendert sie von Gelände über
+  Objekte bis zu Einheiten in definierter Reihenfolge.
+  `removeTile(layer,id)` und `clearTiles()` verwalten Änderungen
+  bzw. Cachefreigabe. Der LRU begrenzt Anzahl und Pixelbudget;
+  nur ausdrücklich als `owned` markierte transferierte Ressourcen
+  werden beim Evict geschlossen, nicht gemeinsam genutzte Assets.
+- **Separate dynamische Ebene:** `render(camera,{drawDynamic(ctx,camera)})`
+  kann Einheiten, Markierungen und andere zeitabhängige Elemente
+  zeichnen, ohne den statischen Tile-Cache zu invalidieren.
+- **Kamera:** Normierte Canvas-Kamera mit Zoom, Pan,
+  Viewportgröße, DPR und orthografischer Projektion.
+  Einmalige Größenanpassung statt Canvas-Neuallokation bei
+  jeder Bewegung; der Renderer gibt Framezeit,
+  Abdeckung, Tileanzahl und Belegung aus.
+- **Keine externen Laufzeitbibliotheken.** Der Kern ist
+  eigenständig und kann unter `window.VedrasRealtimeMap` in
+  einem späteren Spielclient eingebunden werden.
+
+### Asset-Labor: echte Interaktion mit der neuen Renderstrecke
+
+- Neues, standardmäßig gesetztes Kontrollkästchen
+  **Echtzeit-Kamera beim Wischen und Zoomen**;
+  Einstellung `fastCamera` wird lokal gespeichert.
+- Bei einer bereits warmen normalen Canvas-Testszene
+  übernimmt während Pointer-Drag, Touch-Pan, Zweifinger-
+  Zoom und Mausrad-Zoom die neue, pointertransparente
+  `realtimeCanvas`-Ebene. Die Canvas-Quellen sind die
+  **realen originalen** Hintergrund- und Sprite-/Schatten-
+  Raster aus `static-object-layer.js`. Keine Neuberechnung
+  von 1.549 Sprites oder Geländeshader im schnellen Frame.
+- Solange eine Geste aktiv ist, stellt `requestDraw()` keine
+  teure Editor-Hintergrund-Komposition in die Renderqueue.
+  Bereits vorhandene Hintergrundvorlade-Jobs aller vier
+  Chunkrenderer werden über `setInteractive(true)`
+  pausiert und nach der Geste wieder fortgesetzt.
+- Nach Loslassen / kurzem Mausrad-Leerlauf (160 ms) wird
+  die vollständige **präzise** Editoransicht neu gezeichnet.
+  Der Schnell-Canvas bleibt bis zu diesem Abschluss im
+  Vordergrund; anschließend wird er versteckt.
+- Die Kamera ist unabhängig von der Spieleingabe; das
+  ursprünglich interaktive `mapCanvas` bleibt für
+  Hexauswahl, Straßenbearbeitung und Schatten-Handles
+  zuständig. Für Debug-Overlays und GPU-A/B-Modi wird
+  vorsichtshalber weiterhin die vorhandene exakte Strecke
+  verwendet. Zum Vergleich **GPU-Terrain und GPU-Sprites
+  ausschalten**.
+- Diagnose `Live-Kamera` zeigt die Anzahl schneller
+  Kompositionsbilder, den Zeitbedarf ihrer Bildkomposition
+  und die Abdeckung durch den vorhandenen Hintergrund.
+  `VedrasAssetLabor.realtimeStats()` gibt Statistiken aus.
+
+### Absichtliche Grenzen dieser ersten Integration
+
+- Die Generatorvorschau nutzt **vorhandene vorbereitete
+  Canvas-Ausschnitte**. Deren Überhang kann wegen der
+  bestehenden 12-Megapixel-Caches auf hochauflösenden
+  Bildschirmen nur ~87 px betragen. Bei großen, noch
+  nicht im Cache vorhandenen Schwenks bleiben die
+  nicht vorbereiteten Bereiche vorübergehend neutral;
+  nach Gestenende wird exakt neu gezeichnet.
+  Das ist **noch kein lückenloses Weltstreaming**.
+- Der neue Weltkachel-Compositor ist für die spätere
+  Spielanwendung vorbereitet, aber **noch nicht** an den
+  Offline-Export der hochwertigen Landschafts-Kacheln,
+  die Weltregions-Datenbank, CDN-Download, Karten-Fog-of-
+  War, Versionswechsel oder den Multiplayer-Server
+  angeschlossen. Die gemeinsamen Hexdaten bleiben
+  dafür erhalten.
+- Kein vollständiger 60-FPS-Nachweis: Die Darstellung
+  wurde Quelltext-/Modultests unterzogen, aber noch
+  **nicht auf dem Zielgerät oder realen Browser**
+  profiliert. Das vollständige Neuaufbauen bei
+  Gestenende kann weiterhin kostenintensiv sein.
+  Während die vorbereitete Szene verschoben wird,
+  ist der Renderpfad dagegen von der Weltberechnung getrennt.
+- Der bestehende hochwertige PNG-Export, die Szene-JSONs
+  und die bisherige Editor-/WebGL-A/B-Strecke bleiben
+  unverändert und umgehen den Fast-Pan-Canvas.
+
+### Test
+
+`node --test tests/test_realtime_map_v020_20261024.cjs`
+
+Die neuen Regressionen prüfen Kamera-Mapping, 9-Parameter-
+Blit mit Cropping, HiDPI, Zoom und Pan, Out-of-Bounds,
+Renderreihenfolge der Weltkacheln, optionale dynamische
+Objekte, Pixel-/Tile-LRU, Ressourcenfreigabe, UI-Pointer-
+Transparenz, Gestenpfad, Pausieren des Prefetch sowie
+den präzisen Final-PNG-Pfad. Die vorherigen Regressionen
+v0.15–v0.19 bleiben weiterhin relevant.
+
 ## v0.19.0 – Priorisiertes, vorausschauendes Welt-Chunk-Streaming (24.10.2026)
 
 **Ziel:** Ergänzung der bisherigen kameragesteuerten 512er-Chunks
