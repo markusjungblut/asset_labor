@@ -2496,7 +2496,10 @@ canvas.addEventListener('wheel',e=>{
  applyZoom(state.zoom*(e.deltaY<0?1.10:.90),e.clientX-r.left,e.clientY-r.top);
  if(fastInteracting){
   clearTimeout(fastWheelTimer);
-  fastWheelTimer=setTimeout(()=>endFastCamera(),160);
+  fastWheelTimer=setTimeout(()=>{
+   fastWheelTimer=null;
+   if(points.size===0)endFastCamera();
+  },160);
  }
 },{passive:false});
 let points=new Map(),moved=false,initialPinch=null,shadowDrag=null;
@@ -2519,6 +2522,8 @@ canvas.addEventListener('pointerdown',e=>{
  if(handle){canvas.setPointerCapture(e.pointerId);shadowDrag={...handle,pointerId:e.pointerId};return;}
  canvas.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});
  moved=false;if(points.size===2)initialPinch=null;
+ // A preceding wheel gesture must not finish a newly started touch drag.
+ clearTimeout(fastWheelTimer);fastWheelTimer=null;
  beginFastCamera();
 });
 canvas.addEventListener('pointermove',e=>{
