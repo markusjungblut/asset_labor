@@ -53,28 +53,40 @@ window.VedrasCloudArtwork=(()=>{
    return c;
   }
   function setAssets(entries){
-   generation++;const version=generation;loading=0;
-   bases=[];edges=[];
-   // Importer reports every asset and a stable URL. Do not assume that the
-   // files are checked into GitHub: local assets/clouds/ also works.
-   const eligible=(Array.isArray(entries)?entries:[]).map(e=>({
-    asset:e,kind:classify(e)
-   })).filter(e=>e.kind);
+   generation++;const version=generation;
+   // Decode into a temporary bank. Publishing the first of eight images
+   // immediately would rehash every cloud tile seven times as each subsequent
+   // picture arrived, making the fog visibly jump during first load.
+   const eligible=(Array.isArray(entries)?entries:[])
+    .map(e=>({asset:e,kind:classify(e)})).filter(e=>e.kind)
+    .sort((a,b)=>String(a.asset.path||a.asset.relPath).localeCompare(
+     String(b.asset.path||b.asset.relPath)));
+   const expected={baseExpected:eligible.filter(a=>a.kind==='base').length,
+    edgeExpected:eligible.filter(a=>a.kind==='edge').length};
+   if(typeof Image==='undefined'||!eligible.length){
+    loading=0;bases=[];edges=[];onReady();return expected;
+   }
+   loading=eligible.length;const incoming={base:[],edge:[]};
+   const finish=()=>{
+    if(version!==generation)return;
+    if(--loading===0){
+     bases=incoming.base.sort((a,b)=>a.path.localeCompare(b.path));
+     edges=incoming.edge.sort((a,b)=>a.path.localeCompare(b.path));
+     onReady();
+    }
+   };
    for(const {asset,kind} of eligible){
-    if(typeof Image==='undefined')continue;
-    const img=new Image();loading++;
+    const img=new Image();
     img.onload=()=>{
      if(version!==generation)return;
-     const packet={path:asset.path||asset.relPath,art:soften(img,kind)};
-     if(kind==='base')bases.push(packet);else edges.push(packet);
-     loading--;onReady();
+     incoming[kind].push({path:asset.path||asset.relPath,
+      art:soften(img,kind)});
+     finish();
     };
-    img.onerror=()=>{if(version!==generation)return;loading--;onReady();};
+    img.onerror=finish;
     img.src=asset.url||('./'+asset.path);
    }
-   onReady();
-   return {baseExpected:eligible.filter(a=>a.kind==='base').length,
-    edgeExpected:eligible.filter(a=>a.kind==='edge').length};
+   return expected;
   }
   function drawBase(g,view){
    // Fallback must always be opaque even while the local artwork decodes.
