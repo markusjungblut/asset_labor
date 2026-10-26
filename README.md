@@ -1,3 +1,32 @@
+## v0.22.1 – Strategiekarte: Moduswechsel und Tile-Bereitschaft (26.10.2026)
+
+- **Strategie-Labels bleiben nicht mehr hängen:** Beim Wechsel von
+  Detailansicht zur Strategiekarte wird der höher liegende
+  `realtimeCanvas`-Compositor sofort ausgeblendet. Ausstehende schnelle
+  Frames dürfen in der Fernansicht nicht erneut das alte Raster darübermalen.
+  Die reine Strategiekarte rendert ihre Biom-Labels vollständig neu auf
+  `mapCanvas` und leert dabei ihren alten Zeicheninhalt.
+- **Zurück zur Detailansicht:** Veraltete World-Tile-Caches werden beim
+  Umschalten verworfen. Im Fernmodus kann `bakeWorldTile` überhaupt
+  keine Detailbilder erzeugen oder strategische Labels mitbacken.
+- **Unvollständige Kacheln:** Für das Snapshot-Seeding und lokale Tile-Baking
+  gilt nun: Eine Gelände-Kachel zählt erst als fertig, wenn ihr aktueller
+  Chunk geladen ist **und** genau dessen Version im Editor-Hintergrund
+  gezeichnet wurde. Bis dahin bleibt der Bereich im Live-Renderer
+  verdeckt und kann erneut geladen werden, sobald der Chunk bereit ist.
+  Das verhindert das dauerhafte Cachen graugrüner Platzhalterflächen.
+- **Direkter Renderpfad:** Bei kleinen Testkarten ohne Chunk-Rendering
+  bleibt das vollständige Terrain-Raster weiter unterstützt; die Prüfung
+  basiert dann auf dem fertigen Direkt-Raster statt einem Chunk-Eintrag.
+- **Tests:** `tests/test_strategy_transition_v0221_20261026.cjs` prüft
+  strategische Redraws, das tatsächlich ausgeführte Abschalten des
+  alten Overlay-Canvas und die Bereitschaftssperre für veraltete oder
+  fehlende Rasterversionen. Frühere Regressionstests bleiben erhalten.
+- **Noch nicht gelöst:** Sichtbare Nähte zwischen Terrain-Kacheln,
+  das ansprechende Cloud-Tile-System und echte Framezeit-/Pixelvergleiche
+  im Browser sind separate nächste Schritte. Das Modul ist kein
+  serverseitig authentifizierter Multiplayer-Fog-of-War.
+
 ## v0.22.0 – Fog-Korrektur und vereinte Weltarchitektur (26.10.2026)
 
 - **Geschlossener Außennebel:** Der Tile-Renderer färbt jeden unbekannten

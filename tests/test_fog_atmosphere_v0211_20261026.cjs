@@ -80,5 +80,5 @@ test('v0.21.1 wiring and preview version are coherent',()=>{
  assert.match(html,/world-tile-streamer\.js\?v=0\.22\.0/);
  assert.ok(html.indexOf('fog-atmosphere.js')<html.indexOf('world-tile-streamer.js'));
  assert.match(app,/worldTiles\.setFogCells\(cells\)/);
- assert.match(server,/VERSION = '0\.22\.0'/);
+ assert.match(server,/VERSION = '0\.22\.1'/);
 });

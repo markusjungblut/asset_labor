@@ -44,8 +44,32 @@ function tileFog(){
  visibleFogTiles=demo?allowed:null;
  worldTiles.setFogCells(cells);
 }
+// An already prepared chunk is not enough: the exact 512-unit core must
+// have been drawn in the current snapshot revision. Otherwise a half-filled
+// snapshot would be permanently cached as a finished world tile.
+function currentTerrainCore(t){
+ // The editor also supports a full-raster non-chunk mode for small maps.
+ // That path has no terrainChunks entry; use its finished exact raster.
+ if(!state.chunkRendering&&state.sceneSize<=37){
+  return terrainRasterCache.raster&&terrainRasterCache.signature?
+   {tile:t,artwork:{version:terrainRasterCache.signature}}:null;
+ }
+ const tiles=terrainChunks.readyTiles(
+  {x:t.x,y:t.y,width:t.size-1,height:t.size-1},{limit:32});
+ return tiles.find(entry=>entry.tile.id===t.id)||null;
+}
+function paintedTerrainCore(t){
+ const entry=currentTerrainCore(t);
+ if(!entry)return null;
+ if(!state.chunkRendering&&state.sceneSize<=37){
+  return window.__vedrasTerrainRaster===terrainRasterCache.raster?
+   entry:null;
+ }
+ return terrainChunks.paintedVersions().get(t.id)===entry.artwork.version?
+  entry:null;
+}
 function seedReadyWorldTiles(){
- if(!worldTiles||finalRendering)return;
+ if(!worldTiles||finalRendering||state.mode==='far')return;
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
  if(!ground||!scenery)return;
  const lod=worldTiles.chooseLod(state.zoom),bounds=streamingViewBounds(96);
@@ -57,7 +81,7 @@ function seedReadyWorldTiles(){
   ).objects.some(o=>o.type==='unit'&&o.x>t.x-300&&
    o.x<t.x+t.size+300&&o.groundY>t.y-300&&
    o.groundY<t.y+t.size+300);
-  if(units)continue;
+  if(units||!paintedTerrainCore(t))continue;
   const a=snapshotTile(ground,t,lod),b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
   // Landscape and canopy must stay in separate render layers.
@@ -81,12 +105,15 @@ function snapshotTile(s,t,level,pad=0){
  return result;
 }
 async function bakeWorldTile(t,level,{signal}={}){
- if(signal?.aborted)return null;
+ if(signal?.aborted||state.mode==='far'||state.view!=='map')return null;
+ // Never commit a partially prepared landscape, even if its scenery has
+ // already finished or an older low-resolution snapshot happens to exist.
+ if(!currentTerrainCore(t))return null;
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
  const a=snapshotTile(ground,t,level),b=snapshotTile(scenery,t,level);
- if(a&&b){
+ if(a&&b&&paintedTerrainCore(t)){
   // An old snapshot may include a unit; never bake one into static tiles.
   const units=objectLayoutCache.query(
    {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
@@ -101,15 +128,14 @@ async function bakeWorldTile(t,level,{signal}={}){
  }
  // Do not bake an incomplete foreground core: clouds hide the hole until
  // the worker has completed the authoritative terrain raster.
- const ready=terrainChunks.readyTiles({x:t.x,y:t.y,width:t.size,height:t.size},
-  {limit:32}).some(entry=>entry.tile.id===t.id);
- if(!ready)return null;
+ if(!currentTerrainCore(t))return null;
  await new Promise(resolve=>{
   if(typeof requestIdleCallback==='function')
    requestIdleCallback(resolve,{timeout:80});
   else setTimeout(resolve,0);
  });
- if(signal?.aborted)return null;
+ if(signal?.aborted||state.mode==='far'||state.view!=='map'||
+   !currentTerrainCore(t))return null;
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
  const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
@@ -136,7 +162,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  try{
   setup(groundG,out,t.x,t.y,t.size);
   drawGround();drawRoads();
-  if(signal?.aborted)return null;
+  // drawGround can schedule a newer LOD or a changed chunk revision. If its
+  // precise terrain core was not painted, discard this composite and retry
+  // after terrainChunks completes instead of caching its flat fallback color.
+  if(signal?.aborted||!paintedTerrainCore(t))return null;
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -148,6 +177,8 @@ async function bakeWorldTile(t,level,{signal}={}){
   state.panX=old.panX;state.panY=old.panY;
   state.dpr=old.dpr;gpuFrame=old.gpuFrame;
  }
+ if(signal?.aborted||state.mode==='far'||state.view!=='map'||
+   !paintedTerrainCore(t))return null;
  tileBakes++;
  return {layers:[{layer:'ground',image:out},
   {layer:'scenery',image:overlay,pad}]};
@@ -201,12 +232,30 @@ function drawTileDynamics(g,view){
   state.zoom=old.zoom;state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;
  }
 }
+function stopFastCameraForStrategy(){
+ // Fast camera shares a higher-z-index canvas with the regular editor.
+ // Leaving it active over the vector overview causes stale biome labels,
+ // old terrain snapshots and partially baked tiles to cover the strategy map.
+ if(fastInteracting||tileModeActive){
+  fastInteracting=false;tileModeActive=false;
+  clearTimeout(fastWheelTimer);fastWheelTimer=null;
+  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+   chunks.setInteractive(false);
+  worldTiles?.invalidate();
+ }
+ realtimeMap.hide();
+}
 function fastRender(){
+ if(state.mode==='far'||state.view!=='map'){
+  if(fastInteracting||tileModeActive)stopFastCameraForStrategy();
+  return;
+ }
  if((!fastInteracting&&!tileModeActive)||fastFrameScheduled)return;
  fastFrameScheduled=true;
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
-  if(!fastInteracting&&!tileModeActive)return;
+  if((!fastInteracting&&!tileModeActive)||state.mode==='far'||
+    state.view!=='map')return;
   const now=performance.now(),bounds=streamingViewBounds(96);
   if(now-fastLastPrime>90){
    fastLastPrime=now;
@@ -235,8 +284,8 @@ function fastRender(){
  });
 }
 function beginFastCamera(){
- if(fastInteracting)return true;
  if(!fastAllowed())return false;
+ if(fastInteracting)return true;
  fastInteracting=true;tileModeActive=!!worldTiles;fastLastPrime=0;
  if(worldTiles)tileFog();
  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
@@ -244,6 +293,9 @@ function beginFastCamera(){
  fastRender();return true;
 }
 function endFastCamera(repair=true){
+ if(state.mode==='far'||state.view!=='map'){
+  stopFastCameraForStrategy();requestDraw();return;
+ }
  clearTimeout(fastWheelTimer);fastWheelTimer=null;
  if(!fastInteracting)return;
  fastInteracting=false;
@@ -478,6 +530,8 @@ function makePattern(a,patternCtx=ctx){
  return pat;
 }
 function requestDraw(){
+ if(state.mode==='far'&&(fastInteracting||tileModeActive))
+  stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(drawPending)return;
  drawPending=true;requestAnimationFrame(()=>{drawPending=false;draw();});
@@ -1766,6 +1820,7 @@ function drawForestDebug(){
 }
 let perfSamples=[],frameNumber=0;
 function draw(){
+ if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(!ctx||!canvas.width)return;
  if(state.mode==='far'){
@@ -2113,10 +2168,17 @@ function syncStrategicControls(){
  $('modeBadge').textContent=far?'STRATEGIE':'NORMAL';
 }
 function applyZoom(requested,pivotX=W/2,pivotY=H/2){
+ const previousMode=state.mode;
  const before=state.zoom,zoom=clamp(requested,ZMIN,ZMAX),
   world=fromScreen(pivotX,pivotY);
  if(requested<ZMIN&&state.mode!=='far')state.mode='far';
  else if(state.mode==='far'&&zoom>ZMIN)state.mode='normal';
+ if(previousMode!==state.mode){
+  // A far/normal mode transition always invalidates the higher overlay.
+  // Strategy labels must only ever be drawn by VedrasStrategic on mapCanvas.
+  stopFastCameraForStrategy();
+  if(state.mode==='normal')worldTiles?.invalidate();
+ }
  state.zoom=zoom;
  if(before!==zoom){
   updateTerrainLod(zoom);
@@ -2127,7 +2189,8 @@ function applyZoom(requested,pivotX=W/2,pivotY=H/2){
  $('zoomText').textContent=Math.round(zoom*100)+' %';
  syncStrategicControls();requestDraw();updateDiagnostics();
 }
-function setView(view){if(view!=='map'){gpuTerrain?.hide();gpuSprites?.hide();}state.view=view;for(const [id,name] of [['viewMap','map'],['viewSolo','solo'],['viewCompare','compare']])$(id).classList.toggle('active',view===name);
+function setView(view){if(view!=='map'){gpuTerrain?.hide();gpuSprites?.hide();
+  stopFastCameraForStrategy();}state.view=view;for(const [id,name] of [['viewMap','map'],['viewSolo','solo'],['viewCompare','compare']])$(id).classList.toggle('active',view===name);
  $('mapCanvas').classList.toggle('hidden',view!=='map');$('mapLegend').classList.toggle('hidden',view!=='map');$('mapFooter').classList.toggle('hidden',view!=='map');
  $('soloPane').classList.toggle('hidden',view!=='solo');$('comparePane').classList.toggle('hidden',view!=='compare');if(view==='map')resize();}
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
