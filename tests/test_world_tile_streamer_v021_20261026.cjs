@@ -79,7 +79,7 @@ test('editor uses the v0.21 retained compositor, streaming, cloud demo and dynam
  assert.match(app,/worldTiles\.request\(fastView\(\),tiles\)/);
  assert.match(app,/worldTiles\.render\(fastView\(\),\{drawDynamic:drawTileDynamics\}\)/);
  assert.match(app,/if\(worldTiles\)\{tileModeActive=true;fastRender\(\);\}/);
- assert.match(app,/drawMapObjects\(\{includeUnits:false\}\)/);
+ assert.match(app,/drawMapObjects\(\{includeUnits:false,/);
  assert.match(app,/visibleFogTiles/);
  assert.match(html,/world-tile-streamer\.js\?v=0\.22\.0/);
  assert.match(html,/id="fogPreview"/);
