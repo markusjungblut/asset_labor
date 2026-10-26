@@ -62,6 +62,21 @@ test('new pieces keep water below relief for geometrically identical world posit
  const a=s.calls.filter(c=>c[0]==='drawImage').map(c=>c[1]);
  assert.ok(a.indexOf(water)>=0&&a.indexOf(land)>a.indexOf(water));
 });
+test('new tile versions fill holes INSIDE an older cached background during the gesture',()=>{
+ const s=setup();s.m.setSnapshots([s.ground,s.scenery]);
+ const raster=s.image(32,32);
+ const tile={tile:{id:'0,0',x:-20,y:-20,size:50},
+  artwork:{version:2,raster:{canvas:raster,x:-20,y:-20,width:50,height:50}}};
+ s.m.setRenderedVersions([['0,0',1]]);
+ s.m.render(s.view,{terrainPieces:[tile]});
+ assert.ok(s.calls.some(c=>c[0]==='drawImage'&&c[1]===raster),
+  'new terrain revision must be painted through a stale fullscreen background');
+ const t=setup();t.m.setSnapshots([t.ground,t.scenery]);
+ t.m.setRenderedVersions([['0,0',2]]);
+ t.m.render(t.view,{terrainPieces:[tile]});
+ assert.equal(t.calls.filter(c=>c[0]==='drawImage'&&c[1]===raster).length,0,
+  'a tile already present inside the background must not draw twice');
+});
 test('coarse biome fallback uses hex polygons and is fully covered by prepared ground artwork',()=>{
  const s=setup();s.m.setSnapshots([s.ground]);
  assert.equal(s.m.setPreviewCells([{x:0,y:0,radius:147,water:true}]),1);
