@@ -1,3 +1,53 @@
+## v0.22.0 – Fog-Korrektur und vereinte Weltarchitektur (26.10.2026)
+
+- **Geschlossener Außennebel:** Der Tile-Renderer färbt jeden unbekannten
+  oder nicht geladenen Außenbereich opak ein. Die beiden großen
+  Bildschirm-Ellipsen im bisherigen `cloudRect` entfallen. Eine kleine,
+  einmalig erzeugte und wiederholbare Wolkenstruktur ersetzt sie.
+- **Kein grüner Saum:** `ground`/`terrain` (inklusive Straßen) werden
+  auf den präzisen bekannten Hexumriss beschnitten. Die 45-Welteinheiten-
+  Erweiterung gilt ausschließlich für `scenery`, `structures` und Einheiten.
+- **Übergang für Sprites:** Der Hintergrund und die Objektgrafiken sind
+  getrennte Render-Layer. Neu gebackene lokale Objekttiles verwenden
+  128-Welteinheiten Overscan, und die Objektfüße gehören eindeutig
+  genau einem Tile. Der atmosphärische Rand verdeckt die Überhänge weich.
+  Ältere, bereits vorbereitete Editor-Snapshot-Grafiken besitzen unter
+  Umständen nur den bisherigen Tile-Core und müssen für vollständigen
+  Overscan neu erstellt werden.
+- **Performance:** Keine großen, animierten Fullscreen-Kreise und keine
+  Vollbild-Pixeloperation während Kameraschwenks. Die Wolkentextur wird
+  einmalig vorbereitet. Statisches Tile-Baking bleibt ein einmaliger,
+  potenziell auf dem Main Thread sichtbarer Kostenpunkt; es gibt noch
+  keine echte Browser-FPS-Messung.
+- **Version:** Asset-Labor-Oberfläche, Testserver und JavaScript-Cachekeys
+  tragen `v0.22.0` beziehungsweise neue Asset-Revisionen.
+- **Persistente Welt:** siehe [WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md).
+  Die SQLite-Datenbasis wird nicht über einen offenen Multiplayer-Endpunkt
+  bereitgestellt.
+
+## v0.22 – Persistente Regions- und Entdeckungsbasis (26.10.2026)
+
+Das lokale Welt-Backend speichert globale axiale Hexkoordinaten, 16×16- oder
+32×32-Regionen, Generator-/Inhaltsversionen und frühere Regionsstände
+in SQLite. Entdeckte geografische Grundlagen werden ab der **ersten
+globalen Entdeckung** geschützt; jeder Spieler besitzt zusätzlich
+einen unabhängigen individuellen Entdeckungsstand. Änderungen durch
+Straßen, Armeen usw. liegen als separate Welt-Ereignisse vor.
+
+- Implementierung: `persistent_world_store.py`.
+- Entwicklerimport bestehender Worldgen-v2-JSON-Dateien:
+  `world_region_pipeline.py`.
+- Vertrag und Grenzen: **[WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md)**.
+- Tests: `tests/test_persistent_world_store.py`,
+  `tests/test_world_region_pipeline.py`.
+
+**Abgrenzung:** Die interne SQLite-Speicherung ist implementiert;
+der lokale Asset-Labor-Webserver verwendet noch keine dieser
+Multiplayer-Funktionen. Authentifizierte Spieler-API,
+serverseitig autorisierte Kachelbilder und nahtlose geographische
+Fortsetzung über unentdeckte Regionsgrenzen sind offene Aufgaben.
+Der gezeigte Nebel allein bietet keinen serverseitigen Geheimnisschutz.
+
 ## v0.21.1 – Atmosphärische Nebelgrenzen (26.10.2026)
 
 - `fog-atmosphere.js`: Weltkoordinatengebundene, deterministische

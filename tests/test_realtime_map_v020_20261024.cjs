@@ -160,6 +160,6 @@ test('full quality PNG path and existing scene exports bypass live preview',()=>
  assert.match(app,/fastCamera:true/);
  assert.match(app,/'worldStreaming','fastCamera','materialScales'/);
  assert.match(app,/realtimeStats:\(\)=>/);
- assert.match(server,/VERSION = '0\.2[01]\.\d+'/);
+ assert.match(server,/VERSION = '0\.22\.0'/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });

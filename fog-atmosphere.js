@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.21.1 – world-anchored atmospheric Fog of War.
+/* Vedras Reiche v0.22.0 – world-anchored atmospheric Fog of War.
  * Visual effects only. An authoritative server MUST redact unknown tile
  * imagery and hidden entities before delivering any content to clients.
  */
