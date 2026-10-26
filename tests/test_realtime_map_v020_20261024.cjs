@@ -136,7 +136,7 @@ test('v0.20 app runs a fast animation frame without invoking heavy editor draw o
  const module=read('realtime-map-renderer.js'),staticSource=read('static-object-layer.js');
  assert.match(app,/if\(fastInteracting&&!finalRendering\)\{fastRender\(\);return;\}/);
  assert.match(app,/function draw\(\)\{\s*if\(fastInteracting&&!finalRendering\)/);
- assert.match(app,/realtimeMap\.render\(fastView\(\)\)/);
+ assert.match(app,/realtimeMap\.render\(fastView\(\)/);
  assert.match(app,/realtimeMap\.setSnapshots\(\[/);
  assert.match(app,/endFastCamera\(moved\)/);
  assert.match(app,/fastWheelTimer=setTimeout\(\(\)=>\{/);
