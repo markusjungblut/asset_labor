@@ -43,7 +43,13 @@ def import_geography(store, world_id, exported, content_version="content-v1",
             raise ValueError("duplicate generated hex: %s" % ((q, r),))
         seen.add((q, r))
         grouped[q // region_size, r // region_size].append(c)
-    store.create_world(world_id, seed, version, region_size)
+    identity = store.world(world_id)
+    if identity is None:
+        store.create_world(world_id, seed, version, region_size)
+    elif identity["seed"] != seed or identity["region_size"] != region_size:
+        raise ValueError("world seed/region geometry must remain immutable")
+    # Existing worlds may accept NEW generator versions in still-undiscovered
+    # regions while keeping their global seed and earlier frozen geography.
     # Refuse implicit overwrites; unrelated known regions are left untouched.
     originals = {}
     for rq, rr in grouped:
