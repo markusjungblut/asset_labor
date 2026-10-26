@@ -187,7 +187,8 @@ class PersistentWorldStore:
 
     def publish_region(self, world_id, region_q, region_r, cells,
                        generator_version, content_version,
-                       edge_constraints=None, expected_revision=0):
+                       edge_constraints=None, expected_revision=0,
+                       dry_run=False):
         """Publish a sparse or complete region; previously discovered cells freeze.
 
         expected_revision is required to protect against accidental concurrent
@@ -241,6 +242,11 @@ class PersistentWorldStore:
                 if pos not in incoming or previous[pos]["base_json"] != incoming[pos]:
                     raise WorldConflict("discovered geography cannot be edited or removed: " + str(pos))
             next_rev = revision + 1
+            if dry_run:
+                # Publication validation without altering historical world data.
+                return {"world_id": world_id, "region_q": region_q,
+                        "region_r": region_r, "revision": next_rev,
+                        "cell_count": len(incoming), "frozen_count": len(frozen)}
             published = _now()
             db.execute("""INSERT INTO regions VALUES (?,?,?,?,?,?,?,?)
                           ON CONFLICT(world_id,region_q,region_r) DO UPDATE SET
