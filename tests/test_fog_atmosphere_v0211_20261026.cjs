@@ -76,9 +76,9 @@ test('unknown interior incurs no per-frame gradient work',()=>{
 });
 test('v0.21.1 wiring and preview version are coherent',()=>{
  const html=read('index.html'),app=read('app.js'),server=read('server.py');
- assert.match(html,/fog-atmosphere\.js\?v=0\.22\.2/);
- assert.match(html,/world-tile-streamer\.js\?v=0\.22\.2/);
+ assert.match(html,/fog-atmosphere\.js\?v=0\.22\.3/);
+ assert.match(html,/world-tile-streamer\.js\?v=0\.22\.3/);
  assert.ok(html.indexOf('fog-atmosphere.js')<html.indexOf('world-tile-streamer.js'));
  assert.match(app,/worldTiles\.setFogCells\(cells\)/);
- assert.match(server,/VERSION = '0\.22\.2'/);
+ assert.match(server,/VERSION = '0\.22\.3'/);
 });
