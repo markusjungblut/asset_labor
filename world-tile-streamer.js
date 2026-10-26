@@ -16,7 +16,13 @@ window.VedrasWorldTiles=(()=>{
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
   const cache=new Map(),queue=new Map(),running=new Map();
-  const clouds=window.VedrasCloudArtwork?.create({onReady})||null;
+  const clouds=window.VedrasCloudArtwork?.create({onReady:()=>{
+   onReady();
+   // Notify the normal map renderer only when the prepared cloud bank
+   // changes. Terrain, scenery and road caches remain untouched.
+   if(typeof window.dispatchEvent==='function'&&typeof Event!=='undefined')
+    window.dispatchEvent(new Event('vedras:cloud-assets-ready'));
+  }})||null;
   function setCloudAssets(entries){return clouds?.setAssets(entries)||
    {baseExpected:0,edgeExpected:0};}
   function setCloudSeed(seed){return clouds?.setSeed(seed)||false;}
