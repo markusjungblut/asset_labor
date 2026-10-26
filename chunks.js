@@ -341,6 +341,7 @@ window.VedrasChunks=(()=>{
   // Read-only view of already prepared raster pieces for the v0.20.1 fast
   // camera compositor. No queue mutation, canvas copy or worker cost.
   // Consumers must finish painting synchronously: eviction still owns bitmaps.
+  function paintedVersions(){return new Map(lastDrawnVersions);}
   function readyTiles(bounds,{limit=100}={}){
    if(!signature||!cells?.length||!bounds)return [];
    const result=[];
@@ -435,7 +436,7 @@ window.VedrasChunks=(()=>{
    backgroundPaused=!!active;
    if(!backgroundPaused)schedule();
   }
-  return {configure,draw,prime,readyTiles,warm,stopWarm,clipCore,clear,setInteractive,
+  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
