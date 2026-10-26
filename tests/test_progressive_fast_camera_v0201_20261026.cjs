@@ -105,16 +105,17 @@ test('v0.20.1 urgent terrain requests run during gesture while idle prefetch rem
 });
 test('precise export and editor refresh stay available after gesture release',()=>{
  const app=read('app.js'),html=read('index.html'),server=read('server.py');
- assert.match(app,/if\(repair\)requestDraw\(\)/);
+ assert.match(app,/if\(repair\)\{/);
  assert.match(app,/finalRendering=true;resize\(\);requestDraw\(\)/);
  assert.match(app,/canvas\.toBlob\(/);
  assert.match(app,/realtimeMap\.setPreviewCells\(worldCells\.map/);
- assert.match(html,/Asset-Labor v0\.20\.1/);
+ assert.match(html,/Asset-Labor v0\.21\.0/);
  assert.match(html,/realtime-map-renderer\.js\?v=0\.1\.1/);
- assert.match(server,/VERSION = '0\.20\.1'/);
+ assert.match(server,/VERSION = '0\.21\.0'/);
 });
 test('future fog contract: unknown / loading / explored-dimmed states not faked as authoritative here',()=>{
  const src=read('realtime-map-renderer.js');
  assert.match(src,/v0\.21 will replace it with a/);
+ assert.match(read('world-tile-streamer.js'),/fogHex\(c,view/);
  assert.doesNotMatch(src,/visibleByPlayer|discoveredByPlayer|serverAuthorization/);
 });
