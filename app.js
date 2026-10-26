@@ -48,6 +48,12 @@ function tileFog(){
 // have been drawn in the current snapshot revision. Otherwise a half-filled
 // snapshot would be permanently cached as a finished world tile.
 function currentTerrainCore(t){
+ // The editor also supports a full-raster non-chunk mode for small maps.
+ // That path has no terrainChunks entry; use its finished exact raster.
+ if(!state.chunkRendering&&state.sceneSize<=37){
+  return terrainRasterCache.raster&&terrainRasterCache.signature?
+   {tile:t,artwork:{version:terrainRasterCache.signature}}:null;
+ }
  const tiles=terrainChunks.readyTiles(
   {x:t.x,y:t.y,width:t.size-1,height:t.size-1},{limit:32});
  return tiles.find(entry=>entry.tile.id===t.id)||null;
@@ -55,6 +61,10 @@ function currentTerrainCore(t){
 function paintedTerrainCore(t){
  const entry=currentTerrainCore(t);
  if(!entry)return null;
+ if(!state.chunkRendering&&state.sceneSize<=37){
+  return window.__vedrasTerrainRaster===terrainRasterCache.raster?
+   entry:null;
+ }
  return terrainChunks.paintedVersions().get(t.id)===entry.artwork.version?
   entry:null;
 }
