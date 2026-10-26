@@ -73,6 +73,54 @@ test('only terrain chunks painted in the current revision can seed a world tile'
  assert.match(app,/if\(signal\?\.aborted\|\|!paintedTerrainCore\(t\)\)return null/);
 });
 
+test('executing far-mode cleanup hides canvas and aborts obsolete tile snapshots',()=>{
+ const app=read('app.js'),start=app.indexOf('function stopFastCameraForStrategy(){'),
+  end=app.indexOf('\nfunction fastRender(){',start);
+ assert.ok(start>=0&&end>start);
+ const executed=[];
+ const env={clearTimeout:()=>executed.push('timer'),
+  realtimeMap:{hide:()=>executed.push('hide')},
+  worldTiles:{invalidate:()=>executed.push('invalidate')},
+  terrainChunks:{setInteractive:v=>executed.push('terrain:'+v)},
+  shorelineChunks:{setInteractive:v=>executed.push('shore:'+v)},
+  riverChunks:{setInteractive:v=>executed.push('river:'+v)},
+  roadChunks:{setInteractive:v=>executed.push('roads:'+v)}
+ };
+ const cleanup=vm.runInNewContext(
+  'let fastInteracting=true,tileModeActive=true,fastWheelTimer=12;'+
+  app.slice(start,end)+';stopFastCameraForStrategy();'+
+  '({fastInteracting,tileModeActive,fastWheelTimer})',env);
+ assert.equal(cleanup.fastInteracting,false);
+ assert.equal(cleanup.tileModeActive,false);
+ assert.equal(cleanup.fastWheelTimer,null);
+ assert.ok(executed.includes('hide'));
+ assert.ok(executed.includes('invalidate'));
+ assert.ok(executed.includes('terrain:false'));
+ assert.ok(executed.includes('shore:false'));
+ assert.ok(executed.includes('river:false'));
+ assert.ok(executed.includes('roads:false'));
+});
+
+test('terrain-core gate rejects missing and stale chunks before seeding',()=>{
+ const app=read('app.js'),start=app.indexOf('function currentTerrainCore(t){'),
+  end=app.indexOf('function seedReadyWorldTiles(){',start);
+ assert.ok(start>=0&&end>start);
+ let ready=false,version=4;
+ const terrainChunks={
+  readyTiles:()=>ready?[{tile:{id:'0,0'},artwork:{version:5}}]:[],
+  paintedVersions:()=>new Map([['0,0',version]])
+ };
+ const logic=vm.runInNewContext(app.slice(start,end)+
+  ';({currentTerrainCore,paintedTerrainCore})',{terrainChunks});
+ const t={id:'0,0',x:0,y:0,size:512};
+ assert.equal(logic.currentTerrainCore(t),null,'missing chunks stay clouds');
+ ready=true;
+ assert.equal(logic.paintedTerrainCore(t),null,'stale screenshot is rejected');
+ version=5;
+ assert.equal(logic.paintedTerrainCore(t).artwork.version,5,
+  'exact current snapshot can now be seeded');
+});
+
 test('strategy fix is cache-busted in the visible v0.22.1 app',()=>{
  const html=read('index.html'),server=read('server.py');
  assert.match(html,/Asset-Labor v0\.22\.1/);
