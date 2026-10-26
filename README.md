@@ -1,3 +1,56 @@
+## v0.22.3 – Seeded Cloud-Hexe statt quadratischer Wolkenkacheln (26.10.2026)
+
+Die vier finalen Cloud-Base-Grafiken in `assets/clouds/` bilden jetzt
+**eine einzige hexbasiert aufgebaute Wolkendecke** – auf der generierten
+Karte genauso wie über dem unerkundeten Raum. Das bisherige Konzept
+unterschiedlicher „Innen-/Außenwolken“ entfällt.
+
+- **Vier Bildvarianten:** `cloud-artwork.js` lädt exakt die ersten vier
+  alphabetisch sortierten Cloud-Cover-Dateien aus der Asset-Bibliothek.
+  Ehemalige Edge-/Fringe-/Randbilder werden vollständig ignoriert.
+  Wenn nur vier Cloud-Cover-Dateien im Ordner liegen, werden genau diese
+  genutzt. Die Originalgrafiken werden nicht verändert.
+- **Hex-Tesselierung:** Jedes Wolkenhex besitzt weltweite axiale
+  `(q,r)`-Koordinaten und erhält eine deterministische Variante,
+  60°-Rotation und minimale Dichtevariation über
+  `hash(fogSeed,q,r)`. Das Weltfeld wird nach Bedarf für die Kamera
+  erweitert, ohne globale Endkarte oder rechteckige Randkacheln.
+- **Vorberechnet und gecacht:** Jedes Quellbild wird **einmalig** in ein
+  hexmaskiertes deckendes Bild und ein weich auslaufendes Mischbild
+  gebacken. Nur diese wiederverwendbaren Bilder werden während
+  Kamerabewegungen gezeichnet. Die pro-Hex-Zuordnung hat einen
+  begrenzten LRU-ähnlichen Cache von 4096 Einträgen. Nur sichtbare Hexe
+  werden gerendert.
+- **Übergänge wie bei Terrainmaterialien:** Erst überdecken die
+  geometrisch exakt zusammenstoßenden hexmaskierten Cloud-Cores den
+  Bildschirm, dann überlagern sich deren weich maskierte Randbilder.
+  Am Sichtbarkeitsübergang wird **das Cloud-Hex des unbekannten Nachbarn
+  nochmals über Terrain, Bäume, Berge und Einheiten gelegt**, mit seinem
+  vorbereiteten weichen Rand; kein eigener Edge-Sprite-Stil.
+- **Laden ohne grünen Hintergrund:** `drawGround` benutzt dieselbe
+  Cloud-Schicht als initialen Hintergrund, bevor Terrain-Chunks
+  eintreffen. Beim Start erhält das höhere Echtzeit-Canvas außerdem
+  einen initialen Wolken-Frame. Das ursprüngliche `#879a81` bleibt
+  nur für expliziten Debug-/Seam-Testzweck.
+- **Privater Seed:** Im lokalen Editor ist `fogSeed` Teil des
+  gespeicherten Szenenzustands; über
+  `VedrasAssetLabor.setFogSeed('spieler-kennung')` kann er für einen
+  anderen Testspieler gesetzt werden. Im Onlinespiel muss ihn ein
+  authentifizierter Server vorgeben; diese Browser-Vorschau ist
+  **keine** multiplayer-seitige Zugriffskontrolle.
+- **Sichere Darstellung:** Unbekannte oder noch nicht gültig
+  geladene Gebiete bleiben unter der Wolkendecke. Bereits erkundete,
+  aber nicht aktuell sichtbare Regionen werden gedämpft.
+  Die Wolkengrafik alleine berechtigt nicht zur Übertragung
+  unbekannter Landschafts- oder Einheitsdaten.
+
+**Tests:** Das isolierte JavaScript-Regressionstestpaket einschließlich
+Fog-Seed, Hexfeld, vier Cloud-Assets, Übergang über Sprites und
+Lade-Fallback bestand mit **58/58** Prüfungen. Die reale Bildqualität,
+Nahtlosigkeit der konkreten vier PNGs, Performance bei 25 %/200 % und
+Ladezeiten auf dem lokalen Rechner müssen vor einem stabilen Release
+noch visuell und messtechnisch bestätigt werden.
+
 ## v0.22.2 – Wolkengrafiken und Kachelränder (26.10.2026)
 
 **Schritt 2 des Fog- und Tile-Fixes.** Die ältere mathematische
