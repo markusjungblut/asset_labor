@@ -134,8 +134,8 @@ test('show/hide changes only compositor visibility, preserving its sources',()=>
 test('v0.20 app runs a fast animation frame without invoking heavy editor draw on pointermove',()=>{
  const app=read('app.js'),html=read('index.html'),css=read('style.css');
  const module=read('realtime-map-renderer.js'),staticSource=read('static-object-layer.js');
- assert.match(app,/if\(fastInteracting&&!finalRendering\)\{fastRender\(\);return;\}/);
- assert.match(app,/function draw\(\)\{\s*if\(fastInteracting&&!finalRendering\)/);
+ assert.match(app,/if\(\(fastInteracting\|\|tileModeActive\)&&!finalRendering\)\{fastRender\(\);return;\}/);
+ assert.match(app,/function draw\(\)\{\s*if\(\(fastInteracting\|\|tileModeActive\)&&!finalRendering\)/);
  assert.match(app,/realtimeMap\.render\(fastView\(\)/);
  assert.match(app,/realtimeMap\.setSnapshots\(\[/);
  assert.match(app,/endFastCamera\(moved\)/);
@@ -160,6 +160,6 @@ test('full quality PNG path and existing scene exports bypass live preview',()=>
  assert.match(app,/fastCamera:true/);
  assert.match(app,/'worldStreaming','fastCamera','materialScales'/);
  assert.match(app,/realtimeStats:\(\)=>/);
- assert.match(server,/VERSION = '0\.20\.\d+'/);
+ assert.match(server,/VERSION = '0\.2[01]\.\d+'/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
