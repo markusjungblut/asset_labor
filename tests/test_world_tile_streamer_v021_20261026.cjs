@@ -85,3 +85,20 @@ test('editor uses the v0.21 retained compositor, streaming, cloud demo and dynam
  assert.match(html,/id="fogPreview"/);
  assert.match(server,/VERSION = '0\.21\.0'/);
 });
+
+test('rapid camera reversal cancels obsolete tile loading without poisoning cache',async()=>{
+ let resolveOld, requests=[];
+ const h=harness({source:(tile)=>{
+  requests.push(tile.id);
+  if(tile.id==='0,0')return new Promise(resolve=>{resolveOld=resolve;});
+  return {layers:[{layer:'ground',image:{width:128,height:128}}]};
+ }});
+ const newer={id:'2,0',x:1024,y:0,size:512,visibility:'visible'};
+ h.world.request(h.view,[h.a]);await flush();
+ h.world.request({...h.view,panX:-1050},[newer]);await flush();
+ resolveOld({layers:[{layer:'ground',image:{width:128,height:128}}]});
+ await flush();
+ assert.deepEqual(requests,['0,0','2,0']);
+ assert.equal(h.world.stats().tiles,1,'old tile from former viewport is discarded');
+ assert.equal(h.world.stats().visible,1);
+});
