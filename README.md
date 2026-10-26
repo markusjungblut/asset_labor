@@ -1,3 +1,79 @@
+## v0.22.0 – Fog-Korrektur und vereinte Weltarchitektur (26.10.2026)
+
+- **Geschlossener Außennebel:** Der Tile-Renderer färbt jeden unbekannten
+  oder nicht geladenen Außenbereich opak ein. Die beiden großen
+  Bildschirm-Ellipsen im bisherigen `cloudRect` entfallen. Eine kleine,
+  einmalig erzeugte und wiederholbare Wolkenstruktur ersetzt sie.
+- **Kein grüner Saum:** `ground`/`terrain` (inklusive Straßen) werden
+  auf den präzisen bekannten Hexumriss beschnitten. Die 45-Welteinheiten-
+  Erweiterung gilt ausschließlich für `scenery`, `structures` und Einheiten.
+- **Übergang für Sprites:** Der Hintergrund und die Objektgrafiken sind
+  getrennte Render-Layer. Neu gebackene lokale Objekttiles verwenden
+  128-Welteinheiten Overscan, und die Objektfüße gehören eindeutig
+  genau einem Tile. Der atmosphärische Rand verdeckt die Überhänge weich.
+  Ältere, bereits vorbereitete Editor-Snapshot-Grafiken besitzen unter
+  Umständen nur den bisherigen Tile-Core und müssen für vollständigen
+  Overscan neu erstellt werden.
+- **Performance:** Keine großen, animierten Fullscreen-Kreise und keine
+  Vollbild-Pixeloperation während Kameraschwenks. Die Wolkentextur wird
+  einmalig vorbereitet. Statisches Tile-Baking bleibt ein einmaliger,
+  potenziell auf dem Main Thread sichtbarer Kostenpunkt; es gibt noch
+  keine echte Browser-FPS-Messung.
+- **Version:** Asset-Labor-Oberfläche, Testserver und JavaScript-Cachekeys
+  tragen `v0.22.0` beziehungsweise neue Asset-Revisionen.
+- **Persistente Welt:** siehe [WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md).
+  Die SQLite-Datenbasis wird nicht über einen offenen Multiplayer-Endpunkt
+  bereitgestellt.
+
+## v0.22 – Persistente Regions- und Entdeckungsbasis (26.10.2026)
+
+Das lokale Welt-Backend speichert globale axiale Hexkoordinaten, 16×16- oder
+32×32-Regionen, Generator-/Inhaltsversionen und frühere Regionsstände
+in SQLite. Entdeckte geografische Grundlagen werden ab der **ersten
+globalen Entdeckung** geschützt; jeder Spieler besitzt zusätzlich
+einen unabhängigen individuellen Entdeckungsstand. Änderungen durch
+Straßen, Armeen usw. liegen als separate Welt-Ereignisse vor.
+
+- Implementierung: `persistent_world_store.py`.
+- Entwicklerimport bestehender Worldgen-v2-JSON-Dateien:
+  `world_region_pipeline.py`.
+- Vertrag und Grenzen: **[WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md)**.
+- Tests: `tests/test_persistent_world_store.py`,
+  `tests/test_world_region_pipeline.py`.
+
+**Abgrenzung:** Die interne SQLite-Speicherung ist implementiert;
+der lokale Asset-Labor-Webserver verwendet noch keine dieser
+Multiplayer-Funktionen. Authentifizierte Spieler-API,
+serverseitig autorisierte Kachelbilder und nahtlose geographische
+Fortsetzung über unentdeckte Regionsgrenzen sind offene Aufgaben.
+Der gezeigte Nebel allein bietet keinen serverseitigen Geheimnisschutz.
+
+## v0.21.1 – Atmosphärische Nebelgrenzen (26.10.2026)
+
+- `fog-atmosphere.js`: Weltkoordinatengebundene, deterministische
+  Fog-Front mit opakem Wolkenkern, weicher radialer Ausblendung und drei
+  versetzt eingefärbten, diffusen Wolkenbänken.
+- Bekannte Hexfelder erhalten einen 45-Welteinheiten-Sicht-Halo statt
+  eines harten geometrischen Sprite-Crops. Unbekannte Hexfelder
+  erweitern **nicht** die freigegebene Weltgeometrie.
+- Unbekannte Binnenregionen verursachen keinen zusätzlichen
+  Gradienten-Pass pro Bild; nur die vorberechneten Frontier-Zellen
+  werden effektvoll überzeichnet.
+- Gecachtes Terrain und Figuren werden vor den Wolken gezeichnet; die
+  Wolken können in die angrenzenden bekannten Felder hineinreichen.
+  Geladene sichtbare Zellen bleiben vollständig klar, erkundete Zellen
+  bleiben gedämpft, fehlende Zellen bleiben wolkenverdeckt.
+- Separater Test `tests/test_fog_atmosphere_v0211_20261026.cjs`.
+  Isolationstests sind **keine** visuelle Browser- oder FPS-Messung.
+- Grenzen: Schon vorberechnete Raster-Kacheln besitzen noch keinen
+  unabhängigen überhängenden Objekt-Layer. Sehr große Sprites können
+  weiterhin an einer 512er-Bildkachelkante abgeschnitten werden.
+  Künftig müssen Tiles dafür einen eigenen Sprite-Halo oder eine
+  getrennte statische Scenery-Ebene exportieren.
+- Sicherheit: Der atmosphärische Verlauf ist niemals eine
+  Zugriffskontrolle. Die Spiel-API darf ausschließlich für den Spieler
+  freigegebene Weltgrafiken und dynamische Einheiten übertragen.
+
 ## v0.21.0 – Weltkachel-Renderer, Multi-LOD und Fog of War (26.10.2026)
 
 **Ziel:** Nicht mehr bei jedem Schwenk eine komplette, hochauflösende

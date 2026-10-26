@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.21 – retained, world-aligned tile compositor.
+/* Vedras Reiche v0.22.0 – retained, world-aligned tile compositor.
  * Sources provide finished rasters. Camera frames NEVER build terrain,
  * sprites, shadows, rivers or roads. A visibility resolver must be provided
  * by the authoritative game service; the local editor uses visible test cells.
@@ -33,9 +33,10 @@ window.VedrasWorldTiles=(()=>{
   }
   function setSource(next){source=next;invalidate();}
   function setFogCells(cells){
-   // No fallback to globally visible! Unknown is the safe default.
-   fogCells=Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&
-    finite(c?.y)&&finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
+   fogCells=window.VedrasFogAtmosphere?
+    window.VedrasFogAtmosphere.prepare(cells):
+    Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&finite(c?.y)&&
+     finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
   }
   function chooseLod(zoom){
    if(zoom>=1.08)lastLod='near';
@@ -61,7 +62,8 @@ window.VedrasWorldTiles=(()=>{
    for(const layer of packet.layers){
     if(!layer?.image?.width||!layer.image.height||
       !ORDER.includes(layer.layer))continue;
-    normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned});
+    normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned,
+      pad:finite(layer.pad)?clamp(layer.pad,0,512):0});
    }
    if(!normalized.length)return false;
    const k=key(tile,level),old=cache.get(k);
@@ -146,40 +148,67 @@ window.VedrasWorldTiles=(()=>{
     x0,y0,x1-x0,y1-y0);
    return (x1-x0)*(y1-y0);
   }
-  function cloudRect(x,y,w,h,opacity=1){
+  // One-time tileable soft cloud texture. No viewport-sized circles, no
+  // per-frame pixel processing and no screen-dependent cloud geometry.
+  let cloudPattern=null,cloudPatternAttempted=false;
+  function prepareCloudPattern(){
+   if(cloudPatternAttempted)return cloudPattern;
+   cloudPatternAttempted=true;
+   if(typeof document==='undefined'||typeof g.createPattern!=='function')return null;
+   try{
+    const c=document.createElement('canvas');
+    c.width=c.height=128;
+    const cg=c.getContext('2d');
+    const img=cg.createImageData(128,128),d=img.data;
+    for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+     const a=x*2*Math.PI/128,b=y*2*Math.PI/128;
+     // Every Fourier mode is periodic across the texture boundary.
+     const wave=0.48+0.12*Math.sin(a+b*.0)+
+      0.11*Math.sin(2*b-a)+0.09*Math.cos(3*a+2*b)+
+      0.08*Math.sin(5*b-3*a)+0.04*Math.cos(7*a+8*b);
+     const v=clamp(Math.round(187+wave*39),185,231),i=(y*128+x)*4;
+     d[i]=v-3;d[i+1]=v+2;d[i+2]=v+5;d[i+3]=255;
+    }
+    cg.putImageData(img,0,0);
+    cloudPattern=g.createPattern(c,'repeat');
+   }catch(_){cloudPattern=null;}
+   return cloudPattern;
+  }
+  function cloudRect(x,y,w,h,view=null){
    if(w<=0||h<=0)return;
-   g.globalAlpha=opacity;g.fillStyle='#b9c4c7';g.fillRect(x,y,w,h);
-   // Small deterministic shapes create a soft mist instead of flat grey.
-   // At most two ellipses per missing tile, no per-frame bitmap allocation.
-   if(typeof g.ellipse==='function'){
-    g.fillStyle='rgba(245,249,248,.30)';
-    g.beginPath();g.ellipse(x+w*.32,y+h*.49,Math.max(8,w*.34),
-      Math.max(5,h*.23),-.15,0,Math.PI*2);g.fill();
-    g.beginPath();g.ellipse(x+w*.73,y+h*.23,Math.max(8,w*.29),
-      Math.max(5,h*.17),.16,0,Math.PI*2);g.fill();
+   // This ALWAYS paints an opaque cloud foundation over the entire unknown
+   // region. Fog banks are drawn only near known/unknown frontiers.
+   g.globalAlpha=1;g.fillStyle='#c0ccd0';g.fillRect(x,y,w,h);
+   const pattern=prepareCloudPattern();
+   if(pattern){
+    g.save();g.fillStyle=pattern;
+    if(view){
+     // World-anchored pattern: panning translates the cloud, not its shape.
+     const offsetX=((view.width/2+view.panX)%128+128)%128;
+     const offsetY=((view.height/2+view.panY)%128+128)%128;
+     g.translate(offsetX,offsetY);
+     g.fillRect(x-offsetX,y-offsetY,w,h);
+    }else g.fillRect(x,y,w,h);
+    g.restore();
    }
-   g.globalAlpha=1;
   }
   function fogHex(c,view,readyByHex){
-   const proj=view.projectY||1;
+   const ready=typeof readyByHex==='function'&&readyByHex(c);
+   if(window.VedrasFogAtmosphere)
+    return window.VedrasFogAtmosphere.draw(g,c,view,{ready});
    const x=view.width/2+view.panX+c.x*view.zoom,
-    y=view.height/2+view.panY+c.y*view.zoom*proj,
-    rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
-   if(x+rx<0||y+ry<0||x-rx>view.width||y-ry>view.height)return;
-   const kind=c.visibility||'unknown';
-   if(kind==='visible'&&(!readyByHex||readyByHex(c)))return;
+    y=view.height/2+view.panY+c.y*view.zoom*(view.projectY||1),
+    rx=c.radius*view.zoom,ry=rx*(view.projectY||1);
+   if(c.visibility==='visible'&&ready)return;
    g.save();g.beginPath();
-   for(let i=0;i<6;i++){
-    const a=-Math.PI/2+i*Math.PI/3,
-     px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
-    if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+   for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;
+    if(!i)g.moveTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
+    else g.lineTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
    }
    g.closePath();g.clip();
-   if(kind==='explored'){
-    // Explored terrain persists, but is not a real-time intelligence feed.
-    g.fillStyle='rgba(59,66,70,.66)';
-    g.fillRect(x-rx,y-ry,rx*2,ry*2);
-   }else cloudRect(x-rx,y-ry,rx*2,ry*2);
+   if(c.visibility==='explored'){
+    g.fillStyle='rgba(59,66,70,.66)';g.fillRect(x-rx,y-ry,2*rx,2*ry);
+   }else cloudRect(x-rx,y-ry,2*rx,2*ry);
    g.restore();
   }
   function render(view,{tiles=visibleTiles,drawDynamic=null,fog=fogCells}={}){
@@ -191,27 +220,37 @@ window.VedrasWorldTiles=(()=>{
    g.setTransform(view.dpr,0,0,view.dpr,0,0);g.globalAlpha=1;
    g.clearRect(0,0,view.width,view.height);
    // The cloud base conceals unrequested/unloaded map edges too.
-   cloudRect(0,0,view.width,view.height);
+   cloudRect(0,0,view.width,view.height,view);
    // Draw terrain only inside known world HEX geometry, never a rectangular
    // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
    const hasMask=Array.isArray(fog)&&fog.length>0&&typeof g.clip==='function';
-   if(hasMask){
-    g.save();g.beginPath();
+   const atmosphere=window.VedrasFogAtmosphere;
+   const drawKnownPath=(halo)=>{
+    if(!hasMask)return;
+    g.beginPath();let drawn=0;
     for(const c of fog){
+     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
      const x=view.width/2+view.panX+c.x*view.zoom,
       y=view.height/2+view.panY+c.y*view.zoom*proj,
-      rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
-     if(x+rx<0||x-rx>view.width||y+ry<0||y-ry>view.height)continue;
-     for(let i=0;i<6;i++){
-      const a=-Math.PI/2+i*Math.PI/3,
-       px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
-      if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+      reach=(c.radius+halo)*view.zoom;
+     if(x+reach<0||x-reach>view.width||
+      y+reach*proj<0||y-reach*proj>view.height)continue;
+     if(atmosphere)atmosphere.hexPath(g,c,view,halo);
+     else {
+      for(let i=0;i<6;i++){
+       const a=-Math.PI/2+i*Math.PI/3,
+        px=x+Math.cos(a)*reach,py=y+Math.sin(a)*reach*proj;
+       if(!i)g.moveTo(px,py);else g.lineTo(px,py);
+      }
+      g.closePath();
      }
-     g.closePath();
+     drawn++;
     }
-    g.clip();
-   }
+    // Empty path intentionally clips all world imagery: empty authorization
+    // must NEVER leak rectangular tile pixels into the cloud background.
+    g.clip();return drawn;
+   };
    for(const t of tiles){
     if(t.visibility==='unknown')continue;
     const item=lookup(t);if(!item)continue;
@@ -225,35 +264,53 @@ window.VedrasWorldTiles=(()=>{
     if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
     item.used=++used;items.push({t,item,dx,dy,dw,dh});
    }
-   const layers=ORDER.filter(l=>l!=='units');
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
    let covered=0,draws=0,fading=false;
-   for(const layer of layers)for(const obj of items)
-    for(const asset of obj.item.packet.layers)if(asset.layer===layer){
-     const opacity=clamp((clock()-obj.item.born)/240,0,1);
-     g.globalAlpha=opacity;
-     const area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,view);
-     if(area){draws++;if(layer==='ground'||layer==='terrain')
-      covered+=area*opacity;if(opacity<1)fading=true;}
-    }
-   g.globalAlpha=1;
-   if(typeof drawDynamic==='function'){
-    g.save();try{drawDynamic(g,view);}finally{g.restore();}
+   function layerPass(layers,halo){
+    g.save();drawKnownPath(halo);
+    for(const layer of layers)for(const obj of items)
+     for(const asset of obj.item.packet.layers)if(asset.layer===layer){
+      const opacity=clamp((clock()-obj.item.born)/240,0,1);
+      g.globalAlpha=opacity;
+      // Scenery rasters may include an overscanned sprite halo. The pad is
+      // metadata on the layer; core terrain remains exactly tile-aligned.
+      const pad=finite(asset.pad)?clamp(asset.pad,0,512):0;
+      const area=drawImage(asset.image,obj.dx-pad*view.zoom,
+       obj.dy-pad*view.zoom*proj,obj.dw+pad*2*view.zoom,
+       obj.dh+pad*2*view.zoom*proj,view);
+      if(area){draws++;if(layer==='ground'||layer==='terrain')
+       covered+=area*opacity;if(opacity<1)fading=true;}
+     }
+    g.globalAlpha=1;
+    g.restore();
    }
-   if(hasMask)g.restore(); // End the world-mask clip before applying FoW.
-   if(Array.isArray(fog))
-    for(const c of fog)fogHex(c,view,()=>{
+   // Exact footprint for soil, grass, coastline and roads. The previous
+   // 45-unit halo across ground tiles produced the bright green map outline.
+   layerPass(['ground','terrain'],0);
+   // Only overhanging trees, mountains, structures and moving sprites extend
+   // into the clouds, where the atmospheric frontier feathers them away.
+   layerPass(['scenery','structures'],45);
+   // Dynamic units belong to the same authorized halo but not the terrain.
+   if(typeof drawDynamic==='function'){
+    g.save();drawKnownPath(45);
+    try{drawDynamic(g,view);}finally{g.restore();}
+   }
+   if(Array.isArray(fog)){
+    // Dim remembered land beneath rolling banks at the unknown frontier.
+    for(const c of fog)if(c.visibility==='explored')fogHex(c,view);
+    for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,()=>{
      const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
      return items.some(o=>o.t.x===px*512&&o.t.y===py*512&&
       o.item.packet.layers.some(v=>v.layer==='ground'||v.layer==='terrain'));
     });
+   }
    painted=draws;frame++;lastMs=clock()-start;
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    if(fading)onReady(); // continue the cloud-dissolve transition via rAF
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,pending:queue.size+running.size};
   }
-  function stats(){return {version:'0.21',tiles:cache.size,pixels,bytes:pixels*4,
+  function stats(){return {version:'0.22.0',fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
