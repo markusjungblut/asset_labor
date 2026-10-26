@@ -67,7 +67,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  const a=snapshotTile(ground,t,level),b=snapshotTile(scenery,t,level);
  if(a&&b){
   // An old snapshot may include a unit; never bake one into static tiles.
-  const units=buildSpriteLayout().filter(o=>o.type==='unit');
+  const units=objectLayoutCache.query(
+   {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
+   buildSpriteLayout,spriteInViewport,spriteIndexMargin
+  ).objects.filter(o=>o.type==='unit');
   const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
    o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
   if(!carriesUnit){
