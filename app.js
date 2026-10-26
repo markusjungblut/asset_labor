@@ -18,7 +18,8 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 });
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
-let tileModeActive=false,tileFrameScheduled=false,tileBakes=0;
+let tileModeActive=false,tileFrameScheduled=false,tileBakes=0,
+ visibleFogTiles=null;
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
@@ -27,10 +28,21 @@ function tileFog(){
  if(!worldTiles)return;
  // Local Asset-Labor: all test cells are visible. This is NOT a substitute
  // for server-issued exploration masks in the multiplayer game.
- worldTiles.setFogCells(worldCells.map(c=>{
+ const demo=$('fogPreview')?.checked===true;
+ const [sq,sr]=(state.selected||'0,0').split(',').map(Number);
+ const allowed=new Set();
+ const cells=worldCells.map(c=>{
   const p=axialPos(c.q,c.r);
-  return {x:p.x,y:p.y,radius:R,visibility:'visible'};
- }));
+  const d=Math.max(Math.abs(c.q-sq),Math.abs(c.r-sr),
+   Math.abs(c.q+c.r-sq-sr));
+  const visibility=!demo||d<=2?'visible':d<=4?'explored':'unknown';
+  if(visibility!=='unknown')
+   for(const dx of [-150,150])for(const dy of [-150,150])
+    allowed.add(Math.floor((p.x+dx)/512)+','+Math.floor((p.y+dy)/512));
+  return {x:p.x,y:p.y,radius:R,visibility};
+ });
+ visibleFogTiles=demo?allowed:null;
+ worldTiles.setFogCells(cells);
 }
 function snapshotTile(s,t,level){
  if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
@@ -100,11 +112,13 @@ async function bakeWorldTile(t,level,{signal}={}){
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
  fastLastPrime=0,fastNewTerrain=0;
-function fastView(){return {width:W,height:H,dpr:state.dpr,zoom:state.zoom,
+function fastView(){return {width:W,height:H,
+ dpr:worldTiles?Math.min(state.dpr,Math.max(1,Math.min(2,window.devicePixelRatio||1))):state.dpr,
+ zoom:state.zoom,
  panX:state.panX,panY:state.panY,projectY:PROJECT_Y};}
 function fastAllowed(){
  return state.fastCamera!==false&&state.view==='map'&&state.mode!=='far'&&
-  !finalRendering&&state.gpuTerrain===false&&state.gpuSprites!==true&&
+  !finalRendering&&(!worldTiles?(state.gpuTerrain===false&&state.gpuSprites!==true):true)&&
   !state.grid&&!state.edgeDebug&&!state.seamCheck&&!state.riverDebug&&
   !state.riverDraft?.length&&!state.roadPaintMode&&!state.shadowHandles&&
   !state.mountainShadowDebug&&!state.mountainDebug&&!state.bounds&&
@@ -124,7 +138,9 @@ function fastRender(){
   const ready=terrainChunks.readyTiles(bounds,{limit:100});
   let result;
   if(worldTiles){
-   const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
+   const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
+    .map(t=>({...t,visibility:visibleFogTiles&&!visibleFogTiles.has(t.id)?
+     'unknown':'visible'}));
    worldTiles.request(fastView(),tiles);
    result=worldTiles.render(fastView());
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
@@ -213,7 +229,7 @@ let finalRendering=false;
 // Per-scene data is stable across camera movement; edits explicitly invalidate it.
 const objectLayoutCache=window.VedrasObjectLayoutCache.create();
 function invalidateSpriteLayout(){objectLayoutCache.invalidate();staticScenery.clear();
- tileModeActive=false;worldTiles?.invalidate();}
+ tileModeActive=false;worldTiles?.invalidate();visibleFogTiles=null;}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
  selected:'0,0',strategyOverlay:'both',fastCamera:true,grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,gpuSprites:false,adaptiveLod:true,worldStreaming:true,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
@@ -2671,6 +2687,11 @@ canvas.addEventListener('pointercancel',e=>{
  if(points.size===0)endFastCamera(moved);
 });
 window.addEventListener('keydown',e=>{if(e.target?.matches('input,select,textarea'))return;if(e.key==='+'||e.key==='=')applyZoom(state.zoom*1.1);if(e.key==='-')applyZoom(state.zoom/.9);});
+document.addEventListener('change',event=>{
+ if(!worldTiles||event.target?.id==='fogPreview')return;
+ if(event.target?.id==='zoomSlider')return;
+ tileModeActive=false;worldTiles.invalidate();visibleFogTiles=null;
+},true);
 window.addEventListener('resize',resize);
 new ResizeObserver(()=>resize()).observe(canvas);
 let lastDeviceRatio=window.devicePixelRatio||1;setInterval(()=>{const n=window.devicePixelRatio||1;if(n!==lastDeviceRatio){lastDeviceRatio=n;resize();}},950);
@@ -2719,6 +2740,9 @@ $('reliefBiomesTest').addEventListener('click',()=>{
  state.relief={...state.relief,mode:'legacy',center:'0,0',enabled:true,profile:'ridge',strength:90,connected:true};
  invalidateTerrain();setView('map');state.panX=0;state.panY=0;applyZoom(.70);reliefChange();});
 $('objectsToggle').checked=state.objects;
+$('fogPreview')?.addEventListener('change',()=>{
+ tileModeActive=!!worldTiles;tileFog();fastRender();
+});
 restoreScene();
  state.zoom=clamp(state.zoom,ZMIN,ZMAX);
  state.mode='normal'; // migrate old 12-24% micro-label view to normal >=25%
