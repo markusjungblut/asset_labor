@@ -1,3 +1,93 @@
+## v0.20.1 – Progressives Nachladen beim Wischen (26.10.2026)
+
+**Anlass:** In v0.20 konnte sich die Kamera schnell bewegen, aber bei 200 %
+Zoom zeigte der Editor am Bildrand nur den neutralen Canvas-Hintergrund
+und frei schwebende Bäume. Erst nach dem Loslassen wurden Terrain und
+weitere Schichten vollständig aufgebaut; die exakte Neuzeichnung
+benötigte teils etwa zwei Sekunden.
+
+### Sofortmaßnahmen
+
+- **Bäume und Schatten dürfen nicht außerhalb vorbereiteten Geländes
+  schweben.** Der neue Echtzeit-Compositor beschneidet die statische
+  Objekt-/Schattenebene auf den tatsächlich vorhandenen Hintergrund-
+  Snapshot und bereits fertig berechnete neue Terrain-Chunks.
+  Die zugrunde liegenden Sprites oder Weltpositionen werden nicht
+  verändert.
+- **Terrain beginnt während der Geste zu laden.** Der Fast-Camera-
+  Pfad ruft ungefähr alle 90 ms `terrainChunks.prime(...)` für den
+  aktuellen Bildschirm-Ausschnitt auf. Diese Jobs sind dringend und
+  bleiben trotz des angehaltenen spekulativen Prefetch verfügbar.
+  `readyTiles()` stellt die im Cache tatsächlich fertigen Raster
+  dem Compositor direkt zur Verfügung; die Worker-Resultate lösen
+  unmittelbar einen schnellen Frame aus.
+- **Neu fertige Chunks werden sofort sichtbar:** Außerhalb des
+  gepolsterten alten Hintergrunds werden fertige Raster auf ihren
+  *exklusiven 512-Weltpixel-Kern* begrenzt gezeichnet. Innerhalb
+  eines alten Hintergrund-Snapshots wird nur nachgezeichnet, wenn
+  dessen gespeicherte Tile-Version veraltet oder unvollständig ist.
+  Damit werden keine bereits korrekt zusammengesetzten Flüsse,
+  Straßen und Schatten grundlos überdeckt.
+- **Grobe Welt-Vorschau statt völlig leerer Fläche:** Für noch nicht
+  fertig gezeichnete Hexfelder zeigt die schnelle Kamera
+  vorübergehend ein einfaches, aus den echten globalen
+  Hexkoordinaten abgeleitetes Land-/Wasser-Schema. Sobald ein
+  fertiger Raster-Snapshot oder Terrain-Chunk vorhanden ist,
+  deckt er die grobe Vorschau ab. Keine neuen Assets notwendig.
+- **Diagnose:** Live-Kamera meldet jetzt die Terrain-Abdeckung,
+  die Anzahl vorbereiteter Terrain-Chunks und noch ausstehende
+  dringende Aufträge.
+- **Unverändert:** exportierte Szenen und hochwertige PNGs,
+  Editor-Werkzeuge, 3-stufiges adaptives LOD, bisherige
+  Terraintypen und aktuelle Quellen von Schatten/Sprites.
+
+### Geplantes v0.21 – Fog of War und Kachel-Streaming
+
+Die grobe Land-/Wasser-Vorschau in v0.20.1 ist **nicht**
+der spätere Fog of War. Für v0.21 ist festgelegt:
+
+1. **Nie entdeckt:** Die Karte zeigt Wolken; unbekannte
+   Weltinhalte werden an den Client nicht ausgeliefert.
+2. **Entdeckt, aktuell außer Sicht:** Das bekannte Gelände
+   bleibt erkennbar, aber grau/gedämpft (Age-of-Empires-
+   Prinzip). Aktuelle fremde Einheiten bleiben verborgen.
+3. **Sichtbar und geladen:** Hochwertige Gelände-/
+   Objektkacheln ohne grauen Sichtschleier.
+4. **Sichtbar, aber noch nicht geladen:** Dieselbe Wolkenoptik
+   wie für unentdecktes Gebiet, unabhängig davon, ob es
+   sich um eine neue Weltregion, einen Ausschnitt am Rand
+   oder einen aus dem Speicher verdrängten Chunk handelt.
+   Sobald die autorisierten Bilddaten eintreffen, lösen sich
+   die Wolken weich auf.
+
+**Wichtig:** Die *optische* Wolkenbehandlung eines Ladelochs
+darf nicht mit *Zugriffsberechtigungen* verwechselt werden:
+Der Server entscheidet verbindlich, welche Weltinhalte
+ein Spieler jemals und aktuell sehen darf.
+
+### Noch offene Leistungsgrenze
+
+Dieses Update entfernt **nicht** den teuren vollständigen
+Editor-Neuaufbau nach dem Loslassen und lädt noch keine
+fertigen Region-Dateien von Server/CDN. Das Terrain erscheint
+schrittweise bereits während des Wischens, aber Flüsse,
+Küsten, Straßen und die volle Objektqualität außerhalb
+älterer Raster folgen erst im präzisen Editor-Refresh.
+Die vollständige Ablösung des alten Vollbildaufbaus und
+ein lückenloser 500 × 500-Hex-Streaming-Pfad sind für v0.21+
+vorgesehen. Es liegt kein gemessener FPS-Nachweis auf dem
+Zielrechner vor; bei CPU-seitigem Rasterbau können weiterhin
+Frame-Spitzen auftreten.
+
+### Regression
+
+`node --test tests/test_progressive_fast_camera_v0201_20261026.cjs`
+
+Neue Modul- und Vertragstests prüfen Landschafts-/Scenery-
+Clipping, progressive Vorlade-/Anzeige-Logik, Wasser vor
+Relief, die schnelle Hex-Vorschau, Versionsabgleich
+innerhalb alter Snapshots und den unveränderten Export.
+
 ## v0.20.0 – Echtzeit-Kartenrenderer: Fast-Pan / Zoom und wiederverwendbarer Tile-Compositor (24.10.2026)
 
 **Ziel:** Beim Wischen und Zoomen nicht mehr die gesamte teure
