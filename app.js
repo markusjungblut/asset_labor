@@ -18,7 +18,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 });
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
-let tileModeActive=false,tileFrameScheduled=false,tileBakes=0,
+let tileModeActive=false,tileBakes=0,
  visibleFogTiles=null;
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
@@ -2911,7 +2911,10 @@ window.VedrasAssetLabor={shadowSprites:{
  gpuStats:()=>gpuTerrain?.stats()||{ready:false},
  sceneryStats:()=>staticScenery.stats(),spriteGpuStats:()=>gpuSprites?.stats()||{ready:false},
  backgroundStats:()=>backgroundScene.stats(),preparationStats:()=>frameMemo.stats(),
- realtimeStats:()=>({...realtimeMap.stats(),interacting:fastInteracting}),
+ realtimeStats:()=>({...realtimeMap.stats(),interacting:fastInteracting,
+  worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
+  tileModeActive}),
+ worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
  streamingStats:()=>window.__vedrasStreamingProfile||{},
  lodStats:()=>({...lodProfile(),...adaptiveLOD.stats()}),
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
