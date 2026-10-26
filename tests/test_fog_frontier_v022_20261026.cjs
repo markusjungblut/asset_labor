@@ -56,7 +56,7 @@ test('object silhouettes respect their own padded tile raster',()=>{
 });
 test('asset laboratory separates terrain and scenery and uses ownership-bounded baking',()=>{
  const app=file('app.js'),html=file('index.html'),server=file('server.py');
- assert.match(app,/worldTiles\.seed\(t,lod,\{layers:\[\{layer:'ground',image:a\},/);
+ assert.match(app,/worldTiles\.seed\(t,lod,\{layers:\[\{layer:'ground',image:a,pad:WORLD_TILE_GUTTER\},/);
  assert.match(app,/anchorBounds:\{x:t\.x,y:t\.y,width:t\.size,height:t\.size\}/);
  assert.match(app,/layer:'scenery',image:overlay,pad/);
  assert.match(html,/app\.js\?v=0\.55\.2/);
