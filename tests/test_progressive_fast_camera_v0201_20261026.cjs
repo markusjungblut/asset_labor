@@ -109,9 +109,9 @@ test('precise export and editor refresh stay available after gesture release',()
  assert.match(app,/finalRendering=true;resize\(\);requestDraw\(\)/);
  assert.match(app,/canvas\.toBlob\(/);
  assert.match(app,/realtimeMap\.setPreviewCells\(worldCells\.map/);
- assert.match(html,/Asset-Labor v0\.22\.2/);
+ assert.match(html,/Asset-Labor v0\.22\.3/);
  assert.match(html,/realtime-map-renderer\.js\?v=0\.1\.1/);
- assert.match(server,/VERSION = '0\.22\.2'/);
+ assert.match(server,/VERSION = '0\.22\.3'/);
 });
 test('future fog contract: unknown / loading / explored-dimmed states not faked as authoritative here',()=>{
  const src=read('realtime-map-renderer.js');
