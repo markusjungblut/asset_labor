@@ -67,8 +67,9 @@ class PersistentWorldStore:
 
     def __init__(self, database):
         self.database = str(database)
-        if self.database != ":memory:":
-            Path(self.database).parent.mkdir(parents=True, exist_ok=True)
+        if self.database == ":memory:":
+            raise ValueError("persistent worlds require a SQLite filename, not :memory:")
+        Path(self.database).parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS worlds (
@@ -158,6 +159,13 @@ class PersistentWorldStore:
         if world is None:
             raise ValueError("unknown world: " + world_id)
         return world
+
+    def world(self, world_id):
+        """Read immutable world identity for publication and migration checks."""
+        with closing(self._connect()) as db:
+            row = db.execute("SELECT * FROM worlds WHERE world_id=?",
+                             (_ident(world_id, "world_id"),)).fetchone()
+            return dict(row) if row else None
 
     def create_world(self, world_id, seed, generator_version, region_size=16):
         world_id = _ident(world_id, "world_id")
