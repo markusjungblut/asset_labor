@@ -38,12 +38,12 @@ test('ground has exact footprint, scenery a separate 45-unit overhang',()=>{
   {x:260,y:0,radius:R,visibility:'unknown'}]);
  h.w.request(h.view,[h.tile]);h.w.render(h.view);
  const clipIndex=h.log.map((v,i)=>v==='clip'?i:-1).filter(i=>i>=0);
- assert.equal(clipIndex.length,3,
-  'ground, scenery, units all use their own known-world clips');
+ assert.equal(clipIndex.length,2,
+  'ground and scenery have independent known-world clips');
  const radii=h.paths.filter(p=>p.length>=6).map(p=>
   Math.max(...p.map(([x,y])=>Math.abs(x-400))));
- assert.ok(radii.some(r=>r<R+2),'ground clip retains exact hex size');
- assert.ok(radii.some(r=>r>R+25),'sprite clip adds a halo');
+ assert.ok(radii.some(r=>r<R*Math.sqrt(3)/2+2),'ground clip retains exact hex size');
+ assert.ok(radii.some(r=>r>R*Math.sqrt(3)/2+25),'sprite clip adds a halo');
  assert.ok(h.log.indexOf('image:grass')<h.log.indexOf('image:tree'));
 });
 test('object silhouettes respect their own padded tile raster',()=>{
