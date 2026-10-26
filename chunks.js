@@ -311,7 +311,7 @@ window.VedrasChunks=(()=>{
   }
   // Used when the v0.17 static background itself was reused. Without this
   // hook, a warm camera pan would never reach draw() to update prefetch.
-  function prime(bounds,{prefetch=null}={}){
+  function prime(bounds,{prefetch=null,notifyReady=true}={}){
    if(!signature||!cells?.length)return {...stats};
    const tiles=visible(bounds,cells,size);
    stats.visible=tiles.length;
@@ -331,12 +331,29 @@ window.VedrasChunks=(()=>{
    // A speculative result can be ready before entering the visible region,
    // yet absent in v0.17's already cached, oversized background canvas.
    // Force only that newly seen region to refresh once when it enters view.
-   if(unseenReady){stats.visibleRevision++;requestDraw();}
+   if(unseenReady&&notifyReady){stats.visibleRevision++;requestDraw();}
    stats.prefetchPending=prefetchQueue.size;
    stats.manualPending=backgroundQueue.size;
    stats.pending=queue.size+(inFlightInteractive?1:0);
    schedule();
    return {...stats};
+  }
+  // Read-only view of already prepared raster pieces for the v0.20.1 fast
+  // camera compositor. No queue mutation, canvas copy or worker cost.
+  // Consumers must finish painting synchronously: eviction still owns bitmaps.
+  function readyTiles(bounds,{limit=100}={}){
+   if(!signature||!cells?.length||!bounds)return [];
+   const result=[];
+   for(const t of visible(bounds,cells,size)){
+    const current=cache.get(t.id);
+    if(current&&current.stamp===stampForTile(t)&&
+      (current.relief?.canvas||current.raster?.canvas||
+       current.raster?.waterLayer?.canvas)){
+     result.push({tile:t,artwork:current});
+     if(result.length>=limit)break;
+    }
+   }
+   return result;
   }
   // Rasters keep their source halos, but each chunk exclusively owns a
   // device-pixel-aligned output rectangle. Two separate semi-transparent
@@ -418,7 +435,7 @@ window.VedrasChunks=(()=>{
    backgroundPaused=!!active;
    if(!backgroundPaused)schedule();
   }
-  return {configure,draw,prime,warm,stopWarm,clipCore,clear,setInteractive,
+  return {configure,draw,prime,readyTiles,warm,stopWarm,clipCore,clear,setInteractive,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
