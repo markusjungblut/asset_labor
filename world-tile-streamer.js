@@ -67,7 +67,7 @@ window.VedrasWorldTiles=(()=>{
    if(old){pixels-=old.pixels;release(old.packet);}
    const count=normalized.reduce((n,x)=>n+x.image.width*x.image.height,0);
    cache.set(k,{tile:{...tile},packet:{layers:normalized},pixels:count,
-    used:++used,revision:packet.revision??null});
+    used:++used,born:clock(),revision:packet.revision??null});
    pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
    onReady();return true;
   }
@@ -197,13 +197,16 @@ window.VedrasWorldTiles=(()=>{
    }
    const layers=ORDER.filter(l=>l!=='units');
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
-   let covered=0,draws=0;
+   let covered=0,draws=0,fading=false;
    for(const layer of layers)for(const obj of items)
     for(const asset of obj.item.packet.layers)if(asset.layer===layer){
+     const opacity=clamp((clock()-obj.item.born)/240,0,1);
+     g.globalAlpha=opacity;
      const area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,view);
      if(area){draws++;if(layer==='ground'||layer==='terrain')
-      covered+=area;}
+      covered+=area*opacity;if(opacity<1)fading=true;}
     }
+   g.globalAlpha=1;
    if(typeof drawDynamic==='function'){
     g.save();try{drawDynamic(g,view);}finally{g.restore();}
    }
@@ -215,6 +218,7 @@ window.VedrasWorldTiles=(()=>{
     });
    painted=draws;frame++;lastMs=clock()-start;
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
+   if(fading)onReady(); // continue the cloud-dissolve transition via rAF
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,pending:queue.size+running.size};
   }
