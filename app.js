@@ -44,6 +44,26 @@ function tileFog(){
  visibleFogTiles=demo?allowed:null;
  worldTiles.setFogCells(cells);
 }
+function seedReadyWorldTiles(){
+ if(!worldTiles||finalRendering)return;
+ const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
+ if(!ground||!scenery)return;
+ const lod=worldTiles.chooseLod(state.zoom),bounds=streamingViewBounds(96);
+ const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
+ for(const t of tiles){
+  const units=objectLayoutCache.query(
+   {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
+   buildSpriteLayout,spriteInViewport,spriteIndexMargin
+  ).objects.some(o=>o.type==='unit'&&o.x>t.x-300&&
+   o.x<t.x+t.size+300&&o.groundY>t.y-300&&
+   o.groundY<t.y+t.size+300);
+  if(units)continue;
+  const a=snapshotTile(ground,t,lod),b=snapshotTile(scenery,t,lod);
+  if(!a||!b)continue;
+  a.getContext('2d').drawImage(b,0,0,a.width,a.height);
+  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a}]});
+ }
+}
 function snapshotTile(s,t,level){
  if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
  const size=t.size,scale={far:.85,mid:1.5,near:2.5}[level]||1;
@@ -1935,7 +1955,10 @@ function draw(){
   }else{realtimeMap.setSnapshots([]);realtimeMap.setPreviewCells([]);}
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
- worldTiles?.invalidate(); // new exact editor image supersedes stale per-tile revisions
+ if(worldTiles){
+  worldTiles.invalidate(); // exact editor image supersedes stale revisions
+  seedReadyWorldTiles(); // first gesture starts with prepared sprite/terrain tiles
+ }
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
   ready.textContent=realtimeMap.snapshotReady()?
