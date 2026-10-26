@@ -185,7 +185,26 @@ window.VedrasWorldTiles=(()=>{
    g.clearRect(0,0,view.width,view.height);
    // The cloud base conceals unrequested/unloaded map edges too.
    cloudRect(0,0,view.width,view.height);
+   // Draw terrain only inside known world HEX geometry, never a rectangular
+   // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
+   const hasMask=Array.isArray(fog)&&fog.length>0&&typeof g.clip==='function';
+   if(hasMask){
+    g.save();g.beginPath();
+    for(const c of fog){
+     const x=view.width/2+view.panX+c.x*view.zoom,
+      y=view.height/2+view.panY+c.y*view.zoom*proj,
+      rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
+     if(x+rx<0||x-rx>view.width||y+ry<0||y-ry>view.height)continue;
+     for(let i=0;i<6;i++){
+      const a=-Math.PI/2+i*Math.PI/3,
+       px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
+      if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+     }
+     g.closePath();
+    }
+    g.clip();
+   }
    for(const t of tiles){
     if(t.visibility==='unknown')continue;
     const item=lookup(t);if(!item)continue;
@@ -214,6 +233,7 @@ window.VedrasWorldTiles=(()=>{
    if(typeof drawDynamic==='function'){
     g.save();try{drawDynamic(g,view);}finally{g.restore();}
    }
+   if(hasMask)g.restore(); // End the world-mask clip before applying FoW.
    if(Array.isArray(fog))
     for(const c of fog)fogHex(c,view,()=>{
      const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
