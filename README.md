@@ -1,3 +1,169 @@
+## v0.22.0 – Fog-Korrektur und vereinte Weltarchitektur (26.10.2026)
+
+- **Geschlossener Außennebel:** Der Tile-Renderer färbt jeden unbekannten
+  oder nicht geladenen Außenbereich opak ein. Die beiden großen
+  Bildschirm-Ellipsen im bisherigen `cloudRect` entfallen. Eine kleine,
+  einmalig erzeugte und wiederholbare Wolkenstruktur ersetzt sie.
+- **Kein grüner Saum:** `ground`/`terrain` (inklusive Straßen) werden
+  auf den präzisen bekannten Hexumriss beschnitten. Die 45-Welteinheiten-
+  Erweiterung gilt ausschließlich für `scenery`, `structures` und Einheiten.
+- **Übergang für Sprites:** Der Hintergrund und die Objektgrafiken sind
+  getrennte Render-Layer. Neu gebackene lokale Objekttiles verwenden
+  128-Welteinheiten Overscan, und die Objektfüße gehören eindeutig
+  genau einem Tile. Der atmosphärische Rand verdeckt die Überhänge weich.
+  Ältere, bereits vorbereitete Editor-Snapshot-Grafiken besitzen unter
+  Umständen nur den bisherigen Tile-Core und müssen für vollständigen
+  Overscan neu erstellt werden.
+- **Performance:** Keine großen, animierten Fullscreen-Kreise und keine
+  Vollbild-Pixeloperation während Kameraschwenks. Die Wolkentextur wird
+  einmalig vorbereitet. Statisches Tile-Baking bleibt ein einmaliger,
+  potenziell auf dem Main Thread sichtbarer Kostenpunkt; es gibt noch
+  keine echte Browser-FPS-Messung.
+- **Version:** Asset-Labor-Oberfläche, Testserver und JavaScript-Cachekeys
+  tragen `v0.22.0` beziehungsweise neue Asset-Revisionen.
+- **Persistente Welt:** siehe [WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md).
+  Die SQLite-Datenbasis wird nicht über einen offenen Multiplayer-Endpunkt
+  bereitgestellt.
+
+## v0.22 – Persistente Regions- und Entdeckungsbasis (26.10.2026)
+
+Das lokale Welt-Backend speichert globale axiale Hexkoordinaten, 16×16- oder
+32×32-Regionen, Generator-/Inhaltsversionen und frühere Regionsstände
+in SQLite. Entdeckte geografische Grundlagen werden ab der **ersten
+globalen Entdeckung** geschützt; jeder Spieler besitzt zusätzlich
+einen unabhängigen individuellen Entdeckungsstand. Änderungen durch
+Straßen, Armeen usw. liegen als separate Welt-Ereignisse vor.
+
+- Implementierung: `persistent_world_store.py`.
+- Entwicklerimport bestehender Worldgen-v2-JSON-Dateien:
+  `world_region_pipeline.py`.
+- Vertrag und Grenzen: **[WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md)**.
+- Tests: `tests/test_persistent_world_store.py`,
+  `tests/test_world_region_pipeline.py`.
+
+**Abgrenzung:** Die interne SQLite-Speicherung ist implementiert;
+der lokale Asset-Labor-Webserver verwendet noch keine dieser
+Multiplayer-Funktionen. Authentifizierte Spieler-API,
+serverseitig autorisierte Kachelbilder und nahtlose geographische
+Fortsetzung über unentdeckte Regionsgrenzen sind offene Aufgaben.
+Der gezeigte Nebel allein bietet keinen serverseitigen Geheimnisschutz.
+
+## v0.21.1 – Atmosphärische Nebelgrenzen (26.10.2026)
+
+- `fog-atmosphere.js`: Weltkoordinatengebundene, deterministische
+  Fog-Front mit opakem Wolkenkern, weicher radialer Ausblendung und drei
+  versetzt eingefärbten, diffusen Wolkenbänken.
+- Bekannte Hexfelder erhalten einen 45-Welteinheiten-Sicht-Halo statt
+  eines harten geometrischen Sprite-Crops. Unbekannte Hexfelder
+  erweitern **nicht** die freigegebene Weltgeometrie.
+- Unbekannte Binnenregionen verursachen keinen zusätzlichen
+  Gradienten-Pass pro Bild; nur die vorberechneten Frontier-Zellen
+  werden effektvoll überzeichnet.
+- Gecachtes Terrain und Figuren werden vor den Wolken gezeichnet; die
+  Wolken können in die angrenzenden bekannten Felder hineinreichen.
+  Geladene sichtbare Zellen bleiben vollständig klar, erkundete Zellen
+  bleiben gedämpft, fehlende Zellen bleiben wolkenverdeckt.
+- Separater Test `tests/test_fog_atmosphere_v0211_20261026.cjs`.
+  Isolationstests sind **keine** visuelle Browser- oder FPS-Messung.
+- Grenzen: Schon vorberechnete Raster-Kacheln besitzen noch keinen
+  unabhängigen überhängenden Objekt-Layer. Sehr große Sprites können
+  weiterhin an einer 512er-Bildkachelkante abgeschnitten werden.
+  Künftig müssen Tiles dafür einen eigenen Sprite-Halo oder eine
+  getrennte statische Scenery-Ebene exportieren.
+- Sicherheit: Der atmosphärische Verlauf ist niemals eine
+  Zugriffskontrolle. Die Spiel-API darf ausschließlich für den Spieler
+  freigegebene Weltgrafiken und dynamische Einheiten übertragen.
+
+## v0.21.0 – Weltkachel-Renderer, Multi-LOD und Fog of War (26.10.2026)
+
+**Ziel:** Nicht mehr bei jedem Schwenk eine komplette, hochauflösende
+Editor-Szene berechnen. Statische Weltgrafiken werden als weltverankerte
+512er-Kacheln in einem eigenständigen Compositor vorgehalten. Dieser
+arbeitet beim Wischen weiter, auch nachdem die Eingabe losgelassen wurde.
+
+### Umsetzung
+
+- `world-tile-streamer.js`: unabhängiger Canvas-Renderer mit
+  `request(view,tiles)`, `render(view,{drawDynamic})`,
+  `seed(tile,lod,packet)`, `setFogCells(cells)`, `invalidate()`
+  und `stats()`. Fertig gerenderte `ground`/`scenery`-Bilddaten
+  werden entlang globaler Weltkoordinaten gezeichnet. Angrenzende
+  Tile-Kerne teilen sich gerundete Geräte-Pixelgrenzen.
+- **Multi-LOD:** Drei Auflösungen (`far` 0,85, `mid` 1,5,
+  `near` 2,5 Quellpixel pro Weltpixel) und Zoom-Hysterese.
+  Ein vorbereitetes vorheriges LOD bleibt sichtbar, bis sein Ersatz
+  vorliegt; ein Zoom löst keine vollständige Neuberechnung aus.
+- **Viewport-Streaming:** Nur für sichtbare, zugelassene Tile-IDs
+  werden Quellen angefordert. Die Reihenfolge priorisiert die
+  Nähe zur Kameramitte, mit begrenzter Parallelität, LRU-Budget
+  und Invalidation bei Welt-/Szenenwechsel. Ein laufender Request
+  muss nicht auf das Ende einer Pan-Geste warten.
+- **Editor-Adapter:** Fertige Terrain-/Scenery-Snapshots können beim
+  ersten Zugriff einmal in unveränderliche, global adressierbare
+  Tiles überführt werden. Für zuvor nie gerenderte Gebiete
+  wird nach Fertigstellung des Terrain-Chunks die echte
+  Terrain-/Ufer-/Fluss-/Straßen-/Scenery-Pipeline tile-lokal
+  ausgeführt. Diese Arbeit ist vom darstellenden Kameraframe
+  getrennt und läuft pro Anfrage nur einmal.
+- **Separate dynamische Ebene:** Bewegliche Einheiten werden
+  im Editor-Tilepfad nicht in neue statische Raster eingebrannt,
+  sondern über `drawDynamic` nach den Landschaftskacheln
+  dargestellt. Sichtmasken werden erst danach angewendet.
+  Bereits alte Vollbild-Snapshots mit Einheiten werden am
+  betroffenen Ort nicht in statische Kacheln umgewandelt.
+- **Fog of War:** Niemals erkundet → opake Wolken;
+  bereits erkundet, momentan nicht sichtbar → graues Gelände;
+  sichtbar, aber Bilddaten noch nicht fertig → Wolken;
+  geladen und sichtbar → Farbe. Die Wolken werden innerhalb
+  von 240 ms nach dem Laden ausgeblendet. Auch fehlende
+  Bildbereiche und Kartenränder zeigen Wolken statt Leere.
+  `Fog of War demonstrieren` aktiviert im Asset-Labor
+  eine Sichtdemo um das ausgewählte Hexfeld.
+- **4×-Einstellung:** Die Qualitätseinstellung bleibt erhalten.
+  Der interaktive Ausgabecanvas ist jedoch auf die tatsächliche
+  Display-Dichte, maximal 2×, begrenzt. Die Quellen sind
+  unabhängig davon LOD-abgestuft. Dadurch fällt beim Wischen
+  nicht die 16-fache Fragment-/Pixelarbeit eines echten
+  4×-Framebuffers an. Der hochwertige PNG-Export verwendet
+  weiterhin den präzisen unveränderten Editorpfad.
+- **Keine obligatorische Neuberechnung nach dem Loslassen:**
+  Die Tile-Ebene bleibt nach dem Wischen aktiv; erst inhaltliche
+  Änderungen / bestimmte Editieraktionen wechseln zum exakten
+  Editorpfad zurück. Der alte v0.20-Compositor bleibt als
+  rückwärtskompatibler Fallback im Quelltext.
+
+### Online-Schnittstelle / Sicherheitsgrenze
+
+Das **Asset-Labor ist kein autoritativer Multiplayer-Server**.
+Die lokale Fog-Demo ist rein visuell und kennt alle Test-Hexdaten.
+Im echten Spiel muss der Backend-Endpunkt unbekannte Hexe und
+Einheiten **vor** dem Versand filtern. `visibility:'unknown'` verhindert
+Kachelanfragen, ist aber **keine** Server-Zugriffskontrolle. Die
+tile-basierte API erlaubt später vorberechnete Dateien vom
+Server/CDN und pro Spieler redigierte Daten. Das tatsächliche
+Online-Streaming und serverautoritatives Fog of War sind damit
+architektonisch vorbereitet, aber noch nicht in `asset_labor`
+an eine Spieler-Datenbank angeschlossen.
+
+### Prüfung und bekannte Grenze
+
+- JS-Syntax von Renderer und App geprüft; separater Modul-Smoke-Test
+  mit einem instrumentierten Canvas: unbekannte Kachel wird nicht
+  angefordert, vorbereitete Kachel wird bei Pan wiederverwendet,
+  `drawDynamic` wird aufgerufen und Render-/Cache-Statistiken
+  bleiben plausibel.
+- Neu: `node --test tests/test_world_tile_streamer_v021_20261026.cjs`.
+  Alte v0.20.1-Tests wurden für die neue Versionsnummer angepasst.
+- **Noch nicht nachgewiesen:** reale Browser-FPS, korrektes
+  Shadow-/Sprite-Compositing an allen Kachelgrenzen, Laufzeit
+  bei 397 Testhexen und anhaltendem Pan bei 200 %.
+  Neue Scenery-Tiles werden beim ersten Betreten noch lokal im
+  Hauptthread gerendert; das kann einzelne Frames blockieren.
+  Offline vorgefertigte kombinierte Weltkacheln auf CDN/Server
+  und ein Worker-basierter statischer Objekt-Bake bleiben
+  weitere Optimierungen. Die teure Editor-PNG-Erzeugung ist
+  absichtlich nicht durch diesen Vorschaupfad ersetzt.
+
 ## v0.20.1 – Progressives Nachladen beim Wischen (26.10.2026)
 
 **Anlass:** In v0.20 konnte sich die Kamera schnell bewegen, aber bei 200 %
