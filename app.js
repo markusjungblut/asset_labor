@@ -286,8 +286,7 @@ function fastRender(){
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
     ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
      (worldTiles?.stats().clouds?
-      ' · Wolken '+worldTiles.stats().clouds.bases+' Basis / '+
-       worldTiles.stats().clouds.edges+' Ränder':'');
+      ' · '+worldTiles.stats().clouds.bases+' Cloud-Hexgrafiken · Seeded':'');
   }
  });
 }
