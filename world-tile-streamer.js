@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.22.2 – retained, world-aligned tile compositor.
+/* Vedras Reiche v0.22.3 – retained, world-aligned tile compositor.
  * Sources provide finished rasters. Camera frames NEVER build terrain,
  * sprites, shadows, rivers or roads. A visibility resolver must be provided
  * by the authoritative game service; the local editor uses visible test cells.
@@ -17,7 +17,12 @@ window.VedrasWorldTiles=(()=>{
   if(!g)throw Error('WorldTiles requires Canvas2D');
   const cache=new Map(),queue=new Map(),running=new Map();
   const clouds=window.VedrasCloudArtwork?.create({onReady})||null;
-  function setCloudAssets(entries){return clouds?.setAssets(entries)||{baseExpected:0,edgeExpected:0};}
+  function setCloudAssets(entries){return clouds?.setAssets(entries)||
+   {baseExpected:0,edgeExpected:0};}
+  function setCloudSeed(seed){return clouds?.setSeed(seed)||false;}
+  function drawCloudBackground(context,view){
+   return clouds?.drawBase(context,view)||0;
+  }
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
    fogCells=[],visibleTiles=[],wantedTiles=new Set(),
@@ -268,15 +273,21 @@ window.VedrasWorldTiles=(()=>{
     try{drawDynamic(g,view);}finally{g.restore();}
    }
    if(Array.isArray(fog)){
-    // Dim remembered land beneath rolling banks at the unknown frontier.
     for(const c of fog)if(c.visibility==='explored')fogHex(c,view);
-    for(const c of fog)if(c.visibility!=='explored'&&
-      (c.visibility!=='unknown'||!clouds?.stats().edges))fogHex(c,view,()=>{
+    const ready=c=>{
      const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
      return items.some(o=>o.t.x===px*512&&o.t.y===py*512&&
       o.item.packet.layers.some(v=>v.layer==='ground'||v.layer==='terrain'));
-    });
-    clouds?.drawEdges(g,view,fog.frontierEdges);
+    };
+    if(clouds?.stats().bases){
+     // Foreground ONLY AFTER terrain, scenery and dynamic units. These
+     // SAME four cloud textures mask any sprite parts in hidden terrain.
+     clouds.drawUnready(g,view,fog,ready);
+     clouds.drawTransitions(g,view,fog.frontierEdges);
+    }else{
+     // Conceal unloaded and undiscovered data even before image decode.
+     for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,ready);
+    }
    }
    painted=draws;frame++;lastMs=clock()-start;
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
@@ -284,13 +295,13 @@ window.VedrasWorldTiles=(()=>{
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,pending:queue.size+running.size};
   }
-  function stats(){return {version:'0.22.2',clouds:clouds?.stats()||null,
+  function stats(){return {version:'0.22.3',clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
-    chooseLod,invalidate,stats};
+    setCloudSeed,drawCloudBackground,chooseLod,invalidate,stats};
  }
  return {create};
 })();
