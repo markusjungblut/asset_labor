@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.21 – retained, world-aligned tile compositor.
+/* Vedras Reiche v0.21.1 – retained, world-aligned tile compositor.
  * Sources provide finished rasters. Camera frames NEVER build terrain,
  * sprites, shadows, rivers or roads. A visibility resolver must be provided
  * by the authoritative game service; the local editor uses visible test cells.
@@ -33,9 +33,10 @@ window.VedrasWorldTiles=(()=>{
   }
   function setSource(next){source=next;invalidate();}
   function setFogCells(cells){
-   // No fallback to globally visible! Unknown is the safe default.
-   fogCells=Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&
-    finite(c?.y)&&finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
+   fogCells=window.VedrasFogAtmosphere?
+    window.VedrasFogAtmosphere.prepare(cells):
+    Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&finite(c?.y)&&
+     finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
   }
   function chooseLod(zoom){
    if(zoom>=1.08)lastLod='near';
@@ -161,25 +162,22 @@ window.VedrasWorldTiles=(()=>{
    g.globalAlpha=1;
   }
   function fogHex(c,view,readyByHex){
-   const proj=view.projectY||1;
+   const ready=typeof readyByHex==='function'&&readyByHex(c);
+   if(window.VedrasFogAtmosphere)
+    return window.VedrasFogAtmosphere.draw(g,c,view,{ready});
    const x=view.width/2+view.panX+c.x*view.zoom,
-    y=view.height/2+view.panY+c.y*view.zoom*proj,
-    rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
-   if(x+rx<0||y+ry<0||x-rx>view.width||y-ry>view.height)return;
-   const kind=c.visibility||'unknown';
-   if(kind==='visible'&&(!readyByHex||readyByHex(c)))return;
+    y=view.height/2+view.panY+c.y*view.zoom*(view.projectY||1),
+    rx=c.radius*view.zoom,ry=rx*(view.projectY||1);
+   if(c.visibility==='visible'&&ready)return;
    g.save();g.beginPath();
-   for(let i=0;i<6;i++){
-    const a=-Math.PI/2+i*Math.PI/3,
-     px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
-    if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+   for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;
+    if(!i)g.moveTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
+    else g.lineTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
    }
    g.closePath();g.clip();
-   if(kind==='explored'){
-    // Explored terrain persists, but is not a real-time intelligence feed.
-    g.fillStyle='rgba(59,66,70,.66)';
-    g.fillRect(x-rx,y-ry,rx*2,ry*2);
-   }else cloudRect(x-rx,y-ry,rx*2,ry*2);
+   if(c.visibility==='explored'){
+    g.fillStyle='rgba(59,66,70,.66)';g.fillRect(x-rx,y-ry,2*rx,2*ry);
+   }else cloudRect(x-rx,y-ry,2*rx,2*ry);
    g.restore();
   }
   function render(view,{tiles=visibleTiles,drawDynamic=null,fog=fogCells}={}){
@@ -199,16 +197,24 @@ window.VedrasWorldTiles=(()=>{
    if(hasMask){
     g.save();g.beginPath();
     for(const c of fog){
+     // Only known HEX geometries contribute. A world-space sprite halo is
+     // softly swallowed by the UNKNOWN cloud overlay rather than cropped.
+     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
      const x=view.width/2+view.panX+c.x*view.zoom,
       y=view.height/2+view.panY+c.y*view.zoom*proj,
-      rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
-     if(x+rx<0||x-rx>view.width||y+ry<0||y-ry>view.height)continue;
-     for(let i=0;i<6;i++){
-      const a=-Math.PI/2+i*Math.PI/3,
-       px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
-      if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+      margin=(c.radius+45)*view.zoom;
+     if(x+margin<0||x-margin>view.width||
+      y+margin*proj<0||y-margin*proj>view.height)continue;
+     if(window.VedrasFogAtmosphere)
+      window.VedrasFogAtmosphere.hexPath(g,c,view,45);
+     else{
+      const rx=margin,ry=margin*proj;
+      for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;
+       if(!i)g.moveTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
+       else g.lineTo(x+rx*Math.cos(a),y+ry*Math.sin(a));
+      }
+      g.closePath();
      }
-     g.closePath();
     }
     g.clip();
    }
@@ -241,19 +247,22 @@ window.VedrasWorldTiles=(()=>{
     g.save();try{drawDynamic(g,view);}finally{g.restore();}
    }
    if(hasMask)g.restore(); // End the world-mask clip before applying FoW.
-   if(Array.isArray(fog))
-    for(const c of fog)fogHex(c,view,()=>{
+   if(Array.isArray(fog)){
+    // Dim remembered land beneath rolling banks at the unknown frontier.
+    for(const c of fog)if(c.visibility==='explored')fogHex(c,view);
+    for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,()=>{
      const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
      return items.some(o=>o.t.x===px*512&&o.t.y===py*512&&
       o.item.packet.layers.some(v=>v.layer==='ground'||v.layer==='terrain'));
     });
+   }
    painted=draws;frame++;lastMs=clock()-start;
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    if(fading)onReady(); // continue the cloud-dissolve transition via rAF
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,pending:queue.size+running.size};
   }
-  function stats(){return {version:'0.21',tiles:cache.size,pixels,bytes:pixels*4,
+  function stats(){return {version:'0.21.1',fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
