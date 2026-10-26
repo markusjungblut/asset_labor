@@ -60,7 +60,7 @@ test('changing far/detail mode invalidates stale rasterized strategy labels',()=
  const app=read('app.js');
  assert.match(app,/if\(previousMode!==state\.mode\)\{[\s\S]*?stopFastCameraForStrategy\(\)/);
  assert.match(app,/if\(state\.mode==='normal'\)worldTiles\?\.invalidate\(\)/);
- assert.match(app,/if\(state\.mode==='far'\|\|state\.view!=='map'\)return null;/);
+ assert.match(app,/if\(signal\?\.aborted\|\|state\.mode==='far'\|\|state\.view!=='map'\)return null;/);
 });
 
 test('only terrain chunks painted in the current revision can seed a world tile',()=>{
