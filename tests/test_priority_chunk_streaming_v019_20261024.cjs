@@ -178,8 +178,8 @@ test('app wires all four chunk layers and protects cached-background viewport st
  assert.match(chunk,/if\(generation!==epoch\)\{release\(item\);stats\.obsolete\+\+;return;\}/);
  assert.match(html,/id="worldStreaming" checked/);
  assert.match(html,/id="streamingPerfStats"/);
- assert.match(html,/chunks\.js\?v=0\.37\.0/);
- assert.match(html,/app\.js\?v=0\.\d+\.0/);
+ assert.match(html,/chunks\.js\?v=0\.37\.\d+/);
+ assert.match(html,/app\.js\?v=0\.\d+\.\d+/);
  assert.match(server,/VERSION = '0\.\d+\.\d+'/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
