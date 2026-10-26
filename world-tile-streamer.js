@@ -18,7 +18,8 @@ window.VedrasWorldTiles=(()=>{
   const cache=new Map(),queue=new Map(),running=new Map();
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
-   fogCells=[],visibleTiles=[],lod='mid',lastView=null,frame=0;
+   fogCells=[],visibleTiles=[],wantedTiles=new Set(),
+   lod='mid',lastView=null,frame=0;
   const key=(t,l)=>t.id+'@'+l;
   function release(packet){
    for(const layer of packet?.layers||[])
@@ -28,7 +29,7 @@ window.VedrasWorldTiles=(()=>{
    epoch++;for(const task of running.values())task.controller?.abort?.();
    running.clear();queue.clear();
    for(const item of cache.values())release(item.packet);
-   cache.clear();pixels=0;visibleTiles=[];fogCells=[];
+   cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
   }
   function setSource(next){source=next;invalidate();}
   function setFogCells(cells){
@@ -79,19 +80,21 @@ window.VedrasWorldTiles=(()=>{
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
-    running.set(item.key,{controller,epoch:item.epoch});
+    const token=++serial;
+    running.set(item.key,{controller,epoch:item.epoch,token});
     // Yield before expensive loader initialization; in production, the
     // loader should fetch a prepared server/CDN image or use a worker.
     Promise.resolve().then(()=>source(item.tile,item.level,{signal:controller?.signal,
      density:density[item.level]})).then(packet=>{
-      if(item.epoch!==epoch){release(packet);return;}
+      if(item.epoch!==epoch||controller?.signal?.aborted||
+        !wantedTiles.has(item.key)){release(packet);return;}
       if(packet)accept(item.tile,item.level,packet);
     }).catch(err=>{
       if(item.epoch===epoch&&err?.name!=='AbortError'){failed++;
        if(typeof console!=='undefined')console.warn('World tile:',err);}
     }).finally(()=>{
       const active=running.get(item.key);
-      if(active?.epoch===item.epoch)running.delete(item.key);
+      if(active?.token===token)running.delete(item.key);
       pump();
     });
    }
@@ -103,7 +106,11 @@ window.VedrasWorldTiles=(()=>{
    visibleTiles=Array.isArray(tiles)?tiles.filter(t=>typeof t?.id==='string'&&
     finite(t.x)&&finite(t.y)&&t.size>0&&t.visibility!=='unknown'):[];
    const wanted=new Set(visibleTiles.map(t=>key(t,lod)));
+   wantedTiles=wanted;
    for(const [k,item] of queue)if(!wanted.has(k))queue.delete(k);
+   for(const [k,task] of running)if(!wanted.has(k)){
+    task.controller?.abort?.();running.delete(k);
+   }
    const midX=(-view.panX)/view.zoom,midY=(-view.panY)/(view.zoom*(view.projectY||1));
    const sorted=[...visibleTiles].sort((a,b)=>
     (a.x+a.size/2-midX)**2+(a.y+a.size/2-midY)**2-
