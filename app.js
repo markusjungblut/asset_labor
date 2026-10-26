@@ -17,7 +17,8 @@ const realtimeMap=window.VedrasRealtimeMap.create({
  canvas:$('realtimeCanvas'),maxTiles:112,maxPixels:10000000
 });
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
- fastFrames=0,fastLastMs=0,fastLastCoverage=0;
+ fastFrames=0,fastLastMs=0,fastLastCoverage=0,
+ fastLastPrime=0,fastNewTerrain=0;
 function fastView(){return {width:W,height:H,dpr:state.dpr,zoom:state.zoom,
  panX:state.panX,panY:state.panY,projectY:PROJECT_Y};}
 function fastAllowed(){
@@ -34,22 +35,33 @@ function fastRender(){
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
   if(!fastInteracting)return;
-  const result=realtimeMap.render(fastView());
+  // Unlike v0.20, do NOT wait for pointer release before requesting
+  // newly visible terrain. Prime only every 90 ms to protect the
+  // animation path from repeated spatial-index queries.
+  const now=performance.now(),bounds=streamingViewBounds(96);
+  if(now-fastLastPrime>90){
+   fastLastPrime=now;
+   terrainChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
+  }
+  const ready=terrainChunks.readyTiles(bounds,{limit:100});
+  const result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
    realtimeMap.show();fastFrames++;
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
+   fastNewTerrain=ready.length;
    const status=$('fastCameraStats');
    if(status)status.textContent='Live-Kamera: '+fastFrames+
     ' schnelle Bilder · '+fastLastMs.toFixed(1)+
     ' ms reine Bildkomposition · '+Math.round(fastLastCoverage*100)+
-    '% Hintergrundabdeckung · beim Loslassen genaue Neuzeichnung';
+    '% Terrain-Abdeckung · '+fastNewTerrain+' vorbereitete Terrain-Chunks · '+
+    terrainChunks.stats().pending+' sichtbar geplant · exakte Neuzeichnung nach Loslassen';
   }
  });
 }
 function beginFastCamera(){
  if(fastInteracting)return true;
  if(!fastAllowed())return false;
- fastInteracting=true;
+ fastInteracting=true;fastLastPrime=0;
  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
   chunks.setInteractive(true);
  fastRender();return true;
@@ -1765,9 +1777,16 @@ function draw(){
    backgroundProfile?.enabled&&sceneryProfile?.enabled&&
    backgroundProfile?.mode==='canvas'&&sceneryProfile?.mode==='canvas'){
   const base=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
-  if(base&&scenery)realtimeMap.setSnapshots([
-   {...base,role:'ground'},{...scenery,role:'scenery'}]);
-  else realtimeMap.setSnapshots([]);
+  if(base&&scenery){
+   realtimeMap.setSnapshots([
+    {...base,role:'ground'},{...scenery,role:'scenery'}]);
+   // Immutable rough outlines provide immediate spatial orientation beyond
+   // the cached image edge; v0.21 replaces this with its cloud/fog system.
+   realtimeMap.setPreviewCells(worldCells.map(c=>{
+    const p=axialPos(c.q,c.r);
+    return {x:p.x,y:p.y,radius:R,water:wetHex(c)};
+   }));
+  }else{realtimeMap.setSnapshots([]);realtimeMap.setPreviewCells([]);}
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
  const ready=$('fastCameraStats');
