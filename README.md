@@ -1,3 +1,26 @@
+## v0.22 – Persistente Regions- und Entdeckungsbasis (26.10.2026)
+
+Das lokale Welt-Backend speichert globale axiale Hexkoordinaten, 16×16- oder
+32×32-Regionen, Generator-/Inhaltsversionen und frühere Regionsstände
+in SQLite. Entdeckte geografische Grundlagen werden ab der **ersten
+globalen Entdeckung** geschützt; jeder Spieler besitzt zusätzlich
+einen unabhängigen individuellen Entdeckungsstand. Änderungen durch
+Straßen, Armeen usw. liegen als separate Welt-Ereignisse vor.
+
+- Implementierung: `persistent_world_store.py`.
+- Entwicklerimport bestehender Worldgen-v2-JSON-Dateien:
+  `world_region_pipeline.py`.
+- Vertrag und Grenzen: **[WORLD_REGION_ARCHITECTURE.md](WORLD_REGION_ARCHITECTURE.md)**.
+- Tests: `tests/test_persistent_world_store.py`,
+  `tests/test_world_region_pipeline.py`.
+
+**Abgrenzung:** Die interne SQLite-Speicherung ist implementiert;
+der lokale Asset-Labor-Webserver verwendet noch keine dieser
+Multiplayer-Funktionen. Authentifizierte Spieler-API,
+serverseitig autorisierte Kachelbilder und nahtlose geographische
+Fortsetzung über unentdeckte Regionsgrenzen sind offene Aufgaben.
+Der gezeigte Nebel allein bietet keinen serverseitigen Geheimnisschutz.
+
 ## v0.21.1 – Atmosphärische Nebelgrenzen (26.10.2026)
 
 - `fog-atmosphere.js`: Weltkoordinatengebundene, deterministische
