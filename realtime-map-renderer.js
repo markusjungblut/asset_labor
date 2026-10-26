@@ -15,7 +15,8 @@ window.VedrasRealtimeMap=(()=>{
   const ctx=canvas.getContext('2d',{alpha:true});
   if(!ctx)throw Error('RealtimeMap requires Canvas2D');
   const tiles=new Map();
-  let snapshots=[],previewCells=[],tick=0,pixels=0,draws=0,lastMs=0,lastCoverage=0,
+  let snapshots=[],previewCells=[],sourceTileVersions=new Map(),
+   tick=0,pixels=0,draws=0,lastMs=0,lastCoverage=0,
    lastTiles=0,evictions=0,invalidFrames=0,visible=false,frameWidth=0,frameHeight=0;
   function release(tile){
    if(tile?.owned&&typeof tile.image?.close==='function')tile.image.close();
@@ -25,7 +26,7 @@ window.VedrasRealtimeMap=(()=>{
    tiles.clear();pixels=0;
   }
   function clear(){
-   clearTiles();snapshots=[];hide();
+   clearTiles();snapshots=[];sourceTileVersions.clear();hide();
   }
   function hide(){
    visible=false;
@@ -44,6 +45,12 @@ window.VedrasRealtimeMap=(()=>{
    return snapshots.length;
   }
   function snapshotReady(){return snapshots.length>0&&snapshots[0].role==='ground';}
+  // Tile versions captured at the instant the expensive background scene
+  // was baked. A newly completed chunk may fill a transparent/flat hole
+  // *inside* that old snapshot during the current pan.
+  function setRenderedVersions(entries){
+   sourceTileVersions=new Map(entries||[]);
+  }
   // A low-cost navigational fallback only; v0.21 will replace it with a
   // proper cloud/fog layer driven by world visibility and tile readiness.
   function setPreviewCells(cells){
@@ -149,11 +156,38 @@ window.VedrasRealtimeMap=(()=>{
      groundArea+=paintImage(base.canvas,r.x,r.y,r.width,r.height,view.width,view.height);
      drawn++;
     }
-    // Preserve the already painted background. New terrain pieces are only
-    // drawn in the uncovered strips of the camera, not over its finished
-    // rivers/roads/shorelines. Each piece is clipped to its exclusive core.
+    // Only patch original snapshot interiors where that snapshot did not
+    // contain the current terrain version. Outside it, paint every ready
+    // terrain core. Retain the expensive baked rivers/roads everywhere else.
     const extraGroundRects=[];
     const projection=valid(view.projectY)?view.projectY:1;
+    const drawPiece=piece=>{
+     const t=piece?.tile,artwork=piece?.artwork;
+     if(!t||!artwork)return false;
+     const layers=[];
+     if(artwork.raster?.waterLayer?.canvas)layers.push(artwork.raster.waterLayer);
+     if(artwork.relief?.canvas)layers.push(artwork.relief);
+     else if(artwork.raster?.canvas)layers.push(artwork.raster);
+     else if(artwork.raster?.landLayer?.canvas)layers.push(artwork.raster.landLayer);
+     if(!layers.length)return false;
+     ctx.save();ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
+     for(const layer of layers)
+      ctx.drawImage(layer.canvas,layer.x,layer.y,layer.width,layer.height);
+     ctx.restore();return true;
+    };
+    const worldTransform=()=>ctx.setTransform(view.dpr*view.zoom,0,0,
+     view.dpr*view.zoom*projection,
+     view.dpr*(view.width/2+view.panX),
+     view.dpr*(view.height/2+view.panY));
+    if(terrainPieces?.length&&baseRect&&typeof ctx.clip==='function'){
+     ctx.save();ctx.beginPath();
+     ctx.rect(baseRect.x,baseRect.y,baseRect.width,baseRect.height);
+     ctx.clip();worldTransform();
+     for(const piece of terrainPieces)
+      if(sourceTileVersions.get(piece?.tile?.id)!==piece?.artwork?.version)
+       if(drawPiece(piece))drawn++;
+     ctx.restore();
+    }
     if(terrainPieces?.length&&typeof ctx.clip==='function'){
      const missing=[];
      if(baseRect){
@@ -171,27 +205,16 @@ window.VedrasRealtimeMap=(()=>{
       ctx.save();ctx.beginPath();
       for(const r of missing)ctx.rect(r.x,r.y,r.width,r.height);
       ctx.clip();
-      ctx.setTransform(view.dpr*view.zoom,0,0,
-       view.dpr*view.zoom*projection,
-       view.dpr*(view.width/2+view.panX),
-       view.dpr*(view.height/2+view.panY));
+      worldTransform();
       for(const piece of terrainPieces){
-       const t=piece?.tile,artwork=piece?.artwork;
-       if(!t||!artwork)continue;
-       const layers=[];
-       if(artwork.raster?.waterLayer?.canvas)layers.push(artwork.raster.waterLayer);
-       if(artwork.relief?.canvas)layers.push(artwork.relief);
-       else if(artwork.raster?.canvas)layers.push(artwork.raster);
-       else if(artwork.raster?.landLayer?.canvas)layers.push(artwork.raster.landLayer);
-       if(!layers.length)continue;
+       const t=piece?.tile;
+       if(!t)continue;
        const r={x:view.width/2+view.panX+t.x*view.zoom,
         y:view.height/2+view.panY+t.y*projection*view.zoom,
         width:t.size*view.zoom,height:t.size*projection*view.zoom};
        if(r.x>=view.width||r.y>=view.height||
         r.x+r.width<=0||r.y+r.height<=0)continue;
-       ctx.save();ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
-       for(const layer of layers)ctx.drawImage(layer.canvas,layer.x,layer.y,layer.width,layer.height);
-       ctx.restore();
+       if(!drawPiece(piece))continue;
        extraGroundRects.push(r);drawn++;
        const x0=clamp(r.x,0,view.width),x1=clamp(r.x+r.width,0,view.width),
         y0=clamp(r.y,0,view.height),y1=clamp(r.y+r.height,0,view.height);
@@ -251,7 +274,7 @@ window.VedrasRealtimeMap=(()=>{
    tilePixels:pixels,tileBytes:pixels*4,budgetBytes:maxPixels*4,
    draws,renderMs:lastMs,drawn:lastTiles,coverage:lastCoverage,
    evictions,invalidFrames,width:frameWidth,height:frameHeight};}
-  return {render,setSnapshots,snapshotReady,setPreviewCells,putTile,removeTile,
+  return {render,setSnapshots,snapshotReady,setRenderedVersions,setPreviewCells,putTile,removeTile,
    clearTiles,clear,hide,show,stats};
  }
  return {create};
