@@ -60,15 +60,16 @@ function seedReadyWorldTiles(){
   if(units)continue;
   const a=snapshotTile(ground,t,lod),b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
-  a.getContext('2d').drawImage(b,0,0,a.width,a.height);
-  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a}]});
+  // Landscape and canopy must stay in separate render layers.
+  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a},
+   {layer:'scenery',image:b}]});
  }
 }
-function snapshotTile(s,t,level){
+function snapshotTile(s,t,level,pad=0){
  if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
- const size=t.size,scale={far:.85,mid:1.5,near:2.5}[level]||1;
- const sx=(s.width/2+s.panX+s.pad+t.x*s.zoom)*s.dpr,
-  sy=(s.height/2+s.panY+s.pad+t.y*s.zoom*PROJECT_Y)*s.dpr;
+ const size=t.size+2*pad,scale={far:.85,mid:1.5,near:2.5}[level]||1;
+ const sx=(s.width/2+s.panX+s.pad+(t.x-pad)*s.zoom)*s.dpr,
+  sy=(s.height/2+s.panY+s.pad+(t.y-pad)*s.zoom*PROJECT_Y)*s.dpr;
  const sw=size*s.zoom*s.dpr,sh=size*s.zoom*PROJECT_Y*s.dpr;
  if(sx<-.01||sy<-.01||sx+sw>s.canvas.width+.01||
     sy+sh>s.canvas.height+.01)return null;
@@ -94,8 +95,8 @@ async function bakeWorldTile(t,level,{signal}={}){
   const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
    o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
   if(!carriesUnit){
-   a.getContext('2d').drawImage(b,0,0,a.width,a.height);
-   return {layers:[{layer:'ground',image:a}]};
+   return {layers:[{layer:'ground',image:a},
+    {layer:'scenery',image:b}]};
   }
  }
  // Do not bake an incomplete foreground core: clouds hide the hole until
@@ -109,33 +110,48 @@ async function bakeWorldTile(t,level,{signal}={}){
   else setTimeout(resolve,0);
  });
  if(signal?.aborted)return null;
- const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1;
- const out=document.createElement('canvas');
- out.width=Math.max(1,Math.round(t.size*scale));
- out.height=Math.max(1,Math.round(t.size*PROJECT_Y*scale));
- const g=out.getContext('2d',{alpha:true});
- if(!g)return null;
+ // Two independently composited layers. Owner-by-anchor scenery prevents
+ // duplicate sprite silhouettes across overlapping padded tile rasters.
+ const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
+  pad=128,sceneryScale=Math.min(scale,1.9);
+ const make=(w,h)=>{
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(w));
+  c.height=Math.max(1,Math.round(h));return c;
+ };
+ const out=make(t.size*scale,t.size*PROJECT_Y*scale);
+ const overlay=make((t.size+2*pad)*sceneryScale,
+  (t.size+2*pad)*PROJECT_Y*sceneryScale);
+ const groundG=out.getContext('2d',{alpha:true}),
+  spriteG=overlay.getContext('2d',{alpha:true});
+ if(!groundG||!spriteG)return null;
  const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,
   dpr:state.dpr,gpuFrame};
- try{
-  // Tile-local camera: global hex positions and shadows remain unchanged.
-  // Only the small 512-world-unit canvas is rendered, never a full scene.
-  ctx=g;W=t.size*z;H=t.size*z*PROJECT_Y;
-  state.dpr=out.width/W;
-  state.panX=-W/2-t.x*z;
-  state.panY=-H/2-t.y*z*PROJECT_Y;
+ const setup=(g,c,left,top,worldSize)=>{
+  ctx=g;W=worldSize*z;H=worldSize*z*PROJECT_Y;
+  state.dpr=c.width/W;state.panX=-W/2-left*z;
+  state.panY=-H/2-top*z*PROJECT_Y;
   gpuFrame=false;g.setTransform(state.dpr,0,0,state.dpr,0,0);
+ };
+ try{
+  setup(groundG,out,t.x,t.y,t.size);
   drawGround();drawRoads();
-  spriteAtlas?.beginFrame();
-  window.VedrasSpriteShadows?.beginFrame?.();
-  try{drawMapObjects({includeUnits:false});}finally{spriteAtlas?.endFrame();}
+  if(signal?.aborted)return null;
+  setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
+  spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
+  try{
+   drawMapObjects({includeUnits:false,
+    anchorBounds:{x:t.x,y:t.y,width:t.size,height:t.size}});
+  }finally{spriteAtlas?.endFrame();}
  }finally{
-  ctx=old.ctx;W=old.W;H=old.H;
-  state.zoom=old.zoom;state.panX=old.panX;state.panY=old.panY;
+  ctx=old.ctx;W=old.W;H=old.H;state.zoom=old.zoom;
+  state.panX=old.panX;state.panY=old.panY;
   state.dpr=old.dpr;gpuFrame=old.gpuFrame;
  }
  tileBakes++;
- return {layers:[{layer:'ground',image:out}]};
+ return {layers:[{layer:'ground',image:out},
+  {layer:'scenery',image:overlay,pad}]};
+
 }
 
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
@@ -210,7 +226,7 @@ function fastRender(){
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
    fastNewTerrain=result.loaded??ready.length;
    const status=$('fastCameraStats');
-   if(status)status.textContent='Tile-Kamera v0.21: '+fastFrames+
+   if(status)status.textContent='Tile-Kamera v0.22: '+fastFrames+
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
@@ -1617,7 +1633,7 @@ function spriteInViewport(o,view){
  return o.x>=view.x-margin&&o.x<=view.x+view.width+margin&&
   groundY>=view.y-margin&&groundY<=view.y+view.height+margin;
 }
-function drawMapObjects({includeUnits=true}={}){
+function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
    sortMs:0,shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0,
@@ -1631,7 +1647,12 @@ function drawMapObjects({includeUnits=true}={}){
  const prepared=objectLayoutCache.query(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin);
  // Depth order is still evaluated each frame; source positions and expensive
  // river/road placement/relief operations are not.
- const objs=prepared.objects.filter(o=>includeUnits||o.type!=='unit')
+ const objs=prepared.objects.filter(o=>
+   (includeUnits||o.type!=='unit')&&
+   (!anchorBounds||(o.x>=anchorBounds.x&&
+    o.x<anchorBounds.x+anchorBounds.width&&
+    o.groundY>=anchorBounds.y&&
+    o.groundY<anchorBounds.y+anchorBounds.height)))
   .map(o=>({...o,sortY:o.y}));
  const profile={layoutMs:performance.now()-frameStart,buildMs:prepared.buildMs,
   rebuilt:prepared.rebuilt,total:prepared.total,visible:objs.length,
