@@ -1,148 +1,223 @@
-/* Vedras Reiche v0.22.2 – artwork-backed, world-anchored cloud tiles.
- * Pure presentation. An authoritative server must withhold unknown terrain
- * BEFORE the client renders any cloud pixels or frontier transparency.
+/* Vedras Reiche v0.22.3 – seeded, hex-aligned cloud field.
+ * Visual concealment only. The multiplayer server must NEVER send
+ * unknown terrain pixels or hidden objects to unauthorized players.
  */
 'use strict';
 window.VedrasCloudArtwork=(()=>{
- const finite=Number.isFinite;
+ const HEX=256,R=HEX/Math.sqrt(3),HEX_H=R*1.5;
+ const S=384,HALF=S/2,FEATHER=38,INSET=18;
+ const DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
- const mix=(x,y)=>((Math.imul(x|0,374761393)^Math.imul(y|0,668265263))>>>0);
- function classify(entry){
-  const path=String(entry?.relPath||entry?.path||'').replaceAll('\\','/').toLowerCase(),
-   category=String(entry?.category||'').toLowerCase(),
-   meta=entry?.meta||{};
-  if(!/\.(png|webp|jpg|jpeg|avif)$/i.test(path))return null;
-  if(!/^(clouds?|fog)$/.test(category)&&
-   !/(?:^|\/)(?:clouds?|fog)\//.test(path))return null;
-  const role=String(meta.cloudRole||meta.role||'').toLowerCase();
-  return /edge|fringe|rand|kante|border|saum/.test(path)||role==='edge'?
-   'edge':'base';
+ function hashString(s){
+  let h=2166136261;
+  for(const c of String(s)){h=Math.imul(h^c.charCodeAt(0),16777619);}
+  return h>>>0;
  }
- function create({onReady=()=>{}}={}){
-  let bases=[],edges=[],generation=0,loading=0;
-  const canvasFor=(w,h)=>{
+ function hashHex(seed,q,r){
+  let h=(seed^Math.imul(q,0x9e3779b1)^Math.imul(r,0x85ebca77))>>>0;
+  h=Math.imul(h^(h>>>16),0x7feb352d);
+  h=Math.imul(h^(h>>>15),0x846ca68b);
+  return (h^(h>>>16))>>>0;
+ }
+ function classify(a){
+  const p=String(a?.relPath||a?.path||'').replaceAll('\\','/').toLowerCase();
+  const folder=/(?:^|\/)(?:clouds?|fog)\//.test(p);
+  if(!folder||!/\.(png|webp|jpe?g|avif)$/i.test(p))return null;
+  if(/edge|fringe|rand|kante|border|saum/.test(p)||
+   String(a?.meta?.cloudRole||'').toLowerCase()==='edge')return 'edge';
+  return 'base';
+ }
+ function polygon(g){
+  g.beginPath();
+  for(let i=0;i<6;i++){
+   const a=-Math.PI/2+i*Math.PI/3;
+   const x=HALF+R*Math.cos(a),y=HALF+R*Math.sin(a);
+   if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
+  }
+  g.closePath();
+ }
+ function create({onReady=()=>{},seed='vedras-preview-clouds'}={}){
+  let seedValue=hashString(seed),generation=0,loading=0,bases=[],backdrop='#bdced7';
+  const fieldCache=new Map(),MAX_FIELDS=4096;
+  const make=()=>{
    if(typeof document==='undefined')return null;
-   const c=document.createElement('canvas');c.width=w;c.height=h;
+   const c=document.createElement('canvas');c.width=c.height=S;
    return c;
   };
-  function soften(img,type){
-   const width=512,height=type==='base'?512:
-    clamp(Math.round(512*(img.naturalHeight||img.height)/
-     Math.max(1,img.naturalWidth||img.width)),180,512);
-   const c=canvasFor(width,height),g=c?.getContext('2d');
-   if(!g)return img;
-   g.clearRect(0,0,width,height);
-   g.drawImage(img,0,0,width,height);
-   // Precompute alpha gutters ONCE per asset, never per animation frame.
-   // A repeated opaque tile with a hard square source edge is not allowed.
-   const edge=type==='base'?.16:.11;
-   g.globalCompositeOperation='destination-in';
-   let grad=g.createLinearGradient(0,0,width,0);
-   grad.addColorStop(0,'rgba(0,0,0,0)');
-   grad.addColorStop(edge,'rgba(0,0,0,1)');
-   grad.addColorStop(1-edge,'rgba(0,0,0,1)');
-   grad.addColorStop(1,'rgba(0,0,0,0)');
-   g.fillStyle=grad;g.fillRect(0,0,width,height);
-   grad=g.createLinearGradient(0,0,0,height);
-   grad.addColorStop(0,'rgba(0,0,0,0)');
-   grad.addColorStop(edge,'rgba(0,0,0,1)');
-   grad.addColorStop(1-edge,'rgba(0,0,0,1)');
-   grad.addColorStop(1,'rgba(0,0,0,0)');
-   g.fillStyle=grad;g.fillRect(0,0,width,height);
-   g.globalCompositeOperation='source-over';
-   return c;
+  function prebake(img){
+   const draw=()=>{
+    const c=make(),g=c?.getContext('2d',{willReadFrequently:true});
+    if(!g)return null;
+    g.drawImage(img,0,0,S,S);
+    return {canvas:c,ctx:g};
+   };
+   const hard=draw(),soft=draw();
+   if(!hard||!soft)return {hard:img,soft:img};
+   let tint=null;
+   try{
+    const data=hard.ctx.getImageData(0,0,S,S),d=data.data;
+    let sum=[0,0,0],n=0;
+    for(let y=64;y<S-64;y+=35)for(let x=64;x<S-64;x+=35){
+     const i=(y*S+x)*4;
+     if(d[i+3]<50)continue;
+     for(let k=0;k<3;k++)sum[k]+=d[i+k];
+     n++;
+    }
+    if(n){tint='#'+sum.map(v=>Math.round(v/n).toString(16).padStart(2,'0')).join('');}
+    const smooth=soft.ctx.getImageData(0,0,S,S),a=smooth.data;
+    for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+     const px=x-HALF,py=y-HALF,ix=(y*S+x)*4;
+     const inradius=R*Math.sqrt(3)/2;
+     const signed=Math.min(inradius-Math.abs(px),
+      inradius-Math.abs(px*.5+py*Math.sqrt(3)/2),
+      inradius-Math.abs(px*.5-py*Math.sqrt(3)/2));
+     a[ix+3]=Math.round(a[ix+3]*clamp((signed+FEATHER)/
+      (FEATHER+INSET),0,1));
+    }
+    soft.ctx.putImageData(smooth,0,0);
+   }catch(_){
+    // On exotic browsers without a readable image buffer, use a sharp
+    // clipped source. No rectangular cloud artwork may leak out.
+    soft.ctx.save();soft.ctx.globalCompositeOperation='destination-in';
+    polygon(soft.ctx);soft.ctx.fillStyle='#fff';soft.ctx.fill();
+    soft.ctx.restore();
+   }
+   hard.ctx.save();hard.ctx.globalCompositeOperation='destination-in';
+   polygon(hard.ctx);hard.ctx.fillStyle='#fff';hard.ctx.fill();
+   hard.ctx.restore();
+   return {hard:hard.canvas,soft:soft.canvas,tint};
+  }
+  function setSeed(next){
+   const hashed=hashString(next);
+   if(seedValue===hashed)return false;
+   seedValue=hashed;fieldCache.clear();onReady();return true;
+  }
+  function fieldAt(q,r){
+   q=Math.trunc(q);r=Math.trunc(r);
+   const id=q+','+r;
+   if(fieldCache.has(id))return fieldCache.get(id);
+   const hash=hashHex(seedValue,q,r);
+   const value=Object.freeze({q,r,variant:hash%4,
+    rotation:((hash>>>9)%6)*Math.PI/3,
+    density:.93+((hash>>>17)%8)/100});
+   if(fieldCache.size>=MAX_FIELDS)fieldCache.delete(fieldCache.keys().next().value);
+   fieldCache.set(id,value);
+   return value;
   }
   function setAssets(entries){
-   generation++;const version=generation;
-   // Decode into a temporary bank. Publishing the first of eight images
-   // immediately would rehash every cloud tile seven times as each subsequent
-   // picture arrived, making the fog visibly jump during first load.
-   const eligible=(Array.isArray(entries)?entries:[])
-    .map(e=>({asset:e,kind:classify(e)})).filter(e=>e.kind)
-    .sort((a,b)=>String(a.asset.path||a.asset.relPath).localeCompare(
-     String(b.asset.path||b.asset.relPath)));
-   const expected={baseExpected:eligible.filter(a=>a.kind==='base').length,
-    edgeExpected:eligible.filter(a=>a.kind==='edge').length};
-   if(typeof Image==='undefined'||!eligible.length){
-    loading=0;bases=[];edges=[];onReady();return expected;
+   generation++;
+   const current=generation;
+   // Only the FOUR selected cloud-cover images; the former edge sprites
+   // are intentionally ignored. Sort before assigning deterministic IDs.
+   const candidates=(Array.isArray(entries)?entries:[])
+    .filter(a=>classify(a)==='base')
+    .sort((a,b)=>String(a.path||a.relPath).localeCompare(String(b.path||b.relPath)))
+    .slice(0,4);
+   loading=0;
+   const expected={baseExpected:candidates.length,edgeExpected:0};
+   if(!candidates.length||typeof Image==='undefined'){
+    bases=[];onReady();return expected;
    }
-   loading=eligible.length;const incoming={base:[],edge:[]};
-   const finish=()=>{
-    if(version!==generation)return;
-    if(--loading===0){
-     bases=incoming.base.sort((a,b)=>a.path.localeCompare(b.path));
-     edges=incoming.edge.sort((a,b)=>a.path.localeCompare(b.path));
+   const incoming=[];
+   loading=candidates.length;
+   function finished(){
+    if(current!==generation)return;
+    loading--;
+    if(loading===0){
+     bases=incoming.sort((a,b)=>a.path.localeCompare(b.path));
+     backdrop=bases.find(x=>x.tone)?.tone||'#bdced7';
      onReady();
     }
-   };
-   for(const {asset,kind} of eligible){
-    const img=new Image();
+   }
+   for(const entry of candidates){
+    const img=new Image(),path=String(entry.path||entry.relPath);
     img.onload=()=>{
-     if(version!==generation)return;
-     incoming[kind].push({path:asset.path||asset.relPath,
-      art:soften(img,kind)});
-     finish();
+     if(current!==generation)return;
+     try{
+      const art=prebake(img);
+      incoming.push({path,hard:art.hard,soft:art.soft,tone:art.tint});
+     }catch(e){if(typeof console!=='undefined')console.warn('Cloud bake:',e);}
+     finished();
     };
-    img.onerror=finish;
-    img.src=asset.url||('./'+asset.path);
+    img.onerror=finished;
+    img.src=entry.url||('./'+path);
    }
    return expected;
   }
-  function drawBase(g,view){
-   // Fallback must always be opaque even while the local artwork decodes.
-   g.globalAlpha=1;g.fillStyle='#c2cdd1';
-   g.fillRect(0,0,view.width,view.height);
-   if(!bases.length)return 0;
-   const proj=view.projectY||1;
-   const tier=view.zoom<.40?2:1,stride=480*tier,size=600*tier;
-   const left=(-view.width/2-view.panX)/view.zoom,
-    top=(-view.height/2-view.panY)/(view.zoom*proj);
-   const right=left+view.width/view.zoom,
-    bottom=top+view.height/(view.zoom*proj);
-   const minX=Math.floor(left/stride)-1,maxX=Math.ceil(right/stride)+1,
-    minY=Math.floor(top/stride)-1,maxY=Math.ceil(bottom/stride)+1;
-   const total=(maxX-minX+1)*(maxY-minY+1);
-   if(total>260)return 0; // never flood the main thread at extreme zoom.
-   let count=0;
-   g.save();g.imageSmoothingEnabled=true;
-   for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){
-    const h=mix(x,y),art=bases[h%bases.length].art;
-    const dx=view.width/2+view.panX+(x*stride-(size-stride)/2)*view.zoom;
-    const dy=view.height/2+view.panY+
-     (y*stride-(size-stride)/2)*view.zoom*proj;
-    g.drawImage(art,dx,dy,size*view.zoom,size*view.zoom*proj);
-    count++;
-   }
-   g.restore();
-   return count;
-  }
-  function drawEdges(g,view,frontier){
-   if(!edges.length||!Array.isArray(frontier))return 0;
+  function visibleHexes(view){
    const proj=view.projectY||1,zoom=view.zoom;
-   let count=0;
-   g.save();g.imageSmoothingEnabled=true;
-   for(const e of frontier){
-    const sx=view.width/2+view.panX+e.x*zoom,
-     sy=view.height/2+view.panY+e.y*zoom*proj,
-     reach=e.radius*zoom*1.8;
-    if(sx+reach<0||sy+reach<0||sx-reach>view.width||
-     sy-reach>view.height)continue;
-    const hash=mix(e.q*7+e.side,e.r*11-e.side),
-     img=edges[hash%edges.length].art;
-    const angle=Math.atan2(Math.sin(e.angle)*proj,Math.cos(e.angle));
-    const w=e.radius*zoom*2.35,h=e.radius*zoom*proj*1.48;
-    g.save();g.translate(sx,sy);g.rotate(angle-Math.PI/2);
-    // The cloud bank straddles the known/unknown boundary. Feathered pixels
-    // hide the terrain cut while never creating unknown terrain pixels.
-    g.drawImage(img,-w/2,-h*.55,w,h);
-    g.restore();count++;
+   const minX=(-view.width/2-view.panX)/zoom-R-65,
+    maxX=(view.width/2-view.panX)/zoom+R+65;
+   const minY=(-view.height/2-view.panY)/(zoom*proj)-R-65,
+    maxY=(view.height/2-view.panY)/(zoom*proj)+R+65;
+   const minR=Math.floor(minY/HEX_H)-1,maxR=Math.ceil(maxY/HEX_H)+1;
+   const out=[];
+   for(let r=minR;r<=maxR;r++){
+    const first=Math.floor(minX/HEX-r/2)-1,
+     last=Math.ceil(maxX/HEX-r/2)+1;
+    for(let q=first;q<=last;q++)out.push({q,r});
    }
-   g.restore();
+   return out;
+  }
+  function stamp(g,view,q,r,part='hard'){
+   if(!bases.length)return false;
+   const field=fieldAt(q,r),asset=bases[field.variant%bases.length];
+   if(!asset)return false;
+   const x=view.width/2+view.panX+HEX*(q+r/2)*view.zoom,
+    y=view.height/2+view.panY+HEX_H*r*view.zoom*(view.projectY||1);
+   const rx=(R+FEATHER)*view.zoom,ry=rx*(view.projectY||1);
+   if(x+rx<0||y+ry<0||x-rx>view.width||y-ry>view.height)return false;
+   g.save();g.translate(x,y);
+   g.scale(view.zoom,view.zoom*(view.projectY||1));
+   g.rotate(field.rotation);
+   g.drawImage(asset[part],-HALF,-HALF,S,S);
+   g.restore();return true;
+  }
+  function drawBase(g,view){
+   // No viewport-sized gray texture or squares: even outside the generated
+   // map this is precisely the same deterministic hex field.
+   g.save();g.globalAlpha=1;g.fillStyle=backdrop;
+   g.fillRect(0,0,view.width,view.height);
+   if(!bases.length){g.restore();return 0;}
+   const hexes=visibleHexes(view);
+   if(hexes.length>1400){g.restore();return 0;}
+   g.imageSmoothingEnabled=true;
+   // Opaque tessellated cores first, then precomputed feathered overlaps
+   // blending neighboring cloud artwork (like material-edge transitions).
+   for(const c of hexes)stamp(g,view,c.q,c.r,'hard');
+   for(const c of hexes)stamp(g,view,c.q,c.r,'soft');
+   g.restore();return hexes.length;
+  }
+  function drawTransitions(g,view,edges){
+   if(!bases.length||!Array.isArray(edges))return 0;
+   const unique=new Set();let count=0;
+   g.save();g.imageSmoothingEnabled=true;
+   for(const e of edges){
+    const d=DIRS[e.direction];
+    if(!d)continue;
+    const q=e.q+d[0],r=e.r+d[1],id=q+','+r;
+    if(unique.has(id))continue;
+    unique.add(id);
+    // After ground, scenery AND units: the source cloud graphics themselves
+    // now swallow silhouettes across the visibility frontier.
+    if(stamp(g,view,q,r,'hard'))count++;
+    stamp(g,view,q,r,'soft');
+   }
+   g.restore();return count;
+  }
+  function drawUnready(g,view,cells,ready){
+   if(!bases.length||!Array.isArray(cells))return 0;
+   let count=0;
+   for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
+    if(stamp(g,view,c.q,c.r,'hard'))count++;
+    stamp(g,view,c.q,c.r,'soft');
+   }
    return count;
   }
-  function stats(){return {bases:bases.length,edges:edges.length,
-   pending:loading,version:generation};}
-  return {setAssets,drawBase,drawEdges,stats};
+  function stats(){return {bases:bases.length,edges:0,pending:loading,
+   hexCache:fieldCache.size,seed:seedValue,version:generation};}
+  return {setAssets,setSeed,fieldAt,drawBase,drawTransitions,drawUnready,stats,
+   visibleHexes};
  }
- return {create,classify};
+ return {create,classify,hashHex,hashString,DIRS,HEX,R};
 })();
