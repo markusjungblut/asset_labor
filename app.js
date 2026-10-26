@@ -46,7 +46,7 @@ function tileFog(){
 }
 function snapshotTile(s,t,level){
  if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
- const size=t.size,scale={far:.70,mid:1,near:1.65}[level]||1;
+ const size=t.size,scale={far:.85,mid:1.5,near:2.5}[level]||1;
  const sx=(s.width/2+s.panX+s.pad+t.x*s.zoom)*s.dpr,
   sy=(s.height/2+s.panY+s.pad+t.y*s.zoom*PROJECT_Y)*s.dpr;
  const sw=size*s.zoom*s.dpr,sh=size*s.zoom*PROJECT_Y*s.dpr;
@@ -86,7 +86,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   else setTimeout(resolve,0);
  });
  if(signal?.aborted)return null;
- const z=state.zoom,scale={far:.70,mid:1,near:1.65}[level]||1;
+ const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1;
  const out=document.createElement('canvas');
  out.width=Math.max(1,Math.round(t.size*scale));
  out.height=Math.max(1,Math.round(t.size*PROJECT_Y*scale));
