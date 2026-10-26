@@ -110,8 +110,12 @@ test('terrain-core gate rejects missing and stale chunks before seeding',()=>{
   readyTiles:()=>ready?[{tile:{id:'0,0'},artwork:{version:5}}]:[],
   paintedVersions:()=>new Map([['0,0',version]])
  };
+ const raster={ready:true};
+ const state={chunkRendering:true,sceneSize:37};
+ const terrainRasterCache={raster,signature:'direct-v1'};
  const logic=vm.runInNewContext(app.slice(start,end)+
-  ';({currentTerrainCore,paintedTerrainCore})',{terrainChunks});
+  ';({currentTerrainCore,paintedTerrainCore})',
+  {terrainChunks,state,terrainRasterCache,window:{__vedrasTerrainRaster:raster}});
  const t={id:'0,0',x:0,y:0,size:512};
  assert.equal(logic.currentTerrainCore(t),null,'missing chunks stay clouds');
  ready=true;
@@ -119,6 +123,12 @@ test('terrain-core gate rejects missing and stale chunks before seeding',()=>{
  version=5;
  assert.equal(logic.paintedTerrainCore(t).artwork.version,5,
   'exact current snapshot can now be seeded');
+ state.chunkRendering=false;
+ assert.equal(logic.paintedTerrainCore(t).artwork.version,'direct-v1',
+  'finished direct-raster mode must continue working without chunk caches');
+ terrainRasterCache.raster=null;
+ assert.equal(logic.paintedTerrainCore(t),null,
+  'no unprepared full-raster source may be seeded');
 });
 
 test('strategy fix is cache-busted in the visible v0.22.1 app',()=>{
