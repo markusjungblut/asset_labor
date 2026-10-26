@@ -135,7 +135,7 @@ test('v0.20 app runs a fast animation frame without invoking heavy editor draw o
  const app=read('app.js'),html=read('index.html'),css=read('style.css');
  const module=read('realtime-map-renderer.js'),staticSource=read('static-object-layer.js');
  assert.match(app,/if\(\(fastInteracting\|\|tileModeActive\)&&!finalRendering\)\{fastRender\(\);return;\}/);
- assert.match(app,/function draw\(\)\{\s*if\(\(fastInteracting\|\|tileModeActive\)&&!finalRendering\)/);
+ assert.match(app,/function draw\(\)\{\s*if\(state\.mode==='far'\)stopFastCameraForStrategy\(\);\s*if\(\(fastInteracting\|\|tileModeActive\)&&!finalRendering\)/);
  assert.match(app,/realtimeMap\.render\(fastView\(\)/);
  assert.match(app,/realtimeMap\.setSnapshots\(\[/);
  assert.match(app,/endFastCamera\(moved\)/);
