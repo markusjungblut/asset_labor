@@ -1,3 +1,77 @@
+## v0.22.2 – Wolkengrafiken und Kachelränder (26.10.2026)
+
+**Schritt 2 des Fog- und Tile-Fixes.** Die ältere mathematische
+128×128-Sinus-Nebeltextur wurde aus dem Tile-Renderer entfernt. Stattdessen
+verwendet `cloud-artwork.js` echte lokale Grafikdateien aus der
+Asset-Bibliothek des Asset-Labors.
+
+### Wolkengrafiken
+
+Die **acht hochgeladenen Wolkendecken und vier Randgrafiken reichen für den
+ersten Cloud-Tile-Stand**. Empfohlene Ablage:
+
+```text
+assets/clouds/
+  cloud_base_01.png ... cloud_base_08.png
+  cloud_edge_01.png ... cloud_edge_04.png
+```
+
+Alternativ werden Unterordner wie `assets/clouds/edges/` erkannt.
+Die Asset-Liste aus `/api/assets` wird wie bisher über **„Neu einlesen“**
+aktualisiert; sie benötigt keine vorgefertigte Manifestdatei und keine
+Terrain-/Nature-Katalogzuordnung.
+
+- PNG, WebP, JPG, JPEG und AVIF im Verzeichnis `clouds/` oder `fog/`
+  werden berücksichtigt. Dateien mit `edge`, `fringe`, `rand`,
+  `kante`, `border` oder `saum` im Pfad beziehungsweise
+  `meta.cloudRole: "edge"` gelten als Ränder, alle übrigen als
+  Wolkendecken. Transparente PNGs/WebP sind für den Rand ideal.
+- Die Basis deckt die **gesamte unbekannte Fläche opak** ab. Bis die
+  Bilder dekodiert sind, sieht man eine einfache deckende Ersatzfarbe.
+  Wolkengrafiken werden einmalig auf eine kompakte Canvas-Vorlage
+  skaliert und an den Bildrändern weich ausgeblendet. Weltfeste,
+  deterministische Kacheln werden überlappend platziert, damit keine
+  Quadratfugen des Wolkenmaterials sichtbar werden.
+- Die vier Randgrafiken werden an echte Seiten bekannter Hexfelder
+  gesetzt, wenn die Nachbarzelle unbekannt ist **oder außerhalb der
+  generierten Welt liegt**. Die Übergänge folgen damit dem realen
+  Kartenumfang statt einer Bildschirmmaske. Der bestehende
+  sichtbare-aber-noch-nicht-geladene Zustand bleibt bis zur
+  Rasterbereitschaft wolkenverdeckt.
+- Wenige vorbereitete Cloud-Bilder und vorberechnete Frontier-Segmente;
+  keine Vollbild-Raster-Pixelverarbeitung bei Kamerabewegungen.
+  Im Status der Tile-Kamera erscheinen die dekodierten
+  Wolkenbildzahlen (Basis / Ränder).
+
+### Terrain-Naht: Rasterpixel außerhalb der Tile-Kante
+
+Der Weltbild-Renderer nutzt jetzt einen **3-Welteinheiten breiten Quell-
+Gutter** für Gelände und Straßen: Sowohl bereits fertige Editor-Snapshots
+als auch lokal erzeugte Kacheln enthalten einige Bildpixel **außerhalb**
+ihres sichtbaren 512er-Kerns. Beim Zeichnen wird ausschließlich der
+strikt an gemeinsame Gerätepixelkanten angepasste Kachel-Kern aus der
+größeren Bildquelle abgetastet. Der Gutter wird **nicht als grüne
+Geländeerweiterung dargestellt**.
+
+Scenery bleibt als eigene Ebene erhalten und kann separat über die
+Hexkanten hinausragen. Die Quell-Gutter beseitigen einen wichtigen Grund
+für Interpolationsnähte; unterschiedliche oder noch unfertige
+Terrain-Revisionen, vorgerenderte Sprite-Kanten und diskontinuierliche
+Materialberechnungen müssen im echten Browser weiterhin überprüft werden.
+
+### Prüfung und Grenzen
+
+`tests/test_cloud_artwork_v0222_20261026.cjs` enthält Prüfungen zu
+8+4 Assets, Erkennung, Weltverankerung, Map-Perimeter, Opazität und
+Quell-Gutter. Zusammen mit den bestehenden JavaScript-Regressionstests
+bestanden im isolierten Testlauf **58/58**. Diese Mock-Canvas-Tests sind
+**kein** Beleg, dass lokale Cloud-Bilder nahtlos sind oder die Karte bei
+65 % / 200 % korrekt und performant aussieht. Die konkrete Bildwirkung
+muss auf dem lokalen Browser mit den hochgeladenen Grafiken geprüft werden.
+
+Die Wolken sind rein visuell: Ein späterer Multiplayer-Server muss
+unbekannte Grafik- und Objektdaten vor Übertragung vollständig entfernen.
+
 ## v0.22.1 – Strategiekarte: Moduswechsel und Tile-Bereitschaft (26.10.2026)
 
 - **Strategie-Labels bleiben nicht mehr hängen:** Beim Wechsel von
