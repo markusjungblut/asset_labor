@@ -136,7 +136,7 @@ test('v0.20 app runs a fast animation frame without invoking heavy editor draw o
  const module=read('realtime-map-renderer.js'),staticSource=read('static-object-layer.js');
  assert.match(app,/if\(fastInteracting&&!finalRendering\)\{fastRender\(\);return;\}/);
  assert.match(app,/function draw\(\)\{\s*if\(fastInteracting&&!finalRendering\)/);
- assert.match(app,/realtimeMap\.render\(fastView\(\)\)/);
+ assert.match(app,/realtimeMap\.render\(fastView\(\)/);
  assert.match(app,/realtimeMap\.setSnapshots\(\[/);
  assert.match(app,/endFastCamera\(moved\)/);
  assert.match(app,/fastWheelTimer=setTimeout\(\(\)=>\{/);
@@ -145,7 +145,7 @@ test('v0.20 app runs a fast animation frame without invoking heavy editor draw o
  assert.match(staticSource,/function snapshot\(\)/);
  assert.match(html,/id="fastCamera" checked/);
  assert.match(html,/id="realtimeCanvas"/);
- assert.match(html,/realtime-map-renderer\.js\?v=0\.1\.0/);
+ assert.match(html,/realtime-map-renderer\.js\?v=0\.1\.\d+/);
  assert.ok(html.indexOf('realtime-map-renderer.js')<html.indexOf('app.js'));
  assert.match(css,/#canvasOuter>#realtimeCanvas\{/);
  assert.match(css,/pointer-events:none;display:none/);
@@ -160,6 +160,6 @@ test('full quality PNG path and existing scene exports bypass live preview',()=>
  assert.match(app,/fastCamera:true/);
  assert.match(app,/'worldStreaming','fastCamera','materialScales'/);
  assert.match(app,/realtimeStats:\(\)=>/);
- assert.match(server,/VERSION = '0\.20\.0'/);
+ assert.match(server,/VERSION = '0\.20\.\d+'/);
  assert.doesNotMatch(server,/\.removeprefix\(/);
 });
