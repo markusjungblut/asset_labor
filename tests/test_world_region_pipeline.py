@@ -59,6 +59,17 @@ class GeographyImportTests(unittest.TestCase):
             import_geography(self.store, "shared", new, allow_updates=True)
         self.assertEqual(self.store.region("shared", 0, 0)["revision"], 1)
 
+    def test_preflight_prevents_partial_updates_when_later_region_is_frozen(self):
+        import_geography(self.store, "shared", world())
+        self.store.discover("shared", "alice", [(16, -1)])
+        attempted = world(cells=[
+            {"q": 0, "r": 0, "terrainId": "desert"},
+            {"q": 16, "r": -1, "terrainId": "mountain"}])
+        with self.assertRaises(WorldConflict):
+            import_geography(self.store, "shared", attempted, allow_updates=True)
+        self.assertEqual(self.store.region("shared", 0, 0)["revision"], 1)
+        self.assertEqual(self.store.region("shared", 1, -1)["revision"], 1)
+
     def test_reject_changed_global_seed(self):
         import_geography(self.store, "shared", world())
         updated = world()
