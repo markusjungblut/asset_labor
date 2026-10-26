@@ -1,0 +1,228 @@
+/* Vedras Reiche v0.21 – retained, world-aligned tile compositor.
+ * Sources provide finished rasters. Camera frames NEVER build terrain,
+ * sprites, shadows, rivers or roads. A visibility resolver must be provided
+ * by the authoritative game service; the local editor uses visible test cells.
+ */
+'use strict';
+window.VedrasWorldTiles=(()=>{
+ const ORDER=['ground','terrain','scenery','structures','units'];
+ const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
+ const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+ const finite=Number.isFinite;
+ const density={far:.70,mid:1,near:1.65};
+ function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
+   concurrency=1,onReady=()=>{}}={}){
+  if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
+  const g=canvas.getContext('2d',{alpha:true});
+  if(!g)throw Error('WorldTiles requires Canvas2D');
+  const cache=new Map(),queue=new Map(),running=new Map();
+  let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
+   failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
+   fogCells=[],visibleTiles=[],lod='mid',lastView=null,frame=0;
+  const key=(t,l)=>t.id+'@'+l;
+  function release(packet){
+   for(const layer of packet?.layers||[])
+    if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
+  }
+  function invalidate(){
+   epoch++;for(const task of running.values())task.controller?.abort?.();
+   running.clear();queue.clear();
+   for(const item of cache.values())release(item.packet);
+   cache.clear();pixels=0;visibleTiles=[];fogCells=[];
+  }
+  function setSource(next){source=next;invalidate();}
+  function setFogCells(cells){
+   // No fallback to globally visible! Unknown is the safe default.
+   fogCells=Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&
+    finite(c?.y)&&finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
+  }
+  function chooseLod(zoom){
+   if(zoom>=1.08)lastLod='near';
+   else if(zoom<=.42)lastLod='far';
+   else if(lastLod==='near'&&zoom<.94)lastLod='mid';
+   else if(lastLod==='far'&&zoom>.49)lastLod='mid';
+   return lastLod;
+  }
+  function trim(protect=new Set()){
+   while((cache.size>maxTiles||pixels>maxPixels)&&cache.size){
+    let candidate=null;
+    for(const [k,item] of cache)
+     if(!protect.has(k)&&(!candidate||item.used<candidate[1].used))
+      candidate=[k,item];
+    if(!candidate)break;
+    const [k,item]=candidate;cache.delete(k);pixels-=item.pixels;
+    release(item.packet);evicted++;
+   }
+  }
+  function accept(tile,level,packet){
+   if(!packet?.layers?.length)return false;
+   const normalized=[];
+   for(const layer of packet.layers){
+    if(!layer?.image?.width||!layer.image.height||
+      !ORDER.includes(layer.layer))continue;
+    normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned});
+   }
+   if(!normalized.length)return false;
+   const k=key(tile,level),old=cache.get(k);
+   if(old){pixels-=old.pixels;release(old.packet);}
+   const count=normalized.reduce((n,x)=>n+x.image.width*x.image.height,0);
+   cache.set(k,{tile:{...tile},packet:{layers:normalized},pixels:count,
+    used:++used,revision:packet.revision??null});
+   pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
+   onReady();return true;
+  }
+  function seed(tile,level,packet){return accept(tile,level,packet);}
+  function pump(){
+   if(typeof source!=='function')return;
+   while(running.size<concurrency&&queue.size){
+    const item=queue.values().next().value;
+    queue.delete(item.key);
+    if(item.epoch!==epoch)continue;
+    const controller=typeof AbortController!=='undefined'?new AbortController():null;
+    running.set(item.key,{controller,epoch:item.epoch});
+    // Yield before expensive loader initialization; in production, the
+    // loader should fetch a prepared server/CDN image or use a worker.
+    Promise.resolve().then(()=>source(item.tile,item.level,{signal:controller?.signal,
+     density:density[item.level]})).then(packet=>{
+      if(item.epoch!==epoch){release(packet);return;}
+      if(packet)accept(item.tile,item.level,packet);
+    }).catch(err=>{
+      if(item.epoch===epoch&&err?.name!=='AbortError'){failed++;
+       if(typeof console!=='undefined')console.warn('World tile:',err);}
+    }).finally(()=>{
+      const active=running.get(item.key);
+      if(active?.epoch===item.epoch)running.delete(item.key);
+      pump();
+    });
+   }
+  }
+  function request(view,tiles){
+   lastView=view;lod=chooseLod(view.zoom);
+   // Only user-authorized tile descriptors should be passed in.
+   // The server must not ship hidden terrain or units at any zoom.
+   visibleTiles=Array.isArray(tiles)?tiles.filter(t=>typeof t?.id==='string'&&
+    finite(t.x)&&finite(t.y)&&t.size>0&&t.visibility!=='unknown'):[];
+   const wanted=new Set(visibleTiles.map(t=>key(t,lod)));
+   for(const [k,item] of queue)if(!wanted.has(k))queue.delete(k);
+   const midX=(-view.panX)/view.zoom,midY=(-view.panY)/(view.zoom*(view.projectY||1));
+   const sorted=[...visibleTiles].sort((a,b)=>
+    (a.x+a.size/2-midX)**2+(a.y+a.size/2-midY)**2-
+    (b.x+b.size/2-midX)**2-(b.y+b.size/2-midY)**2);
+   for(const t of sorted){
+    const k=key(t,lod);
+    if(cache.has(k)||running.has(k)||queue.has(k))continue;
+    // A new LOD never hides a cached old variant.
+    queue.set(k,{key:k,tile:t,level:lod,epoch});
+   }
+   // Reserve loaded viewport tiles across zoom variants.
+   const protect=new Set();
+   for(const t of visibleTiles)
+    for(const level of Object.keys(density))if(cache.has(key(t,level)))
+     protect.add(key(t,level));
+   trim(protect);pump();
+   return {lod,requested:visibleTiles.length,pending:queue.size+running.size};
+  }
+  function lookup(t){
+   const direct=cache.get(key(t,lod));
+   if(direct)return direct;
+   for(const alternate of ['near','mid','far'])
+    if(alternate!==lod&&cache.has(key(t,alternate)))
+     return cache.get(key(t,alternate));
+   return null;
+  }
+  function drawImage(image,x,y,w,h,view){
+   const x0=clamp(x,0,view.width),x1=clamp(x+w,0,view.width),
+    y0=clamp(y,0,view.height),y1=clamp(y+h,0,view.height);
+   if(x1<=x0||y1<=y0)return 0;
+   g.drawImage(image,(x0-x)/w*image.width,(y0-y)/h*image.height,
+    (x1-x0)/w*image.width,(y1-y0)/h*image.height,
+    x0,y0,x1-x0,y1-y0);
+   return (x1-x0)*(y1-y0);
+  }
+  function cloudRect(x,y,w,h,opacity=1){
+   if(w<=0||h<=0)return;
+   g.globalAlpha=opacity;g.fillStyle='#b9c4c7';g.fillRect(x,y,w,h);
+   // Small deterministic shapes create a soft mist instead of flat grey.
+   // At most two ellipses per missing tile, no per-frame bitmap allocation.
+   if(typeof g.ellipse==='function'){
+    g.fillStyle='rgba(245,249,248,.30)';
+    g.beginPath();g.ellipse(x+w*.32,y+h*.49,Math.max(8,w*.34),
+      Math.max(5,h*.23),-.15,0,Math.PI*2);g.fill();
+    g.beginPath();g.ellipse(x+w*.73,y+h*.23,Math.max(8,w*.29),
+      Math.max(5,h*.17),.16,0,Math.PI*2);g.fill();
+   }
+   g.globalAlpha=1;
+  }
+  function fogHex(c,view,readyByHex){
+   const proj=view.projectY||1;
+   const x=view.width/2+view.panX+c.x*view.zoom,
+    y=view.height/2+view.panY+c.y*view.zoom*proj,
+    rx=c.radius*view.zoom,ry=c.radius*view.zoom*proj;
+   if(x+rx<0||y+ry<0||x-rx>view.width||y-ry>view.height)return;
+   const kind=c.visibility||'unknown';
+   if(kind==='visible'&&(!readyByHex||readyByHex(c)))return;
+   g.save();g.beginPath();
+   for(let i=0;i<6;i++){
+    const a=-Math.PI/2+i*Math.PI/3,
+     px=x+rx*Math.cos(a),py=y+ry*Math.sin(a);
+    if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+   }
+   g.closePath();g.clip();
+   if(kind==='explored'){
+    // Explored terrain persists, but is not a real-time intelligence feed.
+    g.fillStyle='rgba(59,66,70,.66)';
+    g.fillRect(x-rx,y-ry,rx*2,ry*2);
+   }else cloudRect(x-rx,y-ry,rx*2,ry*2);
+   g.restore();
+  }
+  function render(view,{tiles=visibleTiles,drawDynamic=null,fog=fogCells}={}){
+   if(!view||!(view.width>0)||!(view.height>0)||!(view.zoom>0)||
+    !(view.dpr>0)||!finite(view.panX)||!finite(view.panY))return false;
+   const start=clock(),cw=Math.max(1,Math.round(view.width*view.dpr)),
+    ch=Math.max(1,Math.round(view.height*view.dpr));
+   if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
+   g.setTransform(view.dpr,0,0,view.dpr,0,0);g.globalAlpha=1;
+   g.clearRect(0,0,view.width,view.height);
+   // The cloud base conceals unrequested/unloaded map edges too.
+   cloudRect(0,0,view.width,view.height);
+   const proj=view.projectY||1,items=[];
+   for(const t of tiles){
+    if(t.visibility==='unknown')continue;
+    const item=lookup(t);if(!item)continue;
+    const dx=view.width/2+view.panX+t.x*view.zoom,
+     dy=view.height/2+view.panY+t.y*view.zoom*proj,
+     dw=t.size*view.zoom,dh=t.size*view.zoom*proj;
+    if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
+    item.used=++used;items.push({t,item,dx,dy,dw,dh});
+   }
+   const layers=ORDER.filter(l=>l!=='units');
+   g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
+   let covered=0,draws=0;
+   for(const layer of layers)for(const obj of items)
+    for(const asset of obj.item.packet.layers)if(asset.layer===layer){
+     const area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,view);
+     if(area){draws++;if(layer==='ground'||layer==='terrain')
+      covered+=area;}
+    }
+   if(typeof drawDynamic==='function'){
+    g.save();try{drawDynamic(g,view);}finally{g.restore();}
+   }
+   if(Array.isArray(fog))
+    for(const c of fog)fogHex(c,view,()=>{
+     const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
+     return items.some(o=>o.t.x===px*512&&o.t.y===py*512&&
+      o.item.packet.layers.some(v=>v.layer==='ground'||v.layer==='terrain'));
+    });
+   painted=draws;frame++;lastMs=clock()-start;
+   lastCoverage=clamp(covered/(view.width*view.height),0,1);
+   return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
+    loaded:items.length,pending:queue.size+running.size};
+  }
+  function stats(){return {version:'0.21',tiles:cache.size,pixels,bytes:pixels*4,
+   budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
+   inFlight:running.size,visible:visibleTiles.length,lod,
+   renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
+  return {request,render,seed,setSource,setFogCells,chooseLod,invalidate,stats};
+ }
+ return {create};
+})();
