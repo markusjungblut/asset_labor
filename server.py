@@ -16,7 +16,7 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.22.1'
+VERSION = '0.22.2'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 STATIC_TERRAIN = BASE / 'precomputed' / 'terrain'

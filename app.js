@@ -20,6 +20,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
  * the future game backend supplies the same contract with redacted tiles. */
 let tileModeActive=false,tileBakes=0,
  visibleFogTiles=null;
+const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
@@ -39,7 +40,7 @@ function tileFog(){
   if(visibility!=='unknown')
    for(const dx of [-150,150])for(const dy of [-150,150])
     allowed.add(Math.floor((p.x+dx)/512)+','+Math.floor((p.y+dy)/512));
-  return {x:p.x,y:p.y,radius:R,visibility};
+  return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility};
  });
  visibleFogTiles=demo?allowed:null;
  worldTiles.setFogCells(cells);
@@ -82,10 +83,11 @@ function seedReadyWorldTiles(){
    o.x<t.x+t.size+300&&o.groundY>t.y-300&&
    o.groundY<t.y+t.size+300);
   if(units||!paintedTerrainCore(t))continue;
-  const a=snapshotTile(ground,t,lod),b=snapshotTile(scenery,t,lod);
+  const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
+   b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
   // Landscape and canopy must stay in separate render layers.
-  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a},
+  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
    {layer:'scenery',image:b}]});
  }
 }
@@ -112,7 +114,8 @@ async function bakeWorldTile(t,level,{signal}={}){
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
- const a=snapshotTile(ground,t,level),b=snapshotTile(scenery,t,level);
+ const a=snapshotTile(ground,t,level,WORLD_TILE_GUTTER),
+  b=snapshotTile(scenery,t,level);
  if(a&&b&&paintedTerrainCore(t)){
   // An old snapshot may include a unit; never bake one into static tiles.
   const units=objectLayoutCache.query(
@@ -122,7 +125,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
    o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
   if(!carriesUnit){
-   return {layers:[{layer:'ground',image:a},
+   return {layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
     {layer:'scenery',image:b}]};
   }
  }
@@ -139,13 +142,14 @@ async function bakeWorldTile(t,level,{signal}={}){
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
  const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
-  pad=128,sceneryScale=Math.min(scale,1.9);
+  pad=128,sceneryScale=Math.min(scale,1.9),groundPad=WORLD_TILE_GUTTER;
  const make=(w,h)=>{
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(w));
   c.height=Math.max(1,Math.round(h));return c;
  };
- const out=make(t.size*scale,t.size*PROJECT_Y*scale);
+ const out=make((t.size+2*groundPad)*scale,
+  (t.size+2*groundPad)*PROJECT_Y*scale);
  const overlay=make((t.size+2*pad)*sceneryScale,
   (t.size+2*pad)*PROJECT_Y*sceneryScale);
  const groundG=out.getContext('2d',{alpha:true}),
@@ -160,7 +164,8 @@ async function bakeWorldTile(t,level,{signal}={}){
   gpuFrame=false;g.setTransform(state.dpr,0,0,state.dpr,0,0);
  };
  try{
-  setup(groundG,out,t.x,t.y,t.size);
+  setup(groundG,out,t.x-groundPad,t.y-groundPad,
+   t.size+2*groundPad);
   drawGround();drawRoads();
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
@@ -180,7 +185,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
    !paintedTerrainCore(t))return null;
  tileBakes++;
- return {layers:[{layer:'ground',image:out},
+ return {layers:[{layer:'ground',image:out,pad:groundPad},
   {layer:'scenery',image:overlay,pad}]};
 
 }
@@ -279,7 +284,10 @@ function fastRender(){
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
-    ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit';
+    ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
+     (worldTiles?.stats().clouds?
+      ' · Wolken '+worldTiles.stats().clouds.bases+' Basis / '+
+       worldTiles.stats().clouds.edges+' Ränder':'');
   }
  });
 }
@@ -2304,6 +2312,9 @@ async function loadLibrary(list,mode){
  assets=list.map(e=>({...e,img:null,terrainCheck:null,
   url:e.url||('./'+e.path+(e.mtime?'?v='+e.mtime:''))}));
  assetByPath=new Map(assets.map(a=>[a.path,a]));
+ // Asset-Labor searches assets/ recursively. Eight cloud bases and four edge
+ // PNGs in assets/clouds/ are picked up without hand-editing a manifest.
+ worldTiles?.setCloudAssets(assets);
  stampCache.clear();terrainAssetGroups=null;invalidateTerrain();
  imagePoolPriming=true;
  try{
