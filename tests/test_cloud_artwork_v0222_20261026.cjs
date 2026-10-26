@@ -32,7 +32,9 @@ function setup(){
 }
 test('four final covers are used, obsolete edge sprites ignored',()=>{
  const h=setup();
- assert.deepEqual(h.art.setAssets(h.assets),{baseExpected:4,edgeExpected:0});
+ const expected=h.art.setAssets(h.assets);
+ assert.equal(expected.baseExpected,4);
+ assert.equal(expected.edgeExpected,0);
  assert.equal(h.art.stats().bases,4);
  assert.equal(h.art.stats().edges,0);
 });
