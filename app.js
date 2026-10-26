@@ -1780,6 +1780,7 @@ function draw(){
   if(base&&scenery){
    realtimeMap.setSnapshots([
     {...base,role:'ground'},{...scenery,role:'scenery'}]);
+   realtimeMap.setRenderedVersions(terrainChunks.paintedVersions());
    // Immutable rough outlines provide immediate spatial orientation beyond
    // the cached image edge; v0.21 replaces this with its cloud/fog system.
    realtimeMap.setPreviewCells(worldCells.map(c=>{
