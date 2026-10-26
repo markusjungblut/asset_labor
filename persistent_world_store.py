@@ -71,6 +71,7 @@ class PersistentWorldStore:
             raise ValueError("persistent worlds require a SQLite filename, not :memory:")
         Path(self.database).parent.mkdir(parents=True, exist_ok=True)
         with closing(self._connect()) as db:
+            db.execute("PRAGMA journal_mode=WAL")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS worlds (
                     world_id TEXT PRIMARY KEY, seed TEXT NOT NULL,
