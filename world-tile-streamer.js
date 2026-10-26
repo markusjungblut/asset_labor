@@ -9,7 +9,7 @@ window.VedrasWorldTiles=(()=>{
  const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
  const finite=Number.isFinite;
- const density={far:.70,mid:1,near:1.65};
+ const density={far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
    concurrency=1,onReady=()=>{}}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
