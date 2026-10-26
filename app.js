@@ -66,8 +66,14 @@ async function bakeWorldTile(t,level,{signal}={}){
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
  const a=snapshotTile(ground,t,level),b=snapshotTile(scenery,t,level);
  if(a&&b){
-  a.getContext('2d').drawImage(b,0,0,a.width,a.height);
-  return {layers:[{layer:'ground',image:a}]};
+  // An old snapshot may include a unit; never bake one into static tiles.
+  const units=buildSpriteLayout().filter(o=>o.type==='unit');
+  const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
+   o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
+  if(!carriesUnit){
+   a.getContext('2d').drawImage(b,0,0,a.width,a.height);
+   return {layers:[{layer:'ground',image:a}]};
+  }
  }
  // Do not bake an incomplete foreground core: clouds hide the hole until
  // the worker has completed the authoritative terrain raster.
@@ -99,7 +105,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   drawGround();drawRoads();
   spriteAtlas?.beginFrame();
   window.VedrasSpriteShadows?.beginFrame?.();
-  try{drawMapObjects();}finally{spriteAtlas?.endFrame();}
+  try{drawMapObjects({includeUnits:false});}finally{spriteAtlas?.endFrame();}
  }finally{
   ctx=old.ctx;W=old.W;H=old.H;
   state.zoom=old.zoom;state.panX=old.panX;state.panY=old.panY;
@@ -124,6 +130,30 @@ function fastAllowed(){
   !state.mountainShadowDebug&&!state.mountainDebug&&!state.bounds&&
   !state.forest?.debug&&(!!worldTiles||realtimeMap.snapshotReady());
 }
+function drawTileDynamics(g,view){
+ if(!state.objects)return;
+ // Units can move without rebuilding immutable static terrain or scenery.
+ const proj=view.projectY||1;
+ const bounds={x:(-view.width/2-view.panX)/view.zoom-400,
+  y:(-view.height/2-view.panY)/(view.zoom*proj)-400,
+  width:view.width/view.zoom+800,
+  height:view.height/(view.zoom*proj)+800};
+ const objs=objectLayoutCache.query(bounds,buildSpriteLayout,
+  spriteInViewport,spriteIndexMargin).objects.filter(o=>o.type==='unit');
+ if(!objs.length)return;
+ const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,dpr:state.dpr};
+ try{
+  ctx=g;W=view.width;H=view.height;
+  state.zoom=view.zoom;state.panX=view.panX;state.panY=view.panY;
+  state.dpr=view.dpr;
+  spriteAtlas?.beginFrame();
+  for(const o of objs)drawSprite(o);
+ }finally{
+  spriteAtlas?.endFrame();
+  ctx=old.ctx;W=old.W;H=old.H;
+  state.zoom=old.zoom;state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;
+ }
+}
 function fastRender(){
  if((!fastInteracting&&!tileModeActive)||fastFrameScheduled)return;
  fastFrameScheduled=true;
@@ -142,7 +172,7 @@ function fastRender(){
     .map(t=>({...t,visibility:visibleFogTiles&&!visibleFogTiles.has(t.id)?
      'unknown':'visible'}));
    worldTiles.request(fastView(),tiles);
-   result=worldTiles.render(fastView());
+   result=worldTiles.render(fastView(),{drawDynamic:drawTileDynamics});
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
    realtimeMap.show();fastFrames++;
@@ -1556,7 +1586,7 @@ function spriteInViewport(o,view){
  return o.x>=view.x-margin&&o.x<=view.x+view.width+margin&&
   groundY>=view.y-margin&&groundY<=view.y+view.height+margin;
 }
-function drawMapObjects(){
+function drawMapObjects({includeUnits=true}={}){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
    sortMs:0,shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0,
@@ -1570,7 +1600,8 @@ function drawMapObjects(){
  const prepared=objectLayoutCache.query(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin);
  // Depth order is still evaluated each frame; source positions and expensive
  // river/road placement/relief operations are not.
- const objs=prepared.objects.map(o=>({...o,sortY:o.y}));
+ const objs=prepared.objects.filter(o=>includeUnits||o.type!=='unit')
+  .map(o=>({...o,sortY:o.y}));
  const profile={layoutMs:performance.now()-frameStart,buildMs:prepared.buildMs,
   rebuilt:prepared.rebuilt,total:prepared.total,visible:objs.length,
   cacheHits:prepared.hits,cacheBuilds:prepared.builds,
