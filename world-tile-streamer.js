@@ -189,9 +189,13 @@ window.VedrasWorldTiles=(()=>{
    for(const t of tiles){
     if(t.visibility==='unknown')continue;
     const item=lookup(t);if(!item)continue;
-    const dx=view.width/2+view.panX+t.x*view.zoom,
-     dy=view.height/2+view.panY+t.y*view.zoom*proj,
-     dw=t.size*view.zoom,dh=t.size*view.zoom*proj;
+    // Shared rounded DEVICE-space core edges eliminate bright seams when
+    // two adjacent tiles are composited at a fractional zoom or DPR.
+    const snap=x=>Math.round(x*view.dpr)/view.dpr;
+    const dx=snap(view.width/2+view.panX+t.x*view.zoom),
+     dy=snap(view.height/2+view.panY+t.y*view.zoom*proj),
+     dw=snap(view.width/2+view.panX+(t.x+t.size)*view.zoom)-dx,
+     dh=snap(view.height/2+view.panY+(t.y+t.size)*view.zoom*proj)-dy;
     if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
     item.used=++used;items.push({t,item,dx,dy,dw,dh});
    }
