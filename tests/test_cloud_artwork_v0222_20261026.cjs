@@ -82,6 +82,33 @@ test('unready visible terrain remains under actual cloud artwork',()=>{
  assert.equal(h.art.drawUnready(h.ctx,h.view,fog,()=>true),0);
  assert.equal(h.art.drawUnready(h.ctx,h.view,fog,()=>false),1);
 });
+test('compositor places unknown cloud textures above scenery and units',()=>{
+ const h=setup();
+ vm.runInNewContext(read('world-tile-streamer.js'),{
+  window:h.window,performance:{now:()=>1000}
+ });
+ const canvas={width:0,height:0,getContext:()=>h.ctx};
+ const world=h.window.VedrasWorldTiles.create({canvas});
+ world.setCloudAssets(h.assets);
+ const t={id:'0,0',x:-256,y:-256,size:512,visibility:'visible'};
+ world.seed(t,'mid',{layers:[
+  {layer:'ground',image:{width:256,height:256,name:'ground'}},
+  {layer:'scenery',image:{width:256,height:256,name:'tree'}}
+ ]});
+ world.setFogCells([
+  {q:0,r:0,x:0,y:0,radius:h.window.VedrasCloudArtwork.R,
+   visibility:'visible'},
+  {q:1,r:0,x:256,y:0,radius:h.window.VedrasCloudArtwork.R,
+   visibility:'unknown'}
+ ]);
+ world.request(h.view,[t]);
+ world.render(h.view,{drawDynamic:()=>h.calls.push(['unit'])});
+ const tree=h.calls.findIndex(x=>x[0]==='image'&&x[1].name==='tree');
+ const unit=h.calls.findIndex(x=>x[0]==='unit');
+ assert.ok(tree>=0&&unit>tree);
+ assert.ok(h.calls.slice(unit+1).some(x=>x[0]==='image'),
+  'frontier cloud art must be painted AFTER dynamic and static sprites');
+});
 test('asset library, cloud background and revision are wired',()=>{
  const html=read('index.html'),server=read('server.py'),
   app=read('app.js'),compositor=read('world-tile-streamer.js');
