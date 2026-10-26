@@ -78,17 +78,22 @@ window.VedrasFogAtmosphere=(()=>{
    grad.addColorStop(Math.min(.98,inner*.96/outer),'rgba(191,204,207,.96)');
    grad.addColorStop(1,'rgba(195,208,211,0)');
    g.fillStyle=grad;g.fillRect(-outer,-outer,outer*2,outer*2);
-   // Two lighter cloud banks are anchored in world space; no per-frame noise,
-   // readback, fullscreen textures or extra compositor surface.
-   if(typeof g.ellipse==='function'){
-    const seed=Math.abs(Math.sin(c.x*12.9898+c.y*78.233)*43758.5453)%1;
-    g.globalAlpha=.16;g.fillStyle='#edf4f4';g.beginPath();
-    g.ellipse((seed-.5)*inner*.30,-inner*.10,inner*.57,inner*.22,
-     seed*.65-.3,0,Math.PI*2);g.fill();
-    g.globalAlpha=.12;g.beginPath();
-    g.ellipse((.5-seed)*inner*.38,inner*.28,inner*.40,inner*.17,
-     -.19,0,Math.PI*2);g.fill();
-   }
+   // Three diffuse banks at different scales create apparent thickness.
+   // Transforms and cell-derived phase are stable under all camera pans.
+   const seed=Math.abs(Math.sin(c.x*12.9898+c.y*78.233)*43758.5453)%1;
+   const bank=(dx,dy,sx,sy,opacity,bright)=>{
+    g.save();g.translate(dx,dy);g.scale(sx,sy);
+    const haze=g.createRadialGradient(0,0,0,0,0,1);
+    const tint=bright?'243,249,250':'129,154,164';
+    haze.addColorStop(0,'rgba('+tint+','+opacity+')');
+    haze.addColorStop(.58,'rgba('+tint+','+(opacity*.55)+')');
+    haze.addColorStop(1,'rgba('+tint+',0)');
+    g.fillStyle=haze;g.fillRect(-1,-1,2,2);g.restore();
+   };
+   bank((seed-.5)*inner*.28,-inner*.11,inner*.75,inner*.28,.28,true);
+   bank((.5-seed)*inner*.37,inner*.26,inner*.64,inner*.19,.18,true);
+   bank((seed-.5)*inner*.15,inner*.43,inner*.56,inner*.21,.14,false);
+
   }else{
    // Safe fallback: opaque clouds conceal everything when gradients are absent.
    g.globalAlpha=1;g.fillStyle='#bac7cb';
