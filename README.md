@@ -1,3 +1,29 @@
+## v0.21.1 – Atmosphärische Nebelgrenzen (26.10.2026)
+
+- `fog-atmosphere.js`: Weltkoordinatengebundene, deterministische
+  Fog-Front mit opakem Wolkenkern, weicher radialer Ausblendung und drei
+  versetzt eingefärbten, diffusen Wolkenbänken.
+- Bekannte Hexfelder erhalten einen 45-Welteinheiten-Sicht-Halo statt
+  eines harten geometrischen Sprite-Crops. Unbekannte Hexfelder
+  erweitern **nicht** die freigegebene Weltgeometrie.
+- Unbekannte Binnenregionen verursachen keinen zusätzlichen
+  Gradienten-Pass pro Bild; nur die vorberechneten Frontier-Zellen
+  werden effektvoll überzeichnet.
+- Gecachtes Terrain und Figuren werden vor den Wolken gezeichnet; die
+  Wolken können in die angrenzenden bekannten Felder hineinreichen.
+  Geladene sichtbare Zellen bleiben vollständig klar, erkundete Zellen
+  bleiben gedämpft, fehlende Zellen bleiben wolkenverdeckt.
+- Separater Test `tests/test_fog_atmosphere_v0211_20261026.cjs`.
+  Isolationstests sind **keine** visuelle Browser- oder FPS-Messung.
+- Grenzen: Schon vorberechnete Raster-Kacheln besitzen noch keinen
+  unabhängigen überhängenden Objekt-Layer. Sehr große Sprites können
+  weiterhin an einer 512er-Bildkachelkante abgeschnitten werden.
+  Künftig müssen Tiles dafür einen eigenen Sprite-Halo oder eine
+  getrennte statische Scenery-Ebene exportieren.
+- Sicherheit: Der atmosphärische Verlauf ist niemals eine
+  Zugriffskontrolle. Die Spiel-API darf ausschließlich für den Spieler
+  freigegebene Weltgrafiken und dynamische Einheiten übertragen.
+
 ## v0.21.0 – Weltkachel-Renderer, Multi-LOD und Fog of War (26.10.2026)
 
 **Ziel:** Nicht mehr bei jedem Schwenk eine komplette, hochauflösende
