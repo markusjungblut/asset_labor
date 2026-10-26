@@ -139,7 +139,15 @@ function drawTileDynamics(g,view){
   width:view.width/view.zoom+800,
   height:view.height/(view.zoom*proj)+800};
  const objs=objectLayoutCache.query(bounds,buildSpriteLayout,
-  spriteInViewport,spriteIndexMargin).objects.filter(o=>o.type==='unit');
+  spriteInViewport,spriteIndexMargin).objects.filter(o=>{
+   if(o.type!=='unit')return false;
+   if(!$('fogPreview')?.checked)return true;
+   const cell=window.VedrasAutotile.hexAt(o.x,o.groundY);
+   const [q,r]=cell.split(',').map(Number);
+   const [sq,sr]=(state.selected||'0,0').split(',').map(Number);
+   return Math.max(Math.abs(q-sq),Math.abs(r-sr),
+    Math.abs(q+r-sq-sr))<=2;
+  });
  if(!objs.length)return;
  const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,dpr:state.dpr};
  try{
