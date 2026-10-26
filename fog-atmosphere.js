@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.22.0 – world-anchored atmospheric Fog of War.
+/* Vedras Reiche v0.22.2 – world-anchored atmospheric Fog of War.
  * Visual effects only. An authoritative server MUST redact unknown tile
  * imagery and hidden entities before delivering any content to clients.
  */
@@ -32,6 +32,29 @@ window.VedrasFogAtmosphere=(()=>{
      }
     }
   }
+  // Also include the OUTER boundary of the generated world: outside cells
+  // do not exist in worldCells and cannot be treated as explicit fog cells.
+  // Edge sprites are anchored to known hex sides, never the screen viewport.
+  const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+  const sides=[1,0,5,4,3,2];
+  const byCell=new Map(valid.filter(c=>Number.isInteger(c.q)&&
+   Number.isInteger(c.r)).map(c=>[c.q+','+c.r,c]));
+  const frontierEdges=[];
+  for(const c of byCell.values()){
+   if(c.visibility==='unknown')continue;
+   for(let i=0;i<6;i++){
+    const [dq,dr]=dirs[i],neighbor=byCell.get((c.q+dq)+','+(c.r+dr));
+    if(neighbor&&neighbor.visibility!=='unknown')continue;
+    const side=sides[i],angle=-Math.PI/2+(side+.5)*Math.PI/3;
+    const distance=c.radius*Math.cos(Math.PI/6);
+    frontierEdges.push({
+     x:c.x+Math.cos(angle)*distance,
+     y:c.y+Math.sin(angle)*distance,
+     q:c.q,r:c.r,side,angle,radius:c.radius
+    });
+   }
+  }
+  valid.frontierEdges=frontierEdges;
   return valid;
  }
  function point(c,view){
