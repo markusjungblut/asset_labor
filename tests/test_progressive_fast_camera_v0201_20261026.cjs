@@ -58,7 +58,7 @@ test('new pieces keep water below relief for geometrically identical world posit
  const t={tile:{x:0,y:0,size:512},artwork:{
   raster:{waterLayer:{canvas:water,x:0,y:0,width:512,height:512}},
   relief:{canvas:land,x:0,y:0,width:512,height:512}}};
- s.m.render({...s.view,panX:170}, {terrainPieces:[t]});
+ s.m.render({...s.view,panX:-170}, {terrainPieces:[t]});
  const a=s.calls.filter(c=>c[0]==='drawImage').map(c=>c[1]);
  assert.ok(a.indexOf(water)>=0&&a.indexOf(land)>a.indexOf(water));
 });
