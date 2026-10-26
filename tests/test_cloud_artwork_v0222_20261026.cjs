@@ -49,6 +49,29 @@ test('eight bases and four edges are classified from local assets/clouds',()=>{
  assert.deepEqual({bases:art.stats().bases,edges:art.stats().edges},{bases:8,edges:4});
  assert.equal(art.stats().pending,0);
 });
+test('cloud deck swaps atomically instead of reshuffling tiles on every image decode',()=>{
+ const pictures=[];
+ class DeferredImage{
+  naturalWidth=512;naturalHeight=512;width=512;height=512;
+  set src(value){pictures.push(this);}
+ }
+ const env={window:{},Image:DeferredImage};
+ vm.runInNewContext(read('cloud-artwork.js'),env);
+ const art=env.window.VedrasCloudArtwork.create();
+ art.setAssets([{path:'assets/clouds/base_old.png',category:'clouds'}]);
+ pictures[0].onload();
+ assert.equal(art.stats().bases,1);
+ art.setAssets([
+  {path:'assets/clouds/base_new_a.png',category:'clouds'},
+  {path:'assets/clouds/base_new_b.png',category:'clouds'}]);
+ assert.equal(art.stats().pending,2);
+ pictures[1].onload();
+ assert.equal(art.stats().bases,1,'previous stable bank stays active');
+ pictures[2].onload();
+ assert.equal(art.stats().pending,0);
+ assert.equal(art.stats().bases,2,'new bank published all at once');
+});
+
 test('cloud naming and image-type classification is deterministic',()=>{
  const h=harness(),classify=h.cloud.classify;
  assert.equal(classify({relPath:'clouds/wolkendecke8.png',category:'clouds'}),'base');
