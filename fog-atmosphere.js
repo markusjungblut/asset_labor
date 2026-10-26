@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.22.2 – world-anchored atmospheric Fog of War.
+/* Vedras Reiche v0.22.3 – world-anchored atmospheric Fog of War.
  * Visual effects only. An authoritative server MUST redact unknown tile
  * imagery and hidden entities before delivering any content to clients.
  */
@@ -50,7 +50,9 @@ window.VedrasFogAtmosphere=(()=>{
     frontierEdges.push({
      x:c.x+Math.cos(angle)*distance,
      y:c.y+Math.sin(angle)*distance,
-     q:c.q,r:c.r,side,angle,radius:c.radius
+     q:c.q,r:c.r,direction:i,
+     neighborQ:c.q+dq,neighborR:c.r+dr,
+     side,angle,radius:c.radius
     });
    }
   }
