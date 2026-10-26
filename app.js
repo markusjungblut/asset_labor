@@ -16,6 +16,87 @@ const canvas=$('mapCanvas'),viewport=$('canvasOuter');
 const realtimeMap=window.VedrasRealtimeMap.create({
  canvas:$('realtimeCanvas'),maxTiles:112,maxPixels:10000000
 });
+/* v0.21: retained world-space raster tiles. The editor is one data source;
+ * the future game backend supplies the same contract with redacted tiles. */
+let tileModeActive=false,tileFrameScheduled=false,tileBakes=0;
+const worldTiles=window.VedrasWorldTiles?.create({
+ canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
+ concurrency:1,source:bakeWorldTile,onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
+});
+function tileFog(){
+ if(!worldTiles)return;
+ // Local Asset-Labor: all test cells are visible. This is NOT a substitute
+ // for server-issued exploration masks in the multiplayer game.
+ worldTiles.setFogCells(worldCells.map(c=>{
+  const p=axialPos(c.q,c.r);
+  return {x:p.x,y:p.y,radius:R,visibility:'visible'};
+ }));
+}
+function snapshotTile(s,t,level){
+ if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
+ const size=t.size,scale={far:.70,mid:1,near:1.65}[level]||1;
+ const sx=(s.width/2+s.panX+s.pad+t.x*s.zoom)*s.dpr,
+  sy=(s.height/2+s.panY+s.pad+t.y*s.zoom*PROJECT_Y)*s.dpr;
+ const sw=size*s.zoom*s.dpr,sh=size*s.zoom*PROJECT_Y*s.dpr;
+ if(sx<-.01||sy<-.01||sx+sw>s.canvas.width+.01||
+    sy+sh>s.canvas.height+.01)return null;
+ const result=document.createElement('canvas');
+ result.width=Math.max(1,Math.round(size*scale));
+ result.height=Math.max(1,Math.round(size*PROJECT_Y*scale));
+ result.getContext('2d').drawImage(s.canvas,sx,sy,sw,sh,
+  0,0,result.width,result.height);
+ return result;
+}
+async function bakeWorldTile(t,level,{signal}={}){
+ if(signal?.aborted)return null;
+ // Copy previously completed imagery to world-aligned tiles once; panning
+ // thereafter never reprojects the entire old oversized scene.
+ const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
+ const a=snapshotTile(ground,t,level),b=snapshotTile(scenery,t,level);
+ if(a&&b){
+  a.getContext('2d').drawImage(b,0,0,a.width,a.height);
+  return {layers:[{layer:'ground',image:a}]};
+ }
+ // Do not bake an incomplete foreground core: clouds hide the hole until
+ // the worker has completed the authoritative terrain raster.
+ const ready=terrainChunks.readyTiles({x:t.x,y:t.y,width:t.size,height:t.size},
+  {limit:32}).some(entry=>entry.tile.id===t.id);
+ if(!ready)return null;
+ await new Promise(resolve=>{
+  if(typeof requestIdleCallback==='function')
+   requestIdleCallback(resolve,{timeout:80});
+  else setTimeout(resolve,0);
+ });
+ if(signal?.aborted)return null;
+ const z=state.zoom,scale={far:.70,mid:1,near:1.65}[level]||1;
+ const out=document.createElement('canvas');
+ out.width=Math.max(1,Math.round(t.size*scale));
+ out.height=Math.max(1,Math.round(t.size*PROJECT_Y*scale));
+ const g=out.getContext('2d',{alpha:true});
+ if(!g)return null;
+ const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,
+  dpr:state.dpr,gpuFrame};
+ try{
+  // Tile-local camera: global hex positions and shadows remain unchanged.
+  // Only the small 512-world-unit canvas is rendered, never a full scene.
+  ctx=g;W=t.size*z;H=t.size*z*PROJECT_Y;
+  state.dpr=out.width/W;
+  state.panX=-W/2-t.x*z;
+  state.panY=-H/2-t.y*z*PROJECT_Y;
+  gpuFrame=false;g.setTransform(state.dpr,0,0,state.dpr,0,0);
+  drawGround();drawRoads();
+  spriteAtlas?.beginFrame();
+  window.VedrasSpriteShadows?.beginFrame?.();
+  try{drawMapObjects();}finally{spriteAtlas?.endFrame();}
+ }finally{
+  ctx=old.ctx;W=old.W;H=old.H;
+  state.zoom=old.zoom;state.panX=old.panX;state.panY=old.panY;
+  state.dpr=old.dpr;gpuFrame=old.gpuFrame;
+ }
+ tileBakes++;
+ return {layers:[{layer:'ground',image:out}]};
+}
+
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
  fastLastPrime=0,fastNewTerrain=0;
@@ -27,41 +108,44 @@ function fastAllowed(){
   !state.grid&&!state.edgeDebug&&!state.seamCheck&&!state.riverDebug&&
   !state.riverDraft?.length&&!state.roadPaintMode&&!state.shadowHandles&&
   !state.mountainShadowDebug&&!state.mountainDebug&&!state.bounds&&
-  !state.forest?.debug&&realtimeMap.snapshotReady();
+  !state.forest?.debug&&(!!worldTiles||realtimeMap.snapshotReady());
 }
 function fastRender(){
- if(!fastInteracting||fastFrameScheduled)return;
+ if((!fastInteracting&&!tileModeActive)||fastFrameScheduled)return;
  fastFrameScheduled=true;
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
-  if(!fastInteracting)return;
-  // Unlike v0.20, do NOT wait for pointer release before requesting
-  // newly visible terrain. Prime only every 90 ms to protect the
-  // animation path from repeated spatial-index queries.
+  if(!fastInteracting&&!tileModeActive)return;
   const now=performance.now(),bounds=streamingViewBounds(96);
   if(now-fastLastPrime>90){
    fastLastPrime=now;
    terrainChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100});
-  const result=realtimeMap.render(fastView(),{terrainPieces:ready});
+  let result;
+  if(worldTiles){
+   const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
+   worldTiles.request(fastView(),tiles);
+   result=worldTiles.render(fastView());
+  }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
    realtimeMap.show();fastFrames++;
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
-   fastNewTerrain=ready.length;
+   fastNewTerrain=result.loaded??ready.length;
    const status=$('fastCameraStats');
-   if(status)status.textContent='Live-Kamera: '+fastFrames+
-    ' schnelle Bilder · '+fastLastMs.toFixed(1)+
-    ' ms reine Bildkomposition · '+Math.round(fastLastCoverage*100)+
-    '% Terrain-Abdeckung · '+fastNewTerrain+' vorbereitete Terrain-Chunks · '+
-    terrainChunks.stats().pending+' sichtbar geplant · exakte Neuzeichnung nach Loslassen';
+   if(status)status.textContent='Tile-Kamera v0.21: '+fastFrames+
+    ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
+    Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
+    fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
+    ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit';
   }
  });
 }
 function beginFastCamera(){
  if(fastInteracting)return true;
  if(!fastAllowed())return false;
- fastInteracting=true;fastLastPrime=0;
+ fastInteracting=true;tileModeActive=!!worldTiles;fastLastPrime=0;
+ if(worldTiles)tileFog();
  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
   chunks.setInteractive(true);
  fastRender();return true;
@@ -74,8 +158,10 @@ function endFastCamera(repair=true){
   chunks.setInteractive(false);
  // The realtime layer stays in front while the precise scene is rebuilt,
  // avoiding a flash of old pan/zoom before the next complete frame.
- if(repair)requestDraw();
- else realtimeMap.hide();
+ if(repair){
+  if(worldTiles){tileModeActive=true;fastRender();}
+  else requestDraw();
+ }else{tileModeActive=false;realtimeMap.hide();}
 }
 let ctx=canvas.getContext('2d',{alpha:true,desynchronized:false});
 const staticTerrain=window.VedrasStaticTerrainCache?.create({
@@ -126,7 +212,8 @@ const imagePool=window.VedrasImagePool.create({
 let finalRendering=false;
 // Per-scene data is stable across camera movement; edits explicitly invalidate it.
 const objectLayoutCache=window.VedrasObjectLayoutCache.create();
-function invalidateSpriteLayout(){objectLayoutCache.invalidate();staticScenery.clear();}
+function invalidateSpriteLayout(){objectLayoutCache.invalidate();staticScenery.clear();
+ tileModeActive=false;worldTiles?.invalidate();}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
  selected:'0,0',strategyOverlay:'both',fastCamera:true,grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,gpuSprites:false,adaptiveLod:true,worldStreaming:true,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
@@ -298,7 +385,7 @@ function makePattern(a,patternCtx=ctx){
  return pat;
 }
 function requestDraw(){
- if(fastInteracting&&!finalRendering){fastRender();return;}
+ if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(drawPending)return;
  drawPending=true;requestAnimationFrame(()=>{drawPending=false;draw();});
 }
@@ -1580,7 +1667,7 @@ function drawForestDebug(){
 }
 let perfSamples=[],frameNumber=0;
 function draw(){
- if(fastInteracting&&!finalRendering){fastRender();return;}
+ if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(!ctx||!canvas.width)return;
  if(state.mode==='far'){
   realtimeMap.hide();realtimeMap.setSnapshots([]);
@@ -1790,6 +1877,7 @@ function draw(){
   }else{realtimeMap.setSnapshots([]);realtimeMap.setPreviewCells([]);}
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
+ worldTiles?.invalidate(); // new exact editor image supersedes stale per-tile revisions
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
   ready.textContent=realtimeMap.snapshotReady()?
