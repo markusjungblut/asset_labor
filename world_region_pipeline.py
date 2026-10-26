@@ -57,6 +57,11 @@ def import_geography(store, world_id, exported, content_version="content-v1",
         if existing and not allow_updates:
             raise ValueError("region %d,%d exists; explicit --allow-updates required" % (rq, rr))
         originals[rq, rr] = existing["revision"] if existing else 0
+    # Preflight ALL input regions before mutating any geography. Races are
+    # still guarded by expected_revision at commit time for each region.
+    for (rq, rr), cells in sorted(grouped.items()):
+        store.publish_region(world_id, rq, rr, cells, version,
+            content_version, expected_revision=originals[rq, rr], dry_run=True)
     published = []
     for (rq, rr), cells in sorted(grouped.items()):
         published.append(store.publish_region(
