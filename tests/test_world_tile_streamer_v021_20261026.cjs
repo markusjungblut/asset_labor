@@ -86,6 +86,13 @@ test('editor uses the v0.21 retained compositor, streaming, cloud demo and dynam
  assert.match(server,/VERSION = '0\.21\.0'/);
 });
 
+test('initial exact editor draw seeds already rendered terrain and sprites before a pan',()=>{
+ const app=read('app.js');
+ assert.match(app,/function seedReadyWorldTiles\(\)/);
+ assert.match(app,/seedReadyWorldTiles\(\); \/\/ first gesture starts with prepared sprite\/terrain tiles/);
+ assert.match(app,/worldTiles\.seed\(t,lod,\{layers:\[\{layer:'ground',image:a\}\]\}\)/);
+ assert.match(app,/const units=objectLayoutCache\.query\(/);
+});
 test('rapid camera reversal cancels obsolete tile loading without poisoning cache',async()=>{
  let resolveOld, requests=[];
  const h=harness({source:(tile)=>{
