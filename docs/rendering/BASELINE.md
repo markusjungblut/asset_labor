@@ -52,3 +52,6 @@ Keine neuen Testergebnisse behaupten, bevor diese Befehle und ein echter Browser
 
 ## Zusatz ab Schritt 2 – Tile-Diagnose
 `window.VedrasAssetLabor.tileDiagnostics({limit:150})` erstellt eine explizite, nur auf Abruf berechnete Zustandsaufnahme. Im 0/30/60-Sekunden-Vergleich die sichtbaren Tile-IDs, `state`, `epoch`, `lod`, `ageMs`, `lastOutcome`, `lastError`, Cache-/Paint-Version, Terrain-Core-Bereitschaft, Worker- und ImagePool-Warteschlangen erfassen. Die bereits übermittelten 449,6 ms und 67 offenen Terrain-Aufträge sind keine in Schritt 2 neu gemessenen Werte.
+
+## Schritt-3-Vergleich (keine neue FPS-Messung)
+Die im Code nachgewiesenen Liveness-Defekte wurden gezielt adressiert. `retry-exhausted` ist ein **expliziter Endfehler**, kein Erfolg und kein aufzudeckender Hex. Ein realer Browser-/Original-Sprite-Vergleich von p50/p95-FPS, 30/60-Sekunden-Queue-Länge und Hex-Freigabe wurde noch nicht durchgeführt; die Benutzer-Baseline bleibt daher unverändert. Fokussierte V8-Regression: neue 9/9, Schritt 2 4/4, älterer World-Tile-Test 8/8 bestanden – dies ersetzt keinen nativen Node-Testlauf.

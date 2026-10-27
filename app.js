@@ -23,7 +23,8 @@ let tileModeActive=false,tileBakes=0,
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
- concurrency:1,source:bakeWorldTile,onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
+ concurrency:1,source:bakeWorldTile,requireScenery:true,
+ onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
 });
 function tileFog(){
  if(!worldTiles)return;
@@ -73,10 +74,12 @@ function paintedTerrainCore(t){
 // layout cache. A missing tree PNG previously produced a falsely "complete"
 // static snapshot and the clouds could uncover that hex too early.
 function tileArtworkReady(t){return tileArtworkStatus(t);}
-function tileArtworkStatus(t,details=null){
+function tileArtworkStatus(t,details=null,allowPrepared=false){
  if(details){details.tileId=t.id;details.terrainVersion=null;
   details.paintedVersion=null;details.waitingAssets=[];details.missingOptionalAssets=[];}
- const painted=paintedTerrainCore(t);
+ // Direct offscreen bake may start with a fully built but not onscreen-painted
+ // terrain chunk. Snapshot publication always still requires a painted core.
+ const painted=allowPrepared?currentTerrainCore(t):paintedTerrainCore(t);
  if(!painted){
   if(details){
    const core=currentTerrainCore(t);
@@ -161,15 +164,16 @@ function snapshotTile(s,t,level,pad=0){
 }
 async function bakeWorldTile(t,level,{signal}={}){
  if(signal?.aborted||state.mode==='far'||state.view!=='map')return null;
- // Never commit a partially prepared landscape, even if its scenery has
- // already finished or an older low-resolution snapshot happens to exist.
- if(!tileArtworkReady(t))return null;
+ // The fast camera can be the sole active view while terrain chunks finish:
+ // permit a direct bake from prepared terrain, but not a stale snapshot.
+ const snapshotReady=tileArtworkReady(t);
+ if(!snapshotReady&&!tileArtworkStatus(t,null,true))return null;
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
- const a=snapshotTile(ground,t,level,WORLD_TILE_GUTTER),
-  b=snapshotTile(scenery,t,level);
- if(a&&b&&tileArtworkReady(t)){
+ const a=snapshotReady?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
+  b=snapshotReady?snapshotTile(scenery,t,level):null;
+ if(a&&b&&snapshotReady&&tileArtworkReady(t)){
   // An old snapshot may include a unit; never bake one into static tiles.
   const units=objectLayoutCache.query(
    {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
@@ -182,16 +186,15 @@ async function bakeWorldTile(t,level,{signal}={}){
     {layer:'scenery',image:b}]};
   }
  }
- // Do not bake an incomplete foreground core: clouds hide the hole until
- // the worker has completed the authoritative terrain raster.
- if(!tileArtworkReady(t))return null;
+ // The fallback must have a finished raster before painting to its own canvas.
+ if(!tileArtworkStatus(t,null,true))return null;
  await new Promise(resolve=>{
   if(typeof requestIdleCallback==='function')
    requestIdleCallback(resolve,{timeout:80});
   else setTimeout(resolve,0);
  });
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t))return null;
+   !tileArtworkStatus(t,null,true))return null;
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
  const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
@@ -338,6 +341,7 @@ function fastRender(){
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
     ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
+     ' · '+(worldTiles?.stats().retryExhausted||0)+' Tile-Fehler'+
      (worldTiles?.stats().clouds?
       ' · '+worldTiles.stats().clouds.bases+' Cloud-Hexgrafiken · Seeded':'');
   }
@@ -991,7 +995,8 @@ function drawGround(){
      return persist(localBuild());
     }
    },
-   redraw:requestDraw,family:chunkFamily,diagnosticLod:lod
+   redraw:requestDraw,family:chunkFamily,diagnosticLod:lod,
+   requireRaster:true,timeoutMs:60000
   });
   const near=fromScreen(-155,-155),far=fromScreen(W+155,H+155);
   lastChunkStats=terrainChunks.draw(ctx,{
@@ -1012,6 +1017,7 @@ function drawGround(){
    lastChunkStats.cached+' im Cache · '+lastChunkStats.built+
    ' gebaut · '+Math.round(lastChunkStats.pixels*4/1048576)+' MiB gepuffert · '+
    lastChunkStats.lastMs.toFixed(0)+' ms letzter Chunk · '+
+   (lastChunkStats.retryExhausted||0)+' endgültig fehlgeschlagen · '+
    (geographyRelief&&!workerActive?'Geografie-Relief, '+geographyMaterialTiles.size+
      ' Grundtextur-Chunks gecacht':workerActive?'Worker/OffscreenCanvas aktiv':
     state.workerTerrain===false?'Worker deaktiviert':'Hauptthread-Fallback')+

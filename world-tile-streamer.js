@@ -11,11 +11,45 @@ window.VedrasWorldTiles=(()=>{
  const finite=Number.isFinite;
  const density={far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
-   concurrency=1,onReady=()=>{}}={}){
+   concurrency=1,onReady=()=>{},maxAttempts=5,sourceTimeoutMs=45000,
+   requireScenery=false}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
   const cache=new Map(),queue=new Map(),running=new Map(),history=new Map();
+  const retries=new Map(),retryTimers=new Map();
+  const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
+  function cancelRetry(k){
+   const timer=retryTimers.get(k);
+   if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
+   retryTimers.delete(k);
+  }
+  function retryFailure(item,reason,error=null){
+   const k=item.key,old=retries.get(k),attempts=(old?.attempts||0)+1;
+   const terminal=attempts>=attemptsCap;
+   const delay=Math.min(8000,400*2**(attempts-1));
+   const nextRetryAt=terminal?null:Date.now()+delay;
+   retries.set(k,{attempts,terminal,reason,error:error?String(error?.message||error):null,nextRetryAt});
+   observe(k,terminal?'retry-exhausted':reason,
+    {level:item.level,attempts,reason,error:error?String(error?.message||error):null});
+   cancelRetry(k);
+   if(terminal)onReady(); // make terminal state visible without retrying
+   if(terminal||typeof setTimeout!=='function')return;
+   const generation=epoch;
+   const timer=setTimeout(()=>{
+    retryTimers.delete(k);
+    if(generation!==epoch||!wantedTiles.has(k)||cache.has(k))return;
+    const state=retries.get(k);
+    if(!state||state.terminal)return;
+    state.nextRetryAt=0;
+    if(!running.has(k)&&!queue.has(k)){
+     queue.set(k,{...item,epoch});
+     observe(k,'queued',{level:item.level,attempts:state.attempts,reason:'scheduled-retry'});
+     pump();
+    }
+   },delay);
+   retryTimers.set(k,timer);
+  }
   function observe(k,status,extra={}){
    const old=history.get(k);history.delete(k);
    history.set(k,{key:k,status,epoch,at:Date.now(),
@@ -26,17 +60,20 @@ window.VedrasWorldTiles=(()=>{
    const now=Date.now(),max=clamp(Math.floor(limit)||100,1,250);
    const tiles=visibleTiles.slice(0,max).map(t=>{
     const k=key(t,lod),q=queue.get(k),r=running.get(k),
-     c=cache.get(k),old=lookup(t),last=history.get(k);
+     c=cache.get(k),old=lookup(t),last=history.get(k),retry=retries.get(k);
     return {key:k,id:t.id,lod,epoch,
      state:r?'running':q?'queued':c?
       (c.packet.complete?'ready':'cached-partial'):old?'fallback-lod':
       last?.epoch===epoch?last.status:'unrequested',
      startedAt:r?.startedAt??null,revision:c?.revision??null,
-     lastOutcome:last?.status??null,lastError:last?.error??null,
-     attempts:last?.attempts??0,ageMs:last?Math.max(0,now-last.at):null};
+     lastOutcome:last?.status??null,lastError:retry?.error??last?.error??null,
+     attempts:retry?.attempts??last?.attempts??0,
+     retryAt:retry?.nextRetryAt??null,terminal:retry?.terminal??false,
+     reason:retry?.reason??null,ageMs:last?Math.max(0,now-last.at):null};
    });
    return {epoch,lod,visible:visibleTiles.length,queued:queue.size,
-    running:running.size,completed,failed,tiles,
+    running:running.size,completed,failed,retryWaiting:retryTimers.size,
+    retryExhausted:[...retries.values()].filter(v=>v.terminal).length,tiles,
     recent:[...history.values()].slice(-max).reverse()};
   }
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>{
@@ -81,6 +118,10 @@ window.VedrasWorldTiles=(()=>{
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
   function invalidate(){
+   for(const k of retryTimers.keys())cancelRetry(k);
+   retries.clear();
+   for(const task of running.values())if(task.timeout!==null&&
+    typeof clearTimeout==='function')clearTimeout(task.timeout);
    for(const k of queue.keys())observe(k,'invalidated',{reason:'invalidate'});
    for(const k of running.keys())observe(k,'aborted',{reason:'invalidate'});
    epoch++;for(const task of running.values())task.controller?.abort?.();
@@ -130,10 +171,17 @@ window.VedrasWorldTiles=(()=>{
     complete:packet.complete!==false},pixels:count,
     used:++used,born:clock(),revision:packet.revision??null});
    pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
+   retries.delete(k);cancelRetry(k);
    observe(k,'ready',{level,revision:packet.revision??null});
    onReady();return true;
   }
-  function seed(tile,level,packet){return accept(tile,level,packet);}
+  function seed(tile,level,packet){
+   if(requireScenery&&(!packet?.layers?.some(layer=>
+      (layer.layer==='ground'||layer.layer==='terrain')&&layer.image?.width>0)||
+     !packet.layers.some(layer=>
+      (layer.layer==='scenery'||layer.layer==='structures')&&layer.image?.width>0)))return false;
+   return accept(tile,level,packet);
+  }
   function pump(){
    if(typeof source!=='function')return;
    while(running.size<concurrency&&queue.size){
@@ -141,28 +189,47 @@ window.VedrasWorldTiles=(()=>{
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
-    const token=++serial;
-    running.set(item.key,{controller,epoch:item.epoch,token,startedAt:Date.now()});
+    const token=++serial,job={controller,epoch:item.epoch,token,
+     startedAt:Date.now(),timeout:null};
+    running.set(item.key,job);
     observe(item.key,'running',{level:item.level});
-    // Yield before expensive loader initialization; in production, the
-    // loader should fetch a prepared server/CDN image or use a worker.
+    // A nonsettling source must never monopolize the single render slot.
+    if(sourceTimeoutMs>0&&typeof setTimeout==='function')
+     job.timeout=setTimeout(()=>{
+      if(item.epoch!==epoch||running.get(item.key)?.token!==token)return;
+      controller?.abort?.();
+      running.delete(item.key);
+      failed++;
+      retryFailure(item,'source-timeout',new Error('Tile source exceeded '+sourceTimeoutMs+' ms'));
+      pump();
+     },sourceTimeoutMs);
+    // Keep original asynchronous initiation and release late/stale packets.
     Promise.resolve().then(()=>source(item.tile,item.level,{signal:controller?.signal,
      density:density[item.level]})).then(packet=>{
-      if(item.epoch!==epoch||controller?.signal?.aborted||
-        !wantedTiles.has(item.key)){
-       observe(item.key,'discarded',{level:item.level,reason:
-        controller?.signal?.aborted?'aborted':'epoch-or-visibility-changed'});
+      if(item.epoch!==epoch||running.get(item.key)?.token!==token||
+        controller?.signal?.aborted||!wantedTiles.has(item.key)){
        release(packet);return;
       }
-      if(packet)accept(item.tile,item.level,packet);
-      else observe(item.key,'source-null',{level:item.level,reason:'source-returned-null'});
+      const layers=packet?.layers||[];
+      const hasGround=layers.some(layer=>(layer.layer==='ground'||layer.layer==='terrain')&&
+       layer.image?.width>0&&layer.image?.height>0);
+      const hasScenery=layers.some(layer=>(layer.layer==='scenery'||layer.layer==='structures')&&
+       layer.image?.width>0&&layer.image?.height>0);
+      const complete=packet?.complete!==false&&
+       (!requireScenery||(hasGround&&hasScenery));
+      if(packet&&complete&&accept(item.tile,item.level,packet))return;
+      release(packet);
+      retryFailure(item,packet&&!complete?'incomplete-source':
+       packet?'invalid-packet':'source-null');
     }).catch(err=>{
-      if(item.epoch===epoch&&err?.name!=='AbortError'){failed++;
-       observe(item.key,'failed',{level:item.level,error:String(err?.message||err)});
-       if(typeof console!=='undefined')console.warn('World tile:',err);}
-      else observe(item.key,'aborted',{level:item.level,reason:
-       err?.name==='AbortError'?'abort-error':'old-epoch'});
+      if(item.epoch!==epoch||running.get(item.key)?.token!==token||
+       controller?.signal?.aborted||err?.name==='AbortError')return;
+      failed++;
+      retryFailure(item,'failed',err);
+      if(typeof console!=='undefined')console.warn('World tile:',err);
     }).finally(()=>{
+      if(job.timeout!==null&&typeof clearTimeout==='function')
+       clearTimeout(job.timeout);
       const active=running.get(item.key);
       if(active?.token===token)running.delete(item.key);
       pump();
@@ -177,12 +244,17 @@ window.VedrasWorldTiles=(()=>{
     finite(t.x)&&finite(t.y)&&t.size>0&&t.visibility!=='unknown'):[];
    const wanted=new Set(visibleTiles.map(t=>key(t,lod)));
    wantedTiles=wanted;
+   for(const k of [...retries.keys()])if(!wanted.has(k)){
+    cancelRetry(k);retries.delete(k);
+   }
    for(const [k,item] of queue)if(!wanted.has(k)){
     observe(k,'discarded',{reason:'outside-viewport'});queue.delete(k);
    }
    for(const [k,task] of running)if(!wanted.has(k)){
     observe(k,'aborted',{reason:'outside-viewport'});
-    task.controller?.abort?.();running.delete(k);
+    task.controller?.abort?.();
+    if(task.timeout!==null&&typeof clearTimeout==='function')clearTimeout(task.timeout);
+    running.delete(k);
    }
    const midX=(-view.panX)/view.zoom,midY=(-view.panY)/(view.zoom*(view.projectY||1));
    const sorted=[...visibleTiles].sort((a,b)=>
@@ -191,6 +263,8 @@ window.VedrasWorldTiles=(()=>{
    for(const t of sorted){
     const k=key(t,lod);
     if(cache.has(k)||running.has(k)||queue.has(k))continue;
+    const retry=retries.get(k);
+    if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>Date.now())))continue;
     // A new LOD never hides a cached old variant.
     queue.set(k,{key:k,tile:t,level:lod,epoch});
     observe(k,'queued',{level:lod});
@@ -378,6 +452,7 @@ window.VedrasWorldTiles=(()=>{
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
+   retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,

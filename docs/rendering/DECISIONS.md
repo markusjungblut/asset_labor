@@ -29,3 +29,15 @@
 
 ## D-010: Testumgebung kennt Grenzen
 **Entscheidung:** 4/4 isolierte JavaScript-/V8-Tests aus dem neuen Diagnose-Test bestanden. Das entspricht noch nicht einem nativen `node --test`-Durchlauf oder einer Browser-Performancefreigabe. **Begründung:** Messergebnisse müssen ihrer tatsächlichen Umgebung zugeordnet bleiben.
+
+## D-011: Terrain braucht echte Raster, andere Ebenen dürfen leer sein (2026-10-27)
+**Entscheidung:** `requireRaster:true` nur für Terrain, damit ein `null`-Raster nicht als vollständige Terrain-Kachel im Cache landet. Bei Weg-/Ufer-/Dekorationsebenen kann `null` weiterhin eine absichtlich leere Kachel bedeuten.
+
+## D-012: Begrenzte Retry- und Timeout-Budgets
+**Entscheidung:** Terrain erhält vier Versuche und 60 s Build-Watchdog; World-Tiles erhalten fünf Versuche und 45 s Source-Watchdog. Nach Erschöpfung wird die Tile-ID als `retry-exhausted` gemeldet und unter Wolken belassen; Epoch- oder Stempelwechsel ermöglichen einen neuen Anlauf. Kein endloser Retry-Sturm.
+
+## D-013: Fast-Kamera-Direktbake darf vorbereitete, nicht bereits gemalte Chunks verwenden
+**Entscheidung:** Bestehende Hintergrund-Snapshots bleiben nur mit exakter bereits gemalter Core-Version zulässig. Der direkte Offscreen-Aufbau darf dagegen bereits fertig berechnete Terrain-Chunks zunächst selbst malen und muss danach streng validieren. Keine Vorab-Freigabe für fehlende Terrain-/Spritequellen.
+
+## D-014: Live-Freigabe noch nicht belegt
+**Entscheidung:** Die fokussierten V8-Regressionen beweisen Verhalten der getesteten Jobs unter simulierten Timern, nicht Leistung der gespeicherten dichten Browserkarte. Keine gemessene FPS-Verbesserung oder vollständige Ladefreigabe behaupten, bevor native Tests und echte Szene geprüft sind.

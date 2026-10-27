@@ -1,43 +1,43 @@
 # Rendering-Status
 
 **Stand:** 2026-10-27  
-**Repository:** markusjungblut/asset_labor (main)  
-**Schritt 1:** Dokumentierter Ausgangsstand in Commit `bf3700e0ab06f9404fc8dc4fafbba59715b2d82c`; Live-Browser-Baseline weiterhin offen.  
-**Schritt 2:** **Diagnoseinstrumentierung implementiert; vier isolierte V8-Regressionstests bestanden.** Native Node-Tests und Browserprüfung in dieser Umgebung ausstehend.  
-**Nächster Schritt:** **3 – Ursachen der hängenden Tile-Aufträge mithilfe der Diagnosen untersuchen und gezielt beheben.**
+**Repository:** `markusjungblut/asset_labor`  
+**Ausgangscommit Schritt 3:** `99a70d45500f7a5f6efbf411c138a56309ff921b`  
+**Schritt 1:** Ausgangsstand dokumentiert, Backup: `backup/v0.23-step1-before-docs-20261027`.  
+**Schritt 2:** Tile-Diagnostik umgesetzt.  
+**Schritt 3:** **Codeimplementierung und fokussierte isolierte Regression erfolgreich; Abnahme an echter dichter Browserkarte noch offen.**  
+**Als Nächstes:** **Schritt 3 im echten Browser verifizieren**, danach erst Schritt 4 freigeben.
 
-## Änderungen in Schritt 2
-- `chunks.js`: nur auf Anfrage erzeugte, pro sichtbarer Kachel lesbare Diagnose für sichtbare/warm/prefetch-Warteschlange, aktiven Vorder-/Hintergrundauftrag, Epoch, Terrain-LOD, Start-/Änderungszeitpunkt, Cache-/Paint-Versionen, `cached-empty`, Fehler und Obsoleszenz. Letztes Ergebnis von höchstens 384 Tiles gespeichert.
-- `world-tile-streamer.js`: identifizierbare `queued`, `running`, `source-null`, `failed`, `aborted`, `discarded`, `fallback-lod`, `ready`, `invalidated`-Zustände nach Tile-ID, LOD und Epoch. Keine neue Retry-Regel.
-- `app.js`: `tileArtworkStatus(t,details)` unterscheidet fehlenden Terrain-Core (`terrain-core-not-ready`), bereits gebauten, aber nicht gezeichneten Core (`terrain-not-painted`), fehlende Bildquellen (`sprite-source-not-ready`) und `ready`. Der alte `tileArtworkReady(t)`-Aufruf bleibt für den Produktionspfad erhalten; nur dieser stößt bei Bedarf ein Sprite-Laden an.
-- Neue Console-API `window.VedrasAssetLabor.tileDiagnostics({limit:50,includeReadiness:true})` mit `terrain`, `world`, `artwork`, `worker` und `imagePool`. Sie wird **nicht** automatisch auf jedem Frame berechnet.
-- `tests/test_tile_diagnostics_v023_step2_20261027.cjs`: vier fokussierte Regressionstests zur Zustandsklassifizierung und funktionalen Gleichheit der normalen Readiness-Prüfung.
+## Reproduzierte Defekte und gezielte Reparaturen
 
-## Prüfungen
-- Geänderte `app.js`, `chunks.js`, `world-tile-streamer.js` und neue Testdatei erfolgreich syntaktisch als JavaScript kompiliert.
-- **4/4 neue Tests in einer isolierten V8-Umgebung mit Node-API-Shims ausgeführt:** Queue/Leer-Cache, Epoch-Wechsel/Fehler, World-Tile-`source-null`/Fehler, Artwork-Bereitschaft ohne Nebenwirkung bei Diagnose; zusätzlich Funktionsprüfung `invalidated`.
-- **Nicht ausgeführt:** nativer `node --test`-Lauf, bestehende vollständige Regression, Screenshot-/Browser-FPS-Test. Der frühere 79/79-Teststatus aus v0.22.6 ist historisch und wurde hier nicht wiederholt.
-- Bestehende Benutzer-Baseline (449,6 ms pro Frame, 67 Terrain ausstehend) bleibt unverändert; keine Leistungsverbesserung behauptet.
-- Der aktuelle Quellcode kann ein leeres Terrain-Ergebnis als Cache-Eintrag ohne Raster führen. Ebenso wird eine World-Tile-Quelle mit `null` nicht als fertige Tile-Grafik gecacht. Beides ist jetzt diagnostizierbar, aber **noch nicht als Ursache der gemeldeten Hänger bewiesen**.
+1. **Terrain: leerer Raster-Cache blockiert Fertigstellung.** `chunks.js` behandelte `null` als gültigen Cache-Eintrag; `prime()` hielt ihn dadurch für „bereit“, während `readyTiles()` ein Raster verlangte. Für **Terrain allein** fordert `app.js` jetzt `requireRaster:true` an. Fehlende Raster werden nicht als fertig gespeichert, sondern mit begrenzter Verzögerung erneut aufgebaut; nach vier Versuchen folgt `retry-exhausted`. Absichtlich leere Wege/Ufer-/andere Ebenen behalten die alte erlaubte Null-Semantik.
+2. **World-Tiles: `source-null` und unvollständige Pakete ohne eigenständiges Wiederanlaufen.** `world-tile-streamer.js` legt verzögerte, begrenzte Wiederholungen für leere/fehlerhafte Ergebnisse an (bis zu fünf Versuche; 400/800/1600/3200 ms). Im Editor sind vollständig nutzbare Ground-/Scenery-Layer erforderlich; ein halbes Paket wird nicht als fertiges Tile veröffentlicht.
+3. **Feststeckende asynchrone Jobs.** Terrain-Aufträge besitzen im Terrainmodus ein 60-Sekunden-Watchdog; World-Quellen besitzen ein 45-Sekunden-Watchdog. Nach Timeout wird der Renderer-Slot frei, der Fehler erfasst und eine begrenzte Wiederholung ermöglicht. Später eintreffende Bitmaps werden verworfen und, wenn im Eigentum des Jobs, freigegeben.
+4. **Veraltete Generationen/Signaturen.** Das World-Tile-Ergebnis darf nur veröffentlicht werden, wenn der aktuelle Job-Token noch passt. Wird während eines laufenden Terrainjobs der Tile-Stempel geändert, folgt für die weiterhin sichtbare Kachel eine neue Queue-Anforderung, statt nur das veraltete Ergebnis zu verwerfen.
+5. **Schnelle Kamera wartet auf „painted“, obwohl Terrain bereits „ready“ ist.** `app.js` erlaubt ausschließlich dem **direkten Offscreen-Tile-Builder** den Start aus einem fertig berechneten Terrain-Core, der noch nicht im Editor gezeichnet wurde. Bereits vorhandene Hintergrund-Snapshots benötigen weiterhin die exakte gemalte Version. Nach `drawGround()/drawRoads()` wird vor Veröffentlichung erneut die strenge `tileArtworkReady()`-Prüfung angewandt. Unfertiges Terrain oder fehlende Sprites bleiben unter Wolken.
 
-## So wird die Diagnose im echten Editor gesammelt
-Nach Aktualisierung des lokalen Editors (Dateien aus main laden und hart neu laden) die Browserkonsole öffnen:
+## Explizite Grenzen und Status bei permanenten Fehlern
+- Dauerhaft defekte Tiles werden nach wenigen Versuchen **nicht stillschweigend aufgedeckt**: Zustand `retry-exhausted`, letzter Grund und Tile-ID sind in `tileDiagnostics()` auslesbar. Ein neuer Epoch/Material-Stempel hebt diese Sperre wieder auf.
+- Neue UI-Statuszähler kennzeichnen endgültig fehlgeschlagene Terrain- bzw. World-Tiles; keine automatische Dauer-Retry-Schleife.
+- Es wurden **keine** DPR-/LOD-/GPU-/Textur-, Pixeldichte-, Fot-/Fog-, Sprite- oder Spielwelt-Änderungen vorgenommen. `index.html` erhält lediglich Cache-Busting-Parameter für die drei geänderten JS-Skripte.
+- Keine Aussage, dass die ursprünglich gemeldeten **67 ausstehenden Chunks** oder **449,6 ms/Frame** auf dem echten Rechner bereits behoben/gemessen sind.
 
-```js
-const d = window.VedrasAssetLabor.tileDiagnostics({limit:150});
-console.table(d.terrain.tiles);
-console.table(d.world?.tiles || []);
-console.table(d.artwork.filter(x => !x.ready));
-console.log({terrain:d.terrain, world:d.world, worker:d.worker, imagePool:d.imagePool});
+## Durchgeführte Checks
+- JavaScript-Syntax der geänderten Renderer-Module und neuen Testdatei im V8-Parser: erfolgreich.
+- `tests/test_tile_recovery_v023_step3_20261027.cjs`: **9/9** Tests mit simulierten Timern und Node-API-Shims in V8 bestanden (leer→Retry→fertig, terminale Fehler, beabsichtigt leere Nebenschichten, Timeout und Bitmap-Freigabe, Stempelwechsel, World-Null-Retry, unvollständige Pakete, verspätete Pakete, Offscreen-Ready-Gates).
+- Bestehender `tests/test_tile_diagnostics_v023_step2_20261027.cjs`: **4/4** unter denselben Testbedingungen bestanden.
+- Bestehender `tests/test_world_tile_streamer_v021_20261026.cjs`: **8/8** unter denselben Testbedingungen bestanden.
+- **Nicht ausgeführt:** echter nativer `node --test`-Lauf, kompletter alter Testsatz, Browser-FPS-Profil und Test gegen die gespeicherte 2710-Sprite-Szene. Diese Abnahme ist erforderlich, bevor Schritt 3 als vollständig im Produkt verifiziert gilt.
+
+## Nächste Verifikation
+Nach `git pull` und hartem Browser-Neuladen:
+
+```bash
+node --test tests/test_tile_recovery_v023_step3_20261027.cjs
+node --test tests/test_tile_diagnostics_v023_step2_20261027.cjs
+node --test tests/test_world_tile_streamer_v021_20261026.cjs tests/test_priority_chunk_streaming_v019_20261024.cjs
 ```
 
-Dieselben Abfragen zu Beginn, nach 30 Sekunden und nach 60 Sekunden durchführen, Kamera während der Ladebeobachtung nicht bewegen. Für jedes hängende Tile insbesondere `id`, `state`, `epoch`, `lod`, `ageMs`, `lastOutcome`, `lastError`, `stampMatches`, `rasterVersion`, `paintedVersion`, `terrainVersion` und `reason` vergleichen. Diagnosebegrenzung: maximal 150 sichtbare Tiles je Aufruf, begrenzter letzter Ereignisstatus pro Tile (kein vollständiges Trace).
+Browserkonsole: `window.VedrasAssetLabor.tileDiagnostics({limit:150})`. Zu Beginn, nach 30 und nach 60 Sekunden prüfen: `terrain.queuedVisible`, `terrain.retryWaiting`, `terrain.retryExhausted`, `world.running`, `world.retryWaiting`, `world.retryExhausted`, `artwork[].reason`, `worker.pending`, `imagePool.queued`. Beim Pan/Zoom prüfen, dass obsolete Job-Resultate die aktuelle Variante nicht überschreiben. Bei erschöpften Retries die in `recent` angegebenen letzten Fehler mit der Bild-/Terrainquelle vergleichen.
 
-## Schritt 3: Reihenfolge der nächsten Untersuchung
-1. Neuen Test nativ ausführen: `node --test tests/test_tile_diagnostics_v023_step2_20261027.cjs`.
-2. Bestehende Tests in `BASELINE.md` ausführen und gespeicherte große Originalszene im Browser prüfen.
-3. Hängende Tile-IDs zwischen `terrain`, `world` und `artwork` korrelieren. Zunächst `cached-empty`, `source-null`, `terrain-not-painted`, lange `building`-Aufträge sowie veraltete Epochs untersuchen.
-4. Nur bestätigte Ursachen beheben. Fog-Bereitschaftsgates, Grafikdetails und Assets unangetastet lassen, sofern nicht nachweislich erforderlich.
-
-## Sicherung und Grenzen
-Backup-Branch `backup/v0.23-step1-before-docs-20261027` zeigt weiterhin auf den ursprünglichen v0.22.6-Release `ee769a37f3ca2adfd4d5b2db8dcf8765787ce479`. In Schritt 2 wurden weder Tile-Retries noch Renderqualität, Kamera- und Streaming-Prioritäten, Bilddateien oder Weltdaten verändert.
+**Aufgabe nach erfolgreicher Browserprüfung:** Schritt 4 – Kamera-Komposition ohne unnötigen Szenen-Neuaufbau. Schritt 4 wurde in diesem Commit **nicht** begonnen.

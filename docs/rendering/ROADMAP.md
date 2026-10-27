@@ -41,3 +41,6 @@ Nur Schritt 2 beginnen, sobald der Baseline-Browserlauf nachgeholt beziehungswei
 
 ## Schritt-2-Übergabe (2026-10-27)
 Die geplante Instrumentierung aus Schritt 2 ist in `chunks.js`, `world-tile-streamer.js` und `app.js` umgesetzt; 4/4 isolierte V8-Tests bestanden. Vollständige lokale Node- und Browser-Regression ist offen. Vor einer Reparatur in Schritt 3 die Diagnosebefunde der echten gespeicherten Szene erfassen; `STATUS.md` ist die aktuelle Übergabe.
+
+## Schritt 3 – gezielte Tile-Liveness-Reparaturen (2026-10-27)
+Die in Schritt 2 erkannten Codepfade (`cached-empty`, `source-null`, alte Signaturen und nichtsettende Quellen) besitzen jetzt begrenzte Wiederholungen und einen terminalen Diagnosezustand. Die reine Tile-Freigabe wurde in der schnellen Kamera so ergänzt, dass vorbereitete, aber noch unbemalte Terrain-Cores **nur direkt offscreen** fertig gezeichnet werden können; Bild-Snapshots verlangen weiterhin gemalte Core-Versionen. Die Implementierung ist durch isolierte V8-Tests geprüft, die echte Browser-Abnahme aus `STATUS.md` ist noch offen. Erst danach Schritt 4 ausführen.

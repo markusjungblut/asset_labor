@@ -80,6 +80,46 @@ window.VedrasChunks=(()=>{
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
     visibleRevision:0,prefetchPending:0,manualPending:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
+  // Only the terrain layer requires a drawable raster; empty roads/banks are valid.
+  let requireArtwork=false,taskTimeoutMs=60000;
+  const failures=new Map(),retryTimers=new Map();
+  const drawable=item=>!!(item?.raster?.canvas||item?.raster?.waterLayer?.canvas||
+   item?.relief?.canvas);
+  function forgetRetry(id){
+   const timer=retryTimers.get(id);
+   if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
+   retryTimers.delete(id);failures.delete(id);
+  }
+  function eligible(id,t){
+   if(!requireArtwork)return true;
+   const failure=failures.get(id);
+   if(!failure)return true;
+   if(failure.stamp!==stampForTile(t)){forgetRetry(id);return true;}
+   return !failure.terminal&&(!failure.nextAt||Date.now()>=failure.nextAt);
+  }
+  function retryFailure(id,t,stamp,reason,error=null){
+   const prior=failures.get(id);
+   const attempts=(prior?.stamp===stamp?prior.attempts:0)+1;
+   const terminal=attempts>=4,delay=Math.min(4000,300*2**(attempts-1));
+   const failure={stamp,attempts,terminal,nextAt:terminal?null:Date.now()+delay,
+    reason,error:error?String(error?.message||error):null};
+   forgetRetry(id);failures.set(id,failure);
+   observe(id,terminal?'retry-exhausted':'retry-wait',
+    {attempts,reason,error:failure.error});
+   if(terminal&&viewportWanted.has(id))requestDraw();
+   if(terminal||typeof setTimeout!=='function')return;
+   const generation=epoch;
+   const timer=setTimeout(()=>{
+    retryTimers.delete(id);
+    if(generation!==epoch||failures.get(id)!==failure)return;
+    failure.nextAt=0;
+    if(!viewportWanted.has(id)||cache.has(id)||queue.has(id))return;
+    queue.set(id,t);
+    observe(id,'queued-visible',{reason:'retry',attempts});
+    schedule();
+   },delay);
+   retryTimers.set(id,timer);
+  }
   // Bounded, opt-in diagnostics. Rendering and scheduling remain unchanged.
   const history=new Map(),activeJobs={foreground:null,background:null};
   let diagnosticLod=null,diagnosticTiles=[];
@@ -92,24 +132,30 @@ window.VedrasChunks=(()=>{
   function diagnostics({limit=100}={}){
    const max=clamp(Math.floor(limit)||100,1,250),now=Date.now();
    const tiles=diagnosticTiles.slice(0,max).map(t=>{
-    const id=t.id,c=cache.get(id),prior=history.get(id);
+    const id=t.id,c=cache.get(id),prior=history.get(id),failure=failures.get(id);
     const flight=activeJobs.foreground?.id===id?activeJobs.foreground:
      activeJobs.background?.id===id?activeJobs.background:null;
     const matches=c?c.stamp===stampForTile(t):null;
     const state=flight?'building':queue.has(id)?'queued-visible':
      backgroundQueue.has(id)?'queued-warm':prefetchQueue.has(id)?'queued-prefetch':
-     matches?(c.raster?.canvas||c.raster?.waterLayer?.canvas||
-       c.relief?.canvas?'ready':'cached-empty'):
+     matches?(drawable(c)?'ready':'cached-empty'):
+     failure?.stamp===stampForTile(t)?
+       (failure.terminal?'retry-exhausted':'retry-wait'):
      prior?.epoch===epoch?prior.status:'unrequested';
     return {id,state,epoch,lod:diagnosticLod,stampMatches:matches,
      rasterVersion:c?.version??null,paintedVersion:lastDrawnVersions.get(id)??null,
      flight:flight?.lane??null,startedAt:flight?.startedAt??null,
-     lastOutcome:prior?.status??null,lastError:prior?.error??null,
-     attempts:prior?.attempts??0,ageMs:prior?Math.max(0,now-prior.at):null};
+     lastOutcome:prior?.status??null,lastError:failure?.error??prior?.error??null,
+     retryAt:failure?.nextAt??null,terminal:failure?.terminal??false,
+     failureReason:failure?.reason??null,
+     attempts:failure?.attempts??prior?.attempts??0,
+     ageMs:prior?Math.max(0,now-prior.at):null};
    });
    return {epoch,lod:diagnosticLod,visible:diagnosticTiles.length,
     queuedVisible:queue.size,queuedWarm:backgroundQueue.size,
-    queuedPrefetch:prefetchQueue.size,foreground:activeJobs.foreground,
+    queuedPrefetch:prefetchQueue.size,retryWaiting:retryTimers.size,
+    retryExhausted:[...failures.values()].filter(f=>f.terminal).length,
+    foreground:activeJobs.foreground,
     background:activeJobs.background,errors:stats.errors,obsolete:stats.obsolete,
     tiles,recent:[...history.values()].slice(-max).reverse()};
   }
@@ -131,8 +177,13 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
+   for(const id of retryTimers.keys())forgetRetry(id);
+   failures.clear();
    for(const id of queue.keys())observe(id,'invalidated',{reason:'clear'});
-   for(const job of Object.values(activeJobs))if(job)observe(job.id,'invalidated',{reason:'clear'});
+   for(const job of Object.values(activeJobs))if(job){
+    if(job.watchdog!=null&&typeof clearTimeout==='function')clearTimeout(job.watchdog);
+    observe(job.id,'invalidated',{reason:'clear'});
+   }
    activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
    dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
@@ -141,10 +192,16 @@ window.VedrasChunks=(()=>{
    inFlightInteractive=false;inFlightBackground=false;
   }
   function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null,
-    diagnosticLod:nextLod=null}){
+    diagnosticLod:nextLod=null,requireRaster:needsRaster=false,
+    timeoutMs:nextTimeout=60000}){
    if(next!==signature){
+    for(const id of retryTimers.keys())forgetRetry(id);
+    failures.clear();
     for(const id of queue.keys())observe(id,'invalidated',{reason:'signature-change'});
-    for(const job of Object.values(activeJobs))if(job)observe(job.id,'invalidated',{reason:'signature-change'});
+    for(const job of Object.values(activeJobs))if(job){
+     if(job.watchdog!=null&&typeof clearTimeout==='function')clearTimeout(job.watchdog);
+     observe(job.id,'invalidated',{reason:'signature-change'});
+    }
     activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
     queue.clear();backgroundQueue.clear();prefetchQueue.clear();
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
@@ -167,6 +224,8 @@ window.VedrasChunks=(()=>{
     signature=next;family=nextFamily;
    }
    diagnosticLod=nextLod;
+   requireArtwork=needsRaster;
+   taskTimeoutMs=nextTimeout;
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
    stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
   }
@@ -224,12 +283,16 @@ window.VedrasChunks=(()=>{
     if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
      stats.prefetchDiscarded++;schedule();return;
     }
-    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)){
+    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)&&
+      (!requireArtwork||drawable(cache.get(id)))){
      markWarm(id);schedule();return;
     }
+    if(!eligible(id,t)){markWarm(id);schedule();return;}
     const expectedStamp=stampForTile(t);
     const lane=interactive?'foreground':'background';
-    activeJobs[lane]={id,lane,epoch,startedAt:Date.now()};
+    const job={id,lane,epoch,startedAt:Date.now(),watchdog:null};
+    activeJobs[lane]=job;
+    let expired=false;
     observe(id,'building',{lane,stampLength:String(expectedStamp).length});
     const t0=typeof performance!=='undefined'?performance.now():0;
     const countPixels=item=>{
@@ -242,6 +305,7 @@ window.VedrasChunks=(()=>{
      },0);
     };
     const complete=item=>{
+     if(expired){release(item);stats.obsolete++;return;}
      if(generation!==epoch){
       observe(id,'obsolete',{reason:'epoch-change'});release(item);stats.obsolete++;return;
      }
@@ -251,7 +315,16 @@ window.VedrasChunks=(()=>{
      if(expectedStamp!==stampForTile(t)||
        (predictive&&!visibleNow&&!prefetchWanted.has(id))){
       observe(id,'obsolete',{reason:'stamp-or-prefetch-changed'});
-      release(item);stats.obsolete++;markWarm(id);schedule();return;
+      release(item);stats.obsolete++;
+      if(visibleNow&&expectedStamp!==stampForTile(t)&&!queue.has(id)){
+       queue.set(id,t);observe(id,'queued-visible',{reason:'changed-stamp'});
+      }
+      markWarm(id);schedule();return;
+     }
+     if(requireArtwork&&!drawable(item)){
+      release(item);
+      retryFailure(id,t,expectedStamp,'missing-raster');
+      markWarm(id);schedule();return;
      }
      const pixels=countPixels(item);
      const old=cache.get(id);
@@ -274,6 +347,7 @@ window.VedrasChunks=(()=>{
       if(predictive&&!visibleNow)stats.prefetched++;
      }
      if(visibleNow){stats.visibleRevision++;queue.delete(id);}
+     if(requireArtwork)forgetRetry(id);
      observe(id,item?'completed':'empty-result',{version:rasterVersion});
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
@@ -282,22 +356,34 @@ window.VedrasChunks=(()=>{
      schedule();
     };
     const fail=error=>{
-     if(generation!==epoch)return;
+     if(expired||generation!==epoch)return;
      stats.errors++;
-     observe(id,'failed',{error:String(error?.message||error)});
+     if(requireArtwork)retryFailure(id,t,expectedStamp,'build-error',error);
+     else observe(id,'failed',{error:String(error?.message||error)});
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     if(interactive||viewportWanted.has(id))requestDraw();
+     if(!requireArtwork&&(interactive||viewportWanted.has(id)))requestDraw();
      markWarm(id);schedule();
     };
     if(interactive)inFlightInteractive=true;
     else inFlightBackground=true;
     const finish=()=>{
-     if(activeJobs[lane]?.id===id&&activeJobs[lane]?.epoch===generation)
-      activeJobs[lane]=null;
-     if(generation!==epoch)return;
+     if(job.watchdog!==null&&typeof clearTimeout==='function')
+      clearTimeout(job.watchdog);
+     if(activeJobs[lane]!==job||generation!==epoch)return;
+     activeJobs[lane]=null;
      if(interactive)inFlightInteractive=false;
      else inFlightBackground=false;
     };
+    // The terrain worker has a 45s watchdog; leave time for disk cache and
+    // fallback but never let a nonsettling Promise own this lane indefinitely.
+    if(requireArtwork&&taskTimeoutMs>0&&typeof setTimeout==='function')
+     job.watchdog=setTimeout(()=>{
+      if(activeJobs[lane]!==job||generation!==epoch)return;
+      expired=true;finish();stats.errors++;
+      retryFailure(id,t,expectedStamp,'build-timeout',
+       new Error('Chunk build exceeded '+taskTimeoutMs+' ms'));
+      markWarm(id);schedule();
+     },taskTimeoutMs);
     try{
      const output=build(t,neighbors(t,cells));
      if(output&&typeof output.then==='function'){
@@ -372,10 +458,11 @@ window.VedrasChunks=(()=>{
    let unseenReady=false;
    for(const t of tiles){
     const data=cache.get(t.id);
-    const ready=data&&data.stamp===stampForTile(t);
+    const ready=data&&data.stamp===stampForTile(t)&&
+     (!requireArtwork||drawable(data));
     if(ready&&lastDrawnVersions.get(t.id)!==data.version)
      unseenReady=true;
-    if(!ready&&!queue.has(t.id)){
+    if(!ready&&!queue.has(t.id)&&eligible(t.id,t)){
      prefetchQueue.delete(t.id);
      queue.set(t.id,t);
     }
@@ -442,10 +529,11 @@ window.VedrasChunks=(()=>{
    const paintedVersions=new Map();
    for(const t of tiles){
     let result=use(t.id);
-    if(result&&result.stamp!==stampForTile(t)){
+    if(result&&(result.stamp!==stampForTile(t)||
+      (requireArtwork&&!drawable(result)))){
      cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
     }
-    if(!result&&!queue.has(t.id)){
+    if(!result&&!queue.has(t.id)&&eligible(t.id,t)){
      backgroundQueue.delete(t.id);queue.set(t.id,t);
     }
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
@@ -473,7 +561,8 @@ window.VedrasChunks=(()=>{
    stats.warmTotal=tiles.length;stats.warmDone=0;
    for(const t of tiles){
     const existing=cache.get(t.id);
-    if(existing&&existing.stamp===stampForTile(t))stats.warmDone++;
+    if(existing&&existing.stamp===stampForTile(t)&&
+     (!requireArtwork||drawable(existing)))stats.warmDone++;
     else{warmRemaining.add(t.id);backgroundQueue.set(t.id,t);}
    }
    onWarmProgress({...stats});schedule();
@@ -494,6 +583,7 @@ window.VedrasChunks=(()=>{
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
     inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
+    retryWaiting:retryTimers.size,retryExhausted:[...failures.values()].filter(f=>f.terminal).length,
     backgroundPaused,
     bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
