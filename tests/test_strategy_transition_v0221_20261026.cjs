@@ -68,9 +68,9 @@ test('only terrain chunks painted in the current revision can seed a world tile'
  assert.match(app,/function currentTerrainCore\(t\)\{/);
  assert.match(app,/terrainChunks\.readyTiles\(/);
  assert.match(app,/terrainChunks\.paintedVersions\(\)\.get\(t\.id\)===entry\.artwork\.version/);
- assert.match(app,/if\(units\|\|!paintedTerrainCore\(t\)\)continue/);
- assert.match(app,/if\(a&&b&&paintedTerrainCore\(t\)\)/);
- assert.match(app,/if\(signal\?\.aborted\|\|!paintedTerrainCore\(t\)\)return null/);
+ assert.match(app,/if\(units\|\|!tileArtworkReady\(t\)\)continue/);
+ assert.match(app,/if\(a&&b&&tileArtworkReady\(t\)\)/);
+ assert.match(app,/if\(signal\?\.aborted\|\|!tileArtworkReady\(t\)\)return null/);
 });
 
 test('executing far-mode cleanup hides canvas and aborts obsolete tile snapshots',()=>{
