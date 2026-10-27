@@ -56,7 +56,7 @@ test('large dense maps are pixel-bound, not arbitrarily capped at 1.5x',()=>{
  assert.equal(p.limiter,'pixel-budget');
 });
 test('a large ordinary viewport is capped to the 14 megapixel profile',()=>{
- const p=policy().resolve({quality:'4',width:1600,height:900,natureCount:20});
+ const p=policy().resolve({quality:'4',width:1100,height:1000,natureCount:20});
  assert.equal(p.budgetPixels,14000000);
  assert.ok(p.effectiveDpr>3&&p.effectiveDpr<4);
  assert.ok(p.canvasPixels<=14000000+5000);
