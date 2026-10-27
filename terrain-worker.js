@@ -9,7 +9,7 @@ self.document={createElement:tag=>{
  if(tag!=='canvas')throw Error('Only offscreen canvases are supported');
  return new OffscreenCanvas(1,1);
 }};
-importScripts('water-texture.js?v=0.1.0','autotile.js?v=0.31.0','polish.js?v=0.21.0','relief.js?v=0.11.0','shoreline.js?v=0.30.0');
+importScripts('water-texture.js?v=0.1.0','autotile.js?v=0.31.0','polish.js?v=0.21.0','relief.js?v=0.11.0','shoreline.js?v=0.30.1&artfix=20261027');
 const terrain=new Map();
 const HEX=256,R=HEX/Math.sqrt(3);
 const key=(q,r)=>q+','+r;
