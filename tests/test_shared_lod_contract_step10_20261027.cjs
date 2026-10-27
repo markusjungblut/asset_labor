@@ -143,5 +143,5 @@ test('raster bounds and final-export DPR safeguards remain unchanged',()=>{
  const app=read('app.js');
  assert.match(app,/densePreview\?Math\.min\(calculated,1\.5\):calculated/);
  assert.match(app,/return finalRendering\?1\.5:state\.quality==='fast'\?\.60/);
- assert.match(app,/if\(final\)return TIERS\.full/);
+ assert.match(read('adaptive-lod.js'),/if\(final\)return TIERS\.full/);
 });
