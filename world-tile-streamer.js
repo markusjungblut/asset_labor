@@ -75,8 +75,12 @@ window.VedrasWorldTiles=(()=>{
       last?.epoch===epoch?last.status:'unrequested',
      startedAt:r?.startedAt??null,revision:c?.revision??null,
      preview:provisional,sourceDensity:c?.packet?.sourceDensity??null,
-     requiredDensity:density[lod],fallbackLod:!c&&old?
-      old.tileLod??null:null,
+     requiredDensity:density[lod],
+     displayedLod:old?.tileLod??null,
+     displayedPreview:old?.packet?.preview??null,
+     displayedDensity:old?(old.packet.preview?
+      old.packet.sourceDensity??0:density[old.tileLod]):null,
+     fallbackLod:old?.tileLod!==lod?old?.tileLod??null:null,
      lastOutcome:last?.status??null,lastError:retry?.error??last?.error??null,
      attempts:retry?.attempts??last?.attempts??0,
      queuedMs:q?Math.max(0,now-(q.queuedAt??now)):null,
@@ -126,7 +130,8 @@ window.VedrasWorldTiles=(()=>{
    previews=0,upgraded=0,visiblePreviews=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
    fogCells=[],visibleTiles=[],wantedTiles=new Set(),
-   lod='mid',lastView=null,frame=0;
+   lod='mid',lastView=null,frame=0,
+   lastProgress={exact:0,fallback:0,provisional:0,missing:0};
   const key=(t,l)=>t.id+'@'+l;
   function release(packet){
    for(const layer of packet?.layers||[])
@@ -494,7 +499,11 @@ window.VedrasWorldTiles=(()=>{
    };
    for(const t of tiles){
     if(t.visibility==='unknown')continue;
-    const item=lookup(t);if(!item)continue;
+    const item=lookup(t);
+    if(!item){missing++;continue;}
+    if(item.tileLod!==lod)fallback++;
+    else if(item.packet.preview)provisional++;
+    else exact++;
     // Shared rounded DEVICE-space core edges eliminate bright seams when
     // two adjacent tiles are composited at a fractional zoom or DPR.
     const snap=x=>Math.round(x*view.dpr)/view.dpr;
@@ -507,7 +516,7 @@ window.VedrasWorldTiles=(()=>{
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
-   let covered=0,draws=0;
+   let covered=0,draws=0,exact=0,fallback=0,provisional=0,missing=0;
    function layerPass(layers,halo){
     g.save();drawKnownPath(halo);
     for(const layer of layers)for(const obj of items)
@@ -584,10 +593,12 @@ window.VedrasWorldTiles=(()=>{
     }
    }
    painted=draws;frame++;lastMs=clock()-start;
+   lastProgress={exact,fallback,provisional,missing};
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
-    loaded:items.length,pending:queue.size+running.size};
+    loaded:items.length,exact,fallback,provisional,missing,
+    pending:queue.size+running.size};
   }
   function stats(){return {version:'0.22.3',clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
@@ -595,7 +606,7 @@ window.VedrasWorldTiles=(()=>{
    inFlight:running.size,visible:visibleTiles.length,lod,
    selectiveInvalidations,selectiveTiles,
    priorityReorders,agedPromotions,discardedObsolete,parallelLimit,
-   visiblePreviews,previews,upgraded,
+   visiblePreviews,previews,upgraded,progress:{...lastProgress},
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
