@@ -78,7 +78,7 @@ function tileArtworkReady(t){
  const expected=genericObjects({x:t.x-320,y:t.y-320,
   width:t.size+640,height:t.size+640});
  return expected.every(o=>{
-  if(!o.asset)return false;
+  if(!o.asset)return true; // Optional prototypes without a supplied PNG.
   if(o.x<t.x-320||o.x>t.x+t.size+320||
    o.y<t.y-320||o.y>t.y+t.size+320)return true;
   return !!o.asset.img?.naturalWidth;
