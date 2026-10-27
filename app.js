@@ -145,14 +145,10 @@ function seedReadyWorldTiles(){
  const sourceDensity=Math.min(worldTileSnapshotDensity(ground),
   worldTileSnapshotDensity(scenery));
  const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
+ // Static scenery excludes units; a passing expedition cannot force a
+ // Nature tile rebuild or prevent reusing its cached shadow/sprite pixels.
  for(const t of tiles){
-  const units=objectLayoutCache.query(
-   {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
-   buildSpriteLayout,spriteInViewport,spriteIndexMargin
-  ).objects.some(o=>o.type==='unit'&&o.x>t.x-300&&
-   o.x<t.x+t.size+300&&o.groundY>t.y-300&&
-   o.groundY<t.y+t.size+300);
-  if(units||!tileArtworkReady(t))continue;
+  if(!tileArtworkReady(t))continue;
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
@@ -194,17 +190,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
   b=reuseSnapshot?snapshotTile(scenery,t,level):null;
  if(a&&b&&snapshotReady&&tileArtworkReady(t)){
-  // An old snapshot may include a unit; never bake one into static tiles.
-  const units=objectLayoutCache.query(
-   {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
-   buildSpriteLayout,spriteInViewport,spriteIndexMargin
-  ).objects.filter(o=>o.type==='unit');
-  const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
-   o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
-  if(!carriesUnit){
-   return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-    {layer:'scenery',image:b}]};
-  }
+  // Nature, rocks, buildings and their ground shadows are fully prepared
+  // without mobile units. Only the independent unit layer moves each frame.
+  return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
+   {layer:'scenery',image:b}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
  if(!tileArtworkStatus(t,null,true))return null;
@@ -1927,7 +1916,7 @@ function primeVisibleSpriteAssets(){
  window.__vedrasSpriteDemand={authored,paths:paths.size,ready,missing,
   requested,enabled:state.objects};
 }
-function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
+function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
    sortMs:0,shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0,
@@ -1942,7 +1931,7 @@ function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
  // Depth order is still evaluated each frame; source positions and expensive
  // river/road placement/relief operations are not.
  const objs=prepared.objects.filter(o=>
-   (includeUnits||o.type!=='unit')&&
+   (onlyUnits?o.type==='unit':includeUnits||o.type!=='unit')&&
    (!anchorBounds||(o.x>=anchorBounds.x&&
     o.x<anchorBounds.x+anchorBounds.width&&
     o.groundY>=anchorBounds.y&&
@@ -1985,7 +1974,8 @@ function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
   if(state.mountainShadowDebug){
    drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
    profile.shadowPassMs=performance.now()-shadowStart;
-   window.__vedrasObjectProfile=profile;
+   if(onlyUnits)window.__vedrasDynamicObjectProfile=profile;
+   else window.__vedrasObjectProfile=profile;
    return;
   }
   for(const o of objs){
@@ -2034,11 +2024,22 @@ function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
   for(const o of objs){
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
-   drawSprite(o);profile.drawnSprites++;
+   drawSprite(onlyUnits?{...o,noMountainCast:true}:o);profile.drawnSprites++;
   }
   if(state.shadowHandles)drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
   profile.spritePassMs=performance.now()-spriteStart;
-  window.__vedrasObjectProfile=profile;
+  if(onlyUnits)window.__vedrasDynamicObjectProfile=profile;
+  else window.__vedrasObjectProfile=profile;
+}
+// GPU scenery is on a higher DOM layer; dynamic units are drawn in Canvas2D.
+// Avoid the GPU texture while a unit is visible, so units remain in front.
+function visibleDynamicUnits(){
+ const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
+ return objectLayoutCache.query({
+  x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
+  width:Math.abs(a.x-b.x),height:Math.abs(a.y-b.y)
+ },buildSpriteLayout,spriteInViewport,spriteIndexMargin
+ ).objects.some(o=>o.type==='unit');
 }
 function drawBounds(){if(!state.bounds)return;const [q,r]=state.selected.split(',').map(Number),p=axialPos(q,r),s=toScreen(p.x,p.y+52),half=96*state.zoom,full=128*state.zoom;
  ctx.save();ctx.fillStyle='#d69b3b33';ctx.fillRect(s.x-full,s.y-290*state.zoom,(full-half),290*state.zoom);ctx.fillRect(s.x+half,s.y-290*state.zoom,full-half,290*state.zoom);
@@ -2231,6 +2232,7 @@ function draw(){
  spriteAtlas?.beginFrame();
  window.VedrasSpriteShadows?.beginFrame?.();
  let sceneryProfile=null;
+ window.__vedrasDynamicObjectProfile=null;
  try{
   // Static vegetation, casts and occlusion keep their exact Canvas2D draw
   // order within the staging canvas. Only the final transparent composite is
@@ -2266,12 +2268,15 @@ function draw(){
     ctx,signature:sceneSignature,
     view:{width:W,height:H,dpr:state.dpr,zoom:state.zoom,
      panX:state.panX,panY:state.panY},
-    preferGpu:state.gpuSprites===true,gpu:gpuSprites,
+    preferGpu:state.gpuSprites===true&&!visibleDynamicUnits(),
+    gpu:gpuSprites,
     drawScene:({ctx:layerCtx,width,height})=>{
      const originalCtx=ctx,originalW=W,originalH=H;
      try{
       ctx=layerCtx;W=width;H=height;
-      drawMapObjects();
+      // Retain Nature, mountain occlusion, buildings and ground shadows,
+      // while dynamic units stay out of this bitmap and every World-Tile.
+      drawMapObjects({includeUnits:false});
      }finally{ctx=originalCtx;W=originalW;H=originalH;}
     }
    });
@@ -2279,8 +2284,13 @@ function draw(){
     // Cached frames intentionally perform no per-sprite/shadow work.
     window.__vedrasObjectProfile={...sceneryProfile.objectProfile,
      layoutMs:0,occlusionMs:0,sortMs:0,shadowPassMs:0,
-     spritePassMs:0,rebuilt:false,layerReused:true};
+     spritePassMs:0,drawnSprites:0,shadowCandidates:0,
+     sourceSprites:sceneryProfile.objectProfile.drawnSprites,
+     sourceShadows:sceneryProfile.objectProfile.shadowCandidates,
+     rebuilt:false,layerReused:true};
    }
+   // Each warm frame paints just the few moving units over cached scenery.
+   drawMapObjects({onlyUnits:true});
   }
  }finally{spriteAtlas?.endFrame();if(clippedWorld)ctx.restore();}
  drawMountainFootprints();drawBounds();
@@ -3455,6 +3465,19 @@ window.VedrasAssetLabor={shadowSprites:{
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
  worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ sceneryDrawStats:()=>({
+  mode:tileModeActive||fastInteracting?'world-tiles':'editor',
+  staticSpritesThisFrame:tileModeActive||fastInteracting?0:
+   (window.__vedrasObjectProfile?.drawnSprites||0),
+  staticShadowsThisFrame:tileModeActive||fastInteracting?0:
+   (window.__vedrasObjectProfile?.shadowCandidates||0),
+  dynamicSpritesThisFrame:tileModeActive||fastInteracting?null:
+   (window.__vedrasDynamicObjectProfile?.drawnSprites||0),
+  worldTileDrawCalls:worldTiles?.stats().drawn||0,
+  staticSceneryBuilds:staticScenery.stats().builds,
+  staticSceneryHits:staticScenery.stats().hits,
+  worldTileBakes:tileBakes
+ }),
  cameraStats:()=>({zoomComposites:cameraOnlyZooms,
   zoomFallbacks:cameraZoomFallbacks,fastFrames,worldTileBakes:tileBakes,
   backgroundBuilds:backgroundScene.stats().builds,
