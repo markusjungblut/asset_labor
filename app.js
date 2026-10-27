@@ -307,7 +307,9 @@ let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
  fastLastPrime=0,fastNewTerrain=0;
 function fastView(){return {width:W,height:H,
- dpr:worldTiles?Math.min(state.dpr,Math.max(1,Math.min(2,window.devicePixelRatio||1))):state.dpr,
+ // Quality planning already caps the output against physical pixel limits.
+ // Never silently downgrade the fast camera to 2x after 3x/4x is selected.
+ dpr:state.dpr,
  zoom:state.zoom,
  panX:state.panX,panY:state.panY,projectY:PROJECT_Y};}
 function fastAllowed(){
@@ -511,8 +513,9 @@ const gpuCanvas=$('gpuCanvas'),
  gpuTerrain=window.VedrasGpuTerrain?.create(gpuCanvas,{
   maxBytes:128*1024*1024,maxTextures:112})||null;
 const gpuSprites=window.VedrasGpuSprites?.create($('gpuSpriteCanvas'))||null;
-const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:12000000,minPadding:64});
-const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:12000000,minPadding:48});
+// At high DPR the layer cache reduces overscan instead of disabling itself.
+const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:17000000,minPadding:24});
+const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:17000000,minPadding:24});
 const frameMemo=window.VedrasFrameMemo.create();
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
@@ -787,29 +790,35 @@ function requestDraw(){
  if(drawPending)return;
  drawPending=true;requestAnimationFrame(()=>{drawPending=false;draw();});
 }
-// Independent editor raster budget; manual quality overrides remain available.
+// Terrain detail factors remain independent of physical canvas DPR.
 function previewDensity(){return finalRendering?1.5:state.quality==='fast'?.60:state.quality==='auto'?.85:1;}
-function deviceRatio(){
- const quality=finalRendering?'2':state.quality;
- const requested=quality==='fast'?.80:quality==='auto'?Math.min(window.devicePixelRatio||1,1.35):Number(quality);
- const budget=quality==='fast'?1300000:quality==='auto'?3200000:18000000;
- const calculated=Math.max(.65,Math.min(requested,4,
-  Math.sqrt(budget/Math.max(1,W*H)),4096/Math.max(1,W),4096/Math.max(1,H)));
- // The "4x" option previously caused two 12 MP editor rasters AND thousands
- // of shadow composites on every asset arrival. Cap only interactive DPR on
- // dense maps; finalRendering takes the original high-resolution path.
- const densePreview=!finalRendering&&state.objects&&
-  (state.natureInstances?.length||0)>500;
- return densePreview?Math.min(calculated,1.5):calculated;
+let lastQualityProfile=null;
+function renderQualityProfile(){
+ return window.VedrasRenderQuality.resolve({
+  quality:state.quality,width:Math.max(1,W),height:Math.max(1,H),
+  devicePixelRatio:window.devicePixelRatio||1,
+  natureCount:state.natureInstances?.length||0,
+  objects:state.objects,final:finalRendering
+ });
 }
+function deviceRatio(){return renderQualityProfile().effectiveDpr;}
 function resize(){
  const b=canvas.getBoundingClientRect(),nw=Math.max(100,Math.round(b.width)),
   nh=Math.max(100,Math.round(b.height));
- W=nw;H=nh;const ratio=deviceRatio(),cw=Math.round(W*ratio),ch=Math.round(H*ratio);
- if(canvas.width!==cw||canvas.height!==ch){
+ W=nw;H=nh;
+ const policy=renderQualityProfile();
+ const ratio=policy.effectiveDpr,cw=Math.round(W*ratio),ch=Math.round(H*ratio);
+ // Keep old decoded previews visible. The pool promotes only currently
+ // requested assets, rather than triggering a global decode/rebuild storm.
+ imagePool.setPreviewLimits({terrainPx:policy.terrainPx,spritePx:policy.spritePx});
+ lastQualityProfile=policy;
+ const changed=canvas.width!==cw||canvas.height!==ch||state.dpr!==ratio;
+ state.dpr=ratio;
+ if(changed){
   if(gpuCanvas){gpuCanvas.width=cw;gpuCanvas.height=ch;}
-  state.dpr=ratio;canvas.width=cw;canvas.height=ch;requestDraw();updateDiagnostics();
+  canvas.width=cw;canvas.height=ch;requestDraw();
  }
+ updateDiagnostics();
 }
 // Debounced raster rebuild: no expensive render or scene JSON write per input pixel.
 const deferredEdits=new Map();
@@ -2575,6 +2584,20 @@ function draw(){
   (groundDetail.diagnosticsMs||0).toFixed(1)+' ms · Flüsse/Uferbänke '+
   (roadDetail.riverMs||0).toFixed(1)+' ms · Straßen/Brücken '+
   (roadDetail.roadsMs||0).toFixed(1)+' ms';
+ const qualityStatus=$('qualityStats');
+ if(qualityStatus){
+  const p=lastQualityProfile||renderQualityProfile();
+  const reason=p.limiter==='none'?'volle gewählte Qualität':
+   p.limiter==='pixel-budget'?
+    (p.dense?'dichte Szene / Pixelbudget':'Viewport-Pixelbudget'):
+    'Canvas-Abmessungslimit';
+  qualityStatus.textContent='Interaktive Qualität: gewählt '+
+   p.requestedDpr.toFixed(2)+'× · tatsächlich '+
+   state.dpr.toFixed(2)+'× · '+reason+
+   ' · Canvas '+canvas.width+'×'+canvas.height+' px / '+
+   Math.round(p.budgetPixels/1000000)+' MP Budget'+
+   ' · Bildquellen bis '+p.terrainPx+' / '+p.spritePx+' px (Terrain/Sprites)';
+ }
  const lodStatus=$('lodPerfStats');
  if(lodStatus){
   const l=lodProfile(),st=adaptiveLOD.stats(),q=previewDensity();
@@ -3672,4 +3695,8 @@ window.VedrasAssetLabor={shadowSprites:{
  lodStats:()=>({...lodProfile(),...adaptiveLOD.stats(),
   worldTile:worldTiles?.stats().lod??null,
   worldTileDensity:worldTiles?.stats().lodDensity??null}),
+ qualityStats:()=>({...renderQualityProfile(),
+  effectiveDpr:state.dpr,backingWidth:canvas.width,
+  backingHeight:canvas.height,images:imagePool.report(),
+  scenery:staticScenery.stats(),background:backgroundScene.stats()}),
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
