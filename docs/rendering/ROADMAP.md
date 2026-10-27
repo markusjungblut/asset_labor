@@ -23,7 +23,7 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 
 ## Phase IV – Bildqualität (v0.24)
 10. **LOD-Vertrag**: Vorhandenes `adaptive-lod.js` und das separate World-Tile-LOD aufeinander abstimmen; Welt/Region/Lokal. Akzeptanz: konsistente Zoomwechsel ohne Raster-Neuerstellung für reinen Pan. **Code-Status: implementiert; 110/110 isolierte V8-Testfälle bestanden, native Node-/Browser-Abnahme ausstehend (teilweise).**
-11. **4× interaktive Qualität**: Vorhandene dichteabhängige 1,5×-DPR-Sperre, Canvas-Budgets und Bildpool-Previewlimits erst nach erfolgreicher Entkopplung neu bewerten. Akzeptanz: angezeigte wirksame DPR entspricht erlaubtem Qualitätsprofil ohne massive Stotterer; Finalexport unbeeinträchtigt.
+11. **4× interaktive Qualität**: Vorhandene dichteabhängige 1,5×-DPR-Sperre, Canvas-Budgets und Bildpool-Previewlimits erst nach erfolgreicher Entkopplung neu bewerten. Akzeptanz: angezeigte wirksame DPR entspricht erlaubtem Qualitätsprofil ohne massive Stotterer; Finalexport unbeeinträchtigt. **Code-Status: Budget- und Quellpolicy implementiert, 124/124 simulierte V8-Tests; FPS-/Browser-/Node-Abnahme noch ausstehend (teilweise).**
 12. **Fog und Schatten**: Cloud-Orientierung, Clip, Hex-Sichtbarkeit, Landschaftskanten und Overhang visuell prüfen. Akzeptanz: keine sichtbaren Artefakte.
 
 ## Phase V – Nachweis und Rendererentscheidung (v0.24.1)
@@ -72,3 +72,7 @@ Die bereits existierenden LOD-Alternativen werden bei laufendem Zoomwechsel als 
 
 ## Schritt-10-Übergabe (2026-10-27)
 `adaptive-lod.js` definiert jetzt die gemeinsamen Welt-/Region-/Lokal-Level inklusive Welt-Tile-Dichten und Hysterese. `app.js` verwendet denselben `adaptiveLOD`-Controller für Terrain, Ufer, Flüsse, Straßen und die World-Tile-Komposition. Der unabhängige World-Tile-Schwellenwertpfad wurde ersetzt, inklusive eines passenden Backwards-Compatibility-Fallbacks. Reiner Pan erzeugt keine LOD-Umschaltung und bei vorbereiteten Caches keinen Raster-Neuaufbau; Zoomwechsel folgen denselben Grenzwerten. **Teststand: 110/110 isolierte V8-Fälle**, nativer Node-/Browser-/Küstennahtvergleich noch ausstehend. **Keine Änderung am strategischen Fernmodus, DPR-/4×-Sperren, World-Tile-Rasterdichte, Fog oder Finalexport.** Details: `STATUS.md`.
+
+
+## Schritt-11-Übergabe (2026-10-28)
+Eine explizite `render-quality-policy.js` ersetzt die dichteabhängige starre `1,5×`-Grenze durch Canvas-Budgets (normal 14 MP, Nature-dicht 8 MP, Maximalachse 4096). Auch die Fast-Kamera nutzt jetzt genau die wirksame `state.dpr`, keinen stillen 2×-Cap. Die beiden vorbereiteten Canvas-Layer haben je 17-MP-Hardlimits mit adaptivem Overscan. Quellen im bestehenden 192-MiB-Bildpool lassen sich über `setPreviewLimits()` bei bedarfsgesteuertem `ensure()` selektiv nachladen: Fast/Auto 512/1024, 4× 1536/2048, höchstens ein Upgrade gleichzeitig und die vorherige Grafik bleibt als Fallback. Effektive DPR, Limitierungen und Speicherwerte sind im Editor/über `qualityStats()` einsehbar. Finalexport, LOD-Vertrag, Fog, Terrain-/Küsten-/Sprite-Geometrie unverändert. **124/124 isolierte JavaScript-Testfälle**, Browser-FPS-/Speicher-/PNG-Vergleich ausstehend. Siehe `STATUS.md`.
