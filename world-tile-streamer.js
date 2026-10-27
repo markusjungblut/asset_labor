@@ -19,6 +19,9 @@ window.VedrasWorldTiles=(()=>{
   const cache=new Map(),queue=new Map(),running=new Map(),history=new Map();
   const retries=new Map(),retryTimers=new Map();
   const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
+  const parallelLimit=clamp(Math.floor(concurrency)||1,1,2);
+  const MAX_QUEUE_WAIT_MS=2500;
+  let priorityReorders=0,agedPromotions=0,discardedObsolete=0;
   function cancelRetry(k){
    const timer=retryTimers.get(k);
    if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
@@ -38,7 +41,8 @@ window.VedrasWorldTiles=(()=>{
    const generation=epoch;
    const timer=setTimeout(()=>{
     retryTimers.delete(k);
-    if(generation!==epoch||!wantedTiles.has(k)||cache.has(k))return;
+    if(generation!==epoch||!wantedTiles.has(k)||
+     (cache.has(k)&&!cache.get(k).packet.preview))return;
     const state=retries.get(k);
     if(!state||state.terminal)return;
     state.nextRetryAt=0;
@@ -74,11 +78,13 @@ window.VedrasWorldTiles=(()=>{
       old.tileLod??null:null,
      lastOutcome:last?.status??null,lastError:retry?.error??last?.error??null,
      attempts:retry?.attempts??last?.attempts??0,
+     queuedMs:q?Math.max(0,now-(q.queuedAt??now)):null,
      retryAt:retry?.nextRetryAt??null,terminal:retry?.terminal??false,
      reason:retry?.reason??null,ageMs:last?Math.max(0,now-last.at):null};
    });
    return {epoch,lod,visible:visibleTiles.length,queued:queue.size,
-    running:running.size,completed,failed,retryWaiting:retryTimers.size,
+    running:running.size,parallelLimit,priorityReorders,agedPromotions,
+    discardedObsolete,completed,failed,retryWaiting:retryTimers.size,
     retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
     visiblePreviews,upgraded,tiles,
     recent:[...history.values()].slice(-max).reverse()};
@@ -257,7 +263,7 @@ window.VedrasWorldTiles=(()=>{
   }
   function pump(){
    if(typeof source!=='function')return;
-   while(running.size<concurrency&&queue.size){
+   while(running.size<parallelLimit&&queue.size){
     const item=queue.values().next().value;
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
@@ -320,29 +326,52 @@ window.VedrasWorldTiles=(()=>{
    for(const k of [...retries.keys()])if(!wanted.has(k)){
     cancelRetry(k);retries.delete(k);
    }
-   for(const [k,item] of queue)if(!wanted.has(k)){
-    observe(k,'discarded',{reason:'outside-viewport'});queue.delete(k);
+   // Preserve waiting ages for still-visible work while refreshing the
+   // ordering from the CURRENT viewport rather than stale Map insertion order.
+   const prior=new Map(queue),now=Date.now();
+   for(const k of prior.keys())if(!wanted.has(k)){
+    observe(k,'discarded',{reason:'outside-viewport'});discardedObsolete++;
    }
+   queue.clear();
    for(const [k,task] of running)if(!wanted.has(k)){
-    observe(k,'aborted',{reason:'outside-viewport'});
+    observe(k,'aborted',{reason:'outside-viewport'});discardedObsolete++;
     task.controller?.abort?.();
     if(task.timeout!==null&&typeof clearTimeout==='function')clearTimeout(task.timeout);
     running.delete(k);
    }
    const midX=(-view.panX)/view.zoom,midY=(-view.panY)/(view.zoom*(view.projectY||1));
-   const sorted=[...visibleTiles].sort((a,b)=>
-    (a.x+a.size/2-midX)**2+(a.y+a.size/2-midY)**2-
-    (b.x+b.size/2-midX)**2-(b.y+b.size/2-midY)**2);
+   const distance=t=>(t.x+t.size/2-midX)**2+(t.y+t.size/2-midY)**2;
+   // Missing core > fallback LOD > preview upgrade. An existing request
+   // waiting longer than 2.5s is protected against camera-center churn.
+   const rank=t=>{
+    const existing=cache.get(key(t,lod));
+    if(existing?.packet.preview)return 2;
+    return Object.keys(density).some(l=>l!==lod&&cache.has(key(t,l)))?1:0;
+   };
+   const age=t=>Math.max(0,now-(prior.get(key(t,lod))?.queuedAt??now));
+   const sorted=[...visibleTiles].sort((x,y)=>{
+    const ax=age(x)>=MAX_QUEUE_WAIT_MS,ay=age(y)>=MAX_QUEUE_WAIT_MS;
+    if(ax!==ay)return ax?-1:1;
+    if(ax&&ay)return (prior.get(key(x,lod))?.queuedAt??now)-
+     (prior.get(key(y,lod))?.queuedAt??now);
+    return rank(x)-rank(y)||distance(x)-distance(y);
+   });
    for(const t of sorted){
     const k=key(t,lod),existing=cache.get(k);
-    if((existing&&!existing.packet.preview)||running.has(k)||queue.has(k))
-     continue;
+    if((existing&&!existing.packet.preview)||running.has(k))continue;
     const retry=retries.get(k);
-    if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>Date.now())))continue;
-    // A new LOD never hides a cached old variant.
-    queue.set(k,{key:k,tile:t,level:lod,epoch});
-    observe(k,existing?.packet.preview?'upgrade-queued':'queued',{level:lod});
+    if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>now)))continue;
+    queue.set(k,{key:k,tile:t,level:lod,epoch,
+     queuedAt:prior.get(k)?.queuedAt??now});
+    if(!prior.has(k))observe(k,existing?.packet.preview?'upgrade-queued':'queued',{level:lod});
    }
+   const before=[...prior.keys()].filter(k=>queue.has(k));
+   const after=[...queue.keys()].filter(k=>prior.has(k));
+   if(before.some((k,i)=>k!==after[i]))priorityReorders++;
+   const first=queue.values().next().value;
+   if(first&&age(first.tile)>=MAX_QUEUE_WAIT_MS&&
+      [...queue.values()].some(item=>distance(item.tile)<distance(first.tile)))
+    agedPromotions++;
    // Reserve loaded viewport tiles across zoom variants.
    const protect=new Set();
    for(const t of visibleTiles)
@@ -529,6 +558,7 @@ window.VedrasWorldTiles=(()=>{
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
    selectiveInvalidations,selectiveTiles,
+   priorityReorders,agedPromotions,discardedObsolete,parallelLimit,
    visiblePreviews,previews,upgraded,
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
