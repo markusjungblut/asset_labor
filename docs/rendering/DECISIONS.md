@@ -59,3 +59,15 @@
 
 ## D-020: Sofortige Vorschau erhalten, scharfe Nachbarn schützen
 **Entscheidung:** Den bestehenden Fallback anzeigen, bis ein schärferes vollständiges Bild vorliegt. Eine Preview darf ein bereits fertiges Tile nicht herabstufen; nur die ungenügend aufgelöste Tile wird nachgebaut. Provisorische Bitmaps nicht über native Quelldichte aufblasen, Fehler terminal diagnostizieren, Fog-Sicherheit behalten. **Abgrenzung:** Keine allgemeine LOD- oder 4×-Qualitätsreform, keine GPU-Einführung und keine globale Cache-Invalidierungsänderung; dies verbleibt bei den späteren Roadmap-Schritten.
+
+## D-021: Kamerastandort nie als Weltbildrevision verwenden (2026-10-27)
+**Entscheidung:** Bei World-Tiles bestimmen nur Background-/Scenery-**Inhalts**signatur und Objektlayoutrevision die allgemeine Invalidierung. Snapshot-`zoom/panX/panY` sind ausschließlich Compositor-Transformationen. **Begründung:** Der alte globale Cache-Wipe beim Overscan-Nachbau widersprach dem retained World-Tile-Ansatz.
+
+## D-022: Lokale Schreiboperationen nach Auswirkungsgebiet abgrenzen
+**Entscheidung:** Für gezielte, bekannte Änderungen (Decoding einzelner Natur-/Objektbilder, Materialzelle ohne Küstenwechsel, eine Straßenkante) alle unmittelbar/über Halo betroffenen 512er Tiles über sämtliche LODs invalidieren; unveränderte Nachbarn beibehalten. Unbekannte Reichweite (Wald-/Flussnetz, Relief, Weltgeometrie, biomeweite Quelle) bleibt global. **Begründung:** Bessere Wiederverwendung, ohne grenzüberschreitende Baumkronen, Schatten oder Uferränder zu ignorieren.
+
+## D-023: Road-Stamp statt globaler Straßenlisten-Signatur
+**Entscheidung:** Road-Chunk-Familie wird nur durch Zeichnungsverfahren/Relief-/Baueingaben/LOD bestimmt. Pro-Chunk-Stempel enthält Straßenkanten, die den erweiterten Zeichnungsbereich schneiden. **Begründung:** Lokale Straßenänderungen dürfen weit entfernte vorbereitete Road-Raster nicht neu anfordern.
+
+## D-024: Editor-Speichern von Bildinvalidierung trennen
+**Entscheidung:** `persistScene(false)` schreibt nur Daten, `persistScene('ground')` aktualisiert ausschließlich Hintergrund/Memo, `persistScene()` bleibt konservativ global. Hintergrund-/Scenery-Canvas wird weiterhin als Ganzes gerendert, wenn dessen tatsächlicher Inhalt geändert wurde. **Begründung:** Speichern und reine Overlay-Optionen sind keine neue Weltrevision; Schritt 6 übernimmt weitere Tile-Vorbereitung.

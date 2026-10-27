@@ -13,7 +13,7 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 
 ## Phase II – Rendering entkoppeln (v0.23.1)
 4. **Kamera ohne Scene-Rebuild**: Gecachte Kacheln beim Pan/Zoom nur transformieren. Vorhandenen Fast-/Normal-Renderpfad vor Umbau vergleichen. Akzeptanz: reine Kamerabewegung baut keine unveränderte Landschaft neu. **Code-Status: implementiert und isoliert getestet; echte Browser-Abnahme ausstehend (teilweise).**
-5. **Cache-/Invalidierungsregeln**: Terrain, Welt-Tiles, Ufer, Wege, Wald, Scenery sowie Revisionen selektiv aktualisieren. Akzeptanz: stabiler Cache ohne unnötige globale Invalidierung; keine Nähte.
+5. **Cache-/Invalidierungsregeln**: Terrain, Welt-Tiles, Ufer, Wege, Wald, Scenery sowie Revisionen selektiv aktualisieren. Akzeptanz: stabiler Cache ohne unnötige globale Invalidierung; keine Nähte. **Code-Status: implementiert und isoliert getestet; echte Karten-/Naht-Abnahme ausstehend (teilweise).**
 6. **Statische Natur/Schatten**: Vorhandenes `static-object-layer.js` und `object-layout-cache.js` weiterverwenden; nur nachweisbar fehlende Tile-Vorbereitung ergänzen. Akzeptanz: Kamera-Pan führt nicht zu Tausenden einzelnen Sprite-Zeichnungen.
 
 ## Phase III – Vorbereitung abseits des Interaktionspfads (v0.23.2)
@@ -53,3 +53,6 @@ Die Maus-/Wheel-Fast-Kamera war bereits vorhanden und blieb unverändert. `apply
 
 ### Schritt-4-Nachbesserung: Vorschau ist nicht gleich Fertigbild
 Neue Kacheln aus einem zu niedrig aufgelösten Editor-Snapshot bleiben als sofortige Vorschau zulässig; sie zählen aber nicht mehr als endgültiges Bild in der gewünschten LOD-Dichte. `world-tile-streamer.js` stellt bei gleichbleibendem Kamera-LOD eine gezielte Qualitätsanforderung, ohne scharfe Nachbarn neu aufzubauen. Keine vorgezogene Änderung an globaler LOD-Politik, GPU oder DPR-Limits. Isolierte Tests 8/8 neu; nativer Node-/Browservergleich weiter offen; siehe `STATUS.md`.
+
+## Schritt-5-Übergabe (2026-10-27)
+World-Tile-Inhalte werden nur noch bei tatsächlicher Bildrevision oder räumlich bekannten Eingriffen invalidiert, nicht wegen Verschiebung der Kamera-/Overscan-Snapshots. Terrain-Zelländerungen ohne Küstenwechsel, Änderungen an Straßen und einzelne nachgeladene Spritequellen können ihren lokalen Weltkachel-Footprint erneuern; betroffene LOD-Varianten und wartende Jobs werden sicher verworfen. `roadChunks` erkennt Änderungen jetzt mit per-Tile-Stamps. Shoreline- und speichernde UI-Aktionen invalidieren nicht mehr pauschal Szenerie. Große Abhängigkeiten (Waldökologie, Flussnetz, Wasserwechsel, globale Relief-/Materialänderungen) bleiben konservativ, damit keine veralteten Bilder/Nahtartefakte stehen bleiben. Ausführliche Fälle/Tests und Browser-Abnahme: `STATUS.md`. Schritt 6 nicht begonnen.

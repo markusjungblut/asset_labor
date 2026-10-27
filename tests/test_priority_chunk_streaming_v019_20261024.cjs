@@ -175,7 +175,7 @@ test('app wires all four chunk layers and protects cached-background viewport st
  assert.match(app,/terrainChunks\.stats\(\)\.visibleRevision/);
  assert.doesNotMatch(app,/window\.VedrasTerrainWorker\?\.status\?\.\(\)\.completed\|\|0/);
  assert.match(chunk,/prefetchWanted=new Set\(chosen\.map/);
- assert.match(chunk,/if\(generation!==epoch\)\{release\(item\);stats\.obsolete\+\+;return;\}/);
+ assert.match(chunk,/if\(generation!==epoch\)\{\s*observe\(id,'obsolete',\{reason:'epoch-change'\}\);release\(item\);stats\.obsolete\+\+;return;\s*\}/);
  assert.match(html,/id="worldStreaming" checked/);
  assert.match(html,/id="streamingPerfStats"/);
  assert.match(html,/chunks\.js\?v=0\.37\.\d+/);

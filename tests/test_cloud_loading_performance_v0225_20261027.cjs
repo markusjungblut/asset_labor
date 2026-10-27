@@ -43,7 +43,8 @@ test('missing authored sprites trigger image decode rather than being skipped',(
 test('world tile caches survive unchanged editor frames',()=>{
  const src=read('app.js');
  assert.match(src,/if\(key!==lastTileSnapshotSignature\)\{/);
- assert.match(src,/lastTileSnapshotSignature=key;\s*worldTiles\.invalidate\(\);\s*seedReadyWorldTiles\(\);/);
+ assert.match(src,/lastTileSnapshotSignature=key;[\s\S]*?if\(!worldTileSelectiveSnapshot\)worldTiles\.invalidate\(\);[\s\S]*?seedReadyWorldTiles\(\);/);
+ assert.match(src,/const key=\[base\?\.signature,scenery\?\.signature/);
  assert.match(src,/lastTileSnapshotSignature=null;/);
 });
 test('performance display reports why fog is still blocking image reveal',()=>{

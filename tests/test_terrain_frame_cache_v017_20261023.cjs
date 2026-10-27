@@ -126,8 +126,9 @@ test('bridge SVG loading and terrain image decoding cannot freeze the cached bac
  const app=read('app.js');
  assert.match(app,/requestDraw:\(\)=>\{[\s\S]*?backgroundScene\.clear\(\);requestDraw\(\);/);
  assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
- assert.match(app,/if\(affectsGround\)\{frameMemo\.invalidate\(\);backgroundScene\.clear\(\);\}/);
- assert.match(app,/if\(\['nature','buildings','units'\]\.includes\(a\.category\)\)invalidateSpriteLayout\(\)/);
+ assert.match(app,/if\(affectsGround\)\{frameMemo\.invalidate\(\);backgroundScene\.clear\(\);\s*spriteBatchGroundDirty=true;\}/);
+ assert.match(app,/if\(\['nature','buildings','units'\]\.includes\(a\.category\)\)\{\s*spriteAssetBatchDirty=true;pendingSpriteAssetPaths\.add\(a\.path\)/);
+ assert.match(app,/invalidateSpriteLayout\(worldTilesForAssetPaths\(paths\)\)/);
 });
 test('detailed terrain profiler partitions expensive cold renders without corrupting frame timings',()=>{
  const app=read('app.js'),html=read('index.html');

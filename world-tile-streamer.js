@@ -137,6 +137,36 @@ window.VedrasWorldTiles=(()=>{
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
   }
+  // Per-footprint invalidation retains unrelated tiles and LOD variants.
+  // Detached asynchronous packets are rejected by existing job-token fencing.
+  let selectiveInvalidations=0,selectiveTiles=0;
+  function invalidateTiles(tileIds){
+   const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
+    [...tileIds]:[]);
+   for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
+   if(!ids.size)return 0;
+   let changed=0;
+   for(const level of Object.keys(density))for(const id of ids){
+    const k=id+'@'+level,old=cache.get(k);
+    if(old){
+     cache.delete(k);pixels-=old.pixels;release(old.packet);
+     changed++;
+    }
+    if(queue.delete(k))changed++;
+    const job=running.get(k);
+    if(job){
+     running.delete(k);
+     if(job.timeout!==null&&typeof clearTimeout==='function')
+      clearTimeout(job.timeout);
+     job.controller?.abort?.();changed++;
+    }
+    cancelRetry(k);retries.delete(k);
+    observe(k,'invalidated',{reason:'tile-content-changed',level});
+   }
+   selectiveInvalidations++;selectiveTiles+=ids.size;
+   if(changed){onReady();pump();}
+   return changed;
+  }
   // A newly finished terrain core can unblock an exhausted source-null tile.
   // Only the named tile is rearmed, never a global retry storm.
   function terrainReady(tileId){
@@ -215,6 +245,10 @@ window.VedrasWorldTiles=(()=>{
    onReady();return true;
   }
   function seed(tile,level,packet){
+   // A repainted editor snapshot may be older/lower density: never replace
+   // an already finished sharp tile merely because a canvas was rebuilt.
+   if(cache.has(key(tile,level))&&!cache.get(key(tile,level)).packet.preview)
+    return false;
    if(requireScenery&&(!packet?.layers?.some(layer=>
       (layer.layer==='ground'||layer.layer==='terrain')&&layer.image?.width>0)||
      !packet.layers.some(layer=>
@@ -494,12 +528,13 @@ window.VedrasWorldTiles=(()=>{
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
+   selectiveInvalidations,selectiveTiles,
    visiblePreviews,previews,upgraded,
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
-    coverUnready,chooseLod,invalidate,stats,diagnostics,terrainReady};
+    coverUnready,chooseLod,invalidate,invalidateTiles,stats,diagnostics,terrainReady};
  }
  return {create};
 })();
