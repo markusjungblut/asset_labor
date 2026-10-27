@@ -7,9 +7,11 @@ window.VedrasImagePool=(()=>{
  const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
  function create({parallel=4,maxBytes=192*1024*1024,protectMs=18000,
   previewTerrainPx=512,previewSpritePx=1024,onReady=()=>{}}={}){
+  const targetLimit=asset=>['terrain','terrain_base','shorelines'].includes(asset.category)?
+   previewTerrainPx:['nature','buildings','units'].includes(asset.category)?previewSpritePx:0;
   function prepare(asset,image){
-   const limit=['terrain','terrain_base','shorelines'].includes(asset.category)?
-    previewTerrainPx:['nature','buildings','units'].includes(asset.category)?previewSpritePx:0;
+   const limit=targetLimit(asset);
+   asset.previewReduced=false;
    if(!limit||typeof document==='undefined'||!document.createElement)return image;
    const longest=Math.max(image.naturalWidth||0,image.naturalHeight||0);
    if(longest<=limit)return image;
@@ -25,8 +27,9 @@ window.VedrasImagePool=(()=>{
    asset.previewReduced=true;
    return cv;
   }
-  let active=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
-  let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,peakBytes:0};
+  let active=0,activeUpgrades=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
+  let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,
+   peakBytes:0,promoted:0,promotionFailures:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
   function prune(force=false){
    if(stats.decodedBytes<=maxBytes&&!force)return;
@@ -50,21 +53,42 @@ window.VedrasImagePool=(()=>{
   function pump(){
    while(active<parallel&&queue.length){
     queue.sort((a,b)=>b.priority-a.priority||a.order-b.order);
-    const r=queue.shift();
-    if(r.generation!==generation){r.resolve(null);continue;}
-    active++;r.loading=true;
+    // Image resampling 2048px+ canvases on the main thread must never
+    // run as four simultaneous upgrades. Initial missing assets may still
+    // fill the remaining slots, so upgrades do not block map readiness.
+    const index=queue.findIndex(item=>!item.upgrade||activeUpgrades===0);
+    if(index<0)break;
+    const [r]=queue.splice(index,1);
+    if(r.generation!==generation){
+     if(!r.upgrade)r.resolve(null);continue;
+    }
+    const wasUpgrade=!!r.upgrade;
+    active++;if(wasUpgrade)activeUpgrades++;
+    r.loading=true;
     const img=new Image();
     img.decoding='async';
     const finish=successful=>{
-     active--;r.loading=false;
-     if(r.generation!==generation){r.resolve(null);pump();return;}
-     r.ready=successful;r.failed=!successful;
+     active--;if(wasUpgrade)activeUpgrades--;
+     r.loading=false;
+     if(r.generation!==generation){
+      if(!r.upgrade)r.resolve(null);
+      r.upgrade=false;pump();return;
+     }
+     const upgrading=!!r.upgrade,previousBytes=upgrading?r.bytes:0;
+     r.upgrade=false;
      if(successful){
       const source=prepare(r.asset,img);
-       r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
-       r.asset.imageRevision=(r.asset.imageRevision||0)+1;
-      stats.decodedBytes+=r.bytes;stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
-      stats.ready++;r.resolve(source);onReady(r.asset);prune();
+      r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
+      r.ready=true;r.failed=false;
+      r.asset.imageRevision=(r.asset.imageRevision||0)+1;
+      stats.decodedBytes+=r.bytes-previousBytes;
+      stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
+      if(upgrading)stats.promoted++;else{stats.ready++;r.resolve(source);}
+      onReady(r.asset);prune();
+     }else if(upgrading){
+      // Keep the old small image usable. A broken original is never a blank
+      // frame or a reason to rebuild unrelated terrain chunks.
+      stats.promotionFailures++;r.failedUpgrade=true;
      }else{stats.failed++;r.failed=true;r.resolve(null);}
      pump();
     };
@@ -76,7 +100,25 @@ window.VedrasImagePool=(()=>{
   function ensure(asset,priority=0){
    if(!asset?.path||!asset.url)return Promise.resolve(null);
    let r=resources.get(asset.path);
-   if(r){r.lastUsed=now();if(r.ready)return Promise.resolve(r.img);return r.promise;}
+   if(r){
+    r.lastUsed=now();
+    if(r.ready){
+     const longest=Math.max(r.img?.naturalWidth||r.img?.width||0,
+      r.img?.naturalHeight||r.img?.height||0);
+     const sourceMax=Math.max(r.asset.sourceDimensions?.width||0,
+      r.asset.sourceDimensions?.height||0);
+     const target=targetLimit(r.asset);
+     // Quality changes do not purge the entire pool. Upgrade only an
+     // already-visible/selected asset when its previous preview is too small.
+     if(!r.upgrade&&!r.failedUpgrade&&r.asset.previewReduced&&
+        target>longest&&sourceMax>longest){
+      r.upgrade=true;r.order=stats.requests++;r.priority=priority;
+      queue.push(r);pump();
+     }
+     return Promise.resolve(r.img);
+    }
+    return r.promise;
+   }
    if(asset.img?.naturalWidth){
     r={asset,img:asset.img,bytes:size(asset.img),ready:true,loading:false,lastUsed:now()};
     resources.set(asset.path,r);stats.decodedBytes+=r.bytes;
@@ -91,7 +133,7 @@ window.VedrasImagePool=(()=>{
   function clear(){
    protectedPaths.clear();
    generation++;
-   for(const r of queue)r.resolve(null);
+   for(const r of queue)if(!r.upgrade)r.resolve(null);
    queue=[];
    for(const r of resources.values())if(r.ready){r.asset.img=null;}
    resources.clear();stats.decodedBytes=0;
@@ -118,9 +160,22 @@ window.VedrasImagePool=(()=>{
    }
    return ()=>{for(const {a,preview} of restored)a.img=preview;};
   }
-  function report(){return {...stats,active,queued:queue.length,resident:resources.size,
-   limitBytes:maxBytes};}
-  return {ensure,clear,prune,report,originals,protect};
+  function setPreviewLimits({terrainPx=previewTerrainPx,
+    spritePx=previewSpritePx}={}){
+   const finiteSize=n=>Number.isFinite(n)&&n>=128&&n<=4096;
+   if(!finiteSize(terrainPx)||!finiteSize(spritePx))
+    throw Error('Invalid image preview limits');
+   const changed=terrainPx!==previewTerrainPx||spritePx!==previewSpritePx;
+   previewTerrainPx=terrainPx;previewSpritePx=spritePx;
+   // No global eviction or decode storm: ensure() lazily promotes assets.
+   // A previously failed promotion may retry after a changed profile.
+   if(changed)for(const r of resources.values())r.failedUpgrade=false;
+   return changed;
+  }
+  function report(){return {...stats,active,activeUpgrades,
+   queued:queue.length,resident:resources.size,
+   previewTerrainPx,previewSpritePx,limitBytes:maxBytes};}
+  return {ensure,clear,prune,report,originals,protect,setPreviewLimits};
  }
  return {create};
 })();
