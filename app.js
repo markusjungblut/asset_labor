@@ -73,6 +73,39 @@ function paintedTerrainCore(t){
 // Include every expected sprite, not just objects already decoded into the
 // layout cache. A missing tree PNG previously produced a falsely "complete"
 // static snapshot and the clouds could uncover that hex too early.
+// A cached World-Tile includes the shoreline inside its ground bitmap.
+// An available terrain core alone cannot certify a still-loading coast.
+function shorelineTileStatus(t,allowPrepared=false,details=null){
+ if(state.shoreline?.enabled===false||
+   (!state.chunkRendering&&state.sceneSize<=37))return true;
+ const segments=shorelineCache.segments;
+ if(!Array.isArray(segments)){
+  if(details)details.shorelineReason='shoreline-segments-not-prepared';
+  return false;
+ }
+ const margin=256;
+ const coastal=segments.some(s=>s.center.x>=t.x-margin&&
+  s.center.x<=t.x+t.size+margin&&s.center.y>=t.y-margin&&
+  s.center.y<=t.y+t.size+margin);
+ if(!coastal)return true;
+ const ready=shorelineChunks.readyTiles({
+  x:t.x,y:t.y,width:t.size-1,height:t.size-1},{limit:8})
+  .find(entry=>entry.tile.id===t.id);
+ if(!ready){
+  if(details)details.shorelineReason='shoreline-chunk-not-ready';
+  return false;
+ }
+ const paintedVersion=shorelineChunks.paintedVersions().get(t.id);
+ if(details){
+  details.shorelineVersion=ready.artwork.version;
+  details.shorelinePaintedVersion=paintedVersion??null;
+ }
+ if(!allowPrepared&&paintedVersion!==ready.artwork.version){
+  if(details)details.shorelineReason='shoreline-not-painted';
+  return false;
+ }
+ return true;
+}
 function tileArtworkReady(t){return tileArtworkStatus(t);}
 function tileArtworkStatus(t,details=null,allowPrepared=false){
  if(details){details.tileId=t.id;details.terrainVersion=null;
@@ -91,6 +124,10 @@ function tileArtworkStatus(t,details=null,allowPrepared=false){
  }
  if(details){details.terrainVersion=painted.artwork.version;
   details.paintedVersion=terrainChunks.paintedVersions().get(t.id)??null;}
+ if(!shorelineTileStatus(t,allowPrepared,details)){
+  if(details)details.reason=details.shorelineReason;
+  return false;
+ }
  if(!state.objects){if(details)details.reason='ready-objects-hidden';return true;}
  // genericObjects() silently DROPS undecoded sprites. Checking its output
  // could therefore consider a half-loaded scene complete, then forever
@@ -330,6 +367,8 @@ function fastRender(){
   if(now-fastLastPrime>90){
    fastLastPrime=now;
    terrainChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
+   if(state.shoreline?.enabled!==false)
+    shorelineChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100});
   let result;
@@ -863,7 +902,10 @@ function drawShorelines(){
      ...opts,segments,bounds,resolution:shoreDensity,mouthPortals});
     return raster?.canvas?{raster}:null;
    },
-   redraw:requestDraw,family:signature
+   redraw:tile=>{
+    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    requestDraw();
+   },family:signature
   });
   const a=fromScreen(-60,-60),b=fromScreen(W+60,H+60);
   const stats=shorelineChunks.draw(ctx,{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
