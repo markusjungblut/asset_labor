@@ -8,7 +8,8 @@
 **Schritt 5:** **Selektive Cacheinvalidierung implementiert und isoliert geprüft; native Node- und Browser-Abnahme ausstehend (teilweise).**  
 **Schritt 6:** **Statische Natur-/Schatten-Tiles von beweglichen Einheiten getrennt, isoliert geprüft; native Node- und Browser-Abnahme noch offen (teilweise).**  
 **Schritt 7:** **Sichtbare Terrain-/World-Tiles nach aktuellem Kamerafokus und Wartealter priorisiert, alte Arbeit verworfen, Background-Fairness begrenzt; isolierte Tests bestanden, native Node-/Browser-Abnahme offen (teilweise).**  
-**Nächster Entwicklungsinhalt:** Browserabnahme und offene sichtbare Wolken-/Küsten-/Performanceprobleme gezielt diagnostizieren; erst danach über Schritt 8 entscheiden.
+**Schritt 8:** **Shoreline-Pixelberechnung an vorhandenen Terrain-/OffscreenCanvas-Worker angebunden, inklusive Bitmap-Transfer, Profiling und Canvas-Fallback; isoliert geprüft, echte Performance-/Grafikabnahme ausstehend (teilweise).**  
+**Nächster Entwicklungsinhalt:** Reale Browser-/Node-Abnahme der Schritte 6–8, besonders Küstenränder, Zoom-Latenzen und unfertige Tiles, bevor Schritt 9 begonnen wird.
 
 ## Änderung ausschließlich in Schritt 4
 
@@ -173,3 +174,36 @@ Der Nutzer-Screenshot vom 27.10.2026 zeigt sichtbare Wolken über offenbar errei
 - **Abnahme:** 5/5 gezielte simulierte V8-Tests für Tile-Opacity, Küsten-Readiness, No-Coast, abgeschaltete Coast-Layer und Retry-Verdrahtung. Noch keine echten Browserfotos oder nativen Node-Testläufe; gemeldete Kosten und Küstenbilddetails weiterhin live zu prüfen.
 
 **Wichtig:** Diese Korrektur behebt eine bestätigte logische Freigabelücke und die programmierte rechteckige Animation. Eine vollständig fehlerfreie Küste und ruckelfreier Zoom in der gespeicherten großen Karte sind ohne reale Laufzeitabnahme **nicht bestätigt**.
+
+## Schritt 8 – Vorhandene Worker-Pipeline für Küstenraster ergänzen (2026-10-27)
+
+**Basis:** Commit `c374ee033921293cc9d636438544190f0ce5fba7` nach getrenntem Küsten-/Wolken-Bugfix; Branch `rendering/step8-shoreline-worker-20261027`.
+
+### Eng abgegrenzter Hauptthread-Kandidat
+
+Vor Schritt 8 lief `window.VedrasShoreline.build()` unmittelbar im `shorelineChunks.buildTile()`-Callback. Darin liegt eine CPU-basierte MAX-Alpha-Zusammensetzung aus RGBA-Bilddaten; je Chunk können ein Scratch-Bitmap, `getImageData` und per-Pixel-Übertragungen für benachbarte Küstenkanten entstehen. Im Gegensatz zu Terrain war diese Arbeit bisher **nicht** in `terrain-worker.js` ausgelagert. Das ist ein aus dem Code identifizierter Mainthread-Hotspot-Kandidat, aber noch **keine reale Profilermessung der Dominanz oder Laufzeit**.
+
+### Implementation
+
+1. `terrain-worker.js` importiert dasselbe `shoreline.js` und bedient `shoreline-render` zusätzlich zu `render` und `texture`. Die Berechnung übernimmt exakt `VedrasShoreline.build`; das Ergebnis wird über das bestehende `OffscreenCanvas.transferToImageBitmap`- und `postMessage(...,transfer)`-Protokoll geliefert. Keine andere Küstenformel, keine neuen PNGs.
+2. `terrain-worker-client.js` exportiert `renderShoreline(data,assets)`, nutzt den bestehenden Worker, dessen Asset-Texturmap, Startup-Gate, Timeout und verwaiste-Bitmap-Freigabe. Shoreline-Ergebnisse werden in `{raster:{canvas:ImageBitmap,x,y,width,height}}` übersetzt, kompatibel mit dem bisherigen `chunks.js`-Rastervertrag. Separate Zähler: `shorelineJobs`, `shorelineCompleted`, `shorelineFailed`, `shorelineMs`.
+3. `app.js` ruft diesen Pfad nur für chunkbasiertes, nicht finales Rendering auf, wenn Worker und OffscreenCanvas verfügbar und aktiviert sind. Die Daten enthalten nur serialisierbare Welt-/Wet-Zellen, Segmente innerhalb des Chunk-Halos, benötigte Küstenbildpfade, Rasteroptionen und Mündungsportale. In temporärem Ufermodus werden keine sechs unnötigen Ufertexturen hochgeladen.
+4. **Fallback-/Exportparität:** `shorelineChunks.buildTile` bleibt eine normale Funktion. Ohne Worker sowie beim finalen PNG-Export wird `VedrasShoreline.build` weiterhin synchron ausgeführt. Bei einem Fehler einer Shoreline-Worker-Aufgabe wird nur dieser Pfad für die Sitzung deaktiviert und derselbe Canvas-Fallback ausgeführt; andere Terrain-Worker-Jobs werden nicht absichtlich deaktiviert. Spät empfangene ImageBitmaps ohne zugehörigen Job werden geschlossen.
+5. **Messpunkte:** `window.VedrasAssetLabor.shorelineBuildStats()` liefert `mainBuilds`, `workerBuilds`, `workerFailures`, `lastMainMs`, `lastWorkerRoundTripMs` und die bestehenden Worker-Statuswerte. Das erlaubt im Browser künftig die tatsächliche Verlagerung und deren Kosten zu überprüfen. Worker- und Canvas-Zählungen sind **keine** vorliegenden FPS-Verbesserungen.
+6. Script-Versionen in `index.html` und die Worker-URL wurden für frisches Laden angepasst. Die Warteschlangen, Fog-/Coast-Readiness aus dem vorangehenden Bugfix, LOD-Parameter, Assets, Sprite- und Ground-Komposition sowie GPU-Optionen bleiben unverändert.
+
+### Prüfung
+
+- **Neuer Test:** `tests/test_shoreline_worker_step8_20261027.cjs`, 8/8 isoliert: synchroner finaler Export, kein-Worker-Fallback, erfolgreicher Worker-Build, fehlerhafter Shoreline-Job mit Canvas-Fallback, Worker-Dispatch/Bitmap-Transfer, Client-Resultat/Statistiken, Freigabe verwaister Bitmaps, Verdrahtung und Script-Versionierung.
+- **Zusammen mit Regressionen:** **71/71** fokussierte Testfälle über eine simulierte V8-/Node-API-Umgebung: 8 neu, 5 Küsten-/Wolken-Fix, 9 Schritt-7-Priorität, 13 ältere Chunk-Priorität, 8 World-Tile, 10 Recovery, 8 LOD-Qualität, 10 gezielte Cache-Invalidierung. Getestete JavaScript-Quellen syntaktisch gültig.
+- **Nicht durchgeführt:** nativer `node --test`-Durchlauf, lokaler Server/Build, tatsächliche Worker-Verfügbarkeit, Bitmap-Parität und Browser-FPS-/p95-Messung auf der großen Szene. Status daher **teilweise**. Der zuvor gemeldete Performanceengpass ist damit **noch nicht als behoben nachgewiesen**.
+
+### Verpflichtende Browser-Abnahme vor Schritt 9
+
+1. Komplett neustarten/hart aktualisieren. Bei einer Küste und festem Zoom `VedrasAssetLabor.shorelineBuildStats()`, `tileDiagnostics({limit:100})`, `worldTileStats()`, `cameraStats()` vor/nach Kartenaufbau aufzeichnen.
+2. **Worker aktiv:** `shorelineJobs`/`shorelineCompleted` steigen, `shorelineFailed===0`. Vergleiche die sichtbaren Küsten mit Worker deaktiviert; Küstenform, Flussmündungen, Kanten, Ecküberlagerungen und Tile-Grenzen müssen übereinstimmen.
+3. **Export:** PNG mit und ohne Worker-Funktion sowie die große Szene bei deaktivierter Worker-Option kontrollieren. Keine neu auftauchende Küstenlücke, keine verzögerte Veröffentlichung eines unvollständigen Exportbildes.
+4. **Zoomen:** Wiederholt über `far/mid/near`-Schwellen zoomen und zurück. Beobachten, dass fertige Tiles ohne chunkweises Alpha-Flackern angezeigt werden, während unvollständige Bildbereiche weiterhin nur hexweise korrekt bewölkt sind. LOD-/Fallback-Raster und Küsten-Aufträge nach maximaler Wartezeit vollständig nachvollziehen.
+5. Gleiche Karte, Viewportgröße und Interaktionsfolge gegen die Version vor dem Bugfix und ohne Worker messen: Hauptthread-Blocking, FPS, p50/p95-Framezeit, `worldTileBakes`, `shorelineBuildStats`, Cache-Budget. Erst danach eine Performanceverbesserung beziffern und Schritt 8 vollständig akzeptieren.
+
+**Offen:** Der Nutzer hat weiterhin einen störenden Zoom mit Wolken- und Küstenlücken gemeldet. Die Logik wurde gezielt korrigiert und die Shoreline-CPU-Arbeit verlagert, die echte große Karte jedoch nicht erneut im Browser überprüft. Weitere Fixes sind ggf. nötig; **kein Anspruch auf vollständig behobene Symptome**.

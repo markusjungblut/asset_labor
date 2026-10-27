@@ -863,7 +863,9 @@ function reliefHeight(x,y){if(!state.relief.enabled)return 0;return window.Vedra
 function displayGroundY(x,y){return y-reliefHeight(x,y);}
 
 const SHORE_EDGE_PATHS=Array.from({length:6},(_,i)=>`assets/shorelines/shore_v105_edge_${String(i+1).padStart(2,'0')}.png`);
-let shorelineCache={signature:null,raster:null};
+let shorelineCache={signature:null,raster:null},shorelineWorkerDisabled=false;
+window.__vedrasShorelineBuildProfile={mainBuilds:0,workerBuilds:0,
+ workerFailures:0,lastMainMs:0,lastWorkerRoundTripMs:0};
 const shorelineChunks=window.VedrasChunks.create({size:512,maxTiles:20,maxPixels:8500000});
 const riverRasterCache=new Map(); // Legacy invalidation compatibility.
 const riverChunks=window.VedrasChunks.create({size:512,maxTiles:30,maxPixels:12000000});
@@ -898,9 +900,38 @@ function drawShorelines(){
    buildTile:(tile)=>{
     const halo=window.VedrasChunks.HALO,bounds={
      x:tile.x-halo,y:tile.y-halo,width:tile.size+2*halo,height:tile.size+2*halo};
-    const raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{
-     ...opts,segments,bounds,resolution:shoreDensity,mouthPortals});
-    return raster?.canvas?{raster}:null;
+    const local=()=>{
+     const begin=performance.now();
+     const raster=window.VedrasShoreline.build(worldCells,wetHex,imgs,{
+      ...opts,segments,bounds,resolution:shoreDensity,mouthPortals});
+     const stats=window.__vedrasShorelineBuildProfile;
+     stats.mainBuilds++;stats.lastMainMs=performance.now()-begin;
+     return raster?.canvas?{raster}:null;
+    };
+    if(finalRendering||state.workerTerrain===false||
+       shorelineWorkerDisabled||!window.VedrasTerrainWorker?.available?.()||
+       !window.VedrasTerrainWorker?.renderShoreline)return local();
+    const near=segments.filter(s=>s.center.x>=bounds.x-260&&
+     s.center.x<=bounds.x+bounds.width+260&&
+     s.center.y>=bounds.y-260&&s.center.y<=bounds.y+bounds.height+260);
+    const data={bounds,options:{...opts,resolution:shoreDensity},
+     cells:worldCells.map(c=>({q:c.q,r:c.r,wet:wetHex(c)})),
+     segments:near,mouthPortals,
+     imagePaths:opts.mode==='art'?files.map(a=>a?.img?.naturalWidth?a.path:null):[]};
+    const started=performance.now();
+    return window.VedrasTerrainWorker.renderShoreline(data,
+     opts.mode==='art'?files.filter(a=>a?.img?.naturalWidth):[]).then(result=>{
+      const stats=window.__vedrasShorelineBuildProfile;
+      stats.workerBuilds++;stats.lastWorkerRoundTripMs=performance.now()-started;
+      return result;
+     }).catch(err=>{
+      // Preserve synchronous Canvas2D fallback for final PNG export and
+      // browsers without OffscreenCanvas; do not disable terrain workers.
+      shorelineWorkerDisabled=true;
+      window.__vedrasShorelineBuildProfile.workerFailures++;
+      console.warn('Shoreline Worker unavailable; Canvas fallback:',err);
+      return local();
+     });
    },
    redraw:tile=>{
     if(tile?.id)worldTiles?.terrainReady(tile.id);
@@ -3513,6 +3544,8 @@ window.VedrasAssetLabor={shadowSprites:{
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
  worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ shorelineBuildStats:()=>({...window.__vedrasShorelineBuildProfile,
+  worker:window.VedrasTerrainWorker.status()}),
  sceneryDrawStats:()=>({
   mode:tileModeActive||fastInteracting?'world-tiles':'editor',
   staticSpritesThisFrame:tileModeActive||fastInteracting?0:

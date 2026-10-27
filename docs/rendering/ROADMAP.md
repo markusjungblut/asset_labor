@@ -18,7 +18,7 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 
 ## Phase III – Vorbereitung abseits des Interaktionspfads (v0.23.2)
 7. **Priorität sichtbarer Tiles**: Bestehendes `chunks.js`/`world-tile-streamer.js`-Scheduling auf Fairness und unnötige Arbeit prüfen, korrigieren. Akzeptanz: sichtbare Tiles vor Warm-/Prefetch-Tiles, keine hängenden Aufträge. **Code-Status: implementiert und 58/58 isolierte V8-Regressionen bestanden; echte Browser-/native Node-Abnahme ausstehend (teilweise).**
-8. **Worker-Pipeline ergänzen – nicht neu erfinden**: `terrain-worker.js` und `terrain-worker-client.js` sind bereits vorhanden. Erst mit Messungen belegen, welche Hauptthread-Arbeit verbleibt; nur sinnvolle weitere Aufgaben migrieren. Akzeptanz: Reaktionsfähigkeit verbessert, Parität und Fallback erhalten.
+8. **Worker-Pipeline ergänzen – nicht neu erfinden**: `terrain-worker.js` und `terrain-worker-client.js` sind bereits vorhanden. Erst mit Messungen belegen, welche Hauptthread-Arbeit verbleibt; nur sinnvolle weitere Aufgaben migrieren. Akzeptanz: Reaktionsfähigkeit verbessert, Parität und Fallback erhalten. **Status: Shoreline-CPU-Komposition als verbleibender Mainthread-Pfad identifiziert und in vorhandenen Worker integriert, 71/71 isolierte V8-Tests bestanden; echter Browser-Profiler/Native-Node-Lauf/visuelle Parität weiter offen (teilweise).**
 9. **Progressive Anzeige**: Vorhandene LOD-Alternativen und wolkenbedeckte unvollständige Kacheln korrekt nutzen. Akzeptanz: keine transparente Terrainlücke und kein Aufdecken unvollständiger Szenerie.
 
 ## Phase IV – Bildqualität (v0.24)
@@ -60,3 +60,7 @@ World-Tile-Inhalte werden nur noch bei tatsächlicher Bildrevision oder räumlic
 
 ## Schritt-7-Übergabe (2026-10-27)
 `chunks.js` und `world-tile-streamer.js` ordnen sichtbare Jobs bei Kamerabewegungen nach der aktuellen Position neu; länger als 2,5 Sekunden wartende sichtbare Tiles behalten ihre Wartezeit und erhalten Vorrang. Veraltete Ergebnisse werden verworfen, Doppelstarts vermieden, World-Tile-Parallelität begrenzt und manuelle Hintergrundvorbereitung durch gelegentliche Prefetch-Turns fair gehalten. Detailprüfungen: `docs/rendering/STATUS.md`. Wolken im sichtbaren Bereich, unvollständige Küsten und schlechte gemeldete Browserperformance bleiben ausdrücklich ungeklärt. Die nächste Arbeit ist die echte Browser-/Native-Abnahme dieser Fehler, nicht bereits Schritt 8.
+
+
+## Schritt-8-Übergabe (2026-10-27)
+Auf Grundlage des bestätigten synchronen `VedrasShoreline.build`-Aufrufs im Chunk-Renderer nutzt die Küsten-RGBA-Überlagerung den bereits existierenden Terrain-/OffscreenCanvas-Worker. Neue Worker-Befehle, Client-Routing und getrennte Messzähler wurden hinzugefügt; bei Export, fehlender Workerunterstützung oder Fehler bleibt die bestehende Canvas2D-Berechnung erhalten. Der vorangegangene Bugfix beseitigt die rechteckige 240-ms-Tile-Fade-Animation und verhindert Küstencache-Freigabe vor Shoreline-Readiness. Keine LOD-/DPR-Politik und kein Schritt 9 vorweggenommen. **Browsermessungen und Sprite-/Coast-Vergleich fehlen weiterhin**; bis dahin Schritt 8 nur teilweise abgenommen. Details: `STATUS.md`.

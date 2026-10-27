@@ -77,3 +77,9 @@
 
 ## D-026: Hintergrundvorbereitung fair halten und World-Parallelität begrenzen
 **Entscheidung:** Der World-Tile-Streamer begrenzt parallele Quellaufträge auf maximal zwei (Anwendung weiter eins). Die Chunk-Engine behält je eine Foreground- und Background-Arbeitsbahn; bei zugleich aktiven manuellen Warm- und Prefetch-Aufträgen erhält gültiges Prefetch nach sechs manuellen Starts eine Gelegenheit. **Begründung:** Sichtbare Renderaufträge müssen reaktionsfähig bleiben, ohne dass manuelle Großvorbereitung alle spekulativen Arbeiten endlos blockiert. Weitergehende Worker-Migration wird nicht vor Schritt 8 vorweggenommen.
+
+## D-027: Küsten-RGBA-Union in die bestehende Terrain-Worker-Infrastruktur auslagern
+**Entscheidung:** Die eindeutig verbleibende synchrone per-Pixel-Küstenkomposition in `VedrasShoreline.build` wird über den vorhandenen `terrain-worker.js`-Worker mit OffscreenCanvas und transferiertem ImageBitmap berechnet. Terrain- und Shoreline-Aufträge teilen sich Worker-Lebenszyklus, PNG-Texturmap, Bitmap-Besitz und Fehlerdiagnose. **Begründung:** Der Mainthread erstellt bislang die großen RGBA-Küstenraster, obwohl die Terrain-Worker-Infrastruktur bereits zur Verfügung steht; die bestehende Zeichenroutine kann unverändert im Worker ausgeführt werden. Eine gemessene Verbesserung bleibt Voraussetzung der abschließenden Abnahme.
+
+## D-028: Worker-Migration mit synchronem Export und lokalem Fallback
+**Entscheidung:** Nur der interaktive chunkbasierte Shoreline-Pfad ist asynchron. Bei Finalexport, deaktivierten/nicht unterstützten Workern oder einem Shoreline-Worker-Fehler bleibt `VedrasShoreline.build` synchron. Ein Küstenfehler darf die separate Terrain-Berechnung nicht grundsätzlich deaktivieren. **Begründung:** Exportbild und Plattformkompatibilität dürfen durch eine Performance-Migration nicht verschlechtert werden; gleiche Renderfunktion und Bitmaps ermöglichen Paritätsprüfung.
