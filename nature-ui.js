@@ -383,7 +383,12 @@ window.VedrasNature=(()=>{
    // Standing dead trees are accents, NOT living canopy quota trees.
    const boulders=possible.filter(a=>isBoulder(entryFor(a)))
     .sort((a,b)=>a.relPath.localeCompare(b.relPath));
-   const other=possible.filter(a=>!B.isCanopy(entryFor(a))&&!isBoulder(entryFor(a)))
+   // Snow patches are flat foreground ground cover, not rocks. Give each
+   // eligible cold hex one seeded opportunity BEFORE rocks/shrubs fill slots.
+   const snowPatches=possible.filter(a=>entryFor(a)?.family==='snow')
+    .sort((a,b)=>a.relPath.localeCompare(b.relPath));
+   const other=possible.filter(a=>!B.isCanopy(entryFor(a))&&
+    !isBoulder(entryFor(a))&&entryFor(a)?.family!=='snow')
     .sort((a,b)=>rank(a,c,302)-rank(b,c,302));
    let wantedTrees=F.treeTarget(f);
    // Coherent stand variation: neighboring hexes form groves and glades
@@ -429,6 +434,19 @@ window.VedrasNature=(()=>{
      const a=boulders[(first+j)%boulders.length];
      const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
      if(inst){record(inst);count++;newBoulders++;break;}
+    }
+   }
+   if(snowPatches.length&&count<objectCap){
+    const snowChance=['snowfields','frozen_tundra'].includes(terrainType)?
+     .58:terrainType==='highland'?.25:.14;
+    if(random(seed,c.q,c.r,1643)<snowChance){
+     const first=Math.floor(random(seed,c.q,c.r,1644)*snowPatches.length);
+     for(let j=0;j<snowPatches.length;j++){
+      const asset=snowPatches[(first+j)%snowPatches.length];
+      const inst=makeInstance(asset,c.q,c.r,all.length+1,
+       all,seed,spacingFactor,forestByHex,neighborsByHex);
+      if(inst){record(inst);count++;break;}
+     }
     }
    }
    let accentOnHex=placed.some(n=>{const a=assets.find(v=>v.path===n.assetPath);return B.isAccent(entryFor(a));});
