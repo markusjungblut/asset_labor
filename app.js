@@ -19,7 +19,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
 let tileModeActive=false,tileBakes=0,
- visibleFogTiles=null;
+ visibleFogTiles=null,lastTileSnapshotSignature=null;
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
@@ -75,14 +75,35 @@ function paintedTerrainCore(t){
 function tileArtworkReady(t){
  if(!paintedTerrainCore(t))return false;
  if(!state.objects)return true;
- const expected=genericObjects({x:t.x-320,y:t.y-320,
-  width:t.size+640,height:t.size+640});
- return expected.every(o=>{
-  if(!o.asset)return true; // Optional prototypes without a supplied PNG.
-  if(o.x<t.x-320||o.x>t.x+t.size+320||
-   o.y<t.y-320||o.y>t.y+t.size+320)return true;
-  return !!o.asset.img?.naturalWidth;
- });
+ // genericObjects() silently DROPS undecoded sprites. Checking its output
+ // could therefore consider a half-loaded scene complete, then forever
+ // cache absent trees. Instead inspect the authored anchors directly.
+ const xmin=t.x-320,xmax=t.x+t.size+320,
+  ymin=t.y-320,ymax=t.y+t.size+320;
+ const paths=new Set();
+ const inside=(x,y)=>x>=xmin&&x<=xmax&&y>=ymin&&y<=ymax;
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r);
+  if(inside(p.x+(n.dx||0),p.y+(n.dy||0)))paths.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(inside(p.x,p.y))paths.add(m.assetPath);
+ }
+ for(const [k,o] of Object.entries(state.hexObject||{})){
+  const [q,r]=k.split(',').map(Number),p=axialPos(q,r);
+  if(inside(p.x,p.y))paths.add(o?.path);
+ }
+ let ready=true;
+ for(const path of paths){
+  const asset=assetByPath.get(path);
+  if(!asset)continue; // deleted optional assets cannot block exploration
+  if(!asset.img?.naturalWidth){
+   imagePool.ensure(asset,11); // actively finish the missing source
+   ready=false;
+  }
+ }
+ return ready;
 }
 function seedReadyWorldTiles(){
  if(!worldTiles||finalRendering||state.mode==='far')return;
@@ -348,6 +369,7 @@ const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:120
 const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:12000000,minPadding:48});
 const frameMemo=window.VedrasFrameMemo.create();
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
+let spriteAssetBatchDirty=false,assetBatchStarted=0;
 const spriteAtlas=window.VedrasSpriteAtlas?.create({
  base:'atlases/',limitPages:6,onReady:()=>requestDraw()
 })||null;
@@ -363,7 +385,8 @@ const imagePool=window.VedrasImagePool.create({
    (state.relief?.enabled&&(a.category==='buildings'||
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){frameMemo.invalidate();backgroundScene.clear();}
-  if(['nature','buildings','units'].includes(a.category))invalidateSpriteLayout();
+  if(['nature','buildings','units'].includes(a.category))
+   spriteAssetBatchDirty=true;
   if(imagePoolPriming)return;
   // Updating one delayed PNG must NOT drop every completed terrain chunk.
   // Per-tile stamps below track the image generation and replace only users
@@ -371,16 +394,31 @@ const imagePool=window.VedrasImagePool.create({
   if(isTerrain(a)){terrainAssetGroups=null;terrainRasterCache.signature=null;}
   // Batch sprite image completions. A 100ms decode burst used to provoke
   // one expensive terrain/forest/sprite pass per settled image promise.
-  if(!assetReadyTimer)assetReadyTimer=setTimeout(()=>{
-   assetReadyTimer=null;requestDraw();
+  // A 2-second sprite rebuild for every 100ms download batch starves
+  // image decoding and makes the map look stuck below clouds. Defer all
+  // sprite-layout invalidation and redraw until the current image queue
+  // settles; retain a bounded 1.8-second intermediate refresh.
+  if(!assetBatchStarted)assetBatchStarted=performance.now();
+  clearTimeout(assetReadyTimer);
+  const pending=imagePool.report(),busy=pending.queued>0||pending.active>1;
+  const elapsed=performance.now()-assetBatchStarted;
+  const delay=busy?Math.max(80,1800-elapsed):120;
+  assetReadyTimer=setTimeout(()=>{
+   assetReadyTimer=null;assetBatchStarted=0;
+   if(spriteAssetBatchDirty){
+    spriteAssetBatchDirty=false;
+    invalidateSpriteLayout();
+   }
+   requestDraw();
    window.dispatchEvent(new Event('vedras:asset-image-loaded'));
-  },100);
+  },delay);
  }
 });
 let finalRendering=false;
 // Per-scene data is stable across camera movement; edits explicitly invalidate it.
 const objectLayoutCache=window.VedrasObjectLayoutCache.create();
 function invalidateSpriteLayout(){objectLayoutCache.invalidate();staticScenery.clear();
+ lastTileSnapshotSignature=null;
  tileModeActive=false;worldTiles?.invalidate();visibleFogTiles=null;}
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
@@ -565,7 +603,14 @@ function deviceRatio(){
  const quality=finalRendering?'2':state.quality;
  const requested=quality==='fast'?.80:quality==='auto'?Math.min(window.devicePixelRatio||1,1.35):Number(quality);
  const budget=quality==='fast'?1300000:quality==='auto'?3200000:18000000;
- return Math.max(.65,Math.min(requested,4,Math.sqrt(budget/Math.max(1,W*H)),4096/Math.max(1,W),4096/Math.max(1,H)));
+ const calculated=Math.max(.65,Math.min(requested,4,
+  Math.sqrt(budget/Math.max(1,W*H)),4096/Math.max(1,W),4096/Math.max(1,H)));
+ // The "4x" option previously caused two 12 MP editor rasters AND thousands
+ // of shadow composites on every asset arrival. Cap only interactive DPR on
+ // dense maps; finalRendering takes the original high-resolution path.
+ const densePreview=!finalRendering&&state.objects&&
+  (state.natureInstances?.length||0)>500;
+ return densePreview?Math.min(calculated,1.5):calculated;
 }
 function resize(){
  const b=canvas.getBoundingClientRect(),nw=Math.max(100,Math.round(b.width)),
@@ -2096,8 +2141,17 @@ function draw(){
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
  if(worldTiles){
-  worldTiles.invalidate(); // exact editor image supersedes stale revisions
-  seedReadyWorldTiles(); // first gesture starts with prepared sprite/terrain tiles
+  // Camera-only redraws must reuse completed tiles. Invalidate ONLY when
+  // the underlying prepared source images or geometry actually changed.
+  const base=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
+  const key=[base?.signature,base?.panX,base?.panY,base?.zoom,
+   scenery?.signature,scenery?.panX,scenery?.panY,scenery?.zoom,
+   objectLayoutCache.stats().revision].join('|');
+  if(key!==lastTileSnapshotSignature){
+   lastTileSnapshotSignature=key;
+   worldTiles.invalidate();
+   seedReadyWorldTiles();
+  }
  }
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
