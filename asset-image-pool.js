@@ -27,7 +27,7 @@ window.VedrasImagePool=(()=>{
    asset.previewReduced=true;
    return cv;
   }
-  let active=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
+  let active=0,activeUpgrades=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,
    peakBytes:0,promoted:0,promotionFailures:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
@@ -53,13 +53,23 @@ window.VedrasImagePool=(()=>{
   function pump(){
    while(active<parallel&&queue.length){
     queue.sort((a,b)=>b.priority-a.priority||a.order-b.order);
-    const r=queue.shift();
-    if(r.generation!==generation){r.resolve(null);continue;}
-    active++;r.loading=true;
+    // Image resampling 2048px+ canvases on the main thread must never
+    // run as four simultaneous upgrades. Initial missing assets may still
+    // fill the remaining slots, so upgrades do not block map readiness.
+    const index=queue.findIndex(item=>!item.upgrade||activeUpgrades===0);
+    if(index<0)break;
+    const [r]=queue.splice(index,1);
+    if(r.generation!==generation){
+     if(!r.upgrade)r.resolve(null);continue;
+    }
+    const wasUpgrade=!!r.upgrade;
+    active++;if(wasUpgrade)activeUpgrades++;
+    r.loading=true;
     const img=new Image();
     img.decoding='async';
     const finish=successful=>{
-     active--;r.loading=false;
+     active--;if(wasUpgrade)activeUpgrades--;
+     r.loading=false;
      if(r.generation!==generation){
       if(!r.upgrade)r.resolve(null);
       r.upgrade=false;pump();return;
@@ -162,7 +172,8 @@ window.VedrasImagePool=(()=>{
    if(changed)for(const r of resources.values())r.failedUpgrade=false;
    return changed;
   }
-  function report(){return {...stats,active,queued:queue.length,resident:resources.size,
+  function report(){return {...stats,active,activeUpgrades,
+   queued:queue.length,resident:resources.size,
    previewTerrainPx,previewSpritePx,limitBytes:maxBytes};}
   return {ensure,clear,prune,report,originals,protect,setPreviewLimits};
  }
