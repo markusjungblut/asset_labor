@@ -54,7 +54,7 @@ test('performance display reports why fog is still blocking image reveal',()=>{
  assert.match(src,/Terrain /);
 });
 test('release and cache-busting metadata match v0.22.5',()=>{
- assert.match(read('index.html'),/Asset-Labor v0\.22\.5/);
- assert.match(read('index.html'),/app\.js\?v=0\.55\.5/);
- assert.match(read('server.py'),/VERSION = '0\.22\.5'/);
+ assert.match(read('index.html'),/Asset-Labor v0\.22\.6/);
+ assert.match(read('index.html'),/app\.js\?v=0\.55\.6/);
+ assert.match(read('server.py'),/VERSION = '0\.22\.6'/);
 });
