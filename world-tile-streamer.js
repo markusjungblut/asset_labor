@@ -480,6 +480,7 @@ window.VedrasWorldTiles=(()=>{
    // Draw terrain only inside known world HEX geometry, never a rectangular
    // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
+   let exact=0,fallback=0,provisional=0,missing=0;
    visiblePreviews=0;
    const hasMask=Array.isArray(fog)&&fog.length>0&&typeof g.clip==='function';
    const atmosphere=window.VedrasFogAtmosphere;
@@ -527,7 +528,7 @@ window.VedrasWorldTiles=(()=>{
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
-   let covered=0,draws=0,exact=0,fallback=0,provisional=0,missing=0;
+   let covered=0,draws=0;
    function layerPass(layers,halo){
     g.save();drawKnownPath(halo);
     for(const layer of layers)for(const obj of items)
