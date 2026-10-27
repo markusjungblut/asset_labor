@@ -69,7 +69,9 @@ window.VedrasChunks=(()=>{
   size=clamp(Math.floor(size),256,1024);
   let cache=new Map();
   const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
-   prefetchQueue=new Map(),warmRemaining=new Set();
+   prefetchQueue=new Map(),warmRemaining=new Set(),visibleQueuedAt=new Map();
+  const MAX_VISIBLE_WAIT_MS=2500,MAX_WARM_STREAK=6;
+  let warmStreak=0,lastAgedPriority=null;
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
    backgroundPaused=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
@@ -78,7 +80,9 @@ window.VedrasChunks=(()=>{
    stats={built:0,cacheHits:0,evicted:0,errors:0,lastMs:0,visible:0,pending:0,
     painted:0,stalePainted:0,pixels:0,warmTotal:0,warmDone:0,
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
-    visibleRevision:0,prefetchPending:0,manualPending:0};
+    visibleRevision:0,prefetchPending:0,manualPending:0,
+    priorityReorders:0,agedPromotions:0,backgroundFairTurns:0,
+    duplicateBuildSkips:0,obsoleteVisibleDiscarded:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   // Only the terrain layer requires a drawable raster; empty roads/banks are valid.
   let requireArtwork=false,taskTimeoutMs=60000;
@@ -89,6 +93,40 @@ window.VedrasChunks=(()=>{
    const timer=retryTimers.get(id);
    if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
    retryTimers.delete(id);failures.delete(id);
+  }
+  function enqueueVisible(t){
+   if(!queue.has(t.id))visibleQueuedAt.set(t.id,Date.now());
+   queue.set(t.id,t);
+  }
+  function building(id){
+   return activeJobs.foreground?.id===id||activeJobs.background?.id===id;
+  }
+  // Camera-position priority, preserving the original waiting time. Long
+  // waiting visible chunks receive priority so center churn cannot starve them.
+  function prioritizeVisible(){
+   if(queue.size<2){lastAgedPriority=null;return;}
+   const now=Date.now(),focus=lastFocus||{x:0,y:0};
+   const before=[...queue.keys()],ordered=[...queue.values()];
+   const age=t=>Math.max(0,now-(visibleQueuedAt.get(t.id)??now));
+   const dist=t=>(t.x+t.size/2-focus.x)**2+
+    (t.y+t.size/2-focus.y)**2;
+   ordered.sort((a,b)=>{
+    const ao=age(a)>=MAX_VISIBLE_WAIT_MS,bo=age(b)>=MAX_VISIBLE_WAIT_MS;
+    if(ao!==bo)return ao?-1:1;
+    if(ao&&bo)return (visibleQueuedAt.get(a.id)??now)-
+     (visibleQueuedAt.get(b.id)??now);
+    return dist(a)-dist(b);
+   });
+   if(ordered.some((t,i)=>t.id!==before[i]))stats.priorityReorders++;
+   const protectedWait=age(ordered[0])>=MAX_VISIBLE_WAIT_MS&&
+    ordered.some(t=>age(t)<MAX_VISIBLE_WAIT_MS&&dist(t)<dist(ordered[0]));
+   if(protectedWait){
+    if(lastAgedPriority!==ordered[0].id){
+     stats.agedPromotions++;lastAgedPriority=ordered[0].id;
+    }
+   }else lastAgedPriority=null;
+   queue.clear();
+   for(const t of ordered)queue.set(t.id,t);
   }
   function eligible(id,t){
    if(!requireArtwork)return true;
@@ -114,7 +152,8 @@ window.VedrasChunks=(()=>{
     if(generation!==epoch||failures.get(id)!==failure)return;
     failure.nextAt=0;
     if(!viewportWanted.has(id)||cache.has(id)||queue.has(id))return;
-    queue.set(id,t);
+    if(building(id))return;
+    enqueueVisible(t);prioritizeVisible();
     observe(id,'queued-visible',{reason:'retry',attempts});
     schedule();
    },delay);
@@ -147,6 +186,7 @@ window.VedrasChunks=(()=>{
      flight:flight?.lane??null,startedAt:flight?.startedAt??null,
      lastOutcome:prior?.status??null,lastError:failure?.error??prior?.error??null,
      retryAt:failure?.nextAt??null,terminal:failure?.terminal??false,
+     queuedMs:queue.has(id)?Math.max(0,now-(visibleQueuedAt.get(id)??now)):null,
      failureReason:failure?.reason??null,
      attempts:failure?.attempts??prior?.attempts??0,
      ageMs:prior?Math.max(0,now-prior.at):null};
@@ -185,7 +225,9 @@ window.VedrasChunks=(()=>{
     observe(job.id,'invalidated',{reason:'clear'});
    }
    activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
-   dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+   dropCache();queue.clear();visibleQueuedAt.clear();
+   backgroundQueue.clear();prefetchQueue.clear();warmStreak=0;
+   lastAgedPriority=null;
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
    prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();lastFocus=null;
    signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
@@ -203,7 +245,8 @@ window.VedrasChunks=(()=>{
      observe(job.id,'invalidated',{reason:'signature-change'});
     }
     activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
-    queue.clear();backgroundQueue.clear();prefetchQueue.clear();
+    queue.clear();visibleQueuedAt.clear();backgroundQueue.clear();
+    prefetchQueue.clear();warmStreak=0;lastAgedPriority=null;
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
     prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();
     lastFocus=null;epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
@@ -271,15 +314,25 @@ window.VedrasChunks=(()=>{
     if(generation!==epoch)return;
     if(urgent)urgentScheduled=false;else scheduled=false;
     const interactive=urgent&&queue.size>0&&!inFlightInteractive;
-    const warm=!urgent&&!backgroundPaused&&!inFlightBackground&&backgroundQueue.size>0;
-    const predictive=!urgent&&!backgroundPaused&&!warm&&
-     !inFlightBackground&&prefetchQueue.size>0;
+    const canBackground=!urgent&&!backgroundPaused&&!inFlightBackground;
+    const warm=canBackground&&backgroundQueue.size>0&&
+     (prefetchQueue.size===0||warmStreak<MAX_WARM_STREAK);
+    const predictive=canBackground&&!warm&&prefetchQueue.size>0;
     if(!interactive&&!warm&&!predictive){schedule();return;}
     const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
+    if(interactive)visibleQueuedAt.delete(id);
+    if(warm)warmStreak++;
+    else if(predictive){
+     if(backgroundQueue.size)stats.backgroundFairTurns++;
+     warmStreak=0;
+    }
     const isVisible=viewportWanted.has(id)||protectedIds.has(id);
+    if(interactive&&!viewportWanted.has(id)){
+     stats.obsoleteVisibleDiscarded++;schedule();return;
+    }
     if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
      stats.prefetchDiscarded++;schedule();return;
     }
@@ -310,6 +363,14 @@ window.VedrasChunks=(()=>{
       observe(id,'obsolete',{reason:'epoch-change'});release(item);stats.obsolete++;return;
      }
      const visibleNow=viewportWanted.has(id)||protectedIds.has(id);
+     // Old foreground work may finish after the camera leaves its region.
+     // Never publish such a result unless it belongs to the new bounded
+     // prefetch ring or an explicit manual warm job.
+     if(interactive&&!visibleNow&&!prefetchWanted.has(id)&&
+        !warmRemaining.has(id)){
+      observe(id,'obsolete',{reason:'outside-viewport'});
+      release(item);stats.obsolete++;schedule();return;
+     }
      // Ignore obsolete speculative jobs rather than filling the LRU with
      // a distant region after the player turns around.
      if(expectedStamp!==stampForTile(t)||
@@ -317,7 +378,8 @@ window.VedrasChunks=(()=>{
       observe(id,'obsolete',{reason:'stamp-or-prefetch-changed'});
       release(item);stats.obsolete++;
       if(visibleNow&&expectedStamp!==stampForTile(t)&&!queue.has(id)){
-       queue.set(id,t);observe(id,'queued-visible',{reason:'changed-stamp'});
+       if(!building(id)){enqueueVisible(t);prioritizeVisible();}
+       observe(id,'queued-visible',{reason:'changed-stamp'});
       }
       markWarm(id);schedule();return;
      }
@@ -407,7 +469,11 @@ window.VedrasChunks=(()=>{
    const keep=new Set(tiles.map(t=>t.id));
    viewportWanted=keep;
    protectedIds=new Set(keep);
-   for(const id of [...queue.keys()])if(!keep.has(id))queue.delete(id);
+   for(const id of [...queue.keys()])if(!keep.has(id)){
+    queue.delete(id);visibleQueuedAt.delete(id);
+    observe(id,'discarded',{reason:'outside-viewport'});
+    stats.obsoleteVisibleDiscarded++;
+   }
    const cx=viewport.x+viewport.width/2,cy=viewport.y+viewport.height/2;
    const old=lastFocus;
    lastFocus={x:cx,y:cy};
@@ -462,15 +528,15 @@ window.VedrasChunks=(()=>{
      (!requireArtwork||drawable(data));
     if(ready&&lastDrawnVersions.get(t.id)!==data.version)
      unseenReady=true;
-    if(!ready&&!queue.has(t.id)&&eligible(t.id,t)){
-     prefetchQueue.delete(t.id);
-     queue.set(t.id,t);
-    }
+    if(!ready&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
+     prefetchQueue.delete(t.id);enqueueVisible(t);
+    }else if(!ready&&building(t.id))stats.duplicateBuildSkips++;
    }
    // A speculative result can be ready before entering the visible region,
    // yet absent in v0.17's already cached, oversized background canvas.
    // Force only that newly seen region to refresh once when it enters view.
    if(unseenReady&&notifyReady){stats.visibleRevision++;requestDraw();}
+   prioritizeVisible();
    stats.prefetchPending=prefetchQueue.size;
    stats.manualPending=backgroundQueue.size;
    stats.pending=queue.size+(inFlightInteractive?1:0);
@@ -533,9 +599,9 @@ window.VedrasChunks=(()=>{
       (requireArtwork&&!drawable(result)))){
      cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
     }
-    if(!result&&!queue.has(t.id)&&eligible(t.id,t)){
-     backgroundQueue.delete(t.id);queue.set(t.id,t);
-    }
+    if(!result&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
+     backgroundQueue.delete(t.id);enqueueVisible(t);
+    }else if(!result&&building(t.id))stats.duplicateBuildSkips++;
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
@@ -550,6 +616,7 @@ window.VedrasChunks=(()=>{
     ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
    lastDrawnVersions=paintedVersions;
+   prioritizeVisible();
    stats.pending=queue.size+(inFlightInteractive?1:0);
    stats.prefetchPending=prefetchQueue.size;
    stats.manualPending=backgroundQueue.size;

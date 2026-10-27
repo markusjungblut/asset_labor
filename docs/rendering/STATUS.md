@@ -7,7 +7,8 @@
 **Schritte 1–3:** Implementierungsstand aus bisherigen Commits beibehalten. Die noch offene Browserprüfung von Schritt 3 bleibt ausdrücklich offen.  
 **Schritt 5:** **Selektive Cacheinvalidierung implementiert und isoliert geprüft; native Node- und Browser-Abnahme ausstehend (teilweise).**  
 **Schritt 6:** **Statische Natur-/Schatten-Tiles von beweglichen Einheiten getrennt, isoliert geprüft; native Node- und Browser-Abnahme noch offen (teilweise).**  
-**Nächster Entwicklungsinhalt:** Native Tests und Browser-Abnahme der Schritte 3–6, danach Schritt 7.
+**Schritt 7:** **Sichtbare Terrain-/World-Tiles nach aktuellem Kamerafokus und Wartealter priorisiert, alte Arbeit verworfen, Background-Fairness begrenzt; isolierte Tests bestanden, native Node-/Browser-Abnahme offen (teilweise).**  
+**Nächster Entwicklungsinhalt:** Browserabnahme und offene sichtbare Wolken-/Küsten-/Performanceprobleme gezielt diagnostizieren; erst danach über Schritt 8 entscheiden.
 
 ## Änderung ausschließlich in Schritt 4
 
@@ -128,3 +129,37 @@ node --test tests/test_terrain_frame_cache_v017_20261023.cjs tests/test_static_s
 6. Browsertrace mit gleicher Szene/Zoom/DPR und getrennten Normal-/Tile-Kamera-Frametimings aufzeichnen. Erst dann Schritt 6 vollständig abnehmen und zu Schritt 7 übergehen.
 
 **Offene Probleme:** native Integration/FPS und eventuelle Sprite-/Bergnaht-Regressionsbilder fehlen. Bewegliche Einheiten verwenden noch den bestehenden Objektlayoutindex und dessen explizite Invalidierung; der spätere Spielzustands-/Einheitenupdate-Pfad ist Schritt 17, nicht dieser Schritt.
+
+## Schritt 7 – Priorisierte Warteschlangen für sichtbare Kacheln (2026-10-27)
+
+**Basiscommit:** `6a96d6cd29032329d934b697aeabffb7f80a12cc`. Implementiert im Branch `rendering/step7-priority-queues-20261027`. **Status: teilweise bis Browser-/Node-Abnahme.**
+
+### Beobachtung vor der Änderung
+
+Der Nutzer-Screenshot vom 27.10.2026 zeigt sichtbare Wolken über offenbar erreichbaren Kartenregionen, teilweise unvollständige Küsten und weiterhin unzureichende Performance; die Karte befindet sich ungefähr bei 131 % Zoom. Das ist ein **offener realer Produktfehler**, kein nachgewiesener Schedulerfehler. Die große gespeicherte Szene und ihre exakten Bild-/Chunk-Logs wurden hier nicht live ausgeführt. Die ältere Referenz von 449,6 ms/Frame sowie ursprünglich 67 offenen Terrain-Aufträgen ist weiterhin **keine neue Messung**.
+
+### Implementierte, eng begrenzte Änderungen
+
+1. `chunks.js`: Bereits wartende sichtbare Chunks werden bei `prime()`, `draw()` und einem Retry nach dem **aktuellen** Kameramittelpunkt neu sortiert. Wartezeit läuft weiter, statt bei jeder Kamerabewegung zurückgesetzt zu werden. Nach 2.500 ms erhalten wartende, weiterhin sichtbare Tiles Vorrang vor neu hinzugekommenen näheren Kacheln. Sichtbare Jobs verwenden weiterhin den dringenden `setTimeout(0)`-Pfad, kein wartendes Idle-Callback.
+2. `chunks.js`: Aufträge außerhalb des neuen sichtbaren Bereichs werden aus der Vordergrundqueue entfernt. Bereits laufende Vordergrundarbeit, die erst **nach** einer Kamerabewegung fertig wird, wird nicht mehr im Cache veröffentlicht, wenn sie weder sichtbar noch im gültigen Prefetch-Ring noch Teil einer ausdrücklich gestarteten manuellen Vorbereitung ist. Alte Ergebnisse werden freigegeben; vorhandene per-Stempel-/Epoch-Schutzregeln bleiben bestehen.
+3. `chunks.js`: Ein bereits im Vordergrund oder Hintergrund berechnetes Tile wird nicht zusätzlich als zweiter sichtbarer Auftrag gestartet. Abgeschlossene Hintergrundtiles dürfen stattdessen bei inzwischen sichtbarer Position als gültiges Ergebnis publiziert werden. Die bestehenden zwei unabhängigen Chunk-Arbeitsbahnen bleiben erhalten. Manuelle Warm-Arbeit bleibt grundsätzlich vorrangig, gibt aber nach sechs Starts eine Idle-Gelegenheit an einen weiterhin gültigen Prefetch-Auftrag ab.
+4. `world-tile-streamer.js`: Sichtbare Anfragen werden **bei jedem Request** aus dem aktuellen Kamerafokus neu geordnet; alte Map-Einfügereihenfolgen bleiben nicht bindend. Bei gleicher Warteklasse gelten fehlende Raster vor vorhandenem Alternativ-LOD und Preview-Upgrade. Dieselbe maximale sichtbare Wartezeit (2.500 ms) schützt ältere, noch relevante Jobs gegen Verhungern. Nicht mehr angeforderte Queue-/Flight-Einträge werden weiter verworfen und durch Job-Tokens gegen späte Überschreibungen geschützt.
+5. `world-tile-streamer.js`: Ein explizites Parallelitätslimit begrenzt die laufenden World-Tile-Aufträge auf 1 bis 2; die Anwendung verwendet weiterhin den bisherigen Standard von **1**. Retry nach `source-null` darf nun auch einen vorhandenen provisorischen `preview`-Tile erneut anfordern, statt dauerhaft am Preview-Cache zu enden. Der normale strikte Ground+Scenery-Freigabevertrag bleibt unverändert.
+6. Diagnostik: `chunks.stats()` enthält `priorityReorders`, `agedPromotions`, `backgroundFairTurns`, `duplicateBuildSkips` und `obsoleteVisibleDiscarded`. `worldTileStats()` und `tileDiagnostics().world` melden `priorityReorders`, `agedPromotions`, `discardedObsolete`, `parallelLimit`; die sichtbaren Tileeinträge zeigen `queuedMs`. Die bereits vorhandenen `queuedVisible`-/`queuedWarm`-/`queuedPrefetch`-Zähler bleiben erhalten.
+7. Die Browser-Script-Abfragen für `chunks.js` und `world-tile-streamer.js` wurden in `index.html` aktualisiert, damit ein harter Reload die neue Reihenfolge verwendet. **Unverändert:** Terrain-Worker, Materialauswahl, Ufergeometrie, Fog-Berechtigungen, Scene-Cache-Verträge, Sprite-Grafiken, LOD-/DPR-Limits und Finalexport.
+
+### Tests und Grenzen der Abnahme
+
+- **Neuer Regressionstest:** `tests/test_priority_render_queues_v023_step7_20261027.cjs`, **9/9** V8-Fälle: Kamerafokus, Anti-Starvation, obsolete Foreground-Resultate, manuelle Warm-/Prefetch-Fairness, World-Tile-Priorität/Alter, ungültige laufende Jobs, Parallelitätsgrenze und Preview-Recovery.
+- **Ältere Regressionen:** `test_priority_chunk_streaming_v019_20261024.cjs` **13/13**, `test_world_tile_streamer_v021_20261026.cjs` **8/8**, `test_tile_recovery_v023_step3_20261027.cjs` **10/10**, `test_tile_quality_upgrade_step4_20261027.cjs` **8/8**, `test_render_cache_invalidation_v023_step5_20261027.cjs` **10/10**.
+- **Insgesamt 58/58** fokussierte Testfälle über eine **simulierte V8-/Node-API-Umgebung**. Die geänderten beiden Renderdateien wurden auf JS-Syntax geprüft. Das ist **kein** nativer `node --test`-, Webserver-, Browser- oder GPU-Testlauf und keine p50-/p95-/FPS-Messung. Daher Schritt 7 **noch nicht vollständig abgenommen**.
+
+### Offene Fehler und reproduzierbare Browser-Abnahme
+
+1. Große Nutzerkarte hart neu laden, bei gleichem Viewport/Zoom/DPR und ohne neue Kartenedits zunächst 60 Sekunden warten. `window.VedrasAssetLabor.tileDiagnostics({limit:150})`, `worldTileStats()`, `streamingStats()` und `cameraStats()` bei 0/30/60 Sekunden vergleichen.
+2. Schnell in beide Richtungen schwenken und wieder anhalten. Prüfen, ob sichtbare `queued`-/`running`-Aufträge vor weiter entfernten/fremden Tiles abgearbeitet werden, `queuedMs` nicht endlos steigt und `priorityReorders`/Discard-Zähler plausibel wachsen. Die `inFlight`-Anzahl darf die vereinbarten Grenzen nicht überschreiten.
+3. Wolken auf **eigentlich sichtbaren** Feldern und unfertige Küsten getrennt untersuchen: `tileDiagnostics().terrain.tiles` (Raster, Stempel, Paint-Version, retry-exhausted, Timeout) sowie `tileDiagnostics().world.tiles` (Scenery+Ground-Ready, Quelle, Preview, LOD und Retry) für die betroffenen Welt-Tile-IDs speichern. Kartenbereiche nicht vorschnell als fertig freigeben, damit Fog of War keine fehlenden oder unbekannten Inhalte enthüllt.
+4. Nach vollständiger Vorbereitung denselben Kamerapfad mehrfach bewegen; p50/p95-Framezeit, Zahl der Terrain-/Scenery-Neuaufbauten, Cache-Budget und verbleibende Cloud-Felder messen. Für einen Vergleich die alte Baseline nur bei identischer Szene und Messmethode heranziehen. Auch Screenshots von Berg-/Ufer-/Kachelgrenzen nötig.
+5. Nativen Lauf (mindestens die sechs oben genannten Testdateien mit `node --test`) und echten Browser-Build/Serverstart durchführen. Bleibt die sichtbare Wolkendecke oder Küstenlücke trotz leerer Queue stehen, ist dies **separat** als Tile-Readiness-/Raster-/Fog-Bug zu diagnostizieren, nicht durch eine weitere Scheduleränderung zu verdecken.
+
+**Weiterer Arbeitsschritt:** Schritt 8 (Worker-Evaluation) erst nach angemessener Prüfung des erreichten Zustands. Die sichtbaren Küsten-/Cloudfehler und die schlechte Performance bleiben ausdrücklich ungelöst, bis real gemessen und die betroffenen Tile-Zustände bestimmt wurden.
