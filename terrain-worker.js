@@ -9,7 +9,7 @@ self.document={createElement:tag=>{
  if(tag!=='canvas')throw Error('Only offscreen canvases are supported');
  return new OffscreenCanvas(1,1);
 }};
-importScripts('water-texture.js?v=0.1.0','autotile.js?v=0.31.0','polish.js?v=0.21.0','relief.js?v=0.11.0');
+importScripts('water-texture.js?v=0.1.0','autotile.js?v=0.31.0','polish.js?v=0.21.0','relief.js?v=0.11.0','shoreline.js?v=0.30.0');
 const terrain=new Map();
 const HEX=256,R=HEX/Math.sqrt(3);
 const key=(q,r)=>q+','+r;
@@ -82,6 +82,17 @@ function render(data){
   waterLayer:water?surface(water,raster.waterLayer):null};
  return {payload,transfer:water?[image,water]:[image]};
 }
+// Offscreen shoreline MAX-alpha union: reuse the established bitmap worker.
+function renderShoreline(data){
+ const images=(data.imagePaths||[]).map(path=>path?terrain.get(path)?.img||null:null);
+ const raster=self.VedrasShoreline.build(data.cells||[],c=>c.wet,images,{
+  ...data.options,segments:data.segments||[],bounds:data.bounds,
+  mouthPortals:data.mouthPortals||[]
+ });
+ if(!raster?.canvas)return {empty:true};
+ const image=bitmap(raster.canvas);
+ return {payload:{shoreline:surface(image,raster)},transfer:[image]};
+}
 self.onmessage=e=>{
  const m=e.data;
  if(m?.type==='texture'){
@@ -102,10 +113,11 @@ self.onmessage=e=>{
   terrain.clear();self.VedrasAutotile.clearCache();self.VedrasRelief.clear();
   return;
  }
- if(m?.type!=='render')return;
+ if(m?.type!=='render'&&m?.type!=='shoreline-render')return;
  const start=performance.now();
  try{
-  const result=render(m.data);
+  const result=m.type==='shoreline-render'?
+   renderShoreline(m.data):render(m.data);
   self.postMessage({type:'result',id:m.id,ms:performance.now()-start,
    ...(result.empty?{empty:true}:{...result.payload})},result.transfer||[]);
  }catch(err){
