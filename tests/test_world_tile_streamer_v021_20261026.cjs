@@ -91,7 +91,13 @@ test('initial exact editor draw seeds already rendered terrain and sprites befor
  assert.match(app,/function seedReadyWorldTiles\(\)/);
  assert.match(app,/if\(key!==lastTileSnapshotSignature\)\{[\s\S]*?seedReadyWorldTiles\(\);/);
  assert.match(app,/worldTiles\.seed\(t,lod,\{complete:true,\s*layers:\[\{layer:'ground',image:a,pad:WORLD_TILE_GUTTER\},/);
- assert.match(app,/const units=objectLayoutCache\.query\(/);
+ // Step 6: the static snapshot no longer captures unit sprites. The
+ // separate dynamic layer is drawn after the cached Nature tile.
+ assert.match(app,/drawMapObjects\\(\\{includeUnits:false\\}\\)/);
+ assert.match(app,/drawMapObjects\\(\\{onlyUnits:true\\}\\)/);
+ const seed=app.slice(app.indexOf('function seedReadyWorldTiles()'),
+  app.indexOf('function snapshotTile('));
+ assert.doesNotMatch(seed,/const units=objectLayoutCache\\.query/);
 });
 test('rapid camera reversal cancels obsolete tile loading without poisoning cache',async()=>{
  let resolveOld, requests=[];
