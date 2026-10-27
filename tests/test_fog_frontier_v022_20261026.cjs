@@ -59,7 +59,7 @@ test('asset laboratory separates terrain and scenery and uses ownership-bounded 
  assert.match(app,/worldTiles\.seed\(t,lod,\{layers:\[\{layer:'ground',image:a,pad:WORLD_TILE_GUTTER\},/);
  assert.match(app,/anchorBounds:\{x:t\.x,y:t\.y,width:t\.size,height:t\.size\}/);
  assert.match(app,/layer:'scenery',image:overlay,pad/);
- assert.match(html,/app\.js\?v=0\.55\.3/);
- assert.match(html,/Asset-Labor v0\.22\.3/);
- assert.match(server,/VERSION = '0\.22\.3'/);
+ assert.match(html,/app\.js\?v=0\.55\.4/);
+ assert.match(html,/Asset-Labor v0\.22\.4/);
+ assert.match(server,/VERSION = '0\.22\.4'/);
 });
