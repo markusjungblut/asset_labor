@@ -1,3 +1,43 @@
+## v0.22.4 – Wolken erst nach vollständigem Laden und Snow-Patch-Spawns (27.10.2026)
+
+- **Wolkenrichtung fixiert:** Die vier vom Nutzer ausgewählten Wolken-PNGs
+  werden weder rotiert noch gespiegelt. Die globale Licht-/Schattenrichtung
+  ihrer Illustrationen bleibt unabhängig von Spieler-Seed, Zoom und Hex
+  erhalten. Der Seed bestimmt weiterhin die Auswahl der vier Varianten.
+- **Atomare Hex-Freigabe:** Ein Hex wird im schnellen Tile-Renderer erst
+  sichtbar, wenn **alle** räumlich überlappenden 512er-Kacheln sowohl
+  vollständig gerenderte Gelände- als auch Scenery-Layer besitzen.
+  Die frühere Prüfung nur der **zentralen** Kachel konnte ein halbfertiges
+  Hex zu früh aufdecken.
+- **Auch im normalen Editor:** Nach dem Zeichenpass für Terrain, Wege,
+  Scenery und Sprites wird für noch unvollständige Hexe die gleiche
+  Cloud-Grafik erneut als Vordergrund gemalt. So erscheinen nicht
+  einzelne Bäume oder Landschaftsausschnitte in beliebiger Reihenfolge
+  auf dem Wolkenhintergrund. Während die Wolken-PNGs selbst geladen
+  werden, bleibt eine konservative deckende Ersatzmaske bestehen.
+- **Asset-Bereitschaft:** Der Tile-Publisher überprüft nicht nur die
+  gebackene Terrain-Version, sondern auch die tatsächlich dekodierten
+  Sprite-Assets, die für die entsprechende Kachel erwartet werden.
+  Er veröffentlicht danach Terrain und Scenery gemeinsam.
+- **Snow-Patches behoben:** Die zehn bestehenden Originaldateien
+  `nature/snow_patch_01.png` bis `snow_patch_10.png` waren im
+  Nature-Katalog zwar vorhanden, aber ihre **Spawn-Gewichtung war 0**.
+  Alle zehn haben nun positive Gewichte, die Darstellungsklasse
+  `ground_cover`, schattenlose flache Platzierung und eine klare
+  Kältebiom-Beschränkung. Der Nature-Generator gibt Schneeflecken
+  vor der allgemeinen Dekoration auf passenden Kältehexen einen
+  deterministischen Platzierungsversuch.
+- **Tests:** 66/66 isolierte JS-Regressionstests bestanden, darunter
+  spezifische Prüfungen für 10 Snow-Patches, Terrain-/Scenery-
+  Bereitschaft, unveränderte Wolkenorientierung und den Wolken-
+  Vordergrund im regulären Editor. Keine echte Browser-/FPS-Abnahme.
+
+**Wichtig:** Sichtbar gespawnte Snow-Patches setzen voraus, dass das
+Nature-Feature auf der Welt ausgeführt wird (**Natur verteilen**),
+passende Kältebiome und freie Standflächen vorhanden sind und die
+Nature-Katalogdaten neu eingelesen wurden. Diese Version erzeugt
+keine Schnee-Patches auf warmen oder Wasser-Originalbiomen.
+
 ## v0.22.3 – Seeded Cloud-Hexe statt quadratischer Wolkenkacheln (26.10.2026)
 
 Die vier finalen Cloud-Base-Grafiken in `assets/clouds/` bilden jetzt
