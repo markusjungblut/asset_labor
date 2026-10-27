@@ -21,7 +21,8 @@ window.VedrasWorldTiles=(()=>{
   const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
   const parallelLimit=clamp(Math.floor(concurrency)||1,1,2);
   const MAX_QUEUE_WAIT_MS=2500;
-  let priorityReorders=0,agedPromotions=0,discardedObsolete=0;
+  let priorityReorders=0,agedPromotions=0,discardedObsolete=0,
+   lastAgedPriority=null;
   function cancelRetry(k){
    const timer=retryTimers.get(k);
    if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
@@ -132,6 +133,7 @@ window.VedrasWorldTiles=(()=>{
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
   function invalidate(){
+   lastAgedPriority=null;
    for(const k of retryTimers.keys())cancelRetry(k);
    retries.clear();
    for(const task of running.values())if(task.timeout!==null&&
@@ -369,9 +371,14 @@ window.VedrasWorldTiles=(()=>{
    const after=[...queue.keys()].filter(k=>prior.has(k));
    if(before.some((k,i)=>k!==after[i]))priorityReorders++;
    const first=queue.values().next().value;
-   if(first&&age(first.tile)>=MAX_QUEUE_WAIT_MS&&
-      [...queue.values()].some(item=>distance(item.tile)<distance(first.tile)))
-    agedPromotions++;
+   const protectedWait=first&&age(first.tile)>=MAX_QUEUE_WAIT_MS&&
+    [...queue.values()].some(item=>age(item.tile)<MAX_QUEUE_WAIT_MS&&
+     distance(item.tile)<distance(first.tile));
+   if(protectedWait){
+    if(lastAgedPriority!==first.key){
+     agedPromotions++;lastAgedPriority=first.key;
+    }
+   }else lastAgedPriority=null;
    // Reserve loaded viewport tiles across zoom variants.
    const protect=new Set();
    for(const t of visibleTiles)
