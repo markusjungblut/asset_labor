@@ -427,7 +427,7 @@ window.VedrasWorldTiles=(()=>{
    }else cloudRect(x-rx,y-ry,2*rx,2*ry);
    g.restore();
   }
-  function render(view,{tiles=visibleTiles,drawDynamic=null,fog=fogCells}={}){
+  function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,fog=fogCells}={}){
    if(!view||!(view.width>0)||!(view.height>0)||!(view.zoom>0)||
     !(view.dpr>0)||!finite(view.panX)||!finite(view.panY))return false;
    const start=clock(),cw=Math.max(1,Math.round(view.width*view.dpr)),
@@ -517,9 +517,13 @@ window.VedrasWorldTiles=(()=>{
    // Exact footprint for soil, grass, coastline and roads. The previous
    // 45-unit halo across ground tiles produced the bright green map outline.
    layerPass(['ground','terrain'],0);
-   // Only overhanging trees, mountains, structures and moving sprites extend
-   // into the clouds, where the atmospheric frontier feathers them away.
-   layerPass(['scenery','structures'],45);
+   // Terrain cores are independent; sprite depth is NOT. Overlapping trees
+   // anchored in distinct tile cores must be globally depth sorted instead
+   // of compositing padded scenery packets in tile/LOD arrival order.
+   if(typeof drawStatic==='function'){
+    g.save();drawKnownPath(45);
+    try{drawStatic(g,view);}finally{g.restore();}
+   }else layerPass(['scenery','structures'],45);
    // Dynamic units belong to the same authorized halo but not the terrain.
    if(typeof drawDynamic==='function'){
     g.save();drawKnownPath(45);
