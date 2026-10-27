@@ -81,9 +81,9 @@ test('editor uses the v0.21 retained compositor, streaming, cloud demo and dynam
  assert.match(app,/if\(worldTiles\)\{tileModeActive=true;fastRender\(\);\}/);
  assert.match(app,/drawMapObjects\(\{includeUnits:false,/);
  assert.match(app,/visibleFogTiles/);
- assert.match(html,/world-tile-streamer\.js\?v=0\.22\.3/);
+ assert.match(html,/world-tile-streamer\.js\?v=0\.22\.4/);
  assert.match(html,/id="fogPreview"/);
- assert.match(server,/VERSION = '0\.22\.3'/);
+ assert.match(server,/VERSION = '0\.22\.4'/);
 });
 
 test('initial exact editor draw seeds already rendered terrain and sprites before a pan',()=>{
