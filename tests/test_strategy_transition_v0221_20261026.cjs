@@ -133,7 +133,7 @@ test('terrain-core gate rejects missing and stale chunks before seeding',()=>{
 
 test('strategy fix is cache-busted in the visible v0.22.1 app',()=>{
  const html=read('index.html'),server=read('server.py');
- assert.match(html,/Asset-Labor v0\.22\.3/);
- assert.match(html,/app\.js\?v=0\.55\.3/);
- assert.match(server,/VERSION = '0\.22\.3'/);
+ assert.match(html,/Asset-Labor v0\.22\.4/);
+ assert.match(html,/app\.js\?v=0\.55\.4/);
+ assert.match(server,/VERSION = '0\.22\.4'/);
 });
