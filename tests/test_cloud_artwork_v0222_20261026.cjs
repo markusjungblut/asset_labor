@@ -112,7 +112,7 @@ test('compositor places unknown cloud textures above scenery and units',()=>{
 test('asset library, cloud background and revision are wired',()=>{
  const html=read('index.html'),server=read('server.py'),
   app=read('app.js'),compositor=read('world-tile-streamer.js');
- assert.match(html,/cloud-artwork\.js\?v=0\.22\.5/);
+ assert.match(html,/cloud-artwork\.js\?v=0\.22\.4/);
  assert.match(html,/app\.js\?v=0\.55\.5/);
  assert.match(server,/VERSION = '0\.22\.5'/);
  assert.match(app,/worldTiles\.drawCloudBackground\(ctx/);
