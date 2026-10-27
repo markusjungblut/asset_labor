@@ -143,6 +143,41 @@ test('source preview upgrades never force a full pool eviction',async()=>{
  assert.equal(asset.img.naturalWidth,1536);
  assert.equal(h.pool.report().resident,1);
 });
+test('large preview upgrades are serialized while ordinary decodes retain capacity',async()=>{
+ const window={},started=[],document={createElement:()=>({width:0,height:0,
+  getContext:()=>({drawImage(){}})})};
+ class Image{
+  set src(url){started.push({url,image:this});}
+ }
+ vm.runInNewContext(read('asset-image-pool.js'),{
+  window,Image,document,performance:{now:()=>0}
+ });
+ const pool=window.VedrasImagePool.create({parallel:3});
+ const asset=i=>({path:'nature/'+i,url:'nature/'+i,category:'nature'});
+ const first=asset('oak'),second=asset('pine');
+ const a=pool.ensure(first),b=pool.ensure(second);
+ assert.equal(started.length,2);
+ for(const task of [...started]){
+  task.image.naturalWidth=4096;task.image.naturalHeight=4096;
+  task.image.onload();
+ }
+ await a;await b;
+ started.length=0;
+ pool.setPreviewLimits({spritePx:2048});
+ await pool.ensure(first);await pool.ensure(second);
+ assert.equal(started.length,1);
+ assert.equal(pool.report().activeUpgrades,1);
+ started[0].image.naturalWidth=4096;
+ started[0].image.naturalHeight=4096;
+ started[0].image.onload();
+ assert.equal(started.length,2);
+ assert.equal(pool.report().activeUpgrades,1);
+ started[1].image.naturalWidth=4096;
+ started[1].image.naturalHeight=4096;
+ started[1].image.onload();
+ assert.equal(pool.report().activeUpgrades,0);
+ assert.equal(pool.report().promoted,2);
+});
 test('editor and fast camera both use the same bounded effective DPR',()=>{
  const app=read('app.js'),html=read('index.html');
  assert.match(app,/function fastView\(\)\{return \{width:W,height:H,\s*\/\//);
