@@ -11,6 +11,7 @@ function packet(label='sharp',preview=false,density=null){
   {layer:'ground',image:{width:64,height:64,name:label+'-ground'}},
   {layer:'scenery',image:{width:64,height:64,name:label+'-scenery'}}]};
 }
+// Step 10: .8 is the shared region-tier midpoint; zoom 1 now targets local.
 function world(source,options={}){
  const draws=[],ctx={setTransform(){},clearRect(){},save(){},
   restore(){},beginPath(){},rect(){},clip(){},fillRect(){},
@@ -18,7 +19,7 @@ function world(source,options={}){
  const sandbox={window:{},performance:{now:()=>1000}};
  vm.runInNewContext(read('world-tile-streamer.js'),sandbox);
  const tile={id:'0,0',x:0,y:0,size:512,visibility:'visible'},
-  view={width:700,height:500,zoom:1,dpr:1,panX:0,panY:0};
+  view={width:700,height:500,zoom:.8,dpr:1,panX:0,panY:0};
  const renderer=sandbox.window.VedrasWorldTiles.create({
   canvas:{getContext:()=>ctx},source,requireScenery:true,
   maxAttempts:options.maxAttempts||5});
@@ -151,7 +152,7 @@ test('sharp and provisional neighboring tiles converge without rebaking sharp ne
   source:(t,l)=>{calls.push(t.id);return packet('fresh');}});
  const a={id:'0,0',x:0,y:0,size:512,visibility:'visible'},
   b={id:'1,0',x:512,y:0,size:512,visibility:'visible'},
-  view={width:1000,height:600,dpr:1,zoom:1,panX:0,panY:0};
+  view={width:1000,height:600,dpr:1,zoom:.8,panX:0,panY:0};
  renderer.seed(a,'mid',packet('old-low',true,.6));
  renderer.seed(b,'mid',packet('already-sharp'));
  renderer.request(view,[a,b]);await flush();

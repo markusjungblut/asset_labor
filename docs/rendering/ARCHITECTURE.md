@@ -20,7 +20,7 @@
 - `app.js`: `primeVisibleSpriteAssets()` sucht sichtbare Original-Assetpfade direkt, unabhängig von einem möglicherweise leeren Spriteindex. `tileArtworkReady()` verlangt aktuelle gemalte Terrain-Cores und verfügbare dekodierte Spritequellen; unvollständige Hexe bleiben unter Wolken.
 - `drawMapObjects()`: ObjectLayout-Query, Mountain-Occlusion/Sortierung, Bodenschatten und Sprite-Zeichnung. `staticScenery.paint()` cached diese Komposition, aber Zoom/Signaturwechsel und Canvas-Grenzen können erneute Builds auslösen.
 - `sprite-atlas-runtime.js` / `gpu-sprite-layer.js` / `gpu-terrain.js`: Atlas-, Sprite-GPU- und Terrain-GPU-Optionen existieren bereits, sind nicht die standardmäßig aktive gemeinsame Tile-Engine.
-- `adaptive-lod.js`: Terrain-/Ufer-/Fluss-/Straßen-LOD `far/mid/near`; davon unabhängig hat `world-tile-streamer.js` ein eigenes LOD mit Rasterdichte 0,85/1,5/2,5. Synchronisierung erst in späterem Schritt.
+- `adaptive-lod.js`: Gemeinsame Welt-/Region-/Lokal-LOD `far/mid/near` mit Hysterese für Terrain-/Ufer-/Fluss-/Straßen-/Wald-Raster sowie für `world-tile-streamer.js` (Welt-Tile-Dichten 0,85/1,5/2,5 unverändert). Ein gemeinsamer Controller wird im Editor geteilt; Details Schritt 10 in `STATUS.md`.
 - `app.js` `deviceRatio()`: bei >500 Nature-Instanzen und eingeschalteten Objekten maximal 1,5× interaktive DPR. Zusätzlich Pixelbudgets und Canvasgrößenlimit; `4×` im UI bedeutet damit nicht zwangsläufig echte 4×-Canvasauflösung.
 - `cloud-artwork.js`, `fog-atmosphere.js`: Wolkenbasis und Frontier über noch nicht freigegebenen Hexen; vorhandene Fog-Regeln und Beleuchtungsrichtung erhalten.
 

@@ -70,5 +70,5 @@ test('worker and main thread load the corrected shoreline module',()=>{
  assert.match(worker,/shoreline\.js\?v=0\.30\.1&artfix=20261027/);
  assert.match(client,/terrain-worker\.js\?v=0\.30\.2&artfix=20261027/);
  assert.match(html,/shoreline\.js\?v=0\.30\.1&amp;artfix=20261027/);
- assert.match(html,/app\.js\?v=0\.55\.6&amp;step9=20261027/);
+ assert.match(html,/app\.js\?v=0\.55\.6&amp;step10=20261027/);
 });

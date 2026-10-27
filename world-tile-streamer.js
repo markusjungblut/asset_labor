@@ -9,10 +9,12 @@ window.VedrasWorldTiles=(()=>{
  const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
  const finite=Number.isFinite;
- const density={far:.85,mid:1.5,near:2.5};
+ // Shared scene-wide raster-density contract, unchanged from v0.22.
+ const density=window.VedrasAdaptiveLOD?.worldDensity||
+  {far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
    concurrency=1,onReady=()=>{},maxAttempts=5,sourceTimeoutMs=45000,
-   requireScenery=false}={}){
+   requireScenery=false,lodSelector=null}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
@@ -20,6 +22,10 @@ window.VedrasWorldTiles=(()=>{
   const retries=new Map(),retryTimers=new Map();
   const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
   const parallelLimit=clamp(Math.floor(concurrency)||1,1,2);
+  // Editor supplies its terrain controller. Standalone usage creates a
+  // separate instance of the SAME hysteresis policy.
+  const internalLod=window.VedrasAdaptiveLOD?.create?.()||null;
+  let legacyLodInitialized=false;
   const MAX_QUEUE_WAIT_MS=2500;
   let priorityReorders=0,agedPromotions=0,discardedObsolete=0,
    lastAgedPriority=null;
@@ -222,10 +228,28 @@ window.VedrasWorldTiles=(()=>{
      finite(c?.radius)&&c.radius>0).map(c=>({...c})):[];
   }
   function chooseLod(zoom){
-   if(zoom>=1.08)lastLod='near';
-   else if(zoom<=.42)lastLod='far';
-   else if(lastLod==='near'&&zoom<.94)lastLod='mid';
-   else if(lastLod==='far'&&zoom>.49)lastLod='mid';
+   const selected=typeof lodSelector==='function'?lodSelector(zoom):
+    internalLod?.update(zoom)?.id;
+   if(selected==='near'||selected==='full')lastLod='near';
+   else if(selected==='mid'||selected==='far')lastLod=selected;
+   else{
+    // Legacy standalone hosts without adaptive-lod.js. Match the shared
+    // initial selection as well as its hysteretic transition thresholds.
+    if(!legacyLodInitialized){
+     lastLod=zoom<.51?'far':zoom<.99?'mid':'near';
+     legacyLodInitialized=true;return lastLod;
+    }
+    if(lastLod==='far'){
+     if(zoom>=1.06)lastLod='near';
+     else if(zoom>=.55)lastLod='mid';
+    }else if(lastLod==='mid'){
+     if(zoom<=.47)lastLod='far';
+     else if(zoom>=1.06)lastLod='near';
+    }else if(lastLod==='near'){
+     if(zoom<=.47)lastLod='far';
+     else if(zoom<=.92)lastLod='mid';
+    }
+   }
    return lastLod;
   }
   function trim(protect=new Set()){
@@ -617,6 +641,8 @@ window.VedrasWorldTiles=(()=>{
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
+   scope:{far:'world',mid:'region',near:'local'}[lod],
+   lodDensity:density[lod],
    selectiveInvalidations,selectiveTiles,
    priorityReorders,agedPromotions,discardedObsolete,parallelLimit,
    visiblePreviews,previews,upgraded,progress:{...lastProgress},
