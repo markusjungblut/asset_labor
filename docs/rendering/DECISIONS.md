@@ -20,3 +20,12 @@
 
 ## D-007: GitHub als Fortsetzungsquelle
 **Entscheidung:** `ROADMAP.md` und `STATUS.md` im Repository bilden den Übergabestand. Ein dokumentierter Schritt = separater Commit; bei Bedarf ergänzender Branch/PR. **Grund:** Fortsetzung über getrennte ChatGPT-Sitzungen ohne Chatkontext-Abhängigkeit.
+
+## D-008: Passiv instrumentieren, nicht reparieren (2026-10-27)
+**Entscheidung:** Separate, begrenzte `diagnostics()`-APIs erfassen Queue, inFlight, fehlende Raster, `source-null`, Fehler, Epoch und Cache-/Paint-Version. Kein Timer, Retry, Qualitätslimit oder Fog-Gate wurde geändert. **Begründung:** Erst konkrete blockierte Tile-IDs identifizieren, bevor Schritt 3 deren Lebenszyklus verändert.
+
+## D-009: Diagnose ist Opt-in
+**Entscheidung:** Die teurere per-Tile-Bereitschaftsprüfung wird ausschließlich über `VedrasAssetLabor.tileDiagnostics()` aufgerufen. Höchstens 150 sichtbare Kacheln pro Aufruf; Verlauf maximal 384 letzte Tile-IDs je Renderer. **Begründung:** Dauerinstrumentierung kann die ohnehin schlechte Framerate verschlechtern.
+
+## D-010: Testumgebung kennt Grenzen
+**Entscheidung:** 4/4 isolierte JavaScript-/V8-Tests aus dem neuen Diagnose-Test bestanden. Das entspricht noch nicht einem nativen `node --test`-Durchlauf oder einer Browser-Performancefreigabe. **Begründung:** Messergebnisse müssen ihrer tatsächlichen Umgebung zugeordnet bleiben.

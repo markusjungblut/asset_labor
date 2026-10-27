@@ -38,3 +38,6 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 
 ## Fortsetzen
 Nur Schritt 2 beginnen, sobald der Baseline-Browserlauf nachgeholt beziehungsweise ausdrücklich als offene Referenz dokumentiert ist. Aktuellen Stand immer aus `STATUS.md` und dem Git-Log übernehmen; alte Chat-Zusammenfassungen sind keine verlässliche Implementierungsquelle.
+
+## Schritt-2-Übergabe (2026-10-27)
+Die geplante Instrumentierung aus Schritt 2 ist in `chunks.js`, `world-tile-streamer.js` und `app.js` umgesetzt; 4/4 isolierte V8-Tests bestanden. Vollständige lokale Node- und Browser-Regression ist offen. Vor einer Reparatur in Schritt 3 die Diagnosebefunde der echten gespeicherten Szene erfassen; `STATUS.md` ist die aktuelle Übergabe.

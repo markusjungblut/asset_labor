@@ -80,6 +80,39 @@ window.VedrasChunks=(()=>{
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
     visibleRevision:0,prefetchPending:0,manualPending:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
+  // Bounded, opt-in diagnostics. Rendering and scheduling remain unchanged.
+  const history=new Map(),activeJobs={foreground:null,background:null};
+  let diagnosticLod=null,diagnosticTiles=[];
+  function observe(id,status,extra={}){
+   const old=history.get(id);history.delete(id);
+   history.set(id,{id,status,epoch,lod:diagnosticLod,at:Date.now(),
+    attempts:(old?.attempts||0)+(status==='building'?1:0),...extra});
+   if(history.size>384)history.delete(history.keys().next().value);
+  }
+  function diagnostics({limit=100}={}){
+   const max=clamp(Math.floor(limit)||100,1,250),now=Date.now();
+   const tiles=diagnosticTiles.slice(0,max).map(t=>{
+    const id=t.id,c=cache.get(id),prior=history.get(id);
+    const flight=activeJobs.foreground?.id===id?activeJobs.foreground:
+     activeJobs.background?.id===id?activeJobs.background:null;
+    const matches=c?c.stamp===stampForTile(t):null;
+    const state=flight?'building':queue.has(id)?'queued-visible':
+     backgroundQueue.has(id)?'queued-warm':prefetchQueue.has(id)?'queued-prefetch':
+     matches?(c.raster?.canvas||c.raster?.waterLayer?.canvas||
+       c.relief?.canvas?'ready':'cached-empty'):
+     prior?.epoch===epoch?prior.status:'unrequested';
+    return {id,state,epoch,lod:diagnosticLod,stampMatches:matches,
+     rasterVersion:c?.version??null,paintedVersion:lastDrawnVersions.get(id)??null,
+     flight:flight?.lane??null,startedAt:flight?.startedAt??null,
+     lastOutcome:prior?.status??null,lastError:prior?.error??null,
+     attempts:prior?.attempts??0,ageMs:prior?Math.max(0,now-prior.at):null};
+   });
+   return {epoch,lod:diagnosticLod,visible:diagnosticTiles.length,
+    queuedVisible:queue.size,queuedWarm:backgroundQueue.size,
+    queuedPrefetch:prefetchQueue.size,foreground:activeJobs.foreground,
+    background:activeJobs.background,errors:stats.errors,obsolete:stats.obsolete,
+    tiles,recent:[...history.values()].slice(-max).reverse()};
+  }
   function release(item){
    const canvases=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
     item?.raster?.landLayer?.canvas,item?.relief?.canvas];
@@ -98,14 +131,21 @@ window.VedrasChunks=(()=>{
    retired.clear();cache=new Map();stats.pixels=0;
   }
   function clear(){
+   for(const id of queue.keys())observe(id,'invalidated',{reason:'clear'});
+   for(const job of Object.values(activeJobs))if(job)observe(job.id,'invalidated',{reason:'clear'});
+   activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
    dropCache();queue.clear();backgroundQueue.clear();prefetchQueue.clear();
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
    prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();lastFocus=null;
    signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
    inFlightInteractive=false;inFlightBackground=false;
   }
-  function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null}){
+  function configure(next,{worldCells,buildTile,redraw,family:nextFamily='',stampTile=null,
+    diagnosticLod:nextLod=null}){
    if(next!==signature){
+    for(const id of queue.keys())observe(id,'invalidated',{reason:'signature-change'});
+    for(const job of Object.values(activeJobs))if(job)observe(job.id,'invalidated',{reason:'signature-change'});
+    activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
     queue.clear();backgroundQueue.clear();prefetchQueue.clear();
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
     prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();
@@ -126,6 +166,7 @@ window.VedrasChunks=(()=>{
     }else dropCache();
     signature=next;family=nextFamily;
    }
+   diagnosticLod=nextLod;
    cells=worldCells||[];build=buildTile;requestDraw=redraw||(()=>{});
    stampForTile=typeof stampTile==='function'?stampTile:()=>signature;
   }
@@ -187,6 +228,9 @@ window.VedrasChunks=(()=>{
      markWarm(id);schedule();return;
     }
     const expectedStamp=stampForTile(t);
+    const lane=interactive?'foreground':'background';
+    activeJobs[lane]={id,lane,epoch,startedAt:Date.now()};
+    observe(id,'building',{lane,stampLength:String(expectedStamp).length});
     const t0=typeof performance!=='undefined'?performance.now():0;
     const countPixels=item=>{
      const resources=[item?.raster?.canvas,item?.raster?.waterLayer?.canvas,
@@ -198,12 +242,15 @@ window.VedrasChunks=(()=>{
      },0);
     };
     const complete=item=>{
-     if(generation!==epoch){release(item);stats.obsolete++;return;}
+     if(generation!==epoch){
+      observe(id,'obsolete',{reason:'epoch-change'});release(item);stats.obsolete++;return;
+     }
      const visibleNow=viewportWanted.has(id)||protectedIds.has(id);
      // Ignore obsolete speculative jobs rather than filling the LRU with
      // a distant region after the player turns around.
      if(expectedStamp!==stampForTile(t)||
        (predictive&&!visibleNow&&!prefetchWanted.has(id))){
+      observe(id,'obsolete',{reason:'stamp-or-prefetch-changed'});
       release(item);stats.obsolete++;markWarm(id);schedule();return;
      }
      const pixels=countPixels(item);
@@ -227,6 +274,7 @@ window.VedrasChunks=(()=>{
       if(predictive&&!visibleNow)stats.prefetched++;
      }
      if(visibleNow){stats.visibleRevision++;queue.delete(id);}
+     observe(id,item?'completed':'empty-result',{version:rasterVersion});
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
      if(visibleNow)requestDraw();
@@ -236,6 +284,7 @@ window.VedrasChunks=(()=>{
     const fail=error=>{
      if(generation!==epoch)return;
      stats.errors++;
+     observe(id,'failed',{error:String(error?.message||error)});
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
      if(interactive||viewportWanted.has(id))requestDraw();
      markWarm(id);schedule();
@@ -243,6 +292,8 @@ window.VedrasChunks=(()=>{
     if(interactive)inFlightInteractive=true;
     else inFlightBackground=true;
     const finish=()=>{
+     if(activeJobs[lane]?.id===id&&activeJobs[lane]?.epoch===generation)
+      activeJobs[lane]=null;
      if(generation!==epoch)return;
      if(interactive)inFlightInteractive=false;
      else inFlightBackground=false;
@@ -314,6 +365,7 @@ window.VedrasChunks=(()=>{
   function prime(bounds,{prefetch=null,notifyReady=true}={}){
    if(!signature||!cells?.length)return {...stats};
    const tiles=visible(bounds,cells,size);
+   diagnosticTiles=tiles;
    stats.visible=tiles.length;
    updateStreaming(bounds,tiles,prefetch);
    trim();
@@ -383,6 +435,7 @@ window.VedrasChunks=(()=>{
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
+   diagnosticTiles=tiles;
    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
    updateStreaming(viewport,tiles,prefetch);
    trim();
@@ -436,7 +489,7 @@ window.VedrasChunks=(()=>{
    backgroundPaused=!!active;
    if(!backgroundPaused)schedule();
   }
-  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,
+  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,diagnostics,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,

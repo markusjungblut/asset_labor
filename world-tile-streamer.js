@@ -15,7 +15,30 @@ window.VedrasWorldTiles=(()=>{
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
-  const cache=new Map(),queue=new Map(),running=new Map();
+  const cache=new Map(),queue=new Map(),running=new Map(),history=new Map();
+  function observe(k,status,extra={}){
+   const old=history.get(k);history.delete(k);
+   history.set(k,{key:k,status,epoch,at:Date.now(),
+    attempts:(old?.attempts||0)+(status==='running'?1:0),...extra});
+   if(history.size>384)history.delete(history.keys().next().value);
+  }
+  function diagnostics({limit=100}={}){
+   const now=Date.now(),max=clamp(Math.floor(limit)||100,1,250);
+   const tiles=visibleTiles.slice(0,max).map(t=>{
+    const k=key(t,lod),q=queue.get(k),r=running.get(k),
+     c=cache.get(k),old=lookup(t),last=history.get(k);
+    return {key:k,id:t.id,lod,epoch,
+     state:r?'running':q?'queued':c?
+      (c.packet.complete?'ready':'cached-partial'):old?'fallback-lod':
+      last?.epoch===epoch?last.status:'unrequested',
+     startedAt:r?.startedAt??null,revision:c?.revision??null,
+     lastOutcome:last?.status??null,lastError:last?.error??null,
+     attempts:last?.attempts??0,ageMs:last?Math.max(0,now-last.at):null};
+   });
+   return {epoch,lod,visible:visibleTiles.length,queued:queue.size,
+    running:running.size,completed,failed,tiles,
+    recent:[...history.values()].slice(-max).reverse()};
+  }
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>{
    onReady();
    // Notify the normal map renderer only when the prepared cloud bank
@@ -58,6 +81,8 @@ window.VedrasWorldTiles=(()=>{
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
   function invalidate(){
+   for(const k of queue.keys())observe(k,'invalidated',{reason:'invalidate'});
+   for(const k of running.keys())observe(k,'aborted',{reason:'invalidate'});
    epoch++;for(const task of running.values())task.controller?.abort?.();
    running.clear();queue.clear();
    for(const item of cache.values())release(item.packet);
@@ -105,6 +130,7 @@ window.VedrasWorldTiles=(()=>{
     complete:packet.complete!==false},pixels:count,
     used:++used,born:clock(),revision:packet.revision??null});
    pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
+   observe(k,'ready',{level,revision:packet.revision??null});
    onReady();return true;
   }
   function seed(tile,level,packet){return accept(tile,level,packet);}
@@ -116,17 +142,26 @@ window.VedrasWorldTiles=(()=>{
     if(item.epoch!==epoch)continue;
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
     const token=++serial;
-    running.set(item.key,{controller,epoch:item.epoch,token});
+    running.set(item.key,{controller,epoch:item.epoch,token,startedAt:Date.now()});
+    observe(item.key,'running',{level:item.level});
     // Yield before expensive loader initialization; in production, the
     // loader should fetch a prepared server/CDN image or use a worker.
     Promise.resolve().then(()=>source(item.tile,item.level,{signal:controller?.signal,
      density:density[item.level]})).then(packet=>{
       if(item.epoch!==epoch||controller?.signal?.aborted||
-        !wantedTiles.has(item.key)){release(packet);return;}
+        !wantedTiles.has(item.key)){
+       observe(item.key,'discarded',{level:item.level,reason:
+        controller?.signal?.aborted?'aborted':'epoch-or-visibility-changed'});
+       release(packet);return;
+      }
       if(packet)accept(item.tile,item.level,packet);
+      else observe(item.key,'source-null',{level:item.level,reason:'source-returned-null'});
     }).catch(err=>{
       if(item.epoch===epoch&&err?.name!=='AbortError'){failed++;
+       observe(item.key,'failed',{level:item.level,error:String(err?.message||err)});
        if(typeof console!=='undefined')console.warn('World tile:',err);}
+      else observe(item.key,'aborted',{level:item.level,reason:
+       err?.name==='AbortError'?'abort-error':'old-epoch'});
     }).finally(()=>{
       const active=running.get(item.key);
       if(active?.token===token)running.delete(item.key);
@@ -142,8 +177,11 @@ window.VedrasWorldTiles=(()=>{
     finite(t.x)&&finite(t.y)&&t.size>0&&t.visibility!=='unknown'):[];
    const wanted=new Set(visibleTiles.map(t=>key(t,lod)));
    wantedTiles=wanted;
-   for(const [k,item] of queue)if(!wanted.has(k))queue.delete(k);
+   for(const [k,item] of queue)if(!wanted.has(k)){
+    observe(k,'discarded',{reason:'outside-viewport'});queue.delete(k);
+   }
    for(const [k,task] of running)if(!wanted.has(k)){
+    observe(k,'aborted',{reason:'outside-viewport'});
     task.controller?.abort?.();running.delete(k);
    }
    const midX=(-view.panX)/view.zoom,midY=(-view.panY)/(view.zoom*(view.projectY||1));
@@ -155,6 +193,7 @@ window.VedrasWorldTiles=(()=>{
     if(cache.has(k)||running.has(k)||queue.has(k))continue;
     // A new LOD never hides a cached old variant.
     queue.set(k,{key:k,tile:t,level:lod,epoch});
+    observe(k,'queued',{level:lod});
    }
    // Reserve loaded viewport tiles across zoom variants.
    const protect=new Set();
@@ -342,7 +381,7 @@ window.VedrasWorldTiles=(()=>{
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
-    coverUnready,chooseLod,invalidate,stats};
+    coverUnready,chooseLod,invalidate,stats,diagnostics};
  }
  return {create};
 })();

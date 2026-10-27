@@ -72,9 +72,23 @@ function paintedTerrainCore(t){
 // Include every expected sprite, not just objects already decoded into the
 // layout cache. A missing tree PNG previously produced a falsely "complete"
 // static snapshot and the clouds could uncover that hex too early.
-function tileArtworkReady(t){
- if(!paintedTerrainCore(t))return false;
- if(!state.objects)return true;
+function tileArtworkReady(t){return tileArtworkStatus(t);}
+function tileArtworkStatus(t,details=null){
+ if(details){details.tileId=t.id;details.terrainVersion=null;
+  details.paintedVersion=null;details.waitingAssets=[];details.missingOptionalAssets=[];}
+ const painted=paintedTerrainCore(t);
+ if(!painted){
+  if(details){
+   const core=currentTerrainCore(t);
+   details.terrainVersion=core?.artwork?.version??null;
+   details.paintedVersion=terrainChunks.paintedVersions().get(t.id)??null;
+   details.reason=core?'terrain-not-painted':'terrain-core-not-ready';
+  }
+  return false;
+ }
+ if(details){details.terrainVersion=painted.artwork.version;
+  details.paintedVersion=terrainChunks.paintedVersions().get(t.id)??null;}
+ if(!state.objects){if(details)details.reason='ready-objects-hidden';return true;}
  // genericObjects() silently DROPS undecoded sprites. Checking its output
  // could therefore consider a half-loaded scene complete, then forever
  // cache absent trees. Instead inspect the authored anchors directly.
@@ -97,12 +111,14 @@ function tileArtworkReady(t){
  let ready=true;
  for(const path of paths){
   const asset=assetByPath.get(path);
-  if(!asset)continue; // deleted optional assets cannot block exploration
+  if(!asset){if(details)details.missingOptionalAssets.push(path);continue;} // deleted optional assets cannot block exploration
   if(!asset.img?.naturalWidth){
-   imagePool.ensure(asset,11); // actively finish the missing source
+   if(details)details.waitingAssets.push(path);
+   else imagePool.ensure(asset,11); // normal render path still primes sources
    ready=false;
   }
  }
+ if(details)details.reason=ready?'ready':'sprite-source-not-ready';
  return ready;
 }
 function seedReadyWorldTiles(){
@@ -975,7 +991,7 @@ function drawGround(){
      return persist(localBuild());
     }
    },
-   redraw:requestDraw,family:chunkFamily
+   redraw:requestDraw,family:chunkFamily,diagnosticLod:lod
   });
   const near=fromScreen(-155,-155),far=fromScreen(W+155,H+155);
   lastChunkStats=terrainChunks.draw(ctx,{
@@ -3260,6 +3276,17 @@ window.VedrasAssetLabor={shadowSprites:{
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
  worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ tileDiagnostics:({limit=50,includeReadiness=true}={})=>{
+  const max=Math.max(1,Math.min(150,Math.floor(limit)||50));
+  const bounds=streamingViewBounds(96);
+  const visible=window.VedrasChunks.visible(bounds,worldCells,512).slice(0,max);
+  return {terrain:terrainChunks.diagnostics({limit:max}),
+   world:worldTiles?.diagnostics({limit:max})||null,
+   artwork:includeReadiness?visible.map(t=>{
+    const details={},ready=tileArtworkStatus(t,details);
+    return {id:t.id,ready,...details};
+   }):[],imagePool:imagePool.report(),worker:window.VedrasTerrainWorker.status()};
+ },
  setFogSeed:seed=>{
   if(typeof seed!=='string'||!seed.trim())throw Error('fogSeed fehlt');
   state.fogSeed=seed;worldTiles?.setCloudSeed(seed);

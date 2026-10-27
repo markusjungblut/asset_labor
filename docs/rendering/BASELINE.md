@@ -49,3 +49,6 @@ Je Szenario dokumentieren: Git-Commit, Browser/Gerät, Viewport, Zoom, DPR, Natu
 `node --test tests/test_static_scene_v016_20261023.cjs tests/test_object_layout_cache_20261023.cjs tests/test_adaptive_lod_v018_20261024.cjs`
 
 Keine neuen Testergebnisse behaupten, bevor diese Befehle und ein echter Browserlauf tatsächlich durchgeführt wurden.
+
+## Zusatz ab Schritt 2 – Tile-Diagnose
+`window.VedrasAssetLabor.tileDiagnostics({limit:150})` erstellt eine explizite, nur auf Abruf berechnete Zustandsaufnahme. Im 0/30/60-Sekunden-Vergleich die sichtbaren Tile-IDs, `state`, `epoch`, `lod`, `ageMs`, `lastOutcome`, `lastError`, Cache-/Paint-Version, Terrain-Core-Bereitschaft, Worker- und ImagePool-Warteschlangen erfassen. Die bereits übermittelten 449,6 ms und 67 offenen Terrain-Aufträge sind keine in Schritt 2 neu gemessenen Werte.

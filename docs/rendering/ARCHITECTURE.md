@@ -33,3 +33,10 @@
 3. Wie oft erzeugt `bakeWorldTile()` einen `null`-Resultat, und findet ein zuverlässiger Requeue statt?
 4. Welche Schalter und View-Modi führen zum teuren `draw()` statt `fastRender()`?
 5. Warum wurden für die konkrete Szene Hintergrund/Scenery neu aufgebaut, und wie ist die `diagnosticsMs`-Zeit abgegrenzt?
+
+## Diagnose-Erweiterung Schritt 2 (2026-10-27)
+- `chunks.create().diagnostics({limit:100})` inspiziert sichtbare Tiles, aktive Slots, `queue`/`backgroundQueue`/`prefetchQueue`, Epoch, optionalen Terrain-LOD, Raster-/Paint-Version und den letzten protokollierten Ausgang. Eine leere, aber als gültige Cache-Version gespeicherte Antwort heißt `cached-empty`. Änderungen nur an passiven Zustandsinformationen.
+- `VedrasWorldTiles.create().diagnostics({limit:100})` liefert gleiche Identität über `tile.id@lod`; `source-null` wird explizit sichtbar, während das bisherige Scheduling unverändert bleibt.
+- `tileArtworkStatus(t,details)` prüft die bestehende `tileArtworkReady`-Logik diagnostisch und fordert keine zusätzlichen PNGs an. Die alte Produktionsfunktion ruft denselben Prüfpfad weiterhin mit den bisherigen Asset-Requests auf.
+- Die App bietet `window.VedrasAssetLabor.tileDiagnostics` an. Maximal 150 sichtbare Tiles pro Abfrage und 384 letzte Tile-Ereignisse pro Renderer; keine permanente Ausgabe auf das Canvas oder in die DOM-Performanceanzeige.
+- `ageMs` ist das Alter des jeweils letzten Ereignisses, nicht notwendigerweise die gesamte Wartezeit. Epoch-obsolete Resultate erscheinen unter `recent`; für den Momentzustand sind aktuelle Queue- und Flight-Maps maßgeblich. `stampMatches` kann bei expliziten Diagnosen berechnet werden und ist deshalb nicht als kostenfreier Framezähler zu behandeln.
