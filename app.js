@@ -401,7 +401,7 @@ const imagePool=window.VedrasImagePool.create({
   const pending=imagePool.report(),busy=pending.queued>0||pending.active>1;
   const delay=busy?900:120;
   assetReadyTimer=setTimeout(()=>{
-   assetReadyTimer=null;assetBatchStarted=0;
+   assetReadyTimer=null;
    if(spriteAssetBatchDirty){
     spriteAssetBatchDirty=false;
     invalidateSpriteLayout();
@@ -837,15 +837,11 @@ function drawForestFloor(){
 function drawGround(){
  updateTerrainLod(state.zoom);
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
- if(!gpuFrame){
-  if(!state.seamCheck&&worldTiles){
-   // Cloud artwork already exists before any terrain chunk has loaded.
-   worldTiles.drawCloudBackground(ctx,{width:W,height:H,zoom:state.zoom,
-    panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
-  }else{
-   ctx.fillStyle=state.seamCheck?'#ec27f1':'#879a81';
-   ctx.fillRect(0,0,W,H);
-  }
+ // The landscape buffer MUST remain transparent outside actual terrain.
+ // A cloud backdrop baked into a 12-MP terrain snapshot goes stale after
+ // strategy/detail zooms and causes large grey rectangular holes.
+ if(state.seamCheck&&!gpuFrame){
+  ctx.fillStyle='#ec27f1';ctx.fillRect(0,0,W,H);
  }
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  const groundPrepStart=performance.now();
@@ -1761,6 +1757,46 @@ function spriteInViewport(o,view){
  return o.x>=view.x-margin&&o.x<=view.x+view.width+margin&&
   groundY>=view.y-margin&&groundY<=view.y+view.height+margin;
 }
+// Prime the source PNGs for authored sprites independently of layout
+// generation. A stale/empty spatial index must not prevent ImagePool from
+// requesting the PNGs needed to populate that same index.
+function primeVisibleSpriteAssets(){
+ if(!state.objects||state.view!=='map'||imagePoolPriming){
+  window.__vedrasSpriteDemand={authored:0,paths:0,ready:0,
+   missing:0,requested:0,enabled:!!state.objects};
+  return;
+ }
+ const a=fromScreen(-500,-500),b=fromScreen(W+500,H+500),
+  minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
+  minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ const inside=(x,y)=>x>=minX&&x<=maxX&&y>=minY&&y<=maxY;
+ const paths=new Set();
+ let authored=0;
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
+  if(!inside(x,y))continue;
+  authored++;
+  if(n.assetPath)paths.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(inside(p.x,p.y)&&m.assetPath)paths.add(m.assetPath);
+ }
+ for(const [hex,o] of Object.entries(state.hexObject||{})){
+  const [q,r]=hex.split(',').map(Number),p=axialPos(q,r);
+  if(inside(p.x,p.y)&&o?.path)paths.add(o.path);
+ }
+ let ready=0,missing=0,requested=0;
+ for(const path of paths){
+  const asset=assetByPath.get(path);
+  if(!asset){missing++;continue;}
+  if(asset.img?.naturalWidth){ready++;continue;}
+  requested++;
+  imagePool.ensure(asset,9);
+ }
+ window.__vedrasSpriteDemand={authored,paths:paths.size,ready,missing,
+  requested,enabled:state.objects};
+}
 function drawMapObjects({includeUnits=true,anchorBounds=null}={}){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
@@ -1893,6 +1929,19 @@ function drawForestDebug(){
  ctx.restore();
 }
 let perfSamples=[],frameNumber=0;
+let lastFrontierWorld=null,lastFrontierGeometry=null;
+function worldFrontierGeometry(){
+ if(lastFrontierWorld===worldCells&&lastFrontierGeometry)
+  return lastFrontierGeometry;
+ const cells=worldCells.map(c=>{
+  const p=axialPos(c.q,c.r);
+  return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility:'visible'};
+ });
+ const fog=window.VedrasFogAtmosphere.prepare(cells);
+ lastFrontierWorld=worldCells;
+ lastFrontierGeometry={cells:fog,edges:fog.frontierEdges};
+ return lastFrontierGeometry;
+}
 function draw(){
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -1958,6 +2007,12 @@ function draw(){
    originX:W/2+state.panX,originY:H/2+state.panY},state.seamCheck);
  if(!gpuFrame)gpuTerrain?.hide();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,W,H);
+ // Draw world-aligned cloud artwork DIRECTLY in the visible mapCanvas on
+ // every frame, independently from the cached terrain/scenery rasters.
+ // This is the single opaque backdrop for loaded and ungenerated world.
+ if(!state.seamCheck&&worldTiles)
+  worldTiles.drawCloudBackground(ctx,{width:W,height:H,zoom:state.zoom,
+   panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
  let terrainElapsed=0,roadsElapsed=0;
  let backgroundProfile=null;
  const renderBackground=()=>{
@@ -2028,7 +2083,21 @@ function draw(){
  const streams={terrain:terrainChunks.stats(),shore:shorelineChunks.stats(),
   rivers:riverChunks.stats(),roads:roadChunks.stats()};
  window.__vedrasStreamingProfile=streams;
+ // Mask shadows and sprites to the generated map, allowing only a small
+ // crown overhang. The same authored clouds cover that overhang afterwards.
+ const mapView={width:W,height:H,zoom:state.zoom,dpr:state.dpr,
+  panX:state.panX,panY:state.panY,projectY:PROJECT_Y};
+ const frontier=worldTiles&&window.VedrasFogAtmosphere?
+  worldFrontierGeometry():null;
+ let clippedWorld=false;
+ if(frontier&&state.view==='map'&&!finalRendering&&!state.gpuSprites){
+  ctx.save();ctx.beginPath();
+  for(const c of frontier.cells)
+   window.VedrasFogAtmosphere.hexPath(ctx,c,mapView,28);
+  ctx.clip();clippedWorld=true;
+ }
  const t2=performance.now();
+ primeVisibleSpriteAssets();
  spriteAtlas?.beginFrame();
  window.VedrasSpriteShadows?.beginFrame?.();
  let sceneryProfile=null;
@@ -2083,7 +2152,7 @@ function draw(){
      spritePassMs:0,rebuilt:false,layerReused:true};
    }
   }
- }finally{spriteAtlas?.endFrame();}
+ }finally{spriteAtlas?.endFrame();if(clippedWorld)ctx.restore();}
  drawMountainFootprints();drawBounds();
  if(!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
   // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
@@ -2120,6 +2189,9 @@ function draw(){
    if(ok)readyCount++;else waitingCount++;
    return ok;
   });
+  // Unknown neighbor hexes form the SAME cloudy frontier in both the
+  // tactical and editor renderers. Painted last over mountain shadows.
+  if(frontier)worldTiles.drawCloudFrontier(ctx,view,frontier.edges);
   window.__vedrasCloudReveal={readyHexes:readyCount,waitingHexes:waitingCount,
    imageQueue:imagePool.report().queued,imageActive:imagePool.report().active,
    terrainPending:terrainChunks.stats().pending};
@@ -2196,7 +2268,14 @@ function draw(){
    ' / '+(window.__vedrasCloudReveal.readyHexes+window.__vedrasCloudReveal.waitingHexes)+
    ' · Bilder '+window.__vedrasCloudReveal.imageQueue+' in Warteschlange / '+
     window.__vedrasCloudReveal.imageActive+' laden'+
-   ' · Terrain '+window.__vedrasCloudReveal.terrainPending+' ausstehend':'');
+   ' · Terrain '+window.__vedrasCloudReveal.terrainPending+' ausstehend':'')+
+  (window.__vedrasSpriteDemand?
+   ' · Nature sichtbar '+window.__vedrasSpriteDemand.authored+
+   ' · Sprite-Bilder '+window.__vedrasSpriteDemand.ready+'/'+
+    window.__vedrasSpriteDemand.paths+
+   ' · Bildabrufe '+window.__vedrasSpriteDemand.requested+
+   ' · Pfade fehlen '+window.__vedrasSpriteDemand.missing+
+   (state.objects?'':' · Objekte ausgeblendet'):'');
  const groundDetail=window.__vedrasGroundDetail||{},roadDetail=window.__vedrasRoadPreparation||{};
  const detailStatus=$('terrainDetailStats');
  if(detailStatus)detailStatus.textContent='Letzter Hintergrundaufbau: Geländequelle '+
@@ -2443,7 +2522,15 @@ async function loadLibrary(list,mode){
   // Nature, buildings, units and previews decode as needed thereafter.
   const essential=assets.filter(a=>['terrain','shorelines'].includes(a.category)||a.path===old);
   await Promise.all(essential.map(a=>imagePool.ensure(a,10)));
- }finally{imagePoolPriming=false;}
+ }finally{
+  imagePoolPriming=false;
+  // Essential images may complete during initial priming: the onReady()
+  // callback skipped scheduling their scenery rebuild. Flush that state.
+  if(spriteAssetBatchDirty){
+   spriteAssetBatchDirty=false;
+   invalidateSpriteLayout();
+  }
+ }
  const sourceRules=window.VedrasTerrainSources;
  const typesAdded=sourceRules?.ensureTypes(catalog)||false;
  const proposed=sourceRules?.propose(catalog,assets,isTerrainValid)||{assigned:0,skipped:[]};
@@ -2473,7 +2560,9 @@ async function reloadFromServer(){
   catalogCanSave=response.ok||response.status===404;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
-  if(d.version&&!/^0\.(?:13|14)\./.test(d.version)){
+  // Compare the actual UI/server pair. The old v0.13/v0.14 regex
+  // flagged EVERY modern release as a conflict even when versions matched.
+  if(d.version&&d.version!=='0.22.6'){
    $('serverStatus').textContent+=' · VERSION KONFLIKT';
    $('nRecoveryStatus').textContent=`Achtung: Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
   }

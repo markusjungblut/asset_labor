@@ -1,3 +1,55 @@
+## v0.22.6 – Sprite-Ladefehler, durchgehende Wolkendecke und Bergschatten (27.10.2026)
+
+**Gemeldete Regression in v0.22.5:** 0 gezeichnete Sprites, obwohl
+platzierte Nature-Instanzen existieren, 0 aktive Bilddownloads und 88
+ausstehende Terrain-Chunks (ca. 362 ms pro Frame bei 28 % Zoom).
+Zusätzlich erscheinen nach einem Moduswechsel außerhalb der Welt
+große graue Bereiche und Bergschatten über den Wolken.
+
+- **Hauptursache des Sprite-Ausfalls:** Der v0.22.5-Ladebatch hat
+  `assetBatchStarted=0` geschrieben, obwohl die Variable zuvor gelöscht
+  wurde. Wegen `'use strict'` war das ein `ReferenceError` im
+  Timer-Callback. Die für neue PNGs notwendige `invalidateSpriteLayout()`
+  und `requestDraw()` wurden dann nicht mehr ausgeführt.
+  Dieser unzulässige Zugriff ist entfernt. Die beim initialen
+  Asset-Priming gesetzte Dirty-Markierung wird beim Verlassen des
+  Ladezustands ebenfalls korrekt geleert.
+- **Nachladen unabhängig vom Cache:** `primeVisibleSpriteAssets()`
+  geht direkt durch alle gespeicherten, im Sichtbereich liegenden
+  Nature-/Berg-/Hex-Sprite-Pfade. Fehlende Bilder werden im Bildpool
+  angefordert, auch wenn `objectLayoutCache` fälschlich noch 0
+  Sprites enthält. Bereits dekodierte Bilder werden nicht neu angefordert.
+  Die Diagnose meldet sichtbare Nature-Instanzen, bereite Bildquellen,
+  noch angeforderte Bilder und im Asset-Index fehlende Pfade.
+- **Wolken nicht mehr im Terrain-Snapshot:** Der komplette
+  weltkoordinatenbasierte Wolkenhintergrund wird **vor** dem
+  Terrain- und Sprite-Compositing in den sichtbaren `mapCanvas`
+  gezeichnet. Die Terrain-Caches sind außerhalb wirklicher
+  Landschaftsflächen transparent; sie speichern keine graue,
+  von Zoom oder Pan abhängige Wolkenkopie. Dadurch wird der
+  Grund dafür behoben, dass alte Cached-Background-Teile nach
+  dem Hineinzoomen wolkenlose Hintergrundrechtecke zeigten.
+- **Schatten unter der Wolkenfront:** Der Canvas2D-Scenery-Pass
+  einschließlich Bergschatten wird auf den tatsächlichen generierten
+  Hexbereich mit 28 Welt-Einheiten Überhang begrenzt. Anschließend
+  werden die gleichen prozeduralen Frontier-Cloud-Hexe wie im schnellen
+  Tile-Renderer über die Landschaft und Baumkronen gezeichnet.
+  Der optionale externe GPU-Sprite-Pass benötigt weiterhin einen
+  eigenen visuellen Test.
+- **Versionsanzeige:** Der Server wird gegen die tatsächliche
+  UI-Version `0.22.6` verglichen; der alte Legacy-Versionsregex
+  markierte alle aktuellen Server fälschlich als „VERSION KONFLIKT“.
+
+**Validierung:** 79/79 isolierte JavaScript-Regressionstests
+(58 ältere Tests, 14 Fog-/Snow-/Performance-Tests und 7 neue
+v0.22.6-Tests). Ein neuer Test führt den tatsächlichen asynchronen
+Sprite-Callback unter Strict Mode aus. **Die Darstellung der
+hochgeladenen Wolkengrafiken, der vollständige lokale Nature-Index
+sowie die Renderzeiten wurden nicht in einem echten Browser
+geprüft.** Die lokale Karte muss deshalb insbesondere nach dem
+Wechsel aus der Strategieansicht und bei vielen geladenen
+Nature-Sprites getestet werden.
+
 ## v0.22.5 – Schnelleres Laden hinter der Wolkendecke (27.10.2026)
 
 **Gemeldeter Fehler:** Auf einer Karte mit ca. 3.746 Sprites, ca. 12 MP
