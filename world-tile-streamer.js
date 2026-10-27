@@ -25,6 +25,7 @@ window.VedrasWorldTiles=(()=>{
   // Editor supplies its terrain controller. Standalone usage creates a
   // separate instance of the SAME hysteresis policy.
   const internalLod=window.VedrasAdaptiveLOD?.create?.()||null;
+  let legacyLodInitialized=false;
   const MAX_QUEUE_WAIT_MS=2500;
   let priorityReorders=0,agedPromotions=0,discardedObsolete=0,
    lastAgedPriority=null;
@@ -232,7 +233,12 @@ window.VedrasWorldTiles=(()=>{
    if(selected==='near'||selected==='full')lastLod='near';
    else if(selected==='mid'||selected==='far')lastLod=selected;
    else{
-    // Legacy standalone hosts without adaptive-lod.js.
+    // Legacy standalone hosts without adaptive-lod.js. Match the shared
+    // initial selection as well as its hysteretic transition thresholds.
+    if(!legacyLodInitialized){
+     lastLod=zoom<.51?'far':zoom<.99?'mid':'near';
+     legacyLodInitialized=true;return lastLod;
+    }
     if(lastLod==='far'){
      if(zoom>=1.06)lastLod='near';
      else if(zoom>=.55)lastLod='mid';
