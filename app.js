@@ -2264,7 +2264,14 @@ function draw(){
    ' / '+(window.__vedrasCloudReveal.readyHexes+window.__vedrasCloudReveal.waitingHexes)+
    ' · Bilder '+window.__vedrasCloudReveal.imageQueue+' in Warteschlange / '+
     window.__vedrasCloudReveal.imageActive+' laden'+
-   ' · Terrain '+window.__vedrasCloudReveal.terrainPending+' ausstehend':'');
+   ' · Terrain '+window.__vedrasCloudReveal.terrainPending+' ausstehend':'')+
+  (window.__vedrasSpriteDemand?
+   ' · Nature sichtbar '+window.__vedrasSpriteDemand.authored+
+   ' · Sprite-Bilder '+window.__vedrasSpriteDemand.ready+'/'+
+    window.__vedrasSpriteDemand.paths+
+   ' · Bildabrufe '+window.__vedrasSpriteDemand.requested+
+   ' · Pfade fehlen '+window.__vedrasSpriteDemand.missing+
+   (state.objects?'':' · Objekte ausgeblendet'):'');
  const groundDetail=window.__vedrasGroundDetail||{},roadDetail=window.__vedrasRoadPreparation||{};
  const detailStatus=$('terrainDetailStats');
  if(detailStatus)detailStatus.textContent='Letzter Hintergrundaufbau: Geländequelle '+
