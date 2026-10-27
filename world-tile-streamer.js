@@ -61,11 +61,17 @@ window.VedrasWorldTiles=(()=>{
    const tiles=visibleTiles.slice(0,max).map(t=>{
     const k=key(t,lod),q=queue.get(k),r=running.get(k),
      c=cache.get(k),old=lookup(t),last=history.get(k),retry=retries.get(k);
+    const provisional=!!c?.packet?.preview;
     return {key:k,id:t.id,lod,epoch,
-     state:r?'running':q?'queued':c?
-      (c.packet.complete?'ready':'cached-partial'):old?'fallback-lod':
+     state:r?(provisional?'upgrading':'running'):
+      q?(provisional?'upgrade-queued':'queued'):c?
+      (provisional?(retry?.terminal?'preview-upgrade-failed':'preview-needs-upgrade'):
+       c.packet.complete?'ready':'cached-partial'):old?'fallback-lod':
       last?.epoch===epoch?last.status:'unrequested',
      startedAt:r?.startedAt??null,revision:c?.revision??null,
+     preview:provisional,sourceDensity:c?.packet?.sourceDensity??null,
+     requiredDensity:density[lod],fallbackLod:!c&&old?
+      old.tileLod??null:null,
      lastOutcome:last?.status??null,lastError:retry?.error??last?.error??null,
      attempts:retry?.attempts??last?.attempts??0,
      retryAt:retry?.nextRetryAt??null,terminal:retry?.terminal??false,
@@ -73,7 +79,8 @@ window.VedrasWorldTiles=(()=>{
    });
    return {epoch,lod,visible:visibleTiles.length,queued:queue.size,
     running:running.size,completed,failed,retryWaiting:retryTimers.size,
-    retryExhausted:[...retries.values()].filter(v=>v.terminal).length,tiles,
+    retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
+    visiblePreviews,upgraded,tiles,
     recent:[...history.values()].slice(-max).reverse()};
   }
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>{
@@ -109,6 +116,7 @@ window.VedrasWorldTiles=(()=>{
    context.restore();return covered;
   }
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
+   previews=0,upgraded=0,visiblePreviews=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
    fogCells=[],visibleTiles=[],wantedTiles=new Set(),
    lod='mid',lastView=null,frame=0;
@@ -136,7 +144,8 @@ window.VedrasWorldTiles=(()=>{
    let resumed=0;
    for(const level of Object.keys(density)){
     const k=tileId+'@'+level,prior=retries.get(k);
-    if(!prior||!wantedTiles.has(k)||cache.has(k)||running.has(k))continue;
+    if(!prior||!wantedTiles.has(k)||
+     (cache.has(k)&&!cache.get(k).packet.preview)||running.has(k))continue;
     // A new exact raster cannot fix an unrelated permanent loader exception.
     if(!['source-null','incomplete-source','invalid-packet'].includes(prior.reason))continue;
     const tile=visibleTiles.find(t=>t.id===tileId);
@@ -187,14 +196,22 @@ window.VedrasWorldTiles=(()=>{
    }
    if(!normalized.length)return false;
    const k=key(tile,level),old=cache.get(k);
+   // A later snapshot seed must never replace an already sharp live tile.
+   if(packet.preview===true&&old&&!old.packet.preview)return false;
+   const provisional=packet.preview===true;
+   if(provisional)previews++;
+   else if(old?.packet.preview)upgraded++;
    if(old){pixels-=old.pixels;release(old.packet);}
    const count=normalized.reduce((n,x)=>n+x.image.width*x.image.height,0);
-   cache.set(k,{tile:{...tile},packet:{layers:normalized,
-    complete:packet.complete!==false},pixels:count,
-    used:++used,born:clock(),revision:packet.revision??null});
+   cache.set(k,{tile:{...tile},tileLod:level,packet:{layers:normalized,
+    complete:packet.complete!==false,preview:provisional,
+    sourceDensity:finite(packet.sourceDensity)?packet.sourceDensity:null},
+    pixels:count,used:++used,born:old?.packet.preview&&!provisional?
+     clock()-240:clock(),revision:packet.revision??null});
    pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
    retries.delete(k);cancelRetry(k);
-   observe(k,'ready',{level,revision:packet.revision??null});
+   observe(k,provisional?'preview-needs-upgrade':'ready',
+    {level,sourceDensity:packet.sourceDensity??null,revision:packet.revision??null});
    onReady();return true;
   }
   function seed(tile,level,packet){
@@ -283,13 +300,14 @@ window.VedrasWorldTiles=(()=>{
     (a.x+a.size/2-midX)**2+(a.y+a.size/2-midY)**2-
     (b.x+b.size/2-midX)**2-(b.y+b.size/2-midY)**2);
    for(const t of sorted){
-    const k=key(t,lod);
-    if(cache.has(k)||running.has(k)||queue.has(k))continue;
+    const k=key(t,lod),existing=cache.get(k);
+    if((existing&&!existing.packet.preview)||running.has(k)||queue.has(k))
+     continue;
     const retry=retries.get(k);
     if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>Date.now())))continue;
     // A new LOD never hides a cached old variant.
     queue.set(k,{key:k,tile:t,level:lod,epoch});
-    observe(k,'queued',{level:lod});
+    observe(k,existing?.packet.preview?'upgrade-queued':'queued',{level:lod});
    }
    // Reserve loaded viewport tiles across zoom variants.
    const protect=new Set();
@@ -353,6 +371,7 @@ window.VedrasWorldTiles=(()=>{
    // Draw terrain only inside known world HEX geometry, never a rectangular
    // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
+   visiblePreviews=0;
    const hasMask=Array.isArray(fog)&&fog.length>0&&typeof g.clip==='function';
    const atmosphere=window.VedrasFogAtmosphere;
    const drawKnownPath=(halo)=>{
@@ -392,6 +411,7 @@ window.VedrasWorldTiles=(()=>{
      dh=snap(view.height/2+view.panY+(t.y+t.size)*view.zoom*proj)-dy;
     if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
     item.used=++used;items.push({t,item,dx,dy,dw,dh});
+    if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
    let covered=0,draws=0,fading=false;
@@ -474,6 +494,7 @@ window.VedrasWorldTiles=(()=>{
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
+   visiblePreviews,previews,upgraded,
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,

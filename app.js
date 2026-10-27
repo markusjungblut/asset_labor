@@ -124,11 +124,26 @@ function tileArtworkStatus(t,details=null,allowPrepared=false){
  if(details)details.reason=ready?'ready':'sprite-source-not-ready';
  return ready;
 }
+// A 2.5px/world-unit tile made from a 0.6px/world-unit snapshot has
+// more output pixels, not more detail. Mark it as preview and rebuild at the
+// requested resolution once, without blocking the current camera frame.
+function worldTileSnapshotDensity(snapshot){
+ const density=(snapshot?.zoom||0)*(snapshot?.dpr||0);
+ return Number.isFinite(density)?density:0;
+}
+function worldTileSnapshotsSharp(ground,scenery,level){
+ const target={far:.85,mid:1.5,near:2.5}[level]||1;
+ return worldTileSnapshotDensity(ground)>=target*.98&&
+  worldTileSnapshotDensity(scenery)>=Math.min(target,1.9)*.98;
+}
 function seedReadyWorldTiles(){
  if(!worldTiles||finalRendering||state.mode==='far')return;
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
  if(!ground||!scenery)return;
  const lod=worldTiles.chooseLod(state.zoom),bounds=streamingViewBounds(96);
+ const preview=!worldTileSnapshotsSharp(ground,scenery,lod);
+ const sourceDensity=Math.min(worldTileSnapshotDensity(ground),
+  worldTileSnapshotDensity(scenery));
  const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
  for(const t of tiles){
   const units=objectLayoutCache.query(
@@ -144,12 +159,15 @@ function seedReadyWorldTiles(){
   // Landscape and canopy must stay in separate render layers.
   worldTiles.seed(t,lod,{complete:true,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-   {layer:'scenery',image:b}]});
+   {layer:'scenery',image:b}],preview,sourceDensity});
  }
 }
 function snapshotTile(s,t,level,pad=0){
  if(!s?.canvas?.width||!s.dpr||!s.zoom)return null;
- const size=t.size+2*pad,scale={far:.85,mid:1.5,near:2.5}[level]||1;
+ // Keep provisional rasters at their native input density. Upsampling
+ // early wastes cache pixels without making the image any sharper.
+ const size=t.size+2*pad,requestedScale={far:.85,mid:1.5,near:2.5}[level]||1,
+  scale=Math.min(requestedScale,worldTileSnapshotDensity(s));
  const sx=(s.width/2+s.panX+s.pad+(t.x-pad)*s.zoom)*s.dpr,
   sy=(s.height/2+s.panY+s.pad+(t.y-pad)*s.zoom*PROJECT_Y)*s.dpr;
  const sw=size*s.zoom*s.dpr,sh=size*s.zoom*PROJECT_Y*s.dpr;
@@ -171,8 +189,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
- const a=snapshotReady?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
-  b=snapshotReady?snapshotTile(scenery,t,level):null;
+ const reuseSnapshot=snapshotReady&&
+  worldTileSnapshotsSharp(ground,scenery,level);
+ const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
+  b=reuseSnapshot?snapshotTile(scenery,t,level):null;
  if(a&&b&&snapshotReady&&tileArtworkReady(t)){
   // An old snapshot may include a unit; never bake one into static tiles.
   const units=objectLayoutCache.query(
@@ -340,6 +360,8 @@ function fastRender(){
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
+    ' · '+(worldTiles?.stats().visiblePreviews||0)+' Vorschau-/Fallback-Kacheln'+
+    ' · '+(worldTiles?.stats().upgraded||0)+' nachgeschärft'+
     ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
      ' · '+(worldTiles?.stats().retryExhausted||0)+' Tile-Fehler'+
      (worldTiles?.stats().clouds?

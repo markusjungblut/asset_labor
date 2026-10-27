@@ -50,3 +50,6 @@ Die rein zeitgesteuerten World-Tile-Retries wurden um ein zielgerichtetes `terra
 
 ## Schritt-4-Übergabe (2026-10-27)
 Die Maus-/Wheel-Fast-Kamera war bereits vorhanden und blieb unverändert. `applyZoom()` für Slider/Tastatur/Home aktiviert sie nun bei vorbereitetem Gelände ebenfalls, statt trotz unverändertem Weltsnapshot einen vollständigen Editor-Frame anzufordern. Nach `pointerup` bleiben vorbereitete World-Tiles im Compositor. Editor-/Strategie-/Exportansichten und kalte Erstansichten nutzen weiterhin den normalen Renderer. Neuer Test: `tests/test_camera_only_step4_v023_20261027.cjs`; Details und offene Browserprüfung in `STATUS.md`. Arbeiten an Schritt 5 (selektive Cacheinvalidierung) und Schritt 10/11 (LOD/4×) nicht vorziehen.
+
+### Schritt-4-Nachbesserung: Vorschau ist nicht gleich Fertigbild
+Neue Kacheln aus einem zu niedrig aufgelösten Editor-Snapshot bleiben als sofortige Vorschau zulässig; sie zählen aber nicht mehr als endgültiges Bild in der gewünschten LOD-Dichte. `world-tile-streamer.js` stellt bei gleichbleibendem Kamera-LOD eine gezielte Qualitätsanforderung, ohne scharfe Nachbarn neu aufzubauen. Keine vorgezogene Änderung an globaler LOD-Politik, GPU oder DPR-Limits. Isolierte Tests 8/8 neu; nativer Node-/Browservergleich weiter offen; siehe `STATUS.md`.

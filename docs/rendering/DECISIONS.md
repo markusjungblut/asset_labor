@@ -53,3 +53,9 @@
 
 ## D-018: FPS-/Rebuild-Aussagen nur mit tatsächlichem Lauf (2026-10-27)
 **Entscheidung:** Neu angelegte Szenarien prüfen unveränderte Source-Aufrufzahlen, Rasterversionen und den Routing-Entscheid. Native Node- und Browsermessungen sind getrennte Anforderungen. Die frühere 449,6-ms-Baseline wird nicht als neuer FPS-Wert ausgegeben.
+
+## D-019: Quelleigene Pixeldichte bestimmt den Tile-Fertigstatus (2026-10-27)
+**Entscheidung:** Ein groß skaliertes Bild ist nicht automatisch ein scharfes Tile. Ein aus `backgroundScene` und `staticScenery` kopiertes Welt-Tile trägt `preview:true`, wenn seine Pixel/Welteinheit unter der gewünschten Ground- oder Scenery-LOD liegen. Die Vollauflösung wird anschließend per bestehendem direkten Tile-Bake nachgeholt. **Begründung:** Sonst bleiben optisch grobe und scharfe Kacheln auf unbestimmte Zeit nebeneinander, obwohl die Warteschlange leer erscheint.
+
+## D-020: Sofortige Vorschau erhalten, scharfe Nachbarn schützen
+**Entscheidung:** Den bestehenden Fallback anzeigen, bis ein schärferes vollständiges Bild vorliegt. Eine Preview darf ein bereits fertiges Tile nicht herabstufen; nur die ungenügend aufgelöste Tile wird nachgebaut. Provisorische Bitmaps nicht über native Quelldichte aufblasen, Fehler terminal diagnostizieren, Fog-Sicherheit behalten. **Abgrenzung:** Keine allgemeine LOD- oder 4×-Qualitätsreform, keine GPU-Einführung und keine globale Cache-Invalidierungsänderung; dies verbleibt bei den späteren Roadmap-Schritten.
