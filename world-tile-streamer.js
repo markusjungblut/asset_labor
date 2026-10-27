@@ -224,7 +224,7 @@ window.VedrasWorldTiles=(()=>{
    }
   }
   function accept(tile,level,packet){
-   if(!packet?.layers?.length)return false;
+   if(!packet?.layers?.length||packet.complete===false)return false;
    const normalized=[];
    for(const layer of packet.layers){
     if(!layer?.image?.width||!layer.image.height||
@@ -232,7 +232,11 @@ window.VedrasWorldTiles=(()=>{
     normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned,
       pad:finite(layer.pad)?clamp(layer.pad,0,512):0});
    }
-   if(!normalized.length)return false;
+   // An unpainted shoreline, an absent terrain core, or an incomplete
+   // scenery layer may NEVER be stored as a visually ready preview.
+   if(!normalized.some(x=>x.layer==='ground'||x.layer==='terrain')||
+     (requireScenery&&!normalized.some(x=>
+      x.layer==='scenery'||x.layer==='structures')))return false;
    const k=key(tile,level),old=cache.get(k);
    // A later snapshot seed must never replace an already sharp live tile.
    if(packet.preview===true&&old&&!old.packet.preview)return false;
@@ -246,7 +250,7 @@ window.VedrasWorldTiles=(()=>{
     sourceDensity:finite(packet.sourceDensity)?packet.sourceDensity:null},
     pixels:count,used:++used,born:old?.packet.preview&&!provisional?
      clock()-240:clock(),revision:packet.revision??null});
-   pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
+   pixels+=count;completed++;trim(visibleSourceKeys());
    retries.delete(k);cancelRetry(k);
    observe(k,provisional?'preview-needs-upgrade':'ready',
     {level,sourceDensity:packet.sourceDensity??null,revision:packet.revision??null});
@@ -379,21 +383,40 @@ window.VedrasWorldTiles=(()=>{
      agedPromotions++;lastAgedPriority=first.key;
     }
    }else lastAgedPriority=null;
-   // Reserve loaded viewport tiles across zoom variants.
-   const protect=new Set();
-   for(const t of visibleTiles)
-    for(const level of Object.keys(density))if(cache.has(key(t,level)))
-     protect.add(key(t,level));
-   trim(protect);pump();
+   // Protect exactly the complete raster used to represent each visible
+   // tile, including an older LOD until its replacement finishes.
+   trim(visibleSourceKeys());pump();
    return {lod,requested:visibleTiles.length,pending:queue.size+running.size};
   }
+  function drawable(item){
+   const packet=item?.packet;
+   return !!packet&&packet.complete!==false&&
+    packet.layers.some(x=>x.layer==='ground'||x.layer==='terrain')&&
+    (!requireScenery||packet.layers.some(x=>
+     x.layer==='scenery'||x.layer==='structures'));
+  }
+  // Existing LOD tiles are progressive FULL images, not partial layers.
+  // Preserve a sharper previous LOD until the target LOD is complete;
+  // do not replace it with a blurrier low-density target preview.
   function lookup(t){
-   const direct=cache.get(key(t,lod));
-   if(direct)return direct;
-   for(const alternate of ['near','mid','far'])
-    if(alternate!==lod&&cache.has(key(t,alternate)))
-     return cache.get(key(t,alternate));
-   return null;
+   const target=cache.get(key(t,lod));
+   if(drawable(target)&&!target.packet.preview)return target;
+   const candidates=['near','mid','far'].map(level=>cache.get(key(t,level)))
+    .filter(drawable);
+   const resolution=item=>item.packet.preview?
+    (item.packet.sourceDensity??0):density[item.tileLod]??0;
+   candidates.sort((a,b)=>resolution(b)-resolution(a)||
+    Number(a.packet.preview)-Number(b.packet.preview)||
+    Number(b.tileLod===lod)-Number(a.tileLod===lod));
+   return candidates[0]||null;
+  }
+  function visibleSourceKeys(){
+   const keep=new Set();
+   for(const t of visibleTiles){
+    const shown=lookup(t);
+    if(shown)keep.add(key(t,shown.tileLod));
+   }
+   return keep;
   }
   function drawImage(image,x,y,w,h,view,source=null){
    const x0=clamp(x,0,view.width),x1=clamp(x+w,0,view.width),
