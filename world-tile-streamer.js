@@ -114,14 +114,25 @@ window.VedrasWorldTiles=(()=>{
    if(!Array.isArray(cells)||typeof ready!=='function')return 0;
    if(clouds?.stats().bases)
     return clouds.drawUnready(context,view,cells,ready);
-   // Conservative fallback while the four PNGs decode: still hide the
-   // unfinished hexes rather than briefly revealing incomplete artwork.
-   let covered=0;context.save();
+   // A conservative opaque mask is necessary even when FogAtmosphere
+   // and the authored cloud images are both unavailable.
+   let covered=0;context.save();context.globalAlpha=1;
    for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
     context.beginPath();
-    if(window.VedrasFogAtmosphere)
+    if(window.VedrasFogAtmosphere?.hexPath)
      window.VedrasFogAtmosphere.hexPath(context,c,view);
-    else continue;
+    else{
+     const proj=view.projectY||1,
+      x=view.width/2+view.panX+c.x*view.zoom,
+      y=view.height/2+view.panY+c.y*view.zoom*proj,
+      rx=c.radius*view.zoom,ry=rx*proj;
+     for(let i=0;i<6;i++){
+      const theta=-Math.PI/2+i*Math.PI/3,
+       px=x+Math.cos(theta)*rx,py=y+Math.sin(theta)*ry;
+      if(!i)context.moveTo(px,py);else context.lineTo(px,py);
+     }
+     context.closePath();
+    }
     context.fillStyle='#bdced7';context.fill();covered++;
    }
    context.restore();return covered;
@@ -588,7 +599,8 @@ window.VedrasWorldTiles=(()=>{
      clouds.drawUnready(g,view,fog,ready);
      clouds.drawTransitions(g,view,fog.frontierEdges);
     }else{
-     // Conceal unloaded and undiscovered data even before image decode.
+     // Readiness mask must be fully opaque even before cloud PNGs decode.
+     coverUnready(g,view,fog,ready);
      for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,ready);
     }
    }
