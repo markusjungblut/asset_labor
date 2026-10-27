@@ -59,7 +59,7 @@ test('normal map editor covers missing hexes after all foreground painting',()=>
  const overlay=src.indexOf('worldTiles.coverUnready(ctx,view,pending,c=>{',stage);
  assert.ok(stage>=0&&overlay>stage);
  assert.match(src,/function tileArtworkReady\(t\)/);
- assert.match(src,/const expected=genericObjects\(/);
+ assert.match(src,/const paths=new Set\(/);
  assert.match(src,/if\(units\|\|!tileArtworkReady\(t\)\)continue/);
  assert.match(src,/if\(signal\?\.aborted\|\|!tileArtworkReady\(t\)\)return null/);
 });
