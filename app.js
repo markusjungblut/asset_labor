@@ -369,7 +369,7 @@ const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:120
 const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:12000000,minPadding:48});
 const frameMemo=window.VedrasFrameMemo.create();
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
-let spriteAssetBatchDirty=false,assetBatchStarted=0;
+let spriteAssetBatchDirty=false;
 const spriteAtlas=window.VedrasSpriteAtlas?.create({
  base:'atlases/',limitPages:6,onReady:()=>requestDraw()
 })||null;
@@ -394,15 +394,12 @@ const imagePool=window.VedrasImagePool.create({
   if(isTerrain(a)){terrainAssetGroups=null;terrainRasterCache.signature=null;}
   // Batch sprite image completions. A 100ms decode burst used to provoke
   // one expensive terrain/forest/sprite pass per settled image promise.
-  // A 2-second sprite rebuild for every 100ms download batch starves
-  // image decoding and makes the map look stuck below clouds. Defer all
-  // sprite-layout invalidation and redraw until the current image queue
-  // settles; retain a bounded 1.8-second intermediate refresh.
-  if(!assetBatchStarted)assetBatchStarted=performance.now();
+  // A 2-second sprite rebuild for every 100ms PNG burst starves image
+  // decoding and makes the map look stuck. Debounce until the queue drains
+  // (or a 900ms quiet interval); the cached clouds keep terrain concealed.
   clearTimeout(assetReadyTimer);
   const pending=imagePool.report(),busy=pending.queued>0||pending.active>1;
-  const elapsed=performance.now()-assetBatchStarted;
-  const delay=busy?Math.max(80,1800-elapsed):120;
+  const delay=busy?900:120;
   assetReadyTimer=setTimeout(()=>{
    assetReadyTimer=null;assetBatchStarted=0;
    if(spriteAssetBatchDirty){
