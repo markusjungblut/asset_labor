@@ -44,3 +44,12 @@
 
 ## D-015: Wiederanlaufen ausschließlich bei konkretem Terrain-Ready-Signal
 **Entscheidung:** Ein erschöpfter World-Tile-Auftrag darf nach Fertigstellung seines entsprechenden autorisierten Terrain-Chunks gezielt wieder starten. Der Terrain-Renderer meldet dabei nur die fertiggestellte Tile-ID; kein globaler Retry-Reset oder regelmäßiges Polling. Unbekannte und nicht sichtbare Tiles bleiben vorab gefiltert. **Begründung:** Ohne dieses Ereignis könnte ein World-Tile bereits vor Fertigstellung eines langsamen Terrain-Chunks sein Retrybudget aufbrauchen und trotz später bereitstehender Daten dauerhaft verborgen bleiben.
+
+## D-016: Vorhandenen Tile-Compositor statt neuen Renderer für Zoom benutzen (2026-10-27)
+**Entscheidung:** `applyZoom()` einschließlich Home-Zentrierung ohne Zoomänderung darf nach erfolgreichen Vorbereitungsarbeiten die bereits vorhandene `fastRender()`-Pipeline nutzen. Dasselbe `id@lod`-Raster wird bei Kamera-Pan/Zoom neu positioniert und skaliert. **Grund:** Slider-/Tastaturzoom verwendete bislang den normalen Editor-Zeichenweg und konnte unveränderte Szene erneut aufbauen.
+
+## D-017: Erstaufbau und Editor-Funktionalität bleiben direkt (2026-10-27)
+**Entscheidung:** Kein Einstieg in die Fast-Kamera aus `applyZoom()`, solange weder fertige World-Tiles noch Terrain-Chunks vorhanden sind. Ebenso kein Shortcut bei finalem Export, Strategie-/Nicht-Kartenansichten und blockierenden Edit-/Debug-Overlays. Beim Deaktivieren der Schnellkamera auch nach `pointerup` persistierte Compositor-Anzeige abbauen. **Grund:** Die Optimierung darf nicht den Renderer-Bootstrap, Fog-Gates oder Editorfunktionen verhindern. Keine Änderung an DPR/LOD/GPU und keine selektive Cacheinvalidierung (Schritte 5/10/11).
+
+## D-018: FPS-/Rebuild-Aussagen nur mit tatsächlichem Lauf (2026-10-27)
+**Entscheidung:** Neu angelegte Szenarien prüfen unveränderte Source-Aufrufzahlen, Rasterversionen und den Routing-Entscheid. Native Node- und Browsermessungen sind getrennte Anforderungen. Die frühere 449,6-ms-Baseline wird nicht als neuer FPS-Wert ausgegeben.

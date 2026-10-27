@@ -347,6 +347,24 @@ function fastRender(){
   }
  });
 }
+// Step 4: camera-only navigation reuses immutable world tiles. A first
+// ordinary editor draw must still configure terrain workers and snapshots.
+// Never use this shortcut for export, editing overlays or the far strategy map.
+let cameraOnlyZooms=0,cameraZoomFallbacks=0;
+function requestCameraOnly(){
+ if(!worldTiles||!fastAllowed()||finalRendering||
+    (!(worldTiles.stats().tiles>0)&&!(terrainChunks.stats().cached>0))){
+  cameraZoomFallbacks++;
+  return false;
+ }
+ if(!fastInteracting&&!tileModeActive){
+  tileModeActive=true;
+  tileFog(); // set complete authorization mask before showing the upper canvas
+ }
+ cameraOnlyZooms++;
+ fastRender(); // no drawGround/drawRoads/drawMapObjects or snapshot rebuild
+ return true;
+}
 function beginFastCamera(){
  if(!fastAllowed())return false;
  if(fastInteracting)return true;
@@ -361,7 +379,12 @@ function endFastCamera(repair=true){
   stopFastCameraForStrategy();requestDraw();return;
  }
  clearTimeout(fastWheelTimer);fastWheelTimer=null;
- if(!fastInteracting)return;
+ if(!fastInteracting){
+  // A retained tile compositor may remain active after pointerup; disabling
+  // the fast-camera option must still restore the original map canvas.
+  if(!repair&&tileModeActive){tileModeActive=false;realtimeMap.hide();}
+  return;
+ }
  fastInteracting=false;
  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
   chunks.setInteractive(false);
@@ -2402,7 +2425,7 @@ function syncStrategicControls(){
  const layers=$('strategyOverlay');if(layers)layers.hidden=!far;
  $('modeBadge').textContent=far?'STRATEGIE':'NORMAL';
 }
-function applyZoom(requested,pivotX=W/2,pivotY=H/2){
+function applyZoom(requested,pivotX=W/2,pivotY=H/2,panChanged=false){
  const previousMode=state.mode;
  const before=state.zoom,zoom=clamp(requested,ZMIN,ZMAX),
   world=fromScreen(pivotX,pivotY);
@@ -2422,7 +2445,11 @@ function applyZoom(requested,pivotX=W/2,pivotY=H/2){
  }
  $('zoomSlider').value=Math.round(zoom*100);
  $('zoomText').textContent=Math.round(zoom*100)+' %';
- syncStrategicControls();requestDraw();updateDiagnostics();
+ // UI slider and keyboard zoom never call beginFastCamera(). Route them
+ // through the same tile compositor as pointer/wheel camera moves.
+ const reused=(before!==zoom||panChanged)&&previousMode===state.mode&&requestCameraOnly();
+ if(!reused)requestDraw();
+ syncStrategicControls();updateDiagnostics();
 }
 function setView(view){if(view!=='map'){gpuTerrain?.hide();gpuSprites?.hide();
   stopFastCameraForStrategy();}state.view=view;for(const [id,name] of [['viewMap','map'],['viewSolo','solo'],['viewCompare','compare']])$(id).classList.toggle('active',view===name);
@@ -2722,7 +2749,7 @@ $('strategyOverlay').addEventListener('change',e=>{
  state.strategyOverlay=e.target.value;persistScene();requestDraw();
 });
 $('zoomSlider').addEventListener('input',e=>applyZoom(Number(e.target.value)/100));$('zoomIn').addEventListener('click',()=>applyZoom(state.zoom*1.16));$('zoomOut').addEventListener('click',()=>applyZoom(state.zoom/1.16));
-$('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize));});
+$('home').addEventListener('click',()=>{state.panX=0;state.panY=20;applyZoom(suggestedSceneZoom(state.sceneSize),W/2,H/2,true);});
 $('quality').addEventListener('change',e=>{state.quality=e.target.value;resize();requestDraw();updateDiagnostics();});
 for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;state.chunkRenderingOverride=true;invalidateTerrain();persistScene();requestDraw();});
@@ -2785,7 +2812,7 @@ $('atlasBuild').addEventListener('click',async()=>{
 });
 $('fastCamera').addEventListener('change',e=>{
  state.fastCamera=e.target.checked;
- if(!state.fastCamera)endFastCamera();
+ if(!state.fastCamera)endFastCamera(false);
  persistScene(false);requestDraw();
 });
 $('worldStreaming').addEventListener('change',e=>{
@@ -3287,6 +3314,12 @@ window.VedrasAssetLabor={shadowSprites:{
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
  worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ cameraStats:()=>({zoomComposites:cameraOnlyZooms,
+  zoomFallbacks:cameraZoomFallbacks,fastFrames,worldTileBakes:tileBakes,
+  backgroundBuilds:backgroundScene.stats().builds,
+  sceneryBuilds:staticScenery.stats().builds,
+  terrainBuilds:terrainChunks.stats().built,active:tileModeActive,
+  interacting:fastInteracting}),
  tileDiagnostics:({limit=50,includeReadiness=true}={})=>{
   const max=Math.max(1,Math.min(150,Math.floor(limit)||50));
   const bounds=streamingViewBounds(96);

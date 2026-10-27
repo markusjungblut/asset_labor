@@ -1,47 +1,42 @@
 # Rendering-Status
 
 **Stand:** 2026-10-27  
-**Repository:** `markusjungblut/asset_labor`  
-**Ausgangscommit Schritt 3:** `99a70d45500f7a5f6efbf411c138a56309ff921b`  
-**Schritt 1:** Ausgangsstand dokumentiert, Backup: `backup/v0.23-step1-before-docs-20261027`.  
-**Schritt 2:** Tile-Diagnostik umgesetzt.  
-**Schritt 3:** **Codeimplementierung und fokussierte isolierte Regression erfolgreich; Abnahme an echter dichter Browserkarte noch offen.**  
-**Als Nächstes:** **Schritt 3 im echten Browser verifizieren**, danach erst Schritt 4 freigeben.
+**Repository:** `markusjungblut/asset_labor` (`main`)  
+**Schritt 4:** **Kamera-Komposition implementiert und mit isolierten Tests geprüft; native Node- und echte Browser-Abnahme noch offen.**  
+**Ausgangscommit für Schritt 4:** `d465bf32002de6c85cfd2e51586f8572ec449b7a`  
+**Schritte 1–3:** Implementierungsstand aus bisherigen Commits beibehalten. Die noch offene Browserprüfung von Schritt 3 bleibt ausdrücklich offen.  
+**Nächster Entwicklungsinhalt:** Schritt 5 erst nach Abnahme von Schritt 3/4.
 
-## Reproduzierte Defekte und gezielte Reparaturen
+## Änderung ausschließlich in Schritt 4
 
-1. **Terrain: leerer Raster-Cache blockiert Fertigstellung.** `chunks.js` behandelte `null` als gültigen Cache-Eintrag; `prime()` hielt ihn dadurch für „bereit“, während `readyTiles()` ein Raster verlangte. Für **Terrain allein** fordert `app.js` jetzt `requireRaster:true` an. Fehlende Raster werden nicht als fertig gespeichert, sondern mit begrenzter Verzögerung erneut aufgebaut; nach vier Versuchen folgt `retry-exhausted`. Absichtlich leere Wege/Ufer-/andere Ebenen behalten die alte erlaubte Null-Semantik.
-2. **World-Tiles: `source-null` und unvollständige Pakete ohne eigenständiges Wiederanlaufen.** `world-tile-streamer.js` legt verzögerte, begrenzte Wiederholungen für leere/fehlerhafte Ergebnisse an (bis zu fünf Versuche; 400/800/1600/3200 ms). Im Editor sind vollständig nutzbare Ground-/Scenery-Layer erforderlich; ein halbes Paket wird nicht als fertiges Tile veröffentlicht.
-3. **Feststeckende asynchrone Jobs.** Terrain-Aufträge besitzen im Terrainmodus ein 60-Sekunden-Watchdog; World-Quellen besitzen ein 45-Sekunden-Watchdog. Nach Timeout wird der Renderer-Slot frei, der Fehler erfasst und eine begrenzte Wiederholung ermöglicht. Später eintreffende Bitmaps werden verworfen und, wenn im Eigentum des Jobs, freigegeben.
-4. **Gezieltes Wiederanlaufen bei nachgeladenem Terrain.** Wenn ein sichtbarer Terrain-Chunk fertig aufgebaut ist, übergibt sein vorhandener `redraw`-Callback die genaue Tile-ID an `worldTiles.terrainReady(id)`. Ein vorher durch `source-null`/`incomplete-source` erschöpfter World-Tile-Auftrag wird **nur für diese autorisierte sichtbare Tile-ID** reaktiviert, nicht pauschal für die ganze Karte. So bleibt das Gebiet nicht hängen, wenn das Terrain erst nach dem World-Tile-Retrybudget fertig wurde.
-5. **Veraltete Generationen/Signaturen.** Das World-Tile-Ergebnis darf nur veröffentlicht werden, wenn der aktuelle Job-Token noch passt. Wird während eines laufenden Terrainjobs der Tile-Stempel geändert, folgt für die weiterhin sichtbare Kachel eine neue Queue-Anforderung, statt nur das veraltete Ergebnis zu verwerfen.
-6. **Schnelle Kamera wartet auf „painted“, obwohl Terrain bereits „ready“ ist.** `app.js` erlaubt ausschließlich dem **direkten Offscreen-Tile-Builder** den Start aus einem fertig berechneten Terrain-Core, der noch nicht im Editor gezeichnet wurde. Bereits vorhandene Hintergrund-Snapshots benötigen weiterhin die exakte gemalte Version. Nach `drawGround()/drawRoads()` wird vor Veröffentlichung erneut die strenge `tileArtworkReady()`-Prüfung angewandt. Unfertiges Terrain oder fehlende Sprites bleiben unter Wolken.
+- Bereits vorhanden: Pointer-Drag und Mausrad verwenden `beginFastCamera()` → `fastRender()`. Ein fertiges World-Tile wird bei reiner Kamerabewegung vom vorhandenen `world-tile-streamer.js` an neuer Position/Größe komponiert; in unverändertem LOD kein neuer Terrain-/Scenery-Build. `endFastCamera(true)` hält den Tile-Compositor nach einer Bewegung aktiv.
+- **Neu:** `requestCameraOnly()` in `app.js` leitet auch programmatische Kameraänderungen (Zoom-Slider, Tastatur und Home-Zentrierung auch bei unverändertem Zoom) auf diesen bereits vorhandenen Compositor um. Zuvor ging `applyZoom()` ohne Pointer-/Wheel-Geste immer über `requestDraw()` und potenziell durch teure `drawGround()`/`drawRoads()`/`drawMapObjects()`-Pfade.
+- **Sicherer Erstaufbau:** Die Umleitung ist nur bei freigegebener Fast-Kamera und bereits vorbereiteten World-Tiles oder Terrain-Chunks zulässig. Bei leerem Anfangscache zeichnet der normale Renderer zuerst Materialgraph, Worker-/Terrain-Chunks und erste Snapshots. Keine leere Schnellkamera, die den Erstaufbau verhindert.
+- **Editor-Schutz:** Kein Shortcut bei Export (`finalRendering`), Strategieansicht, Nicht-Kartenansichten, verbotenen Edit-/Debug-Overlays oder deaktivierter Fast-Kamera. Die reguläre `draw()`-Pipeline bleibt dort unverändert. Beim Abschalten des Fast-Camera-Toggles wird auch ein nach `pointerup` retained `tileModeActive` deaktiviert; der Karten-Canvas übernimmt wieder.
+- **Messbar:** `window.VedrasAssetLabor.cameraStats()` berichtet `zoomComposites`, `zoomFallbacks`, `fastFrames`, `worldTileBakes`, `backgroundBuilds`, `sceneryBuilds`, `terrainBuilds`, `active` und `interacting`.
+- **Browsercache:** Nur das `app.js`-Script bekommt eine neue Query-Version in `index.html`. Kein Umbau an Fog, World-Renderer, Raster-LOD, DPR oder GPU. Keine neuen Render-Caches oder globalen Invalidierungsregeln aus Schritt 5.
 
-## Explizite Grenzen und Status bei permanenten Fehlern
-- Dauerhaft defekte Tiles werden nach wenigen Versuchen **nicht stillschweigend aufgedeckt**: Zustand `retry-exhausted`, letzter Grund und Tile-ID sind in `tileDiagnostics()` auslesbar. Ein neuer Epoch/Material-Stempel hebt diese Sperre wieder auf.
-- Neue UI-Statuszähler kennzeichnen endgültig fehlgeschlagene Terrain- bzw. World-Tiles; keine automatische Dauer-Retry-Schleife.
-- Es wurden **keine** DPR-/LOD-/GPU-/Textur-, Pixeldichte-, Fot-/Fog-, Sprite- oder Spielwelt-Änderungen vorgenommen. `index.html` erhält lediglich Cache-Busting-Parameter für die drei geänderten JS-Skripte.
-- Keine Aussage, dass die ursprünglich gemeldeten **67 ausstehenden Chunks** oder **449,6 ms/Frame** auf dem echten Rechner bereits behoben/gemessen sind.
+## Isolierte Validierung
 
-## Durchgeführte Checks
-- JavaScript-Syntax der geänderten Renderer-Module und neuen Testdatei im V8-Parser: erfolgreich.
-- `tests/test_tile_recovery_v023_step3_20261027.cjs`: **10/10** Tests mit simulierten Timern und Node-API-Shims in V8 bestanden (leer→Retry→fertig, terminale Fehler, beabsichtigt leere Nebenschichten, Timeout und Bitmap-Freigabe, Stempelwechsel, World-Null-Retry, unvollständige Pakete, verspätete Pakete, Offscreen-Ready-Gates).
-- Bestehender `tests/test_tile_diagnostics_v023_step2_20261027.cjs`: **4/4** unter denselben Testbedingungen bestanden.
-- Bestehender `tests/test_world_tile_streamer_v021_20261026.cjs`: **8/8** unter denselben Testbedingungen bestanden.
-- **Nicht ausgeführt:** echter nativer `node --test`-Lauf, kompletter alter Testsatz, Browser-FPS-Profil und Test gegen die gespeicherte 2710-Sprite-Szene. Diese Abnahme ist erforderlich, bevor Schritt 3 als vollständig im Produkt verifiziert gilt.
+- Neue `tests/test_camera_only_step4_v023_20261027.cjs`: 11 fokussierte Tests für Slider-/Keyboard-/Home-Routing, Initial-Fallback, Terrain-Bootstrap, Editor-Schutz, No-op-Zoom, Strategieumschaltung, deaktivierbaren persistenten Compositor, transformierte wiederverwendete World-Tiles, unveränderten Export-Pfad und `pointerup` ohne Vollaufbau.
+- **60/60 isolierte V8-Tests bestanden (acht Suites):** Schritt-4-Kamera 11/11, Progressive Fast Camera 9/9, World-Tiles 8/8, Schritt-3-Recovery 10/10, Schritt-2-Diagnose 4/4, Static-Scene-Fallback 4/4, Static-Scene 8/8, Cloud-Loading 6/6. V8 mit simulierten Node-Schnittstellen; **kein nativer Node-Testlauf**.
+- Vorhandener Code `static-object-layer.js` bleibt unverändert. Das schließt Mehrkosten durch Neuaufbau bei Debug-Modi oder bei unvorbereiteten Regionen nicht aus.
+- **Keine neuen Browser-FPS-Zahlen**: Die alte Benutzermessung (449,6 ms/Frame) betrifft `draw()`, nicht `fastRender()`. Eine Verbesserung dieses konkreten FPS-Werts darf nicht ohne Browsermessung behauptet werden.
 
-## Nächste Verifikation
-Nach `git pull` und hartem Browser-Neuladen:
+## Manuelle Abnahme auf der gespeicherten großen Szene
+
+1. `main` aktualisieren, Editor hart neu laden, die Karte erst vollständig vorbereiten lassen.
+2. Browser-Konsole: `const before = window.VedrasAssetLabor.cameraStats();`
+3. Im Kartenmodus Zoom-Slider betätigen, mit `+`/`-` zoomen, dann mit der Maus schwenken – zunächst innerhalb desselben LOD.
+4. Browser-Konsole: `const after = window.VedrasAssetLabor.cameraStats(); console.table({before,after});`
+5. Erwartet: `zoomComposites` und `fastFrames` wachsen; im bereits vorbereiteten Gebiet und bei gleichem LOD bleiben `worldTileBakes`, `backgroundBuilds` und `sceneryBuilds` stabil. Neue sichtbare Tiles oder erstmals angefragtes LOD **dürfen** gebaut werden; dies ist kein unnötiger Scene-Rebuild.
+6. Kartenränder, Wolken, vollständige Terrain- und Sprite-Freigabe prüfen; insbesondere bei Pan/Zoom und Karten-/Strategie-Wechsel. Danach Fast-Camera-Option abschalten und überprüfen, dass die normale Map-Ansicht wieder sichtbar ist.
+7. Separat einen vollständigen `node --test`-Lauf und Browser-Performance-Trace ausführen. Alte Probleme aus Schritt 3 (67 pending) damit ebenfalls neu messen.
 
 ```bash
-node --test tests/test_tile_recovery_v023_step3_20261027.cjs
-node --test tests/test_tile_diagnostics_v023_step2_20261027.cjs
-node --test tests/test_world_tile_streamer_v021_20261026.cjs tests/test_priority_chunk_streaming_v019_20261024.cjs
+node --test tests/test_camera_only_step4_v023_20261027.cjs
+node --test tests/test_progressive_fast_camera_v0201_20261026.cjs tests/test_world_tile_streamer_v021_20261026.cjs
+node --test tests/test_tile_recovery_v023_step3_20261027.cjs tests/test_tile_diagnostics_v023_step2_20261027.cjs
 ```
 
-Browserkonsole: `window.VedrasAssetLabor.tileDiagnostics({limit:150})`. Zu Beginn, nach 30 und nach 60 Sekunden prüfen: `terrain.queuedVisible`, `terrain.retryWaiting`, `terrain.retryExhausted`, `world.running`, `world.retryWaiting`, `world.retryExhausted`, `artwork[].reason`, `worker.pending`, `imagePool.queued`. Beim Pan/Zoom prüfen, dass obsolete Job-Resultate die aktuelle Variante nicht überschreiben. Bei erschöpften Retries die in `recent` angegebenen letzten Fehler mit der Bild-/Terrainquelle vergleichen.
-
-**Aufgabe nach erfolgreicher Browserprüfung:** Schritt 4 – Kamera-Komposition ohne unnötigen Szenen-Neuaufbau. Schritt 4 wurde in diesem Commit **nicht** begonnen.
-
-### Ergänzende Schritt-3-Kontrolle
-Auch der Fall „World-Tile-Retries erschöpft, anschließend trifft das fertige Terrain ein“ ist getestet: Der eine sichtbare Tile wird ohne Kamerabewegung neu angefordert und bei vollständigem Ground-/Scenery-Paket freigegeben; unbekannte Tiles werden nicht nachgeladen. **10/10** neue und insgesamt **22/22** fokussierte isolierte V8-Tests erfolgreich; nativer Node- und Browserlauf bleiben offen.
+**Abnahmegrenze:** Als Codeänderung abgeschlossen, als Produkt-/FPS-Verbesserung **teilweise**, bis reale Browser- und native Node-Tests erfolgreich vorliegen.

@@ -12,7 +12,7 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 3. **Nicht endende Ladevorgänge reparieren**: Mit Messdaten aus Schritt 2 Queue, Requeue, Abort, Retry und Ready-/Painted-Bedingungen korrigieren. Akzeptanz: keine dauerhaft ungeklärte Ladeposition; Fog bleibt bis zu kompletter Freigabe deckend.
 
 ## Phase II – Rendering entkoppeln (v0.23.1)
-4. **Kamera ohne Scene-Rebuild**: Gecachte Kacheln beim Pan/Zoom nur transformieren. Vorhandenen Fast-/Normal-Renderpfad vor Umbau vergleichen. Akzeptanz: reine Kamerabewegung baut keine unveränderte Landschaft neu.
+4. **Kamera ohne Scene-Rebuild**: Gecachte Kacheln beim Pan/Zoom nur transformieren. Vorhandenen Fast-/Normal-Renderpfad vor Umbau vergleichen. Akzeptanz: reine Kamerabewegung baut keine unveränderte Landschaft neu. **Code-Status: implementiert und isoliert getestet; echte Browser-Abnahme ausstehend (teilweise).**
 5. **Cache-/Invalidierungsregeln**: Terrain, Welt-Tiles, Ufer, Wege, Wald, Scenery sowie Revisionen selektiv aktualisieren. Akzeptanz: stabiler Cache ohne unnötige globale Invalidierung; keine Nähte.
 6. **Statische Natur/Schatten**: Vorhandenes `static-object-layer.js` und `object-layout-cache.js` weiterverwenden; nur nachweisbar fehlende Tile-Vorbereitung ergänzen. Akzeptanz: Kamera-Pan führt nicht zu Tausenden einzelnen Sprite-Zeichnungen.
 
@@ -47,3 +47,6 @@ Die in Schritt 2 erkannten Codepfade (`cached-empty`, `source-null`, alte Signat
 
 ### Schritt-3-Nachtrag: Terrain-Ready-Signal
 Die rein zeitgesteuerten World-Tile-Retries wurden um ein zielgerichtetes `terrainReady(tileId)` ergänzt. Nach Fertigstellung eines konkreten Terrain-Chunks kann genau dieses zuvor erfolglos angefragte sichtbare World-Tile ohne Pan/Zoom wieder starten. Keine globale Cache-Invalidierung; keine Änderung der späteren Roadmap.
+
+## Schritt-4-Übergabe (2026-10-27)
+Die Maus-/Wheel-Fast-Kamera war bereits vorhanden und blieb unverändert. `applyZoom()` für Slider/Tastatur/Home aktiviert sie nun bei vorbereitetem Gelände ebenfalls, statt trotz unverändertem Weltsnapshot einen vollständigen Editor-Frame anzufordern. Nach `pointerup` bleiben vorbereitete World-Tiles im Compositor. Editor-/Strategie-/Exportansichten und kalte Erstansichten nutzen weiterhin den normalen Renderer. Neuer Test: `tests/test_camera_only_step4_v023_20261027.cjs`; Details und offene Browserprüfung in `STATUS.md`. Arbeiten an Schritt 5 (selektive Cacheinvalidierung) und Schritt 10/11 (LOD/4×) nicht vorziehen.
