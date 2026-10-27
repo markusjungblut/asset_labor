@@ -71,7 +71,7 @@ window.VedrasChunks=(()=>{
   const retired=new Map(),queue=new Map(),backgroundQueue=new Map(),
    prefetchQueue=new Map(),warmRemaining=new Set(),visibleQueuedAt=new Map();
   const MAX_VISIBLE_WAIT_MS=2500,MAX_WARM_STREAK=6;
-  let warmStreak=0;
+  let warmStreak=0,lastAgedPriority=null;
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
    backgroundPaused=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
@@ -104,7 +104,7 @@ window.VedrasChunks=(()=>{
   // Camera-position priority, preserving the original waiting time. Long
   // waiting visible chunks receive priority so center churn cannot starve them.
   function prioritizeVisible(){
-   if(queue.size<2)return;
+   if(queue.size<2){lastAgedPriority=null;return;}
    const now=Date.now(),focus=lastFocus||{x:0,y:0};
    const before=[...queue.keys()],ordered=[...queue.values()];
    const age=t=>Math.max(0,now-(visibleQueuedAt.get(t.id)??now));
@@ -117,11 +117,14 @@ window.VedrasChunks=(()=>{
      (visibleQueuedAt.get(b.id)??now);
     return dist(a)-dist(b);
    });
-   if(ordered.some((t,i)=>t.id!==before[i])){
-    stats.priorityReorders++;
-    if(ordered[0].id!==before[0]&&age(ordered[0])>=MAX_VISIBLE_WAIT_MS)
-     stats.agedPromotions++;
-   }
+   if(ordered.some((t,i)=>t.id!==before[i]))stats.priorityReorders++;
+   const protectedWait=age(ordered[0])>=MAX_VISIBLE_WAIT_MS&&
+    ordered.some(t=>age(t)<MAX_VISIBLE_WAIT_MS&&dist(t)<dist(ordered[0]));
+   if(protectedWait){
+    if(lastAgedPriority!==ordered[0].id){
+     stats.agedPromotions++;lastAgedPriority=ordered[0].id;
+    }
+   }else lastAgedPriority=null;
    queue.clear();
    for(const t of ordered)queue.set(t.id,t);
   }
@@ -224,6 +227,7 @@ window.VedrasChunks=(()=>{
    activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
    dropCache();queue.clear();visibleQueuedAt.clear();
    backgroundQueue.clear();prefetchQueue.clear();warmStreak=0;
+   lastAgedPriority=null;
    warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
    prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();lastFocus=null;
    signature='';family='';epoch++;scheduled=false;urgentScheduled=false;
@@ -242,7 +246,7 @@ window.VedrasChunks=(()=>{
     }
     activeJobs.foreground=null;activeJobs.background=null;diagnosticTiles=[];
     queue.clear();visibleQueuedAt.clear();backgroundQueue.clear();
-    prefetchQueue.clear();warmStreak=0;
+    prefetchQueue.clear();warmStreak=0;lastAgedPriority=null;
     warmRemaining.clear();protectedIds.clear();viewportWanted.clear();
     prefetchWanted.clear();prefetchRejected.clear();lastDrawnVersions.clear();
     lastFocus=null;epoch++;scheduled=false;urgentScheduled=false;inFlightInteractive=false;inFlightBackground=false;
