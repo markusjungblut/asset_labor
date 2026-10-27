@@ -96,9 +96,9 @@ test('nature generator gives snow ground cover a seeded spawn opportunity',()=>{
 });
 test('updated HTML invalidates cloud, nature and server code caches',()=>{
  const html=read('index.html'),server=read('server.py');
- assert.match(html,/Asset-Labor v0\.22\.5/);
+ assert.match(html,/Asset-Labor v0\.22\.6/);
  assert.match(html,/cloud-artwork\.js\?v=0\.22\.4/);
  assert.match(html,/nature_catalog\.js\?v=0\.33\.1/);
  assert.match(html,/nature-ui\.js\?v=0\.36\.1/);
- assert.match(server,/VERSION = '0\.22\.5'/);
+ assert.match(server,/VERSION = '0\.22\.6'/);
 });
