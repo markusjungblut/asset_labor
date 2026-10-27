@@ -21,9 +21,13 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 let tileModeActive=false,tileBakes=0,
  visibleFogTiles=null,lastTileSnapshotSignature=null;
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
+// One shared hysteresis controller selects terrain/shore/river/road detail
+// and the matching World-Tile quality. It is not a DPR multiplier.
+const adaptiveLOD=window.VedrasAdaptiveLOD.create();
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,requireScenery:true,
+ lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
 });
 function tileFog(){
@@ -613,7 +617,6 @@ const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fas
  shoreline:{enabled:true,mode:'art',width:34,outer:10},
  asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
-const adaptiveLOD=window.VedrasAdaptiveLOD.create();
 let terrainLod='mid',currentLodProfile=null;
 function updateTerrainLod(zoom){
  currentLodProfile=adaptiveLOD.update(zoom,{
@@ -818,7 +821,7 @@ function deferSceneRender(channel,apply,delay=170,saveScope=true){
 }
 let terrainRasterCache={signature:null,raster:null};
 const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:56,maxPixels:24000000});
-// v0.19: world streaming is independent from terrain LOD or image quality.
+// Independent streaming queues share the world/region/local LOD tier; no pan-time raster rebuild.
 // Each layer receives its own small bounded queue, never an unbounded world scan.
 function streamingOptions(limit=8){
  return {enabled:state.worldStreaming!==false&&!finalRendering&&
@@ -3666,5 +3669,7 @@ window.VedrasAssetLabor={shadowSprites:{
   backgroundScene.clear();persistScene(false);requestDraw();
  },
  streamingStats:()=>window.__vedrasStreamingProfile||{},
- lodStats:()=>({...lodProfile(),...adaptiveLOD.stats()}),
+ lodStats:()=>({...lodProfile(),...adaptiveLOD.stats(),
+  worldTile:worldTiles?.stats().lod??null,
+  worldTileDensity:worldTiles?.stats().lodDensity??null}),
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
