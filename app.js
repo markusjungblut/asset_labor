@@ -2043,6 +2043,37 @@ function draw(){
   }
  }finally{spriteAtlas?.endFrame();}
  drawMountainFootprints();drawBounds();
+ if(!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
+  // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
+  // arbitrary order. Apply the SAME cloud cover AFTER the final scenery pass,
+  // revealing only hexes for which every intersecting tile is fully painted.
+  const view={width:W,height:H,zoom:state.zoom,dpr:state.dpr,
+   panX:state.panX,panY:state.panY,projectY:PROJECT_Y};
+  const pending=worldCells.map(c=>{
+   const p=axialPos(c.q,c.r);
+   return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility:'visible'};
+  }).filter(c=>{
+   const sx=W/2+state.panX+c.x*state.zoom,
+    sy=H/2+state.panY+c.y*state.zoom*PROJECT_Y;
+   return sx>-R*state.zoom&&sx<W+R*state.zoom&&
+    sy>-R*state.zoom&&sy<H+R*state.zoom;
+  });
+  const coreReadiness=new Map();
+  const fullyPainted=c=>{
+   const width=R*Math.sqrt(3),height=R*2;
+   const cores=window.VedrasChunks.visible({
+    x:c.x-width/2,y:c.y-height/2,width,height
+   },worldCells,512);
+   if(!cores.length)return false;
+   for(const tile of cores){
+    if(!coreReadiness.has(tile.id))
+     coreReadiness.set(tile.id,tileArtworkReady(tile));
+    if(!coreReadiness.get(tile.id))return false;
+   }
+   return true;
+  };
+  worldTiles.coverUnready(ctx,view,pending,fullyPainted);
+ }
  if(gpuFrame)gpuTerrain.end();
  // Save references to exactly the artwork already painted by the editor.
  // Fast camera frames sample these rasters; they never invoke drawGround,
