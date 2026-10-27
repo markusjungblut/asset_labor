@@ -159,6 +159,8 @@ test('direct bake permits prepared core, but snapshot path still requires painte
  const core={artwork:{version:7}},sandbox={
   paintedTerrainCore:()=>null,currentTerrainCore:()=>core,
   terrainChunks:{paintedVersions:()=>new Map()},
+  // Step 8 coast readiness lives outside the source slice tested here.
+  shorelineTileStatus:()=>true,
   state:{objects:false}};
  const f=vm.runInNewContext(source+';({tileArtworkReady,tileArtworkStatus});',sandbox);
  const tile={id:'0,0',x:0,y:0,size:512};

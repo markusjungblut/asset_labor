@@ -163,3 +163,13 @@ Der Nutzer-Screenshot vom 27.10.2026 zeigt sichtbare Wolken über offenbar errei
 5. Nativen Lauf (mindestens die sechs oben genannten Testdateien mit `node --test`) und echten Browser-Build/Serverstart durchführen. Bleibt die sichtbare Wolkendecke oder Küstenlücke trotz leerer Queue stehen, ist dies **separat** als Tile-Readiness-/Raster-/Fog-Bug zu diagnostizieren, nicht durch eine weitere Scheduleränderung zu verdecken.
 
 **Weiterer Arbeitsschritt:** Schritt 8 (Worker-Evaluation) erst nach angemessener Prüfung des erreichten Zustands. Die sichtbaren Küsten-/Cloudfehler und die schlechte Performance bleiben ausdrücklich ungelöst, bis real gemessen und die betroffenen Tile-Zustände bestimmt wurden.
+
+## Fix vor Schritt 8 – LOD-Wolkenflackern und Küstenfreigabe (2026-10-27)
+
+**Ausgangsstand:** `157e265eaa82dc0d19116e6381ffe8f3a0df0aba`. Im Bugfix-Branch `fix/zoom-coast-readiness-20261027`.
+
+- **Chunk-förmiges Wolkenflackern:** `world-tile-streamer.js` hatte auf jede vollständige Bildkachel eine 240-ms-Alpha-Animation gelegt. Gerade nach Zoom/LOD-Wechseln erschien so rechteckig der Wolkenhintergrund, obwohl Terrain-/Scenery-Bilder fertig waren. Beide Tile-Layer werden jetzt unmittelbar bei vollem Alpha dargestellt; die weiterhin erforderlichen **hexweisen** Fog- und Readiness-Masken sind unverändert.
+- **Unvollständige Küsten im fertigen Cache:** `tileArtworkStatus` prüfte fertige Terrain-Kerne, jedoch nicht den getrennten asynchronen `shorelineChunks`-Pass. Für Tiles mit einer realen Küstenkante wird nun das passende Shoreline-Raster geprüft: `allowPrepared=true` benötigt einen vorbereiteten Chunk für direkte Offscreen-Bakes, Snapshot-Reuse erfordert zusätzlich die tatsächlich gemalte Version. Küstenfreie Tiles werden nicht blockiert. Nach Fertigstellung eines Shoreline-Chunks wird sein zuvor wartender World-Tile-Auftrag mit `terrainReady(tile.id)` reaktiviert; die Fast-Kamera primt die vorhandene Shoreline-Queue.
+- **Abnahme:** 5/5 gezielte simulierte V8-Tests für Tile-Opacity, Küsten-Readiness, No-Coast, abgeschaltete Coast-Layer und Retry-Verdrahtung. Noch keine echten Browserfotos oder nativen Node-Testläufe; gemeldete Kosten und Küstenbilddetails weiterhin live zu prüfen.
+
+**Wichtig:** Diese Korrektur behebt eine bestätigte logische Freigabelücke und die programmierte rechteckige Animation. Eine vollständig fehlerfreie Küste und ruckelfreier Zoom in der gespeicherten großen Karte sind ohne reale Laufzeitabnahme **nicht bestätigt**.

@@ -484,13 +484,15 @@ window.VedrasWorldTiles=(()=>{
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
-   let covered=0,draws=0,fading=false;
+   let covered=0,draws=0;
    function layerPass(layers,halo){
     g.save();drawKnownPath(halo);
     for(const layer of layers)for(const obj of items)
      for(const asset of obj.item.packet.layers)if(asset.layer===layer){
-      const opacity=clamp((clock()-obj.item.born)/240,0,1);
-      g.globalAlpha=opacity;
+      // Completed world tiles must be fully opaque. Per-chunk opacity ramps
+      // reveal rectangular clouds when an LOD replacement arrives.
+      // The subsequent per-HEX fog still conceals incomplete imagery.
+      g.globalAlpha=1;
       // Scenery rasters may include an overscanned sprite halo. The pad is
       // metadata on the layer; core terrain remains exactly tile-aligned.
       const pad=finite(asset.pad)?clamp(asset.pad,0,512):0;
@@ -507,7 +509,7 @@ window.VedrasWorldTiles=(()=>{
         obj.dy-pad*view.zoom*proj,obj.dw+pad*2*view.zoom,
         obj.dh+pad*2*view.zoom*proj,view);
       if(area){draws++;if(layer==='ground'||layer==='terrain')
-       covered+=area*opacity;if(opacity<1)fading=true;}
+       covered+=area;}
      }
     g.globalAlpha=1;
     g.restore();
@@ -556,7 +558,7 @@ window.VedrasWorldTiles=(()=>{
    }
    painted=draws;frame++;lastMs=clock()-start;
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
-   if(fading)onReady(); // continue the cloud-dissolve transition via rAF
+   
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,pending:queue.size+running.size};
   }
