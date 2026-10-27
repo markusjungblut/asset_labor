@@ -1941,7 +1941,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
   rebuilt:prepared.rebuilt,total:prepared.total,visible:objs.length,
   cacheHits:prepared.hits,cacheBuilds:prepared.builds,
   candidates:prepared.candidates,buckets:prepared.buckets,occlusionMs:0,sortMs:0,
-  shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0};
+  shadowPassMs:0,spritePassMs:0,drawnSprites:0,shadowCandidates:0,
+  staticSprites:0,dynamicSprites:0,staticShadows:0,dynamicShadows:0};
  if(state.mode==='far'){
    // Far view deliberately uses simplified strategic markers, not the detailed sprites.
    for(const o of objs){if(o.type!=='building'&&o.type!=='unit'&&o.type!=='mountain')continue;const p=toScreen(o.x,o.y);
@@ -1982,6 +1983,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
    profile.shadowCandidates++;
+   if(o.type==='unit')profile.dynamicShadows++;
+   else profile.staticShadows++;
    if(o.natureMeta)drawNatureGrounding(o,p);
    else if(o.type==='building'&&window.VedrasSpriteShadows){
     (finalRendering?window.VedrasSpriteShadows.draw:window.VedrasSpriteShadows.drawCached||window.VedrasSpriteShadows.draw)(ctx,o,p,o.w*state.zoom,
@@ -2025,6 +2028,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
    drawSprite(onlyUnits?{...o,noMountainCast:true}:o);profile.drawnSprites++;
+   if(o.type==='unit')profile.dynamicSprites++;
+   else profile.staticSprites++;
   }
   if(state.shadowHandles)drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
   profile.spritePassMs=performance.now()-spriteStart;
@@ -2285,6 +2290,7 @@ function draw(){
     window.__vedrasObjectProfile={...sceneryProfile.objectProfile,
      layoutMs:0,occlusionMs:0,sortMs:0,shadowPassMs:0,
      spritePassMs:0,drawnSprites:0,shadowCandidates:0,
+     staticSprites:0,staticShadows:0,dynamicSprites:0,dynamicShadows:0,
      sourceSprites:sceneryProfile.objectProfile.drawnSprites,
      sourceShadows:sceneryProfile.objectProfile.shadowCandidates,
      rebuilt:false,layerReused:true};
@@ -3468,11 +3474,12 @@ window.VedrasAssetLabor={shadowSprites:{
  sceneryDrawStats:()=>({
   mode:tileModeActive||fastInteracting?'world-tiles':'editor',
   staticSpritesThisFrame:tileModeActive||fastInteracting?0:
-   (window.__vedrasObjectProfile?.drawnSprites||0),
+   (window.__vedrasObjectProfile?.staticSprites||0),
   staticShadowsThisFrame:tileModeActive||fastInteracting?0:
-   (window.__vedrasObjectProfile?.shadowCandidates||0),
+   (window.__vedrasObjectProfile?.staticShadows||0),
   dynamicSpritesThisFrame:tileModeActive||fastInteracting?null:
-   (window.__vedrasDynamicObjectProfile?.drawnSprites||0),
+   (window.__vedrasDynamicObjectProfile?.dynamicSprites??
+    window.__vedrasObjectProfile?.dynamicSprites??0),
   worldTileDrawCalls:worldTiles?.stats().drawn||0,
   staticSceneryBuilds:staticScenery.stats().builds,
   staticSceneryHits:staticScenery.stats().hits,
