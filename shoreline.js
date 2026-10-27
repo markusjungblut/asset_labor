@@ -49,6 +49,16 @@ window.VedrasShoreline=(()=>{
   const portals=Array.isArray(options.mouthPortals)?options.mouthPortals:[],
    density=Math.max(.8,Math.min(2.0,Number(options.resolution)||1.35));
   if(!segs.length)return {segments:segs,canvas:null,missing:0};
+  // Browser images have naturalWidth, transferable Worker ImageBitmaps width.
+  // Art mode must NEVER silently fall back to obsolete procedural test edges.
+  const readyImage=image=>!!((image?.naturalWidth||image?.width)>0&&
+   (image?.naturalHeight||image?.height)>0);
+  if(options.mode==='art'){
+   const missingSides=[...new Set(segs.filter(s=>!readyImage(images?.[s.side]))
+    .map(s=>s.side))].sort((a,b)=>a-b);
+   if(missingSides.length)return {segments:segs,canvas:null,
+    missing:missingSides.length,missingSides};
+  }
   // The large full-hex+bleed square can overrun outer map edges.
   let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
   for(const c of cells){const p=pos(c);left=Math.min(left,p.x-260);right=Math.max(right,p.x+260);top=Math.min(top,p.y-260);bottom=Math.max(bottom,p.y+260);}
@@ -72,8 +82,10 @@ window.VedrasShoreline=(()=>{
   let missing=0;
   for(const s of segs){
    const asset=images?.[s.side];sc.clearRect(0,0,tileSize,tileSize);
-   if(options.mode==='art'&&asset?.naturalWidth){sc.drawImage(asset,0,0,tileSize,tileSize);}else{
-    if(options.mode==='art')missing++;
+   if(options.mode==='art'){
+    // Already verified above; both HTMLImageElement and ImageBitmap work.
+    sc.drawImage(asset,0,0,tileSize,tileSize);
+   }else{
     sc.save();sc.scale(density,density);drawTemporary(sc,s,options);sc.restore();
    }
    const src=sc.getImageData(0,0,tileSize,tileSize).data;
