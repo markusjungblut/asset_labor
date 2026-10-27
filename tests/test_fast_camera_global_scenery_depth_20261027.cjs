@@ -28,7 +28,7 @@ test('fast camera paints ground tiles but one globally ordered scenery pass',()=
  }});
  assert.equal(paints,1);
  assert.deepEqual(x.images,['ground-0','ground-1','global-sorted-Nature']);
- assert.equal(r.drawn,3);
+ assert.equal(r.drawn,2); // World-Tile stat counts ground image calls only.
 });
 test('camera pan does not reintroduce old scenery tiles',()=>{
  const x=world();let paints=0;
