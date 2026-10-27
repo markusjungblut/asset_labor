@@ -359,6 +359,14 @@ window.VedrasChunks=(()=>{
       observe(id,'obsolete',{reason:'epoch-change'});release(item);stats.obsolete++;return;
      }
      const visibleNow=viewportWanted.has(id)||protectedIds.has(id);
+     // Old foreground work may finish after the camera leaves its region.
+     // Never publish such a result unless it belongs to the new bounded
+     // prefetch ring or an explicit manual warm job.
+     if(interactive&&!visibleNow&&!prefetchWanted.has(id)&&
+        !warmRemaining.has(id)){
+      observe(id,'obsolete',{reason:'outside-viewport'});
+      release(item);stats.obsolete++;schedule();return;
+     }
      // Ignore obsolete speculative jobs rather than filling the LRU with
      // a distant region after the player turns around.
      if(expectedStamp!==stampForTile(t)||
