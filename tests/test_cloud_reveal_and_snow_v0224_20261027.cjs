@@ -56,10 +56,10 @@ test('tile readiness requires all intersecting 512 cores, not just center',()=>{
 test('normal map editor covers missing hexes after all foreground painting',()=>{
  const src=read('app.js');
  const stage=src.indexOf('drawMountainFootprints();drawBounds();');
- const overlay=src.indexOf('worldTiles.coverUnready(ctx,view,pending,fullyPainted)',stage);
+ const overlay=src.indexOf('worldTiles.coverUnready(ctx,view,pending,c=>{',stage);
  assert.ok(stage>=0&&overlay>stage);
  assert.match(src,/function tileArtworkReady\(t\)/);
- assert.match(src,/const expected=genericObjects\(/);
+ assert.match(src,/const paths=new Set\(/);
  assert.match(src,/if\(units\|\|!tileArtworkReady\(t\)\)continue/);
  assert.match(src,/if\(signal\?\.aborted\|\|!tileArtworkReady\(t\)\)return null/);
 });
@@ -96,9 +96,9 @@ test('nature generator gives snow ground cover a seeded spawn opportunity',()=>{
 });
 test('updated HTML invalidates cloud, nature and server code caches',()=>{
  const html=read('index.html'),server=read('server.py');
- assert.match(html,/Asset-Labor v0\.22\.4/);
+ assert.match(html,/Asset-Labor v0\.22\.5/);
  assert.match(html,/cloud-artwork\.js\?v=0\.22\.4/);
  assert.match(html,/nature_catalog\.js\?v=0\.33\.1/);
  assert.match(html,/nature-ui\.js\?v=0\.36\.1/);
- assert.match(server,/VERSION = '0\.22\.4'/);
+ assert.match(server,/VERSION = '0\.22\.5'/);
 });

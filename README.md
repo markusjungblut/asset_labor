@@ -1,3 +1,50 @@
+## v0.22.5 – Schnelleres Laden hinter der Wolkendecke (27.10.2026)
+
+**Gemeldeter Fehler:** Auf einer Karte mit ca. 3.746 Sprites, ca. 12 MP
+Bildraster und 4× Vorschauqualität dauerte ein Frame durchschnittlich
+2.163 ms. Das größte Teilbudget entfiel auf die statische
+Sprite-/Schattenebene (1.485 ms), während fertige Hexfelder unter
+Wolken verborgen blieben.
+
+- **Bild-Ladebatches:** Der ImagePool invalidiert die gesamte Scenery
+  nicht mehr bei **jedem** eintreffenden Nature-, Gebäude- oder
+  Einheitensprite. Aufeinanderfolgende Bilddecodes werden debounced;
+  die Layout-/Scenery-Invalidierung wird in einem Batch ausgeführt.
+  Damit wird nicht für jedes gerade eintreffende PNG eine komplette
+  3.746-Sprite-Szene neu gezeichnet.
+- **Interaktive Rasterobergrenze:** Bei Karten mit über **500**
+  platzierten Nature-Instanzen wird die sichtbare Editor-Vorschau
+  auf maximal **1,5× Canvas-DPR** begrenzt. Die 4× Einstellung bleibt
+  als Qualitätswunsch gespeichert; der Final-Exportpfad wird
+  nicht auf 1,5× begrenzt. Für sehr dichte Karten ist das ein bewusst
+  vorübergehender Performance-/Qualitätskompromiss. Beim Verändern
+  der Qualitätsstufe ist die tatsächlich verwendete DPR im
+  UI-Diagnosefeld zu sehen.
+- **Cache-Wiederverwendung:** Fertig vorbereitete Weltkacheln werden
+  bei einer unveränderten Editor-Szene nicht bei jedem Bildaufbau
+  gelöscht. Ein geänderter Hintergrund-/Scenery-Snapshot, eine
+  veränderte Kamera außerhalb des vorbereiteten Snapshots oder ein
+  neuer Sprite-Layout-Stand invalidiert den Cache weiterhin.
+- **Ausstehende Bilder aktiv nachladen:** Die Bereitschaftsprüfung
+  nutzt jetzt direkt die tatsächlich platzierten Nature-, Berg- und
+  Hexobjekt-Pfade. `genericObjects()` hatte unvollständige PNGs
+  bereits **vor** der Prüfung herausgefiltert, sodass sie irrtümlich
+  nicht als fehlend erkannt wurden. Fehlt ein Bild, fordert der
+  ImagePool dessen Dekodierung mit erhöhter Priorität an. Bis
+  der zugehörige Raster fertig ist, bleibt das Hex unter Wolken.
+- **Ladestatus:** `perfStats` enthält zusätzlich die Zahl bereiter
+  und noch wolkenverdeckter sichtbarer Hexe, der ausstehenden und
+  aktiven Bilddecodes sowie der ausstehenden Terrain-Chunks.
+  Damit lässt sich ein blockierter Asset-Pfad von allgemeiner
+  Canvas-Überlast unterscheiden.
+
+**Verifikation:** 72/72 isolierte JavaScript-/Mock-Canvas-Tests
+(66 bestehende, 6 neue). Es wurde **kein** echtes Browser-FPS-Profil
+und keine Abnahme an der lokalen 4×-Szene durchgeführt.
+Insbesondere eine beschädigte Quelldatei oder ein nichtladbares
+Sprite kann ein Hex weiterhin absichtlich unter Wolken halten; der
+neue Ladestatus erleichtert das Eingrenzen solcher Fälle.
+
 ## v0.22.4 – Wolken erst nach vollständigem Laden und Snow-Patch-Spawns (27.10.2026)
 
 - **Wolkenrichtung fixiert:** Die vier vom Nutzer ausgewählten Wolken-PNGs
