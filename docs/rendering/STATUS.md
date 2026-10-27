@@ -6,7 +6,8 @@
 **Ausgangscommit für Schritt 4:** `d465bf32002de6c85cfd2e51586f8572ec449b7a`  
 **Schritte 1–3:** Implementierungsstand aus bisherigen Commits beibehalten. Die noch offene Browserprüfung von Schritt 3 bleibt ausdrücklich offen.  
 **Schritt 5:** **Selektive Cacheinvalidierung implementiert und isoliert geprüft; native Node- und Browser-Abnahme ausstehend (teilweise).**  
-**Nächster Entwicklungsinhalt:** Browser-Abnahme der Schritte 3–5, anschließend Schritt 6.
+**Schritt 6:** **Statische Natur-/Schatten-Tiles von beweglichen Einheiten getrennt, isoliert geprüft; native Node- und Browser-Abnahme noch offen (teilweise).**  
+**Nächster Entwicklungsinhalt:** Native Tests und Browser-Abnahme der Schritte 3–6, danach Schritt 7.
 
 ## Änderung ausschließlich in Schritt 4
 
@@ -94,3 +95,36 @@ node --test tests/test_tile_quality_upgrade_step4_20261027.cjs tests/test_camera
 node --test tests/test_world_tile_streamer_v021_20261026.cjs tests/test_priority_chunk_streaming_v019_20261024.cjs
 node --test tests/test_terrain_frame_cache_v017_20261023.cjs tests/test_static_scene_v016_20261023.cjs
 ```
+
+## Schritt 6 – Statische Natur- und Bodenschatten-Kacheln (2026-10-27)
+
+**Ausgangspunkt:** `main` `cca23593149c5f93bb398370234acd69d11f5dcf`. Bearbeitet auf `rendering/step6-static-nature-20261027`. Ziel: Bereits vorhandene Canvas- und World-Tile-Caches so benutzen, dass Bäume, Sträucher, Felsen, Berge und ihre vorbereiteten Bodenschatten nicht bei jeder Kamerabewegung einzeln gezeichnet werden; bewegliche Einheiten dürfen nicht in statischen Bitmaps landen.
+
+### Implementiert
+
+1. `staticScenery.paint().drawScene` führt `drawMapObjects({includeUnits:false})` aus. Der bestehende Objektindex, die gemeinsame Shadow-Pipeline, Mountainsortierung und Nature-Zeichenreihenfolge bleiben erhalten. Die statischen Objekte und Schatten werden beim Snapshot-Build gezeichnet; nachfolgende Cache-Treffer blenden nur das fertige Canvas ein.
+2. Bewegliche `unit`-Objekte besitzen im normalen Editorpass nun einen gesonderten `drawMapObjects({onlyUnits:true})`-Durchgang **nach** dem statischen Canvas. Ihre Schatten und Sprites werden separat gezeichnet; der bisherige direkte Editor-/Finalexport-Pfad `drawMapObjects()` bleibt unverändert. Die bereits vorhandene dynamische World-Tile-Komposition `drawTileDynamics()` bleibt ebenfalls unverändert.
+3. `seedReadyWorldTiles()` und die scharfe Snapshot-Abkürzung in `bakeWorldTile()` dürfen vorbereitete, unit-freie Scenery-Tiles jetzt **auch in der Nähe von Einheiten** übernehmen. Die früheren einzelnen Unit-Queries für jede Seed-/Snapshot-Kachel entfallen. Der direkte Tile-Build verwendet weiterhin `includeUnits:false` und seine bestehende Besitzer-/Schatten-/Überhanglogik. `world-tile-streamer.js`, Fog, LOD, Sprite-Assets und Terrainberechnung werden nicht umgebaut.
+4. Die optionale GPU-Scenery-Komposition erhält bei sichtbaren dynamischen Einheiten einen Canvas2D-Fallback, da die höher liegende GPU-Fläche andernfalls die separat gezeichnete Einheit verdecken würde. Bei anderen Ausschnitten bleibt die bisherige GPU-Option verfügbar.
+5. `window.VedrasAssetLabor.sceneryDrawStats()` meldet pro letztem Renderzustand **statische Sprite- und Schatten-Zeichenaufrufe**, dynamische Sprite-Aufrufe, World-Tile-Bildkompositionen und kumulierte Scenery-/World-Tile-Builds. `window.__vedrasObjectProfile` zählt bei wiederverwendeter Szenerie `drawnSprites:0` und `shadowCandidates:0`, anstatt die Aufrufe des früheren Buildframes als aktuelle Framearbeit auszugeben. Dynamische Werte werden separat unter `__vedrasDynamicObjectProfile` geführt.
+6. Nur die Query-Version von `app.js` wurde in `index.html` für das Schritt-6-Script aktualisiert. Vorhandene Cache-Invalidierung aus Schritt 5, Qualitätsgates und die 1,5×-DPR-Grenze wurden nicht verändert.
+
+### Prüfung und Messstatus
+
+- **Neu:** `tests/test_static_nature_tiles_v023_step6_20261027.cjs`, sechs Tests für Syntax, getrennte Natur-/Einheitenpässe und Schatten, Original-Zeichenreihenfolge, statische Snapshots sowie zwei bereits vorbereitete Bildlayer bei Pan.
+- **6/6 dieser Testfälle** in einem isolierten JavaScript-V8-Testharness mit nachgebildeten `node:test`-/`vm`-Schnittstellen bestanden. Ergänzend sind `app.js`, `static-object-layer.js` und `world-tile-streamer.js` in V8 geparst worden.
+- **Isolierter Compositor-Smoke-Test:** Eine vorbereitete World-Tile-Kachel wird bei zwei Kamerapositionen mit jeweils **2 Bildkompositionen** gezeichnet, `completed` bleibt **1**. Der gepufferte Scenery-Canvas wird einmal aufgebaut und bei der nächsten Kameraposition wiederverwendet (1 Build, 2 Kompositionen). Dies sind kleine Testfixtures, **keine realen Performance-Zahlen** der großen Karte.
+- Bestehenden quellentextgebundenen Test `tests/test_world_tile_streamer_v021_20261026.cjs` an die neue Einheitentrennung angepasst; keine ursprünglichen Testfälle entfernt.
+- **Nicht ausgeführt:** vollständiger nativer `node --test`-Lauf, lokaler Build/Server, reale Browser-Grafikabnahme und Vergleichsmessung von p50/p95/FPS an der gespeicherten großen Szene. Die vorher gemeldeten 449,6 ms/Frame und 2.710 Naturinstanzen sind weiterhin **ausschließlich die alte Baseline**. Daher **Status: teilweise**.
+
+### Nächste Abnahme im echten Browser
+
+1. `main` mit aktuellem Schritt 6 laden, hart neu laden, große Szene vollständig vorbereiten lassen. Zunächst ohne Debug-/Finalexport-Overlays im Canvas-Kartenmodus prüfen.
+2. `window.VedrasAssetLabor.sceneryDrawStats()` und `worldTileStats()` vor/nach 10 Sekunden wiederholter Kamerabewegung innerhalb derselben vorbereiteten LOD-Stufe vergleichen. Bei warmem Tile-Modus: `staticSpritesThisFrame===0`, `staticShadowsThisFrame===0` und keine neuen `worldTileBakes` für unveränderte Regionen; `worldTileDrawCalls` enthält nur Bildlayer-Zeichenaufrufe statt Tausender Einzelsprites.
+3. Im normalen Canvas-Modus und bei einem Cache-Treffer ebenfalls 0 statische Sprite-/Schatten-Aufrufe erwarten; bewegliche Einheiten bleiben separat sichtbar. Ausgabe `window.__vedrasObjectProfile` und `window.__vedrasDynamicObjectProfile` prüfen.
+4. Baum-/Bergüberdeckungen, Kronen und Schatten über Tile-Grenzen, Ufer, Straßen, Fog of War, Schatten-Editor, Finalexport und GPU-Option auf visuelle Regressionen prüfen. In Szenen mit GPU-Sprites und sichtbarer Einheit den Canvas-Fallback kontrollieren.
+5. Native Tests ausführen; mindestens:
+   `node --test tests/test_static_nature_tiles_v023_step6_20261027.cjs tests/test_world_tile_streamer_v021_20261026.cjs tests/test_static_scene_v016_20261023.cjs tests/test_tile_quality_upgrade_step4_20261027.cjs tests/test_render_cache_invalidation_v023_step5_20261027.cjs`
+6. Browsertrace mit gleicher Szene/Zoom/DPR und getrennten Normal-/Tile-Kamera-Frametimings aufzeichnen. Erst dann Schritt 6 vollständig abnehmen und zu Schritt 7 übergehen.
+
+**Offene Probleme:** native Integration/FPS und eventuelle Sprite-/Bergnaht-Regressionsbilder fehlen. Bewegliche Einheiten verwenden noch den bestehenden Objektlayoutindex und dessen explizite Invalidierung; der spätere Spielzustands-/Einheitenupdate-Pfad ist Schritt 17, nicht dieser Schritt.
