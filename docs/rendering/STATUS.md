@@ -10,7 +10,8 @@
 **Schritt 7:** **Sichtbare Terrain-/World-Tiles nach aktuellem Kamerafokus und Wartealter priorisiert, alte Arbeit verworfen, Background-Fairness begrenzt; isolierte Tests bestanden, native Node-/Browser-Abnahme offen (teilweise).**  
 **Schritt 8:** **Shoreline-Pixelberechnung an vorhandenen Terrain-/OffscreenCanvas-Worker angebunden, inklusive Bitmap-Transfer, Profiling und Canvas-Fallback; isoliert geprüft, echte Performance-/Grafikabnahme ausstehend (teilweise).**  
 **Schritt 9:** **Progressive Anzeige mit vollständigen LOD-Fallbackpaketen, Priorität nach tatsächlicher Bildqualität und deckender Hex-Wolkenmaske implementiert; simulierte Tests bestanden, native Node-/Browserabnahme ausstehend (teilweise).**  
-**Nächster Entwicklungsinhalt:** Native und visuelle Abnahme der Schritte 6–9 an der gespeicherten 397-Hex-Karte; erst danach Schritt 10 (LOD-Vertrag).
+**Schritt 10:** **Gemeinsamer hysteretischer Welt-/Region-/Lokal-LOD-Vertrag für Terrain, Ufer, Fluss, Straße und World-Tiles implementiert; 110/110 isolierte Testfälle bestanden, native Node-/Browser-/Performanceabnahme ausstehend (teilweise).**  
+**Nächster Entwicklungsinhalt:** Browserabnahme der Schritte 6–10 (insbesondere Zoomgrenzen und Küstennähte) und anschließende getrennte Bewertung von Schritt 11 (interaktive DPR-/4×-Qualität).
 
 ## Änderung ausschließlich in Schritt 4
 
@@ -267,3 +268,29 @@ Die bereits vorher separat implementierte **globale Sprite-Tiefensortierung** au
 6. Native Tests und Browser-Screenshots nachholen; bis dahin Schritt 9 nicht als vollständig abgenommen markieren.
 
 **Weiter:** Erst nach sichtbarer Browserabnahme den LOD-Vertrag (Schritt 10) überarbeiten; kein vorzeitiges Anheben auf 4× oder Auswechseln der bestehenden GPU-/Worker-Architektur.
+
+## Schritt 10 – Gemeinsamer Welt-/Region-/Lokal-LOD-Vertrag (2026-10-27)
+
+**Basis:** `main` `644452b8c689b2c2d5aea13ca64fddec35cb7015` nach Schritt 9, Branch `rendering/step10-unified-lod-contract-20261027`. Getrennt von Strategieansicht `state.mode='far'`, die weiterhin ihre bisherige eigene Umschaltbedingung besitzt.
+
+### Beobachteter Ausgangszustand
+
+- `adaptive-lod.js` wählte für **Terrain, Ufer, Fluss, Straße und Wald** anhand des Zooms `far/mid/near` mit `initial far<.51; near>=.99`, Schwellwerten `.55/.47` und `1.06/.92`.
+- `world-tile-streamer.js` wählte bisher unabhängig davon `far/mid/near`, mit abweichenden Hysteresegrenzen (`1.08/.94` und `.42/.49`). Bei identischem Zoom konnten daher World-Tile-Caches und Terrain-/Ufer-Raster unterschiedlichen Qualitätsstufen zugeordnet werden. Das war ohne Qualitätsgewinn eine Ursache möglicher wiederholter Detail-Aufträge nach Zoomwechseln.
+- Die vorhandenen Ausgaberasterdichten `far=.85`, `mid=1.5`, `near=2.5` Welt-Tile-Pixel je Welt-Einheit und die Terrain-/Küsten-/Fluss-/Straßen-Faktoren werden **nicht** angehoben. Die adaptive Qualitäts- und DPR-Regel aus Schritt 11 bleibt unberührt.
+
+### Implementation
+
+1. `adaptive-lod.js` ist die **einzige kanonische Quelle** der Levelprofile, Welt-Tile-Rasterdichten und hysteretischen Zoomgrenzen. `far`=`scope:'world'` (Welt), `mid`=`scope:'region'` (Region), `near`=`scope:'local'` (Lokal); bei `full` bleibt der Editorfaktor 1, World-Tiles verwenden das vorhandene `near`-Raster. Geometry/Coast/Road-Konturen, Weltkoordinaten und Wolkenregeln bleiben gleich.
+2. `app.js` erzeugt den `adaptiveLOD`-Controller früh **genau einmal** und übergibt dem World-Tile-Streamer den Callback `lodSelector:zoom=>updateTerrainLod(zoom)`. Terrain-`lodProfile()` und World-`chooseLod()` benutzen damit **denselben Hysteresezustand**, nicht lediglich dieselben Konstanten. Reine Kameraverschiebung bei gleichbleibendem Zoom ändert weder LOD-Profil noch Tile-Schlüssel und fordert aus vollem Cache keine neue Rasterberechnung an.
+3. `world-tile-streamer.js` nimmt optional `lodSelector` entgegen. Für externe eigenständige Verbraucher erzeugt es einen eigenen Controller von `window.VedrasAdaptiveLOD.create()`; fehlt die Datei, greift ein rückwärtskompatibler Hysterese-Fallback mit identischen Grenzwerten einschließlich des **Initiallevels**. `worldDensity` wird aus dem gemeinsamen Modul gelesen. Der vorhandene Streaming-/Source-/Retry-/Fog-Vertrag bleibt erhalten.
+4. Bestehender Schalter `state.adaptiveLod=false` beziehungsweise Finalexport lässt das Terrain-/Ufer-Profil `full` wählen, ohne den interaktiven Hysteresezustand zu überschreiben. World-Tiles ordnen `full` dem vorhandenen `near`-Raster zu; keine zusätzliche vierte Tile-Cacheklasse.
+5. `VedrasAssetLabor.lodStats()` gibt nun neben Profil, Tier und Wechselzahl die aktuell vom World-Compositor genutzte Detailklasse und deren Pixel-Dichte zurück; `worldTileStats()` meldet `scope` und `lodDensity`. Die Script-Query-Versionen wurden in `index.html` für alle drei betroffenen Dateien aktualisiert. Ein separater visueller `state.mode='far'`-Strategieansichtswechsel wurde nicht verändert.
+6. Für bestehende Qualitäts-Regressionstests wurde der Testzoom auf `.8` gesetzt, da `zoom=1` gemäß dem kanonischen Vertrag jetzt **Lokal** statt vorher unabhängigem World-Tile-`mid` entspricht. Das testet weiterhin Preview-Upgrade und selektives Neuladen, ohne alte Fehlgrenzen zu konservieren.
+
+### Prüfstatus und konkrete Browserabnahme
+
+- **Neue Regressionen:** `tests/test_shared_lod_contract_step10_20261027.cjs`, **12/12** in simulierter V8-/Node-API-Laufzeit: identische Schwellwerte, stabile Hysterese, Welt-/Region-/Lokal-Typ, identische Controllerwahl, Standalone- und Legacy-Fallback, deaktiviertes Adaptive-LOD/`full`, Export ohne interaktive Änderung, Pan ohne Source-Neuaufbau, Fallbackdarstellung, Script-Versionierung und unveränderte DPR-Sperre.
+- **Bestandsregressionen:** 11 fokussierte Suites mit **98/98** in derselben V8-Laufzeit (einschließlich progressiver LOD/Fog, Worker, Küsten-PNG, Naturstaffelung, LOD-Qualität, Chunk-Recovery, Priorität und Cacheinvalidierung). **Gesamt: 110/110** simulierte Testfälle bestanden; die drei bearbeiteten JS-Module auf Syntax geprüft.
+- **Offen:** Nativer `node --test`-Lauf, Webserverstart, Live-Browser mit der gespeicherten großen Szene und realer Performance-/Speicher-/Canvas-Nahtvergleich. Das ist **kein** nachgewiesener FPS- oder p95-Gewinn. Status **teilweise**.
+- **Akzeptanzsequenz:** Frischen Browserstand laden; die Zoomgrenzen `0.47/0.55` und `0.92/1.06` wiederholt von beiden Richtungen durchqueren. `VedrasAssetLabor.lodStats()` und `worldTileStats()` nebeneinander lesen: bei aktiviertem Adaptive-LOD müssen `tier` und `worldTile` gleich sein, ebenso `worldTileDensity`/ `lodDensity`. Bei reinem horizontalen/vertikalen Pan dürfen `changes` und `worldTileBakes` auf geladenen Tiles nicht ansteigen. Küsten-/Wald-/Fluss-/Straßenränder auf Nähte und LOD-Schärfesprünge prüfen. Unfertige Tiles bleiben hexweise verdeckt. Danach erst Schritt 11 separat untersuchen.
