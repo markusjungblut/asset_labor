@@ -256,58 +256,6 @@
       ],
       "targetHeight": 126
     },
-    "nature/ahorn3.png": {
-      "id": "existing_ahorn3",
-      "description": "Ahorn – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
-      "sourceReference": "Bestandsdatei: ahorn3.png",
-      "family": "deciduous_trees",
-      "kind": "tree",
-      "sizeClass": "medium",
-      "sizeMode": "class",
-      "logicalWidth": 110,
-      "scaleMin": 0.85,
-      "scaleMax": 1.15,
-      "anchor": {
-        "x": 0.5,
-        "y": 0.96
-      },
-      "shadow": {
-        "mode": "generic_medium_round",
-        "path": "",
-        "offsetX": -0.24,
-        "offsetY": 0,
-        "widthScale": 0.7,
-        "depthScale": 0.18
-      },
-      "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "grass_pasture",
-        "wetlands"
-      ],
-      "allowedTerrainTypes": [
-        "highland"
-      ],
-      "excludedTerrainTypes": [],
-      "placement": {
-        "weight": 1,
-        "density": 0.14,
-        "minSpacing": 90,
-        "canCluster": false,
-        "edgeMargin": 12
-      },
-      "mountain": {
-        "radius": 1,
-        "coreRadius": 0,
-        "shadowOpacity": 0.23,
-        "flatten": true
-      },
-      "artStatus": "candidate",
-      "tags": [
-        "existing",
-        "needs_art_review"
-      ],
-      "targetHeight": 126
-    },
     "nature/berg_01.png": {
       "id": "existing_berg_01",
       "description": "Berg (Typ offen) – vorhandene Grafik; Zuordnung nach Dateiname, Silhouette und Biomfreigabe noch nicht geprüft.",
