@@ -15,7 +15,7 @@ Wolken verborgen blieben.
 - **Interaktive Rasterobergrenze:** Bei Karten mit über **500**
   platzierten Nature-Instanzen wird die sichtbare Editor-Vorschau
   auf maximal **1,5× Canvas-DPR** begrenzt. Die 4× Einstellung bleibt
-  als Qualitätswunsch gespeichert; Detail- und Final-Exportpfad werden
+  als Qualitätswunsch gespeichert; der Final-Exportpfad wird
   nicht auf 1,5× begrenzt. Für sehr dichte Karten ist das ein bewusst
   vorübergehender Performance-/Qualitätskompromiss. Beim Verändern
   der Qualitätsstufe ist die tatsächlich verwendete DPR im
