@@ -137,11 +137,13 @@ test('editor uses a single shared controller and exposes coherent LOD stats',()=
  assert.match(app,/worldTileDensity:worldTiles\?\.stats\(\)\.lodDensity/);
  assert.match(html,/adaptive-lod\.js\?v=0\.1\.1&amp;step10=20261027/);
  assert.match(html,/world-tile-streamer\.js\?v=0\.22\.6&amp;step10=20261027/);
- assert.match(html,/app\.js\?v=0\.55\.6&amp;step10=20261027/);
+ assert.match(html,/app\.js\?v=0\.55\.6&amp;step11=20261028/);
 });
 test('raster bounds and final-export DPR safeguards remain unchanged',()=>{
  const app=read('app.js');
- assert.match(app,/densePreview\?Math\.min\(calculated,1\.5\):calculated/);
+ assert.match(app,/window\.VedrasRenderQuality\.resolve\(/);
+ assert.match(read('render-quality-policy.js'),/budgetDpr/);
+ assert.match(read('render-quality-policy.js'),/dense:/);
  assert.match(app,/return finalRendering\?1\.5:state\.quality==='fast'\?\.60/);
  assert.match(read('adaptive-lod.js'),/if\(final\)return TIERS\.full/);
 });
