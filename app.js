@@ -2114,7 +2114,15 @@ function draw(){
    }
    return true;
   };
-  worldTiles.coverUnready(ctx,view,pending,fullyPainted);
+  let readyCount=0,waitingCount=0;
+  worldTiles.coverUnready(ctx,view,pending,c=>{
+   const ok=fullyPainted(c);
+   if(ok)readyCount++;else waitingCount++;
+   return ok;
+  });
+  window.__vedrasCloudReveal={readyHexes:readyCount,waitingHexes:waitingCount,
+   imageQueue:imagePool.report().queued,imageActive:imagePool.report().active,
+   terrainPending:terrainChunks.stats().pending};
  }
  if(gpuFrame)gpuTerrain.end();
  // Save references to exactly the artwork already painted by the editor.
@@ -2182,7 +2190,13 @@ function draw(){
   mean('terrainMs').toFixed(1)+' ms · Wege/Flüsse '+
   mean('roadsMs').toFixed(1)+' ms · Sprites/Schatten '+
   mean('objectsMs').toFixed(1)+' ms · Schatten-Cache '+
-  sample.shadowCacheHits+' Treffer / '+sample.shadowCacheMisses+' neu';
+  sample.shadowCacheHits+' Treffer / '+sample.shadowCacheMisses+' neu'+
+  (window.__vedrasCloudReveal?
+   ' · Hex bereit '+window.__vedrasCloudReveal.readyHexes+
+   ' / '+(window.__vedrasCloudReveal.readyHexes+window.__vedrasCloudReveal.waitingHexes)+
+   ' · Bilder '+window.__vedrasCloudReveal.imageQueue+' in Warteschlange / '+
+    window.__vedrasCloudReveal.imageActive+' laden'+
+   ' · Terrain '+window.__vedrasCloudReveal.terrainPending+' ausstehend':'');
  const groundDetail=window.__vedrasGroundDetail||{},roadDetail=window.__vedrasRoadPreparation||{};
  const detailStatus=$('terrainDetailStats');
  if(detailStatus)detailStatus.textContent='Letzter Hintergrundaufbau: Geländequelle '+
