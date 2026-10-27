@@ -90,7 +90,7 @@ test('initial exact editor draw seeds already rendered terrain and sprites befor
  const app=read('app.js');
  assert.match(app,/function seedReadyWorldTiles\(\)/);
  assert.match(app,/seedReadyWorldTiles\(\); \/\/ first gesture starts with prepared sprite\/terrain tiles/);
- assert.match(app,/worldTiles\.seed\(t,lod,\{layers:\[\{layer:'ground',image:a,pad:WORLD_TILE_GUTTER\},/);
+ assert.match(app,/worldTiles\.seed\(t,lod,\{complete:true,\s*layers:\[\{layer:'ground',image:a,pad:WORLD_TILE_GUTTER\},/);
  assert.match(app,/const units=objectLayoutCache\.query\(/);
 });
 test('rapid camera reversal cancels obsolete tile loading without poisoning cache',async()=>{
