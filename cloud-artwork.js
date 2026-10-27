@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.22.3 – seeded, hex-aligned cloud field.
+/* Vedras Reiche v0.22.4 – seeded, hex-aligned cloud field.
  * Visual concealment only. The multiplayer server must NEVER send
  * unknown terrain pixels or hidden objects to unauthorized players.
  */
@@ -97,9 +97,10 @@ window.VedrasCloudArtwork=(()=>{
    const id=q+','+r;
    if(fieldCache.has(id))return fieldCache.get(id);
    const hash=hashHex(seedValue,q,r);
+   // Cloud PNGs contain baked lighting. Never rotate/mirror them:
+   // the light source and cast shadows must agree across ALL hexes.
    const value=Object.freeze({q,r,variant:hash%4,
-    rotation:((hash>>>9)%6)*Math.PI/3,
-    density:.93+((hash>>>17)%8)/100});
+    rotation:0,density:1});
    if(fieldCache.size>=MAX_FIELDS)fieldCache.delete(fieldCache.keys().next().value);
    fieldCache.set(id,value);
    return value;
@@ -169,7 +170,7 @@ window.VedrasCloudArtwork=(()=>{
    if(x+rx<0||y+ry<0||x-rx>view.width||y-ry>view.height)return false;
    g.save();g.translate(x,y);
    g.scale(view.zoom,view.zoom*(view.projectY||1));
-   g.rotate(field.rotation);
+   // Deliberately no rotate/scale(-1): authored illumination stays fixed.
    g.drawImage(asset[part],-HALF,-HALF,S,S);
    g.restore();return true;
   }

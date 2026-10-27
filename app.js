@@ -69,6 +69,21 @@ function paintedTerrainCore(t){
  return terrainChunks.paintedVersions().get(t.id)===entry.artwork.version?
   entry:null;
 }
+// Include every expected sprite, not just objects already decoded into the
+// layout cache. A missing tree PNG previously produced a falsely "complete"
+// static snapshot and the clouds could uncover that hex too early.
+function tileArtworkReady(t){
+ if(!paintedTerrainCore(t))return false;
+ if(!state.objects)return true;
+ const expected=genericObjects({x:t.x-320,y:t.y-320,
+  width:t.size+640,height:t.size+640});
+ return expected.every(o=>{
+  if(!o.asset)return true; // Optional prototypes without a supplied PNG.
+  if(o.x<t.x-320||o.x>t.x+t.size+320||
+   o.y<t.y-320||o.y>t.y+t.size+320)return true;
+  return !!o.asset.img?.naturalWidth;
+ });
+}
 function seedReadyWorldTiles(){
  if(!worldTiles||finalRendering||state.mode==='far')return;
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
@@ -82,12 +97,13 @@ function seedReadyWorldTiles(){
   ).objects.some(o=>o.type==='unit'&&o.x>t.x-300&&
    o.x<t.x+t.size+300&&o.groundY>t.y-300&&
    o.groundY<t.y+t.size+300);
-  if(units||!paintedTerrainCore(t))continue;
+  if(units||!tileArtworkReady(t))continue;
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
   // Landscape and canopy must stay in separate render layers.
-  worldTiles.seed(t,lod,{layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
+  worldTiles.seed(t,lod,{complete:true,
+   layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
    {layer:'scenery',image:b}]});
  }
 }
@@ -110,13 +126,13 @@ async function bakeWorldTile(t,level,{signal}={}){
  if(signal?.aborted||state.mode==='far'||state.view!=='map')return null;
  // Never commit a partially prepared landscape, even if its scenery has
  // already finished or an older low-resolution snapshot happens to exist.
- if(!currentTerrainCore(t))return null;
+ if(!tileArtworkReady(t))return null;
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
  const a=snapshotTile(ground,t,level,WORLD_TILE_GUTTER),
   b=snapshotTile(scenery,t,level);
- if(a&&b&&paintedTerrainCore(t)){
+ if(a&&b&&tileArtworkReady(t)){
   // An old snapshot may include a unit; never bake one into static tiles.
   const units=objectLayoutCache.query(
    {x:t.x-300,y:t.y-300,width:t.size+600,height:t.size+600},
@@ -125,20 +141,20 @@ async function bakeWorldTile(t,level,{signal}={}){
   const carriesUnit=units.some(o=>o.x>t.x-300&&o.x<t.x+t.size+300&&
    o.groundY>t.y-300&&o.groundY<t.y+t.size+300);
   if(!carriesUnit){
-   return {layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
+   return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
     {layer:'scenery',image:b}]};
   }
  }
  // Do not bake an incomplete foreground core: clouds hide the hole until
  // the worker has completed the authoritative terrain raster.
- if(!currentTerrainCore(t))return null;
+ if(!tileArtworkReady(t))return null;
  await new Promise(resolve=>{
   if(typeof requestIdleCallback==='function')
    requestIdleCallback(resolve,{timeout:80});
   else setTimeout(resolve,0);
  });
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !currentTerrainCore(t))return null;
+   !tileArtworkReady(t))return null;
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
  const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
@@ -170,7 +186,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!paintedTerrainCore(t))return null;
+  if(signal?.aborted||!tileArtworkReady(t))return null;
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -183,9 +199,9 @@ async function bakeWorldTile(t,level,{signal}={}){
   state.dpr=old.dpr;gpuFrame=old.gpuFrame;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !paintedTerrainCore(t))return null;
+   !tileArtworkReady(t))return null;
  tileBakes++;
- return {layers:[{layer:'ground',image:out,pad:groundPad},
+ return {complete:true,layers:[{layer:'ground',image:out,pad:groundPad},
   {layer:'scenery',image:overlay,pad}]};
 
 }
@@ -2027,6 +2043,37 @@ function draw(){
   }
  }finally{spriteAtlas?.endFrame();}
  drawMountainFootprints();drawBounds();
+ if(!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
+  // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
+  // arbitrary order. Apply the SAME cloud cover AFTER the final scenery pass,
+  // revealing only hexes for which every intersecting tile is fully painted.
+  const view={width:W,height:H,zoom:state.zoom,dpr:state.dpr,
+   panX:state.panX,panY:state.panY,projectY:PROJECT_Y};
+  const pending=worldCells.map(c=>{
+   const p=axialPos(c.q,c.r);
+   return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility:'visible'};
+  }).filter(c=>{
+   const sx=W/2+state.panX+c.x*state.zoom,
+    sy=H/2+state.panY+c.y*state.zoom*PROJECT_Y;
+   return sx>-R*state.zoom&&sx<W+R*state.zoom&&
+    sy>-R*state.zoom&&sy<H+R*state.zoom;
+  });
+  const coreReadiness=new Map();
+  const fullyPainted=c=>{
+   const width=R*Math.sqrt(3),height=R*2;
+   const cores=window.VedrasChunks.visible({
+    x:c.x-width/2,y:c.y-height/2,width,height
+   },worldCells,512);
+   if(!cores.length)return false;
+   for(const tile of cores){
+    if(!coreReadiness.has(tile.id))
+     coreReadiness.set(tile.id,tileArtworkReady(tile));
+    if(!coreReadiness.get(tile.id))return false;
+   }
+   return true;
+  };
+  worldTiles.coverUnready(ctx,view,pending,fullyPainted);
+ }
  if(gpuFrame)gpuTerrain.end();
  // Save references to exactly the artwork already painted by the editor.
  // Fast camera frames sample these rasters; they never invoke drawGround,

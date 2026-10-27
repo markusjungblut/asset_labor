@@ -37,7 +37,8 @@ window.VedrasNatureCatalog=(()=>{
  function strictHabitat(meta){
   if(!meta)return null;
   const id=String(meta.id||'');
-  if(winterBoulder(meta)||snowyBush(meta))return COLD_BIOMES;
+  if(winterBoulder(meta)||snowyBush(meta)||
+    (meta.family==='snow'&&/^snow_patch_\d+/i.test(id)))return COLD_BIOMES;
   if(warmBoulder(meta))return WARM_BIOMES;
   if(/^(?:existing_)?baumstumpf_(?:1[6-9]|20)$/.test(id))return STUMP_BIOMES;
   if(/^(?:existing_)?berg_(?:1[4-6])$/.test(id))return ['snowfields'];

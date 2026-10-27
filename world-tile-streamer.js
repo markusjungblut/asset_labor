@@ -1,4 +1,4 @@
-/* Vedras Reiche v0.22.3 – retained, world-aligned tile compositor.
+/* Vedras Reiche v0.22.4 – retained, world-aligned tile compositor.
  * Sources provide finished rasters. Camera frames NEVER build terrain,
  * sprites, shadows, rivers or roads. A visibility resolver must be provided
  * by the authoritative game service; the local editor uses visible test cells.
@@ -28,6 +28,22 @@ window.VedrasWorldTiles=(()=>{
   function setCloudSeed(seed){return clouds?.setSeed(seed)||false;}
   function drawCloudBackground(context,view){
    return clouds?.drawBase(context,view)||0;
+  }
+  function coverUnready(context,view,cells,ready){
+   if(!Array.isArray(cells)||typeof ready!=='function')return 0;
+   if(clouds?.stats().bases)
+    return clouds.drawUnready(context,view,cells,ready);
+   // Conservative fallback while the four PNGs decode: still hide the
+   // unfinished hexes rather than briefly revealing incomplete artwork.
+   let covered=0;context.save();
+   for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
+    context.beginPath();
+    if(window.VedrasFogAtmosphere)
+     window.VedrasFogAtmosphere.hexPath(context,c,view);
+    else continue;
+    context.fillStyle='#bdced7';context.fill();covered++;
+   }
+   context.restore();return covered;
   }
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
@@ -82,7 +98,8 @@ window.VedrasWorldTiles=(()=>{
    const k=key(tile,level),old=cache.get(k);
    if(old){pixels-=old.pixels;release(old.packet);}
    const count=normalized.reduce((n,x)=>n+x.image.width*x.image.height,0);
-   cache.set(k,{tile:{...tile},packet:{layers:normalized},pixels:count,
+   cache.set(k,{tile:{...tile},packet:{layers:normalized,
+    complete:packet.complete!==false},pixels:count,
     used:++used,born:clock(),revision:packet.revision??null});
    pixels+=count;completed++;trim(new Set(visibleTiles.map(t=>key(t,lod))));
    onReady();return true;
@@ -280,10 +297,24 @@ window.VedrasWorldTiles=(()=>{
    }
    if(Array.isArray(fog)){
     for(const c of fog)if(c.visibility==='explored')fogHex(c,view);
+    // The cloud is ONLY removed once every image tile touching a visible
+    // hex contains BOTH finished terrain and finished scenery. Testing only
+    // the center tile leaked unfinished quarters of a hex during streaming.
+    const byCore=new Map(items.map(o=>[o.t.id,o.item]));
     const ready=c=>{
-     const px=Math.floor(c.x/512),py=Math.floor(c.y/512);
-     return items.some(o=>o.t.x===px*512&&o.t.y===py*512&&
-      o.item.packet.layers.some(v=>v.layer==='ground'||v.layer==='terrain'));
+     const R=c.radius,halfWidth=R*Math.sqrt(3)/2-0.01;
+     const xmin=Math.floor((c.x-halfWidth)/512),
+      xmax=Math.floor((c.x+halfWidth)/512),
+      ymin=Math.floor((c.y-R+0.01)/512),
+      ymax=Math.floor((c.y+R-0.01)/512);
+     for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
+      const item=byCore.get(tx+','+ty);
+      if(!item||item.packet.complete===false)return false;
+      const layers=item.packet.layers;
+      if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
+       !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;
+     }
+     return true;
     };
     if(clouds?.stats().bases){
      // Foreground ONLY AFTER terrain, scenery and dynamic units. These
@@ -307,7 +338,7 @@ window.VedrasWorldTiles=(()=>{
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
-    setCloudSeed,drawCloudBackground,chooseLod,invalidate,stats};
+    setCloudSeed,drawCloudBackground,coverUnready,chooseLod,invalidate,stats};
  }
  return {create};
 })();

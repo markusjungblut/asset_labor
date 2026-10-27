@@ -68,9 +68,9 @@ test('only terrain chunks painted in the current revision can seed a world tile'
  assert.match(app,/function currentTerrainCore\(t\)\{/);
  assert.match(app,/terrainChunks\.readyTiles\(/);
  assert.match(app,/terrainChunks\.paintedVersions\(\)\.get\(t\.id\)===entry\.artwork\.version/);
- assert.match(app,/if\(units\|\|!paintedTerrainCore\(t\)\)continue/);
- assert.match(app,/if\(a&&b&&paintedTerrainCore\(t\)\)/);
- assert.match(app,/if\(signal\?\.aborted\|\|!paintedTerrainCore\(t\)\)return null/);
+ assert.match(app,/if\(units\|\|!tileArtworkReady\(t\)\)continue/);
+ assert.match(app,/if\(a&&b&&tileArtworkReady\(t\)\)/);
+ assert.match(app,/if\(signal\?\.aborted\|\|!tileArtworkReady\(t\)\)return null/);
 });
 
 test('executing far-mode cleanup hides canvas and aborts obsolete tile snapshots',()=>{
@@ -133,7 +133,7 @@ test('terrain-core gate rejects missing and stale chunks before seeding',()=>{
 
 test('strategy fix is cache-busted in the visible v0.22.1 app',()=>{
  const html=read('index.html'),server=read('server.py');
- assert.match(html,/Asset-Labor v0\.22\.3/);
- assert.match(html,/app\.js\?v=0\.55\.3/);
- assert.match(server,/VERSION = '0\.22\.3'/);
+ assert.match(html,/Asset-Labor v0\.22\.4/);
+ assert.match(html,/app\.js\?v=0\.55\.4/);
+ assert.match(server,/VERSION = '0\.22\.4'/);
 });
