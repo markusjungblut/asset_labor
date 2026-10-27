@@ -897,7 +897,7 @@ function drawShorelines(){
   const segments=shorelineCache.segments;
   shorelineChunks.configure(signature+'|density='+shoreDensity,{
    worldCells,
-   buildTile:async(tile)=>{
+   buildTile:(tile)=>{
     const halo=window.VedrasChunks.HALO,bounds={
      x:tile.x-halo,y:tile.y-halo,width:tile.size+2*halo,height:tile.size+2*halo};
     const local=()=>{
@@ -917,21 +917,21 @@ function drawShorelines(){
     const data={bounds,options:{...opts,resolution:shoreDensity},
      cells:worldCells.map(c=>({q:c.q,r:c.r,wet:wetHex(c)})),
      segments:near,mouthPortals,
-     imagePaths:files.map(a=>a?.img?.naturalWidth?a.path:null)};
+     imagePaths:opts.mode==='art'?files.map(a=>a?.img?.naturalWidth?a.path:null):[]};
     const started=performance.now();
-    try{
-     const result=await window.VedrasTerrainWorker.renderShoreline(data,
-      files.filter(a=>a?.img?.naturalWidth));
-     const stats=window.__vedrasShorelineBuildProfile;
-     stats.workerBuilds++;stats.lastWorkerRoundTripMs=performance.now()-started;
-     return result;
-    }catch(err){
-     // A shoreline failure must not disable terrain Worker rendering.
-     shorelineWorkerDisabled=true;
-     window.__vedrasShorelineBuildProfile.workerFailures++;
-     console.warn('Shoreline Worker unavailable; Canvas fallback:',err);
-     return local();
-    }
+    return window.VedrasTerrainWorker.renderShoreline(data,
+     opts.mode==='art'?files.filter(a=>a?.img?.naturalWidth):[]).then(result=>{
+      const stats=window.__vedrasShorelineBuildProfile;
+      stats.workerBuilds++;stats.lastWorkerRoundTripMs=performance.now()-started;
+      return result;
+     }).catch(err=>{
+      // Preserve synchronous Canvas2D fallback for final PNG export and
+      // browsers without OffscreenCanvas; do not disable terrain workers.
+      shorelineWorkerDisabled=true;
+      window.__vedrasShorelineBuildProfile.workerFailures++;
+      console.warn('Shoreline Worker unavailable; Canvas fallback:',err);
+      return local();
+     });
    },
    redraw:tile=>{
     if(tile?.id)worldTiles?.terrainReady(tile.id);
