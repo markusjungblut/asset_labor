@@ -510,11 +510,6 @@ window.VedrasWorldTiles=(()=>{
    };
    for(const t of tiles){
     if(t.visibility==='unknown')continue;
-    const item=lookup(t);
-    if(!item){missing++;continue;}
-    if(item.tileLod!==lod)fallback++;
-    else if(item.packet.preview)provisional++;
-    else exact++;
     // Shared rounded DEVICE-space core edges eliminate bright seams when
     // two adjacent tiles are composited at a fractional zoom or DPR.
     const snap=x=>Math.round(x*view.dpr)/view.dpr;
@@ -523,6 +518,11 @@ window.VedrasWorldTiles=(()=>{
      dw=snap(view.width/2+view.panX+(t.x+t.size)*view.zoom)-dx,
      dh=snap(view.height/2+view.panY+(t.y+t.size)*view.zoom*proj)-dy;
     if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
+    const item=lookup(t);
+    if(!item){missing++;continue;}
+    if(item.tileLod!==lod)fallback++;
+    else if(item.packet.preview)provisional++;
+    else exact++;
     item.used=++used;items.push({t,item,dx,dy,dw,dh});
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
