@@ -29,6 +29,22 @@ window.VedrasWorldTiles=(()=>{
   function drawCloudBackground(context,view){
    return clouds?.drawBase(context,view)||0;
   }
+  function coverUnready(context,view,cells,ready){
+   if(!Array.isArray(cells)||typeof ready!=='function')return 0;
+   if(clouds?.stats().bases)
+    return clouds.drawUnready(context,view,cells,ready);
+   // Conservative fallback while the four PNGs decode: still hide the
+   // unfinished hexes rather than briefly revealing incomplete artwork.
+   let covered=0;context.save();
+   for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
+    context.beginPath();
+    if(window.VedrasFogAtmosphere)
+     window.VedrasFogAtmosphere.hexPath(context,c,view);
+    else continue;
+    context.fillStyle='#bdced7';context.fill();covered++;
+   }
+   context.restore();return covered;
+  }
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
    fogCells=[],visibleTiles=[],wantedTiles=new Set(),
@@ -322,7 +338,7 @@ window.VedrasWorldTiles=(()=>{
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
-    setCloudSeed,drawCloudBackground,chooseLod,invalidate,stats};
+    setCloudSeed,drawCloudBackground,coverUnready,chooseLod,invalidate,stats};
  }
  return {create};
 })();
