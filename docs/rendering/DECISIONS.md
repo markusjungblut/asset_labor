@@ -71,3 +71,9 @@
 
 ## D-024: Editor-Speichern von Bildinvalidierung trennen
 **Entscheidung:** `persistScene(false)` schreibt nur Daten, `persistScene('ground')` aktualisiert ausschließlich Hintergrund/Memo, `persistScene()` bleibt konservativ global. Hintergrund-/Scenery-Canvas wird weiterhin als Ganzes gerendert, wenn dessen tatsächlicher Inhalt geändert wurde. **Begründung:** Speichern und reine Overlay-Optionen sind keine neue Weltrevision; Schritt 6 übernimmt weitere Tile-Vorbereitung.
+
+## D-025: Sichtbare Tiles nach Kamerafokus und Wartealter priorisieren
+**Entscheidung:** Die vorhandenen Foreground-/Warm-/Prefetch-Warteschlangen bleiben bestehen. Sichtbare Terrain- und World-Tile-Aufträge erhalten bei jedem Kamera-Update eine neue Reihenfolge anhand des aktuellen Fokus; wartende sichtbare Kacheln werden nach 2,5 Sekunden vor neuen zentralen Aufträgen behandelt. Noch gültige Background-Tiles werden vor einer doppelten Foreground-Berechnung geschützt. Nicht mehr relevante Arbeit wird verworfen beziehungsweise nach Möglichkeit als begrenzter Prefetch weiterverwendet. **Begründung:** Reine FIFO-Priorisierung nach dem ursprünglichen Kamerastand produziert nach schnellen Schwenks unnötige Verzögerungen und kann vorhandene Sichtlücken dauerhaft hinter neuen Aufträgen lassen.
+
+## D-026: Hintergrundvorbereitung fair halten und World-Parallelität begrenzen
+**Entscheidung:** Der World-Tile-Streamer begrenzt parallele Quellaufträge auf maximal zwei (Anwendung weiter eins). Die Chunk-Engine behält je eine Foreground- und Background-Arbeitsbahn; bei zugleich aktiven manuellen Warm- und Prefetch-Aufträgen erhält gültiges Prefetch nach sechs manuellen Starts eine Gelegenheit. **Begründung:** Sichtbare Renderaufträge müssen reaktionsfähig bleiben, ohne dass manuelle Großvorbereitung alle spekulativen Arbeiten endlos blockiert. Weitergehende Worker-Migration wird nicht vor Schritt 8 vorweggenommen.
