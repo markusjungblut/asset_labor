@@ -82,6 +82,11 @@ test('performance status differentiates hidden object toggle from missing paths'
  assert.match(app,/Pfade fehlen /);
  assert.match(app,/Objekte ausgeblendet/);
 });
+test('matching modern server version no longer triggers a false conflict',()=>{
+ const app=read('app.js');
+ assert.match(app,/if\(d\.version&&d\.version!=='0\.22\.6'\)/);
+ assert.doesNotMatch(app,/if\(d\.version&&!\/\^0\\\.\(\?:13\|14\)/);
+});
 test('runtime versions match v0.22.6 and include updated cloud compositor',()=>{
  const html=read('index.html');
  assert.match(html,/Asset-Labor v0\.22\.6/);
