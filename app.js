@@ -307,6 +307,43 @@ function fastAllowed(){
   !state.mountainShadowDebug&&!state.mountainDebug&&!state.bounds&&
   !state.forest?.debug&&(!!worldTiles||realtimeMap.snapshotReady());
 }
+// Both camera paths share ONE depth-sorted static scene. The tile packets
+// retain terrain and per-tile scenery for legacy callers, but fast camera
+// composites this cached global scenery once rather than overlapping
+// independently baked tree-canopy tiles in arbitrary tile order.
+function staticScenerySignature(){
+ return JSON.stringify([
+  objectLayoutCache.stats().revision,
+  window.VedrasSpriteShadows?.revision?.()||0,
+  state.shadowGlobal,state.shadowAssetPresets,state.mountainShadowDefaults,
+  state.visualPolish.nature,state.natureShadowDebug,state.objects,
+  state.mode,state.sceneSize
+ ]);
+}
+function drawFastStaticScenery(g,view){
+ if(!state.objects)return;
+ const old={ctx,W,H,zoom:state.zoom,panX:state.panX,
+  panY:state.panY,dpr:state.dpr};
+ try{
+  state.zoom=view.zoom;state.panX=view.panX;state.panY=view.panY;
+  state.dpr=view.dpr;
+  staticScenery.paint({
+   ctx:g,signature:staticScenerySignature(),
+   view:{width:view.width,height:view.height,dpr:view.dpr,zoom:view.zoom,
+    panX:view.panX,panY:view.panY},
+   drawScene:({ctx:layerCtx,width,height})=>{
+    const oldCtx=ctx,oldW=W,oldH=H;
+    try{
+     ctx=layerCtx;W=width;H=height;
+     drawMapObjects({includeUnits:false});
+    }finally{ctx=oldCtx;W=oldW;H=oldH;}
+   }
+  });
+ }finally{
+  ctx=old.ctx;W=old.W;H=old.H;state.zoom=old.zoom;
+  state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;
+ }
+}
 function drawTileDynamics(g,view){
  if(!state.objects)return;
  // Units can move without rebuilding immutable static terrain or scenery.
@@ -377,7 +414,9 @@ function fastRender(){
     .map(t=>({...t,visibility:visibleFogTiles&&!visibleFogTiles.has(t.id)?
      'unknown':'visible'}));
    worldTiles.request(fastView(),tiles);
-   result=worldTiles.render(fastView(),{drawDynamic:drawTileDynamics});
+   result=worldTiles.render(fastView(),{
+     drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
+    });
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
    realtimeMap.show();fastFrames++;
@@ -2335,13 +2374,7 @@ function draw(){
    sceneryProfile={mode:'direct',enabled:false,cached:false,buildMs:0,compositeMs:0,
     reason:blockers.join(', ')};
   }else{
-   const sceneSignature=JSON.stringify([
-    objectLayoutCache.stats().revision,
-    window.VedrasSpriteShadows?.revision?.()||0,
-    state.shadowGlobal,state.shadowAssetPresets,state.mountainShadowDefaults,
-    state.visualPolish.nature,state.natureShadowDebug,state.objects,
-    state.mode,state.sceneSize
-   ]);
+   const sceneSignature=staticScenerySignature();
    sceneryProfile=staticScenery.paint({
     ctx,signature:sceneSignature,
     view:{width:W,height:H,dpr:state.dpr,zoom:state.zoom,
