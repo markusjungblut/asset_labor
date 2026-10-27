@@ -22,7 +22,7 @@ Ein nummerierter Schritt pro Änderung/Commit. Zuerst `STATUS.md` und die releva
 9. **Progressive Anzeige**: Vorhandene LOD-Alternativen und wolkenbedeckte unvollständige Kacheln korrekt nutzen. Akzeptanz: keine transparente Terrainlücke und kein Aufdecken unvollständiger Szenerie. **Code-Status: implementiert, 98/98 gezielte simulierte V8-Regressionstests; echte Node-/Browser-/Performanceabnahme ausstehend (teilweise).**
 
 ## Phase IV – Bildqualität (v0.24)
-10. **LOD-Vertrag**: Vorhandenes `adaptive-lod.js` und das separate World-Tile-LOD aufeinander abstimmen; Welt/Region/Lokal. Akzeptanz: konsistente Zoomwechsel ohne Raster-Neuerstellung für reinen Pan.
+10. **LOD-Vertrag**: Vorhandenes `adaptive-lod.js` und das separate World-Tile-LOD aufeinander abstimmen; Welt/Region/Lokal. Akzeptanz: konsistente Zoomwechsel ohne Raster-Neuerstellung für reinen Pan. **Code-Status: implementiert; 110/110 isolierte V8-Testfälle bestanden, native Node-/Browser-Abnahme ausstehend (teilweise).**
 11. **4× interaktive Qualität**: Vorhandene dichteabhängige 1,5×-DPR-Sperre, Canvas-Budgets und Bildpool-Previewlimits erst nach erfolgreicher Entkopplung neu bewerten. Akzeptanz: angezeigte wirksame DPR entspricht erlaubtem Qualitätsprofil ohne massive Stotterer; Finalexport unbeeinträchtigt.
 12. **Fog und Schatten**: Cloud-Orientierung, Clip, Hex-Sichtbarkeit, Landschaftskanten und Overhang visuell prüfen. Akzeptanz: keine sichtbaren Artefakte.
 
@@ -68,3 +68,7 @@ Auf Grundlage des bestätigten synchronen `VedrasShoreline.build`-Aufrufs im Chu
 
 ## Schritt-9-Übergabe (2026-10-27)
 Die bereits existierenden LOD-Alternativen werden bei laufendem Zoomwechsel als **vollständige** Ground+Scenery-Pakete weitergenutzt. Ein vorhandenes hochwertiges Alternativ-LOD wird nicht durch einen unschärferen provisorischen Seed ersetzt; ein vollständig berechnetes Ziel-LOD übernimmt atomar. Unfertige oder unvollständige Bildpakete werden nicht als fertige Vorschau gespeichert. Transparente Bereiche der Wolkengrafiken haben nun eine opake, hexgenaue Sicherung, auch solange PNGs/Fog-Modul laden. Messfelder: `worldTileStats().progress`, `tileDiagnostics().world.tiles[].displayedLod`. **98/98 isolierte V8-Testfälle bestanden; native Node/Browserprüfung offen**. Der konkrete LOD-Schwellenvertrag bleibt unverändert und gehört zu Schritt 10. Siehe `STATUS.md`.
+
+
+## Schritt-10-Übergabe (2026-10-27)
+`adaptive-lod.js` definiert jetzt die gemeinsamen Welt-/Region-/Lokal-Level inklusive Welt-Tile-Dichten und Hysterese. `app.js` verwendet denselben `adaptiveLOD`-Controller für Terrain, Ufer, Flüsse, Straßen und die World-Tile-Komposition. Der unabhängige World-Tile-Schwellenwertpfad wurde ersetzt, inklusive eines passenden Backwards-Compatibility-Fallbacks. Reiner Pan erzeugt keine LOD-Umschaltung und bei vorbereiteten Caches keinen Raster-Neuaufbau; Zoomwechsel folgen denselben Grenzwerten. **Teststand: 110/110 isolierte V8-Fälle**, nativer Node-/Browser-/Küstennahtvergleich noch ausstehend. **Keine Änderung am strategischen Fernmodus, DPR-/4×-Sperren, World-Tile-Rasterdichte, Fog oder Finalexport.** Details: `STATUS.md`.
