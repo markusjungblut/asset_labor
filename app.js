@@ -837,15 +837,11 @@ function drawForestFloor(){
 function drawGround(){
  updateTerrainLod(state.zoom);
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
- if(!gpuFrame){
-  if(!state.seamCheck&&worldTiles){
-   // Cloud artwork already exists before any terrain chunk has loaded.
-   worldTiles.drawCloudBackground(ctx,{width:W,height:H,zoom:state.zoom,
-    panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
-  }else{
-   ctx.fillStyle=state.seamCheck?'#ec27f1':'#879a81';
-   ctx.fillRect(0,0,W,H);
-  }
+ // The landscape buffer MUST remain transparent outside actual terrain.
+ // A cloud backdrop baked into a 12-MP terrain snapshot goes stale after
+ // strategy/detail zooms and causes large grey rectangular holes.
+ if(state.seamCheck&&!gpuFrame){
+  ctx.fillStyle='#ec27f1';ctx.fillRect(0,0,W,H);
  }
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  const groundPrepStart=performance.now();
@@ -1929,6 +1925,19 @@ function drawForestDebug(){
  ctx.restore();
 }
 let perfSamples=[],frameNumber=0;
+let lastFrontierWorld=null,lastFrontierGeometry=null;
+function worldFrontierGeometry(){
+ if(lastFrontierWorld===worldCells&&lastFrontierGeometry)
+  return lastFrontierGeometry;
+ const cells=worldCells.map(c=>{
+  const p=axialPos(c.q,c.r);
+  return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility:'visible'};
+ });
+ const fog=window.VedrasFogAtmosphere.prepare(cells);
+ lastFrontierWorld=worldCells;
+ lastFrontierGeometry={cells:fog,edges:fog.frontierEdges};
+ return lastFrontierGeometry;
+}
 function draw(){
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -1994,6 +2003,12 @@ function draw(){
    originX:W/2+state.panX,originY:H/2+state.panY},state.seamCheck);
  if(!gpuFrame)gpuTerrain?.hide();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.clearRect(0,0,W,H);
+ // Draw world-aligned cloud artwork DIRECTLY in the visible mapCanvas on
+ // every frame, independently from the cached terrain/scenery rasters.
+ // This is the single opaque backdrop for loaded and ungenerated world.
+ if(!state.seamCheck&&worldTiles)
+  worldTiles.drawCloudBackground(ctx,{width:W,height:H,zoom:state.zoom,
+   panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
  let terrainElapsed=0,roadsElapsed=0;
  let backgroundProfile=null;
  const renderBackground=()=>{
@@ -2064,6 +2079,19 @@ function draw(){
  const streams={terrain:terrainChunks.stats(),shore:shorelineChunks.stats(),
   rivers:riverChunks.stats(),roads:roadChunks.stats()};
  window.__vedrasStreamingProfile=streams;
+ // Mask shadows and sprites to the generated map, allowing only a small
+ // crown overhang. The same authored clouds cover that overhang afterwards.
+ const mapView={width:W,height:H,zoom:state.zoom,dpr:state.dpr,
+  panX:state.panX,panY:state.panY,projectY:PROJECT_Y};
+ const frontier=worldTiles&&window.VedrasFogAtmosphere?
+  worldFrontierGeometry():null;
+ let clippedWorld=false;
+ if(frontier&&state.view==='map'&&!finalRendering&&!state.gpuSprites){
+  ctx.save();ctx.beginPath();
+  for(const c of frontier.cells)
+   window.VedrasFogAtmosphere.hexPath(ctx,c,mapView,28);
+  ctx.clip();clippedWorld=true;
+ }
  const t2=performance.now();
  primeVisibleSpriteAssets();
  spriteAtlas?.beginFrame();
@@ -2120,7 +2148,7 @@ function draw(){
      spritePassMs:0,rebuilt:false,layerReused:true};
    }
   }
- }finally{spriteAtlas?.endFrame();}
+ }finally{spriteAtlas?.endFrame();if(clippedWorld)ctx.restore();}
  drawMountainFootprints();drawBounds();
  if(!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
   // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
@@ -2157,6 +2185,9 @@ function draw(){
    if(ok)readyCount++;else waitingCount++;
    return ok;
   });
+  // Unknown neighbor hexes form the SAME cloudy frontier in both the
+  // tactical and editor renderers. Painted last over mountain shadows.
+  if(frontier)worldTiles.drawCloudFrontier(ctx,view,frontier.edges);
   window.__vedrasCloudReveal={readyHexes:readyCount,waitingHexes:waitingCount,
    imageQueue:imagePool.report().queued,imageActive:imagePool.report().active,
    terrainPending:terrainChunks.stats().pending};
