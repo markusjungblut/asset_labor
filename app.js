@@ -1761,7 +1761,11 @@ function spriteInViewport(o,view){
 // generation. A stale/empty spatial index must not prevent ImagePool from
 // requesting the PNGs needed to populate that same index.
 function primeVisibleSpriteAssets(){
- if(!state.objects||state.view!=='map'||imagePoolPriming)return;
+ if(!state.objects||state.view!=='map'||imagePoolPriming){
+  window.__vedrasSpriteDemand={authored:0,paths:0,ready:0,
+   missing:0,requested:0,enabled:!!state.objects};
+  return;
+ }
  const a=fromScreen(-500,-500),b=fromScreen(W+500,H+500),
   minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
   minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
@@ -2556,7 +2560,9 @@ async function reloadFromServer(){
   catalogCanSave=response.ok||response.status===404;
   await loadLibrary(d.assets,`lokaler Ordner · Server v${d.version||'unbekannt'} · Port ${location.port||'-'}`);
   if(catalogDirty&&catalogCanSave)scheduleCatalogAutosave();
-  if(d.version&&!/^0\.(?:13|14)\./.test(d.version)){
+  // Compare the actual UI/server pair. The old v0.13/v0.14 regex
+  // flagged EVERY modern release as a conflict even when versions matched.
+  if(d.version&&d.version!=='0.22.6'){
    $('serverStatus').textContent+=' · VERSION KONFLIKT';
    $('nRecoveryStatus').textContent=`Achtung: Server v${d.version||'unbekannt'}. Bitte alten Server beenden und START_WINDOWS.bat aus diesem Ordner starten.`;
   }
