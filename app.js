@@ -3085,7 +3085,7 @@ $('quality').addEventListener('change',e=>{
 // Nature editing can cross the dense-scene budget even without a resize.
 // Re-evaluate DPR once per actual forest change, not per animation frame.
 window.addEventListener('vedras:forest-changed',()=>resize());
-for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;requestDraw();});
+for(const [id,field] of [['gridToggle','grid'],['objectsToggle','objects'],['riverToggle','river'],['boundsToggle','bounds'],['edgeBlendToggle','edgeBlend'],['seamCheckToggle','seamCheck']])$(id).addEventListener('change',e=>{state[field]=e.target.checked;if(field==='objects')resize();requestDraw();});
 $('chunkRendering').addEventListener('change',e=>{state.chunkRendering=e.target.checked;state.chunkRenderingOverride=true;invalidateTerrain();persistScene();requestDraw();});
 function precomputeAllStaticTerrain(){
  const info=$('terrainBakeStatus');
