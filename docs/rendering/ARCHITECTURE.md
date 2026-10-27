@@ -1,0 +1,35 @@
+# Karten-/Sprite-Architektur – geprüfter Ist-Stand (v0.22.6)
+
+**Statisch geprüft am 2026-10-27 auf GitHub-main**; Aussagen betreffen Codepfade, nicht gemessene Browserwirkung.
+
+## Einstieg / Betriebsarten
+- `index.html` + `app.js`: Canvas2D-Karte (`mapCanvas`) und separater vorbereiteter Kamera-/Tile-Compositor (`realtimeCanvas`). Die Standard-Karte nutzt `draw()`; `fastRender()` wird bei Interaktion beziehungsweise aktivem Tile-Modus genutzt.
+- `world-tile-streamer.js`: 512-Welteinheiten-Tiles mit getrennten Ground-/Scenery-Layern, Fog-Clipping, Alternative-LOD, Begrenzung 144 Einträge/26 Mio. Pixel in `app.js`, derzeit nur **ein** paralleler Source-Auftrag. `bakeWorldTile()` in `app.js` liest fertige Background-/Scenery-Snapshots; falls nötig erstellt es Tiles über weitere `drawGround()/drawRoads()/drawMapObjects()`-Aufrufe. Damit ist der Renderaufbau nicht vollständig aus dem Legacy-Pfad entfernt.
+- `realtime-map-renderer.js`: älterer schneller Kamera-Snapshotpfad als Alternative vorhanden.
+
+## Gelände und Warteschlangen
+- `chunks.js`: 512er Welt-Chunks, 128-Einheiten-Halo, räumlicher Chunk-Index, LRU/Pixelbudget, getrennte `queue` (sichtbar), `backgroundQueue` (Warm) und `prefetchQueue`, `inFlightInteractive` und `inFlightBackground`. Dringende Arbeit verwendet `setTimeout(0)`; Hintergrund `requestIdleCallback` mit Timeout oder Fallback. `stats.pending` zählt dringende Queue plus ggf. einen interaktiven inFlight, **nicht** ImagePool-Downloads.
+- `app.js`: `terrainChunks` mit 56 Einträgen/24 Mio. Pixel; eigene `shorelineChunks`, `riverChunks` und `roadChunks`. `terrainChunks.configure()` setzt Material-/Chunk-Familie, LOD und Stamp-Abhängigkeiten; `draw()` und `prime()` stoßen sichtbare Builds an. Statische Terrain-Bilder können über `static-terrain-cache.js` persistent gelesen/geschrieben werden.
+- `terrain-worker-client.js` und `terrain-worker.js`: Worker/OffscreenCanvas für Terrain/Relief bereits implementiert, einschließlich Quellbitmap-Transfer, Job-IDs, Timeout und Main-Thread-Fallback. In `app.js` kann ein fehlender/fehlerhafter Worker auf `localBuild()` zurückfallen. **Nicht** alle Ebenen laufen im Worker: Ufer, Waldmaske, Straßen, Sprites und Schatten haben weiterhin Hauptthread-Anteile.
+- `frame-preparation-cache.js`: Szene-/Varianten-Signaturen pro Revision. `object-layout-cache.js`: persistenter räumlicher Objektindex bis zur expliziten Invalidation.
+- `static-object-layer.js`: vorbereitete Canvas-Snapshots für Hintergrund (`padding:220,maxPixels:12M`) und Scenery (`padding:440,maxPixels:12M`), kompatibel nur bei passender Signatur/DPR/Zoom und Kamera innerhalb Padding; bei Miss Neubau.
+- `world-tile-streamer.js` `pump()`: `source()`-Resultat `null` wird nicht als Cacheeintrag oder eigener Fehlerstatus gespeichert; Fehler erhöhen `failed`. In Schritt 2 messen, ob und wann ein fehlender Tile-Auftrag neu angefordert wird; nicht vorschnell als bewiesene Ursache deklarieren.
+
+## Natur / Quellen / Qualität
+- `asset-image-pool.js`: paralleles Dekodieren (4), LRU-Speicherbudget 192 MiB in `app.js`, Standard-Preview-Begrenzungen 512 px für Terrain und 1024 px für Natur/Gebäude/Einheiten. Originalbilder können für Finalexport über `originals()` temporär restauriert werden.
+- `app.js`: `primeVisibleSpriteAssets()` sucht sichtbare Original-Assetpfade direkt, unabhängig von einem möglicherweise leeren Spriteindex. `tileArtworkReady()` verlangt aktuelle gemalte Terrain-Cores und verfügbare dekodierte Spritequellen; unvollständige Hexe bleiben unter Wolken.
+- `drawMapObjects()`: ObjectLayout-Query, Mountain-Occlusion/Sortierung, Bodenschatten und Sprite-Zeichnung. `staticScenery.paint()` cached diese Komposition, aber Zoom/Signaturwechsel und Canvas-Grenzen können erneute Builds auslösen.
+- `sprite-atlas-runtime.js` / `gpu-sprite-layer.js` / `gpu-terrain.js`: Atlas-, Sprite-GPU- und Terrain-GPU-Optionen existieren bereits, sind nicht die standardmäßig aktive gemeinsame Tile-Engine.
+- `adaptive-lod.js`: Terrain-/Ufer-/Fluss-/Straßen-LOD `far/mid/near`; davon unabhängig hat `world-tile-streamer.js` ein eigenes LOD mit Rasterdichte 0,85/1,5/2,5. Synchronisierung erst in späterem Schritt.
+- `app.js` `deviceRatio()`: bei >500 Nature-Instanzen und eingeschalteten Objekten maximal 1,5× interaktive DPR. Zusätzlich Pixelbudgets und Canvasgrößenlimit; `4×` im UI bedeutet damit nicht zwangsläufig echte 4×-Canvasauflösung.
+- `cloud-artwork.js`, `fog-atmosphere.js`: Wolkenbasis und Frontier über noch nicht freigegebenen Hexen; vorhandene Fog-Regeln und Beleuchtungsrichtung erhalten.
+
+## Architekturbezug auf das spätere Spiel
+`WORLD_REGION_ARCHITECTURE.md` beschreibt SQLite-Regionen/Discovery und ausdrücklich noch **keinen** authentifizierten Multiplayer-Tile-Server. Regionale Datencontainer (z. B. 16×16 Hex) sind konzeptionell **nicht** identisch mit 512-Welteinheiten-Rendertiles. Zukünftige Spielansicht muss unbekannte Felder **serverseitig** entfernen und darf Geheimnisse nicht nur mit lokaler Canvas-Wolke überdecken.
+
+## Beobachtete offene Fragen für Schritt 2
+1. Warum melden die getrennten Terrain-/World-Tile-Queues offene Aufträge bei leerem Bildpool?
+2. Welche Tiles bleiben bei `tileArtworkReady()` beziehungsweise `paintedTerrainCore()` hängen, und stimmen aktueller `stamp`/`paintedVersions()` überein?
+3. Wie oft erzeugt `bakeWorldTile()` einen `null`-Resultat, und findet ein zuverlässiger Requeue statt?
+4. Welche Schalter und View-Modi führen zum teuren `draw()` statt `fastRender()`?
+5. Warum wurden für die konkrete Szene Hintergrund/Scenery neu aufgebaut, und wie ist die `diagnosticsMs`-Zeit abgegrenzt?
