@@ -83,3 +83,9 @@
 
 ## D-028: Worker-Migration mit synchronem Export und lokalem Fallback
 **Entscheidung:** Nur der interaktive chunkbasierte Shoreline-Pfad ist asynchron. Bei Finalexport, deaktivierten/nicht unterstützten Workern oder einem Shoreline-Worker-Fehler bleibt `VedrasShoreline.build` synchron. Ein Küstenfehler darf die separate Terrain-Berechnung nicht grundsätzlich deaktivieren. **Begründung:** Exportbild und Plattformkompatibilität dürfen durch eine Performance-Migration nicht verschlechtert werden; gleiche Renderfunktion und Bitmaps ermöglichen Paritätsprüfung.
+
+## D-029: Progressive Bilder sind immer inhaltlich vollständig
+**Entscheidung:** Ein niedrig aufgelöstes, aber **vollständiges** World-Tile darf als progressive Vorschau angezeigt werden; `complete:false`, Ground-only und – im Spiel-/Editorpfad mit `requireScenery` – fehlende Scenery werden nie als fertiges Tile gecacht. Eine tatsächlich höher aufgelöste vorherige LOD-Variante bleibt bis zum scharfen Ziel-LOD erhalten, und ihre Pixel dürfen nicht vorzeitig aus dem sichtbaren LRU-Schutz fallen. **Begründung:** Früh sichtbare echte Landschaft ohne halb gerenderte Küsten, verschwundene Baumkronen oder rechteckige Alpha-Lücken. Keine Änderung der späteren LOD-Strategie aus Schritt 10.
+
+## D-030: Dekorative Wolken dürfen kein Freigabemechanismus sein
+**Entscheidung:** Die bestehenden Wolken-PNGs werden visuell weiterhin genutzt, aber jeder sichtbare noch nicht freigegebene Hex erhält vorher eine **vollständig opake, weltverankerte Hexmaske**. Fehlen Wolkentexturen oder das Atmosphärenmodul, wird der Hex-Pfad mathematisch aus den übergebenen Zellkoordinaten aufgebaut. **Begründung:** Transparente PNG-Pixel dürfen kein unfertiges Terrain, Scenery oder unerlaubte Objekte sichtbar machen. Unbekannte Bereiche bleiben unabhängig davon durch die vorhandene Welt-/Sichtbarkeitsfreigabe geschützt. Für das spätere Spiel gilt weiterhin: serverseitig unbekannte Informationen gar nicht erst ausliefern.
