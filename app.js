@@ -708,7 +708,9 @@ function assignBiomes(restoreGeography=false){
  worldCells=cs;invalidateTerrain();requestDraw();}
 function useAsset(path){
  const a=assetByPath.get(path)||null;
- if(a&&!a.img)imagePool.ensure(a,5);
+ // Upgrades after a manual 3x/4x selection occur lazily for assets that
+ // actually participate in a draw, including already decoded 512px previews.
+ if(a)imagePool.ensure(a,5);
  return a;
 }
 function allAssets(){return assets.filter(a=>a.img?.naturalWidth>0);}
@@ -2065,7 +2067,11 @@ function primeVisibleSpriteAssets(){
  for(const path of paths){
   const asset=assetByPath.get(path);
   if(!asset){missing++;continue;}
-  if(asset.img?.naturalWidth){ready++;continue;}
+  if(asset.img?.naturalWidth){
+   ready++;
+   // Keep the old sprite visible until a larger source has decoded.
+   imagePool.ensure(asset,9);continue;
+  }
   requested++;
   imagePool.ensure(asset,9);
  }
