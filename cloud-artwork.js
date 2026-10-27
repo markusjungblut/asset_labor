@@ -210,6 +210,25 @@ window.VedrasCloudArtwork=(()=>{
    if(!bases.length||!Array.isArray(cells))return 0;
    let count=0;
    for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
+    // The authored cloud PNG may have transparent highlights/edges. Cover
+    // the exact unfinished HEX with an opaque backing BEFORE drawing the
+    // decorative cloud artwork; never expose incomplete coast/sprites through
+    // holes in a cloud texture at any zoom/LOD.
+    g.save();g.globalAlpha=1;g.beginPath();
+    if(window.VedrasFogAtmosphere?.hexPath)
+     window.VedrasFogAtmosphere.hexPath(g,c,view);
+    else{
+     const proj=view.projectY||1,r=(c.radius||R)*view.zoom;
+     const x=view.width/2+view.panX+c.x*view.zoom,
+      y=view.height/2+view.panY+c.y*view.zoom*proj;
+     for(let k=0;k<6;k++){
+      const a=-Math.PI/2+k*Math.PI/3,
+       px=x+Math.cos(a)*r,py=y+Math.sin(a)*r*proj;
+      if(!k)g.moveTo(px,py);else g.lineTo(px,py);
+     }
+     g.closePath();
+    }
+    g.fillStyle=backdrop;g.fill();g.restore();
     if(stamp(g,view,c.q,c.r,'hard'))count++;
     stamp(g,view,c.q,c.r,'soft');
    }

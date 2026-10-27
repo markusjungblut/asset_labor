@@ -9,7 +9,8 @@
 **Schritt 6:** **Statische Natur-/Schatten-Tiles von beweglichen Einheiten getrennt, isoliert geprüft; native Node- und Browser-Abnahme noch offen (teilweise).**  
 **Schritt 7:** **Sichtbare Terrain-/World-Tiles nach aktuellem Kamerafokus und Wartealter priorisiert, alte Arbeit verworfen, Background-Fairness begrenzt; isolierte Tests bestanden, native Node-/Browser-Abnahme offen (teilweise).**  
 **Schritt 8:** **Shoreline-Pixelberechnung an vorhandenen Terrain-/OffscreenCanvas-Worker angebunden, inklusive Bitmap-Transfer, Profiling und Canvas-Fallback; isoliert geprüft, echte Performance-/Grafikabnahme ausstehend (teilweise).**  
-**Nächster Entwicklungsinhalt:** Reale Browser-/Node-Abnahme der Schritte 6–8, besonders Küstenränder, Zoom-Latenzen und unfertige Tiles, bevor Schritt 9 begonnen wird.
+**Schritt 9:** **Progressive Anzeige mit vollständigen LOD-Fallbackpaketen, Priorität nach tatsächlicher Bildqualität und deckender Hex-Wolkenmaske implementiert; simulierte Tests bestanden, native Node-/Browserabnahme ausstehend (teilweise).**  
+**Nächster Entwicklungsinhalt:** Native und visuelle Abnahme der Schritte 6–9 an der gespeicherten 397-Hex-Karte; erst danach Schritt 10 (LOD-Vertrag).
 
 ## Änderung ausschließlich in Schritt 4
 
@@ -236,3 +237,33 @@ Vor Schritt 8 lief `window.VedrasShoreline.build()` unmittelbar im `shorelineChu
 **Status:** isolierte JavaScript-/V8-Tests des Renderingpfads geprüft, Browser/echtes Worker-ImageBitmap mit den realen sechs PNG-Dateien und visueller Küstenabgleich noch ausstehend. Sollte das Bild unverändert bleiben, muss kontrolliert werden, ob die aktuelle Serverinstanz tatsächlich den neuen `main`-Stand ausliefert.
 
 Die bereits vorher separat implementierte **globale Sprite-Tiefensortierung** aus PR #53 verhindert, dass Bäume nach einem Schwenk je nach Tile-Compositing unterschiedlich überlappen. Eine native Browserprüfung dieser Überdeckung und der Framezeiten steht ebenso aus.
+
+## Schritt 9 – Progressive Anzeige ohne unfertige Bildfreigabe (2026-10-27)
+
+**Basis:** `main` `f13273c5d2eca8cc27a7debce323b03e83fb715c`, Branch `rendering/step9-progressive-compositing-20261027`. Ziel: die vorhandenen `far/mid/near`-Alternativ-LODs und provisorischen, aber inhaltlich **fertigen** Bilder sicher wiederverwenden, während vollständig fehlende Raster weiterhin unter der authentifizierten/Editor-Hexmaske bleiben.
+
+### Durchgeführte Änderungen
+
+1. **World-Tile-Freigabe:** `accept()` lässt `complete:false` und Pakete ohne Terrain/Ground nicht mehr in den Cache. Bei `requireScenery:true` muss die komplette Scenery-/Structures-Ebene bereits enthalten sein. Dass `seed()` fertige Bilder direkt einträgt, umgeht die Freigabe nicht. Fehlende Küsten-/Sprite-Assets bleiben durch die bestehenden `tileArtworkStatus()`-Gates gesperrt. Das ist ein **Vollständigkeits-**, kein Bildauflösungs-Gate.
+2. **Qualitätsstabile Übergänge:** `lookup(t)` bevorzugt ein scharfes Raster der angefragten LOD. Fehlt es, wird ausschließlich ein weiteres **vollständiges** LOD-Paket ausgewählt. Seine tatsächliche Quelldichte schlägt eine verschwommenere `preview:true` derselben angefragten LOD. Ground und Scenery stammen immer aus demselben Paket – keine temporäre Mischung verschiedener LODs.
+3. **Cache-Schonung:** `trim(visibleSourceKeys())` schützt die im gerade sichtbaren Weltbereich tatsächlich präsentierte LOD-Variante vor LRU-Eviction, bis deren Ersatz bereit ist. Nicht sichtbare und aktuell nicht gezeichnete Qualitätsvarianten bleiben entsprechend den bestehenden Pixelbudgets freigebbar. Keine Änderung an LOD-Schwellen oder konfigurierten DPR-Grenzen; diese gehören in Schritt 10/11.
+4. **Wolken als echte Freigabesperre:** `cloud-artwork.js` legt unter jedes noch nicht fertig freigegebene, sichtbare Hex eine vollflächige, opake Hex-Füllung **vor** die weiterhin gezeichneten Wolken-PNGs (welche transparente Pixel besitzen können). Sind die Wolkenbilder noch nicht geladen oder fehlt `fog-atmosphere.js`, erzeugt `world-tile-streamer.js` selbst eine deckende Hexmaske. Die Abdeckung wird nach statischen Sprites und dynamischen Einheiten aufgetragen. Damit gibt auch eine transparente Wolkentextur keine unfertige Szenerie frei; unbekannte Gebiete werden im bestehenden Fog-Gate weiterhin ausgelassen.
+5. **Diagnose und UI:** `worldTileStats().progress` und das Fast-Kamera-Statusfeld unterscheiden `exact` (scharfes Ziel-LOD), `fallback` (anderes vollständiges LOD), `provisional` (vollständiges Qualitäts-Preview der Ziel-LOD) und `missing` (noch kein auslieferbares Bild). Die Einzeldiagnose enthält `displayedLod`, `displayedPreview` und `displayedDensity`, zusätzlich zum bisher angeforderten `lod` und `sourceDensity`. Für die Zähler werden ausschließlich wirklich bildschirmberührende Tiles berücksichtigt.
+6. Für die drei geänderten Browserdateien (`cloud-artwork.js`, `world-tile-streamer.js`, `app.js`) wurden Query-Versionen in `index.html` angepasst; ältere quellentextgebundene Versionstests entsprechend aktualisiert. Terrain-Generierung, Strand-/Sprite-Assets, Road-/River-Worker, Bildexport, Fog-Berechtigungsmodell und Work-Steuerung bleiben unangetastet.
+
+### Isolierte Testabnahme und offene Grenzen
+
+- Neuer Test `tests/test_progressive_tile_readiness_step9_20261027.cjs`: **9/9**, darunter: alter LOD bleibt während des Upgrades sichtbar; scharfer älterer LOD schlägt schlechteren Preview; vollständiger neuer Ziel-LOD ersetzt das alte Bild atomar; unvollständiger Seed erhält Wolkenmaske/Fallback; Ground-only ohne Scenery wird nicht angezeigt; `unknown`-Tiles werden nicht gezeichnet; Budget-Eviction erhält die aktuell benutzte Fallbackgrafik; transparente Wolken-PNGs erhalten opake Hex-Unterlegung; Versions-/Statusanzeige.
+- Vorhandene 11 Testdateien für Küsten/Worker/Bäume, Schritt 6, Queue, Tile-Recovery, LOD-Qualität und Cache-Invalidierung: **89/89** in demselben simulierten V8-/Node-API-Harness. **Gesamt: 98/98** gezielte simulierte V8-Tests. JavaScript-Syntax der geänderten Quellen geprüft.
+- **Nicht ausgeführt:** `node --test` nativ, lokaler Server-/Buildstart, visuelle Browser-/GPU-Tests an der echten Karte, p50-/p95-/FPS-Messung und tatsächlicher Speichervergleich. Diese Ergebnisse dürfen nicht als reale Leistungsabnahme ausgegeben werden. **Status: teilweise**.
+
+### Browserabnahme vor Schritt 10
+
+1. Frischen `main`-Stand starten und mit Strg+F5 die neuen Script-Query-Versionen laden.
+2. Über mehrere Zoomwechsel rund um 0,42/0,49 und 0,94/1,08 nach `far/mid/near` beobachten: alte vollständige Raster müssen bis zum qualitativ besseren Ziel-LOD angezeigt werden, ohne rechteckige Leerstellen oder zeitweise fehlende Vegetation. LOD-Schwellen **nicht** in Schritt 9 verändern.
+3. Bei einer künstlich verzögerten vollständigen Terrain-/Scenery-Quelle `VedrasAssetLabor.worldTileStats().progress` (exakt/fallback/provisorisch/fehlend) und `tileDiagnostics().world.tiles[].displayedLod` prüfen. Ein fehlendes Scenery-Layer darf auch bei vorhandenem Boden nicht als Bild freigegeben werden.
+4. Wolken mit PNGs und bei verzögertem Laden dieser Bilder prüfen: Unfertige sichtbare Hexe müssen unter einer vollständig deckenden Hexmaske bleiben; kein Layer-, Schatten- oder Küsten-Pixel darf durch transparente Wolkenpixel hindurchscheinen. Auch `fogPreview` prüfen.
+5. Auf der dicht bewachsenen 397-Hex-Karte Küstenübergänge und die globale Baumstaffelung beim wiederholten Pan/Zoom beurteilen. Median/p95, Worker-Backlog, Bildcache-Budget und Anzahl neu gebackener World-Tiles gegen denselben gespeicherten Stand vergleichen.
+6. Native Tests und Browser-Screenshots nachholen; bis dahin Schritt 9 nicht als vollständig abgenommen markieren.
+
+**Weiter:** Erst nach sichtbarer Browserabnahme den LOD-Vertrag (Schritt 10) überarbeiten; kein vorzeitiges Anheben auf 4× oder Auswechseln der bestehenden GPU-/Worker-Architektur.

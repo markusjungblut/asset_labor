@@ -434,7 +434,10 @@ function fastRender(){
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
     fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
-    ' · '+(worldTiles?.stats().visiblePreviews||0)+' Vorschau-/Fallback-Kacheln'+
+    ' · '+(result.exact??0)+' Ziel-LOD'+
+    ' · '+(result.fallback??0)+' ältere LOD'+
+    ' · '+(result.provisional??0)+' Qualitätsvorschau'+
+    ' · '+(result.missing??0)+' noch bewölkt'+
     ' · '+(worldTiles?.stats().upgraded||0)+' nachgeschärft'+
     ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
      ' · '+(worldTiles?.stats().retryExhausted||0)+' Tile-Fehler'+

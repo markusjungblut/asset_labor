@@ -123,5 +123,5 @@ test('export and client version changes are limited to Worker pathway',()=>{
  assert.match(app,/shorelineBuildStats:\(\)=>/);
  assert.match(app,/finalRendering\|\|state\.workerTerrain===false/);
  assert.match(html,/terrain-worker-client\.js\?v=0\.30\.1/);
- assert.match(html,/app\.js\?v=0\.55\.6&amp;artfix=20261027/);
+ assert.match(html,/app\.js\?v=0\.55\.6&amp;step9=20261027/);
 });
