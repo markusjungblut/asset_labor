@@ -29,6 +29,9 @@ window.VedrasWorldTiles=(()=>{
   function drawCloudBackground(context,view){
    return clouds?.drawBase(context,view)||0;
   }
+  function drawCloudFrontier(context,view,edges){
+   return clouds?.drawTransitions(context,view,edges)||0;
+  }
   function coverUnready(context,view,cells,ready){
    if(!Array.isArray(cells)||typeof ready!=='function')return 0;
    if(clouds?.stats().bases)
@@ -338,7 +341,8 @@ window.VedrasWorldTiles=(()=>{
    inFlight:running.size,visible:visibleTiles.length,lod,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
-    setCloudSeed,drawCloudBackground,coverUnready,chooseLod,invalidate,stats};
+    setCloudSeed,drawCloudBackground,drawCloudFrontier,
+    coverUnready,chooseLod,invalidate,stats};
  }
  return {create};
 })();
