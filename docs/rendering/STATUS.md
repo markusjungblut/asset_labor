@@ -219,3 +219,20 @@ Vor Schritt 8 lief `window.VedrasShoreline.build()` unmittelbar im `shorelineChu
 **Teststand:** Fünf neue isolierte V8-Fälle (`tests/test_fast_camera_global_scenery_depth_20261027.cjs`) und **33 weitere Regressionen**, zusammen **38/38**, bestanden. Insbesondere waren bei zwei benachbarten World-Tiles nur die Ground-Bilder und genau eine globale Szene sichtbar; ein Schwenk änderte die Reihenfolge nicht und die statische Bildfläche wurde beim kleinen Pan wiederverwendet. **Nicht ausgeführt:** nativer Node-Test, Browser-/GPU-Lauf und Performanceprofil der 397-Feld-Szene. Der erste Aufbau/Viewport-Verlassen kann weiterhin die globale Sprite-Zeichenfläche neu erstellen; reale FPS müssen gemessen werden.
 
 **Akzeptanz:** Bäume mit Ankern in verschiedenen Chunks an einem Waldsaum beobachten, wegscrollen und zurück. Bei unverändertem Karteninhalt darf sich die lokale Kronen-/Stammreihenfolge weder beim Pan noch beim LOD-Wechsel ändern. p50/p95-Framezeit und `sceneryStats()` messen, um die Kosten neuer Scenery-Builds einzuschätzen.
+
+## Bugfix – Modus „6 Ufergrafiken“ zeichnet prozedurale Testküsten (2026-10-27)
+
+**Gemeldeter Fehler:** Obwohl im Editor **„6 Ufergrafiken“** ausgewählt war, erschienen weiterhin die alten prozeduralen Testkanten.
+
+### Codeursache und Korrektur
+
+1. Das Worker-Protokoll aus Schritt 8 überträgt Küsten-PNGs als `ImageBitmap`, das `width`/`height`, **nicht** `naturalWidth`/`naturalHeight` anbietet. `shoreline.js` nahm allein `asset.naturalWidth` als Erfolgskriterium und zeichnete bei `ImageBitmap` selbst im Grafikmodus den temporären Linien-/Farbfallback. Nun erkennen beide Bildtypen dieselbe gültige Grafik.
+2. Im Grafikmodus `mode:'art'` darf eine fehlende Grafik nicht mehr stillschweigend eine Testgrafik ersetzen. `VedrasShoreline.build` liefert dann `canvas:null,missingSides:[...]`. Die Anwendung prüft vorher, ob für tatsächlich benutzte Uferseiten die PNGs im Assetpool dekodiert sind, und zeigt im Status die fehlenden Seitennummern an. Teststriche werden **nur** in `mode:'temp'` erzeugt.
+3. Die FrameMemo-Signatur umfasst jetzt Modus, Breite und Überhang; bei Änderungen an Modus, Aktivierung oder Testparametern werden bestehende Shoreline-Chunks, alte World-Tile-Bitmaps und der Retained-Background-Canvas aktualisiert. Dies verhindert, dass zuvor gezeichnete Testkanten nach Auswahl der sechs PNGs erneut angezeigt werden.
+4. Der Default für eine neue Szene ist `art`. Bestehende gespeicherte Einstellungen behalten einen **explizit ausgewählten** temporären Modus; Szenenimport/Restoration normalisieren ungültige Moduswerte auf `art`. Die Uferseiten-/Eckentest-Buttons verändern die aktuelle Grafikmodus-Auswahl nicht mehr.
+5. Browser, Terrain-Worker und dessen Script-Ladekette haben neue Cache-Query-Versionen, damit keine alte, lediglich über `naturalWidth` prüfende Worker-Datei im Hintergrund weiterläuft.
+6. **Regressionen:** `tests/test_shoreline_art_bitmap_mode_20261027.cjs` mit sieben Tests deckt HTMLImageElement, transferiertes ImageBitmap, fehlende Assets, expliziten Testmodus und den Modus-/Versionswechsel ab. Ältere Tests mit veralteten Script-Versionen und selektiver alter Cache-Erwartung wurden an die neuen Garantien angepasst.
+
+**Status:** isolierte JavaScript-/V8-Tests des Renderingpfads geprüft, Browser/echtes Worker-ImageBitmap mit den realen sechs PNG-Dateien und visueller Küstenabgleich noch ausstehend. Sollte das Bild unverändert bleiben, muss kontrolliert werden, ob die aktuelle Serverinstanz tatsächlich den neuen `main`-Stand ausliefert.
+
+Die bereits vorher separat implementierte **globale Sprite-Tiefensortierung** aus PR #53 verhindert, dass Bäume nach einem Schwenk je nach Tile-Compositing unterschiedlich überlappen. Eine native Browserprüfung dieser Überdeckung und der Framezeiten steht ebenso aus.

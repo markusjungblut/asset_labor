@@ -131,6 +131,7 @@ test('coastline-safe material edits and shoreline options preserve selective sco
  assert.match(s,/function invalidateTerrain\(scope='all',dirtyWorldTiles=null\)/);
  assert.match(s,/previousWater===wetHex\(c\)/);
  assert.match(s,/worldTilesNearPoint\(pos\.x,pos\.y,1280\)/);
- assert.match(s,/deferSceneRender\('shoreline',\(\)=>\{\},170,'ground'\)/);
+ assert.match(s,/deferSceneRender\('shoreline',\(\)=>applyShorelineSelection\(\),170,false\)/);
+ assert.match(s,/function applyShorelineSelection\(\)/);
  assert.match(s,/persistScene\('ground'\)/);
 });

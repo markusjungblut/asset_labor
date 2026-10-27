@@ -67,5 +67,5 @@ test('tile source re-arms on shoreline chunk completion and zoom cache versions 
   b=app.indexOf('// A forest is overlaid',a);
  assert.match(app.slice(a,b),/worldTiles\?\.terrainReady\(tile\.id\)/);
  assert.match(app,/shorelineChunks\.prime\(bounds/);
- assert.match(html,/coast-zoom=20261027/);
+ assert.match(html,/artfix=20261027/);
 });

@@ -88,6 +88,13 @@ function shorelineTileStatus(t,allowPrepared=false,details=null){
   s.center.x<=t.x+t.size+margin&&s.center.y>=t.y-margin&&
   s.center.y<=t.y+t.size+margin);
  if(!coastal)return true;
+ if(state.shoreline?.mode==='art'&&segments.some(segment=>
+  segment.center.x>=t.x-margin&&segment.center.x<=t.x+t.size+margin&&
+  segment.center.y>=t.y-margin&&segment.center.y<=t.y+t.size+margin&&
+  !assetByPath.get(SHORE_EDGE_PATHS[segment.side])?.img?.naturalWidth)){
+  if(details)details.shorelineReason='shoreline-art-assets-not-ready';
+  return false;
+ }
  const ready=shorelineChunks.readyTiles({
   x:t.x,y:t.y,width:t.size-1,height:t.size-1},{limit:8})
   .find(entry=>entry.tile.id===t.id);
@@ -600,7 +607,7 @@ function invalidateSpriteLayout(tileIds=null){
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
  selected:'0,0',fogSeed:'vedras-local-preview',strategyOverlay:'both',fastCamera:true,grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,gpuSprites:false,adaptiveLod:true,worldStreaming:true,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
- shoreline:{enabled:true,mode:'temp',width:34,outer:10},
+ shoreline:{enabled:true,mode:'art',width:34,outer:10},
  asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
 const adaptiveLOD=window.VedrasAdaptiveLOD.create();
@@ -918,7 +925,7 @@ function drawShorelines(){
  if(!opts.enabled){if(report)report.textContent='Ufer-Overlays ausgeschaltet.';return;}
  const shoreDensity=finalRendering?1.5:previewDensity()*lodProfile().shore;
  const {files,mouthPortals,signature}=frameMemo.use('shores',
-  shoreDensity+'|'+finalRendering+'|'+opts.enabled,()=>{
+  shoreDensity+'|'+finalRendering+'|'+opts.enabled+'|'+opts.mode+'|'+opts.width+'|'+opts.outer,()=>{
    const classes=worldCells.map(c=>[c.q,c.r,isWaterTerrain(typeOfCell(c))]);
    const files=SHORE_EDGE_PATHS.map(path=>useAsset(path));
    const mouthPortals=state.river?window.VedrasRivers.mouthPortals(riverRoutes(),worldCells,wetHex,state.riverWidth):[];
@@ -934,6 +941,18 @@ function drawShorelines(){
    shorelineCache.segments=window.VedrasShoreline.segments(worldCells,wetHex);
   }
   const segments=shorelineCache.segments;
+  // Graphical mode is only complete once all required sides are decoded.
+  // Never present cached experimental strokes as valid six-PNG shore art.
+  const requiredSides=[...new Set(segments.map(segment=>segment.side))];
+  const missingSides=opts.mode==='art'?requiredSides.filter(side=>
+   !imgs[side]?.naturalWidth):[];
+  if(missingSides.length){
+   if(report)report.textContent='6 Ufergrafiken: '+missingSides.length+
+    ' PNG(s) fehlen oder laden (Seiten '+
+    missingSides.map(i=>i+1).join(', ')+'). Keine Testkanten als Ersatz.';
+   shorelineChunks.clear();
+   return;
+  }
   shorelineChunks.configure(signature+'|density='+shoreDensity,{
    worldCells,
    buildTile:(tile)=>{
@@ -987,6 +1006,16 @@ function drawShorelines(){
    ' sichtbar · '+stats.pending+' geplant';
  }else{
   shorelineChunks.clear();
+  const needed=[...new Set(window.VedrasShoreline.segments(worldCells,wetHex)
+   .map(segment=>segment.side))];
+  const missing=opts.mode==='art'?needed.filter(side=>
+   !files[side]?.img?.naturalWidth):[];
+  if(missing.length){
+   shorelineCache.raster=null;
+   if(report)report.textContent='6 Ufergrafiken: fehlende PNGs für Seiten '+
+    missing.map(i=>i+1).join(', ')+'. Keine Testkanten als Ersatz.';
+   return;
+  }
   if(shorelineCache.signature!==signature||shorelineCache.density!==shoreDensity||!shorelineCache.raster){
    const imgs=files.map(a=>a?.img?.naturalWidth?a.img:null);
    const t0=performance.now();
@@ -2809,6 +2838,8 @@ state.gpuSprites=state.gpuSprites===true;
 state.adaptiveLod=state.adaptiveLod!==false;
 state.worldStreaming=state.worldStreaming!==false;
 state.fastCamera=state.fastCamera!==false;
+state.shoreline={enabled:true,mode:'art',width:34,outer:10,...state.shoreline};
+state.shoreline.mode=state.shoreline.mode==='temp'?'temp':'art';
 $('fastCamera').checked=state.fastCamera;
 $('worldStreaming').checked=state.worldStreaming;
 $('adaptiveLod').checked=state.adaptiveLod;
@@ -3178,10 +3209,25 @@ $('waterSamplingMode').addEventListener('change',e=>{state.waterSampling=e.targe
 $('edgeIrregularity').addEventListener('input',e=>{state.edgeIrregularity=Number(e.target.value);$('irregularityText').textContent=String(state.edgeIrregularity);deferSceneRender('terrain',()=>invalidateTerrain('material'));});
 $('cornerBlendToggle').addEventListener('change',e=>{state.cornerBlend=e.target.checked;invalidateTerrain();requestDraw();persistScene();});
 $('transitionDebugMode').addEventListener('change',e=>{state.transitionDebugMode=e.target.value;requestDraw();persistScene(false);});
-$('shorelineToggle').addEventListener('change',e=>{state.shoreline.enabled=e.target.checked;requestDraw();persistScene('ground');});
-$('shorelineMode').addEventListener('change',e=>{state.shoreline.mode=e.target.value;syncShorelineControls();requestDraw();persistScene('ground');});
-$('shorelineWidth').addEventListener('input',e=>{state.shoreline.width=Number(e.target.value);$('shorelineWidthText').textContent=String(state.shoreline.width);deferSceneRender('shoreline',()=>{},170,'ground');});
-$('shorelineOuter').addEventListener('input',e=>{state.shoreline.outer=Number(e.target.value);$('shorelineOuterText').textContent=String(state.shoreline.outer);deferSceneRender('shoreline',()=>{},170,'ground');});
+function applyShorelineSelection(){
+ // Cached World-Tiles contain the old coast in their ground bitmaps.
+ // Do not keep painting stale test edges after choosing authored PNGs.
+ if(fastInteracting||tileModeActive)endFastCamera(false);
+ shorelineChunks.clear();shorelineCache={signature:null,raster:null};
+ worldTiles?.invalidate();lastTileSnapshotSignature=null;
+ worldTileSelectiveSnapshot=false;
+ frameMemo.invalidate();backgroundScene.clear();
+ persistScene(false);requestDraw();
+}
+$('shorelineToggle').addEventListener('change',e=>{
+ state.shoreline.enabled=e.target.checked;applyShorelineSelection();
+});
+$('shorelineMode').addEventListener('change',e=>{
+ state.shoreline.mode=e.target.value==='temp'?'temp':'art';
+ syncShorelineControls();applyShorelineSelection();
+});
+$('shorelineWidth').addEventListener('input',e=>{state.shoreline.width=Number(e.target.value);$('shorelineWidthText').textContent=String(state.shoreline.width);deferSceneRender('shoreline',()=>applyShorelineSelection(),170,false);});
+$('shorelineOuter').addEventListener('input',e=>{state.shoreline.outer=Number(e.target.value);$('shorelineOuterText').textContent=String(state.shoreline.outer);deferSceneRender('shoreline',()=>applyShorelineSelection(),170,false);});
 function syncShorelineControls(){
  const temp=state.shoreline.mode==='temp';
  $('shorelineWidth').disabled=!temp;$('shorelineOuter').disabled=!temp;
@@ -3204,7 +3250,7 @@ function shorelineTest(mode){
  state.objects=false;state.river=false;state.showLegacyNature=false;state.grid=false;state.edgeBlend=true;
  $('objectsToggle').checked=false;$('riverToggle').checked=false;$('nShowDemo').checked=false;$('gridToggle').checked=false;$('edgeBlendToggle').checked=true;
  state.shoreline.enabled=true;$('shorelineToggle').checked=true;
- state.shoreline.mode='temp';$('shorelineMode').value='temp';syncShorelineControls();
+ syncShorelineControls();
  invalidateTerrain();persistScene();setView('map');state.panX=0;state.panY=0;applyZoom(.76);requestDraw();
 }
 $('shorelineSixTest').addEventListener('click',()=>shorelineTest('six'));
@@ -3227,7 +3273,8 @@ $('sceneImport').addEventListener('change',async e=>{
   state.relief=window.VedrasRelief.valid(scene.relief||window.VedrasRelief.defaults());syncReliefUI();
   if(scene.autotiling){state.edgeBlend=!!scene.autotiling.enabled;state.blendVariants=!!scene.autotiling.blendVariants;state.edgeWidth=Number(scene.autotiling.width)||28;state.waterSampling=scene.autotiling.waterSampling==='repeat'?'repeat':'hex';
    state.edgeIrregularity=Number(scene.autotiling.irregularity)||0;state.cornerBlend=scene.autotiling.cornerBlend!==false;}
-  if(scene.shoreline){state.shoreline={...state.shoreline,...scene.shoreline};}
+  if(scene.shoreline){state.shoreline={...state.shoreline,...scene.shoreline};
+   state.shoreline.mode=state.shoreline.mode==='temp'?'temp':'art';}
   $('edgeBlendToggle').checked=state.edgeBlend;$('blendVariantsToggle').checked=state.blendVariants;$('waterSamplingMode').value=state.waterSampling;
   $('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('waterSamplingMode').value=state.waterSampling;
   $('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;
