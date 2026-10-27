@@ -14,7 +14,7 @@ test('decoded image completion flushes sprite cache without undeclared variables
   inspectTerrain:()=>({}),isTerrain:()=>false,state:{
    relief:{enabled:false},mountainInstances:[]},
   frameMemo:{invalidate(){}},backgroundScene:{clear(){}},
-  imagePoolPriming:false,spriteAssetBatchDirty:false,
+  imagePoolPriming:false,spriteAssetBatchDirty:false,assetReadyTimer:null,
   clearTimeout(){},setTimeout(cb){flush=cb;return 7;},
   imagePool:{report:()=>({queued:0,active:0})},
   invalidateSpriteLayout(){invalidations++},requestDraw(){draws++},
