@@ -29,9 +29,9 @@ window.VedrasRenderQuality=(()=>{
   const pixels=width*height;
   const budgetDpr=Math.sqrt(budget/pixels);
   const dimensionDpr=Math.min(4096/width,4096/height);
-  // Preserve the old minimum .65x policy for extreme windows. The canvas
-  // dimension remains clipped, and no new 4x DPR export path is introduced.
-  const effective=clamp(Math.min(requested,4,budgetDpr,dimensionDpr),.65,4);
+  // The old .65x minimum could overflow an unusually large viewport.
+  // A hard device-size/pixel cap takes precedence over minimum sharpness.
+  const effective=Math.min(requested,4,budgetDpr,dimensionDpr);
   const limiter=effective>=requested-1e-6?'none':
    budgetDpr<=dimensionDpr?'pixel-budget':'canvas-dimensions';
   return {quality:kind,requestedDpr:requested,effectiveDpr:effective,
