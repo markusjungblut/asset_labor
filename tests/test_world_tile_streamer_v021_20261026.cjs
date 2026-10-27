@@ -77,7 +77,7 @@ test('editor uses the v0.21 retained compositor, streaming, cloud demo and dynam
  const app=read('app.js'),html=read('index.html'),server=read('server.py');
  assert.match(app,/window\.VedrasWorldTiles\?\.create/);
  assert.match(app,/worldTiles\.request\(fastView\(\),tiles\)/);
- assert.match(app,/worldTiles\.render\(fastView\(\),\{drawDynamic:drawTileDynamics\}\)/);
+ assert.match(app,/worldTiles\.render\(fastView\(\),\{\s*drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics/);
  assert.match(app,/if\(worldTiles\)\{tileModeActive=true;fastRender\(\);\}/);
  assert.match(app,/drawMapObjects\(\{includeUnits:false,/);
  assert.match(app,/visibleFogTiles/);
