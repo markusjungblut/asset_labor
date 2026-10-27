@@ -49,6 +49,9 @@ test('static Nature and ground shadow bake excludes units',()=>{
  assert.deepEqual(s.calls,['nature-shadow','nature-sprite']);
  assert.equal(s.window.__vedrasObjectProfile.drawnSprites,1);
  assert.equal(s.window.__vedrasObjectProfile.shadowCandidates,1);
+ assert.equal(s.window.__vedrasObjectProfile.staticSprites,1);
+ assert.equal(s.window.__vedrasObjectProfile.staticShadows,1);
+ assert.equal(s.window.__vedrasObjectProfile.dynamicSprites,0);
 });
 test('moving unit pass draws no static tree or tree shadow',()=>{
  const s=objectPassFixture();
@@ -57,6 +60,8 @@ test('moving unit pass draws no static tree or tree shadow',()=>{
  s.draw({onlyUnits:true});
  assert.deepEqual(s.calls,['unit-shadow','unit-sprite']);
  assert.equal(s.window.__vedrasDynamicObjectProfile.drawnSprites,1);
+ assert.equal(s.window.__vedrasDynamicObjectProfile.dynamicSprites,1);
+ assert.equal(s.window.__vedrasDynamicObjectProfile.staticSprites,0);
  assert.equal(s.window.__vedrasObjectProfile.drawnSprites,1);
 });
 test('direct editor/export draw order remains unchanged',()=>{
