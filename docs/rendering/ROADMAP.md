@@ -44,3 +44,6 @@ Die geplante Instrumentierung aus Schritt 2 ist in `chunks.js`, `world-tile-stre
 
 ## Schritt 3 – gezielte Tile-Liveness-Reparaturen (2026-10-27)
 Die in Schritt 2 erkannten Codepfade (`cached-empty`, `source-null`, alte Signaturen und nichtsettende Quellen) besitzen jetzt begrenzte Wiederholungen und einen terminalen Diagnosezustand. Die reine Tile-Freigabe wurde in der schnellen Kamera so ergänzt, dass vorbereitete, aber noch unbemalte Terrain-Cores **nur direkt offscreen** fertig gezeichnet werden können; Bild-Snapshots verlangen weiterhin gemalte Core-Versionen. Die Implementierung ist durch isolierte V8-Tests geprüft, die echte Browser-Abnahme aus `STATUS.md` ist noch offen. Erst danach Schritt 4 ausführen.
+
+### Schritt-3-Nachtrag: Terrain-Ready-Signal
+Die rein zeitgesteuerten World-Tile-Retries wurden um ein zielgerichtetes `terrainReady(tileId)` ergänzt. Nach Fertigstellung eines konkreten Terrain-Chunks kann genau dieses zuvor erfolglos angefragte sichtbare World-Tile ohne Pan/Zoom wieder starten. Keine globale Cache-Invalidierung; keine Änderung der späteren Roadmap.

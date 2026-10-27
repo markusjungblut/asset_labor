@@ -351,7 +351,7 @@ window.VedrasChunks=(()=>{
      observe(id,item?'completed':'empty-result',{version:rasterVersion});
      trim();
      stats.lastMs=(typeof performance!=='undefined'?performance.now():0)-t0;
-     if(visibleNow)requestDraw();
+     if(visibleNow)requestDraw(t); // publisher may retry precisely this completed tile
      markWarm(id);
      schedule();
     };

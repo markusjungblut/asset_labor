@@ -41,3 +41,6 @@
 
 ## D-014: Live-Freigabe noch nicht belegt
 **Entscheidung:** Die fokussierten V8-Regressionen beweisen Verhalten der getesteten Jobs unter simulierten Timern, nicht Leistung der gespeicherten dichten Browserkarte. Keine gemessene FPS-Verbesserung oder vollständige Ladefreigabe behaupten, bevor native Tests und echte Szene geprüft sind.
+
+## D-015: Wiederanlaufen ausschließlich bei konkretem Terrain-Ready-Signal
+**Entscheidung:** Ein erschöpfter World-Tile-Auftrag darf nach Fertigstellung seines entsprechenden autorisierten Terrain-Chunks gezielt wieder starten. Der Terrain-Renderer meldet dabei nur die fertiggestellte Tile-ID; kein globaler Retry-Reset oder regelmäßiges Polling. Unbekannte und nicht sichtbare Tiles bleiben vorab gefiltert. **Begründung:** Ohne dieses Ereignis könnte ein World-Tile bereits vor Fertigstellung eines langsamen Terrain-Chunks sein Retrybudget aufbrauchen und trotz später bereitstehender Daten dauerhaft verborgen bleiben.

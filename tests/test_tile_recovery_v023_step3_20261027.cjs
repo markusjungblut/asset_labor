@@ -170,3 +170,21 @@ test('direct bake permits prepared core, but snapshot path still requires painte
  assert.match(bake,/drawGround\(\);drawRoads\(\)/);
  assert.match(bake,/if\(signal\?\.aborted\|\|!tileArtworkReady\(t\)\)return null/);
 });
+
+test('a finished terrain core rearms an exhausted world tile without pan or scene change',async()=>{
+ let ready=false,requests=0;
+ const h=worldHarness(()=>{requests++;return ready?packet():null;},
+  {maxAttempts:3});
+ h.request();await flush();
+ h.advance(400);await flush();
+ h.advance(800);await flush();
+ assert.equal(h.current().state,'retry-exhausted');
+ ready=true;
+ assert.equal(h.renderer.terrainReady('0,0'),1);
+ await flush();
+ assert.equal(h.current().state,'ready');
+ assert.equal(requests,4);
+ // A hidden world position cannot be rearmed by a terrain readiness event.
+ h.renderer.request(h.view,[{...h.tile,visibility:'unknown'}]);
+ assert.equal(h.renderer.terrainReady('0,0'),0);
+});

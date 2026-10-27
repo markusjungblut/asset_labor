@@ -129,6 +129,28 @@ window.VedrasWorldTiles=(()=>{
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
   }
+  // A newly finished terrain core can unblock an exhausted source-null tile.
+  // Only the named tile is rearmed, never a global retry storm.
+  function terrainReady(tileId){
+   if(typeof tileId!=='string'||!tileId)return 0;
+   let resumed=0;
+   for(const level of Object.keys(density)){
+    const k=tileId+'@'+level,prior=retries.get(k);
+    if(!prior||!wantedTiles.has(k)||cache.has(k)||running.has(k))continue;
+    // A new exact raster cannot fix an unrelated permanent loader exception.
+    if(!['source-null','incomplete-source','invalid-packet'].includes(prior.reason))continue;
+    const tile=visibleTiles.find(t=>t.id===tileId);
+    if(!tile)continue;
+    cancelRetry(k);retries.delete(k);
+    if(!queue.has(k)){
+     queue.set(k,{key:k,tile,level,epoch});
+     observe(k,'queued',{reason:'terrain-core-ready',level});
+     resumed++;
+    }
+   }
+   if(resumed)pump();
+   return resumed;
+  }
   function setSource(next){source=next;invalidate();}
   function setFogCells(cells){
    fogCells=window.VedrasFogAtmosphere?
@@ -456,7 +478,7 @@ window.VedrasWorldTiles=(()=>{
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
-    coverUnready,chooseLod,invalidate,stats,diagnostics};
+    coverUnready,chooseLod,invalidate,stats,diagnostics,terrainReady};
  }
  return {create};
 })();

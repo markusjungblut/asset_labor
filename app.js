@@ -995,7 +995,12 @@ function drawGround(){
      return persist(localBuild());
     }
    },
-   redraw:requestDraw,family:chunkFamily,diagnosticLod:lod,
+   redraw:tile=>{
+    // Fast camera may remain active while the worker finishes this core.
+    // Re-arm only its previously incomplete World-Tile source.
+    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    requestDraw();
+   },family:chunkFamily,diagnosticLod:lod,
    requireRaster:true,timeoutMs:60000
   });
   const near=fromScreen(-155,-155),far=fromScreen(W+155,H+155);
