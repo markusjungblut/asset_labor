@@ -13,6 +13,7 @@ import { basename, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createInterface } from 'node:readline/promises';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { cameraSites } from './rendering-step13-sites.mjs';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
@@ -315,6 +316,16 @@ async function snapshot(cdp){
     return {quality:v.qualityStats(),atlas:v.atlasStats?.()||null,camera:v.cameraStats(),world:v.worldTileStats(),
       lod:v.lodStats(),scenery:v.sceneryDrawStats(),streaming:v.streamingStats(),
       worker:window.VedrasTerrainWorker?.status?.()||null,
+      profiler:window.VedrasBenchmarkProfiler?.snapshot()||null,
+      resourceLoads:(()=>{
+       const entries=performance.getEntriesByType('resource');
+       const png=entries.filter(x=>/\\.(png|webp|jpe?g)(?:\\?|$)/i.test(x.name));
+       const atlas=entries.filter(x=>/\\/atlases\\//.test(x.name));
+       return {total:entries.length,images:png.length,
+         atlas:atlas.length,
+         transferBytes:entries.reduce((n,x)=>n+(x.transferSize||0),0),
+         imageTransferBytes:png.reduce((n,x)=>n+(x.transferSize||0),0)};
+      })(),
       cellCount:v.cells().length,natureCount:v.state.natureInstances?.length||0,
       zoom:v.state.zoom,view:v.state.view,mode:v.state.mode,
       qualityText:document.getElementById('qualityStats')?.textContent||'',
@@ -387,12 +398,44 @@ async function importScene(cdp,filename){
   return {file:resolve(filename),expectedNature,sceneSize:397,...presence,
     sites:cameraSites(scene)};
 }
+function profilerDifference(a,b){
+ const prev=a?.entries||{},next=b?.entries||{};
+ return Object.fromEntries(Object.entries(next).map(([k,v])=>{
+  const old=prev[k]||{count:0,totalMs:0,over50ms:0};
+  return [k,{count:v.count-old.count,
+   totalMs:+(v.totalMs-old.totalMs).toFixed(3),
+   maxMs:v.maxMs,over50ms:v.over50ms-old.over50ms}];
+ }));
+}
 async function phase(cdp,kind,quality,ms){
   const start=await snapshot(cdp),before=await measureMetrics(cdp);
+  const wallStart=Date.now();
   await beginSamples(cdp);
   await gesture(cdp,kind,ms);
   const observed=await endSamples(cdp),after=await measureMetrics(cdp),end=await snapshot(cdp);
-  return {quality,kind,frameIntervalMs:{count:observed.samples.length,
+  const wallSeconds=(Date.now()-wallStart)/1000;
+  const taskSeconds=delta(before,after,'TaskDuration');
+  const load=(key)=>delta(start.resourceLoads,end.resourceLoads,key);
+  return {quality,kind,elapsedSeconds:wallSeconds,
+    atlasMode:end.atlas?.benchmarkMode||'auto',
+    profile:profilerDifference(start.profiler,end.profiler),
+    resourceLoads:{total:load('total'),images:load('images'),atlas:load('atlas'),
+      transferBytes:load('transferBytes'),imageTransferBytes:load('imageTransferBytes')},
+    imagePoolChanges:{
+      ready:delta(start.quality.images,end.quality.images,'ready'),
+      evicted:delta(start.quality.images,end.quality.images,'evicted'),
+      promoted:delta(start.quality.images,end.quality.images,'promoted'),
+      decodedBytesDelta:delta(start.quality.images,end.quality.images,'decodedBytes')},
+    atlasChanges:{pageLoads:delta(start.atlas,end.atlas,'pageLoads'),
+      pageEvictions:delta(start.atlas,end.atlas,'pageEvictions'),
+      cooldownFallbacks:delta(start.atlas,end.atlas,'cooldownFallbacks')},
+    memory:{jsHeapBefore:before.JSHeapUsedSize??null,
+      jsHeapAfter:after.JSHeapUsedSize??null,
+      imagePoolDecodedBytes:end.quality.images?.decodedBytes??null,
+      gpuTerrainEstimateBytes:end.quality?.terrainGpu?.gpuBytes??null},
+    mainThreadTaskUtilizationPercent:taskSeconds===null?null:
+      +Math.min(100,Math.max(0,100*taskSeconds/Math.max(.001,wallSeconds))).toFixed(1),
+    frameIntervalMs:{count:observed.samples.length,
       p50:percentile(observed.samples,.5),p95:percentile(observed.samples,.95),
       over50ms:observed.samples.filter(n=>n>50).length},
     longTasks:{count:observed.longTasks.length,p95Ms:percentile(observed.longTasks,.95)},
@@ -575,4 +618,8 @@ async function main(){
     console.log(`Step 13: ${run.acceptance}\nSaved: ${resolve(o.out)}`);
   }
 }
-main().catch(e=>{console.error(e);process.exitCode=1;});
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))
+ main().catch(e=>{console.error(e);process.exitCode=1;});
+export {launch,preflight,waitFor,importScene,setControls,setCamera,settle,
+ phase,screenshot,snapshot,measureMetrics,gesture,beginSamples,endSamples,
+ percentile,delta};
