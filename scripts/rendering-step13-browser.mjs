@@ -13,6 +13,7 @@ import { basename, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createInterface } from 'node:readline/promises';
 import { createHash } from 'node:crypto';
+import { cameraSites } from './rendering-step13-sites.mjs';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --url URL          Running local Asset-Labor, default http://127.0.0.1:8780/
@@ -184,19 +185,63 @@ async function screenshot(cdp,filename){
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
     height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
-async function settle(cdp,timeoutMs=12000){
-  let last=null,consecutive=0;
-  const deadline=Date.now()+timeoutMs;
+async function settle(cdp,timeoutMs=45000){
+  let last=null,consecutive=0,reasons=[];
+  const started=Date.now(),deadline=started+timeoutMs;
   while(Date.now()<deadline){
-    last=await cdp.eval(`window.VedrasAssetLabor?.worldTileStats?.()||null`);
-    const ready=last&&last.drawn>0&&last.pending===0&&
-      last.coverage>=0.55&&last.retryExhausted===0&&
-      (last.progress?.missing??0)===0&&(last.progress?.provisional??0)===0;
-    if(ready&&++consecutive>=2)return {ready:true,stats:last};
-    if(!ready)consecutive=0;
-    await sleep(600);
+    last=await cdp.eval(`(()=>{
+      const v=window.VedrasAssetLabor;
+      return {world:v.worldTileStats(),artwork:v.tileDiagnostics({limit:32,includeReadiness:true}),
+        mode:v.state.mode,view:v.state.view,assetPool:v.assetMemory()};
+    })()`);
+    const w=last.world,art=last.artwork;
+    reasons=[];
+    if(last.view!=='map'||last.mode!=='normal')reasons.push('not-map-view');
+    if(!w.active)reasons.push('world-tile-compositor-not-active');
+    if(!w.visible||!w.drawn)reasons.push('no-visible-world-tiles');
+    if(w.pending!==0)reasons.push('tile-queue-pending:'+w.pending);
+    if(w.retryExhausted>0)reasons.push('retry-exhausted');
+    if(w.coverage<.999)reasons.push('coverage:'+w.coverage);
+    if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
+    if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
+    if(w.visiblePreviews>0)reasons.push('visible-previews');
+    const waiting=(art?.artwork||[]).filter(a=>!a.ready);
+    if(waiting.length)reasons.push('artwork-not-ready:'+waiting.length);
+    if(!reasons.length&&++consecutive>=3)
+      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[]};
+    if(reasons.length)consecutive=0;
+    // No camera motion: request the actual tile compositor again when the
+    // first frame has not created any visible tiles (old baseline cloud bug).
+    if((Date.now()-started)%2700<800)
+      await cdp.eval(`window.VedrasAssetLabor?.activateTileCamera?.()`);
+    await sleep(750);
   }
-  return {ready:false,stats:last};
+  return {ready:false,stats:last?.world,assetPool:last?.assetPool,
+    waitMs:Date.now()-started,reasons};
+}
+async function setCamera(cdp,site,zoom=.70){
+  const q=Number(site.q),r=Number(site.r);
+  if(!Number.isInteger(q)||!Number.isInteger(r))throw Error('Invalid camera site');
+  await cdp.eval(`(()=>{
+    const v=window.VedrasAssetLabor,slider=document.getElementById('zoomSlider');
+    slider.value=${Math.round(zoom*100)};
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
+    const hex=v.geometry.HEX,R=v.geometry.R;
+    const x=hex*(${q}+${r}/2),y=1.5*R*${r};
+    v.state.panX=-x*v.state.zoom;
+    v.state.panY=-y*v.geometry.PROJECT_Y*v.state.zoom;
+    v.activateTileCamera();
+    v.requestDraw();
+    return true;
+  })()`);
+}
+function recordReadiness(run,quality,phase,readiness){
+  run.readiness.push({quality,phase,...readiness});
+  if(!readiness.ready){
+    run.warnings.push(`Unready ${quality}/${phase}: ${readiness.reasons.join('; ')}; waited ${readiness.waitMs}ms`);
+    return false;
+  }
+  return true;
 }
 async function assetPresence(cdp){
   return cdp.eval(`(()=>{
@@ -323,7 +368,8 @@ async function importScene(cdp,filename){
   const presence=await assetPresence(cdp);
   if(presence.nature!==expectedNature)throw Error('Imported '+presence.nature+
     ' of '+expectedNature+' valid vegetation instances. Scene import truncated data.');
-  return {file:resolve(filename),expectedNature,sceneSize:397,...presence};
+  return {file:resolve(filename),expectedNature,sceneSize:397,...presence,
+    sites:cameraSites(scene)};
 }
 async function phase(cdp,kind,quality,ms){
   const start=await snapshot(cdp),before=await measureMetrics(cdp);
