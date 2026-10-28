@@ -45,7 +45,8 @@ test('fixed camera positions reflect actual reference biomes and are unique',asy
 });
 test('new benchmark never publishes unready terrain baseline as a success',()=>{
  const source=readFileSync(join(root,'scripts/rendering-step13-browser.mjs'),'utf8');
- assert.match(source,/w\.coverage<\.999/);
+ assert.match(source,/edgeSite\?\.10:\.999/);
+ assert.match(source,/no-exact-world-tiles/);
  assert.match(source,/artwork-not-ready/);
  assert.match(source,/if\(recordReadiness\(run,quality,'baseline',baseline\)\)/);
  assert.match(source,/if\(recordReadiness\(run,quality,kind,steady\)\)/);
