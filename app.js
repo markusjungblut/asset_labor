@@ -3683,7 +3683,7 @@ window.VedrasAssetLabor={shadowSprites:{
    m.assetPath===asset?.path&&key(m.q,m.r)===state.selected);
   return mountainShadowSettings({asset,mountainInstance:selected||null});
  }
-},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
+},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>spriteAtlas?.info()||null,
  gpuStats:()=>gpuTerrain?.stats()||{ready:false},
  sceneryStats:()=>staticScenery.stats(),spriteGpuStats:()=>gpuSprites?.stats()||{ready:false},
  backgroundStats:()=>backgroundScene.stats(),preparationStats:()=>frameMemo.stats(),
