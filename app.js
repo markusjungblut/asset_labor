@@ -1892,7 +1892,12 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
   ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter=filter;
   ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
   objectPerspective(ctx,p);
-  if(!spriteAtlas?.draw(ctx,obj.asset.path,b,{
+  // The 397-hex / 2631-sprite benchmark visited thousands of atlas pages
+  // with a six-page budget (3226 loads, 3220 evictions). For a dense scene
+  // draw the already decoded sprite preview instead of repeatedly loading
+  // atlas pages. Rendering DPR stays unchanged.
+  const denseAtlasBypass=state.objects&&state.natureInstances?.length>500;
+  if(denseAtlasBypass||!spriteAtlas?.draw(ctx,obj.asset.path,b,{
    x:left,y:top,w:width,h:height
   },{
    width:obj.asset.img.naturalWidth,height:obj.asset.img.naturalHeight
