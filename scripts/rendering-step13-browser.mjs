@@ -7,15 +7,16 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createInterface } from 'node:readline/promises';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --url URL          Running local Asset-Labor, default http://127.0.0.1:8780/
-  --scene FILE       Existing exported 397-hex JSON scene (recommended)
-  --out DIR          Result folder (default artifacts/rendering-step13)
+  --scene FILE       Existing exported 397-hex JSON scene (default: repo reference scene)
+  --out DIR          Result folder (default artifacts/rendering-step13-auto)
   --chrome FILE      Chrome/Chromium executable (or CHROME_BIN)
   --qualities LIST  Comma separated: fast,auto,1,2,3,4 (default all)
   --duration MS      Gesture capture per phase (default 3600, min 1500)
@@ -24,10 +25,12 @@ const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --pause-on-exit    With --headed and a terminal: leave Chrome open until Enter
   --help             Display this help
 The URL must be localhost/127.0.0.1. Start python server.py separately.
-Each run writes JSON, Markdown and PNG screenshots; visual checks remain manual.
+Each run writes JSON, Markdown and map-only PNG screenshots. Fog-off is the default for measurements; separate fog-on comparison images are saved.
 `;
 function options(argv) {
-  const o={url:'http://127.0.0.1:8780/',out:'artifacts/rendering-step13',
+  const defaultScene=resolve('artifacts/rendering-step13/vedras_scene.json');
+  const o={url:'http://127.0.0.1:8780/',out:'artifacts/rendering-step13-auto',
+    scene:existsSync(defaultScene)?defaultScene:null,
     qualities:['fast','auto','1','2','3','4'],duration:3600,warmup:3000,headed:false};
   for(let i=0;i<argv.length;i++){
     const k=argv[i];
@@ -162,8 +165,45 @@ function delta(a,b,k){
   return Number.isFinite(first)&&Number.isFinite(last)?+(last-first).toFixed(2):null;
 }
 async function screenshot(cdp,filename){
-  const r=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true});
-  await writeFile(filename,Buffer.from(r.data,'base64'));
+  // Capture the actual game viewport only. Do not publish a screenshot of the entire editor.
+  const clip=await cdp.eval(`(()=>{
+    const el=document.getElementById('canvasOuter'),r=el?.getBoundingClientRect();
+    if(!r)return null;
+    const x=Math.max(0,Math.floor(r.left)),y=Math.max(0,Math.floor(r.top));
+    return {x,y,width:Math.floor(Math.min(r.right,innerWidth)-x),
+      height:Math.floor(Math.min(r.bottom,innerHeight)-y),scale:1};
+  })()`);
+  if(!clip||clip.width<180||clip.height<150)throw Error('Game canvas is not visible enough for a screenshot');
+  const r=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,
+    fromSurface:true,clip});
+  const png=Buffer.from(r.data,'base64');
+  if(png.length<3000||png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')
+    throw Error('Canvas screenshot is empty or invalid: '+filename);
+  await writeFile(filename,png);
+  return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
+}
+async function settle(cdp,timeoutMs=25000){
+  let last=null,consecutive=0;
+  const deadline=Date.now()+timeoutMs;
+  while(Date.now()<deadline){
+    last=await cdp.eval(`window.VedrasAssetLabor?.worldTileStats?.()||null`);
+    const ready=last&&last.drawn>0&&last.pending===0&&
+      (last.progress?.missing??0)===0&&(last.progress?.provisional??0)===0;
+    if(ready&&++consecutive>=2)return {ready:true,stats:last};
+    if(!ready)consecutive=0;
+    await sleep(600);
+  }
+  return {ready:false,stats:last};
+}
+async function assetPresence(cdp){
+  return cdp.eval(`(()=>{
+    const v=window.VedrasAssetLabor,valid=v.state.natureInstances||[];
+    const files=new Set(v.assets().map(a=>a.path));
+    const absent=valid.filter(n=>!files.has(n.assetPath));
+    return {catalogAssets:files.size,nature:valid.length,
+      missingNatureInstances:absent.length,
+      missingPaths:[...new Set(absent.map(n=>n.assetPath))].slice(0,35)};
+  })()`);
 }
 async function setControls(cdp,quality,fog){
   await cdp.eval(`(()=>{
@@ -236,14 +276,44 @@ async function gesture(cdp,kind,ms){
   }
 }
 async function importScene(cdp,filename){
-  const schema=JSON.parse(await readFile(filename,'utf8')).schema;
-  if(!['vedras-asset-labor-scene-0.8','vedras-asset-labor-scene-0.7','vedras-asset-labor-scene-0.6'].includes(schema))
-    throw Error('Unsupported scene schema: '+schema);
-  const doc=await cdp.send('DOM.getDocument');
-  const found=await cdp.send('DOM.querySelector',{nodeId:doc.root.nodeId,selector:'#sceneImport'});
-  if(!found.nodeId)throw Error('Scene file input missing');
-  await cdp.send('DOM.setFileInputFiles',{nodeId:found.nodeId,files:[resolve(filename)]});
-  await waitFor(()=>cdp.eval(`window.VedrasAssetLabor?.cells?.().length===397`),'397-hex import',30000);
+  const contents=await readFile(resolve(filename),'utf8'),scene=JSON.parse(contents);
+  if(!['vedras-asset-labor-scene-0.8','vedras-asset-labor-scene-0.7','vedras-asset-labor-scene-0.6'].includes(scene.schema))
+    throw Error('Unsupported scene schema: '+scene.schema);
+  if(scene.sceneSize!==397)throw Error('Reference scene must have 397 hexes, found '+scene.sceneSize);
+  const expectedNature=(scene.natureInstances||[]).filter(n=>
+    typeof n.assetPath==='string'&&Number.isFinite(n.dx)&&Number.isFinite(n.dy)&&
+    Number.isFinite(n.q)&&Number.isFinite(n.r)&&Number.isFinite(n.scale)&&n.scale>0&&n.scale<=3).length;
+  // Simulate an actual user-chosen File in Chromium. CDP DOM node IDs are invalidated
+  // during asynchronous editor startup and produced "Could not find node with given id".
+  // This path does not depend on a cached document/tree node.
+  const injected=await cdp.eval(`(()=>{
+    const input=document.getElementById('sceneImport');
+    if(!input)return false;
+    const file=new File([${JSON.stringify(contents)}],${JSON.stringify(basename(filename))},
+      {type:'application/json'});
+    const transfer=new DataTransfer();transfer.items.add(file);
+    input.files=transfer.files;
+    const message=document.getElementById('catalogMessage');
+    if(message)message.textContent='Importiere Referenzszene…';
+    window.__vedrasStep13ImportError=null;
+    window.alert=message=>{window.__vedrasStep13ImportError=String(message)};
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  })()`);
+  if(!injected)throw Error('Scene import input #sceneImport missing');
+  await waitFor(()=>cdp.eval(`(()=>{
+    if(window.__vedrasStep13ImportError)return true;
+    const v=window.VedrasAssetLabor;
+    return v?.cells?.().length===397&&
+      v?.state?.natureInstances?.length===${expectedNature}&&
+      document.getElementById('catalogMessage')?.textContent?.includes('Szene importiert.');
+  })()`),'397-hex scene with '+expectedNature+' Nature sprites',45000);
+  const message=await cdp.eval(`window.__vedrasStep13ImportError||null`);
+  if(message)throw Error('Asset-Labor rejected scene import: '+message);
+  const presence=await assetPresence(cdp);
+  if(presence.nature!==expectedNature)throw Error('Imported '+presence.nature+
+    ' of '+expectedNature+' valid vegetation instances. Scene import truncated data.');
+  return {file:resolve(filename),expectedNature,sceneSize:397,...presence};
 }
 async function phase(cdp,kind,quality,ms){
   const start=await snapshot(cdp),before=await measureMetrics(cdp);
@@ -271,18 +341,27 @@ async function phase(cdp,kind,quality,ms){
     end};
 }
 function report(run){
-  const lines=['# Rendering Step 13 – Browser-Abnahme','',
+  const lines=['# Rendering Step 13 – automatische 397-Hex-Browsermessung','',
     `**Datum:** ${run.timestamp}`,
     `**Status:** ${run.acceptance}`,
     `**Browser:** ${run.browser}`,
     `**Szenario:** ${run.sceneProvided?'Importierte Szene':'Ohne gespeicherte Szenendatei (nur Smoke)'}`,
     `**Hexe / Nature:** ${run.scene?.cellCount??'?'} / ${run.scene?.natureCount??'?'}`,
+    `**Erwartete / importierte Vegetation:** ${run.import?.expectedNature??'?'} / ${run.import?.nature??'?'}`,
+    `**Nicht vorhandene Asset-Instanzen:** ${run.import?.missingNatureInstances??'?'}`,
+    `**Screenshots:** ${run.screenshots?.length??0} (nur Kartenausschnitt; normale Bilder ohne Fog)`,
     '',
     '| Profil | Geste | rAF-p50 ms | rAF-p95 ms | >50 ms | Longtasks | Tile-Bakes | effektive DPR |',
     '|---|---|---:|---:|---:|---:|---:|---:|'];
   for(const p of run.phases)lines.push(`| ${p.quality} | ${p.kind} | ${p.frameIntervalMs.p50??'–'} | ${p.frameIntervalMs.p95??'–'} | ${p.frameIntervalMs.over50ms} | ${p.longTasks.count} | ${p.tileBakes??'–'} | ${p.qualityEffectiveDpr??'–'} |`);
+  if(run.screenshots?.length)lines.push('', '## Karten-Screenshots', '',
+    ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB)`));
+  if(run.readiness?.length)lines.push('', '## Nachladezustand', '',
+    ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}`));
+  if(run.warnings?.length)lines.push('', '## Warnungen', '', ...run.warnings.map(w=>`- ${w}`));
   lines.push('','rAF-p50/p95 sind **Bildschirm-Frameintervalle während der Geste**, keine direkt instrumentierten `draw()`-Laufzeiten oder garantierten FPS-Werte. CDP-CPU-Taskzeit/Heap und Cachewerte stehen in `result.json`.','',
     '## Noch visuell und auf Zielhardware abzunehmen','',
+    '- [ ] Nebelvergleich: fog-comparison-clear.png gegenüber fog-comparison-on.png',
     '- [ ] Fog-Kern vollständig opak, auch bei leeren/verspäteten Assets',
     '- [ ] Wolkenweltposition und Beleuchtung bleiben bei Pan/Zoom stabil',
     '- [ ] Waldtiefe, Bergschatten, Küsten, Relief und Sprite-Nähte ohne sichtbare Regression',
@@ -299,7 +378,8 @@ async function main(){
   if(o.help){console.log(help);return;}
   await mkdir(resolve(o.out),{recursive:true});
   const run={timestamp:new Date().toISOString(),url:o.url,sceneProvided:!!o.scene,
-    phases:[],errors:[],acceptance:'PARTIAL – visual and reference-scene checks pending'};
+    phases:[],screenshots:[],readiness:[],warnings:[],errors:[],
+    acceptance:'CAPTURED – visual inspection still required'};
   let engine;
   try{
     await preflight(o.url);
@@ -312,21 +392,46 @@ async function main(){
       throw Error(`Chrome could not open ${o.url}: ${page?.title||'Browser error'} – ${page?.text||'No details'}`);
     }
     await waitFor(()=>c.eval(`Boolean(window.VedrasAssetLabor?.cameraStats&&typeof window.VedrasAssetLabor?.cells==='function')`),'Asset-Labor renderer',30000);
-    if(o.scene)await importScene(c,o.scene);
+    await waitFor(()=>c.eval(`window.VedrasAssetLabor?.assets?.().length>0`),'loaded asset library',30000);
+    if(o.scene){
+      run.import=await importScene(c,o.scene);
+      console.log(`Imported 397 hexes, ${run.import.nature} vegetation; missing asset instances: ${run.import.missingNatureInstances}`);
+    }
     run.scene=await snapshot(c);
     if(!o.scene)run.acceptance='SMOKE ONLY – no stored 397-hex scene supplied';
     else if(run.scene.cellCount!==397)throw Error('Imported scene does not contain 397 hexes');
+    if(run.import?.missingNatureInstances)
+      run.warnings.push(`${run.import.missingNatureInstances} Nature instances reference absent asset paths: ${run.import.missingPaths.join(', ')}`);
     for(const quality of o.qualities){
-      console.log(`Measuring ${quality} (${o.duration} ms per gesture)...`);
-      await setControls(c,quality,true);
+      console.log(`Measuring ${quality} (${o.duration} ms per gesture, fog OFF)...`);
+      await setControls(c,quality,false);
       await sleep(o.warmup);
+      const baseline=await settle(c);
+      run.readiness.push({quality,phase:'baseline',...baseline});
+      run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
       for(const kind of ['pan','zoom']){
         const result=await phase(c,kind,quality,o.duration);
         run.phases.push(result);
-        await screenshot(c,join(resolve(o.out),`${quality}-${kind}-fog.png`));
+        const steady=await settle(c);
+        run.readiness.push({quality,phase:kind,...steady});
+        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
       }
     }
-    run.errors=c.errors;
+    // Fog of War is checked separately, with exactly the same camera position.
+    await setControls(c,'auto',false);
+    await sleep(1000);
+    const clear=await settle(c);
+    run.readiness.push({quality:'auto',phase:'fog-reference-clear',...clear});
+    run.screenshots.push(await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png')));
+    await setControls(c,'auto',true);
+    await sleep(1800);
+    run.screenshots.push(await screenshot(c,join(resolve(o.out),'fog-comparison-on.png')));
+    run.fogComparison={available:true,onlyHereFogEnabled:true};
+    for(const item of run.readiness)if(!item.ready){
+      run.warnings.push(`World tiles did not settle: ${item.quality}/${item.phase}; pending=${item.stats?.pending??'?'}; missing=${item.stats?.progress?.missing??'?'}; coverage=${item.stats?.coverage??'?'}`);
+    }
+    if(run.warnings.length)run.acceptance='PARTIAL – inspect readiness and asset warnings';
+    run.errors.push(...c.errors);
   }catch(error){
     run.errors.push(String(error?.stack||error));
     if(engine)run.errors.push(...engine.cdp.errors);
