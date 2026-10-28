@@ -32,13 +32,14 @@ test('runtime enables Atlas forced ON/OFF regardless of dense-scene auto bypass'
 test('step14 uses fresh browser profiles for ON and OFF, same scene and gesture',()=>{
  const script=read('scripts/rendering-step14-ab.mjs');
  assert.match(script,/for\(const scenario of \['pan','zoom','cold-zoom'\]\)/);
- assert.match(script,/const on=await runMode\(o,'on'\)/);
- assert.match(script,/const off=await runMode\(o,'off'\)/);
+ assert.match(script,/for\(const mode of o\.order\)passes\[mode\]=await runMode\(o,mode\)/);
+ assert.match(script,/const on=passes\.on,off=passes\.off/);
  assert.match(script,/engine=await launch\(opts,/);
  assert.match(script,/setCamera\(c,\{q:0,r:0\},\.70\)/);
  assert.match(script,/const metrics=await phase\(c,kind,quality,opts\.duration\)/);
  assert.match(script,/v\.invalidateTerrain\('all'\)/);
  assert.match(script,/atlasSwitch\?\.atlas\?\.active/);
+ assert.match(script,/\['atlas\.hit'\]\.count>0/);
  assert.match(script,/validStart&&p\.readyAfter/);
 });
 test('measurement covers GPU, ImagePool, main-thread CDP time and explicit limits',()=>{
