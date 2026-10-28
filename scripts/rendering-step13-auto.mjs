@@ -4,7 +4,7 @@
  * Starts an isolated local server, runs the real Chromium benchmark and shuts
  * down only the server it started. Requires Node 22+ and Python 3.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -44,7 +44,7 @@ async function startServer(){
         child.stdout.on('data',d=>{
           const line=String(d);buffer=(buffer+line).slice(-12000);
           const found=buffer.match(/Aktuelle URL:\s*(http:\/\/127\.0\.0\.1:\d+\/\?v=[^\s]+)/);
-          if(found)finish(resolveReady,{child,url:found[1]});
+          if(found)finish(resolveReady,{child,url:found[1],python:candidate});
         });
       });
     }catch(e){lastError=String(e.message);server=null;}
@@ -74,6 +74,10 @@ async function main(){
     test.once('close',code=>resolveExit(code??1));
   });
   stop();
+  const zip=spawnSync(started.python.exe,
+    [...started.python.args.slice(0,-1),'scripts/rendering-step13-pack.py',output],
+    {cwd:repo,stdio:'inherit',timeout:30000});
+  if(zip.status!==0)console.error('Could not package results; raw files remain in '+output);
   console.log('\nResults: '+output);
   if(process.platform==='win32'){
     try{
