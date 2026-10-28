@@ -29,14 +29,14 @@ export function cameraSites(scene){
   }
   choose('center',entries.filter(c=>c.q===0&&c.r===0),()=>0);
   choose('dense-forest',entries.filter(c=>c.forestClass==='dense_forest'&&!water(c.type)),
-    c=>c.density*10+Math.abs(c.q)*.02);
+    c=>c.density*10-hexDistance(c,{q:0,r:0})*.24);
   choose('coast',entries.filter(c=>!water(c.type)&&c.wet>0),
-    c=>c.wet*10+Math.abs(c.q)*.05);
+    c=>c.wet*10-hexDistance(c,{q:0,r:0})*.15);
   const peaks=(scene.mountainInstances||[]).map(m=>
     entries.find(c=>c.q===m.q&&c.r===m.r)).filter(Boolean);
-  choose('mountains',peaks,c=>Math.abs(c.q)+Math.abs(c.r)*.01);
-  choose('moor',entries.filter(c=>c.type==='moor'),c=>c.density*4+Math.abs(c.r)*.1);
+  choose('mountains',peaks,c=>-hexDistance(c,{q:0,r:0}));
+  choose('moor',entries.filter(c=>c.type==='moor'),c=>c.density*4-hexDistance(c,{q:0,r:0})*.15);
   choose('open-water',entries.filter(c=>water(c.type)&&c.wet>=3),
-    c=>c.wet+Math.abs(c.r)*.05);
+    c=>c.wet*2-hexDistance(c,{q:0,r:0})*.22);
   return result;
 }
