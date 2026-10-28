@@ -381,3 +381,43 @@ Erhaltene ZIP `step13-results(2).zip` enthält 32 PNGs, 31 Ladeprüfungen (14 RE
 Die separate Atlas-Telemetrie zeigt weiterhin 3226 Atlas-Seitenladungen und 3220 Eviktionen sowie 144560 Cooldown-Fallbacks. Deshalb umgeht der Renderer den nur sechs Seiten großen Atlas bei mehr als 500 platzierten Nature-Instanzen vollständig und verwendet die bereits dekodierten ImagePool-Vorschaubilder. Diese Änderung ist eine konkrete Gegenmaßnahme und benötigt einen weiteren lokalen GPU-Benchmark vor einem Performanceversprechen.
 
 Visuelle Prüfung: Wald, Berge, Moor und Gelände sind in mehreren Screenshots deutlich sichtbar. Die als `open-water` (Hex -4,5, in JSON `baseBiomeByHex=ocean`) bezeichneten Screenshots zeigen allerdings überwiegend grünes Gelände; die Kameraposition und die Zuordnung zwischen Scene-Biom und tatsächlich gerendertem Tile müssen separat geprüft werden. Der Fog-on-Screenshot ist vollständig von Wolken bedeckt; das klare Vergleichsbild zeigt Gelände. Eine verlässliche Fog- und Biomabnahme ist noch offen. Hohe Qualitäten wechseln teilweise zwischen aktiven und inaktiven World-Tiles; auch diese Zustandsübergänge sind weiter zu untersuchen.
+
+
+## 2026-10-29 – Schritt 14: reproduzierbare Atlas-AN/AUS-Messung und Zoom-Profiling
+
+Implementiert ist ein **separater Diagnose- und A/B-Benchmark**, keine neue Renderer-Optimierung.
+Die Messung umgeht den alten automatischen Atlas-Bypass bewusst nur im Modus ON;
+OFF zeichnet dieselbe Szene mit den bereits dekodierten PNGs. Zwei frische
+Chromium-Prozesse mit getrennten User-Data-Verzeichnissen erhalten dieselbe
+397-Hex-/2631-Nature-JSON, Kameraposition (0,0), Zoom (0,70), identische DPR,
+Qualitätsstufen und Eingabefolgen. Warm-Pan, Warm-Zoom und **Cold-Zoom mit
+einmaliger identischer Chunk-/Terrain-Invalidierung** werden getrennt gemessen.
+Wiederholungen mit umgekehrter Reihenfolge sind über `--order off,on` möglich,
+um OS-Caching-Reihenfolgeeffekte nicht unbemerkt als Atlasvorteil auszulegen.
+
+Opt-in-Probes erfassen folgende Teilkosten: Editor-Terrain-/Straßenzeichnung,
+Weltkachel-Bake-Wandzeit und ihre Boden-/Scenery-Abschnitte, Komposition,
+Vegetationslayout und Sprite-Pass, Schattenpass, ImagePool-Fetch-/Decode-Wartezeit
+und synchrones Vorschau-Resampling. Dazu Chrome-CDP `TaskDuration` als
+**Main-Thread-Auslastungsproxy** (nicht gesamte CPU-Last), rAF-p50/p95,
+LongTasks, ResourceTiming für Bild-/Atlas-Anforderungen und Speicherindikatoren
+(CDP-JS-Heap, geschätzte ImagePool-RGBA- und GPU-Texturbytes). Einzelne
+verschachtelte Messzeiten dürfen nicht addiert werden; die gemischte
+Image-Onload-Wall-Zeit ist **keine reine Decode-CPU-Zeit**.
+
+`START_ATLAS_AB_WINDOWS.cmd` startet ohne npm-Abhängigkeiten einen eigenen
+lokalen Python-Server und führt den A/B-Vergleich mit zwei Chrome-Profilen aus.
+`artifacts/rendering-step14-ab/step14-atlas-ab.zip` enthält den gepaarten
+JSON-Vergleich, README und verifizierte bzw. diagnostisch markierte Bilder je
+Variante. Schritt 13 bleibt unverändert startbar; sein CLI lädt durch
+Entry-Point-Guard weiterhin direkt, kann aber intern vom neuen Test importiert
+werden. Gültige A/B-Aussagen benötigen echte Atlas-Treffer, keine Atlasversuche
+mit ausschließlich PNG-Fallback, und vollständig geladene Vor-/Nachzustände.
+Regressionstests prüfen Opt-in-Verhalten, Atlas-Umschaltung, Messgrößen und
+Windows-Starter.
+
+**Prüfung:** JavaScript-Syntax des Messinstrumentariums, der Runner und Tests
+sowie isolierte Profiler-Zähler in V8 geprüft; ein echter Windows-/Chromium-Lauf
+und native `node --test`-Abnahme sind auf dem Assistentensystem nicht erfolgt.
+Erst nach deren A/B-Ergebnissen eine Entscheidung für oder gegen einen
+grundlegenden GPU-Renderer treffen.
