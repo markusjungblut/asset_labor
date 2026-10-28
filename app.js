@@ -813,6 +813,7 @@ function resize(){
  const ratio=policy.effectiveDpr,cw=Math.round(W*ratio),ch=Math.round(H*ratio);
  // Keep old decoded previews visible. The pool promotes only currently
  // requested assets, rather than triggering a global decode/rebuild storm.
+ imagePool.setBudgetBytes(policy.imagePoolBytes);
  imagePool.setPreviewLimits({terrainPx:policy.terrainPx,spritePx:policy.spritePx});
  lastQualityProfile=policy;
  const changed=canvas.width!==cw||canvas.height!==ch||state.dpr!==ratio;
