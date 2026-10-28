@@ -315,6 +315,7 @@ async function snapshot(cdp){
     const v=window.VedrasAssetLabor;
     return {quality:v.qualityStats(),atlas:v.atlasStats?.()||null,camera:v.cameraStats(),world:v.worldTileStats(),
       lod:v.lodStats(),scenery:v.sceneryDrawStats(),streaming:v.streamingStats(),
+      gpuTerrain:v.gpuStats?.()||null,gpuSprites:v.spriteGpuStats?.()||null,
       worker:window.VedrasTerrainWorker?.status?.()||null,
       profiler:window.VedrasBenchmarkProfiler?.snapshot()||null,
       resourceLoads:(()=>{
@@ -432,7 +433,8 @@ async function phase(cdp,kind,quality,ms){
     memory:{jsHeapBefore:before.JSHeapUsedSize??null,
       jsHeapAfter:after.JSHeapUsedSize??null,
       imagePoolDecodedBytes:end.quality.images?.decodedBytes??null,
-      gpuTerrainEstimateBytes:end.quality?.terrainGpu?.gpuBytes??null},
+      gpuTerrainEstimateBytes:end.gpuTerrain?.gpuBytes??null,
+      gpuSpriteEstimateBytes:end.gpuSprites?.gpuBytes??null},
     mainThreadTaskUtilizationPercent:taskSeconds===null?null:
       +Math.min(100,Math.max(0,100*taskSeconds/Math.max(.001,wallSeconds))).toFixed(1),
     frameIntervalMs:{count:observed.samples.length,
