@@ -99,7 +99,17 @@ function generateReadme(data){
    p.frameP95.on??'–',p.frameP95.off??'–',
    p.mainThreadTaskUtilizationPercent.on??'–',p.mainThreadTaskUtilizationPercent.off??'–',
    p.loads.on?.images??'–',p.loads.off?.images??'–'].join(' | ')+' |');
- lines.push('','## Zoom: CPU-Ursachen im direkten Vergleich','',
+ lines.push('','## Atlas-Nutzung in den Messphasen','',
+  '| Profil | Szenario | AN-Versuche | AN-Treffer | AN-Fallbacks | AUS-Bypass-Zeichnungen |',
+  '|---|---|---:|---:|---:|---:|',
+  ...data.pairs.map(r=>{
+   const on=data.on.phases.find(p=>p.quality===r.quality&&(p.scenario||p.kind)===r.kind);
+   const off=data.off.phases.find(p=>p.quality===r.quality&&(p.scenario||p.kind)===r.kind);
+   const value=(p,key)=>p?.profile?.[key]?.count??0;
+   return '| '+[r.quality,r.kind,value(on,'atlas.attempt'),value(on,'atlas.hit'),
+     value(on,'atlas.miss'),value(off,'atlas.bypass')].join(' | ')+' |';
+  }),
+  '','## Zoom: CPU-Ursachen im direkten Vergleich','',
   '| Profil | Szenario | Modus | World-Tile-Wall ms | Tile-Grund/Straßen ms | Vegetation/Sprites ms | Schatten ms | Image-Resample ms | Bildlade-Wall ms |',
   '|---|---|---|---:|---:|---:|---:|---:|---:|');
  const time=(p,key)=>p.profile?.[key]?.totalMs??0;
@@ -114,6 +124,7 @@ function generateReadme(data){
    ', Wartezeit '+r.waitMs+'ms, '+r.reasons.join(', ')),
   '','## Begrenzungen und Prüfpflicht',
   '- In Atlas AN muss die Atlas-Manifest-Datei vorhanden und aktiv sein.',
+  '- Mindestens ein tatsächlicher Atlas-Treffer ist nötig; reine Versuche mit PNG-Fallback genügen nicht.',
   '- Hat eine Variante keinen Atlas-Versuch oder fehlen sichtbare Kacheln, ist der direkte Vergleich ungültig.',
   '- A/B-Tests mindestens dreimal wiederholen und bei verändertem Qualitätsprofil separat bewerten.',
   '- Statische Vorberechnung und WebGL-Uploads können auf anderen Threads laufen; die Main-Thread-Taskzeit misst diese nicht.',
@@ -212,6 +223,7 @@ async function main(){
   on,off,pairs:pairRows(on,off),
   valid:!!(on.completed&&off.completed&&on.atlasSwitch?.atlas?.active&&
     on.phases.some(p=>p.profile?.['atlas.attempt']?.count>0)&&
+    on.phases.some(p=>p.profile?.['atlas.hit']?.count>0)&&
     off.phases.every(p=>!p.profile?.['atlas.attempt']?.count)&&
     [...on.phases,...off.phases].every(p=>p.validStart&&p.readyAfter))};
  if(!data.valid)data.warnings=['Comparison is diagnostic only: atlas switch, tile readiness, or phase completeness failed.'];
