@@ -491,6 +491,33 @@ window.VedrasWorldTiles=(()=>{
    }else cloudRect(x-rx,y-ry,2*rx,2*ry);
    g.restore();
   }
+  // Rare standalone fallback: if cloud-artwork.js itself is absent, still
+  // conceal the 45-world-unit cast/crown overhang beyond the known map.
+  function maskFrontierWithoutArtwork(context,view,edges){
+   if(!Array.isArray(edges)||!edges.length)return 0;
+   const directions=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]],
+    R=256/Math.sqrt(3),H=1.5*R,seen=new Set();
+   let count=0;context.save();context.globalAlpha=1;
+   for(const e of edges){
+    const d=directions[e.direction];if(!d)continue;
+    const q=e.q+d[0],r=e.r+d[1],k=q+','+r;
+    if(seen.has(k))continue;seen.add(k);
+    const proj=view.projectY||1,
+     x=view.width/2+view.panX+256*(q+r/2)*view.zoom,
+     y=view.height/2+view.panY+H*r*view.zoom*proj,
+     rx=R*view.zoom,ry=rx*proj;
+    if(x+rx<0||x-rx>view.width||y+ry<0||y-ry>view.height)continue;
+    context.beginPath();
+    for(let i=0;i<6;i++){
+     const a=-Math.PI/2+i*Math.PI/3,
+      px=x+Math.cos(a)*rx,py=y+Math.sin(a)*ry;
+     if(!i)context.moveTo(px,py);else context.lineTo(px,py);
+    }
+    context.closePath();context.fillStyle='#bdced7';
+    context.fill();count++;
+   }
+   context.restore();return count;
+  }
   function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,fog=fogCells}={}){
    if(!view||!(view.width>0)||!(view.height>0)||!(view.zoom>0)||
     !(view.dpr>0)||!finite(view.panX)||!finite(view.panY))return false;
@@ -632,7 +659,8 @@ window.VedrasWorldTiles=(()=>{
      // The opaque frontier is drawn AFTER static casts and moving units.
      coverUnready(g,view,fog,ready);
      for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,ready);
-     clouds?.drawTransitions(g,view,fog.frontierEdges);
+     if(clouds)clouds.drawTransitions(g,view,fog.frontierEdges);
+     else maskFrontierWithoutArtwork(g,view,fog.frontierEdges);
     }
    }
    painted=draws;frame++;lastMs=clock()-start;
