@@ -628,9 +628,11 @@ window.VedrasWorldTiles=(()=>{
      clouds.drawUnready(g,view,fog,ready);
      clouds.drawTransitions(g,view,fog.frontierEdges);
     }else{
-     // Readiness mask must be fully opaque even before cloud PNGs decode.
+     // Mask missing hex cores even before any cloud artwork decodes.
+     // The opaque frontier is drawn AFTER static casts and moving units.
      coverUnready(g,view,fog,ready);
      for(const c of fog)if(c.visibility!=='explored')fogHex(c,view,ready);
+     clouds?.drawTransitions(g,view,fog.frontierEdges);
     }
    }
    painted=draws;frame++;lastMs=clock()-start;
