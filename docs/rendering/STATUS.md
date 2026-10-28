@@ -13,7 +13,15 @@
 **Schritt 10:** **Gemeinsamer hysteretischer Welt-/Region-/Lokal-LOD-Vertrag für Terrain, Ufer, Fluss, Straße und World-Tiles implementiert; 110/110 isolierte Testfälle bestanden, native Node-/Browser-/Performanceabnahme ausstehend (teilweise).**  
 **Schritt 11:** **Interaktive 4×-Qualität innerhalb expliziter Canvas-/Pixelbudgets implementiert, alte dichteabhängige 1,5×-Sperre ersetzt, effektive DPR in beiden Kamerapfaden synchronisiert und hochauflösende Quellen bedarfsgesteuert nachgeladen. Isolierte Regressionen bestanden; native Node- und Browser-FPS-/Speicherabnahme offen (teilweise).**  
 **Schritt 12:** **Fog-Berechtigungsmaske und unbekannte Frontier-Hexe gegen Sprite-/Schatten-Überhänge abgesichert; Wolkenbilder ohne Rotation, weltverankert und mit opakem Underlay. 136/136 fokussierte simulierte Tests erfolgreich, Browser-Grafik-/GPU-Abnahme offen (teilweise).**  
-**Nächster Entwicklungsinhalt:** Schritt 13 – reproduzierbare reale Browser-/Performanceprüfung der bisherigen Renderingkette einschließlich neuem Frontier-Clipping, Relief, dichtem Wald, Küsten und 4×-Ansicht.
+**Schritt 13:** **Chromium-CDP-Messskript und reproduzierbares Browser-Abnahmeprotokoll hinzugefügt; reale 397-Hex-/GPU-/Visual-Abnahme weiterhin ausstehend (teilweise).** Vier lokale native Node-CLI-Tests bestanden; ein isolierter Chromium-Start erreichte CDP, doch die Assistenz-Browserumgebung blockierte die localhost-Szene. Kein gemessener FPS-Gewinn behauptet.
+**Nächster Entwicklungsinhalt:** Schritt 13 mit gespeicherter 397-Hex-Szene und Originalassets auf dem Zielrechner ausführen, Screenshots und p50/p95/Heap prüfen; erst danach fachlich abnehmen.
+
+## Schritt 13 – automatisierte reale Browser-Abnahme vorbereitet (2026-10-28)
+
+- **Neu:** `scripts/rendering-step13-browser.mjs` für echte Chrome-DevTools-Protokoll-Messung per Node 22+, ohne npm-Abhängigkeiten und ohne zusätzlichen CI-Workflow. Pro Qualitätsstufe (`fast`, `auto`, `1×`–`4×`) werden Pan und Zoom mit Fog-Preview aufgezeichnet. Ausgegeben werden PNG-Screenshots, JSON mit CDP-Heap-/Task-Zeit, rAF-p50/p95, Longtasks und Render-Cache-/LOD-Statistik sowie ein Markdown-Bericht. Die rAF-Zeiten dürfen **nicht** als gemessene `draw()`-Laufzeit missverstanden werden.
+- **Neu:** `docs/rendering/STEP13_BROWSER_ACCEPTANCE.md` mit Verfahren für die gespeicherte 397-Hex-Nutzerszene und verbindlichen visuellen Abnahmepunkten für Küsten, Relief, Waldtiefe, Nebel-Fog, Bildqualität und Speicherdruck. **Keine Änderung** an Renderalgorithmus, Artwork, Schatten oder Relief; keine automatisierte CI-Ausführung.
+- **Test:** `tests/test_rendering_step13_cli_20261028.cjs` – 4/4 native Node-Tests bestanden (CLI-Hilfe, localhost-Beschränkung, Qualitätswerte und Mindestdauer), JavaScript-Syntaxprüfung bestanden. Der Versuch eines isolierten Chromium-Smoke-Starts bestätigte Debug-Protokollzugriff, erreichte aber wegen der Netzwerkrestriktion der Assistenzumgebung nicht die lokale Testseite. Die originale gespeicherte 397-Hex-Szene ist dort ebenfalls nicht vorhanden.
+- **Offen:** End-to-End-Messung auf der realen großen Karte, visuelle Screenshot-Abnahme, kompletter nativer Bestandsregressionslauf und GPU-/Speichervergleich auf derselben Zielhardware. **Schritt 13 bleibt teilweise.**
 
 ## Änderung ausschließlich in Schritt 4
 
