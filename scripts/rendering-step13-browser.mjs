@@ -10,6 +10,7 @@ import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { createInterface } from 'node:readline/promises';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --url URL          Running local Asset-Labor, default http://127.0.0.1:8780/
@@ -20,6 +21,7 @@ const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --duration MS      Gesture capture per phase (default 3600, min 1500)
   --warmup MS        Initial settle duration per quality (default 3000)
   --headed           Show browser window (default headless)
+  --pause-on-exit    With --headed and a terminal: leave Chrome open until Enter
   --help             Display this help
 The URL must be localhost/127.0.0.1. Start python server.py separately.
 Each run writes JSON, Markdown and PNG screenshots; visual checks remain manual.
@@ -31,6 +33,7 @@ function options(argv) {
     const k=argv[i];
     if(k==='--help'){o.help=true;continue;}
     if(k==='--headed'){o.headed=true;continue;}
+    if(k==='--pause-on-exit'){o.pauseOnExit=true;continue;}
     if(!['--url','--scene','--out','--chrome','--qualities','--duration','--warmup'].includes(k))throw Error('Unknown option: '+k);
     if(++i>=argv.length)throw Error('Missing value for '+k);
     const v=argv[i];
@@ -46,6 +49,7 @@ function options(argv) {
     const u=new URL(o.url);
     if(u.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(u.hostname))
       throw Error('Only a local http://127.0.0.1 or localhost URL is permitted.');
+    if(o.pauseOnExit&&!o.headed)throw Error('--pause-on-exit requires --headed');
     if(!o.qualities.length||o.qualities.some(x=>!['fast','auto','1','2','3','4'].includes(x)))throw Error('Invalid --qualities');
     if(!Number.isFinite(o.duration)||o.duration<1500||!Number.isFinite(o.warmup)||o.warmup<0)throw Error('Invalid duration/warmup');
   }
@@ -112,6 +116,18 @@ async function waitFor(fn,description,timeout=30000){
   }
   throw Error('Timed out waiting for '+description);
 }
+async function preflight(url){
+  let response;
+  try{
+    response=await fetch(url,{signal:AbortSignal.timeout(5000)});
+  }catch(error){
+    throw Error(`Local Asset-Labor server not reachable at ${url}. Run python server.py and use the port it prints. (${error.message})`);
+  }
+  if(!response.ok)throw Error(`Local server returned HTTP ${response.status} at ${url}. Check the --url port.`);
+  const html=await response.text();
+  if(!html.includes('id="canvasOuter"')||!html.includes('id="quality"'))
+    throw Error(`The local server at ${url} is not serving the Asset-Labor editor. Check the port and start python server.py.`);
+}
 async function launch(url,opts){
   const profile=await mkdtemp(join(tmpdir(),'vedras-step13-'));
   const port=await ephemeralPort();
@@ -120,8 +136,11 @@ async function launch(url,opts){
     '--window-size=1280,820','--force-device-scale-factor=1',
     ...(opts.headed?[]:['--headless=new']),url];
   if(process.platform!=='win32'&&process.getuid?.()===0)args.unshift('--no-sandbox');
-  const child=spawn(chromeBinary(opts.chrome),args,{stdio:'ignore'});
-  let failed=null;child.once('error',e=>failed=e);
+  const child=spawn(chromeBinary(opts.chrome),args,{stdio:['ignore','ignore','pipe']});
+  let failed=null,chromeStderr='';
+  child.stderr?.on('data',chunk=>{chromeStderr=(chromeStderr+String(chunk)).slice(-2500);});
+  child.once('error',e=>failed=e);
+  child.once('exit',(code,signal)=>{if(!failed)failed=Error(`Chrome exited early (code ${code}, signal ${signal}).`);});
   const clean=async()=>{child.kill();await sleep(400);await rm(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});};
   try{
     const item=await waitFor(async()=>{
@@ -132,7 +151,7 @@ async function launch(url,opts){
     const cdp=new CDP(item.webSocketDebuggerUrl);await cdp.open();
     await cdp.send('Page.enable');await cdp.send('Runtime.enable');await cdp.send('Performance.enable');
     return {cdp,clean,chrome:chromeBinary(opts.chrome)};
-  }catch(e){await clean();throw e;}
+  }catch(e){await clean();throw Error(`${failed?.message||e.message}${chromeStderr?'\nChrome stderr (tail): '+chromeStderr.slice(-1300):''}`);}
 }
 async function measureMetrics(cdp){
   const r=await cdp.send('Performance.getMetrics');
@@ -283,16 +302,22 @@ async function main(){
     phases:[],errors:[],acceptance:'PARTIAL – visual and reference-scene checks pending'};
   let engine;
   try{
+    await preflight(o.url);
+    console.log(`Local server reachable: ${o.url}`);
     engine=await launch(o.url,o);run.browser=engine.chrome+(o.headed?' (headed)':' (headless)');
     const c=engine.cdp;
     const navigation=await c.eval(`location.href`);
-    if(navigation?.startsWith('chrome-error:'))throw Error('Chromium could not open the local server (browser/network policy). Check the URL in the regular browser.');
+    if(navigation?.startsWith('chrome-error:')){
+      const page=await c.eval(`({title:document.title,text:document.body?.innerText?.slice(0,500)||''})`);
+      throw Error(`Chrome could not open ${o.url}: ${page?.title||'Browser error'} – ${page?.text||'No details'}`);
+    }
     await waitFor(()=>c.eval(`Boolean(window.VedrasAssetLabor?.cameraStats&&typeof window.VedrasAssetLabor?.cells==='function')`),'Asset-Labor renderer',30000);
     if(o.scene)await importScene(c,o.scene);
     run.scene=await snapshot(c);
     if(!o.scene)run.acceptance='SMOKE ONLY – no stored 397-hex scene supplied';
     else if(run.scene.cellCount!==397)throw Error('Imported scene does not contain 397 hexes');
     for(const quality of o.qualities){
+      console.log(`Measuring ${quality} (${o.duration} ms per gesture)...`);
       await setControls(c,quality,true);
       await sleep(o.warmup);
       for(const kind of ['pan','zoom']){
@@ -303,12 +328,24 @@ async function main(){
     }
     run.errors=c.errors;
   }catch(error){
-    run.errors.push(String(error?.stack||error));run.acceptance='INCOMPLETE – browser capture error';
+    run.errors.push(String(error?.stack||error));
+    if(engine)run.errors.push(...engine.cdp.errors);
+    console.error('Step 13 browser test failed: '+error.message);
+    run.acceptance='INCOMPLETE – browser capture error';
     process.exitCode=1;
   }finally{
     await writeFile(join(resolve(o.out),'result.json'),JSON.stringify(run,null,2));
     await writeFile(join(resolve(o.out),'README.md'),report(run));
-    if(engine){engine.cdp.close();await engine.clean();}
+    if(engine){
+      if(o.pauseOnExit){
+        if(process.stdin.isTTY){
+          const rl=createInterface({input:process.stdin,output:process.stdout});
+          try{await rl.question('Chrome stays open for inspection. Press Enter to close it. ');}
+          finally{rl.close();}
+        }else console.log('No interactive terminal; --pause-on-exit skipped.');
+      }
+      engine.cdp.close();await engine.clean();
+    }
     console.log(`Step 13: ${run.acceptance}\nSaved: ${resolve(o.out)}`);
   }
 }

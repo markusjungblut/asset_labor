@@ -25,3 +25,16 @@ test('requires bounded gesture duration',()=>{
  assert.notEqual(run.status,0);
  assert.match(run.stderr,/Invalid duration/);
 });
+
+test('pause-on-exit needs a visible browser, otherwise fails before launch',()=>{
+ const run=call('--pause-on-exit');
+ assert.notEqual(run.status,0);
+ assert.match(run.stderr,/requires --headed/);
+});
+test('local server preflight reports an actionable error before launching Chrome',()=>{
+ const run=call('--url','http://127.0.0.1:65534/','--qualities','fast','--out',
+   join(__dirname,'../artifacts/step13-preflight-test'));
+ assert.notEqual(run.status,0);
+ assert.match(run.stderr,/Local Asset-Labor server not reachable/);
+ assert.match(run.stderr,/python server.py/);
+});

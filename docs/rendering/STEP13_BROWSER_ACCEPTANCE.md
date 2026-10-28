@@ -21,7 +21,7 @@ node --test tests/*.cjs
 node scripts/rendering-step13-browser.mjs --url http://127.0.0.1:8780/ --scene "C:/Pfad/zu/397-hex-szene.json" --out artifacts/rendering-step13
 ```
 
-Unter Windows ggf. `--chrome "C:/Program Files/Google/Chrome/Application/chrome.exe"` angeben. Für die sichtbare Browserprüfung `--headed` hinzufügen. `--qualities fast,auto,1,2,3,4`, `--duration 3600` und `--warmup 3000` steuern die Messung (Millisekunden).
+Unter Windows ggf. `--chrome "C:/Program Files/Google/Chrome/Application/chrome.exe"` angeben. Für die sichtbare Browserprüfung `--headed` hinzufügen; `--headed --pause-on-exit` lässt das Fenster nach dem Test bis zur Eingabetaste geöffnet. Der Browser wird ansonsten **auch bei Erfolg automatisch geschlossen**. Bei einem frühen Startfehler werden Terminal und `result.json` jetzt mit einem konkreteren Grund versehen. Ein falscher Port bzw. ein nicht gestarteter `python server.py` wird vor dem Start von Chrome erkannt. `--qualities fast,auto,1,2,3,4`, `--duration 3600` und `--warmup 3000` steuern die Messung (Millisekunden).
 
 Der Runner prüft nur localhost-URLs und startet einen eigenen kurzlebigen Chromium-Prozess mit separatem Profil. Der bestehende Browser-/Editorstatus bleibt dadurch erhalten. Die Ergebnisse werden nicht an einen Server übertragen.
 
@@ -51,3 +51,14 @@ Für jede Renderqualität werden Fog-Preview und der schnelle Tile-Modus eingesc
 ## Umgebungshinweis
 
 In der isolierten Assistenzumgebung kann das öffentliche Repository nicht auf die lokalen Originalassets oder den gespeicherten 397-Hex-Szenenstand zugreifen. Zusätzlich blockiert das dortige Chromium das Öffnen eines localhost-Testservers. Daher wurden dort nur `node --check`, CLI-Unit-Tests und eine Diagnose des CDP-Browserstarts durchgeführt; **kein** echter Asset-Labor-End-to-End-Lauf und keine visuellen Leistungszahlen erzeugt.
+## Schritt-13-Browserstarter: Diagnose bei vorzeitigem Schließen
+
+Bei einem Fehler öffnet sich gegebenenfalls kurz ein Chrome-Fenster und verschwindet wieder, weil der Teststarter seine separate Browserinstanz im `finally`-Block bereinigt. Das ist **kein belastbarer Hinweis auf einen Chrome-Absturz**. Das Skript prüft zuerst die lokale Server-URL (inklusive Asset-Labor-Kennzeichen), meldet fehlende Browserstarts und gibt auch die Textmeldung einer Chromium-Fehlerseite aus. Die Fehlerursache steht in `artifacts/rendering-step13/result.json`; das Terminal zeigt zusätzlich die Kurzfassung.
+
+```powershell
+node scripts/rendering-step13-browser.mjs --url http://127.0.0.1:8780/ --scene "C:/Pfad/zur/vedras_scene.json" --headed --pause-on-exit
+```
+
+Ohne `--headed` läuft dieselbe Messung unsichtbar im Hintergrund und erzeugt bei Erfolg weiterhin JSON, Markdown und PNG-Dateien. `--pause-on-exit` ist nur an einem interaktiven Terminal zusammen mit `--headed` wirksam.
+
+**Testumgebung des Assistenten:** CLI-Tests sowie Syntaxprüfung sind ausführbar. Der reale lokale Chromium-Test liefert trotz erreichbarem Test-HTTP-Server die Browserrichtlinie „127.0.0.1 is blocked / Your organization doesn’t allow you to view this site“. Das ist eine Einschränkung der Assistenzumgebung; daraus folgt **keine** Abnahme der gespeicherten 397-Hex-Szene auf Windows.
