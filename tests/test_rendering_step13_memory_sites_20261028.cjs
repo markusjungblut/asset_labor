@@ -6,7 +6,7 @@ const {pathToFileURL}=require('node:url');
 const root=join(__dirname,'..');
 const source=readFileSync(join(root,'asset-image-pool.js'),'utf8');
 
-test('image pool evicts unprotected recent 1024px previews under pressure',async()=>{
+test('image pool evicts unprotected cold previews under pressure',async()=>{
  class MockImage{
   constructor(){this.naturalWidth=0;this.naturalHeight=0;}
   set src(value){this._src=value;queueMicrotask(()=>{
@@ -16,7 +16,7 @@ test('image pool evicts unprotected recent 1024px previews under pressure',async
  const sandbox={window:{},Image:MockImage,Date,Promise,console};
  vm.runInNewContext(source,sandbox,{filename:'asset-image-pool.js'});
  const pool=sandbox.window.VedrasImagePool.create({
-  parallel:2,maxBytes:8*1024*1024,protectMs:300000
+  parallel:2,maxBytes:8*1024*1024,protectMs:0
  });
  const assets=Array.from({length:7},(_,i)=>({
   path:'assets/nature/test_'+i+'.png',url:'fake://'+i,category:'nature'
@@ -47,9 +47,9 @@ test('new benchmark never publishes unready terrain baseline as a success',()=>{
  const source=readFileSync(join(root,'scripts/rendering-step13-browser.mjs'),'utf8');
  assert.match(source,/edgeSite\?\.10:\.999/);
  assert.match(source,/no-exact-world-tiles/);
- assert.match(source,/artwork-not-ready/);
- assert.match(source,/if\(recordReadiness\(run,quality,'baseline',baseline\)\)/);
- assert.match(source,/if\(recordReadiness\(run,quality,kind,steady\)\)/);
+ assert.match(source,/editor-chunk-not-ready/);
+ assert.ok(source.includes("captureGate(run,c,o.out,quality,'baseline',baseline"));
+ assert.ok(source.includes('captureGate(run,c,o.out,quality,kind,steady'));
  assert.match(source,/for\(const site of run\.import\?\.sites\|\|\[\]\)/);
  assert.match(source,/setControls\(c,quality,false\)/);
 });
@@ -60,4 +60,25 @@ test('camera-only compositor refreshes visible image protection',()=>{
  assert.match(app,/function fastRender\(\)[\s\S]*?protectCameraImagePool\(\)/);
  assert.doesNotMatch(app,/for\(const a of assets\)if\(\['terrain','terrain_base','shorelines'\]/);
  assert.match(app,/imagePool\.protect\(pinned\)/);
+});
+
+test('dense quality profiles cap sprite preview memory without reducing display DPR',()=>{
+ const q=readFileSync(join(root,'render-quality-policy.js'),'utf8');
+ const sandbox={window:{}};vm.runInNewContext(q,sandbox);
+ const dense=sandbox.window.VedrasRenderQuality.resolve({quality:'4',width:700,
+  height:455,natureCount:2631,devicePixelRatio:1,objects:true});
+ assert.equal(dense.effectiveDpr,4);
+ assert.equal(dense.spritePx,768);
+ assert.equal(dense.imagePoolBytes,576*1048576);
+ const fast=sandbox.window.VedrasRenderQuality.resolve({quality:'fast',width:700,
+  height:455,natureCount:2631,objects:true});
+ assert.equal(fast.spritePx,512);
+ assert.equal(fast.imagePoolBytes,288*1048576);
+});
+test('unready checkpoints generate flagged diagnostic images',()=>{
+ const runner=readFileSync(join(root,'scripts/rendering-step13-browser.mjs'),'utf8');
+ assert.ok(runner.includes('timeoutMs=9000'));
+ assert.ok(runner.includes('diagnostic.png'));
+ assert.ok(runner.includes('verified:valid'));
+ assert.ok(runner.includes('captureGate(run,c,o.out,quality'));
 });
