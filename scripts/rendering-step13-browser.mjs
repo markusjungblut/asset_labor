@@ -494,8 +494,7 @@ async function main(){
       await setCamera(c,{q:0,r:0},.70);
       await sleep(o.warmup);
       const baseline=await settle(c);
-      if(recordReadiness(run,quality,'baseline',baseline))
-        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
+      await captureGate(run,c,o.out,quality,'baseline',baseline,`${quality}-baseline-clear.png`);
       for(const kind of ['pan','zoom']){
         // Store whether the starting tiles were complete before the gesture.
         const validStart=run.readiness.at(-1)?.ready===true;
@@ -508,8 +507,7 @@ async function main(){
         if(mem.overLimitBytes>16*1048576)
           run.warnings.push(`Image pool ${quality}/${kind}: ${Math.round(mem.overLimitBytes/1048576)} MiB over configured budget`);
         const steady=await settle(c);
-        if(recordReadiness(run,quality,kind,steady))
-          run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
+        await captureGate(run,c,o.out,quality,kind,steady,`${quality}-${kind}-clear.png`);
       }
     }
     // Grounded geographic coverage; fixed camera and zoom at each location.
@@ -518,38 +516,33 @@ async function main(){
       for(const site of run.import?.sites||[]){
         await setCamera(c,site,.70);
         await sleep(1000);
-        const ready=await settle(c,45000,{edgeSite:true});
-        const valid=recordReadiness(run,quality,`site-${site.label}`,ready);
-        const entry={...site,quality,ready:valid,waitMs:ready.waitMs,
-          reason:ready.reasons,coverage:ready.stats?.coverage??null};
-        run.sites.push(entry);
-        if(valid){
-          const shot=await screenshot(c,join(resolve(o.out),`${quality}-site-${site.label}.png`));
-          run.screenshots.push(shot);entry.screenshot=shot.file;
-        }
+        const ready=await settle(c,9000,{edgeSite:true});
+        const shot=await captureGate(run,c,o.out,quality,`site-${site.label}`,ready,
+          `${quality}-site-${site.label}.png`);
+        run.sites.push({...site,quality,ready:shot.valid,waitMs:ready.waitMs,
+          reason:ready.reasons,coverage:ready.stats?.coverage??null,
+          screenshot:shot.file.file});
       }
     }
     // Exactly identical camera position, explicitly different fog modes.
     await setControls(c,'auto',false);
     await setCamera(c,{q:0,r:0},.48);
     const clear=await settle(c);
-    if(recordReadiness(run,'auto','fog-reference-clear',clear)){
-      const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
-      run.screenshots.push(clearShot);
-      await setControls(c,'auto',true);
-      await sleep(1800);
-      const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
-      run.screenshots.push(fogShot);
-      run.fogComparison={available:true,onlyHereFogEnabled:true,
-        changed:fogShot.sha256!==clearShot.sha256};
-      if(!run.fogComparison.changed)
-        run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
-    }else run.fogComparison={available:false,reason:'Reference tiles were not complete'};
+    const cleanFog=await captureGate(run,c,o.out,'auto','fog-reference-clear',clear,
+      'fog-comparison-clear.png');
+    await setControls(c,'auto',true);
+    await sleep(1800);
+    const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
+    run.screenshots.push({...fogShot,verified:cleanFog.valid});
+    run.fogComparison={available:true,verified:cleanFog.valid,onlyHereFogEnabled:true,
+      changed:fogShot.sha256!==cleanFog.file.sha256};
+    if(!run.fogComparison.changed)
+      run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
     const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
     if(clearHashes.size<2)
       run.warnings.push('All fog-off map screenshots identical or missing; renderer may be frozen');
-    if(run.screenshots.length===0)
-      run.warnings.push('No fully loaded screenshot could be captured');
+    if(!run.screenshots.some(s=>s.verified))
+      run.warnings.push('No verified fully loaded screenshot; review diagnostic PNGs');
     run.errors.push(...c.errors);
     if(run.errors.length||run.warnings.length)
       run.acceptance='PARTIAL – inspect readiness, assets or browser errors';
