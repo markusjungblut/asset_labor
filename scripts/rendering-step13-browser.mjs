@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createInterface } from 'node:readline/promises';
+import { createHash } from 'node:crypto';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --url URL          Running local Asset-Labor, default http://127.0.0.1:8780/
@@ -180,7 +181,8 @@ async function screenshot(cdp,filename){
   if(png.length<3000||png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')
     throw Error('Canvas screenshot is empty or invalid: '+filename);
   await writeFile(filename,png);
-  return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
+  return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
+    height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
 async function settle(cdp,timeoutMs=12000){
   let last=null,consecutive=0;
@@ -423,11 +425,16 @@ async function main(){
     await sleep(1000);
     const clear=await settle(c);
     run.readiness.push({quality:'auto',phase:'fog-reference-clear',...clear});
-    run.screenshots.push(await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png')));
+    const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
+    run.screenshots.push(clearShot);
     await setControls(c,'auto',true);
     await sleep(1800);
-    run.screenshots.push(await screenshot(c,join(resolve(o.out),'fog-comparison-on.png')));
-    run.fogComparison={available:true,onlyHereFogEnabled:true};
+    const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
+    run.screenshots.push(fogShot);
+    run.fogComparison={available:true,onlyHereFogEnabled:true,changed:fogShot.sha256!==clearShot.sha256};
+    if(!run.fogComparison.changed)run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
+    const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
+    if(clearHashes.size<2)run.warnings.push('All fog-off map screenshots are identical; renderer may be frozen');
     for(const item of run.readiness)if(!item.ready){
       run.warnings.push(`World tiles did not settle: ${item.quality}/${item.phase}; pending=${item.stats?.pending??'?'}; missing=${item.stats?.progress?.missing??'?'}; coverage=${item.stats?.coverage??'?'}`);
     }
