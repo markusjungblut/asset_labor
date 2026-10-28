@@ -225,6 +225,8 @@ function snapshotTile(s,t,level,pad=0){
  return result;
 }
 async function bakeWorldTile(t,level,{signal}={}){
+ const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
+ try{
  if(signal?.aborted||state.mode==='far'||state.view!=='map')return null;
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
@@ -279,7 +281,9 @@ async function bakeWorldTile(t,level,{signal}={}){
  try{
   setup(groundG,out,t.x-groundPad,t.y-groundPad,
    t.size+2*groundPad);
+  const __groundStart=performance.now();
   drawGround();drawRoads();
+  __bench?.record('tile.groundRoadsMs',performance.now()-__groundStart);
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
@@ -287,8 +291,10 @@ async function bakeWorldTile(t,level,{signal}={}){
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
+   const __sceneryStart=performance.now();
    drawMapObjects({includeUnits:false,
     anchorBounds:{x:t.x,y:t.y,width:t.size,height:t.size}});
+   __bench?.record('tile.sceneryMs',performance.now()-__sceneryStart);
   }finally{spriteAtlas?.endFrame();}
  }finally{
   ctx=old.ctx;W=old.W;H=old.H;state.zoom=old.zoom;
@@ -301,6 +307,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  return {complete:true,layers:[{layer:'ground',image:out,pad:groundPad},
   {layer:'scenery',image:overlay,pad}]};
 
+ }finally{__bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);}
 }
 
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
@@ -433,6 +440,7 @@ function fastRender(){
     });
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
+   window.VedrasBenchmarkProfiler?.record('tile.compositeMs',result.renderMs);
    realtimeMap.show();fastFrames++;
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
    fastNewTerrain=result.loaded??ready.length;
@@ -1876,6 +1884,7 @@ function objectPerspective(context,p){
  context.transform(1,0,OBJECT_DISPLAY_SHEAR_X,OBJECT_DISPLAY_SCALE_Y,0,0);
  context.translate(-p.x,-p.y);
 }
+let benchmarkAtlasMode='auto'; // auto / on / off; no persisted editor changes
 function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScreen(obj.x,obj.y),width=obj.w*state.zoom;
  const b=obj.natureMeta?visibleBounds(obj.asset.img):{sx:0,sy:0,sw:obj.asset.img.naturalWidth,sh:obj.asset.img.naturalHeight};
  const height=width*b.sh/b.sw,anchor=obj.natureMeta?.anchor||obj.asset.meta?.anchor||{x:.5,y:.96};
@@ -1896,12 +1905,19 @@ function drawSprite(obj){if(!obj.asset?.img?.naturalWidth)return;const p=toScree
   // with a six-page budget (3226 loads, 3220 evictions). For a dense scene
   // draw the already decoded sprite preview instead of repeatedly loading
   // atlas pages. Rendering DPR stays unchanged.
-  const denseAtlasBypass=state.objects&&state.natureInstances?.length>500;
-  if(denseAtlasBypass||!spriteAtlas?.draw(ctx,obj.asset.path,b,{
+  const attemptAtlas=benchmarkAtlasMode==='on'||
+   (benchmarkAtlasMode==='auto'&&!(state.objects&&state.natureInstances?.length>500));
+  window.VedrasBenchmarkProfiler?.count(attemptAtlas?'atlas.attempt':'atlas.bypass');
+  const usedAtlas=attemptAtlas&&!!spriteAtlas?.draw(ctx,obj.asset.path,b,{
    x:left,y:top,w:width,h:height
   },{
    width:obj.asset.img.naturalWidth,height:obj.asset.img.naturalHeight
-  }))ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);
+  });
+  if(usedAtlas)window.VedrasBenchmarkProfiler?.count('atlas.hit');
+  else{
+   if(attemptAtlas)window.VedrasBenchmarkProfiler?.count('atlas.miss');
+   ctx.drawImage(obj.asset.img,b.sx,b.sy,b.sw,b.sh,left,top,width,height);
+  }
   ctx.restore();
   return;
  }
@@ -2144,7 +2160,13 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
   if(state.mountainShadowDebug){
    drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
    profile.shadowPassMs=performance.now()-shadowStart;
-   if(onlyUnits)window.__vedrasDynamicObjectProfile=profile;
+   const probe=window.VedrasBenchmarkProfiler;
+  probe?.record('sprites.layoutMs',profile.layoutMs);
+  probe?.record('sprites.occlusionMs',profile.occlusionMs);
+  probe?.record('shadows.drawMs',profile.shadowPassMs);
+  probe?.record('sprites.drawMs',profile.spritePassMs);
+  probe?.count('sprites.drawnCount',profile.drawnSprites);
+  if(onlyUnits)window.__vedrasDynamicObjectProfile=profile;
    else window.__vedrasObjectProfile=profile;
    return;
   }
@@ -2202,6 +2224,12 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
   }
   if(state.shadowHandles)drawMountainShadowGuide(objs.filter(o=>o.type==='mountain'));
   profile.spritePassMs=performance.now()-spriteStart;
+  const probe=window.VedrasBenchmarkProfiler;
+  probe?.record('sprites.layoutMs',profile.layoutMs);
+  probe?.record('sprites.occlusionMs',profile.occlusionMs);
+  probe?.record('shadows.drawMs',profile.shadowPassMs);
+  probe?.record('sprites.drawMs',profile.spritePassMs);
+  probe?.count('sprites.drawnCount',profile.drawnSprites);
   if(onlyUnits)window.__vedrasDynamicObjectProfile=profile;
   else window.__vedrasObjectProfile=profile;
 }
@@ -2348,8 +2376,10 @@ function draw(){
  const renderBackground=()=>{
   const groundStart=performance.now();
   drawGround();terrainElapsed=performance.now()-groundStart;
+  window.VedrasBenchmarkProfiler?.record('terrain.editorDrawMs',terrainElapsed);
   const roadsStart=performance.now();
   drawRoads();roadsElapsed=performance.now()-roadsStart;
+  window.VedrasBenchmarkProfiler?.record('roads.editorDrawMs',roadsElapsed);
   drawForestDebug();
  };
  // Terrain chunks and water renderers are already buffered, yet painting
@@ -3688,7 +3718,13 @@ window.VedrasAssetLabor={shadowSprites:{
    m.assetPath===asset?.path&&key(m.q,m.r)===state.selected);
   return mountainShadowSettings({asset,mountainInstance:selected||null});
  }
-},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>spriteAtlas?.info()||null,
+},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
+ benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
+ setBenchmarkAtlasMode:mode=>{
+  if(!['auto','on','off'].includes(mode))throw Error('Invalid benchmark atlas mode');
+  benchmarkAtlasMode=mode;
+  return {mode,atlas:spriteAtlas?.info()||null};
+ },
  gpuStats:()=>gpuTerrain?.stats()||{ready:false},
  sceneryStats:()=>staticScenery.stats(),spriteGpuStats:()=>gpuSprites?.stats()||{ready:false},
  backgroundStats:()=>backgroundScene.stats(),preparationStats:()=>frameMemo.stats(),
