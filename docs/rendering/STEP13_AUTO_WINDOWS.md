@@ -27,7 +27,7 @@ Ein vorhandenes Chrome-Fenster wird nicht verwendet. Der Test startet ein unabh�
 - Asset-Diagnostik: Anzahl der importierten Vegetationsinstanzen sowie die Zahl und Beispiele fehlender PNG-Pfade.
 - Nachlade-Gates: Der Test wartet auf fertige Kacheln und meldet im Bericht, falls sie bis zum Timeout nicht fertig werden.
 
-**Ergebnisordner**: `artifacts/rendering-step13-auto/` enthält `result.json`, `README.md` und die PNG-Dateien. Er ist in `.gitignore` ausgeschlossen, damit keine Messgrafiken versehentlich eingecheckt werden.
+**Ergebnisordner**: `artifacts/rendering-step13-auto/` enthält `result.json`, `README.md`, die PNG-Dateien und zusätzlich `step13-results.zip` mit sämtlichen Nachweisen zum einfachen Hochladen in ChatGPT. Er ist in `.gitignore` ausgeschlossen, damit keine Messgrafiken versehentlich eingecheckt werden.
 
 ## Interpretation
 
