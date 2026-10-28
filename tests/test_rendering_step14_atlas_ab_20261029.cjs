@@ -34,7 +34,7 @@ test('step14 uses fresh browser profiles for ON and OFF, same scene and gesture'
  assert.match(script,/for\(const scenario of \['pan','zoom','cold-zoom'\]\)/);
  assert.match(script,/for\(const mode of o\.order\)passes\[mode\]=await runMode\(o,mode\)/);
  assert.match(script,/const on=passes\.on,off=passes\.off/);
- assert.match(script,/engine=await launch\(opts,/);
+ assert.match(script,/engine=await launch\(opts\.url,/);
  assert.match(script,/setCamera\(c,\{q:0,r:0\},\.70\)/);
  assert.match(script,/const metrics=await phase\(c,kind,quality,opts\.duration\)/);
  assert.match(script,/v\.invalidateTerrain\('all'\)/);
