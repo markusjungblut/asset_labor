@@ -64,7 +64,9 @@ async function main(){
   // new successful evidence. Only remove files owned by this dedicated runner.
   await mkdir(output,{recursive:true});
   for(const name of await readdir(output)){
-    if(/^(?:(?:fast|auto|[1-4])-(?:baseline|pan|zoom)-clear|fog-comparison-(?:clear|on))\.png$/.test(name)
+    // This directory is dedicated to generated evidence; remove stale PNGs
+    // from earlier runs so a failed readiness gate cannot leave false proof.
+    if(name.endsWith('.png')
       ||['result.json','README.md','step13-results.zip'].includes(name))
       await unlink(join(output,name));
   }
