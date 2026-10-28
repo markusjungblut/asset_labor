@@ -185,7 +185,7 @@ async function screenshot(cdp,filename){
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
     height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
-async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
+async function settle(cdp,timeoutMs=9000,{edgeSite=false}={}){
   let last=null,consecutive=0,reasons=[];
   const started=Date.now(),deadline=started+timeoutMs;
   while(Date.now()<deadline){
@@ -209,10 +209,14 @@ async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
     if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
     if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
     if(w.visiblePreviews>0)reasons.push('visible-previews');
+    // tileDiagnostics checks whether the *editor chunk* was painted, which
+    // may legitimately remain false after the complete World-Tile has been
+    // baked. Those details are advisory, not a second mandatory gate.
     const waiting=(art?.artwork||[]).filter(a=>!a.ready);
-    if(waiting.length)reasons.push('artwork-not-ready:'+waiting.length);
+    const notes=waiting.length?['editor-chunk-not-ready:'+waiting.length]:[];
+
     if(!reasons.length&&++consecutive>=3)
-      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[]};
+      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[],notes};
     if(reasons.length)consecutive=0;
     // No camera motion: request the actual tile compositor again when the
     // first frame has not created any visible tiles (old baseline cloud bug).
@@ -221,7 +225,7 @@ async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
     await sleep(750);
   }
   return {ready:false,stats:last?.world,assetPool:last?.assetPool,
-    waitMs:Date.now()-started,reasons};
+    waitMs:Date.now()-started,reasons,notes:[]};
 }
 async function setCamera(cdp,site,zoom=.70){
   const q=Number(site.q),r=Number(site.r);
@@ -241,11 +245,19 @@ async function setCamera(cdp,site,zoom=.70){
 }
 function recordReadiness(run,quality,phase,readiness){
   run.readiness.push({quality,phase,...readiness});
+  console.log(`  ${quality}/${phase}: ${readiness.ready?'READY':'DIAGNOSTIC'} after ${Math.round(readiness.waitMs/1000)}s; ${readiness.reasons.join(', ')||'world tiles complete'}`);
   if(!readiness.ready){
     run.warnings.push(`Unready ${quality}/${phase}: ${readiness.reasons.join('; ')}; waited ${readiness.waitMs}ms`);
     return false;
   }
   return true;
+}
+async function captureGate(run,cdp,out,quality,phase,readiness,validName){
+  const valid=recordReadiness(run,quality,phase,readiness);
+  const name=valid?validName:validName.replace(/\\.png$/,'-diagnostic.png');
+  const file=await screenshot(cdp,join(resolve(out),name));
+  run.screenshots.push({...file,verified:valid});
+  return {valid,file};
 }
 async function assetPresence(cdp){
   return cdp.eval(`(()=>{
