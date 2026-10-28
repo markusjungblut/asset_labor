@@ -135,7 +135,7 @@ test('editor uses a single shared controller and exposes coherent LOD stats',()=
  assert.match(app,/lodSelector:zoom=>updateTerrainLod\(zoom\)/);
  assert.match(app,/currentLodProfile=adaptiveLOD\.update\(zoom/);
  assert.match(app,/worldTileDensity:worldTiles\?\.stats\(\)\.lodDensity/);
- assert.match(html,/adaptive-lod\.js\?v=0\.1\.1&amp;step12=20261028/);
+ assert.match(html,/adaptive-lod\.js\?v=0\.1\.1&amp;step10=20261027/);
  assert.match(html,/world-tile-streamer\.js\?v=0\.22\.6&amp;step12=20261028/);
  assert.match(html,/app\.js\?v=0\.55\.6&amp;step11=20261028/);
 });
