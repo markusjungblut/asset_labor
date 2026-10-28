@@ -37,7 +37,16 @@ window.VedrasRenderQuality=(()=>{
   return {quality:kind,requestedDpr:requested,effectiveDpr:effective,
    limiter,budgetPixels:budget,canvasPixels:Math.round(width*effective)*
     Math.round(height*effective),viewportPixels:pixels,dense:!!highDensity,
-   terrainPx:profile.terrainPx,spritePx:profile.spritePx};
+   terrainPx:highDensity?Math.min(profile.terrainPx,768):profile.terrainPx,
+   // The 397-hex scene has ~170 simultaneously required unique sprites.
+   // 1024px x 170 = ~680 MiB even in fast mode. Restrict preview resolution
+   // based on density while leaving the 1x..4x display DPR untouched.
+   spritePx:highDensity?
+    Math.min(profile.spritePx,kind==='4'?768:kind==='3'?640:kind==='2'?576:512):
+    profile.spritePx,
+   imagePoolBytes:highDensity?
+    ({'fast':288,'auto':288,'1':288,'2':352,'3':448,'4':576}[kind])*1048576:
+    192*1048576};
  }
  return {resolve,profiles};
 })();
