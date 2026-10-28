@@ -254,7 +254,7 @@ function recordReadiness(run,quality,phase,readiness){
 }
 async function captureGate(run,cdp,out,quality,phase,readiness,validName){
   const valid=recordReadiness(run,quality,phase,readiness);
-  const name=valid?validName:validName.replace(/\\.png$/,'-diagnostic.png');
+  const name=valid?validName:validName.replace(/\.png$/,'-diagnostic.png');
   const file=await screenshot(cdp,join(resolve(out),name));
   run.screenshots.push({...file,verified:valid});
   return {valid,file};
@@ -421,7 +421,7 @@ function report(run){
     `**Hexe / Nature:** ${run.scene?.cellCount??'?'} / ${run.scene?.natureCount??'?'}`,
     `**Erwartete / importierte Vegetation:** ${run.import?.expectedNature??'?'} / ${run.import?.nature??'?'}`,
     `**Nicht vorhandene Asset-Instanzen:** ${run.import?.missingNatureInstances??'?'}`,
-    `**Screenshots:** ${run.screenshots?.length??0} (nur Kartenausschnitt; normale Bilder ohne Fog)`,
+    `**Screenshots:** ${run.screenshots?.length??0}; davon ${run.screenshots?.filter(s=>s.verified).length??0} verifiziert, ${run.screenshots?.filter(s=>!s.verified).length??0} ausdrücklich diagnostisch`,
     `**Geografische Testpositionen:** ${run.sites?.length??0} (6 Biome/Features × fast und 4×)`,
     '',
     '| Profil | Geste | rAF-p50 ms | rAF-p95 ms | >50 ms | Longtasks | Tile-Bakes | effektive DPR |',
@@ -440,7 +440,7 @@ function report(run){
     '|---|---|---|---|---|---|---:|',
     ...run.sites.map(s=>`| ${s.quality} | ${s.label} | ${s.q},${s.r} | ${s.terrain} | ${s.forestClass} | ${s.ready?'ja':'NEIN'} | ${s.coverage??'–'} |`));
   if(run.screenshots?.length)lines.push('', '## Karten-Screenshots', '',
-    ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB)`));
+    ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB; ${s.verified?'READY':'UNVERIFIED diagnostic'})`));
   if(run.readiness?.length)lines.push('', '## Nachladezustand', '',
     ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}; wait ${r.waitMs??'?'} ms; ${r.reasons?.join(', ')||'OK'}`));
   if(run.warnings?.length)lines.push('', '## Warnungen', '', ...run.warnings.map(w=>`- ${w}`));
