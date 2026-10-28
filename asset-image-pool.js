@@ -33,11 +33,15 @@ window.VedrasImagePool=(()=>{
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
   function prune(force=false,headroom=0){
    if(stats.decodedBytes+headroom<=maxBytes&&!force)return;
-   // Under real memory pressure, the previous 24-second recency exemption
-   // permitted >1 GB of idle decoded terrain. Protect the visible camera
-   // footprint instead; everything else can leave the LRU immediately.
+   // Never evict an asset which has just been decoded or requested.
+   // Repeated frame requests previously reloaded an evicted PNG immediately:
+   // 74,166 loads and 74,025 evictions during a single benchmark.
+   // Retain only a short hot window (max 2.5 s), not the old 24-second
+   // exemption, so stale previews can still leave the pool promptly.
+   const protectAge=Math.min(2500,Math.max(0,protectMs));
+   const time=now();
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
-    !protectedPaths.has(r.asset.path))
+    !protectedPaths.has(r.asset.path)&&time-r.lastUsed>=protectAge)
     .sort((a,b)=>{
      // Small shared terrain materials are preferred over transient sprites.
      const priority=e=>['terrain','terrain_base','shorelines'].includes(e.asset.category)?1:0;
@@ -127,7 +131,9 @@ window.VedrasImagePool=(()=>{
        if(stats.decodedBytes+additional<=maxBytes){
         r.upgrade=true;r.order=stats.requests++;r.priority=priority;
         queue.push(r);pump();
-       }else stats.deferredUpgrades++;
+       }else if(!r.lastDeferred||now()-r.lastDeferred>5000){
+        r.lastDeferred=now();stats.deferredUpgrades++;
+       }
       }
      }
      return Promise.resolve(r.img);
@@ -145,6 +151,13 @@ window.VedrasImagePool=(()=>{
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
   function protect(paths){protectedPaths=new Set(paths||[]);prune();}
+  function setBudgetBytes(bytes){
+   if(!Number.isFinite(bytes)||bytes<64*1048576||bytes>768*1048576)
+    throw Error('Invalid decoded preview memory budget');
+   const changed=maxBytes!==bytes;
+   maxBytes=bytes;if(changed)prune();
+   return changed;
+  }
   function clear(){
    protectedPaths.clear();
    generation++;
@@ -196,7 +209,7 @@ window.VedrasImagePool=(()=>{
     overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes),
     previewTerrainPx,previewSpritePx,limitBytes:maxBytes};
   }
-  return {ensure,clear,prune,report,originals,protect,setPreviewLimits};
+  return {ensure,clear,prune,report,originals,protect,setPreviewLimits,setBudgetBytes};
  }
  return {create};
 })();
