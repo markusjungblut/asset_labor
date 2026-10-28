@@ -405,7 +405,7 @@ function profilerDifference(a,b){
   const old=prev[k]||{count:0,totalMs:0,over50ms:0};
   return [k,{count:v.count-old.count,
    totalMs:+(v.totalMs-old.totalMs).toFixed(3),
-   maxMs:v.maxMs,over50ms:v.over50ms-old.over50ms}];
+   maxMsSession:v.maxMs,over50ms:v.over50ms-old.over50ms}];
  }));
 }
 async function phase(cdp,kind,quality,ms){
