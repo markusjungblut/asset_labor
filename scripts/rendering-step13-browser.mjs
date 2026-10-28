@@ -406,14 +406,27 @@ function report(run){
     `**Erwartete / importierte Vegetation:** ${run.import?.expectedNature??'?'} / ${run.import?.nature??'?'}`,
     `**Nicht vorhandene Asset-Instanzen:** ${run.import?.missingNatureInstances??'?'}`,
     `**Screenshots:** ${run.screenshots?.length??0} (nur Kartenausschnitt; normale Bilder ohne Fog)`,
+    `**Geografische Testpositionen:** ${run.sites?.length??0} (6 Biome/Features × fast und 4×)`,
     '',
     '| Profil | Geste | rAF-p50 ms | rAF-p95 ms | >50 ms | Longtasks | Tile-Bakes | effektive DPR |',
     '|---|---|---:|---:|---:|---:|---:|---:|'];
   for(const p of run.phases)lines.push(`| ${p.quality} | ${p.kind} | ${p.frameIntervalMs.p50??'–'} | ${p.frameIntervalMs.p95??'–'} | ${p.frameIntervalMs.over50ms} | ${p.longTasks.count} | ${p.tileBakes??'–'} | ${p.qualityEffectiveDpr??'–'} |`);
+  if(run.phases?.length)lines.push('', '## Bildpool und Zoomdiagnostik', '',
+    '| Qualität | Geste | Pool MiB | Budget MiB | Überhang MiB | geschützt | Upgrade verschoben | Messbeginn gültig |',
+    '|---|---|---:|---:|---:|---:|---:|---|',
+    ...run.phases.map(p=>{
+      const m=p.end?.quality?.images||{};
+      const mb=n=>Number.isFinite(n)?(n/1048576).toFixed(1):'–';
+      return `| ${p.quality} | ${p.kind} | ${mb(m.decodedBytes)} | ${mb(m.limitBytes)} | ${mb(m.overLimitBytes)} | ${m.protectedAssets??'–'} | ${m.deferredUpgrades??'–'} | ${p.validStart?'ja':'NEIN'} |`;
+    }));
+  if(run.sites?.length)lines.push('', '## Regionale Kameratestpositionen (wirkliche Hexkoordinaten)', '',
+    '| Profil | Region | Hex | Terrain | Waldklasse | bereit | Kachelabdeckung |',
+    '|---|---|---|---|---|---|---:|',
+    ...run.sites.map(s=>`| ${s.quality} | ${s.label} | ${s.q},${s.r} | ${s.terrain} | ${s.forestClass} | ${s.ready?'ja':'NEIN'} | ${s.coverage??'–'} |`));
   if(run.screenshots?.length)lines.push('', '## Karten-Screenshots', '',
     ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB)`));
   if(run.readiness?.length)lines.push('', '## Nachladezustand', '',
-    ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}`));
+    ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}; wait ${r.waitMs??'?'} ms; ${r.reasons?.join(', ')||'OK'}`));
   if(run.warnings?.length)lines.push('', '## Warnungen', '', ...run.warnings.map(w=>`- ${w}`));
   lines.push('','rAF-p50/p95 sind **Bildschirm-Frameintervalle während der Geste**, keine direkt instrumentierten `draw()`-Laufzeiten oder garantierten FPS-Werte. CDP-CPU-Taskzeit/Heap und Cachewerte stehen in `result.json`.','',
     '## Noch visuell und auf Zielhardware abzunehmen','',
@@ -421,6 +434,7 @@ function report(run){
     '- [ ] Fog-Kern vollständig opak, auch bei leeren/verspäteten Assets',
     '- [ ] Wolkenweltposition und Beleuchtung bleiben bei Pan/Zoom stabil',
     '- [ ] Waldtiefe, Bergschatten, Küsten, Relief und Sprite-Nähte ohne sichtbare Regression',
+    '- [ ] Regionale Schnappschüsse fast/4× für Wald, Küste, Berge, Moor, Meer, Mitte prüfen',
     '- [ ] Keine dauerhaft unter Wolken blockierten sichtbaren Tiles',
     '- [ ] 4×-Bildschärfe und wirksame DPR innerhalb 8/14-MP- und 4096-Pixel-Budgets',
     '- [ ] Vergleich über denselben gespeicherten 397-Hex-Stand, Viewport, Zoom und Browser/GPU',
