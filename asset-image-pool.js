@@ -10,6 +10,7 @@ window.VedrasImagePool=(()=>{
   const targetLimit=asset=>['terrain','terrain_base','shorelines'].includes(asset.category)?
    previewTerrainPx:['nature','buildings','units'].includes(asset.category)?previewSpritePx:0;
   function prepare(asset,image){
+   const __t=now();
    const limit=targetLimit(asset);
    asset.previewReduced=false;
    if(!limit||typeof document==='undefined'||!document.createElement)return image;
@@ -21,6 +22,8 @@ window.VedrasImagePool=(()=>{
    const ctx=cv.getContext('2d',{alpha:true});if(!ctx)return image;
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
    ctx.drawImage(image,0,0,w,h);
+   window.VedrasBenchmarkProfiler?.record('images.resampleMs',now()-__t);
+   window.VedrasBenchmarkProfiler?.count('images.resampled');
    // Compatible with the engine's original HTMLImageElement dimension checks.
    cv.naturalWidth=w;cv.naturalHeight=h;cv.complete=true;
    asset.sourceDimensions={width:image.naturalWidth,height:image.naturalHeight};
@@ -50,6 +53,7 @@ window.VedrasImagePool=(()=>{
    for(const entry of candidates){
     if(stats.decodedBytes+headroom<=maxBytes&&!force)break;
     resources.delete(entry.asset.path);
+    window.VedrasBenchmarkProfiler?.count('images.evicted');
     stats.decodedBytes-=entry.bytes;entry.asset.img=null;
     // Old Image elements remain referenced by active draw operations only;
     // neither the asset catalogue nor our LRU holds them after eviction.
@@ -71,9 +75,12 @@ window.VedrasImagePool=(()=>{
     const wasUpgrade=!!r.upgrade;
     active++;if(wasUpgrade)activeUpgrades++;
     r.loading=true;
+    const __loadStart=now();
     const img=new Image();
     img.decoding='async';
     const finish=successful=>{
+     window.VedrasBenchmarkProfiler?.record('images.loadWallMs',now()-__loadStart);
+     window.VedrasBenchmarkProfiler?.count(successful?'images.loaded':'images.failed');
      active--;if(wasUpgrade)activeUpgrades--;
      r.loading=false;
      if(r.generation!==generation){
@@ -148,6 +155,7 @@ window.VedrasImagePool=(()=>{
    r={asset,ready:false,loading:false,bytes:0,lastUsed:now(),
     generation,priority,order:stats.requests++};
    r.promise=new Promise(resolve=>{r.resolve=resolve;});
+   window.VedrasBenchmarkProfiler?.count('images.requested');
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
   function protect(paths){protectedPaths=new Set(paths||[]);prune();}
