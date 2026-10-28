@@ -182,12 +182,13 @@ async function screenshot(cdp,filename){
   await writeFile(filename,png);
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
 }
-async function settle(cdp,timeoutMs=25000){
+async function settle(cdp,timeoutMs=12000){
   let last=null,consecutive=0;
   const deadline=Date.now()+timeoutMs;
   while(Date.now()<deadline){
     last=await cdp.eval(`window.VedrasAssetLabor?.worldTileStats?.()||null`);
     const ready=last&&last.drawn>0&&last.pending===0&&
+      last.coverage>=0.55&&last.retryExhausted===0&&
       (last.progress?.missing??0)===0&&(last.progress?.provisional??0)===0;
     if(ready&&++consecutive>=2)return {ready:true,stats:last};
     if(!ready)consecutive=0;
@@ -430,8 +431,9 @@ async function main(){
     for(const item of run.readiness)if(!item.ready){
       run.warnings.push(`World tiles did not settle: ${item.quality}/${item.phase}; pending=${item.stats?.pending??'?'}; missing=${item.stats?.progress?.missing??'?'}; coverage=${item.stats?.coverage??'?'}`);
     }
-    if(run.warnings.length)run.acceptance='PARTIAL – inspect readiness and asset warnings';
     run.errors.push(...c.errors);
+    if(run.errors.length||run.warnings.length)
+      run.acceptance='PARTIAL – inspect readiness, assets or browser errors';
   }catch(error){
     run.errors.push(String(error?.stack||error));
     if(engine)run.errors.push(...engine.cdp.errors);
