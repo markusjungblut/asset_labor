@@ -140,6 +140,52 @@ test('fog classifier includes genuine external world boundary sides',()=>{
  assert.equal(f.frontierEdges.length,6);
  assert.deepEqual(f.frontierEdges.map(e=>e.direction),[0,1,2,3,4,5]);
 });
+test('opaque fallback also protects the outer forest edge without cloud module',()=>{
+ const h=world({cloud:false,atmosphere:true});
+ h.renderer.setFogCells([
+  {q:0,r:0,x:0,y:0,radius:256/Math.sqrt(3),visibility:'visible'}]);
+ h.renderer.request(h.view,[h.tile]);
+ h.renderer.render(h.view,{
+  drawStatic:g=>g.drawImage({tag:'long-mountain-cast'}),
+  drawDynamic:g=>g.drawImage({tag:'unit'})});
+ const unit=h.events.findIndex(e=>Array.isArray(e)&&e[1]==='unit');
+ assert.ok(unit>=0);
+ assert.ok(h.events.findIndex((e,i)=>i>unit&&e==='opaque')>unit,
+  'fallback covers shadows beyond authorized map even without cloud-artwork');
+});
+test('cloud frontier hex follows world coordinates under pan and projection',()=>{
+ const window={};vm.runInNewContext(read('cloud-artwork.js'),{window});
+ const cloud=window.VedrasCloudArtwork.create();
+ const getStart=(panX,zoom,projectY)=>{
+  const {g}=context(),vertices=[];
+  g.moveTo=(x,y)=>vertices.push([x,y]);
+  cloud.drawTransitions(g,{
+   width:800,height:600,zoom,panX,panY:0,projectY},
+   [{q:0,r:0,direction:0}]);
+  return vertices[0];
+ };
+ const [x1,y1]=getStart(0,1,.85),
+  [x2,y2]=getStart(75,1,.85),
+  [x3,y3]=getStart(0,2,.85);
+ assert.equal(x2-x1,75,'screen pan only translates the cloud polygon');
+ assert.equal(y2,y1);
+ assert.ok(Math.abs(x3-(400+(x1-400)*2))<.00001);
+ assert.ok(Math.abs(y3-(300+(y1-300)*2))<.00001);
+});
+test('global shadow pass remains behind sprites and clouds remain above both',()=>{
+ const app=read('app.js'),worldCode=read('world-tile-streamer.js');
+ const start=app.indexOf('function drawMapObjects('),end=app.indexOf('function drawForestDebug(',start);
+ assert.ok(start>=0&&end>start);
+ const objects=app.slice(start,end);
+ assert.ok(objects.indexOf('drawMountainShadows(objs)')>=0);
+ assert.ok(objects.indexOf('drawMountainShadows(objs)')<
+  objects.indexOf('// Real sprites are sorted'));
+ const compositor=worldCode.slice(worldCode.indexOf('function render(view,'));
+ assert.ok(compositor.indexOf("drawStatic(g,view)")<
+  compositor.indexOf("drawDynamic(g,view)"));
+ assert.ok(compositor.indexOf("drawDynamic(g,view)")<
+  compositor.indexOf("clouds.drawUnready(g,view,fog,ready)"));
+});
 test('cloud/world JS version is refreshed without changing shadow or relief settings',()=>{
  const app=read('app.js'),html=read('index.html');
  assert.match(html,/cloud-artwork\.js\?v=0\.22\.4&amp;step12=20261028/);
