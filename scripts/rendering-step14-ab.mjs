@@ -14,12 +14,12 @@ import {launch,preflight,waitFor,importScene,setControls,setCamera,settle,
 function parse(args){
  const o={url:'http://127.0.0.1:8780/',scene:resolve('artifacts/rendering-step13/vedras_scene.json'),
   out:resolve('artifacts/rendering-step14-ab'),qualities:['auto','4'],
-  duration:1800,warmup:1200,headed:false};
+  duration:1800,warmup:1200,headed:false,order:['on','off']};
  for(let i=0;i<args.length;i++){
   const k=args[i];
   if(k==='--help'){o.help=true;continue;}
   if(k==='--headed'){o.headed=true;continue;}
-  if(!['--url','--scene','--out','--qualities','--duration','--warmup','--chrome'].includes(k))
+  if(!['--url','--scene','--out','--qualities','--duration','--warmup','--chrome','--order'].includes(k))
    throw Error('Unknown argument '+k);
   if(++i>=args.length)throw Error('Missing value for '+k);
   const v=args[i];
@@ -30,11 +30,13 @@ function parse(args){
   if(k==='--duration')o.duration=Number(v);
   if(k==='--warmup')o.warmup=Number(v);
   if(k==='--chrome')o.chrome=v;
+  if(k==='--order')o.order=v.split(',');
  }
  if(!o.help){
   const u=new URL(o.url);
   if(u.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(u.hostname))
    throw Error('Only a local test server is allowed');
+  if(o.order.length!==2||!o.order.includes('on')||!o.order.includes('off'))throw Error('Order must be on,off or off,on');
   if(!o.qualities.length||o.qualities.some(q=>!['fast','auto','1','2','3','4'].includes(q)))
    throw Error('Invalid qualities');
   if(o.duration<1500||o.duration>10000||!Number.isFinite(o.duration))
@@ -78,7 +80,8 @@ function generateReadme(data){
   'in beiden Varianten einmal gezielt die Terrain-/Kachel-Caches.',
   'Atlas AN erzwingt Atlas-Versuche auch bei >500 Vegetationsinstanzen.',
   'Atlas AUS unterbindet Atlas-Zeichnungen, nutzt die identischen ImagePool-PNGs.',
-  'Versuchsanordnung: festes ON→OFF, ein Durchlauf ist noch kein kausaler oder statistischer Beweis.',
+  'Versuchsanordnung: Reihenfolge im result.json. Bei Wiederholung --order off,on',
+  'verwenden, um Prozess-/OS-Caching-Reihenfolgeeffekte sichtbar zu machen.',
   'Alle Ergebnisse sind vorläufig; die Reihenfolge AN → AUS ist fest. Mehrfach wiederholen.',
   '','**Interpretation:** CDP TaskDuration ist die kumulierte Browser-Main-Thread-Taskzeit',
   '(Proxy für Auslastung eines Browserthreads), **keine systemweite CPU-%**.',
@@ -192,17 +195,18 @@ async function runMode(opts,atlas){
 }
 async function main(){
  const o=parse(process.argv.slice(2));
- if(o.help){console.log('Usage: node scripts/rendering-step14-ab.mjs --url localhost --scene FILE --out DIR --qualities auto,4 --duration 1800 --warmup 1200');return;}
+ if(o.help){console.log('Usage: node scripts/rendering-step14-ab.mjs --url LOCALHOST --scene FILE --out DIR --qualities auto,4 --duration 1800 --warmup 1200 --order on,off');return;}
  if(!existsSync(o.scene))throw Error('Scene missing: '+o.scene);
  if(JSON.parse(await readFile(o.scene,'utf8')).natureInstances?.length!==2631)
   throw Error('Expected exact reference scene: 2631 Nature');
  await mkdir(o.out,{recursive:true});
  await preflight(o.url);
- console.log('Step 14 A/B – separate Chrome profiles, ATLAS ON then OFF');
- const on=await runMode(o,'on');
- const off=await runMode(o,'off');
+ console.log('Step 14 A/B – separate Chrome profiles; order: '+o.order.join(' then '));
+ const passes={};
+ for(const mode of o.order)passes[mode]=await runMode(o,mode);
+ const on=passes.on,off=passes.off;
  const data={timestamp:new Date().toISOString(),experiment:'atlas-ab-step14-v1',
-  input:{scene:o.scene,sceneSha256:createHash('sha256').update(await readFile(o.scene)).digest('hex'),
+  input:{scene:o.scene,order:o.order,sceneSha256:createHash('sha256').update(await readFile(o.scene)).digest('hex'),
    qualities:o.qualities,gestureDurationMs:o.duration,warmupMs:o.warmup,
    camera:{q:0,r:0,zoom:.70},chromeWindow:'1280x820',dpr:1},
   on,off,pairs:pairRows(on,off),
