@@ -49,9 +49,9 @@ function metric(p,k){return p?.[k]??null;}
 function pairRows(a,b){
  const rows=[];
  for(const quality of [...new Set([...a.phases,...b.phases].map(p=>p.quality))])
-  for(const kind of ['pan','zoom']){
-   const on=a.phases.find(p=>p.kind===kind&&p.quality===quality);
-   const off=b.phases.find(p=>p.kind===kind&&p.quality===quality);
+  for(const kind of ['pan','zoom','cold-zoom']){
+   const on=a.phases.find(p=>(p.scenario||p.kind)===kind&&p.quality===quality);
+   const off=b.phases.find(p=>(p.scenario||p.kind)===kind&&p.quality===quality);
    if(!on||!off)continue;
    const valid=on.validStart&&off.validStart&&on.readyAfter&&off.readyAfter;
    rows.push({quality,kind,comparable:!!valid,
@@ -74,7 +74,8 @@ function generateReadme(data){
  const lines=['# Vedras Schritt 14 – Atlas AN/AUS und Zoom-Ursachenanalyse','',
   'Messung: zwei **separate, frische Chromium-Prozesse und User-Data-Verzeichnisse**;',
   'identische 397-Hex-Szene, gleiche Fenstergröße, DPR, Kamera (Hex 0,0 / Zoom 0,70),',
-  'Qualitätsprofile und deterministische Pan-/Zoom-Gesten.',
+  'Qualitätsprofile und deterministische Pan-/Zoom-Gesten. Cold-Zoom invalidiert vor der Geste',
+  'in beiden Varianten einmal gezielt die Terrain-/Kachel-Caches.',
   'Atlas AN erzwingt Atlas-Versuche auch bei >500 Vegetationsinstanzen.',
   'Atlas AUS unterbindet Atlas-Zeichnungen, nutzt die identischen ImagePool-PNGs.',
   'Alle Ergebnisse sind vorläufig; die Reihenfolge AN → AUS ist fest. Mehrfach wiederholen.',
@@ -145,27 +146,34 @@ async function runMode(opts,atlas){
   result.scene=await snapshot(c);
   for(const quality of opts.qualities){
    await setControls(c,quality,false);
-   for(const kind of ['pan','zoom']){
+   for(const scenario of ['pan','zoom','cold-zoom']){
+    const kind=scenario==='cold-zoom'?'zoom':scenario;
     await setCamera(c,{q:0,r:0},.70);
     await sleep(opts.warmup);
     const before=await settle(c,9000);
-    console.log(`Step 14 ${atlas.toUpperCase()} / ${quality} / ${kind}: ${before.ready?'READY':'DIAGNOSTIC'} (${before.waitMs}ms)`);
-    result.checks.push({atlas,quality,kind,stage:'before',ready:before.ready,
+    console.log(`Step 14 ${atlas.toUpperCase()} / ${quality} / ${scenario}: ${before.ready?'READY':'DIAGNOSTIC'} (${before.waitMs}ms)`);
+    result.checks.push({atlas,quality,kind:scenario,stage:'before',ready:before.ready,
      reasons:before.reasons,waitMs:before.waitMs});
     if(kind==='pan'){
      const img=await screenshot(c,join(path,`${quality}-baseline-${before.ready?'ready':'diagnostic'}.png`));
      result.screenshots.push({...img,stage:'before',quality,verified:before.ready});
     }
+    // A separate controlled cold-zoom checks the expensive rebuild path.
+    // Warm pan/zoom are never polluted by an earlier explicit invalidation.
+    if(scenario==='cold-zoom')await c.eval(`(()=>{
+      const v=window.VedrasAssetLabor;
+      v.invalidateTerrain('all');v.requestDraw();return true;
+     })()`);
     const metrics=await phase(c,kind,quality,opts.duration);
-    metrics.validStart=before.ready;
+    metrics.scenario=scenario;metrics.validStart=before.ready;
     const after=await settle(c,9000);
     metrics.readyAfter=after.ready;
     metrics.readinessReasons=after.reasons;
     result.phases.push(metrics);
-    result.checks.push({atlas,quality,kind,stage:'after',ready:after.ready,
+    result.checks.push({atlas,quality,kind:scenario,stage:'after',ready:after.ready,
       reasons:after.reasons,waitMs:after.waitMs});
     if(kind==='zoom'){
-     const img=await screenshot(c,join(path,`${quality}-zoom-${after.ready?'ready':'diagnostic'}.png`));
+     const img=await screenshot(c,join(path,`${quality}-${scenario}-${after.ready?'ready':'diagnostic'}.png`));
      result.screenshots.push({...img,stage:'after',quality,verified:after.ready});
     }
     console.log(`  frame p95 ${metrics.frameIntervalMs.p95}ms / main-thread-task ${metrics.mainThreadTaskUtilizationPercent}% / atlas ${metrics.atlasChanges.pageLoads} page loads / ready after ${after.ready}`);
