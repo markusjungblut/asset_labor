@@ -140,8 +140,8 @@ test('decorative transparent cloud texture gets an opaque HEX underlay',()=>{
 });
 test('browser scripts and camera diagnostic expose step-9 progress',()=>{
  const html=read('index.html'),app=read('app.js');
- assert.match(html,/cloud-artwork\.js\?v=0\.22\.4&amp;step9=20261027/);
- assert.match(html,/world-tile-streamer\.js\?v=0\.22\.6&amp;step10=20261027/);
+ assert.match(html,/cloud-artwork\.js\?v=0\.22\.4&amp;step12=20261028/);
+ assert.match(html,/world-tile-streamer\.js\?v=0\.22\.6&amp;step12=20261028/);
  assert.match(app,/result\.fallback\?\?0/);
  assert.match(app,/result\.missing\?\?0/);
 });

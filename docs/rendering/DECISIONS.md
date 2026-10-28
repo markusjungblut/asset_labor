@@ -101,3 +101,11 @@
 
 ## D-034: Bildpool bei Qualitätswechsel selektiv verfeinern statt komplett neu laden
 **Entscheidung:** Die bisherigen 512/1024-px-Preview-Grenzen bleiben bei Schnell/Auto erhalten und steigen abhängig von der manuellen Qualitätswahl bis 1536/2048 px. Geladene Quellen werden **erst bei Bedarf** aufgewertet; währenddessen bleibt die alte Vorschau sichtbar, bei Fehler wird sie weiterverwendet. Höchstens eine große Promotion parallel; Poolbudget 192 MiB unverändert. Retained-Canvas-Layer bleiben je auf 17 MP begrenzt und verringern Overscan selbsttätig. **Grund:** Selektive Bildqualität ist besser als massenhaft neue PNG-Dekodierung oder forcierte Full-Scene-Rebuilds. Der unveränderte 2×-Finalexport wird nicht mit interaktiven Profilen vermischt.
+
+## D-035: Explizite Fog-Autorisierung ist auch bei leerem Zellensatz bindend
+
+**Entscheidung:** `world-tile-streamer.js` unterscheidet eine bisher noch nie installierte, optionale Fog-Policy für externe Standalone-Renderer von einer **expliziten** `setFogCells([])`-Maske. Bei expliziter leerer Autorisierung ist der Clip-Pfad leer; kein vorbereiteter Terrain-/Scenery-/Units-Pixel wird freigegeben. Auch nach globaler Invalidierung ohne neue gültige Maske wird die zuvor gesetzte Autorisierung nicht in `undefined` zurückgestuft. **Begründung:** Eine leere Freigabe darf keinesfalls zu freier Sicht führen. Für echten Multiplayer gilt darüber hinaus: Nicht berechtigte Daten müssen serverseitig bereits vor der Auslieferung entfernt werden.
+
+## D-036: Wolken-Frontier schützt unbekannte Hexkerne nach Schatten und Sprite-Halo
+
+**Entscheidung:** Die durch `fog-atmosphere.js` weltverankert ermittelten unbekannten Nachbarhexe werden nach dynamischem und statischem Sprite-/Schatten-Compositing zuerst vollständig opak verdeckt. Danach folgen alle ungedrehten Hard-Cores und zuletzt alle Soft-Fringes der vorhandenen vier Wolken-PNGs; ohne PNG-Dekodierung oder Wolkenmodul bleibt die opake Geometrie aktiv. **Begründung:** Transparentes Artwork und überhängende Baumkronen/Bergschatten dürfen nicht zu unbekannten visuellen Inhalten führen oder harte Überlappungsnähte verursachen. Die ursprünglichen Bergschattenparameter, Terrainmaterialien und Reliefberechnung werden nicht modifiziert.

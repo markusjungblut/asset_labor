@@ -190,20 +190,39 @@ window.VedrasCloudArtwork=(()=>{
    g.restore();return hexes.length;
   }
   function drawTransitions(g,view,edges){
-   if(!bases.length||!Array.isArray(edges))return 0;
-   const unique=new Set();let count=0;
-   g.save();g.imageSmoothingEnabled=true;
+   if(!Array.isArray(edges))return 0;
+   const unique=new Set(),targets=[];let count=0;
    for(const e of edges){
     const d=DIRS[e.direction];
     if(!d)continue;
     const q=e.q+d[0],r=e.r+d[1],id=q+','+r;
     if(unique.has(id))continue;
-    unique.add(id);
-    // After ground, scenery AND units: the source cloud graphics themselves
-    // now swallow silhouettes across the visibility frontier.
-    if(stamp(g,view,q,r,'hard'))count++;
-    stamp(g,view,q,r,'soft');
+    unique.add(id);targets.push({q,r});
    }
+   // Known sprites and mountain casts may extend 45 world units across an
+   // edge. A translucent cloud PNG must NEVER reveal those pixels outside
+   // authorized world hexes. Mask the exact unknown neighbor cores first,
+   // including when cloud PNGs are not loaded yet.
+   g.save();g.globalAlpha=1;
+   for(const {q,r} of targets){
+    const x=view.width/2+view.panX+HEX*(q+r/2)*view.zoom,
+     y=view.height/2+view.panY+HEX_H*r*view.zoom*(view.projectY||1),
+     rx=R*view.zoom,ry=rx*(view.projectY||1);
+    if(x+rx<0||x-rx>view.width||y+ry<0||y-ry>view.height)continue;
+    g.beginPath();
+    for(let k=0;k<6;k++){
+     const a=-Math.PI/2+k*Math.PI/3,
+      px=x+Math.cos(a)*rx,py=y+Math.sin(a)*ry;
+     if(!k)g.moveTo(px,py);else g.lineTo(px,py);
+    }
+    g.closePath();g.fillStyle=backdrop;g.fill();
+   }
+   // Composite every hard core before EVERY soft fringe. Otherwise drawing
+   // a later neighbor's hard image can cut through the previous soft bank.
+   g.imageSmoothingEnabled=true;
+   for(const {q,r} of targets)
+    if(stamp(g,view,q,r,'hard'))count++;
+   for(const {q,r} of targets)stamp(g,view,q,r,'soft');
    g.restore();return count;
   }
   function drawUnready(g,view,cells,ready){
