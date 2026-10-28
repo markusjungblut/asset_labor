@@ -185,7 +185,7 @@ async function screenshot(cdp,filename){
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
     height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
-async function settle(cdp,timeoutMs=45000){
+async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
   let last=null,consecutive=0,reasons=[];
   const started=Date.now(),deadline=started+timeoutMs;
   while(Date.now()<deadline){
@@ -201,7 +201,11 @@ async function settle(cdp,timeoutMs=45000){
     if(!w.visible||!w.drawn)reasons.push('no-visible-world-tiles');
     if(w.pending!==0)reasons.push('tile-queue-pending:'+w.pending);
     if(w.retryExhausted>0)reasons.push('retry-exhausted');
-    if(w.coverage<.999)reasons.push('coverage:'+w.coverage);
+    // Interior test: full viewport coverage. Edge biomes may legitimately
+    // reveal the cloudy world boundary; still require every requested tile
+    // and each visible artwork dependency to have completed.
+    if(w.coverage<(edgeSite?.10:.999))reasons.push('coverage:'+w.coverage);
+    if((w.progress?.exact??0)<1)reasons.push('no-exact-world-tiles');
     if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
     if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
     if(w.visiblePreviews>0)reasons.push('visible-previews');
@@ -502,7 +506,7 @@ async function main(){
       for(const site of run.import?.sites||[]){
         await setCamera(c,site,.70);
         await sleep(1000);
-        const ready=await settle(c);
+        const ready=await settle(c,45000,{edgeSite:true});
         const valid=recordReadiness(run,quality,`site-${site.label}`,ready);
         const entry={...site,quality,ready:valid,waitMs:ready.waitMs,
           reason:ready.reasons,coverage:ready.stats?.coverage??null};
