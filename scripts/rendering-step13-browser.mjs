@@ -434,7 +434,7 @@ async function main(){
   if(o.help){console.log(help);return;}
   await mkdir(resolve(o.out),{recursive:true});
   const run={timestamp:new Date().toISOString(),url:o.url,sceneProvided:!!o.scene,
-    phases:[],screenshots:[],readiness:[],warnings:[],errors:[],
+    phases:[],screenshots:[],readiness:[],sites:[],warnings:[],errors:[],
     acceptance:'CAPTURED – visual inspection still required'};
   let engine;
   try{
@@ -459,38 +459,62 @@ async function main(){
     if(run.import?.missingNatureInstances)
       run.warnings.push(`${run.import.missingNatureInstances} Nature instances reference absent asset paths: ${run.import.missingPaths.join(', ')}`);
     for(const quality of o.qualities){
-      console.log(`Measuring ${quality} (${o.duration} ms per gesture, fog OFF)...`);
+      console.log(`Measuring ${quality} (${o.duration} ms/gesture, fog OFF)...`);
       await setControls(c,quality,false);
+      await setCamera(c,{q:0,r:0},.70);
       await sleep(o.warmup);
       const baseline=await settle(c);
-      run.readiness.push({quality,phase:'baseline',...baseline});
-      run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
+      if(recordReadiness(run,quality,'baseline',baseline))
+        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
       for(const kind of ['pan','zoom']){
+        // Store whether the starting tiles were complete before the gesture.
+        const validStart=run.readiness.at(-1)?.ready===true;
         const result=await phase(c,kind,quality,o.duration);
+        result.validStart=validStart;
         run.phases.push(result);
         const steady=await settle(c);
-        run.readiness.push({quality,phase:kind,...steady});
-        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
+        if(recordReadiness(run,quality,kind,steady))
+          run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
       }
     }
-    // Fog of War is checked separately, with exactly the same camera position.
-    await setControls(c,'auto',false);
-    await sleep(1000);
-    const clear=await settle(c);
-    run.readiness.push({quality:'auto',phase:'fog-reference-clear',...clear});
-    const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
-    run.screenshots.push(clearShot);
-    await setControls(c,'auto',true);
-    await sleep(1800);
-    const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
-    run.screenshots.push(fogShot);
-    run.fogComparison={available:true,onlyHereFogEnabled:true,changed:fogShot.sha256!==clearShot.sha256};
-    if(!run.fogComparison.changed)run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
-    const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
-    if(clearHashes.size<2)run.warnings.push('All fog-off map screenshots are identical; renderer may be frozen');
-    for(const item of run.readiness)if(!item.ready){
-      run.warnings.push(`World tiles did not settle: ${item.quality}/${item.phase}; pending=${item.stats?.pending??'?'}; missing=${item.stats?.progress?.missing??'?'}; coverage=${item.stats?.coverage??'?'}`);
+    // Grounded geographic coverage; fixed camera and zoom at each location.
+    for(const quality of ['fast','4']){
+      await setControls(c,quality,false);
+      for(const site of run.import?.sites||[]){
+        await setCamera(c,site,.70);
+        await sleep(1000);
+        const ready=await settle(c);
+        const valid=recordReadiness(run,quality,`site-${site.label}`,ready);
+        const entry={...site,quality,ready:valid,waitMs:ready.waitMs,
+          reason:ready.reasons,coverage:ready.stats?.coverage??null};
+        run.sites.push(entry);
+        if(valid){
+          const shot=await screenshot(c,join(resolve(o.out),`${quality}-site-${site.label}.png`));
+          run.screenshots.push(shot);entry.screenshot=shot.file;
+        }
+      }
     }
+    // Exactly identical camera position, explicitly different fog modes.
+    await setControls(c,'auto',false);
+    await setCamera(c,{q:0,r:0},.48);
+    const clear=await settle(c);
+    if(recordReadiness(run,'auto','fog-reference-clear',clear)){
+      const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
+      run.screenshots.push(clearShot);
+      await setControls(c,'auto',true);
+      await sleep(1800);
+      const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
+      run.screenshots.push(fogShot);
+      run.fogComparison={available:true,onlyHereFogEnabled:true,
+        changed:fogShot.sha256!==clearShot.sha256};
+      if(!run.fogComparison.changed)
+        run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
+    }else run.fogComparison={available:false,reason:'Reference tiles were not complete'};
+    const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
+    if(clearHashes.size<2)
+      run.warnings.push('All fog-off map screenshots identical or missing; renderer may be frozen');
+    if(run.screenshots.length===0)
+      run.warnings.push('No fully loaded screenshot could be captured');
     run.errors.push(...c.errors);
     if(run.errors.length||run.warnings.length)
       run.acceptance='PARTIAL – inspect readiness, assets or browser errors';
