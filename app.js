@@ -748,7 +748,7 @@ function imageForBiome(c){
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
  if(jungle&&!matches.length)matches=terrainAssetsByType('forest_floor');
- return matches.length?matches[hash(c.q,c.r,11)%matches.length]:null;
+ return matches.length?useAsset(matches[hash(c.q,c.r,11)%matches.length].path):null;
 }
 function effectiveBiome(c){return typeOfCell(c);}
 function baseImage(){return terrainAssetsByType('grassland')[0]||null;}
@@ -2273,11 +2273,21 @@ function draw(){
  // camera. Without this, the cache evicts a visible tree and the next frame
  // immediately re-decodes it, producing endless add/remove flicker.
  const pinned=new Set();
- for(const a of assets)if(['terrain','terrain_base','shorelines'].includes(a.category))
-  pinned.add(a.path);
+ // Never pin the entire terrain library: the previous code protected every
+ // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
+ // on the real 397-hex scene. Protect only the terrain actually beneath the
+ // camera and the small shared shoreline set.
+ for(const a of assets)if(a.category==='shorelines')pinned.add(a.path);
  const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
  const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
   minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ for(const cell of worldCells){
+  const pos=axialPos(cell.q,cell.r);
+  if(pos.x<minX-HEX||pos.x>maxX+HEX||
+     pos.y<minY-R*2||pos.y>maxY+R*2)continue;
+  const material=imageForBiome(cell);
+  if(material?.path)pinned.add(material.path);
+ }
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
   if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
@@ -3686,6 +3696,10 @@ window.VedrasAssetLabor={shadowSprites:{
   sceneryBuilds:staticScenery.stats().builds,
   terrainBuilds:terrainChunks.stats().built,active:tileModeActive,
   interacting:fastInteracting}),
+ activateTileCamera:()=>{if(!fastAllowed())return false;
+  if(!fastInteracting){beginFastCamera();endFastCamera(true);}else fastRender();
+  return !!worldTiles;
+ },
  tileDiagnostics:({limit=50,includeReadiness=true}={})=>{
   const max=Math.max(1,Math.min(150,Math.floor(limit)||50));
   const bounds=streamingViewBounds(96);
