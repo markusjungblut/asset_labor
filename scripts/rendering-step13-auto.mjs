@@ -33,7 +33,7 @@ async function startServer(){
     try{
       return await new Promise((resolveReady,rejectReady)=>{
         let settled=false,buffer='';
-        const env={...process.env,VEDRAS_PORT:'0',VEDRAS_NO_BROWSER:'1',PYTHONUNBUFFERED:'1'};
+        const env={...process.env,VEDRAS_PORT:'0',VEDRAS_NO_BROWSER:'1',VEDRAS_SILENT_HTTP:'1',PYTHONUNBUFFERED:'1'};
         const child=spawn(candidate.exe,candidate.args,{cwd:repo,env,stdio:['ignore','pipe','pipe']});
         server=child;
         const timer=setTimeout(()=>fail('Server start timed out (25 s)'),25000);
