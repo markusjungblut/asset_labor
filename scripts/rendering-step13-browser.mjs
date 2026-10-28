@@ -312,7 +312,7 @@ async function endSamples(cdp){
 async function snapshot(cdp){
   return cdp.eval(`(()=>{
     const v=window.VedrasAssetLabor;
-    return {quality:v.qualityStats(),camera:v.cameraStats(),world:v.worldTileStats(),
+    return {quality:v.qualityStats(),atlas:v.atlasStats?.()||null,camera:v.cameraStats(),world:v.worldTileStats(),
       lod:v.lodStats(),scenery:v.sceneryDrawStats(),streaming:v.streamingStats(),
       worker:window.VedrasTerrainWorker?.status?.()||null,
       cellCount:v.cells().length,natureCount:v.state.natureInstances?.length||0,
