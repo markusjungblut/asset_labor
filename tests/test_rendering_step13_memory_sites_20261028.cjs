@@ -82,3 +82,10 @@ test('unready checkpoints generate flagged diagnostic images',()=>{
  assert.ok(runner.includes('verified:valid'));
  assert.ok(runner.includes('captureGate(run,c,o.out,quality'));
 });
+
+test('large reference scene draws already decoded previews rather than repeatedly swapping atlas pages',()=>{
+ const app=readFileSync(join(root,'app.js'),'utf8');
+ assert.match(app,/const denseAtlasBypass=state\.objects&&state\.natureInstances\?\.length>500/);
+ assert.match(app,/if\(denseAtlasBypass\|\|!spriteAtlas\?\.draw/);
+ assert.match(app,/ctx\.drawImage\(obj\.asset\.img,b\.sx,b\.sy,b\.sw,b\.sh,left,top,width,height\)/);
+});
