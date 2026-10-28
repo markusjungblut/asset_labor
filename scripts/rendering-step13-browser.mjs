@@ -433,6 +433,7 @@ async function phase(cdp,kind,quality,ms){
     memory:{jsHeapBefore:before.JSHeapUsedSize??null,
       jsHeapAfter:after.JSHeapUsedSize??null,
       imagePoolDecodedBytes:end.quality.images?.decodedBytes??null,
+      worldTileRgbaEstimateBytes:end.world?.bytes??null,
       gpuTerrainEstimateBytes:end.gpuTerrain?.gpuBytes??null,
       gpuSpriteEstimateBytes:end.gpuSprites?.gpuBytes??null},
     mainThreadTaskUtilizationPercent:taskSeconds===null?null:
