@@ -486,6 +486,11 @@ async function main(){
         const result=await phase(c,kind,quality,o.duration);
         result.validStart=validStart;
         run.phases.push(result);
+        if(kind==='zoom'&&result.frameIntervalMs.p95>150)
+          run.warnings.push(`Zoom ${quality}: p95 ${result.frameIntervalMs.p95}ms (above 150ms diagnostic threshold)`);
+        const mem=result.end?.quality?.images||{};
+        if(mem.overLimitBytes>16*1048576)
+          run.warnings.push(`Image pool ${quality}/${kind}: ${Math.round(mem.overLimitBytes/1048576)} MiB over configured budget`);
         const steady=await settle(c);
         if(recordReadiness(run,quality,kind,steady))
           run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
