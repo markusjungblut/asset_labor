@@ -146,7 +146,7 @@ window.VedrasWorldTiles=(()=>{
   let epoch=0,serial=0,used=0,pixels=0,evicted=0,completed=0,
    previews=0,upgraded=0,visiblePreviews=0,
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
-   fogCells=[],visibleTiles=[],wantedTiles=new Set(),
+   fogCells=[],fogConfigured=false,visibleTiles=[],wantedTiles=new Set(),
    lod='mid',lastView=null,frame=0,
    lastProgress={exact:0,fallback:0,provisional:0,missing:0};
   const key=(t,l)=>t.id+'@'+l;
@@ -222,6 +222,7 @@ window.VedrasWorldTiles=(()=>{
   }
   function setSource(next){source=next;invalidate();}
   function setFogCells(cells){
+   fogConfigured=true; // [] means no authorized cells, NOT no mask.
    fogCells=window.VedrasFogAtmosphere?
     window.VedrasFogAtmosphere.prepare(cells):
     Array.isArray(cells)?cells.filter(c=>finite(c?.x)&&finite(c?.y)&&
@@ -506,7 +507,10 @@ window.VedrasWorldTiles=(()=>{
    const proj=view.projectY||1,items=[];
    let exact=0,fallback=0,provisional=0,missing=0;
    visiblePreviews=0;
-   const hasMask=Array.isArray(fog)&&fog.length>0&&typeof g.clip==='function';
+   // Legacy standalone hosts without a fog policy remain compatible.
+   // Explicit empty fog arrays MUST clip all ground, scenery and units.
+   const hasMask=Array.isArray(fog)&&typeof g.clip==='function'&&
+    (fogConfigured||fog!==fogCells);
    const atmosphere=window.VedrasFogAtmosphere;
    const drawKnownPath=(halo)=>{
     if(!hasMask)return;
