@@ -19,19 +19,20 @@ Ein vorhandenes Chrome-Fenster wird nicht verwendet. Der Test startet ein unabh�
 
 ## Was wird aufgenommen?
 
-- 6 Qualitätsprofile (fast, auto, 1×, 2×, 3×, 4×).
-- Je ein Stillbild vor Bewegung, eins nach Pan und eins nach Zoom **mit deaktiviertem Fog of War** (18 Screenshots).
+- 6 Qualitätsprofile (fast, auto, 1×, 2×, 3×, 4×) mit Pan-/Zoommessung und dokumentierter Bildpool-Abrechnung (decoded, protected, over budget, deferred upgrades).
+- Je ein Stillbild vor Bewegung, eins nach Pan und eins nach Zoom **mit deaktiviertem Fog of War** (maximal 18 Screenshots, nur wenn Kacheln vollständig bereit sind).
+- Zusätzlich bis zu 12 örtliche Vergleichsaufnahmen (`fast`/`4×`): Mittelpunkt, dichter Wald, Küste, Gebirge, Moor, offenes Wasser. Koordinaten und Vegetationsklasse stammen deterministisch aus der tatsächlich importierten 397-Hex-JSON.
 - **Nur die Kartengrafik**, nicht die Bedienoberfläche oder Sidebar.
 - Separat zwei Screenshots **bei identischer Kamera**: `fog-comparison-clear.png` und `fog-comparison-on.png`.
 - Frameintervalle p50/p95, Long Tasks, JS-Heap, CPU-Taskzeit, World-Tile-Cache, Kachel-Nachladen, effektive DPR und sichtbare Tile-Fehler.
 - Asset-Diagnostik: Anzahl der importierten Vegetationsinstanzen sowie die Zahl und Beispiele fehlender PNG-Pfade.
-- Nachlade-Gates: Der Test wartet auf fertige Kacheln und meldet im Bericht, falls sie bis zum Timeout nicht fertig werden.
+- Strikte Lade-Gates: Für Innenansichten erst bei **mindestens 99,9 % Bildschirm-Kachelabdeckung**; bei Rand-Biomen darf die reale Kartengrenze als Wolke sichtbar bleiben, aber alle angeforderten sichtbaren Kacheln und Assets müssen bereit sein. In beiden Fällen ohne fehlende/provisorische Tiles, ohne sichtbare Previews, ohne laufende Tile-Jobs und ohne fehlende erforderliche Artwork-Quellen wird ein Bild gespeichert. Der Test aktiviert beim Aufwärmen nötigenfalls die World-Tile-Kamera ohne Pan. Ein nicht bereites Bild bleibt **aus**; das Protokoll enthält Grund und Wartezeit. Maximal 45 Sekunden pro Sichtposition.
 
 **Ergebnisordner**: `artifacts/rendering-step13-auto/` enthält `result.json`, `README.md`, die PNG-Dateien und zusätzlich `step13-results.zip` mit sämtlichen Nachweisen zum einfachen Hochladen in ChatGPT. Er ist in `.gitignore` ausgeschlossen, damit keine Messgrafiken versehentlich eingecheckt werden.
 
 ## Interpretation
 
-- `CAPTURED – visual inspection still required`: Browserlauf und Messwerte vorhanden, Grafikqualität noch nicht manuell abgenommen.
+- `CAPTURED – visual inspection still required`: Browserlauf und Messwerte vorhanden, alle geforderten Aufnahmen waren technisch ladebereit; Grafikqualität noch nicht manuell abgenommen.
 - `PARTIAL – inspect readiness and asset warnings`: Fehlende Grafiken, nicht fertiggestellte Kacheln oder andere Warnungen erfordern Ursachenanalyse.
 - `INCOMPLETE – browser capture error`: Import, Chrome oder Screenshotaufnahme fehlgeschlagen; keine Grafikabnahme möglich.
 
@@ -46,3 +47,13 @@ Der frühere Fehler `Could not find node with given id` entstand beim Zugriff au
 Falls Python oder Node nicht auffindbar sind, deren Installation bzw. PATH prüfen. Der Server wird auf Port 0 (freier Port) gestartet und nicht mit einem möglicherweise veralteten Prozess auf Port 8780 verwechselt.
 
 CLI-Regressionstests: `node --test tests/test_rendering_step13_cli_20261028.cjs tests/test_rendering_step13_auto_20261028.cjs`. Diese Tests ersetzen keinen kompletten GPU-/Browserlauf auf Windows.
+
+## Bildpool / Zoom – Korrekturen und Abnahmekriterien
+
+Die erste reale Messung zeigte ein 192-MiB-Poolbudget bei 1,07 bis 1,56 GB gebuchter Bildpuffer, mehr als 200 Vorschau-Upgrades beim Qualitätswechsel und erhebliche rAF-p95-Aussetzer beim Zoom. Bisher schützte die Renderfunktion pauschal **alle** Terrain- und Küstengrafiken; zugleich ignorierte die LRU neue, ungeschützte Bilder für 24 Sekunden selbst unter Speicherdruck.
+
+Der überarbeitete Pool schützt Terrainmaterialien nur noch innerhalb des Kamerabereichs (sowie geteilte Küstenmaterialien), entfernt andere Bildpuffer bei Budgetdruck ohne künstliche Altersfrist und begrenzt die Zahl wartender Premium-Upgrades auf zwei. Vor einem Upgrade wird dessen zusätzlicher Speicherbedarf gegen das Poolbudget geprüft. Die Ursache einzelner Zoom-Langtasks lässt sich erst durch einen erneuten Windows-Chromium-Lauf sicher bewerten; es wird **kein Performancegewinn behauptet**. Falls tatsächlich benötigte Bilder zusammen mehr als 192 MiB benötigen, meldet `overLimitBytes` den ehrlichen Restüberhang, statt notwendige sichtbare Texturen zu entfernen. `deferredUpgrades` macht aufgeschobene Qualitätsverbesserungen sichtbar.
+
+Die neue `README.md` dokumentiert pro Qualitätsprofil und Kameratestposition Ladezeiten, vollständige Abdeckung, Zoommetriken, Bildpoolbudget und fehlende Assets. Screenshots werden nur für vollständig bereite Kacheln erstellt; ein nicht bestandenes Gate ist kein erfolgreicher Bildtest. Bilder von älteren Läufen werden vor dem Start aus dem dedizierten Ergebnisordner entfernt und erscheinen nicht fälschlich in der neuen ZIP.
+
+Test: `node --test tests/test_rendering_step13_memory_sites_20261028.cjs` sowie die bisherigen Schritt-13-Tests. Die Geografiepunkte werden aus dem echten Export abgeleitet und bei fehlenden erforderlichen Biomen nicht erfunden.

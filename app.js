@@ -408,6 +408,7 @@ function fastRender(){
   return;
  }
  if((!fastInteracting&&!tileModeActive)||fastFrameScheduled)return;
+ protectCameraImagePool();
  fastFrameScheduled=true;
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
@@ -748,7 +749,7 @@ function imageForBiome(c){
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
  if(jungle&&!matches.length)matches=terrainAssetsByType('forest_floor');
- return matches.length?matches[hash(c.q,c.r,11)%matches.length]:null;
+ return matches.length?useAsset(matches[hash(c.q,c.r,11)%matches.length].path):null;
 }
 function effectiveBiome(c){return typeOfCell(c);}
 function baseImage(){return terrainAssetsByType('grassland')[0]||null;}
@@ -2240,6 +2241,51 @@ function worldFrontierGeometry(){
  lastFrontierGeometry={cells:fog,edges:fog.frontierEdges};
  return lastFrontierGeometry;
 }
+let lastProtectedCameraSignature='';
+function protectCameraImagePool(){
+ // Protect visible terrain and vegetation for BOTH the direct editor draw
+ // and the retained world-tile compositor. Camera-only frames previously
+ // skipped draw() and left the previous region pinned indefinitely.
+ const signature=[
+  Math.floor(state.panX/120),Math.floor(state.panY/120),
+  Math.round(state.zoom*20),state.sceneSize,
+  state.natureInstances?.length||0,frameMemo.stats().revision
+ ].join(':');
+ if(signature===lastProtectedCameraSignature)return;
+ lastProtectedCameraSignature=signature;
+ const pinned=new Set();
+ // Never pin the entire terrain library: the previous code protected every
+ // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
+ // on the real 397-hex scene. Protect only the terrain actually beneath the
+ // camera and the small shared shoreline set.
+ for(const a of assets)if(a.category==='shorelines')pinned.add(a.path);
+ const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
+ const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
+  minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ for(const cell of worldCells){
+  const pos=axialPos(cell.q,cell.r);
+  if(pos.x<minX-HEX||pos.x>maxX+HEX||
+     pos.y<minY-R*2||pos.y>maxY+R*2)continue;
+  const material=imageForBiome(cell);
+  if(material?.path)pinned.add(material.path);
+ }
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
+  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450)
+   pinned.add(m.assetPath);
+ }
+ for(const [cell,object] of Object.entries(state.hexObject||{})){
+  const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
+  if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
+   pinned.add(object?.path);
+ }
+ imagePool.protect(pinned);
+
+}
 function draw(){
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -2272,27 +2318,7 @@ function draw(){
  // Protect all shared terrain sources and the sprite images intersecting the
  // camera. Without this, the cache evicts a visible tree and the next frame
  // immediately re-decodes it, producing endless add/remove flicker.
- const pinned=new Set();
- for(const a of assets)if(['terrain','terrain_base','shorelines'].includes(a.category))
-  pinned.add(a.path);
- const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
- const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
-  minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
- for(const n of state.natureInstances||[]){
-  const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
-  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
- }
- for(const m of state.mountainInstances||[]){
-  const p=axialPos(m.q,m.r);
-  if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450)
-   pinned.add(m.assetPath);
- }
- for(const [cell,object] of Object.entries(state.hexObject||{})){
-  const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
-  if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
-   pinned.add(object?.path);
- }
- imagePool.protect(pinned);
+ protectCameraImagePool();
  if(++frameNumber%120===0)imagePool.prune();
  // The background signature must see the CURRENT tier before paint() decides
  // whether to reuse a raster. Direct zoom/scene restore can skip applyZoom().
@@ -2885,7 +2911,7 @@ function exportScene(){const config={schema:'vedras-asset-labor-scene-0.8',schem
  const url=URL.createObjectURL(new Blob([JSON.stringify(config,null,2)],{type:'application/json'}));const el=document.createElement('a');el.href=url;el.download='vedras_scene.json';el.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 async function loadLibrary(list,mode){
  const old=state.asset;
- imagePool.clear();
+ imagePool.clear();lastProtectedCameraSignature='';
  for(const a of assets)if(a.temporary&&a.url?.startsWith('blob:'))URL.revokeObjectURL(a.url);
  assets=list.map(e=>({...e,img:null,terrainCheck:null,
   url:e.url||('./'+e.path+(e.mtime?'?v='+e.mtime:''))}));
@@ -3686,6 +3712,10 @@ window.VedrasAssetLabor={shadowSprites:{
   sceneryBuilds:staticScenery.stats().builds,
   terrainBuilds:terrainChunks.stats().built,active:tileModeActive,
   interacting:fastInteracting}),
+ activateTileCamera:()=>{if(!fastAllowed())return false;
+  if(!fastInteracting){beginFastCamera();endFastCamera(true);}else fastRender();
+  return !!worldTiles;
+ },
  tileDiagnostics:({limit=50,includeReadiness=true}={})=>{
   const max=Math.max(1,Math.min(150,Math.floor(limit)||50));
   const bounds=streamingViewBounds(96);

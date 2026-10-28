@@ -29,20 +29,22 @@ window.VedrasImagePool=(()=>{
   }
   let active=0,activeUpgrades=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,
-   peakBytes:0,promoted:0,promotionFailures:0};
+   peakBytes:0,promoted:0,promotionFailures:0,deferredUpgrades:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
-  function prune(force=false){
-   if(stats.decodedBytes<=maxBytes&&!force)return;
+  function prune(force=false,headroom=0){
+   if(stats.decodedBytes+headroom<=maxBytes&&!force)return;
+   // Under real memory pressure, the previous 24-second recency exemption
+   // permitted >1 GB of idle decoded terrain. Protect the visible camera
+   // footprint instead; everything else can leave the LRU immediately.
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
-    !protectedPaths.has(r.asset.path)&&
-    (force||now()-r.lastUsed>protectMs))
+    !protectedPaths.has(r.asset.path))
     .sort((a,b)=>{
      // Small shared terrain materials are preferred over transient sprites.
      const priority=e=>['terrain','terrain_base','shorelines'].includes(e.asset.category)?1:0;
      return priority(a)-priority(b)||a.lastUsed-b.lastUsed;
     });
    for(const entry of candidates){
-    if(stats.decodedBytes<=maxBytes&&!force)break;
+    if(stats.decodedBytes+headroom<=maxBytes&&!force)break;
     resources.delete(entry.asset.path);
     stats.decodedBytes-=entry.bytes;entry.asset.img=null;
     // Old Image elements remain referenced by active draw operations only;
@@ -111,9 +113,22 @@ window.VedrasImagePool=(()=>{
      // Quality changes do not purge the entire pool. Upgrade only an
      // already-visible/selected asset when its previous preview is too small.
      if(!r.upgrade&&!r.failedUpgrade&&r.asset.previewReduced&&
-        target>longest&&sourceMax>longest){
-      r.upgrade=true;r.order=stats.requests++;r.priority=priority;
-      queue.push(r);pump();
+        target>longest&&sourceMax>longest&&protectedPaths.has(asset.path)){
+      const ratio=Math.min(1,target/sourceMax);
+      const area=Math.max(1,Math.round((r.asset.sourceDimensions?.width||target)*ratio))*
+       Math.max(1,Math.round((r.asset.sourceDimensions?.height||target)*ratio));
+      const additional=Math.max(0,area*4-r.bytes);
+      // Upgrading 200+ sprites while panning exhausted the Chromium main
+      // thread. Allow at most two pending promotions and reserve their memory
+      // before scheduling expensive canvas resampling.
+      const upgradesPending=queue.filter(item=>item.upgrade).length+activeUpgrades;
+      if(upgradesPending<2){
+       prune(false,additional);
+       if(stats.decodedBytes+additional<=maxBytes){
+        r.upgrade=true;r.order=stats.requests++;r.priority=priority;
+        queue.push(r);pump();
+       }else stats.deferredUpgrades++;
+      }
      }
      return Promise.resolve(r.img);
     }
@@ -129,7 +144,7 @@ window.VedrasImagePool=(()=>{
    r.promise=new Promise(resolve=>{r.resolve=resolve;});
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
-  function protect(paths){protectedPaths=new Set(paths||[]);}
+  function protect(paths){protectedPaths=new Set(paths||[]);prune();}
   function clear(){
    protectedPaths.clear();
    generation++;
@@ -172,9 +187,15 @@ window.VedrasImagePool=(()=>{
    if(changed)for(const r of resources.values())r.failedUpgrade=false;
    return changed;
   }
-  function report(){return {...stats,active,activeUpgrades,
-   queued:queue.length,resident:resources.size,
-   previewTerrainPx,previewSpritePx,limitBytes:maxBytes};}
+  function report(){
+   let protectedBytes=0;
+   for(const [path,r] of resources)if(protectedPaths.has(path)&&r.ready)
+    protectedBytes+=r.bytes;
+   return {...stats,active,activeUpgrades,queued:queue.length,
+    resident:resources.size,protectedAssets:protectedPaths.size,protectedBytes,
+    overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes),
+    previewTerrainPx,previewSpritePx,limitBytes:maxBytes};
+  }
   return {ensure,clear,prune,report,originals,protect,setPreviewLimits};
  }
  return {create};

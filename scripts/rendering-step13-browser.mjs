@@ -13,6 +13,7 @@ import { basename, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createInterface } from 'node:readline/promises';
 import { createHash } from 'node:crypto';
+import { cameraSites } from './rendering-step13-sites.mjs';
 
 const help = `Usage: node scripts/rendering-step13-browser.mjs [options]
   --url URL          Running local Asset-Labor, default http://127.0.0.1:8780/
@@ -184,19 +185,67 @@ async function screenshot(cdp,filename){
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
     height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
-async function settle(cdp,timeoutMs=12000){
-  let last=null,consecutive=0;
-  const deadline=Date.now()+timeoutMs;
+async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
+  let last=null,consecutive=0,reasons=[];
+  const started=Date.now(),deadline=started+timeoutMs;
   while(Date.now()<deadline){
-    last=await cdp.eval(`window.VedrasAssetLabor?.worldTileStats?.()||null`);
-    const ready=last&&last.drawn>0&&last.pending===0&&
-      last.coverage>=0.55&&last.retryExhausted===0&&
-      (last.progress?.missing??0)===0&&(last.progress?.provisional??0)===0;
-    if(ready&&++consecutive>=2)return {ready:true,stats:last};
-    if(!ready)consecutive=0;
-    await sleep(600);
+    last=await cdp.eval(`(()=>{
+      const v=window.VedrasAssetLabor;
+      return {world:v.worldTileStats(),artwork:v.tileDiagnostics({limit:32,includeReadiness:true}),
+        mode:v.state.mode,view:v.state.view,assetPool:v.assetMemory()};
+    })()`);
+    const w=last.world,art=last.artwork;
+    reasons=[];
+    if(last.view!=='map'||last.mode!=='normal')reasons.push('not-map-view');
+    if(!w.active)reasons.push('world-tile-compositor-not-active');
+    if(!w.visible||!w.drawn)reasons.push('no-visible-world-tiles');
+    if(w.pending!==0)reasons.push('tile-queue-pending:'+w.pending);
+    if(w.retryExhausted>0)reasons.push('retry-exhausted');
+    // Interior test: full viewport coverage. Edge biomes may legitimately
+    // reveal the cloudy world boundary; still require every requested tile
+    // and each visible artwork dependency to have completed.
+    if(w.coverage<(edgeSite?.10:.999))reasons.push('coverage:'+w.coverage);
+    if((w.progress?.exact??0)<1)reasons.push('no-exact-world-tiles');
+    if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
+    if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
+    if(w.visiblePreviews>0)reasons.push('visible-previews');
+    const waiting=(art?.artwork||[]).filter(a=>!a.ready);
+    if(waiting.length)reasons.push('artwork-not-ready:'+waiting.length);
+    if(!reasons.length&&++consecutive>=3)
+      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[]};
+    if(reasons.length)consecutive=0;
+    // No camera motion: request the actual tile compositor again when the
+    // first frame has not created any visible tiles (old baseline cloud bug).
+    if((Date.now()-started)%2700<800)
+      await cdp.eval(`window.VedrasAssetLabor?.activateTileCamera?.()`);
+    await sleep(750);
   }
-  return {ready:false,stats:last};
+  return {ready:false,stats:last?.world,assetPool:last?.assetPool,
+    waitMs:Date.now()-started,reasons};
+}
+async function setCamera(cdp,site,zoom=.70){
+  const q=Number(site.q),r=Number(site.r);
+  if(!Number.isInteger(q)||!Number.isInteger(r))throw Error('Invalid camera site');
+  await cdp.eval(`(()=>{
+    const v=window.VedrasAssetLabor,slider=document.getElementById('zoomSlider');
+    slider.value=${Math.round(zoom*100)};
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
+    const hex=v.geometry.HEX,R=v.geometry.R;
+    const x=hex*(${q}+${r}/2),y=1.5*R*${r};
+    v.state.panX=-x*v.state.zoom;
+    v.state.panY=-y*v.geometry.PROJECT_Y*v.state.zoom;
+    v.activateTileCamera();
+    v.requestDraw();
+    return true;
+  })()`);
+}
+function recordReadiness(run,quality,phase,readiness){
+  run.readiness.push({quality,phase,...readiness});
+  if(!readiness.ready){
+    run.warnings.push(`Unready ${quality}/${phase}: ${readiness.reasons.join('; ')}; waited ${readiness.waitMs}ms`);
+    return false;
+  }
+  return true;
 }
 async function assetPresence(cdp){
   return cdp.eval(`(()=>{
@@ -323,7 +372,8 @@ async function importScene(cdp,filename){
   const presence=await assetPresence(cdp);
   if(presence.nature!==expectedNature)throw Error('Imported '+presence.nature+
     ' of '+expectedNature+' valid vegetation instances. Scene import truncated data.');
-  return {file:resolve(filename),expectedNature,sceneSize:397,...presence};
+  return {file:resolve(filename),expectedNature,sceneSize:397,...presence,
+    sites:cameraSites(scene)};
 }
 async function phase(cdp,kind,quality,ms){
   const start=await snapshot(cdp),before=await measureMetrics(cdp);
@@ -360,14 +410,27 @@ function report(run){
     `**Erwartete / importierte Vegetation:** ${run.import?.expectedNature??'?'} / ${run.import?.nature??'?'}`,
     `**Nicht vorhandene Asset-Instanzen:** ${run.import?.missingNatureInstances??'?'}`,
     `**Screenshots:** ${run.screenshots?.length??0} (nur Kartenausschnitt; normale Bilder ohne Fog)`,
+    `**Geografische Testpositionen:** ${run.sites?.length??0} (6 Biome/Features × fast und 4×)`,
     '',
     '| Profil | Geste | rAF-p50 ms | rAF-p95 ms | >50 ms | Longtasks | Tile-Bakes | effektive DPR |',
     '|---|---|---:|---:|---:|---:|---:|---:|'];
   for(const p of run.phases)lines.push(`| ${p.quality} | ${p.kind} | ${p.frameIntervalMs.p50??'–'} | ${p.frameIntervalMs.p95??'–'} | ${p.frameIntervalMs.over50ms} | ${p.longTasks.count} | ${p.tileBakes??'–'} | ${p.qualityEffectiveDpr??'–'} |`);
+  if(run.phases?.length)lines.push('', '## Bildpool und Zoomdiagnostik', '',
+    '| Qualität | Geste | Pool MiB | Budget MiB | Überhang MiB | geschützt | Upgrade verschoben | Messbeginn gültig |',
+    '|---|---|---:|---:|---:|---:|---:|---|',
+    ...run.phases.map(p=>{
+      const m=p.end?.quality?.images||{};
+      const mb=n=>Number.isFinite(n)?(n/1048576).toFixed(1):'–';
+      return `| ${p.quality} | ${p.kind} | ${mb(m.decodedBytes)} | ${mb(m.limitBytes)} | ${mb(m.overLimitBytes)} | ${m.protectedAssets??'–'} | ${m.deferredUpgrades??'–'} | ${p.validStart?'ja':'NEIN'} |`;
+    }));
+  if(run.sites?.length)lines.push('', '## Regionale Kameratestpositionen (wirkliche Hexkoordinaten)', '',
+    '| Profil | Region | Hex | Terrain | Waldklasse | bereit | Kachelabdeckung |',
+    '|---|---|---|---|---|---|---:|',
+    ...run.sites.map(s=>`| ${s.quality} | ${s.label} | ${s.q},${s.r} | ${s.terrain} | ${s.forestClass} | ${s.ready?'ja':'NEIN'} | ${s.coverage??'–'} |`));
   if(run.screenshots?.length)lines.push('', '## Karten-Screenshots', '',
     ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB)`));
   if(run.readiness?.length)lines.push('', '## Nachladezustand', '',
-    ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}`));
+    ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}; wait ${r.waitMs??'?'} ms; ${r.reasons?.join(', ')||'OK'}`));
   if(run.warnings?.length)lines.push('', '## Warnungen', '', ...run.warnings.map(w=>`- ${w}`));
   lines.push('','rAF-p50/p95 sind **Bildschirm-Frameintervalle während der Geste**, keine direkt instrumentierten `draw()`-Laufzeiten oder garantierten FPS-Werte. CDP-CPU-Taskzeit/Heap und Cachewerte stehen in `result.json`.','',
     '## Noch visuell und auf Zielhardware abzunehmen','',
@@ -375,6 +438,7 @@ function report(run){
     '- [ ] Fog-Kern vollständig opak, auch bei leeren/verspäteten Assets',
     '- [ ] Wolkenweltposition und Beleuchtung bleiben bei Pan/Zoom stabil',
     '- [ ] Waldtiefe, Bergschatten, Küsten, Relief und Sprite-Nähte ohne sichtbare Regression',
+    '- [ ] Regionale Schnappschüsse fast/4× für Wald, Küste, Berge, Moor, Meer, Mitte prüfen',
     '- [ ] Keine dauerhaft unter Wolken blockierten sichtbaren Tiles',
     '- [ ] 4×-Bildschärfe und wirksame DPR innerhalb 8/14-MP- und 4096-Pixel-Budgets',
     '- [ ] Vergleich über denselben gespeicherten 397-Hex-Stand, Viewport, Zoom und Browser/GPU',
@@ -388,7 +452,7 @@ async function main(){
   if(o.help){console.log(help);return;}
   await mkdir(resolve(o.out),{recursive:true});
   const run={timestamp:new Date().toISOString(),url:o.url,sceneProvided:!!o.scene,
-    phases:[],screenshots:[],readiness:[],warnings:[],errors:[],
+    phases:[],screenshots:[],readiness:[],sites:[],warnings:[],errors:[],
     acceptance:'CAPTURED – visual inspection still required'};
   let engine;
   try{
@@ -413,38 +477,67 @@ async function main(){
     if(run.import?.missingNatureInstances)
       run.warnings.push(`${run.import.missingNatureInstances} Nature instances reference absent asset paths: ${run.import.missingPaths.join(', ')}`);
     for(const quality of o.qualities){
-      console.log(`Measuring ${quality} (${o.duration} ms per gesture, fog OFF)...`);
+      console.log(`Measuring ${quality} (${o.duration} ms/gesture, fog OFF)...`);
       await setControls(c,quality,false);
+      await setCamera(c,{q:0,r:0},.70);
       await sleep(o.warmup);
       const baseline=await settle(c);
-      run.readiness.push({quality,phase:'baseline',...baseline});
-      run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
+      if(recordReadiness(run,quality,'baseline',baseline))
+        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
       for(const kind of ['pan','zoom']){
+        // Store whether the starting tiles were complete before the gesture.
+        const validStart=run.readiness.at(-1)?.ready===true;
         const result=await phase(c,kind,quality,o.duration);
+        result.validStart=validStart;
         run.phases.push(result);
+        if(kind==='zoom'&&result.frameIntervalMs.p95>150)
+          run.warnings.push(`Zoom ${quality}: p95 ${result.frameIntervalMs.p95}ms (above 150ms diagnostic threshold)`);
+        const mem=result.end?.quality?.images||{};
+        if(mem.overLimitBytes>16*1048576)
+          run.warnings.push(`Image pool ${quality}/${kind}: ${Math.round(mem.overLimitBytes/1048576)} MiB over configured budget`);
         const steady=await settle(c);
-        run.readiness.push({quality,phase:kind,...steady});
-        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
+        if(recordReadiness(run,quality,kind,steady))
+          run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
       }
     }
-    // Fog of War is checked separately, with exactly the same camera position.
-    await setControls(c,'auto',false);
-    await sleep(1000);
-    const clear=await settle(c);
-    run.readiness.push({quality:'auto',phase:'fog-reference-clear',...clear});
-    const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
-    run.screenshots.push(clearShot);
-    await setControls(c,'auto',true);
-    await sleep(1800);
-    const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
-    run.screenshots.push(fogShot);
-    run.fogComparison={available:true,onlyHereFogEnabled:true,changed:fogShot.sha256!==clearShot.sha256};
-    if(!run.fogComparison.changed)run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
-    const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
-    if(clearHashes.size<2)run.warnings.push('All fog-off map screenshots are identical; renderer may be frozen');
-    for(const item of run.readiness)if(!item.ready){
-      run.warnings.push(`World tiles did not settle: ${item.quality}/${item.phase}; pending=${item.stats?.pending??'?'}; missing=${item.stats?.progress?.missing??'?'}; coverage=${item.stats?.coverage??'?'}`);
+    // Grounded geographic coverage; fixed camera and zoom at each location.
+    for(const quality of ['fast','4']){
+      await setControls(c,quality,false);
+      for(const site of run.import?.sites||[]){
+        await setCamera(c,site,.70);
+        await sleep(1000);
+        const ready=await settle(c,45000,{edgeSite:true});
+        const valid=recordReadiness(run,quality,`site-${site.label}`,ready);
+        const entry={...site,quality,ready:valid,waitMs:ready.waitMs,
+          reason:ready.reasons,coverage:ready.stats?.coverage??null};
+        run.sites.push(entry);
+        if(valid){
+          const shot=await screenshot(c,join(resolve(o.out),`${quality}-site-${site.label}.png`));
+          run.screenshots.push(shot);entry.screenshot=shot.file;
+        }
+      }
     }
+    // Exactly identical camera position, explicitly different fog modes.
+    await setControls(c,'auto',false);
+    await setCamera(c,{q:0,r:0},.48);
+    const clear=await settle(c);
+    if(recordReadiness(run,'auto','fog-reference-clear',clear)){
+      const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
+      run.screenshots.push(clearShot);
+      await setControls(c,'auto',true);
+      await sleep(1800);
+      const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
+      run.screenshots.push(fogShot);
+      run.fogComparison={available:true,onlyHereFogEnabled:true,
+        changed:fogShot.sha256!==clearShot.sha256};
+      if(!run.fogComparison.changed)
+        run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
+    }else run.fogComparison={available:false,reason:'Reference tiles were not complete'};
+    const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
+    if(clearHashes.size<2)
+      run.warnings.push('All fog-off map screenshots identical or missing; renderer may be frozen');
+    if(run.screenshots.length===0)
+      run.warnings.push('No fully loaded screenshot could be captured');
     run.errors.push(...c.errors);
     if(run.errors.length||run.warnings.length)
       run.acceptance='PARTIAL – inspect readiness, assets or browser errors';
