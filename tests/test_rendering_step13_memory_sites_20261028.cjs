@@ -52,3 +52,11 @@ test('new benchmark never publishes unready terrain baseline as a success',()=>{
  assert.match(source,/for\(const site of run\.import\?\.sites\|\|\[\]\)/);
  assert.match(source,/setControls\(c,quality,false\)/);
 });
+
+test('camera-only compositor refreshes visible image protection',()=>{
+ const app=readFileSync(join(root,'app.js'),'utf8');
+ assert.match(app,/function protectCameraImagePool\(\)/);
+ assert.match(app,/function fastRender\(\)[\s\S]*?protectCameraImagePool\(\)/);
+ assert.doesNotMatch(app,/for\(const a of assets\)if\(\['terrain','terrain_base','shorelines'\]/);
+ assert.match(app,/imagePool\.protect\(pinned\)/);
+});
