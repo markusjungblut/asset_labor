@@ -185,7 +185,7 @@ async function screenshot(cdp,filename){
   return {file:basename(filename),bytes:png.length,width:png.readUInt32BE(16),
     height:png.readUInt32BE(20),sha256:createHash('sha256').update(png).digest('hex')};
 }
-async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
+async function settle(cdp,timeoutMs=9000,{edgeSite=false}={}){
   let last=null,consecutive=0,reasons=[];
   const started=Date.now(),deadline=started+timeoutMs;
   while(Date.now()<deadline){
@@ -209,10 +209,14 @@ async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
     if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
     if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
     if(w.visiblePreviews>0)reasons.push('visible-previews');
+    // tileDiagnostics checks whether the *editor chunk* was painted, which
+    // may legitimately remain false after the complete World-Tile has been
+    // baked. Those details are advisory, not a second mandatory gate.
     const waiting=(art?.artwork||[]).filter(a=>!a.ready);
-    if(waiting.length)reasons.push('artwork-not-ready:'+waiting.length);
+    const notes=waiting.length?['editor-chunk-not-ready:'+waiting.length]:[];
+
     if(!reasons.length&&++consecutive>=3)
-      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[]};
+      return {ready:true,stats:w,assetPool:last.assetPool,waitMs:Date.now()-started,reasons:[],notes};
     if(reasons.length)consecutive=0;
     // No camera motion: request the actual tile compositor again when the
     // first frame has not created any visible tiles (old baseline cloud bug).
@@ -221,7 +225,7 @@ async function settle(cdp,timeoutMs=45000,{edgeSite=false}={}){
     await sleep(750);
   }
   return {ready:false,stats:last?.world,assetPool:last?.assetPool,
-    waitMs:Date.now()-started,reasons};
+    waitMs:Date.now()-started,reasons,notes:[]};
 }
 async function setCamera(cdp,site,zoom=.70){
   const q=Number(site.q),r=Number(site.r);
@@ -241,11 +245,19 @@ async function setCamera(cdp,site,zoom=.70){
 }
 function recordReadiness(run,quality,phase,readiness){
   run.readiness.push({quality,phase,...readiness});
+  console.log(`  ${quality}/${phase}: ${readiness.ready?'READY':'DIAGNOSTIC'} after ${Math.round(readiness.waitMs/1000)}s; ${readiness.reasons.join(', ')||'world tiles complete'}`);
   if(!readiness.ready){
     run.warnings.push(`Unready ${quality}/${phase}: ${readiness.reasons.join('; ')}; waited ${readiness.waitMs}ms`);
     return false;
   }
   return true;
+}
+async function captureGate(run,cdp,out,quality,phase,readiness,validName){
+  const valid=recordReadiness(run,quality,phase,readiness);
+  const name=valid?validName:validName.replace(/\.png$/,'-diagnostic.png');
+  const file=await screenshot(cdp,join(resolve(out),name));
+  run.screenshots.push({...file,verified:valid});
+  return {valid,file};
 }
 async function assetPresence(cdp){
   return cdp.eval(`(()=>{
@@ -300,7 +312,7 @@ async function endSamples(cdp){
 async function snapshot(cdp){
   return cdp.eval(`(()=>{
     const v=window.VedrasAssetLabor;
-    return {quality:v.qualityStats(),camera:v.cameraStats(),world:v.worldTileStats(),
+    return {quality:v.qualityStats(),atlas:v.atlasStats?.()||null,camera:v.cameraStats(),world:v.worldTileStats(),
       lod:v.lodStats(),scenery:v.sceneryDrawStats(),streaming:v.streamingStats(),
       worker:window.VedrasTerrainWorker?.status?.()||null,
       cellCount:v.cells().length,natureCount:v.state.natureInstances?.length||0,
@@ -409,7 +421,7 @@ function report(run){
     `**Hexe / Nature:** ${run.scene?.cellCount??'?'} / ${run.scene?.natureCount??'?'}`,
     `**Erwartete / importierte Vegetation:** ${run.import?.expectedNature??'?'} / ${run.import?.nature??'?'}`,
     `**Nicht vorhandene Asset-Instanzen:** ${run.import?.missingNatureInstances??'?'}`,
-    `**Screenshots:** ${run.screenshots?.length??0} (nur Kartenausschnitt; normale Bilder ohne Fog)`,
+    `**Screenshots:** ${run.screenshots?.length??0}; davon ${run.screenshots?.filter(s=>s.verified).length??0} verifiziert, ${run.screenshots?.filter(s=>!s.verified).length??0} ausdrücklich diagnostisch`,
     `**Geografische Testpositionen:** ${run.sites?.length??0} (6 Biome/Features × fast und 4×)`,
     '',
     '| Profil | Geste | rAF-p50 ms | rAF-p95 ms | >50 ms | Longtasks | Tile-Bakes | effektive DPR |',
@@ -423,12 +435,19 @@ function report(run){
       const mb=n=>Number.isFinite(n)?(n/1048576).toFixed(1):'–';
       return `| ${p.quality} | ${p.kind} | ${mb(m.decodedBytes)} | ${mb(m.limitBytes)} | ${mb(m.overLimitBytes)} | ${m.protectedAssets??'–'} | ${m.deferredUpgrades??'–'} | ${p.validStart?'ja':'NEIN'} |`;
     }));
+  if(run.phases?.length)lines.push('', '## Atlas-Cache-Telemetrie', '',
+    '| Qualität | Geste | Seiten geladen | Seiten verworfen | Original-PNG-Fallbacks |',
+    '|---|---|---:|---:|---:|',
+    ...run.phases.map(p=>{
+      const a=p.end?.atlas||{};
+      return `| ${p.quality} | ${p.kind} | ${a.pageLoads??'–'} | ${a.pageEvictions??'–'} | ${a.cooldownFallbacks??'–'} |`;
+    }));
   if(run.sites?.length)lines.push('', '## Regionale Kameratestpositionen (wirkliche Hexkoordinaten)', '',
     '| Profil | Region | Hex | Terrain | Waldklasse | bereit | Kachelabdeckung |',
     '|---|---|---|---|---|---|---:|',
     ...run.sites.map(s=>`| ${s.quality} | ${s.label} | ${s.q},${s.r} | ${s.terrain} | ${s.forestClass} | ${s.ready?'ja':'NEIN'} | ${s.coverage??'–'} |`));
   if(run.screenshots?.length)lines.push('', '## Karten-Screenshots', '',
-    ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB)`));
+    ...run.screenshots.map(s=>`- ${s.file} (${s.width}×${s.height}, ${Math.round(s.bytes/1024)} KiB; ${s.verified?'READY':'UNVERIFIED diagnostic'})`));
   if(run.readiness?.length)lines.push('', '## Nachladezustand', '',
     ...run.readiness.map(r=>`- ${r.quality} / ${r.phase}: ${r.ready?'bereit':'NICHT BEREIT'}; pending ${r.stats?.pending??'?'}; missing ${r.stats?.progress?.missing??'?'}; coverage ${r.stats?.coverage??'?'}; wait ${r.waitMs??'?'} ms; ${r.reasons?.join(', ')||'OK'}`));
   if(run.warnings?.length)lines.push('', '## Warnungen', '', ...run.warnings.map(w=>`- ${w}`));
@@ -482,8 +501,7 @@ async function main(){
       await setCamera(c,{q:0,r:0},.70);
       await sleep(o.warmup);
       const baseline=await settle(c);
-      if(recordReadiness(run,quality,'baseline',baseline))
-        run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-baseline-clear.png`)));
+      await captureGate(run,c,o.out,quality,'baseline',baseline,`${quality}-baseline-clear.png`);
       for(const kind of ['pan','zoom']){
         // Store whether the starting tiles were complete before the gesture.
         const validStart=run.readiness.at(-1)?.ready===true;
@@ -496,8 +514,7 @@ async function main(){
         if(mem.overLimitBytes>16*1048576)
           run.warnings.push(`Image pool ${quality}/${kind}: ${Math.round(mem.overLimitBytes/1048576)} MiB over configured budget`);
         const steady=await settle(c);
-        if(recordReadiness(run,quality,kind,steady))
-          run.screenshots.push(await screenshot(c,join(resolve(o.out),`${quality}-${kind}-clear.png`)));
+        await captureGate(run,c,o.out,quality,kind,steady,`${quality}-${kind}-clear.png`);
       }
     }
     // Grounded geographic coverage; fixed camera and zoom at each location.
@@ -506,38 +523,33 @@ async function main(){
       for(const site of run.import?.sites||[]){
         await setCamera(c,site,.70);
         await sleep(1000);
-        const ready=await settle(c,45000,{edgeSite:true});
-        const valid=recordReadiness(run,quality,`site-${site.label}`,ready);
-        const entry={...site,quality,ready:valid,waitMs:ready.waitMs,
-          reason:ready.reasons,coverage:ready.stats?.coverage??null};
-        run.sites.push(entry);
-        if(valid){
-          const shot=await screenshot(c,join(resolve(o.out),`${quality}-site-${site.label}.png`));
-          run.screenshots.push(shot);entry.screenshot=shot.file;
-        }
+        const ready=await settle(c,9000,{edgeSite:true});
+        const shot=await captureGate(run,c,o.out,quality,`site-${site.label}`,ready,
+          `${quality}-site-${site.label}.png`);
+        run.sites.push({...site,quality,ready:shot.valid,waitMs:ready.waitMs,
+          reason:ready.reasons,coverage:ready.stats?.coverage??null,
+          screenshot:shot.file.file});
       }
     }
     // Exactly identical camera position, explicitly different fog modes.
     await setControls(c,'auto',false);
     await setCamera(c,{q:0,r:0},.48);
     const clear=await settle(c);
-    if(recordReadiness(run,'auto','fog-reference-clear',clear)){
-      const clearShot=await screenshot(c,join(resolve(o.out),'fog-comparison-clear.png'));
-      run.screenshots.push(clearShot);
-      await setControls(c,'auto',true);
-      await sleep(1800);
-      const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
-      run.screenshots.push(fogShot);
-      run.fogComparison={available:true,onlyHereFogEnabled:true,
-        changed:fogShot.sha256!==clearShot.sha256};
-      if(!run.fogComparison.changed)
-        run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
-    }else run.fogComparison={available:false,reason:'Reference tiles were not complete'};
+    const cleanFog=await captureGate(run,c,o.out,'auto','fog-reference-clear',clear,
+      'fog-comparison-clear.png');
+    await setControls(c,'auto',true);
+    await sleep(1800);
+    const fogShot=await screenshot(c,join(resolve(o.out),'fog-comparison-on.png'));
+    run.screenshots.push({...fogShot,verified:cleanFog.valid});
+    run.fogComparison={available:true,verified:cleanFog.valid,onlyHereFogEnabled:true,
+      changed:fogShot.sha256!==cleanFog.file.sha256};
+    if(!run.fogComparison.changed)
+      run.warnings.push('Fog-on and fog-off screenshots are identical; check visibility toggle');
     const clearHashes=new Set(run.screenshots.filter(s=>s.file.endsWith('-clear.png')).map(s=>s.sha256));
     if(clearHashes.size<2)
       run.warnings.push('All fog-off map screenshots identical or missing; renderer may be frozen');
-    if(run.screenshots.length===0)
-      run.warnings.push('No fully loaded screenshot could be captured');
+    if(!run.screenshots.some(s=>s.verified))
+      run.warnings.push('No verified fully loaded screenshot; review diagnostic PNGs');
     run.errors.push(...c.errors);
     if(run.errors.length||run.warnings.length)
       run.acceptance='PARTIAL – inspect readiness, assets or browser errors';

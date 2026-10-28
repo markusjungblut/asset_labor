@@ -220,6 +220,14 @@ def validate_sprite_shadows(data):
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        # Benchmark-only quiet mode. Hide routine HTTP access lines so
+        # the user sees the phase/quality status instead of thousands of
+        # successful atlas GETs; retain actual server error messages.
+        if os.environ.get('VEDRAS_SILENT_HTTP') == '1' and fmt == '"%s" %s %s':
+            return
+        super().log_message(fmt, *args)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(BASE), **kwargs)
 

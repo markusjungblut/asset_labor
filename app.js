@@ -813,6 +813,7 @@ function resize(){
  const ratio=policy.effectiveDpr,cw=Math.round(W*ratio),ch=Math.round(H*ratio);
  // Keep old decoded previews visible. The pool promotes only currently
  // requested assets, rather than triggering a global decode/rebuild storm.
+ imagePool.setBudgetBytes(policy.imagePoolBytes);
  imagePool.setPreviewLimits({terrainPx:policy.terrainPx,spritePx:policy.spritePx});
  lastQualityProfile=policy;
  const changed=canvas.width!==cw||canvas.height!==ch||state.dpr!==ratio;
@@ -3682,7 +3683,7 @@ window.VedrasAssetLabor={shadowSprites:{
    m.assetPath===asset?.path&&key(m.q,m.r)===state.selected);
   return mountainShadowSettings({asset,mountainInstance:selected||null});
  }
-},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
+},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>spriteAtlas?.info()||null,
  gpuStats:()=>gpuTerrain?.stats()||{ready:false},
  sceneryStats:()=>staticScenery.stats(),spriteGpuStats:()=>gpuSprites?.stats()||{ready:false},
  backgroundStats:()=>backgroundScene.stats(),preparationStats:()=>frameMemo.stats(),
