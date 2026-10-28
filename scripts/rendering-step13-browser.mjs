@@ -217,6 +217,13 @@ async function setControls(cdp,quality,fog){
     f.checked=${fog};f.dispatchEvent(new Event('change',{bubbles:true}));
     const fast=document.getElementById('fastCamera');
     if(!fast.checked){fast.checked=true;fast.dispatchEvent(new Event('change',{bubbles:true}));}
+    // Enter the real tile compositor even before the first pan. The stock editor
+    // otherwise keeps the direct map canvas until the user moves the camera.
+    const slider=document.getElementById('zoomSlider'),prior=Number(slider.value);
+    slider.value=prior>=199?prior-1:prior+1;
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
+    slider.value=prior;
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
     return true;
   })()`);
 }
