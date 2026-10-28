@@ -435,6 +435,13 @@ function report(run){
       const mb=n=>Number.isFinite(n)?(n/1048576).toFixed(1):'–';
       return `| ${p.quality} | ${p.kind} | ${mb(m.decodedBytes)} | ${mb(m.limitBytes)} | ${mb(m.overLimitBytes)} | ${m.protectedAssets??'–'} | ${m.deferredUpgrades??'–'} | ${p.validStart?'ja':'NEIN'} |`;
     }));
+  if(run.phases?.length)lines.push('', '## Atlas-Cache-Telemetrie', '',
+    '| Qualität | Geste | Seiten geladen | Seiten verworfen | Original-PNG-Fallbacks |',
+    '|---|---|---:|---:|---:|',
+    ...run.phases.map(p=>{
+      const a=p.end?.atlas||{};
+      return `| ${p.quality} | ${p.kind} | ${a.pageLoads??'–'} | ${a.pageEvictions??'–'} | ${a.cooldownFallbacks??'–'} |`;
+    }));
   if(run.sites?.length)lines.push('', '## Regionale Kameratestpositionen (wirkliche Hexkoordinaten)', '',
     '| Profil | Region | Hex | Terrain | Waldklasse | bereit | Kachelabdeckung |',
     '|---|---|---|---|---|---|---:|',
