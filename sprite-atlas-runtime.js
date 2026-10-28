@@ -6,6 +6,8 @@ window.VedrasSpriteAtlas=(()=>{
  function create({base='atlases/',limitPages=6,onReady=()=>{}}={}){
   let manifest=null,tier='desktop',failed=false,loaded=false;
   const pages=new Map(),pending=new Map(),failedPages=new Set();
+  const evictionCooldown=new Map();
+  let pageLoads=0,pageEvictions=0,cooldownFallbacks=0;
   const capacity=Math.max(1,Math.floor(limitPages));
   // A frame reserves at most 'capacity' pages. Extra sprites use their original
   // PNG instead of constantly evicting/reloading atlas pages every redraw.
@@ -15,11 +17,14 @@ window.VedrasSpriteAtlas=(()=>{
   function freeSlot(){
    if(pages.size+pending.size<capacity)return true;
    for(const id of pages.keys()){
-    if(!selectedPages?.has(id)){pages.delete(id);return true;}
+    if(!selectedPages?.has(id)){
+     pages.delete(id);evictionCooldown.set(id,Date.now());pageEvictions++;return true;
+    }
    }
    for(const [id,image] of pending){
     if(!selectedPages?.has(id)){
-     pending.delete(id);image.onload=null;image.onerror=null;return true;
+     pending.delete(id);image.onload=null;image.onerror=null;
+     evictionCooldown.set(id,Date.now());pageEvictions++;return true;
     }
    }
    return false;
@@ -54,7 +59,15 @@ window.VedrasSpriteAtlas=(()=>{
     const image=pages.get(id);pages.delete(id);pages.set(id,image);
     return image;
    }
-   if(pending.has(id)||failedPages.has(id)||!freeSlot())return null;
+   if(pending.has(id)||failedPages.has(id))return null;
+   // Very large maps touch far more than six atlas pages. While a page is
+   // cooling down, draw its original PNG rather than requesting the atlas
+   // page again and again after each cache eviction.
+   const recent=evictionCooldown.get(id);
+   if(recent&&Date.now()-recent<10000){cooldownFallbacks++;return null;}
+   if(!freeSlot())return null;
+   evictionCooldown.delete(id);
+   pageLoads++;
    const image=new Image();image.decoding='async';
    pending.set(id,image);
    image.onload=()=>{
@@ -97,11 +110,12 @@ window.VedrasSpriteAtlas=(()=>{
   }
   function info(){return {
    active:!!manifest,tier,pages:pages.size,pending:pending.size,
-   sprites:Object.keys(manifest?.tiers?.[tier]?.sprites||{}).length,failed
+   sprites:Object.keys(manifest?.tiers?.[tier]?.sprites||{}).length,failed,
+   pageLoads,pageEvictions,cooldownFallbacks
   };}
   async function reload(){
    loaded=false;failed=false;manifest=null;pages.clear();pending.clear();
-   failedPages.clear();selectedPages=null;
+   failedPages.clear();evictionCooldown.clear();selectedPages=null;
    const ok=await open();if(ok)onReady();return ok;
   }
   return {open,reload,draw,beginFrame,endFrame,info};
