@@ -12,7 +12,7 @@ Nach `git pull --ff-only origin main` aus dem Projektordner:
 ```
 
 Standard: exakt dieselbe gespeicherte 397-Hex-Szene mit 2631 Nature-Instanzen,
-Atlas **AN** und anschließend **AUS**, jeweils eine **frische Chromium-Instanz**
+Atlas **AN** und anschließend **AUS** (umkehrbar per `--order off,on`), jeweils eine **frische Chromium-Instanz**
 mit eigenem User-Data-Ordner. Fenstergröße 1280×820, Browser-DPR=1, Zentrum
 Hex (0,0), Start-Zoom=0,70. Profile `auto` und `4`, Fog aus, dieselben
 24-Punkt-Pan- und 22-Punkt-Zoom-Gesten (je 1800 ms nominell), 1200 ms Warmup.
@@ -105,3 +105,5 @@ angepasst werden sollten.
 Die Tests ersetzen keinen Profiling-Trace für eine exakte Zuschreibung
 von Browser-Decoder- und GPU-Treiberzeit. Falls die Decode-Zeit als alleiniger
 Engpass erscheint, anschließend gezielte Chrome-Performance-Traces verwenden.
+
+**Wichtiger Qualitätskonfundierer:** Atlas-Seiten können native Bildpixel enthalten, während die AUS-Variante je nach Qualitätsprofil verkleinerte ImagePool-Vorschauen verwendet. Das gewählte Renderqualitätsprofil und der physische DPR sind in beiden Armen identisch, die *Quellauflösung einzelner Sprites* aber nicht zwingend. Deshalb Screenshots auf Schärfe und Silhouetten prüfen und den Benchmark zunächst als Vergleich der tatsächlich implementierten Renderpfade, nicht als isolierte Untersuchung einer einzigen GPU-Operation interpretieren.
