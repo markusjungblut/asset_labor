@@ -17,3 +17,6 @@ Thumbs.db
 # Rebuildable outputs: atlas CI artifact and per-scene on-disk terrain cache
 /atlases/
 /precomputed/
+
+# Local Chromium acceptance output; reference scene remains committed separately
+/artifacts/rendering-step13-auto/
