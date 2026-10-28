@@ -6,8 +6,9 @@
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
+import { mkdir, readdir, unlink } from 'node:fs/promises';
 
 const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 process.chdir(repo);
@@ -59,6 +60,14 @@ async function main(){
   if(process.argv.includes('--url'))throw Error('The auto launcher selects a private local server port; do not supply --url.');
   console.log('Vedras Reiche – Schritt 13: automatischer 397-Hex-Renderingtest');
   console.log('Scene: '+scene);
+  // Do not mix stale cloud-covered screenshots from a previous attempt with
+  // new successful evidence. Only remove files owned by this dedicated runner.
+  await mkdir(output,{recursive:true});
+  for(const name of await readdir(output)){
+    if(/^(?:(?:fast|auto|[1-4])-(?:baseline|pan|zoom)-clear|fog-comparison-(?:clear|on))\\.png$/.test(name)
+      ||['result.json','README.md','step13-results.zip'].includes(name))
+      await unlink(join(output,name));
+  }
   const started=await startServer();
   console.log('Isolated local server: '+started.url);
   const args=[
