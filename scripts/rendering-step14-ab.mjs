@@ -78,6 +78,7 @@ function generateReadme(data){
   'in beiden Varianten einmal gezielt die Terrain-/Kachel-Caches.',
   'Atlas AN erzwingt Atlas-Versuche auch bei >500 Vegetationsinstanzen.',
   'Atlas AUS unterbindet Atlas-Zeichnungen, nutzt die identischen ImagePool-PNGs.',
+  'Versuchsanordnung: festes ON→OFF, ein Durchlauf ist noch kein kausaler oder statistischer Beweis.',
   'Alle Ergebnisse sind vorläufig; die Reihenfolge AN → AUS ist fest. Mehrfach wiederholen.',
   '','**Interpretation:** CDP TaskDuration ist die kumulierte Browser-Main-Thread-Taskzeit',
   '(Proxy für Auslastung eines Browserthreads), **keine systemweite CPU-%**.',
@@ -96,12 +97,12 @@ function generateReadme(data){
    p.mainThreadTaskUtilizationPercent.on??'–',p.mainThreadTaskUtilizationPercent.off??'–',
    p.loads.on?.images??'–',p.loads.off?.images??'–'].join(' | ')+' |');
  lines.push('','## Zoom: CPU-Ursachen im direkten Vergleich','',
-  '| Profil | Modus | World-Tile-Wall ms | Tile-Grund/Straßen ms | Vegetation/Sprites ms | Schatten ms | Image-Resample ms | Bildlade-Wall ms |',
-  '|---|---|---:|---:|---:|---:|---:|---:|');
+  '| Profil | Szenario | Modus | World-Tile-Wall ms | Tile-Grund/Straßen ms | Vegetation/Sprites ms | Schatten ms | Image-Resample ms | Bildlade-Wall ms |',
+  '|---|---|---|---:|---:|---:|---:|---:|---:|');
  const time=(p,key)=>p.profile?.[key]?.totalMs??0;
  for(const [label,run] of [['AN',data.on],['AUS',data.off]])
   for(const p of run.phases.filter(x=>x.kind==='zoom'))
-   lines.push('| '+[p.quality,label,time(p,'tile.bakeWallMs'),time(p,'tile.groundRoadsMs'),
+   lines.push('| '+[p.quality,p.scenario,label,time(p,'tile.bakeWallMs'),time(p,'tile.groundRoadsMs'),
     time(p,'sprites.drawMs'),time(p,'shadows.drawMs'),
     time(p,'images.resampleMs'),time(p,'images.loadWallMs')].join(' | ')+' |');
  lines.push('','## Startbilder und Readiness',
