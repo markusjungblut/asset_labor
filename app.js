@@ -206,7 +206,7 @@ function seedReadyWorldTiles(){
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
-  const sourceVersion=currentTerrainCore(t)?.artwork?.version??null;
+  const sourceVersion=groundSourceRevision(t);
   if(!preview){
    const token=groundTileContentKey(t,lod,sourceVersion);
    if(token)groundTileReuse?.put(t,lod,token,a);
@@ -248,7 +248,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
  const snapshotReady=tileArtworkReady(t);
- const sourceGroundVersion=currentTerrainCore(t)?.artwork?.version??null;
+ const sourceGroundVersion=groundSourceRevision(t);
  if(!snapshotReady&&!tileArtworkStatus(t,null,true)){
   const details={};tileArtworkStatus(t,details,true);
   __outcome='terrain-or-assets-not-ready:'+String(details.reason||'unknown');
@@ -341,7 +341,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   // after terrainChunks completes instead of caching its flat fallback color.
   if(signal?.aborted||!tileArtworkReady(t)||
      (sourceGroundVersion!=null&&
-      currentTerrainCore(t)?.artwork?.version!==sourceGroundVersion)){
+      groundSourceRevision(t)!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
   }
   if(!reusedGround&&sourceToken)groundTileReuse?.put(t,level,sourceToken,out);
@@ -362,7 +362,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
    !tileArtworkReady(t)||
    (sourceGroundVersion!=null&&
-    currentTerrainCore(t)?.artwork?.version!==sourceGroundVersion)){
+    groundSourceRevision(t)!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
  }
  __outcome='fallback-complete';
@@ -498,10 +498,6 @@ function fastRender(){
     shorelineChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100});
-  // Only newly published *authoritative* chunk revisions can invalidate
-  // previously completed tiles; panning and snapshot raster rebuilds cannot.
-  worldTiles?.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
-   [tile.id,artwork.version])));
   let result;
   if(worldTiles){
    const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
@@ -513,6 +509,18 @@ function fastRender(){
      visibleTiles:tiles.length,worldEpoch:worldTiles.stats().epoch,
      centerHex:state.selected});
    worldTiles.request(fastView(),tiles);
+   // Reconcile only the CURRENT LOD after selection. Each source layer has
+   // its own authoritative version; scenery and units do not affect it.
+   const prepared=(chunks)=>new Map(chunks.readyTiles(bounds,{limit:100})
+    .map(({tile,artwork})=>[tile.id,artwork.version]));
+   const layers={
+    shore:state.shoreline?.enabled!==false?prepared(shorelineChunks):null,
+    road:state.roadShown?prepared(roadChunks):null,
+    river:state.river&&state.riverBanks&&state.riverBankStrength>0?
+     prepared(riverChunks):null
+   };
+   worldTiles.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
+    [tile.id,groundSourceRevision(tile,artwork.version,layers)])));
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
     });
@@ -608,6 +616,24 @@ const frameMemo=window.VedrasFrameMemo.create();
 // Scenery edits must not force re-rendering unchanged terrain/roads.
 const groundTileReuse=window.VedrasGroundTileReuse?.create({
  maxBytes:44*1024*1024,maxEntries:24})||null;
+// Ground's independent prepared sources. A finished road/river/shore
+// update is detected per core; unfinished chunks are never treated as fresh.
+function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
+ const sourceVersion=terrainVersion??currentTerrainCore(t)?.artwork?.version??null;
+ if(sourceVersion==null)return null;
+ const versionFor=(cache,map)=>{
+  if(map)return map.get(t.id)??'pending';
+  return cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
+   {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork?.version??'pending';
+ };
+ const coast=state.shoreline?.enabled!==false?
+  versionFor(shorelineChunks,readyMaps?.shore):'off';
+ const road=state.roadShown?versionFor(roadChunks,readyMaps?.road):'off';
+ const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
+  versionFor(riverChunks,readyMaps?.river):'off';
+ return JSON.stringify([String(sourceVersion),String(coast),
+  String(road),String(river)]);
+}
 function groundTileContentKey(t,level,coreVersion){
  if(coreVersion==null)return null;
  return JSON.stringify([t.id,level,String(coreVersion),
