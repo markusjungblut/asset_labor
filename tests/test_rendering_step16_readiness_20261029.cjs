@@ -127,9 +127,12 @@ test('authored ocean is authoritative over grass texture while land overrides re
  };
  const base=new Function(...Object.keys(deps),
   app.slice(start,end)+'\nreturn baseBiomeOf;')(...Object.values(deps));
- assert.equal(base({q:-4,r:5,terrainTypeId:'ocean',biome:'ocean'}),'ocean');
+ assert.equal(base({q:-4,r:5,terrainTypeId:'ocean',biome:'ocean',sceneWaterTerrain:true}),'ocean');
+ assert.equal(base({q:-4,r:5,terrainTypeId:'ocean',biome:'ocean'}),'grassland',
+  'unrelated user-editable water cells retain prior material override semantics');
  assert.equal(base({q:0,r:0,terrainTypeId:'grassland',biome:'plains'}),'grassland');
  assert.match(app,/scene\.terrainTypeByHex\[key\(cell\.q,cell\.r\)\]/);
+ assert.match(app,/cell\.sceneWaterTerrain=true/);
 });
 
 
