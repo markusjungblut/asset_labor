@@ -1,5 +1,7 @@
 # Rendering-Status
 
+> **Schritt 15:** [Kachel-/Kamera-/Fog-Diagnose](STEP15_TILE_CAMERA_DIAGNOSTICS.md) implementiert und isoliert geprüft. **Echte Windows-Messung noch offen; Schritt 16 noch nicht beginnen.**
+
 > **Nächste Entwicklungsreihenfolge:** [Verbindlicher Rendering-Fahrplan nach Schritt 14 – Schritte 15–20](RENDERING_ROADMAP_AFTER_STEP14.md). **Nächster offener Schritt ist 15**, keine GPU-Migration vor den Ursachen-/Cachetests. Ergebnisse und Abnahmen in diesem Statusdokument nachtragen.
 
 **Stand:** 2026-10-29  
@@ -423,3 +425,10 @@ sowie isolierte Profiler-Zähler in V8 geprüft; ein echter Windows-/Chromium-La
 und native `node --test`-Abnahme sind auf dem Assistentensystem nicht erfolgt.
 Erst nach deren A/B-Ergebnissen eine Entscheidung für oder gegen einen
 grundlegenden GPU-Renderer treffen.
+
+
+## 2026-10-29 – Schritt 15: Tile-Ursachenmessung und Kamera-/Biomdiagnostik (Implementierung)
+
+**Implementiert, nicht auf echter Zielhardware abgenommen.** Eingeführt wurde ein standardmäßig deaktiviertes, auf 1800 Ereignisse begrenztes Trace-Protokoll für World-Tile-Cache-Misses, global und lokal begründete Invalidierungen, Snapshot-Hit/Miss-Gründe, `tile.id@lod`-Auftrags-/Warte-/Bake-Status und editorseitige `drawGround`-/`drawRoads`-Aufrufkosten. Der bisherige Renderer wird in dieser Phase **nicht optimiert**. Direkte Kamera- und Referenzbiomdiagnose prüft sechs Hex-Zielpositionen einschließlich Meer `(-4,5)` sowie Fog-ON/OFF ohne die Kartenlogik zu verändern. Die Import-/Demo-Geografie-Zuordnung bleibt als Hypothese bis zu einem realen Messbericht offen.
+
+**Start:** `START_STEP15_WINDOWS.cmd` nach `git pull --ff-only origin main`. Ausgegeben wird `artifacts/rendering-step15-diagnostics/step15-diagnostics.zip` mit `result.json`, `README.md` und Diagnosebildern. 7/7 gezielte Tests wurden im V8-Mock erfolgreich ausgeführt; JavaScript-Syntax geprüft. Native `node --test`-Durchführung sowie reale Chromium-/GPU-Messung stehen aus. **Nächster offener Schritt bleibt 15 (Hardware-Abnahme); Schritt 16 erst nach verifiziertem Warm-4×-Befund.**
