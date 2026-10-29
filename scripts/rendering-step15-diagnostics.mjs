@@ -72,12 +72,13 @@ function readme(run){
   '**Beobachtung, keine Optimierung:** Das Rendering wurde nicht absichtlich beschleunigt.',
   'Weltkachel-/Snapshot-Ereignisse und Geländezuordnung sind Diagnosewerte, keine visuelle Freigabe.',
   '','## Pan/Zoom mit Tile-IDs und konkreten Cache-Miss-Gründen','',
-  '| Qualität | Geste | Start ready | Ende ready | p95 (ms) | Main-Thread Task (s) | Terrain-Fallback-Aufrufe | Fallback-Terrainzeit (ms) | Cache Misses | Lange Bakes |',
-  '|---|---|---|---|---:|---:|---:|---:|---:|---:|'];
+  '| Qualität | Geste | Start ready | Ende ready | p95 (ms) | Main-Thread Task (s) | Terrain-Fallback-Aufrufe | Fallback-Terrainzeit (ms) | Ground-Reuse-Treffer | Ground-Reuse-Misses | Cache Misses | Lange Bakes |',
+  '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|'];
  for(const p of run.phases)lines.push('| '+[
   p.quality,p.kind,p.start.ready?'ja':'NEIN',p.end.ready?'ja':'NEIN',
   p.performance.frameIntervalMs.p95??'–',p.performance.cpuTaskSeconds??'–',
   p.analysis.fallbackTerrainDraws,p.analysis.fallbackGroundMs,
+  p.performance.groundReuseHits??0,p.performance.groundReuseMisses??0,
   Object.values(p.analysis.cacheMissReasons).reduce((a,b)=>a+b,0),
   p.analysis.longestTileBakes.length].join(' | ')+' |');
  lines.push('','## Auslösegründe der teuersten Kacheln','',
