@@ -1,3 +1,5 @@
+> **Rendering-Entwicklungsreihenfolge nach Schritt 14:** [Schritte 15–20 mit Abnahmekriterien](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md). **Zuerst Schritt 15 bearbeiten; GPU-Entscheidung erst nach messbarer Tile-/Kamera-Optimierung.** Stand 29.10.2026.
+
 ## v0.22.6 – Sprite-Ladefehler, durchgehende Wolkendecke und Bergschatten (27.10.2026)
 
 **Gemeldete Regression in v0.22.5:** 0 gezeichnete Sprites, obwohl
