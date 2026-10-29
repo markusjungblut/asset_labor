@@ -241,6 +241,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
  const __trace=window.VedrasStep15Trace,__tileTrace=__trace?.enabled();
  let __outcome='unknown',__snapshotReason='not-evaluated';
+ // Used by the completion tracer in finally; must be function-scoped.
+ // A block-scoped declaration inside try throws ReferenceError on every
+ // completed/failed tile attempt when finally reads this value.
+ let sourceGroundVersion=null;
  const __tileMeta={id:t.id,x:t.x,y:t.y,size:t.size,level,
   zoom:state.zoom,dpr:state.dpr,lod:terrainLod};
  try{
@@ -250,7 +254,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
  const snapshotReady=tileArtworkReady(t);
- const sourceGroundVersion=groundSourceRevision(t);
+ sourceGroundVersion=groundSourceRevision(t);
  if(!snapshotReady&&!tileArtworkStatus(t,null,true)){
   const details={};tileArtworkStatus(t,details,true);
   __outcome='terrain-or-assets-not-ready:'+String(details.reason||'unknown');
@@ -374,6 +378,11 @@ async function bakeWorldTile(t,level,{signal}={}){
   layers:[{layer:'ground',image:out,pad:groundPad},
    {layer:'scenery',image:overlay,pad}]};
 
+ }catch(error){
+  // Keep the full stack for the existing caller/retry system and retain
+  // a bounded diagnostic outcome for the next Windows run.
+  __outcome='error:'+String(error?.name||'unknown');
+  throw error;
  }finally{
   __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
   if(__tileTrace)__trace.record('tile.bake',{...__tileMeta,
