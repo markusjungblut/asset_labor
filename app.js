@@ -405,7 +405,7 @@ function stopFastCameraForStrategy(){
   clearTimeout(fastWheelTimer);fastWheelTimer=null;
   for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
    chunks.setInteractive(false);
-  worldTiles?.invalidate();
+  worldTiles?.invalidate('leave-fast-camera');
  }
  realtimeMap.hide();
 }
@@ -434,6 +434,11 @@ function fastRender(){
    const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
     .map(t=>({...t,visibility:visibleFogTiles&&!visibleFogTiles.has(t.id)?
      'unknown':'visible'}));
+   if(window.VedrasStep15Trace?.enabled())
+    window.VedrasStep15Trace.record('camera.request',{
+     zoom:state.zoom,lod:terrainLod,dpr:state.dpr,
+     visibleTiles:tiles.length,worldEpoch:worldTiles.stats().epoch,
+     centerHex:state.selected});
    worldTiles.request(fastView(),tiles);
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
@@ -543,9 +548,14 @@ const imagePool=window.VedrasImagePool.create({
   const affectsGround=isTerrain(a)||a.category==='shorelines'||
    (state.relief?.enabled&&(a.category==='buildings'||
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
-  if(affectsGround){frameMemo.invalidate();backgroundScene.clear();
+  if(affectsGround){
+   window.VedrasStep15Trace?.record('asset.invalidate',{
+    reason:'image-ready-ground',path:a.path,category:a.category});
+   frameMemo.invalidate();backgroundScene.clear();
    spriteBatchGroundDirty=true;}
   if(['nature','buildings','units'].includes(a.category)){
+   window.VedrasStep15Trace?.record('asset.invalidate',{
+    reason:'image-ready-scenery',path:a.path,category:a.category});
    spriteAssetBatchDirty=true;pendingSpriteAssetPaths.add(a.path);
   }
   if(imagePoolPriming)return;
@@ -611,15 +621,19 @@ function worldTilesForAssetPaths(paths){
  return ids;
 }
 function invalidateSpriteLayout(tileIds=null){
+ window.VedrasStep15Trace?.record('scenery.invalidate',{
+  reason:tileIds instanceof Set?'localized-scenery-change':'scenery-revision-changed',
+  touchedTiles:tileIds instanceof Set?tileIds.size:null});
+
  objectLayoutCache.invalidate();staticScenery.clear();
  // Null means unknown/global change; an explicit Set is an authorized,
  // overhang-expanded list of affected cores (possibly empty).
  if(tileIds instanceof Set&&worldTiles){
-  worldTiles.invalidateTiles(tileIds);
+  worldTiles.invalidateTiles(tileIds,'localized-scenery-change');
   worldTileSelectiveSnapshot=true;
  }else{
   lastTileSnapshotSignature=null;worldTileSelectiveSnapshot=false;
-  worldTiles?.invalidate();
+  worldTiles?.invalidate('scenery-revision-changed');
  }
  tileModeActive=false;visibleFogTiles=null;
 }
@@ -859,6 +873,13 @@ let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all',dirtyWorldTiles=null){
+ window.VedrasStep15Trace?.record('terrain.invalidate',{
+  scope,reason:scope==='all'||scope==='cells'||scope==='material'?
+   'scene-change':scope==='forest'?'scenery-change':'material-change',
+  selective:dirtyWorldTiles instanceof Set,
+  touchedTiles:dirtyWorldTiles instanceof Set?dirtyWorldTiles.size:null,
+  lod:terrainLod});
+
  frameMemo.invalidate();backgroundScene.clear();
  // Per-cell artwork overrides do not change the world-cell spatial index.
  if(scope==='all')window.VedrasChunks.invalidateGeometry(worldCells);
@@ -1105,7 +1126,24 @@ function drawForestFloor(){
  ctx.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);
  ctx.restore();
 }
+let step15PaintContext={origin:'editor'};
 function drawGround(){
+ const trace=window.VedrasStep15Trace;
+ if(!trace?.enabled())return drawGroundImpl();
+ const begin=performance.now();
+ try{return drawGroundImpl();}
+ finally{
+  trace.record('terrain.draw',{
+   origin:step15PaintContext.origin||'editor',
+   tileId:step15PaintContext.tileId||null,
+   lod:step15PaintContext.lod||terrainLod,
+   wallMs:performance.now()-begin,
+   zoom:state.zoom,dpr:state.dpr,
+   terrainBuilt:terrainChunks.stats().built
+  });
+ }
+}
+function drawGroundImpl(){
  updateTerrainLod(state.zoom);
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
  // The landscape buffer MUST remain transparent outside actual terrain.
@@ -1374,6 +1412,22 @@ function roadInView(edge,bounds){
   Math.max(a.y,b.y)>=bounds.y-80&&Math.min(a.y,b.y)<=bounds.y+bounds.height+80;
 }
 function drawRoads(){
+ const trace=window.VedrasStep15Trace;
+ if(!trace?.enabled())return drawRoadsImpl();
+ const begin=performance.now();
+ try{return drawRoadsImpl();}
+ finally{
+  trace.record('roads.draw',{
+   origin:step15PaintContext.origin||'editor',
+   tileId:step15PaintContext.tileId||null,
+   lod:step15PaintContext.lod||terrainLod,
+   wallMs:performance.now()-begin,
+   zoom:state.zoom,dpr:state.dpr,
+   terrainBuilt:terrainChunks.stats().built
+  });
+ }
+}
+function drawRoadsImpl(){
  if(!state.river&&!state.roadShown){
   window.__vedrasRoadPreparation={ms:0,riverMs:0,roadsMs:0};
   return;
@@ -2591,7 +2645,13 @@ function draw(){
   if(key!==lastTileSnapshotSignature){
    lastTileSnapshotSignature=key;
    // A localized scenery edit has already evicted exactly its touched cores.
-   if(!worldTileSelectiveSnapshot)worldTiles.invalidate();
+   window.VedrasStep15Trace?.record('tile.snapshot-signature-change',{
+    reason:'staging-signature-changed',
+    backgroundSignature:base?.signature||null,
+    scenerySignature:scenery?.signature||null,
+    sceneryRevision:objectLayoutCache.stats().revision,
+    selective:worldTileSelectiveSnapshot});
+   if(!worldTileSelectiveSnapshot)worldTiles.invalidate('staging-signature-changed');
    worldTileSelectiveSnapshot=false;
    seedReadyWorldTiles();
   }else worldTileSelectiveSnapshot=false;
@@ -2757,6 +2817,7 @@ function syncStrategicControls(){
 }
 function applyZoom(requested,pivotX=W/2,pivotY=H/2,panChanged=false){
  const previousMode=state.mode;
+ const __lodBefore=terrainLod;
  const before=state.zoom,zoom=clamp(requested,ZMIN,ZMAX),
   world=fromScreen(pivotX,pivotY);
  if(requested<ZMIN&&state.mode!=='far')state.mode='far';
@@ -2765,11 +2826,15 @@ function applyZoom(requested,pivotX=W/2,pivotY=H/2,panChanged=false){
   // A far/normal mode transition always invalidates the higher overlay.
   // Strategy labels must only ever be drawn by VedrasStrategic on mapCanvas.
   stopFastCameraForStrategy();
-  if(state.mode==='normal')worldTiles?.invalidate();
+  if(state.mode==='normal')worldTiles?.invalidate('return-from-strategy');
  }
  state.zoom=zoom;
  if(before!==zoom){
   updateTerrainLod(zoom);
+  window.VedrasStep15Trace?.record('camera.zoom',{from:before,to:zoom,
+   oldLod:__lodBefore,newLod:terrainLod,
+   reason:__lodBefore===terrainLod?'same-lod':'lod-change',
+   panChanged:!!panChanged});
   state.panX=pivotX-W/2-world.x*zoom;
   state.panY=pivotY-H/2-world.y*PROJECT_Y*zoom;
  }
