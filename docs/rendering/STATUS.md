@@ -1,6 +1,8 @@
 # Rendering-Status
 
-**Stand:** 2026-10-28  
+> **Nächste Entwicklungsreihenfolge:** [Verbindlicher Rendering-Fahrplan nach Schritt 14 – Schritte 15–20](RENDERING_ROADMAP_AFTER_STEP14.md). **Nächster offener Schritt ist 15**, keine GPU-Migration vor den Ursachen-/Cachetests. Ergebnisse und Abnahmen in diesem Statusdokument nachtragen.
+
+**Stand:** 2026-10-29  
 **Repository:** `markusjungblut/asset_labor` (`main`)  
 **Schritt 4:** **Kamera-Komposition mit Qualitätsnachbesserung implementiert und isoliert geprüft; native Node- und echte Browser-Abnahme weiterhin offen.**  
 **Ausgangscommit für Schritt 4:** `d465bf32002de6c85cfd2e51586f8572ec449b7a`  
