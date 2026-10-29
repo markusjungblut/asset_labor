@@ -191,19 +191,19 @@ window.VedrasWorldTiles=(()=>{
    }
    if(!stale.size)return 0;
    trace('tile.ground-revision-changed',{count:stale.size,epoch,lod});
-   return invalidateTiles(stale,'terrain-core-revision-changed');
+   return invalidateTiles(stale,'terrain-core-revision-changed',[lod]);
   }
   // Per-footprint invalidation retains unrelated tiles and LOD variants.
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
-  function invalidateTiles(tileIds,reason='scene-change'){
+  function invalidateTiles(tileIds,reason='scene-change',levels=Object.keys(density)){
    const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
     [...tileIds]:[]);
    for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
    if(!ids.size)return 0;
    trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod});
    let changed=0;
-   for(const level of Object.keys(density))for(const id of ids){
+   for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
     if(old){
      cache.delete(k);pixels-=old.pixels;release(old.packet);
