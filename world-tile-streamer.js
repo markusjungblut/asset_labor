@@ -329,6 +329,15 @@ window.VedrasWorldTiles=(()=>{
     {level,sourceDensity:packet.sourceDensity??null,revision:packet.revision??null});
    onReady();return true;
   }
+  // Avoid allocating and resampling a complete world tile again merely
+  // because the editor's viewport-sized staging canvas was repainted.
+  function needsSeed(tile,level,sourceDensity=null){
+   const prior=cache.get(key(tile,level));
+   if(!prior)return true;
+   if(!prior.packet.preview)return false;
+   return Number.isFinite(sourceDensity)&&
+    sourceDensity>(prior.packet.sourceDensity??0)+.01;
+  }
   function seed(tile,level,packet){
    // A repainted editor snapshot may be older/lower density: never replace
    // an already finished sharp tile merely because a canvas was rebuilt.
@@ -733,7 +742,7 @@ window.VedrasWorldTiles=(()=>{
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
-    stats,diagnostics,terrainReady};
+    needsSeed,stats,diagnostics,terrainReady};
  }
  return {create};
 })();
