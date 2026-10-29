@@ -175,6 +175,23 @@ window.VedrasWorldTiles=(()=>{
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
   }
+  // A refreshed terrain core may replace only its own World-Tile packets.
+  // The editor supplies the *prepared* authoritative terrain revision per
+  // visible tile. A changed background snapshot or camera pose is not itself
+  // an invalidation of every cached world tile.
+  function reconcileGroundRevisions(versions){
+   if(!versions||typeof versions.get!=='function')return 0;
+   const stale=new Set();
+   for(const [k,item] of cache){
+    if(!versions.has(item.tile.id))continue;
+    const expected=versions.get(item.tile.id);
+    if(expected==null||item.revision==null)continue;
+    if(item.revision!==expected)stale.add(item.tile.id);
+   }
+   if(!stale.size)return 0;
+   trace('tile.ground-revision-changed',{count:stale.size,epoch,lod});
+   return invalidateTiles(stale,'terrain-core-revision-changed');
+  }
   // Per-footprint invalidation retains unrelated tiles and LOD variants.
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
@@ -714,7 +731,8 @@ window.VedrasWorldTiles=(()=>{
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
-    coverUnready,chooseLod,invalidate,invalidateTiles,stats,diagnostics,terrainReady};
+    coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
+    stats,diagnostics,terrainReady};
  }
  return {create};
 })();
