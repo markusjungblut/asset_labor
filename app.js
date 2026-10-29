@@ -326,8 +326,9 @@ async function bakeWorldTile(t,level,{signal}={}){
   const sourceToken=groundTileContentKey(t,level,sourceGroundVersion);
   const reusedGround=sourceToken?
    groundTileReuse?.get(t,level,sourceToken):null;
-  if(reusedGround&&reusedGround.width===out.width&&
-     reusedGround.height===out.height){
+  const canReuseGround=!!reusedGround&&reusedGround.width===out.width&&
+   reusedGround.height===out.height;
+  if(canReuseGround){
    groundG.save();groundG.setTransform(1,0,0,1,0,0);
    groundG.drawImage(reusedGround,0,0);groundG.restore();
    __bench?.count('tile.groundReuseHits');
@@ -344,7 +345,7 @@ async function bakeWorldTile(t,level,{signal}={}){
       groundSourceRevision(t)!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
   }
-  if(!reusedGround&&sourceToken)groundTileReuse?.put(t,level,sourceToken,out);
+  if(!canReuseGround&&sourceToken)groundTileReuse?.put(t,level,sourceToken,out);
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -365,7 +366,7 @@ async function bakeWorldTile(t,level,{signal}={}){
     groundSourceRevision(t)!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
  }
- __outcome='fallback-complete';
+ __outcome=canReuseGround?'fallback-reused-ground':'fallback-complete';
  tileBakes++;
  return {complete:true,revision:sourceGroundVersion,
   layers:[{layer:'ground',image:out,pad:groundPad},
@@ -375,6 +376,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
   if(__tileTrace)__trace.record('tile.bake',{...__tileMeta,
    outcome:__outcome,snapshotReason:__snapshotReason,
+   sourceGroundVersion:String(sourceGroundVersion).slice(0,100),
    wallMs:performance.now()-__bakeStart});
  }
 }
@@ -3966,7 +3968,8 @@ window.VedrasAssetLabor={shadowSprites:{
  realtimeStats:()=>({...realtimeMap.stats(),interacting:fastInteracting,
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
- worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive,
+  groundReuse:groundTileReuse?.stats()||null}),
  shorelineBuildStats:()=>({...window.__vedrasShorelineBuildProfile,
   worker:window.VedrasTerrainWorker.status()}),
  sceneryDrawStats:()=>({
@@ -3987,6 +3990,7 @@ window.VedrasAssetLabor={shadowSprites:{
   zoomFallbacks:cameraZoomFallbacks,fastFrames,worldTileBakes:tileBakes,
   backgroundBuilds:backgroundScene.stats().builds,
   sceneryBuilds:staticScenery.stats().builds,
+  groundReuse:groundTileReuse?.stats()||null,
   terrainBuilds:terrainChunks.stats().built,active:tileModeActive,
   interacting:fastInteracting}),
  activateTileCamera:()=>{if(!fastAllowed())return false;
