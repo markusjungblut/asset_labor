@@ -117,3 +117,23 @@ dieser Abnahme als erledigt melden.**
 
 **Bislang verifiziert:** JavaScript-Syntax und isolierte deterministische
 V8-Tests (kein Chrome-GPU-Lauf). **Keine gemessene Beschleunigung behaupten.**
+
+
+## Regression nach erster Windows-Abnahme und Korrektur
+
+Der erste echte Windows-Lauf **nach der Schritt-16-Implementierung** zeigte eine
+kritische Regression (4×-Pan: 38 Fallbacks statt 12, 103 gescheiterte
+World-Tile-Quellaufträge, 0 akzeptierte Tiles; **0/8 READY-Gates**).
+Die Ursache lag in der Diagnoseinstrumentierung der neuen Bake-Funktion:
+`const sourceGroundVersion` war nur im `try` sichtbar, wurde aber im
+`finally` verwendet. Dadurch scheiterten sogar erfolgreiche Bakes beim
+Abschluss mit `ReferenceError`. Die Schritt-16-Optimierung ist daher noch
+**nicht auf Performance geprüft**.
+
+Das Follow-up verschiebt die Deklaration in den äußeren Funktionsbereich,
+erfasst zukünftige Bake-Fehler als `tile.bake-error` und testet die echte
+Async-Funktion einschließlich Early-Return und `finally`.
+**10/10 deterministische Tests im isolierten V8-Harness bestanden**.
+Die nächste echte Windows-ZIP muss erneut auf Vollständigkeit,
+`tile.bake-error`, `retry-exhausted`, Ground-Reuse und FPS geprüft werden,
+bevor Schritt 16 als abgenommen gelten kann.

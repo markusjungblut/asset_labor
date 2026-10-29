@@ -122,3 +122,30 @@ test('source completeness and deep layers remain checked before accepting tiles'
  assert.match(app,/groundSourceRevision\(t\)!==sourceGroundVersion/);
  assert.match(app,/anchorBounds:\{x:t\.x,y:t\.y,width:t\.size,height:t\.size\}/);
 });
+
+
+test('bakeWorldTile finalizer can read ground revision on early exit (no ReferenceError)',async()=>{
+ // Real extracted function: the former implementation declared
+ // sourceGroundVersion inside try and read it from finally, causing every
+ // tile bake, including early exits, to reject with ReferenceError.
+ const app=read('app.js');
+ const start=app.indexOf('async function bakeWorldTile(');
+ const end=app.indexOf('\nlet fastInteracting=',start);
+ assert.ok(start>=0&&end>start,'cannot isolate actual bake function');
+ const events=[];
+ const win={
+  VedrasBenchmarkProfiler:{record(){}},
+  VedrasStep15Trace:{enabled:()=>true,record:(type,details)=>
+   events.push({type,details})}
+ };
+ const fn=new Function('window','performance','state','terrainLod',
+  app.slice(start,end)+'\nreturn bakeWorldTile;')(
+  win,{now:()=>100},{mode:'normal',view:'map',zoom:.7,dpr:1},'mid');
+ const result=await fn({id:'0,0',x:0,y:0,size:512},'mid',
+  {signal:{aborted:true}});
+ assert.equal(result,null);
+ assert.equal(events.length,1);
+ assert.equal(events[0].type,'tile.bake');
+ assert.equal(events[0].details.outcome,'aborted-or-not-map');
+ assert.equal(events[0].details.sourceGroundVersion,'null');
+});
