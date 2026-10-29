@@ -131,3 +131,33 @@ test('authored ocean is authoritative over grass texture while land overrides re
  assert.equal(base({q:0,r:0,terrainTypeId:'grassland',biome:'plains'}),'grassland');
  assert.match(app,/scene\.terrainTypeByHex\[key\(cell\.q,cell\.r\)\]/);
 });
+
+
+test('one ground asset burst does not cause duplicate global scenery flush',()=>{
+ const app=read('app.js');
+ assert.match(app,/if\(groundChanged\)worldTiles\?\.invalidate\('image-ready-ground'\)/);
+ assert.match(app,/invalidateSpriteLayout\(groundChanged\?new Set\(\):worldTilesForAssetPaths\(paths\)\)/);
+ assert.match(app,/lastTileSnapshotSignature=tileSemanticSignature\(\)/);
+ assert.match(app,/const semanticKey=tileSemanticSignature\(\)/);
+ assert.match(app,/worldTiles\.invalidate\('semantic-content-changed'\)/,
+  'independent genuine scene changes remain fully invalidating');
+});
+
+test('non-coastal tile has a stable absent shoreline revision',()=>{
+ const app=read('app.js'),a=app.indexOf('function groundSourceRevision('),
+  b=app.indexOf('\nfunction groundTileContentKey(',a);
+ assert.ok(a>=0&&b>a);
+ const values={
+  state:{shoreline:{enabled:true},roadShown:false,river:false},
+  shorelineCache:{segments:[]},
+  shorelineChunks:{readyTiles:()=>{throw Error('no coast should be queried');}},
+  roadChunks:{readyTiles:()=>[]},
+  riverChunks:{readyTiles:()=>[]},
+  currentTerrainCore:()=>({artwork:{version:'terrain-v1'}})
+ };
+ const revision=new Function(...Object.keys(values),
+  app.slice(a,b)+'\nreturn groundSourceRevision;')(...Object.values(values));
+ const tile={id:'0,0',x:0,y:0,size:512};
+ const result=JSON.parse(revision(tile));
+ assert.deepEqual(result,['terrain-v1','no-coast','off','off']);
+});
