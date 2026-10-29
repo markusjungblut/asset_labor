@@ -196,18 +196,25 @@ async function main(){
   warnings:[],errors:[]};
  let engine;
  try{
-  engine=await launch(o.url,o);
-  const c=engine.cdp;
-  await waitFor(()=>c.eval('Boolean(window.VedrasAssetLabor?.enableStep15Trace)'),
-   'Asset-Labor hooks',30000);
-  await waitFor(()=>c.eval('window.VedrasAssetLabor?.assets?.().length>0'),
-   'Asset-Labor assets',30000);
-  await c.eval('window.VedrasBenchmarkProfiler?.enable(true)');
-  const importStarted=Date.now();
- run.import=await importScene(c,o.scene);
- run.importMs=Date.now()-importStarted;
+  // Each quality gets a fresh Chrome profile, so the first run cannot
+  // silently warm the assets decoded by the second run.
   for(const quality of o.qualities){
-   console.log('Step16A real scene quality '+quality);
+   try{
+    engine=await launch(o.url,o);
+    const c=engine.cdp;
+    await waitFor(()=>c.eval('Boolean(window.VedrasAssetLabor?.enableStep15Trace)'),
+     'Asset-Labor hooks',30000);
+    await waitFor(()=>c.eval('window.VedrasAssetLabor?.assets?.().length>0'),
+     'Asset-Labor assets',30000);
+    await c.eval('window.VedrasBenchmarkProfiler?.enable(true)');
+    const importStarted=Date.now();
+    const imported=await importScene(c,o.scene);
+    const importMs=Date.now()-importStarted;
+    if(!run.import)run.import=imported;
+    if(!run.importByQuality)run.importByQuality={};
+    run.importByQuality[quality]={importMs,nature:imported.nature,
+     missingNatureInstances:imported.missingNatureInstances};
+    console.log('Step16A fresh real scene quality '+quality);
    await setControls(c,quality,false);
    await setCamera(c,{q:0,r:0},.70);
    await c.eval('window.VedrasAssetLabor.enableStep15Trace(true)');
@@ -277,12 +284,17 @@ async function main(){
     console.log('  '+kind+': '+(valid?'VALID REAL WARM':'NOT WARM')+
      ', exact '+String(end.progress?.exact)+', tile events '+trace.totalEvents);
    }
-   await c.eval('window.VedrasAssetLabor.enableStep15Trace(false)');
+    await c.eval('window.VedrasAssetLabor.enableStep15Trace(false)');
+   }catch(error){
+    run.errors.push('Quality '+quality+': '+String(error?.stack||error));
+   }finally{
+    if(engine){engine.cdp.close();await engine.clean();engine=null;}
+   }
   }
-  // A separate page removes the entire editor and all live asset work from
-  // the compositor control. It still loads the ACTUAL production tile module.
+  // The compositor-only control also uses a fresh, editor-free Chrome profile.
   const controlUrl=new URL('step16a-control.html',o.url).href;
-  await c.send('Page.navigate',{url:controlUrl});
+  engine=await launch(controlUrl,o);
+  const c=engine.cdp;
   await waitFor(()=>c.eval('Boolean(window.VedrasWorldTiles?.create)'),
    'isolated production compositor',20000);
   for(const kind of ['pan','zoom']){
