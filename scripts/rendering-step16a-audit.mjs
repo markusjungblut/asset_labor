@@ -76,7 +76,8 @@ function cameraCondition(s){
 }
 function buildDecision(run){
  const synthetic=run.control;
- const clean=run.real.filter(p=>p.valid);
+ const warm=run.real.filter(p=>p.kind?.startsWith('warm-'));
+ const clean=warm.filter(p=>p.valid);
  const reasons=[];
  if(!synthetic?.valid)reasons.push('Independent compositor control invalid: cannot isolate camera costs');
  if(!clean.length)reasons.push('No valid real warm run; cannot claim FPS improvement or choose rewrite');
@@ -84,7 +85,7 @@ function buildDecision(run){
   reasons.push('Protected decoded image bytes alone exceed the image budget');
  if(run.real.some(p=>!p.valid))
   reasons.push('Actual real camera still allocates/rebuilds or fails readiness');
- const pass=Boolean(synthetic?.valid&&clean.length===run.real.length);
+ const pass=Boolean(synthetic?.valid&&warm.length>0&&clean.length===warm.length);
  return {status:pass?'REAL_WARM_MEASURED':'INSUFFICIENT_REAL_WARM_EVIDENCE',
   rendererRewriteRecommended:false,
   recommendation:!synthetic?.valid?
@@ -200,7 +201,9 @@ async function main(){
   await waitFor(()=>c.eval('window.VedrasAssetLabor?.assets?.().length>0'),
    'Asset-Labor assets',30000);
   await c.eval('window.VedrasBenchmarkProfiler?.enable(true)');
-  run.import=await importScene(c,o.scene);
+  const importStarted=Date.now();
+ run.import=await importScene(c,o.scene);
+ run.importMs=Date.now()-importStarted;
   for(const quality of o.qualities){
    console.log('Step16A real scene quality '+quality);
    await setControls(c,quality,false);
