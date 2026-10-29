@@ -448,3 +448,33 @@ grundlegenden GPU-Renderer treffen.
 **Konkrete Ursache in PR #68:** `sourceGroundVersion` wurde innerhalb des `try`-Blocks von `bakeWorldTile` mit `const` deklariert, aber im zugehörigen `finally`-Block für das Step-15-Tracing verwendet. Das bewirkt `ReferenceError` bei der Abschlussprotokollierung jeder Bake-Ausführung, einschließlich vorzeitig abgebrochener Aufträge, und löst fehlgeschlagene Quellaufträge samt Retry-Stürmen aus. **Fix:** `let sourceGroundVersion=null` vor dem `try`; Zuweisung innerhalb und unveränderte Fehlerweitergabe an den World-Tile-Runner. Ein neues Testcase ruft die tatsächliche `bakeWorldTile`-Funktion mit frühem Abbruch auf; alle 10/10 Tests bestehen im V8-Mock. Fehler werden im Trace künftig mit Typ/gekürzter Nachricht erfasst.
 
 **Abnahmestatus:** Fix implementiert; **erneuter realer Browser-/Screenshotlauf auf Windows erforderlich**. Die zusätzliche Cache-/LOD-Optimierung aus Schritt 16 kann erst nach erfolgreichem Retest bewertet werden. **Schritt 17 weiterhin nicht freigegeben.**
+
+## 2026-10-29 – Schritt 16A: auditierbare Architekturentscheidung statt Hotfix-Schleife
+
+Die vierte Windows-Step15-Diagnose aus der 397-Hex-/2.631-Nature-Szene
+zeigte **0 Tile-Bake-JavaScript-Exceptions**, aber nur **2/8 Readiness-
+Prüfungen**. Ende Auto-Pan READY, andere Phasen teils unvollständig.
+Die geografische Referenz an Hex (-4,5) meldet nun `ocean` und zeigt
+visuell Wasser. Die Performance ist wegen fehlender Warm-Gates nicht
+abgenommen. Im Lauf wurden 202 `tile.cache-miss`-Ereignisse erfasst;
+separat davon meldet die Ground-Raster-Reuse-Messung **2 Hits und
+29 Misses** (nicht 2 Hits von 202 Ground-Zugriffen).
+Die Auto-Pan-Bildpoolgrenze war 288 MiB, tatsächlich dekodiert waren
+501,3 MiB und geschützt ca. 395,3 MiB. Pauschales Evicten oder
+Cachevergrößern wäre ohne Ursachennachweis riskant.
+
+**Schritt 16A implementiert** auf dem isolierten Branch mit
+`START_STEP16A_WINDOWS.cmd`: Ein eigener HTML-Kontrolllauf nutzt
+den unveränderten World-Tile-Compositor und 16 bereits vorbereitete
+synthetische Layer-Tiles ohne Editor und Asset-Loader. Die echte Szene
+wird daneben nur nach vollem Ready-/Quiet-Gate als Warm-Test gewertet.
+Aufbereitung, Tile-/Asset-Invalidierungen und geschützter Bildspeicher
+werden separat dokumentiert. V8-Quellsyntax und der isolierte
+Compositor-Kontrollpfad wurden mit 16/16 retained Tiles, 100 % Coverage,
+0 Evictions und 0 neuen Tile-Akzeptanzen geprüft; echte Browser-
+Rasterzeit und GPU-Relevanz bleiben ausdrücklich offen.
+
+**Nächster Gate:** Ein echter Step16A-Windows-Auditlauf. 16B erst
+nach Attribution des dominanten Engpasses; 16C erst nach validen
+Warm-/Cold-Messungen, visueller Freigabe und drei Hardwarewiederholungen.
+Schritt 17 bleibt offen/gesperrt.
