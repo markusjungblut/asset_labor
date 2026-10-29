@@ -60,6 +60,8 @@
 
 ### Schritt 16 – Redundanten Terrain-/Straßenaufbau im World-Tile-Bake eliminieren
 
+> **Implementierungsstand:** [Ground-Reuse und per-Tile-Revisionsprüfung](STEP16_GROUND_REUSE.md) umgesetzt und isoliert getestet. **Echte Warm-4×-/Screenshot-/Speicherabnahme noch offen**; Schritt 16 bleibt bis zum vollständigen Windows-Bericht offen.
+
 **Ziel:** Fertige und aktuelle Terrain-/Straßen-Chunks bzw. Snapshots direkt in Weltkacheln übernehmen, statt für jedes Tile wieder großflächig `drawGround()` und `drawRoads()` auszuführen.
 
 **Arbeitsumfang:**
@@ -138,7 +140,7 @@ Bei neuen technischen Beweisen dürfen Zielwerte nach begründeter Dokumentation
 - [x] Schritt 13: erste echte Rendering-Messungen und Diagnosebilder (keine komplette Performanceabnahme).
 - [x] Schritt 14: Atlas A/B und Zoom-Kostenprofil implementiert und einmal real ausgeführt (A/B nicht durchgehend gültig).
 - [ ] **Schritt 15 (NÄCHSTER SCHRITT):** Tile-Miss-/Invalidierungsursachen und Kamerakorrektheit instrumentieren und reproduzieren.
-- [ ] Schritt 16: Ground-/Straßen-Reuse im Tile-Bake belegen und implementieren.
+- [ ] **Schritt 16 (IMPLEMENTIERT, ABNAHME OFFEN):** Ground-/Straßen-Reuse im Tile-Bake und per-Core-Revision implementiert; Windows-Vorher-/Nachher-Messung steht aus.
 - [ ] Schritt 17: Eingabepfad von Kachelbakes entkoppeln.
 - [ ] Schritt 18: LOD und biome-/fog-visuelle Korrektheit stabilisieren.
 - [ ] Schritt 19: isolierter Canvas-2D-/WebGL2-Kompositionsvergleich.
