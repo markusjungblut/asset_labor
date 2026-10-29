@@ -14,6 +14,7 @@ window.VedrasWorldTiles=(()=>{
   {far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
    concurrency=1,onReady=()=>{},maxAttempts=5,sourceTimeoutMs=45000,
+    sourceRevision=null,
    requireScenery=false,lodSelector=null}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
@@ -34,12 +35,13 @@ window.VedrasWorldTiles=(()=>{
    if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
    retryTimers.delete(k);
   }
-  function retryFailure(item,reason,error=null){
+  function retryFailure(item,reason,error=null,attemptRevision=null){
    const k=item.key,old=retries.get(k),attempts=(old?.attempts||0)+1;
    const terminal=attempts>=attemptsCap;
    const delay=Math.min(8000,400*2**(attempts-1));
    const nextRetryAt=terminal?null:Date.now()+delay;
-   retries.set(k,{attempts,terminal,reason,error:error?String(error?.message||error):null,nextRetryAt});
+   retries.set(k,{attempts,terminal,reason,error:error?String(error?.message||error):null,
+    attemptRevision,nextRetryAt});
    observe(k,terminal?'retry-exhausted':reason,
     {level:item.level,attempts,reason,error:error?String(error?.message||error):null});
    cancelRetry(k);
@@ -226,7 +228,7 @@ window.VedrasWorldTiles=(()=>{
   }
   // A newly finished terrain core can unblock an exhausted source-null tile.
   // Only the named tile is rearmed, never a global retry storm.
-  function terrainReady(tileId){
+  function terrainReady(tileId,revision=null){
    if(typeof tileId!=='string'||!tileId)return 0;
    let resumed=0;
    for(const level of Object.keys(density)){
@@ -235,6 +237,9 @@ window.VedrasWorldTiles=(()=>{
      (cache.has(k)&&!cache.get(k).packet.preview)||running.has(k))continue;
     // A new exact raster cannot fix an unrelated permanent loader exception.
     if(!['source-null','incomplete-source','invalid-packet'].includes(prior.reason))continue;
+    // Only a genuinely newer source can re-arm a failed bake. Repeated
+    // readiness signals for one unchanged revision must not retry forever.
+    if(revision==null||revision===prior.attemptRevision)continue;
     const tile=visibleTiles.find(t=>t.id===tileId);
     if(!tile)continue;
     cancelRetry(k);retries.delete(k);
@@ -357,6 +362,8 @@ window.VedrasWorldTiles=(()=>{
     if(item.epoch!==epoch)continue;
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
     const token=++serial,job={controller,epoch:item.epoch,token,
+     sourceVersion:typeof sourceRevision==='function'?
+      sourceRevision(item.tile,item.level):null,
      startedAt:Date.now(),timeout:null};
     running.set(item.key,job);
     trace('tile.source-start',{key:item.key,id:item.tile.id,
@@ -370,7 +377,7 @@ window.VedrasWorldTiles=(()=>{
       controller?.abort?.();
       running.delete(item.key);
       failed++;
-      retryFailure(item,'source-timeout',new Error('Tile source exceeded '+sourceTimeoutMs+' ms'));
+      retryFailure(item,'source-timeout',new Error('Tile source exceeded '+sourceTimeoutMs+' ms'),job.sourceVersion);
       pump();
      },sourceTimeoutMs);
     // Keep original asynchronous initiation and release late/stale packets.
@@ -390,12 +397,12 @@ window.VedrasWorldTiles=(()=>{
       if(packet&&complete&&accept(item.tile,item.level,packet))return;
       release(packet);
       retryFailure(item,packet&&!complete?'incomplete-source':
-       packet?'invalid-packet':'source-null');
+       packet?'invalid-packet':'source-null',null,job.sourceVersion);
     }).catch(err=>{
       if(item.epoch!==epoch||running.get(item.key)?.token!==token||
        controller?.signal?.aborted||err?.name==='AbortError')return;
       failed++;
-      retryFailure(item,'failed',err);
+      retryFailure(item,'failed',err,job.sourceVersion);
       if(typeof console!=='undefined')console.warn('World tile:',err);
     }).finally(()=>{
       trace('tile.source-end',{key:item.key,id:item.tile.id,level:item.level,
@@ -405,7 +412,11 @@ window.VedrasWorldTiles=(()=>{
       if(job.timeout!==null&&typeof clearTimeout==='function')
        clearTimeout(job.timeout);
       const active=running.get(item.key);
-      if(active?.token===token)running.delete(item.key);
+      if(active?.token===token){
+       running.delete(item.key);
+       if(typeof sourceRevision==='function')
+        terrainReady(item.tile.id,sourceRevision(item.tile,item.level));
+      }
       pump();
     });
    }
