@@ -319,6 +319,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,
   dpr:state.dpr,gpuFrame,paintContext:step15PaintContext};
  step15PaintContext={origin:'world-tile-fallback',tileId:t.id,lod:level};
+ let canReuseGround=false;
  const setup=(g,c,left,top,worldSize)=>{
   ctx=g;W=worldSize*z;H=worldSize*z*PROJECT_Y;
   state.dpr=c.width/W;state.panX=-W/2-left*z;
@@ -332,7 +333,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   const sourceToken=groundTileContentKey(t,level,sourceGroundVersion);
   const reusedGround=sourceToken?
    groundTileReuse?.get(t,level,sourceToken):null;
-  const canReuseGround=!!reusedGround&&reusedGround.width===out.width&&
+  canReuseGround=!!reusedGround&&reusedGround.width===out.width&&
    reusedGround.height===out.height;
   if(canReuseGround){
    groundG.save();groundG.setTransform(1,0,0,1,0,0);
