@@ -72,6 +72,17 @@ test('LOD variants are preserved when checking current zoom',()=>{
  assert.equal(h.renderer.reconcileGroundRevisions(new Map([[a.id,'near-core']])),0);
  assert.equal(h.renderer.stats().tiles,2);
 });
+test('refreshing the current terrain LOD does not evict the other tier',()=>{
+ const h=createFixtures(),a=h.tile('0,0',0);
+ h.renderer.seed(a,'mid',h.packet('old-mid'));
+ h.renderer.seed(a,'near',h.packet('unchanged-near'));
+ h.renderer.request(h.view(.70),[a]);
+ const changed=h.renderer.reconcileGroundRevisions(new Map([[a.id,'new-mid']]));
+ assert.equal(changed,1);
+ assert.equal(h.renderer.stats().tiles,1);
+ assert.equal(h.renderer.needsSeed(a,'near',3),false);
+ assert.equal(h.renderer.needsSeed(a,'mid',3),true);
+});
 test('ground reuse cache retains identical revision, rejects edits and evicts by bytes',()=>{
  const h=createFixtures(),a=h.tile('0,0',0),b=h.tile('1,0',512);
  const image={width:8,height:8},key='terrain-v1';
