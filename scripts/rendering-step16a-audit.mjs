@@ -324,6 +324,8 @@ async function main(){
   const lines=['# Schritt 16A – Architektur-/Performanceaudit','',
    '**Status:** '+run.decision.status,
    '**Szene SHA-256:** '+run.sceneSha256,
+   '**Unabhängiger Szenenimport:** '+Object.entries(run.importByQuality||{})
+    .map(([q,v])=>q+': '+v.importMs+' ms').join('; '),
    '**Keine Renderingoptimierungen in diesem Lauf.**','',
    '## Produktionscompositor allein (statische 16 vorbereitete Tiles)','',
    '| Geste | Test gültig | rAF-p95 ms | request+render-p95 ms | compositor-p95 ms |',
