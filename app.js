@@ -574,6 +574,19 @@ const gpuSprites=window.VedrasGpuSprites?.create($('gpuSpriteCanvas'))||null;
 const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:17000000,minPadding:24});
 const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:17000000,minPadding:24});
 const frameMemo=window.VedrasFrameMemo.create();
+// Static ground is keyed by content revision, never a camera coordinate.
+// Scenery edits must not force re-rendering unchanged terrain/roads.
+const groundTileReuse=window.VedrasGroundTileReuse?.create({
+ maxBytes:44*1024*1024,maxEntries:24})||null;
+function groundTileContentKey(t,level,coreVersion){
+ if(coreVersion==null)return null;
+ return JSON.stringify([t.id,level,String(coreVersion),
+  frameMemo.stats().revision,catalogRevision,state.quality,
+  state.roadShown,state.roadEdges,state.river,state.riverPaths,
+  state.riverBanks,state.riverBankStrength,state.shoreline,
+  state.relief,state.mountainInstances,state.selected]);
+}
+
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
@@ -592,6 +605,7 @@ const imagePool=window.VedrasImagePool.create({
    (state.relief?.enabled&&(a.category==='buildings'||
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){
+   groundTileReuse?.clear();
    window.VedrasStep15Trace?.record('asset.invalidate',{
     reason:'image-ready-ground',path:a.path,category:a.category});
    frameMemo.invalidate();backgroundScene.clear();
@@ -921,6 +935,10 @@ let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all',dirtyWorldTiles=null){
+ // An authoritative terrain change invalidates the old ground source.
+ // Local edits are still selective in WorldTiles; ground cache keys include
+ // scene revisions and therefore never serve stale adjacent rasters.
+ groundTileReuse?.clear();
  window.VedrasStep15Trace?.record('terrain.invalidate',{
   scope,reason:scope==='all'||scope==='cells'||scope==='material'?
    'scene-change':scope==='forest'?'scenery-change':'material-change',
