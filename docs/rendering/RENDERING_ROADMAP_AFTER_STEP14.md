@@ -145,3 +145,11 @@ Bei neuen technischen Beweisen dürfen Zielwerte nach begründeter Dokumentation
 - [ ] Schritt 18: LOD und biome-/fog-visuelle Korrektheit stabilisieren.
 - [ ] Schritt 19: isolierter Canvas-2D-/WebGL2-Kompositionsvergleich.
 - [ ] Schritt 20: abschließende Rendering-Abnahme und Aufräumarbeiten.
+
+
+> **Regressionshinweis (Windows-Test nach PR #68):** 0/8 Readiness-Gates,
+> 103 fehlgeschlagene Tileaufträge bei 4×-Pan. Ursache war ein
+> `ReferenceError` durch die Verwendung von `sourceGroundVersion` im
+> `finally` außerhalb seines `try`-Scopes. Der gezielte Fix und ein
+> ausführender Regressionstest sind implementiert. **Schritt 16 bleibt
+> offen, bis der erneute Windows-/GPU-Test erfolgreich ist.**
