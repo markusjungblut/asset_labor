@@ -1,6 +1,6 @@
 # Rendering-Status
 
-> **Schritt 15:** [Kachel-/Kamera-/Fog-Diagnose](STEP15_TILE_CAMERA_DIAGNOSTICS.md) implementiert und isoliert geprüft. **Echte Windows-Messung noch offen; Schritt 16 noch nicht beginnen.**
+> **Schritt 15:** Reale 397-Hex-Windows-Diagnose wurde ausgewertet (4×-Pan: 12 Terrain-Fallbacks, 1128 ms; Auto-Pan: 25, 3014 ms; 4×-Zoom: 0 bei bereits bereiten Tiles). [Messanleitung](STEP15_TILE_CAMERA_DIAGNOSTICS.md). **Schritt 16:** [Ground-Reuse/Revisionstrennung](STEP16_GROUND_REUSE.md) implementiert, **Performance-/Bildabnahme auf Windows offen**. Schritt 17 noch nicht freigegeben.
 
 > **Nächste Entwicklungsreihenfolge:** [Verbindlicher Rendering-Fahrplan nach Schritt 14 – Schritte 15–20](RENDERING_ROADMAP_AFTER_STEP14.md). **Nächster offener Schritt ist 15**, keine GPU-Migration vor den Ursachen-/Cachetests. Ergebnisse und Abnahmen in diesem Statusdokument nachtragen.
 
@@ -432,3 +432,10 @@ grundlegenden GPU-Renderer treffen.
 **Implementiert, nicht auf echter Zielhardware abgenommen.** Eingeführt wurde ein standardmäßig deaktiviertes, auf 1800 Ereignisse begrenztes Trace-Protokoll für World-Tile-Cache-Misses, global und lokal begründete Invalidierungen, Snapshot-Hit/Miss-Gründe, `tile.id@lod`-Auftrags-/Warte-/Bake-Status und editorseitige `drawGround`-/`drawRoads`-Aufrufkosten. Der bisherige Renderer wird in dieser Phase **nicht optimiert**. Direkte Kamera- und Referenzbiomdiagnose prüft sechs Hex-Zielpositionen einschließlich Meer `(-4,5)` sowie Fog-ON/OFF ohne die Kartenlogik zu verändern. Die Import-/Demo-Geografie-Zuordnung bleibt als Hypothese bis zu einem realen Messbericht offen.
 
 **Start:** `START_STEP15_WINDOWS.cmd` nach `git pull --ff-only origin main`. Ausgegeben wird `artifacts/rendering-step15-diagnostics/step15-diagnostics.zip` mit `result.json`, `README.md` und Diagnosebildern. 7/7 gezielte Tests wurden im V8-Mock erfolgreich ausgeführt; JavaScript-Syntax geprüft. Native `node --test`-Durchführung sowie reale Chromium-/GPU-Messung stehen aus. **Nächster offener Schritt bleibt 15 (Hardware-Abnahme); Schritt 16 erst nach verifiziertem Warm-4×-Befund.**
+
+
+## 2026-10-29 – Schritt 16: gezielte World-Tile-Revisionsprüfung und Ground-Reuse
+
+**Implementierung:** Der Editor-Snapshot hat eine andere Lebensdauer als die semantische Szene. Aktualisierung einer kameralokalen gepufferten Hintergrund-/Sceneryfläche wird deshalb nicht mehr als globale World-Tile-Invalidierung behandelt. Stattdessen vergleicht der World-Tile-Compositor je aktiver LOD-Stufe vorbereitete Terrain-/Ufer-/Straßen-/Flussrevisionen und invalidiert nur tatsächlich veraltete Tile-IDs. Ein separater 44-MiB-/24-Tile-Ground-Cache speichert ausschließlich vollständig geprüfte Terrain-/Straßenbilder und erlaubt deren Verwendung bei Änderungen an Scenery/Schatten, ohne Ground-Darstellung erneut zu berechnen. Dynamische Einheiten, Fog, Biome-Import und Canvas-/WebGL-Architektur sind nicht verändert. Bereits fertige scharfe Tiles werden bei Snapshot-Neuerzeugung nicht erneut resampelt.
+
+**Nachweisbasis:** Realer Step-15-Lauf: 4×-Pan 12 Ground-Fallbacks mit 1128 ms, Auto-Pan 25/3014 ms und mehrere `staging-signature-changed`-Vollinvalidierungen; diese Ereignisse waren aber teils unready, also **kein** endgültiger Warm-Benchmark. Neue Zähler: `groundReuseHits`, `groundReuseMisses`, `groundReuseBytes`. Die Ziele sind 0 Ground-/Roads-Fallbacks bei vollständig warmem 4×-Pan, keine globalen Cache-Flashes durch Staging-Neuerstellung, keine verschwundenen Hex-/Ufer-/Schattenbilder und stabiler Speicher. **Noch nicht auf Nutzer-Windows-Chrome gemessen**. [Detaillierte Abnahme und Testanleitung](STEP16_GROUND_REUSE.md). Die erste noch nicht abgenommene Phase ist **Schritt 16**; erst danach Schritt 17.
