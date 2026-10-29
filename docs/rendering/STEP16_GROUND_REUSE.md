@@ -139,28 +139,28 @@ Die nächste echte Windows-ZIP muss erneut auf Vollständigkeit,
 bevor Schritt 16 als abgenommen gelten kann.
 
 
-## Zweiter Windows-Retest: \`canReuseGround\`-Scope-Regression
+## Zweiter Windows-Retest: `canReuseGround`-Scope-Regression
 
-Die erneute Windows-Diagnose (29.10.2026, nach dem \`sourceGroundVersion\`-
+Die erneute Windows-Diagnose (29.10.2026, nach dem `sourceGroundVersion`-
 Fix) blieb unready: **0/8 READY-Gates**, **0 exakt abgeschlossene Tiles**
-in allen vier Phasen. \`tile.bake-error\` registrierte zusammen **224
-\`ReferenceError: canReuseGround is not defined\`** (4× Pan/Zoom: 91/15;
+in allen vier Phasen. `tile.bake-error` registrierte zusammen **224
+`ReferenceError: canReuseGround is not defined`** (4× Pan/Zoom: 91/15;
 Auto Pan/Zoom: 57/61). Die daraus resultierenden Framezeiten sind
 **kein belastbarer Performancevergleich**.
 
-**Ursache:** Im Ground-Fallback von \`bakeWorldTile\` war
-\`const canReuseGround\` innerhalb des inneren \`try\` deklariert,
-aber bei \`__outcome=canReuseGround ? ...\` nach dessen \`finally\`
-verwendet. Anders als der vorher korrigierte \`sourceGroundVersion\`-Fehler
+**Ursache:** Im Ground-Fallback von `bakeWorldTile` war
+`const canReuseGround` innerhalb des inneren `try` deklariert,
+aber bei `__outcome=canReuseGround ? ...` nach dessen `finally`
+verwendet. Anders als der vorher korrigierte `sourceGroundVersion`-Fehler
 lag diese zweite Referenz außerhalb der Instrumentierung im Abschluss
 eines tatsächlich durchgeführten Tile-Bakes.
 
-**Gezielter Fix:** \`let canReuseGround=false\` vor den inneren
-\`try\`-Block setzen und danach zuweisen. Ground-Cache, Revisionsprüfung,
-\`drawGround()/drawRoads()\`-Fallback, Scenery und Qualitätsparameter
+**Gezielter Fix:** `let canReuseGround=false` vor den inneren
+`try`-Block setzen und danach zuweisen. Ground-Cache, Revisionsprüfung,
+`drawGround()/drawRoads()`-Fallback, Scenery und Qualitätsparameter
 bleiben unverändert.
 
-**Nachweis:** JavaScript-Syntax in V8 gültig; vier reale, aus \`app.js\`
+**Nachweis:** JavaScript-Syntax in V8 gültig; vier reale, aus `app.js`
 extrahierte Bake-Pfade im isolierten V8-Test erfolgreich:
 noch nicht vorbereitete Assets, Cache-Miss, Cache-Hit und abweichende
 Cache-Rasterabmessungen. Die Node-Regressionstests sind im Repository
@@ -168,8 +168,8 @@ ergänzt; der native Node-Testlauf ist noch nicht belegt.
 
 **Abnahme weiterhin ausstehend:** Zuerst lokal die Node-Tests, dann
 den Windows-/Chrome-Diagnoselauf mindestens dreimal mit
-\`START_STEP15_WINDOWS.cmd --qualities 4,auto --duration 1800 --warmup 1500\`
+`START_STEP15_WINDOWS.cmd --qualities 4,auto --duration 1800 --warmup 1500`
 ausführen. Erst wenn keine Bake-ReferenceErrors auftreten, exakte
 Tiles fertigstellen und die Readiness-Gates bestehen, kann die
 eigentliche Ground-Cache-Performance bewertet werden. Biome-Abweichung
-\`(-4,5): ocean -> grassland\` separat untersuchen. Schritt 17 bleibt gesperrt.
+`(-4,5): ocean -> grassland` separat untersuchen. Schritt 17 bleibt gesperrt.
