@@ -1,3 +1,5 @@
+> **Rendering Schritt 16:** Ground-Reuse und selektive World-Tile-Revisionsprüfung sind implementiert, echte Performance-/Grafikabnahme auf Windows steht aus. [Abnahmeanleitung](docs/rendering/STEP16_GROUND_REUSE.md) · [Fahrplan](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md).
+
 > **Aktueller Rendering-Arbeitsstand:** Schritt 15 (Tile-/Kamera-Diagnose) ist implementiert, Windows-Abnahme noch offen. [Messanleitung](docs/rendering/STEP15_TILE_CAMERA_DIAGNOSTICS.md) · [Schritte 15–20](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md).
 
 > **Rendering-Entwicklungsreihenfolge nach Schritt 14:** [Schritte 15–20 mit Abnahmekriterien](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md). **Zuerst Schritt 15 bearbeiten; GPU-Entscheidung erst nach messbarer Tile-/Kamera-Optimierung.** Stand 29.10.2026.
