@@ -19,7 +19,8 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
 let tileModeActive=false,tileBakes=0,
- visibleFogTiles=null,lastTileSnapshotSignature=null;
+ visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null,
+ lastTileQualitySignature=null;
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 // One shared hysteresis controller selects terrain/shore/river/road detail
 // and the matching World-Tile quality. It is not a DPR multiplier.
@@ -202,12 +203,18 @@ function seedReadyWorldTiles(){
  // Static scenery excludes units; a passing expedition cannot force a
  // Nature tile rebuild or prevent reusing its cached shadow/sprite pixels.
  for(const t of tiles){
+  if(!worldTiles.needsSeed(t,lod,sourceDensity))continue;
   if(!tileArtworkReady(t))continue;
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
+  const sourceVersion=groundSourceRevision(t);
+  if(!preview){
+   const token=groundTileContentKey(t,lod,sourceVersion);
+   if(token)groundTileReuse?.put(t,lod,token,a);
+  }
   // Landscape and canopy must stay in separate render layers.
-  worldTiles.seed(t,lod,{complete:true,
+  worldTiles.seed(t,lod,{complete:true,revision:sourceVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
    {layer:'scenery',image:b}],preview,sourceDensity});
  }
@@ -243,6 +250,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
  const snapshotReady=tileArtworkReady(t);
+ const sourceGroundVersion=groundSourceRevision(t);
  if(!snapshotReady&&!tileArtworkStatus(t,null,true)){
   const details={};tileArtworkStatus(t,details,true);
   __outcome='terrain-or-assets-not-ready:'+String(details.reason||'unknown');
@@ -267,10 +275,13 @@ async function bakeWorldTile(t,level,{signal}={}){
 
  if(a&&b&&snapshotReady&&tileArtworkReady(t)){
   __outcome='snapshot-hit';
+  const token=groundTileContentKey(t,level,sourceGroundVersion);
+  if(token)groundTileReuse?.put(t,level,token,a);
   // Nature, rocks, buildings and their ground shadows are fully prepared
   // without mobile units. Only the independent unit layer moves each frame.
-  return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-   {layer:'scenery',image:b}]};
+  return {complete:true,revision:sourceGroundVersion,
+   layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
+    {layer:'scenery',image:b}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
  if(!tileArtworkStatus(t,null,true)){
@@ -314,14 +325,29 @@ async function bakeWorldTile(t,level,{signal}={}){
   setup(groundG,out,t.x-groundPad,t.y-groundPad,
    t.size+2*groundPad);
   const __groundStart=performance.now();
-  drawGround();drawRoads();
+  const sourceToken=groundTileContentKey(t,level,sourceGroundVersion);
+  const reusedGround=sourceToken?
+   groundTileReuse?.get(t,level,sourceToken):null;
+  const canReuseGround=!!reusedGround&&reusedGround.width===out.width&&
+   reusedGround.height===out.height;
+  if(canReuseGround){
+   groundG.save();groundG.setTransform(1,0,0,1,0,0);
+   groundG.drawImage(reusedGround,0,0);groundG.restore();
+   __bench?.count('tile.groundReuseHits');
+  }else{
+   __bench?.count('tile.groundReuseMisses');
+   drawGround();drawRoads();
+  }
   __bench?.record('tile.groundRoadsMs',performance.now()-__groundStart);
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!tileArtworkReady(t)){
+  if(signal?.aborted||!tileArtworkReady(t)||
+     (sourceGroundVersion!=null&&
+      groundSourceRevision(t)!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
   }
+  if(!canReuseGround&&sourceToken)groundTileReuse?.put(t,level,sourceToken,out);
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -337,18 +363,22 @@ async function bakeWorldTile(t,level,{signal}={}){
   step15PaintContext=old.paintContext;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t)){
+   !tileArtworkReady(t)||
+   (sourceGroundVersion!=null&&
+    groundSourceRevision(t)!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
  }
- __outcome='fallback-complete';
+ __outcome=canReuseGround?'fallback-reused-ground':'fallback-complete';
  tileBakes++;
- return {complete:true,layers:[{layer:'ground',image:out,pad:groundPad},
-  {layer:'scenery',image:overlay,pad}]};
+ return {complete:true,revision:sourceGroundVersion,
+  layers:[{layer:'ground',image:out,pad:groundPad},
+   {layer:'scenery',image:overlay,pad}]};
 
  }finally{
   __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
   if(__tileTrace)__trace.record('tile.bake',{...__tileMeta,
    outcome:__outcome,snapshotReason:__snapshotReason,
+   sourceGroundVersion:String(sourceGroundVersion).slice(0,100),
    wallMs:performance.now()-__bakeStart});
  }
 }
@@ -483,6 +513,18 @@ function fastRender(){
      visibleTiles:tiles.length,worldEpoch:worldTiles.stats().epoch,
      centerHex:state.selected});
    worldTiles.request(fastView(),tiles);
+   // Reconcile only the CURRENT LOD after selection. Each source layer has
+   // its own authoritative version; scenery and units do not affect it.
+   const prepared=(chunks)=>new Map(chunks.readyTiles(bounds,{limit:100})
+    .map(({tile,artwork})=>[tile.id,artwork.version]));
+   const layers={
+    shore:state.shoreline?.enabled!==false?prepared(shorelineChunks):null,
+    road:state.roadShown?prepared(roadChunks):null,
+    river:state.river&&state.riverBanks&&state.riverBankStrength>0?
+     prepared(riverChunks):null
+   };
+   worldTiles.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
+    [tile.id,groundSourceRevision(tile,artwork.version,layers)])));
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
     });
@@ -574,6 +616,37 @@ const gpuSprites=window.VedrasGpuSprites?.create($('gpuSpriteCanvas'))||null;
 const staticScenery=window.VedrasStaticObjects.create({padding:440,maxPixels:17000000,minPadding:24});
 const backgroundScene=window.VedrasStaticObjects.create({padding:220,maxPixels:17000000,minPadding:24});
 const frameMemo=window.VedrasFrameMemo.create();
+// Static ground is keyed by content revision, never a camera coordinate.
+// Scenery edits must not force re-rendering unchanged terrain/roads.
+const groundTileReuse=window.VedrasGroundTileReuse?.create({
+ maxBytes:44*1024*1024,maxEntries:24})||null;
+// Ground's independent prepared sources. A finished road/river/shore
+// update is detected per core; unfinished chunks are never treated as fresh.
+function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
+ const sourceVersion=terrainVersion??currentTerrainCore(t)?.artwork?.version??null;
+ if(sourceVersion==null)return null;
+ const versionFor=(cache,map)=>{
+  if(map)return map.get(t.id)??'pending';
+  return cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
+   {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork?.version??'pending';
+ };
+ const coast=state.shoreline?.enabled!==false?
+  versionFor(shorelineChunks,readyMaps?.shore):'off';
+ const road=state.roadShown?versionFor(roadChunks,readyMaps?.road):'off';
+ const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
+  versionFor(riverChunks,readyMaps?.river):'off';
+ return JSON.stringify([String(sourceVersion),String(coast),
+  String(road),String(river)]);
+}
+function groundTileContentKey(t,level,coreVersion){
+ if(coreVersion==null)return null;
+ return JSON.stringify([t.id,level,String(coreVersion),
+  frameMemo.stats().revision,catalogRevision,state.quality,
+  state.roadShown,state.roadEdges,state.river,state.riverPaths,
+  state.riverBanks,state.riverBankStrength,state.shoreline,
+  state.relief,state.mountainInstances,state.selected]);
+}
+
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
@@ -592,6 +665,7 @@ const imagePool=window.VedrasImagePool.create({
    (state.relief?.enabled&&(a.category==='buildings'||
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){
+   groundTileReuse?.clear();
    window.VedrasStep15Trace?.record('asset.invalidate',{
     reason:'image-ready-ground',path:a.path,category:a.category});
    frameMemo.invalidate();backgroundScene.clear();
@@ -921,6 +995,10 @@ let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all',dirtyWorldTiles=null){
+ // An authoritative terrain change invalidates the old ground source.
+ // Local edits are still selective in WorldTiles; ground cache keys include
+ // scene revisions and therefore never serve stale adjacent rasters.
+ groundTileReuse?.clear();
  window.VedrasStep15Trace?.record('terrain.invalidate',{
   scope,reason:scope==='all'||scope==='cells'||scope==='material'?
    'scene-change':scope==='forest'?'scenery-change':'material-change',
@@ -2687,22 +2765,46 @@ function draw(){
   // Camera-only redraws must reuse completed tiles. Invalidate ONLY when
   // the underlying prepared source images or geometry actually changed.
   const base=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
-  // Camera pose and overscan do not change the underlying tile artwork.
-  const key=[base?.signature,scenery?.signature,
-   objectLayoutCache.stats().revision].join('|');
-  if(key!==lastTileSnapshotSignature){
-   lastTileSnapshotSignature=key;
-   // A localized scenery edit has already evicted exactly its touched cores.
+  // Prepared editor images are CAMERA-LOCAL and may rebuild when a chunk
+  // finishes, the overscan changes or the camera pans. Their snapshot
+  // signatures are NOT semantic scene revisions. Only explicit scene/quality
+  // changes invalidate globally; new chunk versions are reconciled per tile
+  // in fastRender(), and scenery edits already invalidate affected tiles.
+  const semanticKey=JSON.stringify([
+   frameMemo.stats().revision,
+   state.selected,state.quality,state.objects,state.roadShown,state.river,
+   state.shoreline,state.riverPaths,state.roadEdges,
+   objectLayoutCache.stats().revision
+  ]);
+  const stagedKey=[base?.signature,scenery?.signature].join('|');
+  const semanticChanged=semanticKey!==lastTileSnapshotSignature;
+  const stagingChanged=stagedKey!==lastTilePreparedSignature;
+  // Quality/backing DPR is a global raster contract even if a localized
+  // sprite edit completed in the same animation frame.
+  const qualityKey=state.quality+'|'+state.dpr;
+  const qualityChanged=qualityKey!==lastTileQualitySignature;
+  lastTileQualitySignature=qualityKey;
+  if(semanticChanged){
+   lastTileSnapshotSignature=semanticKey;
+   if(qualityChanged||!worldTileSelectiveSnapshot){
+    window.VedrasStep15Trace?.record('tile.semantic-revision-changed',{
+     reason:'scene-or-quality',revision:frameMemo.stats().revision});
+    worldTiles.invalidate('semantic-content-changed');
+   }
+  }
+  // A new editor image is a source of snapshots for READY cores, not a
+  // command to discard finished World-Tiles. Seeding never downgrades a
+  // finished exact tile and never certifies unpainted terrain.
+  if(stagingChanged||semanticChanged){
+   lastTilePreparedSignature=stagedKey;
    window.VedrasStep15Trace?.record('tile.snapshot-signature-change',{
-    reason:'staging-signature-changed',
+    reason:semanticChanged?'semantic-content':'staging-only',
+    selective:worldTileSelectiveSnapshot,
     backgroundSignature:base?.signature||null,
-    scenerySignature:scenery?.signature||null,
-    sceneryRevision:objectLayoutCache.stats().revision,
-    selective:worldTileSelectiveSnapshot});
-   if(!worldTileSelectiveSnapshot)worldTiles.invalidate('staging-signature-changed');
-   worldTileSelectiveSnapshot=false;
+    scenerySignature:scenery?.signature||null});
    seedReadyWorldTiles();
-  }else worldTileSelectiveSnapshot=false;
+  }
+  worldTileSelectiveSnapshot=false;
  }
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
@@ -3873,7 +3975,8 @@ window.VedrasAssetLabor={shadowSprites:{
  realtimeStats:()=>({...realtimeMap.stats(),interacting:fastInteracting,
   worldTiles:worldTiles?.stats()||null,worldTileBakes:tileBakes,
   tileModeActive}),
- worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive}),
+ worldTileStats:()=>({...worldTiles?.stats(),tileBakes,active:tileModeActive,
+  groundReuse:groundTileReuse?.stats()||null}),
  shorelineBuildStats:()=>({...window.__vedrasShorelineBuildProfile,
   worker:window.VedrasTerrainWorker.status()}),
  sceneryDrawStats:()=>({
@@ -3894,6 +3997,7 @@ window.VedrasAssetLabor={shadowSprites:{
   zoomFallbacks:cameraZoomFallbacks,fastFrames,worldTileBakes:tileBakes,
   backgroundBuilds:backgroundScene.stats().builds,
   sceneryBuilds:staticScenery.stats().builds,
+  groundReuse:groundTileReuse?.stats()||null,
   terrainBuilds:terrainChunks.stats().built,active:tileModeActive,
   interacting:fastInteracting}),
  activateTileCamera:()=>{if(!fastAllowed())return false;

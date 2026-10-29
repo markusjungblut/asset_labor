@@ -175,17 +175,35 @@ window.VedrasWorldTiles=(()=>{
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
   }
+  // A refreshed terrain core may replace only its own World-Tile packets.
+  // The editor supplies the *prepared* authoritative terrain revision per
+  // visible tile. A changed background snapshot or camera pose is not itself
+  // an invalidation of every cached world tile.
+  function reconcileGroundRevisions(versions){
+   if(!versions||typeof versions.get!=='function')return 0;
+   const stale=new Set();
+   for(const [k,item] of cache){
+    // LOD variants remain independently reusable across camera zooms.
+    if(item.tileLod!==lod||!versions.has(item.tile.id))continue;
+    const expected=versions.get(item.tile.id);
+    if(expected==null||item.revision==null)continue;
+    if(item.revision!==expected)stale.add(item.tile.id);
+   }
+   if(!stale.size)return 0;
+   trace('tile.ground-revision-changed',{count:stale.size,epoch,lod});
+   return invalidateTiles(stale,'terrain-core-revision-changed',[lod]);
+  }
   // Per-footprint invalidation retains unrelated tiles and LOD variants.
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
-  function invalidateTiles(tileIds,reason='scene-change'){
+  function invalidateTiles(tileIds,reason='scene-change',levels=Object.keys(density)){
    const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
     [...tileIds]:[]);
    for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
    if(!ids.size)return 0;
    trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod});
    let changed=0;
-   for(const level of Object.keys(density))for(const id of ids){
+   for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
     if(old){
      cache.delete(k);pixels-=old.pixels;release(old.packet);
@@ -310,6 +328,15 @@ window.VedrasWorldTiles=(()=>{
    observe(k,provisional?'preview-needs-upgrade':'ready',
     {level,sourceDensity:packet.sourceDensity??null,revision:packet.revision??null});
    onReady();return true;
+  }
+  // Avoid allocating and resampling a complete world tile again merely
+  // because the editor's viewport-sized staging canvas was repainted.
+  function needsSeed(tile,level,sourceDensity=null){
+   const prior=cache.get(key(tile,level));
+   if(!prior)return true;
+   if(!prior.packet.preview)return false;
+   return Number.isFinite(sourceDensity)&&
+    sourceDensity>(prior.packet.sourceDensity??0)+.01;
   }
   function seed(tile,level,packet){
    // A repainted editor snapshot may be older/lower density: never replace
@@ -714,7 +741,8 @@ window.VedrasWorldTiles=(()=>{
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
-    coverUnready,chooseLod,invalidate,invalidateTiles,stats,diagnostics,terrainReady};
+    coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
+    needsSeed,stats,diagnostics,terrainReady};
  }
  return {create};
 })();
