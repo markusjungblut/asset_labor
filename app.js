@@ -28,6 +28,7 @@ const adaptiveLOD=window.VedrasAdaptiveLOD.create();
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,requireScenery:true,
+ sourceRevision:tile=>groundSourceRevision(tile),
  lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
 });
@@ -347,7 +348,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!tileArtworkReady(t)||
+  if(signal?.aborted||!tileArtworkStatus(t,null,true)||
      (sourceGroundVersion!=null&&
       groundSourceRevision(t)!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
@@ -368,7 +369,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   step15PaintContext=old.paintContext;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t)||
+   !tileArtworkStatus(t,null,true)||
    (sourceGroundVersion!=null&&
     groundSourceRevision(t)!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
@@ -536,8 +537,11 @@ function fastRender(){
     river:state.river&&state.riverBanks&&state.riverBankStrength>0?
      prepared(riverChunks):null
    };
-   worldTiles.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
-    [tile.id,groundSourceRevision(tile,artwork.version,layers)])));
+   const versions=new Map(ready.map(({tile,artwork})=>
+    [tile.id,groundSourceRevision(tile,artwork.version,layers)]));
+   worldTiles.reconcileGroundRevisions(versions);
+   for(const [tileId,revision] of versions)
+    worldTiles.terrainReady(tileId,revision);
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
     });
@@ -643,8 +647,13 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
   return cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
    {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork?.version??'pending';
  };
- const coast=state.shoreline?.enabled!==false?
-  versionFor(shorelineChunks,readyMaps?.shore):'off';
+ // Noncoastal tiles deliberately have no shoreline raster; this is not pending.
+ const coastal=Array.isArray(shorelineCache.segments)?
+  shorelineCache.segments.some(s=>s.center.x>=t.x-256&&
+   s.center.x<=t.x+t.size+256&&s.center.y>=t.y-256&&
+   s.center.y<=t.y+t.size+256):null;
+ const coast=state.shoreline?.enabled===false?'off':
+  coastal===false?'no-coast':versionFor(shorelineChunks,readyMaps?.shore);
  const road=state.roadShown?versionFor(roadChunks,readyMaps?.road):'off';
  const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
   versionFor(riverChunks,readyMaps?.river):'off';
@@ -660,6 +669,14 @@ function groundTileContentKey(t,level,coreVersion){
   state.relief,state.mountainInstances,state.selected]);
 }
 
+function tileSemanticSignature(){
+ return JSON.stringify([
+  frameMemo.stats().revision,
+  state.selected,state.quality,state.objects,state.roadShown,state.river,
+  state.shoreline,state.riverPaths,state.roadEdges,
+  objectLayoutCache.stats().revision
+ ]);
+}
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
@@ -703,17 +720,18 @@ const imagePool=window.VedrasImagePool.create({
   const delay=busy?900:120;
   assetReadyTimer=setTimeout(()=>{
    assetReadyTimer=null;
-   if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-    worldTiles?.invalidate('image-ready-ground');
-    lastTileSnapshotSignature=null;
-    worldTileSelectiveSnapshot=false;
-   }
+   const groundChanged=spriteBatchGroundDirty;
+   if(groundChanged)worldTiles?.invalidate('image-ready-ground');
    if(spriteAssetBatchDirty){
     spriteAssetBatchDirty=false;
     const paths=new Set(pendingSpriteAssetPaths);
     pendingSpriteAssetPaths.clear();
-    if(spriteBatchGroundDirty)invalidateSpriteLayout();
-    else invalidateSpriteLayout(worldTilesForAssetPaths(paths));
+    // Ground already invalidated every tile: no duplicate global scenery flush.
+    invalidateSpriteLayout(groundChanged?new Set():worldTilesForAssetPaths(paths));
+   }
+   if(groundChanged){
+    lastTileSnapshotSignature=tileSemanticSignature();
+    worldTileSelectiveSnapshot=false;
    }
    spriteBatchGroundDirty=false;
    requestDraw();
@@ -794,6 +812,10 @@ function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
 function baseBiomeOf(c){
  if(!c)return null;
  const k=key(c.q,c.r);
+ // Authored water geography cannot turn into grassland while its image loads.
+ if(c.sceneWaterTerrain===true&&
+    window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
+  return c.terrainTypeId;
  const own=typeOfAsset(useAsset(state.hexTerrain[k]));
  if(own&&own!=='forest_floor')return own;
  const perBiome=typeOfAsset(useAsset(state.biomeTerrain[c.biome]));
@@ -1179,7 +1201,7 @@ function drawShorelines(){
      });
    },
    redraw:tile=>{
-    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    if(tile?.id)worldTiles?.terrainReady(tile.id,groundSourceRevision(tile));
     requestDraw();
    },family:signature
   });
@@ -1426,7 +1448,7 @@ function drawGroundImpl(){
    redraw:tile=>{
     // Fast camera may remain active while the worker finishes this core.
     // Re-arm only its previously incomplete World-Tile source.
-    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    if(tile?.id)worldTiles?.terrainReady(tile.id,groundSourceRevision(tile));
     requestDraw();
    },family:chunkFamily,diagnosticLod:lod,
    requireRaster:true,timeoutMs:60000
@@ -2783,12 +2805,7 @@ function draw(){
   // signatures are NOT semantic scene revisions. Only explicit scene/quality
   // changes invalidate globally; new chunk versions are reconciled per tile
   // in fastRender(), and scenery edits already invalidate affected tiles.
-  const semanticKey=JSON.stringify([
-   frameMemo.stats().revision,
-   state.selected,state.quality,state.objects,state.roadShown,state.river,
-   state.shoreline,state.riverPaths,state.roadEdges,
-   objectLayoutCache.stats().revision
-  ]);
+  const semanticKey=tileSemanticSignature();
   const stagedKey=[base?.signature,scenery?.signature].join('|');
   const semanticChanged=semanticKey!==lastTileSnapshotSignature;
   const stagingChanged=stagedKey!==lastTilePreparedSignature;
@@ -3194,13 +3211,15 @@ async function loadLibrary(list,mode){
   imagePoolPriming=false;
   // Essential images may complete during initial priming: the onReady()
   // callback skipped scheduling their scenery rebuild. Flush that state.
-  if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-   worldTiles?.invalidate('image-ready-ground');lastTileSnapshotSignature=null;
-   worldTileSelectiveSnapshot=false;
-  }
+  const groundChanged=spriteBatchGroundDirty;
+  if(groundChanged)worldTiles?.invalidate('image-ready-ground');
   if(spriteAssetBatchDirty){
    spriteAssetBatchDirty=false;pendingSpriteAssetPaths.clear();
-   invalidateSpriteLayout();
+   invalidateSpriteLayout(groundChanged?new Set():null);
+  }
+  if(groundChanged){
+   lastTileSnapshotSignature=tileSemanticSignature();
+   worldTileSelectiveSnapshot=false;
   }
   spriteBatchGroundDirty=false;
  }
@@ -3596,6 +3615,15 @@ $('sceneImport').addEventListener('change',async e=>{
   const good=x=>typeof x==='string'&&assetByPath.has(x)&&isTerrainValid(useAsset(x))&&!!typeOfAsset(useAsset(x));
   const skipped=[...Object.values(tileMap),...Object.values(biomeMap)].filter(v=>!good(v)).length;
   state.sceneSize=SCENE_SIZES.includes(Number(scene.sceneSize))?Number(scene.sceneSize):37;state.chunkRendering=!!scene.chunkRendering;state.chunkRenderingOverride=true;state.workerTerrain=scene.workerTerrain!==false;$('chunkRendering').checked=state.chunkRendering;$('workerTerrain').checked=state.workerTerrain;$('sceneSize').value=String(state.sceneSize);assignBiomes();
+  // Preserve explicit water terrain from the scene without changing land types.
+  if(scene.terrainTypeByHex&&typeof scene.terrainTypeByHex==='object')
+   for(const cell of worldCells){
+    const id=scene.terrainTypeByHex[key(cell.q,cell.r)];
+    if(typeof id==='string'&&
+     window.VedrasCatalog.terrainType(catalog,id)?.materialClass==='water'){
+     cell.terrainTypeId=id;cell.biome=id;cell.sceneWaterTerrain=true;
+    }
+   }
   state.hexTerrain=Object.fromEntries(Object.entries(tileMap).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&good(v)));
   state.biomeTerrain=Object.fromEntries(Object.entries(biomeMap).filter(([k,v])=>good(v)));
   state.baseBiomeByHex=Object.fromEntries(Object.entries(scene.baseBiomeByHex||{}).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&catalog.terrainTypes.some(t=>t.id===v&&t.materialClass==='ground')));

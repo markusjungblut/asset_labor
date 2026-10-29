@@ -173,3 +173,49 @@ ausführen. Erst wenn keine Bake-ReferenceErrors auftreten, exakte
 Tiles fertigstellen und die Readiness-Gates bestehen, kann die
 eigentliche Ground-Cache-Performance bewertet werden. Biome-Abweichung
 `(-4,5): ocean -> grassland` separat untersuchen. Schritt 17 bleibt gesperrt.
+
+## Dritter Windows-Lauf und Folgekorrekturen (29.10.2026)
+
+Im dritten Lauf: 0 Bake-JavaScript-Fehler, aber nur 3/8 Readiness-Gates.
+4x-Pan: 90 Ground-Fallbacks und 30 selektive Revisionsinvalidierungen.
+Auto-Pan: rund 75 % Abdeckung; zwei source-null/retry-exhausted-Tiles
+(-2,0@mid und 0,-1@mid). Auto-Zoom: 27 Fallbacks (~3580 ms).
+Die p95-Werte sind ohne vollständige Readiness kein Warm-Performancebeleg.
+
+### Korrekturen auf separatem Branch
+
+- Offscreen-Bakes verwenden vor und nach dem Zeichnen die Prüfung der
+  vorbereiteten Quellbilder, statt nachträglich editorseitig gemalte
+  Snapshot-Quellen zu erzwingen; exakte Quellrevisionen werden weiterhin
+  vor Annahme verglichen und unvorbereitete Quellen verworfen.
+- Der Streamer registriert die Quellrevision bei Jobstart und reaktiviert
+  source-null/invalid-packet/incomplete-source nach ausgeschöpften Retries
+  nur bei tatsächlich veränderter Quellrevision. Ein während des Jobs
+  fertiger Chunk wird nach Freigabe des Slots erneut geprüft.
+- Nicht-küstennahe Tiles erhalten no-coast anstelle einer dauerhaft
+  pending gemeldeten, tatsächlich nicht benötigten Shoreline-Revision.
+- Zusammengehörige Ground- und Scenery-Decode-Ereignisse erhalten eine
+  einzige globale Ground-Invalidierung und keine doppelte globale
+  Scenery-/semantische Invalidierung. Unabhängige semantische Änderungen
+  behalten ihre vorherige vollständige Invalidierung.
+- Der Szenenimport übernimmt explizit gespeicherte Wasser-Terrain-IDs
+  aus terrainTypeByHex in die Weltzellen. Ein Wasser-Typ bleibt auch bei
+  noch nicht geladener Wasser-PNG maßgeblich, Landbiome bleiben unverändert.
+
+### Nachweise und offene Punkte
+
+JavaScript-Syntax sowie isolierte V8-Tests mit real extrahiertem Bake und
+Streamer bestanden: Prepared-Offscreen-Bake, Reaktivierung bei neuer
+Quellrevision, verzögerte In-Flight-Fertigstellung und ocean/grassland-
+Unterscheidung. Sechs Node-Regressionstests wurden ergänzt, jedoch
+nicht in einer nativen Node-Suite oder auf der Nutzer-GPU ausgeführt.
+
+Der Auto-Modus hält zeitweilig rund 400 MiB geschützte Sprite-Previews
+bei 288 MiB Budget. Der Pool darf sichtbar benötigte Assets nicht
+aggressiv auswerfen: das würde die frühere PNG-Reload-Schleife riskieren.
+Ein Speichersieg ist nicht nachgewiesen; erneute Messung erforderlich.
+
+Abnahme weiterhin offen: 8/8 READY-Gates, keine dauerhaft fehlenden
+Tiles, keine Bake-Fehler, stabiler Speicher und visuell korrektes Wasser
+(-4,5) müssen nach erneutem Import und drei Windows-Benchmarks vorliegen.
+Schritt 17 bleibt gesperrt.
