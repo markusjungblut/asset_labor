@@ -103,7 +103,7 @@ async function editorCameraProbe(kind,frames){
  const intervals=[],drawMs=[];
  let last=null;
  try{
-  if(!v.activateTileCamera())return {activated:false,intervals:[],drawMs:[]};
+  if(!v.worldTileStats()?.active)return {activated:false,intervals:[],drawMs:[]};
   for(let i=0;i<frames;i++){
    const start=await new Promise(resolve=>requestAnimationFrame(resolve));
    if(last!==null)intervals.push(start-last);
