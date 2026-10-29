@@ -61,7 +61,13 @@ window.VedrasWorldTiles=(()=>{
    },delay);
    retryTimers.set(k,timer);
   }
+  const trace=(type,details)=>{
+   if(window.VedrasStep15Trace?.enabled())
+    window.VedrasStep15Trace.record(type,details);
+  };
   function observe(k,status,extra={}){
+   trace('tile.state',{key:k,status,epoch,lod,reason:extra.reason||null,
+     sourceDensity:extra.sourceDensity??null,revision:extra.revision??null});
    const old=history.get(k);history.delete(k);
    history.set(k,{key:k,status,epoch,at:Date.now(),
     attempts:(old?.attempts||0)+(status==='running'?1:0),...extra});
@@ -154,7 +160,9 @@ window.VedrasWorldTiles=(()=>{
    for(const layer of packet?.layers||[])
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
-  function invalidate(){
+  function invalidate(reason='unknown'){
+   trace('tile.invalidate',{scope:'all',reason,epoch,cacheCount:cache.size,
+    pending:queue.size+running.size,lod});
    lastAgedPriority=null;
    for(const k of retryTimers.keys())cancelRetry(k);
    retries.clear();
@@ -170,11 +178,12 @@ window.VedrasWorldTiles=(()=>{
   // Per-footprint invalidation retains unrelated tiles and LOD variants.
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
-  function invalidateTiles(tileIds){
+  function invalidateTiles(tileIds,reason='scene-change'){
    const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
     [...tileIds]:[]);
    for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
    if(!ids.size)return 0;
+   trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod});
    let changed=0;
    for(const level of Object.keys(density))for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
@@ -262,6 +271,8 @@ window.VedrasWorldTiles=(()=>{
     if(!candidate)break;
     const [k,item]=candidate;cache.delete(k);pixels-=item.pixels;
     release(item.packet);evicted++;
+    trace('tile.evict',{key:k,reason:'lru-budget',epoch,lod,
+     pixels:item.pixels,cacheCount:cache.size});
    }
   }
   function accept(tile,level,packet){
@@ -291,7 +302,10 @@ window.VedrasWorldTiles=(()=>{
     sourceDensity:finite(packet.sourceDensity)?packet.sourceDensity:null},
     pixels:count,used:++used,born:old?.packet.preview&&!provisional?
      clock()-240:clock(),revision:packet.revision??null});
-   pixels+=count;completed++;trim(visibleSourceKeys());
+   pixels+=count;completed++;
+   trace('tile.accept',{key:k,id:tile.id,level,revision:packet.revision??null,
+     preview:provisional,pixels:count,epoch});
+   trim(visibleSourceKeys());
    retries.delete(k);cancelRetry(k);
    observe(k,provisional?'preview-needs-upgrade':'ready',
     {level,sourceDensity:packet.sourceDensity??null,revision:packet.revision??null});
@@ -318,6 +332,9 @@ window.VedrasWorldTiles=(()=>{
     const token=++serial,job={controller,epoch:item.epoch,token,
      startedAt:Date.now(),timeout:null};
     running.set(item.key,job);
+    trace('tile.source-start',{key:item.key,id:item.tile.id,
+     x:item.tile.x,y:item.tile.y,size:item.tile.size,level:item.level,
+     epoch:item.epoch,attempt:retries.get(item.key)?.attempts??0});
     observe(item.key,'running',{level:item.level});
     // A nonsettling source must never monopolize the single render slot.
     if(sourceTimeoutMs>0&&typeof setTimeout==='function')
@@ -354,6 +371,10 @@ window.VedrasWorldTiles=(()=>{
       retryFailure(item,'failed',err);
       if(typeof console!=='undefined')console.warn('World tile:',err);
     }).finally(()=>{
+      trace('tile.source-end',{key:item.key,id:item.tile.id,level:item.level,
+       epoch:item.epoch,wallMs:Date.now()-job.startedAt,
+       stale:item.epoch!==epoch,ready:!!cache.get(item.key)&&
+        !cache.get(item.key).packet.preview});
       if(job.timeout!==null&&typeof clearTimeout==='function')
        clearTimeout(job.timeout);
       const active=running.get(item.key);
@@ -363,7 +384,10 @@ window.VedrasWorldTiles=(()=>{
    }
   }
   function request(view,tiles){
+   const previousLod=lod;
    lastView=view;lod=chooseLod(view.zoom);
+   if(previousLod!==lod)trace('tile.lod',{from:previousLod,to:lod,zoom:view.zoom,
+    reason:'zoom-threshold',epoch});
    // Only user-authorized tile descriptors should be passed in.
    // The server must not ship hidden terrain or units at any zoom.
    visibleTiles=Array.isArray(tiles)?tiles.filter(t=>typeof t?.id==='string'&&
@@ -410,7 +434,13 @@ window.VedrasWorldTiles=(()=>{
     if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>now)))continue;
     queue.set(k,{key:k,tile:t,level:lod,epoch,
      queuedAt:prior.get(k)?.queuedAt??now});
-    if(!prior.has(k))observe(k,existing?.packet.preview?'upgrade-queued':'queued',{level:lod});
+    if(!prior.has(k)){
+     trace('tile.cache-miss',{key:k,id:t.id,x:t.x,y:t.y,size:t.size,
+      level:lod,epoch,reason:existing?.packet.preview?'preview-upgrade':
+       Object.keys(density).some(l=>l!==lod&&cache.has(key(t,l)))?
+       'different-lod-cached':'not-in-current-lod-cache'});
+     observe(k,existing?.packet.preview?'upgrade-queued':'queued',{level:lod});
+    }
    }
    const before=[...prior.keys()].filter(k=>queue.has(k));
    const after=[...queue.keys()].filter(k=>prior.has(k));
@@ -671,7 +701,7 @@ window.VedrasWorldTiles=(()=>{
     loaded:items.length,exact,fallback,provisional,missing,
     pending:queue.size+running.size};
   }
-  function stats(){return {version:'0.22.3',clouds:clouds?.stats()||null,
+  function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
    inFlight:running.size,visible:visibleTiles.length,lod,
