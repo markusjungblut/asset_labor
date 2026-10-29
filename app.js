@@ -202,6 +202,7 @@ function seedReadyWorldTiles(){
  // Static scenery excludes units; a passing expedition cannot force a
  // Nature tile rebuild or prevent reusing its cached shadow/sprite pixels.
  for(const t of tiles){
+  if(!worldTiles.needsSeed(t,lod,sourceDensity))continue;
   if(!tileArtworkReady(t))continue;
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
