@@ -669,6 +669,14 @@ function groundTileContentKey(t,level,coreVersion){
   state.relief,state.mountainInstances,state.selected]);
 }
 
+function tileSemanticSignature(){
+ return JSON.stringify([
+  frameMemo.stats().revision,
+  state.selected,state.quality,state.objects,state.roadShown,state.river,
+  state.shoreline,state.riverPaths,state.roadEdges,
+  objectLayoutCache.stats().revision
+ ]);
+}
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
@@ -712,17 +720,18 @@ const imagePool=window.VedrasImagePool.create({
   const delay=busy?900:120;
   assetReadyTimer=setTimeout(()=>{
    assetReadyTimer=null;
-   if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-    worldTiles?.invalidate('image-ready-ground');
-    lastTileSnapshotSignature=null;
-    worldTileSelectiveSnapshot=false;
-   }
+   const groundChanged=spriteBatchGroundDirty;
+   if(groundChanged)worldTiles?.invalidate('image-ready-ground');
    if(spriteAssetBatchDirty){
     spriteAssetBatchDirty=false;
     const paths=new Set(pendingSpriteAssetPaths);
     pendingSpriteAssetPaths.clear();
-    if(spriteBatchGroundDirty)invalidateSpriteLayout();
-    else invalidateSpriteLayout(worldTilesForAssetPaths(paths));
+    // Ground already invalidated every tile: no duplicate global scenery flush.
+    invalidateSpriteLayout(groundChanged?new Set():worldTilesForAssetPaths(paths));
+   }
+   if(groundChanged){
+    lastTileSnapshotSignature=tileSemanticSignature();
+    worldTileSelectiveSnapshot=false;
    }
    spriteBatchGroundDirty=false;
    requestDraw();
@@ -2795,12 +2804,7 @@ function draw(){
   // signatures are NOT semantic scene revisions. Only explicit scene/quality
   // changes invalidate globally; new chunk versions are reconciled per tile
   // in fastRender(), and scenery edits already invalidate affected tiles.
-  const semanticKey=JSON.stringify([
-   frameMemo.stats().revision,
-   state.selected,state.quality,state.objects,state.roadShown,state.river,
-   state.shoreline,state.riverPaths,state.roadEdges,
-   objectLayoutCache.stats().revision
-  ]);
+  const semanticKey=tileSemanticSignature();
   const stagedKey=[base?.signature,scenery?.signature].join('|');
   const semanticChanged=semanticKey!==lastTileSnapshotSignature;
   const stagingChanged=stagedKey!==lastTilePreparedSignature;
@@ -3206,13 +3210,15 @@ async function loadLibrary(list,mode){
   imagePoolPriming=false;
   // Essential images may complete during initial priming: the onReady()
   // callback skipped scheduling their scenery rebuild. Flush that state.
-  if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-   worldTiles?.invalidate('image-ready-ground');lastTileSnapshotSignature=null;
-   worldTileSelectiveSnapshot=false;
-  }
+  const groundChanged=spriteBatchGroundDirty;
+  if(groundChanged)worldTiles?.invalidate('image-ready-ground');
   if(spriteAssetBatchDirty){
    spriteAssetBatchDirty=false;pendingSpriteAssetPaths.clear();
-   invalidateSpriteLayout();
+   invalidateSpriteLayout(groundChanged?new Set():null);
+  }
+  if(groundChanged){
+   lastTileSnapshotSignature=tileSemanticSignature();
+   worldTileSelectiveSnapshot=false;
   }
   spriteBatchGroundDirty=false;
  }
