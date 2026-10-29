@@ -1,0 +1,98 @@
+#!/usr/bin/env node
+/**
+ * One-click Windows-friendly Step-15 acceptance.
+ * Starts an isolated local server, runs the real Chromium benchmark and shuts
+ * down only the server it started. Requires Node 22+ and Python 3.
+ */
+import { spawn, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { mkdir, rm } from 'node:fs/promises';
+
+const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+process.chdir(repo);
+const scene=resolve(repo,'artifacts/rendering-step13/vedras_scene.json');
+const output=resolve(repo,'artifacts/rendering-step15-diagnostics');
+let server=null;
+let shuttingDown=false;
+const stop=()=>{
+  if(shuttingDown)return;
+  shuttingDown=true;
+  if(server&&!server.killed)server.kill();
+};
+process.on('SIGINT',()=>{stop();process.exitCode=130;});
+process.on('SIGTERM',()=>{stop();process.exitCode=143;});
+
+async function startServer(){
+  const candidates=process.platform==='win32'
+    ?[{exe:'python',args:['server.py']},{exe:'py',args:['-3','server.py']}]
+    :[{exe:'python3',args:['server.py']},{exe:'python',args:['server.py']}];
+  let lastError='';
+  for(const candidate of candidates){
+    try{
+      return await new Promise((resolveReady,rejectReady)=>{
+        let settled=false,buffer='';
+        const env={...process.env,VEDRAS_PORT:'0',VEDRAS_NO_BROWSER:'1',VEDRAS_SILENT_HTTP:'1',PYTHONUNBUFFERED:'1'};
+        const child=spawn(candidate.exe,candidate.args,{cwd:repo,env,stdio:['ignore','pipe','pipe']});
+        server=child;
+        const timer=setTimeout(()=>fail('Server start timed out (25 s)'),25000);
+        const finish=(fn,value)=>{if(settled)return;settled=true;clearTimeout(timer);fn(value);};
+        const fail=message=>{if(!child.killed)child.kill();finish(rejectReady,Error(message));};
+        child.on('error',e=>fail(e.message));
+        child.on('exit',(code,signal)=>fail('Server exited before ready: '+(code??signal)));
+        child.stderr.on('data',d=>{const line=String(d);process.stderr.write(line);lastError+=line;});
+        child.stdout.on('data',d=>{
+          const line=String(d);buffer=(buffer+line).slice(-12000);
+          const found=buffer.match(/Aktuelle URL:\s*(http:\/\/127\.0\.0\.1:\d+\/\?v=[^\s]+)/);
+          if(found)finish(resolveReady,{child,url:found[1],python:candidate});
+        });
+      });
+    }catch(e){lastError=String(e.message);server=null;}
+  }
+  throw Error('Could not start Python server. Try python --version. '+lastError);
+}
+async function main(){
+  if(Number(process.versions.node.split('.')[0])<22)
+    throw Error('Node.js 22+ required. Your version: '+process.version);
+  if(!existsSync(scene))throw Error('Reference scene missing: '+scene+
+    '\nPull main (git pull --ff-only origin main) and check the tracked JSON file.');
+  if(process.argv.includes('--url'))throw Error('The auto launcher selects a private local server port; do not supply --url.');
+  console.log('Vedras Reiche – Schritt 15: Kachel-, Kamera- und Fog-Diagnose');
+  console.log('Scene: '+scene);
+  // Do not mix stale cloud-covered screenshots from a previous attempt with
+  // new successful evidence. Only remove files owned by this dedicated runner.
+  // Dedicated output root: remove stale ON/OFF evidence to prevent comparisons
+  // silently mixing results from different executions.
+  await rm(output,{recursive:true,force:true});
+  await mkdir(output,{recursive:true});
+  const started=await startServer();
+  console.log('Isolated local server: '+started.url);
+  const args=[
+    resolve(repo,'scripts/rendering-step15-diagnostics.mjs'),
+    '--url',started.url,
+    '--scene',scene,
+    '--out',output,
+    ...process.argv.slice(2)
+  ];
+  const test=spawn(process.execPath,args,{cwd:repo,stdio:'inherit'});
+  const code=await new Promise((resolveExit,rejectExit)=>{
+    test.once('error',rejectExit);
+    test.once('close',code=>resolveExit(code??1));
+  });
+  stop();
+  const zip=spawnSync(started.python.exe,
+    [...started.python.args.slice(0,-1),'scripts/rendering-step15-pack.py',output],
+    {cwd:repo,stdio:'inherit',timeout:30000});
+  if(zip.status!==0)console.error('Could not package results; raw files remain in '+output);
+  console.log('\nResults: '+output);
+  if(process.platform==='win32'){
+    try{
+      const explorer=spawn('explorer.exe',[output],{detached:true,stdio:'ignore'});
+      explorer.unref();
+    }catch{}
+  }
+  if(code!==0)throw Error('Browser test exit status '+code+'. Read result.json in '+output);
+  console.log('Step 15 recorded. Read the tile origin events and check ocean/fog screenshots.');
+}
+main().catch(e=>{stop();console.error('Step-15 automatic test failed: '+e.message);process.exitCode=1;}).finally(stop);
