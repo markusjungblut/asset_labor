@@ -206,8 +206,13 @@ function seedReadyWorldTiles(){
   const a=snapshotTile(ground,t,lod,WORLD_TILE_GUTTER),
    b=snapshotTile(scenery,t,lod);
   if(!a||!b)continue;
+  const sourceVersion=currentTerrainCore(t)?.artwork?.version??null;
+  if(!preview){
+   const token=groundTileContentKey(t,lod,sourceVersion);
+   if(token)groundTileReuse?.put(t,lod,token,a);
+  }
   // Landscape and canopy must stay in separate render layers.
-  worldTiles.seed(t,lod,{complete:true,
+  worldTiles.seed(t,lod,{complete:true,revision:sourceVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
    {layer:'scenery',image:b}],preview,sourceDensity});
  }
@@ -243,6 +248,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
  const snapshotReady=tileArtworkReady(t);
+ const sourceGroundVersion=currentTerrainCore(t)?.artwork?.version??null;
  if(!snapshotReady&&!tileArtworkStatus(t,null,true)){
   const details={};tileArtworkStatus(t,details,true);
   __outcome='terrain-or-assets-not-ready:'+String(details.reason||'unknown');
@@ -267,10 +273,13 @@ async function bakeWorldTile(t,level,{signal}={}){
 
  if(a&&b&&snapshotReady&&tileArtworkReady(t)){
   __outcome='snapshot-hit';
+  const token=groundTileContentKey(t,level,sourceGroundVersion);
+  if(token)groundTileReuse?.put(t,level,token,a);
   // Nature, rocks, buildings and their ground shadows are fully prepared
   // without mobile units. Only the independent unit layer moves each frame.
-  return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-   {layer:'scenery',image:b}]};
+  return {complete:true,revision:sourceGroundVersion,
+   layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
+    {layer:'scenery',image:b}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
  if(!tileArtworkStatus(t,null,true)){
@@ -314,14 +323,28 @@ async function bakeWorldTile(t,level,{signal}={}){
   setup(groundG,out,t.x-groundPad,t.y-groundPad,
    t.size+2*groundPad);
   const __groundStart=performance.now();
-  drawGround();drawRoads();
+  const sourceToken=groundTileContentKey(t,level,sourceGroundVersion);
+  const reusedGround=sourceToken?
+   groundTileReuse?.get(t,level,sourceToken):null;
+  if(reusedGround&&reusedGround.width===out.width&&
+     reusedGround.height===out.height){
+   groundG.save();groundG.setTransform(1,0,0,1,0,0);
+   groundG.drawImage(reusedGround,0,0);groundG.restore();
+   __bench?.count('tile.groundReuseHits');
+  }else{
+   __bench?.count('tile.groundReuseMisses');
+   drawGround();drawRoads();
+  }
   __bench?.record('tile.groundRoadsMs',performance.now()-__groundStart);
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!tileArtworkReady(t)){
+  if(signal?.aborted||!tileArtworkReady(t)||
+     (sourceGroundVersion!=null&&
+      currentTerrainCore(t)?.artwork?.version!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
   }
+  if(!reusedGround&&sourceToken)groundTileReuse?.put(t,level,sourceToken,out);
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -337,13 +360,16 @@ async function bakeWorldTile(t,level,{signal}={}){
   step15PaintContext=old.paintContext;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t)){
+   !tileArtworkReady(t)||
+   (sourceGroundVersion!=null&&
+    currentTerrainCore(t)?.artwork?.version!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
  }
  __outcome='fallback-complete';
  tileBakes++;
- return {complete:true,layers:[{layer:'ground',image:out,pad:groundPad},
-  {layer:'scenery',image:overlay,pad}]};
+ return {complete:true,revision:sourceGroundVersion,
+  layers:[{layer:'ground',image:out,pad:groundPad},
+   {layer:'scenery',image:overlay,pad}]};
 
  }finally{
   __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
@@ -472,6 +498,10 @@ function fastRender(){
     shorelineChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100});
+  // Only newly published *authoritative* chunk revisions can invalidate
+  // previously completed tiles; panning and snapshot raster rebuilds cannot.
+  worldTiles?.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
+   [tile.id,artwork.version])));
   let result;
   if(worldTiles){
    const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
