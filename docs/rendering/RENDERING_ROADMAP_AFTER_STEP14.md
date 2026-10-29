@@ -46,6 +46,8 @@
 
 ### Schritt 15 – Kachel- und Kamerazustände beweisbar machen
 
+> **Implementierung:** [Schritt-15-Kachel- und Kameradiagnostik](STEP15_TILE_CAMERA_DIAGNOSTICS.md) ist als Messinstrument eingebaut; echte Windows-Abnahme und Befundauswertung stehen aus. Die Phase bleibt bis dahin offen.
+
 **Ziel:** Bevor Code weiter optimiert wird, präzise erklären, *warum* beim 4×-Schwenken Terrain-Bakes stattfinden und weshalb Kamera-/Biome-/Fog-Bilder teils nicht zum Szenenmodell passen.
 
 **Arbeitsumfang:**
