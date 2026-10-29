@@ -813,7 +813,8 @@ function baseBiomeOf(c){
  if(!c)return null;
  const k=key(c.q,c.r);
  // Authored water geography cannot turn into grassland while its image loads.
- if(window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
+ if(c.sceneWaterTerrain===true&&
+    window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
   return c.terrainTypeId;
  const own=typeOfAsset(useAsset(state.hexTerrain[k]));
  if(own&&own!=='forest_floor')return own;
@@ -3620,7 +3621,7 @@ $('sceneImport').addEventListener('change',async e=>{
     const id=scene.terrainTypeByHex[key(cell.q,cell.r)];
     if(typeof id==='string'&&
      window.VedrasCatalog.terrainType(catalog,id)?.materialClass==='water'){
-     cell.terrainTypeId=id;cell.biome=id;
+     cell.terrainTypeId=id;cell.biome=id;cell.sceneWaterTerrain=true;
     }
    }
   state.hexTerrain=Object.fromEntries(Object.entries(tileMap).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&good(v)));
