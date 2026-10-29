@@ -183,7 +183,8 @@ window.VedrasWorldTiles=(()=>{
    if(!versions||typeof versions.get!=='function')return 0;
    const stale=new Set();
    for(const [k,item] of cache){
-    if(!versions.has(item.tile.id))continue;
+    // LOD variants remain independently reusable across camera zooms.
+    if(item.tileLod!==lod||!versions.has(item.tile.id))continue;
     const expected=versions.get(item.tile.id);
     if(expected==null||item.revision==null)continue;
     if(item.revision!==expected)stale.add(item.tile.id);
