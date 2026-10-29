@@ -3,10 +3,10 @@
  */
 'use strict';
 window.VedrasStep15Trace=(()=>{
- const CAP=1800,counts=new Map();let enabled=false,events=[],dropped=0,seq=0,session='';
+ const CAP=1800,counts=new Map();let enabled=false,events=[],slowBakes=[],dropped=0,seq=0,session='';
  const now=()=>typeof performance!=='undefined'?performance.now():Date.now();
  function enable(on=true){enabled=!!on;if(!enabled)reset();return enabled;}
- function reset(label=''){events=[];dropped=0;seq=0;counts.clear();session=String(label).slice(0,100);return true;}
+ function reset(label=''){events=[];slowBakes=[];dropped=0;seq=0;counts.clear();session=String(label).slice(0,100);return true;}
  function record(type,detail={}){
   if(!enabled)return;
   const name=String(type).slice(0,64),item={seq:++seq,ms:+now().toFixed(3),type:name};
@@ -18,13 +18,17 @@ window.VedrasStep15Trace=(()=>{
      clean[k]=typeof v==='string'?v.slice(0,140):v;
   item.detail=clean;
   counts.set(name,(counts.get(name)||0)+1);
+  if(name==='tile.bake'&&Number.isFinite(clean.wallMs)){
+   slowBakes.push(item);
+   slowBakes.sort((a,b)=>b.detail.wallMs-a.detail.wallMs);
+   if(slowBakes.length>30)slowBakes.length=30;
+  }
   if(events.length>=CAP){events.shift();dropped++;}
   events.push(item);
  }
  function snapshot(){
   const groups=Object.fromEntries(counts);
-  const slow=events.filter(e=>e.type==='tile.bake'&&Number.isFinite(e.detail.wallMs))
-   .sort((a,b)=>b.detail.wallMs-a.detail.wallMs).slice(0,30);
+  const slow=slowBakes.slice();
   return {enabled,session,capacity:CAP,dropped,totalEvents:seq,
    counts:groups,slowBakes:slow,events:events.slice()};
  }
