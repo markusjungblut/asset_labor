@@ -101,10 +101,12 @@ async function editorCameraProbe(kind,frames){
  const v=window.VedrasAssetLabor;
  const old={zoom:v.state.zoom,panX:v.state.panX,panY:v.state.panY};
  const intervals=[],drawMs=[];
+ const wallStart=performance.now();
  let last=null;
  try{
   if(!v.worldTileStats()?.active)return {activated:false,intervals:[],drawMs:[]};
   for(let i=0;i<frames;i++){
+   if(i>0&&performance.now()-wallStart>9000)break;
    const start=await new Promise(resolve=>requestAnimationFrame(resolve));
    if(last!==null)intervals.push(start-last);
    last=start;
@@ -236,6 +238,16 @@ async function main(){
      quietTrace.dropped===0&&
      !['tile.invalidate','tile.cache-miss','tile.bake','asset.invalidate']
       .some(key=>(quietTrace.types[key]||0)>0);
+    if(!quiet){
+     run.real.push({quality,kind:'warm-'+kind,valid:false,skipped:true,
+      gateReady:gate.ready,quiet:false,mutating:null,start,end:start,
+      quietTrace,trace:{types:{},dropped:0},cpuTaskSeconds:null,
+      frame:{count:0,p50:null,p95:null,syncDrawP95Ms:null},
+      invalidReasons:[...(!gate.ready?gate.reasons:[]),
+       'not-quiescent-before-sampling']});
+     console.log('  '+kind+': SKIPPED – no stable fully ready source');
+     continue;
+    }
     await c.eval('window.VedrasAssetLabor.resetStep15Trace("16a-real-warm")');
     const startCpu=await measureMetrics(c),probe=await c.eval(
      '('+editorCameraProbe.toString()+')('+JSON.stringify(kind)+','+o.frames+')');
@@ -249,8 +261,9 @@ async function main(){
       start.bakes!==end.bakes||
       start.imagePool.ready!==end.imagePool.ready||
       start.imagePool.evicted!==end.imagePool.evicted;
+    const enoughFrames=probe.intervals.length>=Math.min(45,Math.floor(o.frames/2));
     const valid=quiet&&cameraCondition(end)&&probe.activated&&
-     !mutating&&trace.dropped===0;
+     enoughFrames&&!mutating&&trace.dropped===0;
     run.real.push({quality,kind:'warm-'+kind,valid,
      gateReady:gate.ready,quiet,mutating,
      start,end,quietTrace,trace,cpuTaskSeconds:delta(startCpu,endCpu,'TaskDuration'),
@@ -259,7 +272,8 @@ async function main(){
       syncDrawP95Ms:percentile(probe.drawMs,.95)},
      invalidReasons:[...(!gate.ready?gate.reasons:[]),
       ...(!quiet?['not-quiescent-before-sampling']:[]),
-      ...(mutating?['asset/tile work occurred during camera-only test']:[])]});
+      ...(mutating?['asset/tile work occurred during camera-only test']:[]),
+      ...(!enoughFrames?['insufficient stable animation frames']:[])]});
     console.log('  '+kind+': '+(valid?'VALID REAL WARM':'NOT WARM')+
      ', exact '+String(end.progress?.exact)+', tile events '+trace.totalEvents);
    }
