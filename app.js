@@ -48,6 +48,12 @@ function tileFog(){
   return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility};
  });
  visibleFogTiles=demo?allowed:null;
+ if(window.VedrasStep15Trace?.enabled())
+  window.VedrasStep15Trace.record('fog.mask',{
+   mode:demo?'preview':'clear',selected:state.selected,
+   visible:cells.filter(c=>c.visibility==='visible').length,
+   explored:cells.filter(c=>c.visibility==='explored').length,
+   unknown:cells.filter(c=>c.visibility==='unknown').length});
  worldTiles.setFogCells(cells);
 }
 // An already prepared chunk is not enough: the exact 512-unit core must
@@ -680,6 +686,8 @@ const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fas
  shoreline:{enabled:true,mode:'art',width:34,outer:10},
  asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
+// Diagnostic reference only; never used to change terrain rendering.
+let step15ImportedTerrain=null;
 let terrainLod='mid',currentLodProfile=null;
 function updateTerrainLod(zoom){
  currentLodProfile=adaptiveLOD.update(zoom,{
@@ -3465,6 +3473,7 @@ $('sceneImport').addEventListener('change',async e=>{
  try{
   const scene=JSON.parse(await f.text());
   if(!['vedras-asset-labor-scene-0.8','vedras-asset-labor-scene-0.7','vedras-asset-labor-scene-0.6'].includes(scene.schema))throw Error('Nicht unterstütztes Szenenformat');
+  step15ImportedTerrain=scene.terrainTypeByHex||null;
   const tileMap=scene.terrainByHex||{},biomeMap=scene.terrainByBiome||{};
   const good=x=>typeof x==='string'&&assetByPath.has(x)&&isTerrainValid(useAsset(x))&&!!typeOfAsset(useAsset(x));
   const skipped=[...Object.values(tileMap),...Object.values(biomeMap)].filter(v=>!good(v)).length;
@@ -3822,6 +3831,33 @@ window.VedrasAssetLabor={shadowSprites:{
  }
 },ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
  benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
+ step15Trace:()=>window.VedrasStep15Trace?.snapshot()||null,
+ enableStep15Trace:on=>window.VedrasStep15Trace?.enable(on),
+ resetStep15Trace:label=>window.VedrasStep15Trace?.reset(label),
+ cameraDiagnostics:(requested=null)=>{
+  const center=fromScreen(W/2,H/2),actual=pixelToHex(center.x,center.y);
+  const requestedQ=Number(requested?.q),requestedR=Number(requested?.r);
+  const hasRequested=Number.isInteger(requestedQ)&&Number.isInteger(requestedR);
+  const target=hasRequested?{q:requestedQ,r:requestedR}:actual;
+  const info=({q,r})=>{
+   const cell=worldCells.find(c=>c.q===q&&c.r===r)||null;
+   const id=key(q,r),effective=cell?typeOfCell(cell):null,
+    expected=step15ImportedTerrain?.[id]??null;
+   return {q,r,id,cellBiome:cell?.biome??null,
+    cellTerrainType:cell?.terrainTypeId??null,
+    effectiveTerrain:effective,expectedTerrain:expected,
+    terrainMatchesReference:expected===null?null:effective===expected};
+  };
+  const fogActive=$('fogPreview')?.checked===true;
+  return {target:info(target),actualCenter:info(actual),
+   matchesRequested:hasRequested?actual.q===requestedQ&&actual.r===requestedR:null,
+   worldPoint:center,zoom:state.zoom,lod:terrainLod,dpr:state.dpr,
+   selectedFogOrigin:state.selected,fogPreview:fogActive,
+   fogUsesSelectedNotCameraCenter:fogActive&&state.selected!==key(actual.q,actual.r),
+   tileModeActive,worldTile:worldTiles?.stats()||null,
+   visibleTileDiagnostics:worldTiles?.diagnostics({limit:20})||null};
+ },
+
  setBenchmarkAtlasMode:mode=>{
   if(!['auto','on','off'].includes(mode))throw Error('Invalid benchmark atlas mode');
   benchmarkAtlasMode=mode;
