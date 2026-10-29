@@ -153,3 +153,19 @@ Bei neuen technischen Beweisen dürfen Zielwerte nach begründeter Dokumentation
 > `finally` außerhalb seines `try`-Scopes. Der gezielte Fix und ein
 > ausführender Regressionstest sind implementiert. **Schritt 16 bleibt
 > offen, bis der erneute Windows-/GPU-Test erfolgreich ist.**
+
+## 29.10.2026 – Schritt 16A vor weiteren Schritt-16-Optimierungen
+
+**Die frühere Checkliste oben ist hinsichtlich Schritt 15 inzwischen historisch:**
+Schritt 15 ist als Diagnoseinstrument implementiert und mehrfach auf Windows
+ausgeführt. Schritt 16 enthält funktionale Fixes aus PR #70 und #71,
+ist jedoch wegen instabiler Readiness, Cache-Misses und Speicherlast nicht
+abgenommen. Daher werden vor Schritt 16B neue unabhängige Kontrollen
+eingeführt: [STEP16A_ARCHITECTURE_AUDIT.md](STEP16A_ARCHITECTURE_AUDIT.md).
+
+- [x] Schritt 16A – isoliertes Compositor-Control, reale Cold-/Warm-Messung,
+  Invalidierungs-/Speicherdiagnose und Entscheidungsgates als Code implementiert.
+- [ ] Schritt 16A – **ein echter Windows-Auditlauf mit validem Kontrollpfad**.
+- [ ] Schritt 16B – nur den nachweisbaren dominanten Engpass korrigieren.
+- [ ] Schritt 16C – drei gültige Hardware-Wiederholungen und visuelle Abnahme.
+- [ ] Schritt 17 – weiterhin gesperrt.
