@@ -617,7 +617,7 @@ const imagePool=window.VedrasImagePool.create({
   assetReadyTimer=setTimeout(()=>{
    assetReadyTimer=null;
    if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-    worldTiles?.invalidate();
+    worldTiles?.invalidate('image-ready-ground');
     lastTileSnapshotSignature=null;
     worldTileSelectiveSnapshot=false;
    }
@@ -884,6 +884,9 @@ function resize(){
  imagePool.setPreviewLimits({terrainPx:policy.terrainPx,spritePx:policy.spritePx});
  lastQualityProfile=policy;
  const changed=canvas.width!==cw||canvas.height!==ch||state.dpr!==ratio;
+ if(changed)window.VedrasStep15Trace?.record('render.resize',{
+  reason:'quality-or-viewport-change',width:cw,height:ch,
+  beforeDpr:state.dpr,dpr:ratio,quality:state.quality});
  state.dpr=ratio;
  if(changed){
   if(gpuCanvas){gpuCanvas.width=cw;gpuCanvas.height=ch;}
@@ -3077,7 +3080,7 @@ async function loadLibrary(list,mode){
   // Essential images may complete during initial priming: the onReady()
   // callback skipped scheduling their scenery rebuild. Flush that state.
   if(spriteBatchGroundDirty&&!spriteAssetBatchDirty){
-   worldTiles?.invalidate();lastTileSnapshotSignature=null;
+   worldTiles?.invalidate('image-ready-ground');lastTileSnapshotSignature=null;
    worldTileSelectiveSnapshot=false;
   }
   if(spriteAssetBatchDirty){
@@ -3426,7 +3429,7 @@ function applyShorelineSelection(){
  // Do not keep painting stale test edges after choosing authored PNGs.
  if(fastInteracting||tileModeActive)endFastCamera(false);
  shorelineChunks.clear();shorelineCache={signature:null,raster:null};
- worldTiles?.invalidate();lastTileSnapshotSignature=null;
+ worldTiles?.invalidate('shoreline-change');lastTileSnapshotSignature=null;
  worldTileSelectiveSnapshot=false;
  frameMemo.invalidate();backgroundScene.clear();
  persistScene(false);requestDraw();
@@ -3637,7 +3640,7 @@ window.addEventListener('keydown',e=>{if(e.target?.matches('input,select,textare
 document.addEventListener('change',event=>{
  if(!worldTiles||event.target?.id==='fogPreview')return;
  if(event.target?.id==='zoomSlider')return;
- tileModeActive=false;worldTiles.invalidate();visibleFogTiles=null;
+ tileModeActive=false;worldTiles.invalidate('editor-ui-change');visibleFogTiles=null;
 },true);
 window.addEventListener('resize',resize);
 new ResizeObserver(()=>resize()).observe(canvas);
@@ -3837,7 +3840,8 @@ window.VedrasAssetLabor={shadowSprites:{
  cameraDiagnostics:(requested=null)=>{
   const center=fromScreen(W/2,H/2),actual=pixelToHex(center.x,center.y);
   const requestedQ=Number(requested?.q),requestedR=Number(requested?.r);
-  const hasRequested=Number.isInteger(requestedQ)&&Number.isInteger(requestedR);
+  const hasRequested=requested!==null&&
+   Number.isInteger(requestedQ)&&Number.isInteger(requestedR);
   const target=hasRequested?{q:requestedQ,r:requestedR}:actual;
   const info=({q,r})=>{
    const cell=worldCells.find(c=>c.q===q&&c.r===r)||null;
