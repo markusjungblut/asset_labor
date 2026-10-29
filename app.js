@@ -28,6 +28,7 @@ const adaptiveLOD=window.VedrasAdaptiveLOD.create();
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,requireScenery:true,
+ sourceRevision:tile=>groundSourceRevision(tile),
  lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
 });
@@ -536,8 +537,11 @@ function fastRender(){
     river:state.river&&state.riverBanks&&state.riverBankStrength>0?
      prepared(riverChunks):null
    };
-   worldTiles.reconcileGroundRevisions(new Map(ready.map(({tile,artwork})=>
-    [tile.id,groundSourceRevision(tile,artwork.version,layers)])));
+   const versions=new Map(ready.map(({tile,artwork})=>
+    [tile.id,groundSourceRevision(tile,artwork.version,layers)]));
+   worldTiles.reconcileGroundRevisions(versions);
+   for(const [tileId,revision] of versions)
+    worldTiles.terrainReady(tileId,revision);
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
     });
@@ -1187,7 +1191,7 @@ function drawShorelines(){
      });
    },
    redraw:tile=>{
-    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    if(tile?.id)worldTiles?.terrainReady(tile.id,groundSourceRevision(tile));
     requestDraw();
    },family:signature
   });
@@ -1434,7 +1438,7 @@ function drawGroundImpl(){
    redraw:tile=>{
     // Fast camera may remain active while the worker finishes this core.
     // Re-arm only its previously incomplete World-Tile source.
-    if(tile?.id)worldTiles?.terrainReady(tile.id);
+    if(tile?.id)worldTiles?.terrainReady(tile.id,groundSourceRevision(tile));
     requestDraw();
    },family:chunkFamily,diagnosticLod:lod,
    requireRaster:true,timeoutMs:60000
