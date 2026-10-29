@@ -226,12 +226,22 @@ function snapshotTile(s,t,level,pad=0){
 }
 async function bakeWorldTile(t,level,{signal}={}){
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
+ const __trace=window.VedrasStep15Trace,__tileTrace=__trace?.enabled();
+ let __outcome='unknown',__snapshotReason='not-evaluated';
+ const __tileMeta={id:t.id,x:t.x,y:t.y,size:t.size,level,
+  zoom:state.zoom,dpr:state.dpr,lod:terrainLod};
  try{
- if(signal?.aborted||state.mode==='far'||state.view!=='map')return null;
+ if(signal?.aborted||state.mode==='far'||state.view!=='map'){
+  __outcome='aborted-or-not-map';return null;
+ }
  // The fast camera can be the sole active view while terrain chunks finish:
  // permit a direct bake from prepared terrain, but not a stale snapshot.
  const snapshotReady=tileArtworkReady(t);
- if(!snapshotReady&&!tileArtworkStatus(t,null,true))return null;
+ if(!snapshotReady&&!tileArtworkStatus(t,null,true)){
+  const details={};tileArtworkStatus(t,details,true);
+  __outcome='terrain-or-assets-not-ready:'+String(details.reason||'unknown');
+  return null;
+ }
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
@@ -239,21 +249,36 @@ async function bakeWorldTile(t,level,{signal}={}){
   worldTileSnapshotsSharp(ground,scenery,level);
  const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
   b=reuseSnapshot?snapshotTile(scenery,t,level):null;
+ __snapshotReason=!snapshotReady?'not-painted':
+  !reuseSnapshot?'insufficient-snapshot-density':
+  !a?'ground-snapshot-out-of-bounds':
+  !b?'scenery-snapshot-out-of-bounds':'snapshot-hit';
+ if(__tileTrace)__trace.record('tile.snapshot',{...__tileMeta,
+  reason:__snapshotReason,
+  groundDensity:worldTileSnapshotDensity(ground),
+  sceneryDensity:worldTileSnapshotDensity(scenery),
+  requiredDensity:({far:.85,mid:1.5,near:2.5}[level]||1)});
+
  if(a&&b&&snapshotReady&&tileArtworkReady(t)){
+  __outcome='snapshot-hit';
   // Nature, rocks, buildings and their ground shadows are fully prepared
   // without mobile units. Only the independent unit layer moves each frame.
   return {complete:true,layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
    {layer:'scenery',image:b}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
- if(!tileArtworkStatus(t,null,true))return null;
+ if(!tileArtworkStatus(t,null,true)){
+  __outcome='fallback-artwork-not-ready';return null;
+ }
  await new Promise(resolve=>{
   if(typeof requestIdleCallback==='function')
    requestIdleCallback(resolve,{timeout:80});
   else setTimeout(resolve,0);
  });
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkStatus(t,null,true))return null;
+   !tileArtworkStatus(t,null,true)){
+  __outcome='fallback-aborted-or-unready';return null;
+ }
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
  const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
@@ -271,7 +296,8 @@ async function bakeWorldTile(t,level,{signal}={}){
   spriteG=overlay.getContext('2d',{alpha:true});
  if(!groundG||!spriteG)return null;
  const old={ctx,W,H,zoom:state.zoom,panX:state.panX,panY:state.panY,
-  dpr:state.dpr,gpuFrame};
+  dpr:state.dpr,gpuFrame,paintContext:step15PaintContext};
+ step15PaintContext={origin:'world-tile-fallback',tileId:t.id,lod:level};
  const setup=(g,c,left,top,worldSize)=>{
   ctx=g;W=worldSize*z;H=worldSize*z*PROJECT_Y;
   state.dpr=c.width/W;state.panX=-W/2-left*z;
@@ -287,7 +313,9 @@ async function bakeWorldTile(t,level,{signal}={}){
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!tileArtworkReady(t))return null;
+  if(signal?.aborted||!tileArtworkReady(t)){
+   __outcome='fallback-ground-changed';return null;
+  }
   setup(spriteG,overlay,t.x-pad,t.y-pad,t.size+2*pad);
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
@@ -300,14 +328,23 @@ async function bakeWorldTile(t,level,{signal}={}){
   ctx=old.ctx;W=old.W;H=old.H;state.zoom=old.zoom;
   state.panX=old.panX;state.panY=old.panY;
   state.dpr=old.dpr;gpuFrame=old.gpuFrame;
+  step15PaintContext=old.paintContext;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t))return null;
+   !tileArtworkReady(t)){
+  __outcome='fallback-post-scenery-unready';return null;
+ }
+ __outcome='fallback-complete';
  tileBakes++;
  return {complete:true,layers:[{layer:'ground',image:out,pad:groundPad},
   {layer:'scenery',image:overlay,pad}]};
 
- }finally{__bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);}
+ }finally{
+  __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
+  if(__tileTrace)__trace.record('tile.bake',{...__tileMeta,
+   outcome:__outcome,snapshotReason:__snapshotReason,
+   wallMs:performance.now()-__bakeStart});
+ }
 }
 
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
