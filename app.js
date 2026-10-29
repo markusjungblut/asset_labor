@@ -19,7 +19,8 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
 let tileModeActive=false,tileBakes=0,
- visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null;
+ visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null,
+ lastTileQualitySignature=null;
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 // One shared hysteresis controller selects terrain/shore/river/road detail
 // and the matching World-Tile quality. It is not a DPR multiplier.
@@ -2778,9 +2779,14 @@ function draw(){
   const stagedKey=[base?.signature,scenery?.signature].join('|');
   const semanticChanged=semanticKey!==lastTileSnapshotSignature;
   const stagingChanged=stagedKey!==lastTilePreparedSignature;
+  // Quality/backing DPR is a global raster contract even if a localized
+  // sprite edit completed in the same animation frame.
+  const qualityKey=state.quality+'|'+state.dpr;
+  const qualityChanged=qualityKey!==lastTileQualitySignature;
+  lastTileQualitySignature=qualityKey;
   if(semanticChanged){
    lastTileSnapshotSignature=semanticKey;
-   if(!worldTileSelectiveSnapshot){
+   if(qualityChanged||!worldTileSelectiveSnapshot){
     window.VedrasStep15Trace?.record('tile.semantic-revision-changed',{
      reason:'scene-or-quality',revision:frameMemo.stats().revision});
     worldTiles.invalidate('semantic-content-changed');
