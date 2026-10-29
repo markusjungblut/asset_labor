@@ -19,7 +19,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
 let tileModeActive=false,tileBakes=0,
- visibleFogTiles=null,lastTileSnapshotSignature=null;
+ visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null;
 const WORLD_TILE_GUTTER=3; // neighboring terrain pixel sampling, no destination overlap
 // One shared hysteresis controller selects terrain/shore/river/road detail
 // and the matching World-Tile quality. It is not a DPR multiplier.
@@ -2761,22 +2761,41 @@ function draw(){
   // Camera-only redraws must reuse completed tiles. Invalidate ONLY when
   // the underlying prepared source images or geometry actually changed.
   const base=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
-  // Camera pose and overscan do not change the underlying tile artwork.
-  const key=[base?.signature,scenery?.signature,
-   objectLayoutCache.stats().revision].join('|');
-  if(key!==lastTileSnapshotSignature){
-   lastTileSnapshotSignature=key;
-   // A localized scenery edit has already evicted exactly its touched cores.
+  // Prepared editor images are CAMERA-LOCAL and may rebuild when a chunk
+  // finishes, the overscan changes or the camera pans. Their snapshot
+  // signatures are NOT semantic scene revisions. Only explicit scene/quality
+  // changes invalidate globally; new chunk versions are reconciled per tile
+  // in fastRender(), and scenery edits already invalidate affected tiles.
+  const semanticKey=JSON.stringify([
+   frameMemo.stats().revision,
+   state.selected,state.quality,state.objects,state.roadShown,state.river,
+   state.shoreline,state.riverPaths,state.roadEdges,
+   objectLayoutCache.stats().revision
+  ]);
+  const stagedKey=[base?.signature,scenery?.signature].join('|');
+  const semanticChanged=semanticKey!==lastTileSnapshotSignature;
+  const stagingChanged=stagedKey!==lastTilePreparedSignature;
+  if(semanticChanged){
+   lastTileSnapshotSignature=semanticKey;
+   if(!worldTileSelectiveSnapshot){
+    window.VedrasStep15Trace?.record('tile.semantic-revision-changed',{
+     reason:'scene-or-quality',revision:frameMemo.stats().revision});
+    worldTiles.invalidate('semantic-content-changed');
+   }
+  }
+  // A new editor image is a source of snapshots for READY cores, not a
+  // command to discard finished World-Tiles. Seeding never downgrades a
+  // finished exact tile and never certifies unpainted terrain.
+  if(stagingChanged||semanticChanged){
+   lastTilePreparedSignature=stagedKey;
    window.VedrasStep15Trace?.record('tile.snapshot-signature-change',{
-    reason:'staging-signature-changed',
+    reason:semanticChanged?'semantic-content':'staging-only',
+    selective:worldTileSelectiveSnapshot,
     backgroundSignature:base?.signature||null,
-    scenerySignature:scenery?.signature||null,
-    sceneryRevision:objectLayoutCache.stats().revision,
-    selective:worldTileSelectiveSnapshot});
-   if(!worldTileSelectiveSnapshot)worldTiles.invalidate('staging-signature-changed');
-   worldTileSelectiveSnapshot=false;
+    scenerySignature:scenery?.signature||null});
    seedReadyWorldTiles();
-  }else worldTileSelectiveSnapshot=false;
+  }
+  worldTileSelectiveSnapshot=false;
  }
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
