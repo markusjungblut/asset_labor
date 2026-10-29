@@ -379,9 +379,12 @@ async function bakeWorldTile(t,level,{signal}={}){
    {layer:'scenery',image:overlay,pad}]};
 
  }catch(error){
-  // Keep the full stack for the existing caller/retry system and retain
-  // a bounded diagnostic outcome for the next Windows run.
+  // Keep the original exception/retry behavior. Record the concrete failure
+  // so a failed tile cannot silently masquerade as a performance regression.
   __outcome='error:'+String(error?.name||'unknown');
+  if(__tileTrace)__trace.record('tile.bake-error',{
+   ...__tileMeta,errorName:String(error?.name||'unknown'),
+   message:String(error?.message||error).slice(0,140)});
   throw error;
  }finally{
   __bench?.record('tile.bakeWallMs',performance.now()-__bakeStart);
