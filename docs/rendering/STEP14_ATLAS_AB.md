@@ -1,5 +1,7 @@
 # Schritt 14 – kontrollierter Atlas-AN/AUS-Test und Zoom-Profiling
 
+> **Folgearbeiten:** [Rendering-Fahrplan Schritte 15–20](RENDERING_ROADMAP_AFTER_STEP14.md). Reihenfolge: Tile-Ursachen → Terrain-Reuse → interaktiver Kachelpfad → LOD/Fog → isolierter GPU-Vergleich.
+
 **Zweck:** Erst messen, dann die Architekturentscheidung treffen. Diese Änderung
 optimiert nicht die Renderqualität und aktiviert keinen neuen GPU-Renderer.
 
