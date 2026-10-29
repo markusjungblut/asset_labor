@@ -347,7 +347,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
   // after terrainChunks completes instead of caching its flat fallback color.
-  if(signal?.aborted||!tileArtworkReady(t)||
+  if(signal?.aborted||!tileArtworkStatus(t,null,true)||
      (sourceGroundVersion!=null&&
       groundSourceRevision(t)!==sourceGroundVersion)){
    __outcome='fallback-ground-changed';return null;
@@ -368,7 +368,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   step15PaintContext=old.paintContext;
  }
  if(signal?.aborted||state.mode==='far'||state.view!=='map'||
-   !tileArtworkReady(t)||
+   !tileArtworkStatus(t,null,true)||
    (sourceGroundVersion!=null&&
     groundSourceRevision(t)!==sourceGroundVersion)){
   __outcome='fallback-post-scenery-unready';return null;
@@ -643,8 +643,13 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
   return cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
    {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork?.version??'pending';
  };
- const coast=state.shoreline?.enabled!==false?
-  versionFor(shorelineChunks,readyMaps?.shore):'off';
+ // Noncoastal tiles deliberately have no shoreline raster; this is not pending.
+ const coastal=Array.isArray(shorelineCache.segments)?
+  shorelineCache.segments.some(s=>s.center.x>=t.x-256&&
+   s.center.x<=t.x+t.size+256&&s.center.y>=t.y-256&&
+   s.center.y<=t.y+t.size+256):null;
+ const coast=state.shoreline?.enabled===false?'off':
+  coastal===false?'no-coast':versionFor(shorelineChunks,readyMaps?.shore);
  const road=state.roadShown?versionFor(roadChunks,readyMaps?.road):'off';
  const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
   versionFor(riverChunks,readyMaps?.river):'off';
@@ -794,6 +799,9 @@ function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
 function baseBiomeOf(c){
  if(!c)return null;
  const k=key(c.q,c.r);
+ // Authored water geography cannot turn into grassland while its image loads.
+ if(window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
+  return c.terrainTypeId;
  const own=typeOfAsset(useAsset(state.hexTerrain[k]));
  if(own&&own!=='forest_floor')return own;
  const perBiome=typeOfAsset(useAsset(state.biomeTerrain[c.biome]));
@@ -3596,6 +3604,15 @@ $('sceneImport').addEventListener('change',async e=>{
   const good=x=>typeof x==='string'&&assetByPath.has(x)&&isTerrainValid(useAsset(x))&&!!typeOfAsset(useAsset(x));
   const skipped=[...Object.values(tileMap),...Object.values(biomeMap)].filter(v=>!good(v)).length;
   state.sceneSize=SCENE_SIZES.includes(Number(scene.sceneSize))?Number(scene.sceneSize):37;state.chunkRendering=!!scene.chunkRendering;state.chunkRenderingOverride=true;state.workerTerrain=scene.workerTerrain!==false;$('chunkRendering').checked=state.chunkRendering;$('workerTerrain').checked=state.workerTerrain;$('sceneSize').value=String(state.sceneSize);assignBiomes();
+  // Preserve explicit water terrain from the scene without changing land types.
+  if(scene.terrainTypeByHex&&typeof scene.terrainTypeByHex==='object')
+   for(const cell of worldCells){
+    const id=scene.terrainTypeByHex[key(cell.q,cell.r)];
+    if(typeof id==='string'&&
+     window.VedrasCatalog.terrainType(catalog,id)?.materialClass==='water'){
+     cell.terrainTypeId=id;cell.biome=id;
+    }
+   }
   state.hexTerrain=Object.fromEntries(Object.entries(tileMap).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&good(v)));
   state.biomeTerrain=Object.fromEntries(Object.entries(biomeMap).filter(([k,v])=>good(v)));
   state.baseBiomeByHex=Object.fromEntries(Object.entries(scene.baseBiomeByHex||{}).filter(([k,v])=>/^-?\d+,-?\d+$/.test(k)&&catalog.terrainTypes.some(t=>t.id===v&&t.materialClass==='ground')));
