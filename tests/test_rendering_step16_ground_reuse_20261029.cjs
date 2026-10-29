@@ -149,3 +149,110 @@ test('bakeWorldTile finalizer can read ground revision on early exit (no Referen
  assert.equal(events[0].details.outcome,'aborted-or-not-map');
  assert.equal(events[0].details.sourceGroundVersion,'null');
 });
+
+
+function createRealBakeHarness({assetsReady=true,cacheMode='miss'}={}){
+ // Execute the real tile baker, not a reimplementation.  Snapshot reuse is
+ // deliberately unavailable so all ground-cache/fallback branches are covered.
+ const app=read('app.js');
+ const start=app.indexOf('async function bakeWorldTile(');
+ const end=app.indexOf('\nlet fastInteracting=',start);
+ assert.ok(start>=0&&end>start,'cannot isolate actual bake function');
+ const calls={ground:0,roads:0,scenery:0,puts:0},events=[],counts={};
+ const canvases=[];
+ const g={save(){},restore(){},setTransform(){},drawImage(){}};
+ const window={
+  VedrasBenchmarkProfiler:{
+   record(){},count:key=>{counts[key]=(counts[key]||0)+1;}
+  },
+  VedrasStep15Trace:{enabled:()=>true,record:(type,details)=>
+   events.push({type,details})},
+  VedrasSpriteShadows:{beginFrame(){}}
+ };
+ const deps={
+  window,performance:{now:()=>100},
+  state:{mode:'normal',view:'map',zoom:.7,dpr:1,panX:0,panY:0},
+  terrainLod:'mid',PROJECT_Y:.85,WORLD_TILE_GUTTER:3,
+  tileArtworkReady:()=>assetsReady,
+  tileArtworkStatus:()=>assetsReady,
+  groundSourceRevision:()=> 'core-v1',
+  backgroundScene:{snapshot:()=>({})},
+  staticScenery:{snapshot:()=>({})},
+  worldTileSnapshotsSharp:()=>false,
+  worldTileSnapshotDensity:()=>0,
+  snapshotTile:()=>null,
+  groundTileContentKey:()=> 'tile-ground-v1',
+  groundTileReuse:{
+   get:()=>cacheMode==='miss'?null:
+    cacheMode==='mismatch'?{width:1,height:1}:
+    {width:canvases[0].width,height:canvases[0].height},
+   put:()=>{calls.puts++;}
+  },
+  requestIdleCallback:callback=>callback(),
+  document:{createElement:()=>{
+   const canvas={width:0,height:0,getContext:()=>g};
+   canvases.push(canvas);return canvas;
+  }},
+  drawGround:()=>{calls.ground++;},
+  drawRoads:()=>{calls.roads++;},
+  drawMapObjects:()=>{calls.scenery++;},
+  spriteAtlas:{beginFrame(){},endFrame(){}},
+  ctx:g,W:512,H:435,gpuFrame:false,step15PaintContext:null,
+  tileBakes:0
+ };
+ const bake=new Function(...Object.keys(deps),
+  app.slice(start,end)+'\nreturn bakeWorldTile;')(...Object.values(deps));
+ return {bake,calls,events,counts};
+}
+
+test('real tile baker safely exits when prepared terrain/assets are still loading',async()=>{
+ const h=createRealBakeHarness({assetsReady:false});
+ const result=await h.bake({id:'0,0',x:0,y:0,size:512},'mid');
+ assert.equal(result,null);
+ assert.equal(h.calls.ground,0);
+ assert.equal(h.calls.scenery,0);
+ assert.equal(h.events.find(e=>e.type==='tile.bake').details.outcome,
+  'terrain-or-assets-not-ready:unknown');
+ assert.ok(!h.events.some(e=>e.type==='tile.bake-error'));
+});
+
+test('real tile baker completes without ground cache; final outcome stays in scope',async()=>{
+ const h=createRealBakeHarness({cacheMode:'miss'});
+ const result=await h.bake({id:'0,0',x:0,y:0,size:512},'mid');
+ assert.equal(result.complete,true);
+ assert.equal(result.revision,'core-v1');
+ assert.deepEqual(result.layers.map(x=>x.layer),['ground','scenery']);
+ assert.equal(h.calls.ground,1);
+ assert.equal(h.calls.roads,1);
+ assert.equal(h.calls.scenery,1);
+ assert.equal(h.calls.puts,1);
+ assert.equal(h.counts['tile.groundReuseMisses'],1);
+ assert.equal(h.events.find(e=>e.type==='tile.bake').details.outcome,
+  'fallback-complete');
+ assert.ok(!h.events.some(e=>e.type==='tile.bake-error'));
+});
+
+test('real tile baker reuses cached ground and still completes without ReferenceError',async()=>{
+ const h=createRealBakeHarness({cacheMode:'hit'});
+ const result=await h.bake({id:'0,0',x:0,y:0,size:512},'mid');
+ assert.equal(result.complete,true);
+ assert.equal(h.calls.ground,0);
+ assert.equal(h.calls.roads,0);
+ assert.equal(h.calls.scenery,1);
+ assert.equal(h.calls.puts,0);
+ assert.equal(h.counts['tile.groundReuseHits'],1);
+ assert.equal(h.events.find(e=>e.type==='tile.bake').details.outcome,
+  'fallback-reused-ground');
+ assert.ok(!h.events.some(e=>e.type==='tile.bake-error'));
+});
+
+test('mismatched cached raster dimensions force full ground/roads fallback',async()=>{
+ const h=createRealBakeHarness({cacheMode:'mismatch'});
+ const result=await h.bake({id:'0,0',x:0,y:0,size:512},'mid');
+ assert.equal(result.complete,true);
+ assert.equal(h.calls.ground,1);
+ assert.equal(h.calls.roads,1);
+ assert.equal(h.counts['tile.groundReuseMisses'],1);
+ assert.equal(h.events.find(e=>e.type==='tile.bake').details.outcome,
+  'fallback-complete');
+});
