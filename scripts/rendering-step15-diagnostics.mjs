@@ -48,7 +48,7 @@ function describe(trace){
   const key=String(e.detail?.reason||e.detail?.outcome||'unknown');
   m.set(key,(m.get(key)||0)+1);return m;
  },new Map())]);
- const long=bakes.filter(x=>x.detail?.wallMs>100)
+ const long=(trace?.slowBakes||bakes).filter(x=>x.detail?.wallMs>100)
   .sort((a,b)=>b.detail.wallMs-a.detail.wallMs).slice(0,20);
  const terrain=events.filter(x=>x.type==='terrain.draw');
  const roads=events.filter(x=>x.type==='roads.draw');
