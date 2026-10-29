@@ -221,15 +221,21 @@ async function main(){
     const gate=await settle(c,o.settleMs);
     // Track state across an additional quiet interval; "READY" for a single
     // instant is insufficient to call the next phase a warm measurement.
+    await c.eval('window.VedrasAssetLabor.resetStep15Trace("16a-quiet")');
     const before=await snapshot(c);
     await sleep(1200);
     const pre=await snapshot(c);
+    const quietTrace=summarizeTrace(await c.eval(
+     'window.VedrasAssetLabor.step15Trace()'));
     const start=simplify(pre),previous=simplify(before);
     const quiet=gate.ready&&cameraCondition(start)&&
      start.bakes===previous.bakes&&
      start.imagePool.queued===0&&start.imagePool.active===0&&
      start.imagePool.ready===previous.imagePool.ready&&
-     start.imagePool.evicted===previous.imagePool.evicted;
+     start.imagePool.evicted===previous.imagePool.evicted&&
+     quietTrace.dropped===0&&
+     !['tile.invalidate','tile.cache-miss','tile.bake','asset.invalidate']
+      .some(key=>(quietTrace.types[key]||0)>0);
     await c.eval('window.VedrasAssetLabor.resetStep15Trace("16a-real-warm")');
     const startCpu=await measureMetrics(c),probe=await c.eval(
      '('+editorCameraProbe.toString()+')('+JSON.stringify(kind)+','+o.frames+')');
@@ -247,7 +253,7 @@ async function main(){
      !mutating&&trace.dropped===0;
     run.real.push({quality,kind:'warm-'+kind,valid,
      gateReady:gate.ready,quiet,mutating,
-     start,end,trace,cpuTaskSeconds:delta(startCpu,endCpu,'TaskDuration'),
+     start,end,quietTrace,trace,cpuTaskSeconds:delta(startCpu,endCpu,'TaskDuration'),
      frame:{count:probe.intervals.length,p50:percentile(probe.intervals,.5),
       p95:percentile(probe.intervals,.95),
       syncDrawP95Ms:percentile(probe.drawMs,.95)},
