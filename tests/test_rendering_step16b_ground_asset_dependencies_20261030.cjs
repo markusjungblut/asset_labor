@@ -9,8 +9,8 @@ const begin=app.indexOf('function selectedGroundAssetChanges('),
 assert.ok(begin>=0&&end>begin,'Production dependency functions must exist');
 const production=app.slice(begin,end);
 function harness({cells=[{q:0,r:0},{q:1,r:0}],before=['a.png','b.png'],
- after=before,assetType='grassland',relief=false,hasBaseline=true,
- wetBefore=[],wetAfter=wetBefore,riverPaths=[],river=false}={}){
+ after=before,assetType='grassland',relief=false,reliefMode='legacy',
+ hasBaseline=true,wetBefore=[],wetAfter=wetBefore,riverPaths=[],river=false}={}){
  const choices=new Map(cells.map((c,i)=>[c.q+','+c.r,after[i]]));
  const original=hasBaseline?new Map(cells.map((c,i)=>[c.q+','+c.r,before[i]])):null;
  const originalWet=hasBaseline?new Map(cells.map((c,i)=>[
@@ -19,7 +19,7 @@ function harness({cells=[{q:0,r:0},{q:1,r:0}],before=['a.png','b.png'],
  const code=[
   'let lastGroundMaterialPaths=original,lastGroundWetCells=originalWet,',
   'terrainAssetGroups=new Map();',
-  'const worldCells=cells,state={relief:{enabled:relief},river,riverPaths},',
+  'const worldCells=cells,state={relief:{enabled:relief,mode:reliefMode},river,riverPaths},',
   'typeOfAsset=a=>a.type,',
   "isWaterTerrain=t=>t==='ocean'||t==='coastal_water',",
   'typeOfCell=c=>wetNow.has(c.q+","+c.r)?"coastal_water":"grassland",',
@@ -32,8 +32,8 @@ function harness({cells=[{q:0,r:0},{q:1,r:0}],before=['a.png','b.png'],
   'selection:()=>lastGroundMaterialPaths,groups:()=>terrainAssetGroups};'
  ].join('\n');
  return new Function('original','originalWet','cells','choices','wetNow',
-  'relief','river','riverPaths','window',code)(
-  original,originalWet,cells,choices,wetNow,relief,river,riverPaths,window);
+  'relief','reliefMode','river','riverPaths','window',code)(
+  original,originalWet,cells,choices,wetNow,relief,reliefMode,river,riverPaths,window);
 }
 const sorted=set=>[...set].sort();
 test('changed pixels of a previously selected material invalidate its own cell',()=>{
@@ -205,4 +205,31 @@ test('4x visual audit keeps selected quality and names screenshot files uniquely
  assert.match(audit,/join\(dir,quality\+'-'\+stage\+'\.png'\)/);
  assert.match(audit,/if\(o\.visual&&\['4','auto'\]\.includes\(quality\)\)/);
  assert.doesNotMatch(audit,/setControls\(c,'auto',false\)/);
+});
+
+
+test('real geography relief allows localized grassland PNG revision with stable wet classes',()=>{
+ const h=harness({relief:true,reliefMode:'geography',
+  before:['grassland_03.png','other.png']});
+ assert.deepEqual(sorted(h.evaluate({path:'grassland_03.png',type:'grassland',terrainCheck:{ok:true}})),['0,0']);
+});
+test('geography relief allows coastal-water PNG revision without changing shore topology',()=>{
+ const h=harness({relief:true,reliefMode:'geography',
+  before:['cosatal_water_01.png','grassland.png'],wetBefore:['0,0']});
+ assert.deepEqual(sorted(h.evaluate({path:'cosatal_water_01.png',type:'coastal_water',terrainCheck:{ok:true}})),['0,0']);
+});
+test('geography relief with changed wet classification still forces global invalidation',()=>{
+ const h=harness({relief:true,reliefMode:'geography',
+  before:['grassland.png','grassland.png'],
+  after:['cosatal_water_01.png','grassland.png'],
+  wetBefore:[],wetAfter:['0,0']});
+ assert.equal(h.evaluate({path:'cosatal_water_01.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+});
+test('legacy relief still uses original global fallback',()=>{
+ const h=harness({relief:true,reliefMode:'legacy'});
+ assert.equal(h.evaluate({path:'a.png',type:'grassland',terrainCheck:{ok:true}}),null);
+});
+test('static terrain disk key includes imageRevision to avoid caching superseded image pixels',()=>{
+ assert.match(app,/a\?\.path,a\?\.mtime,\s*a\?\.imageRevision\|\|0,a\?\.meta\?\.textureWorldSize\|\|256/);
+ assert.match(app,/asset\?\.imageRevision\|\|0/);
 });
