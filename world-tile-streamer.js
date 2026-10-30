@@ -253,7 +253,7 @@ window.VedrasWorldTiles=(()=>{
    let changed=0;
    for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
-    deferredRevisionTrace.delete(k);
+    deferredRevisionTrace.delete(k);blockedSourceTrace.delete(k);
     if(old){
      cache.delete(k);pixels-=old.pixels;release(old.packet);
      changed++;
