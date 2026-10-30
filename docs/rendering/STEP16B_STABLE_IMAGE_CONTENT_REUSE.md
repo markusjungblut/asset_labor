@@ -72,6 +72,32 @@ werden; die aktuelle Ausführungsumgebung hat keinen Zugriff auf den
 Windows-Chromium-/397-Hex-Referenzserver. Die Implementierung ist
 deshalb **noch nicht als FPS- oder Visual-Fix abgenommen**.
 
+## Windows-Regressionslauf nach PR #85 (2026-10-30)
+
+Der Benutzer führte unter Windows/PowerShell 7.6.9 vier native Node-Testdateien
+parallel aus: **58 Tests, 50 bestanden, 8 fehlgeschlagen**. Dabei bestanden
+**alle 11 neu angelegten Tests für die Bildlebenszyklen**. Die Fehler liegen in
+zwei vorhandenen Testdateien:
+
+- 2 × `test_rendering_step16b_retained_stale_ground_20261030.cjs`:
+  `world-tile-streamer.js::invalidateTiles` akzeptierte Host-`Set`-Werte nicht,
+  weil `tileIds instanceof Set` bei `Set`-Objekten aus einer anderen
+  JavaScript-Realm (Node `vm`) false ergibt. Der Renderer normalisiert nun
+  ausschließlich nichtskalare Iterable und validiert jede ID weiterhin.
+  Die Autorisierungs-/Fog- und Stale-Readiness-Verträge sind unverändert.
+- 6 × `test_rendering_step16b_stable_road_river_revisions_20261030.cjs`:
+  Der Test-Harness verwendete acht `setImmediate`-Zyklen als Ersatz für
+  die produktive `setTimeout(0)`-Foreground-Planung. Auf Windows/Node
+  werden damit nicht zwingend Timercallbacks ausgeführt. Die Tests warten
+  jetzt explizit und zeitbegrenzt auf tatsächlich bereite `readyTiles`
+  und geben bei Timeout Chunk-Diagnostics aus. **Keine Änderung am
+  produktiven Chunk-Scheduler.**
+
+Acht entsprechende Zustands-/Laufzeitprüfungen mit den echten Produktionsmodulen
+wurden in einer isolierten JS-Ausführungsumgebung durchgeführt und bestanden.
+Der erneute **native** Windows-Testlauf des aktualisierten PR-Branches steht
+noch aus, ebenso die visuelle und Warm-Performance-Abnahme.
+
 ## Reproduzierbarer Windows-Nachtest
 
 ```powershell
