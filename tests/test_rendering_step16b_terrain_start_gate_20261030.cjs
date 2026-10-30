@@ -62,3 +62,29 @@ test('only local editor enables the gate; source-readiness and fog checks remain
  assert.match(app,/const snapshotReady=tileArtworkReady\(t\)/);
  assert.match(app,/if\(!snapshotReady&&!tileArtworkStatus\(t,null,true\)\)/);
 });
+
+test('queued terrain becomes unready while an earlier bake occupies source slot',async()=>{
+ const h=harness({blocked:false});
+ const other={...h.tile,id:'1,0',x:512};
+ h.window.VedrasStep15Trace.enable(true);
+ h.renderer.request(h.view,[h.tile,other]);
+ // The second tile is already queued, but loses its prepared source
+ // before the first asynchronous tile has freed the source slot.
+ h.setPrepared(false);
+ await tick();await tick();
+ assert.equal(h.bakes,1);
+ assert.equal(h.renderer.stats().completed,1);
+ assert.equal(h.renderer.stats().pending,0);
+ assert.equal(h.renderer.stats().retryExhausted,0);
+ assert.ok(h.window.VedrasStep15Trace.snapshot().events.some(e=>
+  e.type==='tile.source-deferred'&&
+  e.detail.reason==='source-became-unprepared-in-queue'));
+ // Later terrain-worker completion must make that previously blocked tile
+ // eligible without losing the first complete tile.
+ h.setPrepared(true);
+ h.renderer.request(h.view,[h.tile,other]);
+ await tick();await tick();
+ assert.equal(h.bakes,2);
+ assert.equal(h.renderer.stats().completed,2);
+ assert.equal(h.renderer.stats().tiles,2);
+});
