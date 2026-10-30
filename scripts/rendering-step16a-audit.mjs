@@ -184,6 +184,32 @@ async function compositorOnlyProbe(kind,frames){
   compositorReportedMs:frameMs,
   cachePixels:end.pixels,cacheBytes:end.bytes};
 }
+// Snapshot of missing real tile sources, read-only. Never changes the renderer.
+function readinessBlockers(){
+ const v=window.VedrasAssetLabor;
+ const diag=v.tileDiagnostics({limit:48,includeReadiness:true});
+ const waiting=(diag.artwork||[]).filter(item=>!item.ready);
+ const reasons={},paths=new Set();
+ for(const t of waiting){
+  const reason=String(t.reason||'unknown');
+  reasons[reason]=(reasons[reason]||0)+1;
+  for(const path of t.waitingAssets||[])paths.add(path);
+ }
+ const w=v.worldTileStats();
+ const p=v.assetMemory();
+ return {world:{active:w.active,visible:w.visible,drawn:w.drawn,
+   pending:w.pending,progress:w.progress,coverage:w.coverage,
+   retryExhausted:w.retryExhausted},
+  sources:{unreadyEditorCores:waiting.length,reasons,
+   waitingAssets:paths.size,firstWaitingAssets:[...paths].slice(0,15),
+   firstUnready:waiting.slice(0,12).map(t=>({id:t.id,
+    reason:t.reason,terrainVersion:t.terrainVersion,
+    paintedVersion:t.paintedVersion,shorelineReason:t.shorelineReason,
+    waitingAssets:(t.waitingAssets||[]).slice(0,5)}))},
+  imagePool:{decodedBytes:p.decodedBytes,limitBytes:p.limitBytes,
+   protectedBytes:p.protectedBytes,queued:p.queued,active:p.active,
+   evicted:p.evicted,ready:p.ready}};
+}
 async function main(){
  const o=args(process.argv.slice(2));
  if(o.help){console.log('node scripts/rendering-step16a-audit.mjs --url LOCAL --qualities 4,auto --frames 90');return;}
@@ -248,17 +274,12 @@ async function main(){
      quietTrace.dropped===0&&
      !['tile.invalidate','tile.cache-miss','tile.bake','asset.invalidate']
       .some(key=>(quietTrace.types[key]||0)>0);
-    if(!quiet){
-     run.real.push({quality,kind:'warm-'+kind,valid:false,skipped:true,
-      gateReady:gate.ready,quiet:false,mutating:null,start,end:start,
-      quietTrace,trace:{types:{},dropped:0},cpuTaskSeconds:null,
-      frame:{count:0,p50:null,p95:null,syncDrawP95Ms:null},
-      invalidReasons:[...(!gate.ready?gate.reasons:[]),
-       'not-quiescent-before-sampling']});
-     console.log('  '+kind+': SKIPPED – no stable fully ready source');
-     continue;
-    }
-    await c.eval('window.VedrasAssetLabor.resetStep15Trace("16a-real-warm")');
+    // An incomplete scene is an invalid warm sample, not a reason to
+    // omit the diagnostic entirely: measure cold camera stalls instead.
+    const blockers=quiet?null:await c.eval('('+readinessBlockers.toString()+')()');
+    const classification=quiet?'warm-candidate':'cold-diagnostic';
+    await c.eval('window.VedrasAssetLabor.resetStep15Trace('+
+     JSON.stringify('16a-'+classification)+')');
     const startCpu=await measureMetrics(c),probe=await c.eval(
      '('+editorCameraProbe.toString()+')('+JSON.stringify(kind)+','+o.frames+')');
     const endCpu=await measureMetrics(c),after=await snapshot(c);
@@ -274,18 +295,20 @@ async function main(){
     const enoughFrames=probe.intervals.length>=Math.min(45,Math.floor(o.frames/2));
     const valid=quiet&&cameraCondition(end)&&probe.activated&&
      enoughFrames&&!mutating&&trace.dropped===0;
-    run.real.push({quality,kind:'warm-'+kind,valid,
-     gateReady:gate.ready,quiet,mutating,
+    run.real.push({quality,kind:'warm-'+kind,classification,valid,
+     gateReady:gate.ready,quiet,mutating,blockers,
      start,end,quietTrace,trace,cpuTaskSeconds:delta(startCpu,endCpu,'TaskDuration'),
      frame:{count:probe.intervals.length,p50:percentile(probe.intervals,.5),
       p95:percentile(probe.intervals,.95),
-      syncDrawP95Ms:percentile(probe.drawMs,.95)},
+      requestDrawSchedulingP95Ms:percentile(probe.drawMs,.95)},
      invalidReasons:[...(!gate.ready?gate.reasons:[]),
       ...(!quiet?['not-quiescent-before-sampling']:[]),
       ...(mutating?['asset/tile work occurred during camera-only test']:[]),
       ...(!enoughFrames?['insufficient stable animation frames']:[])]});
-    console.log('  '+kind+': '+(valid?'VALID REAL WARM':'NOT WARM')+
-     ', exact '+String(end.progress?.exact)+', tile events '+trace.totalEvents);
+    console.log('  '+kind+': '+(valid?'VALID REAL WARM':classification.toUpperCase())+
+     ', exact tiles '+String(end.progress?.exact)+
+     ', blockers '+(gate.reasons||[]).join('; ')+
+     ', tile events '+trace.totalEvents);
    }
     await c.eval('window.VedrasAssetLabor.enableStep15Trace(false)');
    }catch(error){
@@ -339,7 +362,7 @@ async function main(){
    '| Qualität | Phase | Bereit/gültig | rAF-p95 ms | Bake-Events | Tile-Invalidierungen | geschützte MiB / Budget MiB |',
    '|---|---|---|---:|---:|---:|---:|',
    ...run.real.map(x=>'| '+[x.quality,x.kind,
-    x.kind==='preparation'?(x.ready?'bereit':'NEIN'):(x.valid?'gültig':'UNGÜLTIG'),
+    x.kind==='preparation'?(x.ready?'bereit':'NEIN'):(x.valid?'gültig':x.classification||'UNGÜLTIG'),
     x.frame?.p95??'–',x.trace?.types?.['tile.bake']??0,
     x.trace?.types?.['tile.invalidate']??0,
     ((x.end||x.stats)?.imagePool?.protectedBytes/1048576||0).toFixed(1)+
