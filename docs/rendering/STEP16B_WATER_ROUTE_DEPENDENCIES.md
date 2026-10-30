@@ -60,7 +60,7 @@ WorldTile-Readiness und Versionstests bleiben unangetastet.
 ## Automatisierte Prüfung
 
 Erweiterung der bestehenden Dependency-Testdatei auf
-**19/19 isolierte V8-Regressionen** (vorher 10/10):
+**20/20 isolierte V8-Regressionen** (vorher 10/10):
 Wasserbild mit gleichen Klassen, Land→Wasser und
 Wasser→Land, Fluss-Quelltextur mit der gesamten Route,
 unbeteiligtes Wasserbild, ungültige Flussroute,
@@ -82,7 +82,7 @@ git fetch origin
 git switch fix/step16b-water-material-route-dependencies-20261030
 git pull --ff-only origin fix/step16b-water-material-route-dependencies-20261030
 node --test tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs tests/test_rendering_step16b_terrain_start_gate_20261030.cjs tests/test_rendering_step16b_asset_camera_20261030.cjs
-.\START_STEP16A_WINDOWS.cmd --qualities 4 --frames 90 --settle-ms 12000
+.\START_STEP16A_WINDOWS.cmd --qualities 4 --frames 90 --settle-ms 12000 --visual
 ```
 
 Vergleiche 4× `groundAssetDependencyModes` inklusive
@@ -92,3 +92,14 @@ Zoom-P95 als Diagnose, Bereitschaftsgate und
 Küsten-/Fluss-Visuals. Pixelidentität mit unverändert
 gerenderten Referenzkacheln vor dem Mergen prüfen.
 **Schritt 16C und 17 weiterhin gesperrt.**
+
+
+## 4×-Screenshots für Schritt 16C
+
+Der optionale Audit-Parameter `--visual` fotografiert erstmals auch
+bei `--qualities 4` die **tatsächlich ausgewählte 4×-Einstellung**:
+vor/während/nach Zoom, Ozean/Ufer, Fog. Dateinamen tragen
+`4-` (für Auto entsprechend `auto-`) als Präfix, damit
+Mehrfach-Qualitätsläufe keine Bilder überschreiben.
+Der bestehende ZIP-Packer nimmt alle PNGs unter `images/` auf.
+Die Screenshots sind eine Hilfestellung, keine automatische visuelle Abnahme.
