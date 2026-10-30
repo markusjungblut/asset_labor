@@ -56,12 +56,20 @@ function summarizeTrace(trace){
  const all=trace?.events||[];
  const revisions=all.filter(e=>e.type==='tile.ground-revision-detail');
  const deferred=all.filter(e=>e.type==='tile.ground-revision-deferred');
+ // A global image-ready-ground invalidation can discard an entire warm map.
+ // Attribute it to exact source file and category before attempting a fix.
+ const assetReady=all.filter(e=>e.type==='asset.invalidate');
+ const groundAssets=assetReady.filter(e=>e.detail?.reason==='image-ready-ground');
+ const groundPaths=[...new Set(groundAssets.map(e=>e.detail?.path).filter(Boolean))];
  const samples=all.filter(e=>['tile.ground-revision-detail',
   'tile.ground-revision-deferred','tile.cache-miss',
   'tile.invalidate','tile.bake'].includes(e.type));
  return {...counts,dropped:trace?.dropped||0,totalEvents:trace?.totalEvents||0,
   attributionComplete:(trace?.dropped||0)===0,
   groundRevisionDetails:revisions.slice(0,60),
+  groundAssetPaths:groundPaths.slice(0,60),
+  groundAssetEvents:groundAssets.slice(0,30),
+  assetEventSamples:[...assetReady.slice(0,15),...assetReady.slice(-15)],
   deferredGroundRevisions:deferred.slice(0,60),
   deferredGroundRevisionCount:deferred.length,
   eventSamples:[...samples.slice(0,35),...samples.slice(-35)]};
@@ -428,6 +436,12 @@ async function main(){
     '  - Tile-Ereignisse: '+JSON.stringify(x.trace?.types||{})+
      '; CPU-Taskzeit: '+(x.cpuTaskSeconds??'–')+' s'+
      '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
+   ]),
+   '','## Globale Ground-Invalidierungen nach konkreter Bilddatei','',
+   ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
+     '- '+p.kind+': '+(p.trace?.groundAssetEvents?.length||0)+
+       ' image-ready-ground-Ereignisse; Quellen: '+
+       (p.trace?.groundAssetPaths||[]).join(', ')
    ]),
    '','## 4x-Quellrevisionen pro Kachel','',
    ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
