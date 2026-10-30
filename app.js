@@ -729,8 +729,8 @@ function selectedGroundAssetChanges(asset){
  }
  // The river uses the terminal hex's selected PNG across its full course.
  // Include every route hex, not only the cell containing the source PNG.
- if(state.river&&state.riverPaths?.length){
-  if(!Array.isArray(state.riverPaths))return null;
+ if(state.river&&!Array.isArray(state.riverPaths))return null;
+ if(state.river&&state.riverPaths.length){
   for(const route of state.riverPaths){
    if(!Array.isArray(route?.hexes)||!route.hexes.length)return null;
    const last=route.hexes.at(-1);
