@@ -259,6 +259,7 @@ window.VedrasWorldTiles=(()=>{
    // packet. Authored editor changes still evict immediately.
    const retainPrevious=reason==='image-ready-ground-selective'||
     reason==='terrain-core-revision-changed';
+   const visibleIds=new Set(visibleTiles.map(t=>t.id));
    trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod,
     retained:retainPrevious});
    let changed=0;
@@ -266,10 +267,10 @@ window.VedrasWorldTiles=(()=>{
     const k=id+'@'+level,old=cache.get(k);
     deferredRevisionTrace.delete(k);blockedSourceTrace.delete(k);
     if(old){
-     // Keep completed, non-preview pixels as a temporary visual fallback.
+     // Keep only currently visible completed pixels as a temporary fallback.
      // The dirty flag makes them ineligible for a fresh source cache hit,
      // readiness diagnostics and exact-frame accounting until replaced.
-     if(retainPrevious&&drawable(old)&&!old.packet.preview){
+     if(retainPrevious&&visibleIds.has(id)&&drawable(old)&&!old.packet.preview){
       old.dirty=true;old.dirtyReason=reason;
       old.dirtyAt=old.dirtyAt??Date.now();
       trace('tile.stale-retained',{key:k,id,level,reason,epoch});
