@@ -27,7 +27,7 @@ function chunkHarness(){
   configure();
   chunk.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   await flush();
-  const ready=chunk.readyTiles(bounds,{limit:12});
+  const ready=chunk.readyTiles(bounds,{limit:12,sourceKeys:true});
   assert.equal(ready.length,1,'expected one real cached raster from chunks.js');
   return ready[0].artwork;
  }
@@ -113,4 +113,22 @@ test('pending source transitions still differ from stable prepared source tokens
  const rev=(road,river)=>JSON.stringify(['t','shore',road,river]);
  assert.notEqual(rev('pending','pending'),rev('src-new','pending'));
  assert.notEqual(rev('src-old','src-river'),rev('src-new','src-river'));
+});
+
+test('ordinary terrain/shore chunk access does not compute unused semantic fingerprints',async()=>{
+ const h=chunkHarness();
+ const road=await h.build();
+ assert.ok(road.sourceRevision);
+ const ordinary=h.chunk.readyTiles(bounds,{limit:12});
+ assert.equal(ordinary.length,1);
+ const raw=ordinary[0].artwork;
+ assert.equal(raw.sourceRevision,road.sourceRevision,'same cached entry');
+ h.clear();
+ h.chunk.configure('terrain-settings',{worldCells:cells,stampTile:()=>'grass',
+  buildTile:()=>({raster:{canvas:{width:128,height:128}}}),redraw:()=>{}});
+ h.chunk.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
+ await flush();
+ const terrain=h.chunk.readyTiles(bounds,{limit:12});
+ assert.equal(terrain.length,1);
+ assert.equal(terrain[0].artwork.sourceRevision,undefined,'terrain never requests semantic source key');
 });
