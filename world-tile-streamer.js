@@ -251,8 +251,12 @@ window.VedrasWorldTiles=(()=>{
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
   function invalidateTiles(tileIds,reason='scene-change',levels=Object.keys(density)){
-   const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
-    [...tileIds]:[]);
+   // IDs may originate from another JS realm (Node vm, embedded editor).
+   // A foreign Set fails instanceof Set; accept iterable collections while
+   // rejecting scalar/string inputs. Individual IDs remain strictly checked.
+   const iterable=tileIds!=null&&typeof tileIds!=='string'&&
+    typeof tileIds[Symbol.iterator]==='function';
+   const ids=new Set(iterable?tileIds:[]);
    for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
    if(!ids.size)return 0;
    // Only visual image-revision updates may retain an already complete

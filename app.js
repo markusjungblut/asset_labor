@@ -691,8 +691,12 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
 }
 function groundTileContentKey(t,level,coreVersion){
  if(coreVersion==null)return null;
+ // Frame-memo revisions also include unrelated scenery and image-decode
+ // events. Ground reuse is keyed by authoritative sources and ground options.
  return JSON.stringify([t.id,level,String(coreVersion),
-  frameMemo.stats().revision,catalogRevision,state.quality,
+  catalogRevision,state.quality,state.materialScales,state.visualPolish?.terrain,
+  state.edgeBlend,state.blendVariants,state.waterSampling,state.edgeWidth,
+  state.edgeIrregularity,state.cornerBlend,
   state.roadShown,state.roadEdges,state.river,state.riverPaths,
   state.riverBanks,state.riverBankStrength,state.shoreline,
   state.relief,state.mountainInstances,state.selected]);
@@ -811,8 +815,20 @@ const spriteAtlas=window.VedrasSpriteAtlas?.create({
 spriteAtlas?.open().then(available=>{if(available)requestDraw();});
 const imagePool=window.VedrasImagePool.create({
  parallel:4,maxBytes:192*1024*1024,protectMs:24000,
- onReady:a=>{
+ onReady:(a,decode)=>{
   a.terrainCheck=inspectTerrain(a);
+  // Rehydrating unchanged versioned PNGs after LRU eviction must wake
+  // waiting paint/readiness paths, but must NOT invalidate cached pixels.
+  if(decode?.kind==='repeat-decode'){
+   window.VedrasStep15Trace?.record('asset.redecode-identical',{
+    path:a.path,category:a.category,revision:a.imageRevision,
+    decodedBytes:decode.decodedBytes,protected:decode.protected});
+   if(!imagePoolPriming){
+    requestDraw();
+    window.dispatchEvent(new Event('vedras:asset-image-loaded'));
+   }
+   return;
+  }
   // A newly decoded tree changes the SPRITE layer, not the terrain.
   // Clearing the full ground cache for hundreds of independent Nature PNGs
   // caused repeated 250ms+ terrain rebuilds during background image loading.
@@ -820,9 +836,15 @@ const imagePool=window.VedrasImagePool.create({
    (state.relief?.enabled&&(a.category==='buildings'||
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){
-   groundTileReuse?.clear();
    const changed=isTerrain(a)?selectedGroundAssetChanges(a):
     a.category==='shorelines'?shorelineSideCells(a):null;
+   // Never reuse changed pixels, but retain all independent terrain tiles.
+   const reuseIds=changed===null?null:changedGroundTileIds(changed);
+   if(reuseIds===null)groundTileReuse?.clear();
+   else groundTileReuse?.invalidateTiles(reuseIds);
+   window.VedrasStep15Trace?.record('ground.reuse-invalidate',{
+    path:a.path,scope:reuseIds===null?'global':'selective',
+    tiles:reuseIds?.size??null});
    if(changed===null)groundAssetNeedsGlobal=true;
    else for(const id of changed)pendingGroundCells.add(id);
    pendingGroundPaths.add(a.path);

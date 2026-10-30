@@ -5,8 +5,19 @@ const root=path.join(__dirname,'..');
 const chunksCode=fs.readFileSync(path.join(root,'chunks.js'),'utf8');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const tileStreamer=fs.readFileSync(path.join(root,'world-tile-streamer.js'),'utf8');
-const tick=()=>new Promise(resolve=>setImmediate(resolve));
-const flush=async()=>{for(let i=0;i<8;i++)await tick();};
+// chunks.js schedules foreground work through setTimeout(0). Repeated
+// setImmediate() calls can finish before the timer phase, especially on
+// Windows/Node 22. Poll actual raster readiness, never arbitrary event-loop
+// turns, and fail with the current chunk diagnostics if it never arrives.
+const waitForReady=async(chunk,{sourceKeys=false}={})=>{
+ const deadline=Date.now()+1500;
+ do{
+  const ready=chunk.readyTiles(bounds,{limit:12,sourceKeys});
+  if(ready.length)return ready;
+  await new Promise(resolve=>setTimeout(resolve,10));
+ }while(Date.now()<deadline);
+ return [];
+};
 const bounds={x:0,y:0,width:511,height:511};
 const cells=[{q:0,r:0}];
 function chunkHarness(){
@@ -26,9 +37,9 @@ function chunkHarness(){
  async function build(){
   configure();
   chunk.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
-  await flush();
-  const ready=chunk.readyTiles(bounds,{limit:12,sourceKeys:true});
-  assert.equal(ready.length,1,'expected one real cached raster from chunks.js');
+  const ready=await waitForReady(chunk,{sourceKeys:true});
+  assert.equal(ready.length,1,
+   'expected one real cached raster from chunks.js: '+JSON.stringify(chunk.diagnostics({limit:4})) );
   return ready[0].artwork;
  }
  return {chunk,build,clear:()=>chunk.clear(),
@@ -127,8 +138,8 @@ test('ordinary terrain/shore chunk access does not compute unused semantic finge
  h.chunk.configure('terrain-settings',{worldCells:cells,stampTile:()=>'grass',
   buildTile:()=>({raster:{canvas:{width:128,height:128}}}),redraw:()=>{}});
  h.chunk.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
- await flush();
- const terrain=h.chunk.readyTiles(bounds,{limit:12});
- assert.equal(terrain.length,1);
+ const terrain=await waitForReady(h.chunk);
+ assert.equal(terrain.length,1,
+  'terrain raster should be available: '+JSON.stringify(h.chunk.diagnostics({limit:4})));
  assert.equal(terrain[0].artwork.sourceRevision,undefined,'terrain never requests semantic source key');
 });
