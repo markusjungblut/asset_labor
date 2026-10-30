@@ -73,3 +73,12 @@ test('unrelated unchanged tile remains intact during selective invalidation',()=
  assert.equal(h.change(h.rev('34','38','150','138')),0);
  assert.equal(h.renderer.stats().tiles,1);
 });
+
+test('repeated camera samples do not flood deferred-revision trace',()=>{
+ const h=create();h.seed(h.rev('21','31','163','pending'));
+ h.window.VedrasStep15Trace.enable(true);
+ for(let i=0;i<90;i++)
+  assert.equal(h.change(h.rev('21','31','pending','pending')),0);
+ assert.equal(h.events().filter(e=>e.type==='tile.ground-revision-deferred').length,1);
+ assert.equal(h.renderer.stats().tiles,1);
+});
