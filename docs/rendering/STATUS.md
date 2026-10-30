@@ -585,3 +585,40 @@ V8 bestanden. Native Windows-Tests und Hardwarevergleich fehlen;
 keine Performanceverbesserung für 4× behauptet. Nur ein
 gezielter 4×-Windowslauf erforderlich, danach erst über
 16C entscheiden. Schritt 17 weiter gesperrt.
+
+## 30.10.2026 – Schritt 16B: 4×-Nachtest ZIP3 zeigt Kameramodus-Abbruch
+
+Neuer Windows-Audit `step16a-audit(3).zip` auf Draft #75,
+gleiche Referenz-SHA wie ZIP2, Import 397 Hex/2631 Nature,
+0 JavaScript-Ausführungsfehler:
+
+- 4×-Preparation: 151 Bake-Versuche (ZIP2: 155),
+  101× Terrain-Core-not-ready, 43× Sprite-not-ready;
+  39 MiB über dem 576-MiB-Decodingbudget.
+- 4×-Pan: 0 Frameintervalle (ZIP2: 89),
+  WorldTile-Modus inaktiv, Coverage 75 %.
+- 4×-Zoom: 51 Frameintervalle, rAF-p95 1651,35 ms
+  (ZIP2: 89 und 16,80 ms), 22 Tile-Bakes,
+  15 Cache-Misses, 2 Invalidierungen;
+  am Ende Modus inaktiv und Coverage 25 %.
+- Kein `tile.ground-revision-deferred`,
+  keine `tile.ground-revision-detail`; Draft #75
+  wird durch diesen Test nicht beurteilt.
+- Während 4×-Zoom 30 `asset.invalidate`-Events.
+
+Quellcode bestätigt: Der spät laufende `imagePool.onReady`-Batch
+ruft `invalidateSpriteLayout()` auf, was bislang immer
+`tileModeActive=false` setzt. Dadurch fällt der nächste
+`requestDraw()` potenziell in den direkten Editorpfad.
+Das stimmt mit dem beobachteten Modusabbruch überein;
+kausale Bestätigung braucht den Hardwaretest mit neuem Trace.
+
+**Draft #76** isoliert diesen Fehler: Nur beim
+späten Asset-Batch darf ein bereits aktiver und
+weiter zulässiger Tile-Kameramodus erhalten werden,
+inklusive sofortigem `tileFog()`-Neubau. Edit- und
+Strategie-Moduswechsel bleiben unverändert.
+5/5 gezielte isolierte V8-Tests bestanden, native
+Windows-/Chrome-Messung ausstehend.
+Die alte Road/River-Pending-Regel in #75 bleibt unabhängig
+und unbewiesen. Schritt 16C/17 weiterhin gesperrt.

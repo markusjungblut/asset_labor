@@ -742,7 +742,8 @@ const imagePool=window.VedrasImagePool.create({
     const paths=new Set(pendingSpriteAssetPaths);
     pendingSpriteAssetPaths.clear();
     // Ground already invalidated every tile: no duplicate global scenery flush.
-    invalidateSpriteLayout(groundChanged?new Set():worldTilesForAssetPaths(paths));
+    invalidateSpriteLayout(groundChanged?new Set():worldTilesForAssetPaths(paths),
+      {preserveCamera:true});
    }
    if(groundChanged){
     lastTileSnapshotSignature=tileSemanticSignature();
@@ -783,7 +784,10 @@ function worldTilesForAssetPaths(paths){
   }
  return ids;
 }
-function invalidateSpriteLayout(tileIds=null){
+function invalidateSpriteLayout(tileIds=null,{preserveCamera=false}={}){
+ // A late sprite decode is not an editor mode change. Keep the already
+ // active fast camera while the affected source tiles are replaced.
+ const keepTileCamera=preserveCamera&&tileModeActive&&fastAllowed();
  window.VedrasStep15Trace?.record('scenery.invalidate',{
   reason:tileIds instanceof Set?'localized-scenery-change':'scenery-revision-changed',
   touchedTiles:tileIds instanceof Set?tileIds.size:null});
@@ -798,7 +802,17 @@ function invalidateSpriteLayout(tileIds=null){
   lastTileSnapshotSignature=null;worldTileSelectiveSnapshot=false;
   worldTiles?.invalidate('scenery-revision-changed');
  }
- tileModeActive=false;visibleFogTiles=null;
+ if(keepTileCamera){
+  // The fog authorization is rebuilt before the next streaming request.
+  // Never turn every tile visible just because the prior mask was cleared.
+  tileFog();
+  window.VedrasStep15Trace?.record('camera.mode-retained',{
+   reason:'image-ready-scenery',tileModeActive:true});
+ }else{
+  if(tileModeActive)window.VedrasStep15Trace?.record('camera.mode-reset',{
+   reason:preserveCamera?'fast-camera-not-allowed':'editor-content-change'});
+  tileModeActive=false;visibleFogTiles=null;
+ }
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'fast',
