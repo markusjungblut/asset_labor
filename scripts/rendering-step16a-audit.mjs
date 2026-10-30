@@ -513,7 +513,8 @@ async function main(){
      '; vorbereitete Kamerapositionen '+
        (x.prewarm?.stops?.filter(p=>p.ready).length??0)+'/'+
        (x.prewarm?.stops?.length??0)+
-     '; idle evicted '+(x.prewarm?.idle?.evicted??0)+
+     '; idle evicted during preparation '+
+       (x.prewarm?.image?.evictionsDuringPreparation??0)+
      '; decoded / budget MiB '+
        (((x.prewarm?.pool?.decodedBytes||0)/1048576).toFixed(1))+' / '+
        (((x.prewarm?.pool?.limitBytes||0)/1048576).toFixed(1))),
