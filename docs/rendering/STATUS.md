@@ -553,3 +553,35 @@ im isolierten V8 mit echter Tile-Streamer-Quelle: 4/4.
 zur Ursachenbestimmung plus Bildabnahme; nicht weitere
 ungenannte Performance-Patches auf Verdacht. Schritt 16C
 nicht abgenommen, Schritt 17 gesperrt.
+
+## 30.10.2026 – 4×-Ground-Revisionsquelle nach Hardwarelauf geklärt
+
+Aus `step16a-audit(2).zip`: 397 Hex, 2.631 Naturinstanzen,
+Szene unverändert. 4×-Pan: 89 Intervalle, 133,40 ms p95,
+14 Invalidierungs-Events, 16 einzelne Ground-Version-Details;
+8 Road-only, 6 Road+River, 2 Terrain-only. Bei den
+14 Road-/River-Ereignissen bleibt der Terrainwert gleich;
+Road-/River-Varianten springen zwischen fertig und `pending`.
+Von 16 konkreten Details sind **acht** exakt
+fertige Road/River → vorübergehend `pending`
+und damit Kandidaten für das gezielte Defer im Draft #75.
+Die übrigen acht sind z.B. `pending → neu fertig`
+oder echte Terrainänderungen und bleiben invalidierend.
+
+4×-Zoom: 89 Intervalle, 16,8 ms p95, aber nach Warm-Gate
+weiter ungültig wegen nicht vollständig ruhigem Zustand.
+Auto-Pan und Auto-Zoom ebenfalls 89 Intervalle, 16,8 ms p95;
+beide neue Tile-Nachladungen, daher keine reine Warm-Abnahme.
+Alle Visuals vorhanden: Scenery-Builds 8 vor/8 während/
+9 nach Zoom, Ozean-Hex (-4,5) effektiv `ocean`, Fog-Screenshot
+hat sichtbare Wolkenabdeckung. Wasser-Kachelgrenzen müssen
+bei der visuellen 16C-Abnahme separat auf Artefakte geprüft werden.
+
+**Neuer isolierter Draft #75:** Behalte fertige World-Tiles bei
+fertige Road-/River-Version → `pending`; erst bei einer anderen
+fertigen Version oder echtem Edit invalidieren. Gezielte
+10/10 Tests mit echter World-Tile-Streamer-Quelle im isolierten
+V8 bestanden. Native Windows-Tests und Hardwarevergleich fehlen;
+keine Performanceverbesserung für 4× behauptet. Nur ein
+gezielter 4×-Windowslauf erforderlich, danach erst über
+16C entscheiden. Schritt 17 weiter gesperrt.
