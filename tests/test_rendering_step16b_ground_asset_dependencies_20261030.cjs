@@ -186,3 +186,14 @@ test('unknown/malformed river source path retains safe global fallback',()=>{
 test('river raster key includes image revision so same-size decoded pixels refresh',()=>{
  assert.match(app,/width,asset:water\?\.path,mtime:water\?\.mtime,\s*imageRevision:water\?\.imageRevision\|\|0,/);
 });
+
+
+test('non-array river route state cannot authorize selective water invalidation',()=>{
+ const h=harness({river:true,riverPaths:{not:'normalized'}});
+ assert.equal(h.evaluate({path:'a.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+});
+test('separate shoreline PNGs retain global fallback in the production onReady batch',()=>{
+ assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
+ assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
+ assert.match(app,/if\(changed===null\)groundAssetNeedsGlobal=true/);
+});
