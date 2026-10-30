@@ -84,7 +84,7 @@ test('production callback performs localized invalidation or global fallback, no
  assert.match(app,/if\(groundIds===null\)worldTiles\?\.invalidate\('image-ready-ground'\);\s*else worldTiles\?\.invalidateTiles\(groundIds,'image-ready-ground-selective'\)/);
  assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
  assert.match(app,/lastGroundMaterialPaths=new Map\(worldCells\.map/);
- assert.match(app,/lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true/);
+ assert.match(app,/lastGroundMaterialPaths=null;lastGroundWetCells=null;\s*groundAssetNeedsGlobal=true/);
  assert.match(app,/pendingGroundCells\.clear\(\);pendingGroundPaths\.clear\(\)/);
 });
 
