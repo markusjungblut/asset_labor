@@ -28,6 +28,9 @@ const adaptiveLOD=window.VedrasAdaptiveLOD.create();
 const worldTiles=window.VedrasWorldTiles?.create({
  canvas:$('realtimeCanvas'),maxTiles:144,maxPixels:26000000,
  concurrency:1,source:bakeWorldTile,requireScenery:true,
+ // Work already known to lack a prepared terrain core must not occupy the
+ // sole source slot; the terrain redraw callback requests another frame.
+ canStartSource:tile=>!!currentTerrainCore(tile),
  sourceRevision:tile=>groundSourceRevision(tile),
  lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}

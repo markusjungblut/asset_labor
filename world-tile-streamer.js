@@ -14,13 +14,15 @@ window.VedrasWorldTiles=(()=>{
   {far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
    concurrency=1,onReady=()=>{},maxAttempts=5,sourceTimeoutMs=45000,
-    sourceRevision=null,
+    sourceRevision=null,canStartSource=null,
    requireScenery=false,lodSelector=null}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
   const cache=new Map(),queue=new Map(),running=new Map(),history=new Map();
   const retries=new Map(),retryTimers=new Map();
+  // Diagnostic deduplication; blocked sources are reconsidered per request.
+  const blockedSourceTrace=new Set();
   const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
   const parallelLimit=clamp(Math.floor(concurrency)||1,1,2);
   // Editor supplies its terrain controller. Standalone usage creates a
@@ -176,7 +178,7 @@ window.VedrasWorldTiles=(()=>{
    running.clear();queue.clear();
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
-   deferredRevisionTrace.clear();
+   deferredRevisionTrace.clear();blockedSourceTrace.clear();
   }
   // Diagnostic-only deduplication of transient pending source changes:
   // one event per tile/revision rather than one event per camera frame.
@@ -216,7 +218,7 @@ window.VedrasWorldTiles=(()=>{
       });
      if(temporaryMissing){
       if(diagnose&&deferredRevisionTrace.get(k)!==expected){
-       if(deferredRevisionTrace.size>=384)deferredRevisionTrace.clear();
+       if(deferredRevisionTrace.size>=384)deferredRevisionTrace.clear();blockedSourceTrace.clear();
        deferredRevisionTrace.set(k,expected);
        trace('tile.ground-revision-deferred',{
         id:item.tile.id,level:item.tileLod,changed:changed.join(','),
@@ -251,7 +253,7 @@ window.VedrasWorldTiles=(()=>{
    let changed=0;
    for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
-    deferredRevisionTrace.delete(k);
+    deferredRevisionTrace.delete(k);blockedSourceTrace.delete(k);
     if(old){
      cache.delete(k);pixels-=old.pixels;release(old.packet);
      changed++;
@@ -405,6 +407,18 @@ window.VedrasWorldTiles=(()=>{
     const item=queue.values().next().value;
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
+    // Terrain workers can replace a queued source while another tile bakes.
+    // Avoid a known-null bake and retain fog until a later request retries.
+    if(typeof canStartSource==='function'&&
+       canStartSource(item.tile,item.level)===false){
+     if(!blockedSourceTrace.has(item.key)){
+      blockedSourceTrace.add(item.key);
+      trace('tile.source-deferred',{key:item.key,id:item.tile.id,
+       level:item.level,epoch,reason:'source-became-unprepared-in-queue'});
+     }
+     continue;
+    }
+    blockedSourceTrace.delete(item.key);
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
     const token=++serial,job={controller,epoch:item.epoch,token,
      sourceVersion:typeof sourceRevision==='function'?
@@ -487,6 +501,8 @@ window.VedrasWorldTiles=(()=>{
     observe(k,'discarded',{reason:'outside-viewport'});discardedObsolete++;
    }
    queue.clear();
+   for(const k of blockedSourceTrace)if(!wanted.has(k))
+    blockedSourceTrace.delete(k);
    for(const [k,task] of running)if(!wanted.has(k)){
     observe(k,'aborted',{reason:'outside-viewport'});discardedObsolete++;
     task.controller?.abort?.();
@@ -515,6 +531,17 @@ window.VedrasWorldTiles=(()=>{
     if((existing&&!existing.packet.preview)||running.has(k))continue;
     const retry=retries.get(k);
     if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>now)))continue;
+    // Keep an unprepared source cloudy; don't spend a slot/retry on a null.
+    // Terrain worker callbacks request another compositor frame when ready.
+    if(typeof canStartSource==='function'&&canStartSource(t,lod)===false){
+     if(!blockedSourceTrace.has(k)){
+      blockedSourceTrace.add(k);
+      trace('tile.source-deferred',{key:k,id:t.id,level:lod,epoch,
+       reason:'source-not-prepared'});
+     }
+     continue;
+    }
+    blockedSourceTrace.delete(k);
     queue.set(k,{key:k,tile:t,level:lod,epoch,
      queuedAt:prior.get(k)?.queuedAt??now});
     if(!prior.has(k)){
