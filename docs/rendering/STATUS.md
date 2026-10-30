@@ -772,3 +772,37 @@ Der optionale Step16A-Audit `--visual --qualities 4` speichert
 fünf 4×-Prüfbilder (Zoom und Ocean/Fog) mit Qualitätspräfix.
 Damit kann die spätere 16C-Sichtprüfung auf derselben Qualitätsstufe
 wie der Hardwaretest erfolgen. Native Tests und 4×-Visuals ausstehend.
+
+## 30.10.2026 – ZIP7: selektive Ground-Invalidierung bei geografischem Relief blockiert
+
+Die reale 397-Hex-Referenzszene aktiviert
+`relief.enabled=true`, `relief.mode='geography'`.
+PR #78/#79 hatten bisher jeden Ground-Bild-Decode
+bei **jeglichem** Relief global verworfen, selbst
+wenn Materialpfad und Wet-Status aller Hexes
+vollständig bekannt waren. ZIP7 belegt 2 globale
+Resets während 4×-Pan, zuerst 15 fertige Tiles
+verworfen; 4×-Pan p95 250,24 ms und End-Coverage
+50 %. Zoom p95 200,22 ms, 0 neue globale
+Ground-Resets, jedoch 5 echte Terrain-Revisionen
+und 12 Bakes. Beide Phasen ungültig für Warm-FPS.
+
+Neuer gestapelter Draft #80: Der reine geografische
+Reliefmodus ist nach **stabiler** Land-/Wasserklassifikation
+für selektive Terrainmaterial-Updates zugelassen;
+Legacy-Relief und unbekannte nichtlokale
+Abhängigkeiten bleiben global. Statische Terrain-
+Disk-Cache-Keys enthalten zusätzlich `imageRevision`.
+25/25 gezielte Ground-Dependency-Tests im
+isolierten V8 bestanden. Native Node/Chrome
+und visueller 4×-Vergleich noch offen.
+
+Fünf ZIP7-Bilder bestätigen richtige Ozeanhex-
+Zuordnung und Fog-Maskierung, zeigen aber
+vertikale dünne Wasserlinien im Abstand
+einer 512er World-Tile-Spalte. Dies bleibt
+ein visueller 16C-Abnahmeblocker, bis
+die Quelle dieser Kanten nachgewiesen und
+gegebenenfalls behoben ist.
+
+**Nicht mergen. Schritt 17 bleibt gesperrt.**
