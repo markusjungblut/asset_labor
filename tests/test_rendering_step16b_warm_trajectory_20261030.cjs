@@ -166,3 +166,13 @@ test('warm footprint is opt-in and is merged into ordinary camera protection',()
  assert.match(app,/pruneIdleImagePool:\(\)=>imagePool\.pruneIdle\(\)/);
  assert.match(app,/warmCameraFootprint=null;lastProtectedCameraSignature='';/);
 });
+
+test('Windows audit launcher never deletes previous result files',()=>{
+ const launcher=fs.readFileSync(path.join(root,'scripts/rendering-step16a-auto.mjs'),'utf8');
+ const cmd=fs.readFileSync(path.join(root,'START_STEP16A_WINDOWS.cmd'),'utf8');
+ assert.match(launcher,/rendering-step16b-warm-/);
+ assert.match(launcher,/if\(existsSync\(output\)\)throw Error/);
+ assert.doesNotMatch(launcher,/await rm\(output/);
+ assert.match(launcher,/--out',output,\.\.\.cli/);
+ assert.doesNotMatch(cmd,/echo Audit: artifacts\\rendering-step16a-audit/);
+});
