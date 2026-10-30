@@ -2700,6 +2700,115 @@ function worldFrontierGeometry(){
  lastFrontierGeometry={cells:fog,edges:fog.frontierEdges};
  return lastFrontierGeometry;
 }
+// Audit-only trajectory lease. Normal gameplay keeps its camera-local pins.
+let warmCameraFootprint=null;
+function cameraSourcesAtPose({panX,panY,zoom}){
+ const pad=480;
+ const minX=(-pad-W/2-panX)/zoom,maxX=(W/2+pad-panX)/zoom;
+ const minY=(-pad-H/2-panY)/(zoom*PROJECT_Y),
+  maxY=(H/2+pad-panY)/(zoom*PROJECT_Y);
+ const paths=new Set();
+ for(const a of assets)if(a.category==='shorelines')paths.add(a.path);
+ for(const cell of worldCells){
+  const p=axialPos(cell.q,cell.r);
+  if(p.x<minX-HEX||p.x>maxX+HEX||p.y<minY-R*2||p.y>maxY+R*2)
+   continue;
+  const a=imageForBiome(cell,false);
+  if(a?.path)paths.add(a.path);
+ }
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
+  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY&&n.assetPath)
+   paths.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&
+   p.y<=maxY+450&&m.assetPath)paths.add(m.assetPath);
+ }
+ for(const [cell,o] of Object.entries(state.hexObject||{})){
+  const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
+  if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&
+   p.y<=maxY+260&&o?.path)paths.add(o.path);
+ }
+ return paths;
+}
+function configureCameraWarmFootprint(poses=null){
+ if(poses===null){
+  warmCameraFootprint=null;lastProtectedCameraSignature='';
+  protectCameraImagePool();
+  return {active:false,paths:0};
+ }
+ if(!Array.isArray(poses)||!poses.length||poses.length>16||
+  poses.some(p=>!p||![p.zoom,p.panX,p.panY].every(Number.isFinite)||
+   p.zoom<.1||p.zoom>4||Math.abs(p.panX)>30000||
+   Math.abs(p.panY)>30000))
+  throw Error('Invalid bounded audit camera trajectory');
+ const paths=new Set();
+ for(const pose of poses)for(const path of cameraSourcesAtPose(pose))
+  paths.add(path);
+ warmCameraFootprint=paths;lastProtectedCameraSignature='';
+ protectCameraImagePool();
+ const missing=[...paths].filter(path=>!assetByPath.has(path));
+ const report=imagePool.report();
+ window.VedrasStep15Trace?.record('asset.warm-footprint',{
+  poses:poses.length,paths:paths.size,missing:missing.length,
+  protectedBytes:report.protectedBytes});
+ return {active:true,poses:poses.length,paths:paths.size,
+  missing:missing.length,firstMissing:missing.slice(0,12),
+  protectedBytes:report.protectedBytes,limitBytes:report.limitBytes};
+}
+function cameraWarmImageNeeded(a,p){
+ if(!a.img?.naturalWidth)return true;
+ if(!a.previewReduced)return false;
+ const current=Math.max(a.img.naturalWidth,a.img.naturalHeight);
+ const original=Math.max(a.sourceDimensions?.width||0,
+  a.sourceDimensions?.height||0);
+ const target=['terrain','terrain_base','shorelines'].includes(a.category)?
+  p.previewTerrainPx:['nature','buildings','units'].includes(a.category)?
+  p.previewSpritePx:0;
+ return original>current&&target>current;
+}
+async function prepareCameraWarmImages(timeoutMs=16000){
+ if(!warmCameraFootprint)throw Error('Configure audit footprint first');
+ if(!Number.isFinite(timeoutMs)||timeoutMs<500||timeoutMs>30000)
+  throw Error('Invalid audit preparation deadline');
+ const assetsToLoad=[...warmCameraFootprint].map(p=>assetByPath.get(p))
+  .filter(Boolean);
+ const missing=warmCameraFootprint.size-assetsToLoad.length;
+ const start=performance.now(),startEvictions=imagePool.report().evicted;
+ let report=imagePool.report(),remaining=assetsToLoad;
+ // All allocations, promotions and idle eviction happen BEFORE the trace
+ // reset / warm rAF sampling. The actual 576 MiB budget is unchanged.
+ do{
+  imagePool.pruneIdle();
+  report=imagePool.report();
+  remaining=assetsToLoad.filter(a=>cameraWarmImageNeeded(a,report));
+  for(const a of remaining)imagePool.ensure(a,10);
+  await new Promise(resolve=>setTimeout(resolve,45));
+  imagePool.pruneIdle();
+  report=imagePool.report();
+  remaining=assetsToLoad.filter(a=>cameraWarmImageNeeded(a,report));
+  if(!remaining.length&&report.active===0&&report.queued===0&&
+   report.overLimitBytes===0)break;
+  if(report.protectedBytes>report.limitBytes&&
+   report.active===0&&report.queued===0)break;
+ }while(performance.now()-start<timeoutMs);
+ const ready=missing===0&&remaining.length===0&&
+  report.active===0&&report.queued===0&&report.overLimitBytes===0;
+ const result={ready,paths:assetsToLoad.length,missing,
+  remaining:remaining.length,firstRemaining:remaining.slice(0,12).map(a=>a.path),
+  protectedBytes:report.protectedBytes,decodedBytes:report.decodedBytes,
+  limitBytes:report.limitBytes,overLimitBytes:report.overLimitBytes,
+  queued:report.queued,active:report.active,
+  evictionsDuringPreparation:report.evicted-startEvictions,
+  elapsedMs:Math.round(performance.now()-start)};
+ window.VedrasStep15Trace?.record('asset.warm-preparation',{
+  ready,paths:result.paths,missing,remaining:remaining.length,
+  protectedBytes:report.protectedBytes,decodedBytes:report.decodedBytes,
+  overLimitBytes:report.overLimitBytes,evictions:result.evictionsDuringPreparation});
+ return result;
+}
 let lastProtectedCameraSignature='';
 function protectCameraImagePool(){
  // Protect visible terrain and vegetation for BOTH the direct editor draw
@@ -2742,6 +2851,8 @@ function protectCameraImagePool(){
   if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
    pinned.add(object?.path);
  }
+ if(warmCameraFootprint)
+  for(const path of warmCameraFootprint)pinned.add(path);
  imagePool.protect(pinned);
 
 }
@@ -4187,7 +4298,9 @@ window.VedrasAssetLabor={shadowSprites:{
    m.assetPath===asset?.path&&key(m.q,m.r)===state.selected);
   return mountainShadowSettings({asset,mountainInstance:selected||null});
  }
-},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
+},ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
+ configureCameraWarmFootprint,prepareCameraWarmImages,
+ pruneIdleImagePool:()=>imagePool.pruneIdle(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
  benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
  step15Trace:()=>window.VedrasStep15Trace?.snapshot()||null,
  enableStep15Trace:on=>window.VedrasStep15Trace?.enable(on),
