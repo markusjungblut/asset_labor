@@ -51,6 +51,16 @@ test('WorldTiles exact is a COUNT and accepts multiple ready tiles',()=>{
  assert.equal(cameraCondition({...valid,coverage:0.99}),false);
 });
 
+test('cold camera audit still runs and records blockers when warm gate fails',()=>{
+ assert.match(audit,/const blockers=quiet\?null:await c\.eval/);
+ assert.match(audit,/classification=quiet\?'warm-candidate':'cold-diagnostic'/);
+ assert.match(audit,/const startCpu=await measureMetrics\(c\)/);
+ assert.match(audit,/await c\.eval\(\s*'\('\+editorCameraProbe\.toString\(\)/);
+ assert.match(audit,/unreadyEditorCores:waiting\.length/);
+ assert.doesNotMatch(audit,/SKIPPED – no stable fully ready source/);
+ assert.doesNotMatch(audit,/if\(!quiet\)\{[\s\S]{0,650}?continue;/);
+});
+
 test('trace attribution acknowledges dropped events rather than guessing missing causes',()=>{
  const t=summarizeTrace({dropped:7,totalEvents:10,
   counts:{'tile.invalidate':4,'tile.bake':1},
