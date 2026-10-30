@@ -80,3 +80,29 @@ test('production callback performs localized invalidation or global fallback, no
  assert.match(app,/lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true/);
  assert.match(app,/pendingGroundCells\.clear\(\);pendingGroundPaths\.clear\(\)/);
 });
+
+test('read-only material comparison cannot start or promote image-pool requests',()=>{
+ const start=app.indexOf('function imageForBiome(c,ensureSource=true){'),
+  end=app.indexOf('\nfunction effectiveBiome',start);
+ assert.ok(start>=0&&end>start);
+ let ensures=0;
+ const asset={path:'test.png',ok:true};
+ const make=new Function('state','key','useAsset','assetByPath',
+  'isTerrainValid','typeOfAsset','typeOfCell','terrainAssetsByType','hash',
+  app.slice(start,end)+'\nreturn imageForBiome;');
+ const imageForBiome=make(
+  {hexTerrain:{'0,0':'test.png'},biomeTerrain:{}},
+  (q,r)=>q+','+r,
+  ()=>{ensures++;return asset;},
+  new Map([['test.png',asset]]),
+  a=>a?.ok===true,
+  ()=> 'grassland',
+  ()=> 'grassland',
+  ()=> [],
+  ()=>0);
+ const cell={q:0,r:0,biome:'plains'};
+ assert.equal(imageForBiome(cell,false),asset);
+ assert.equal(ensures,0);
+ assert.equal(imageForBiome(cell),asset);
+ assert.equal(ensures,1);
+});
