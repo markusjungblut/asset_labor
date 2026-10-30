@@ -60,7 +60,7 @@ WorldTile-Readiness und Versionstests bleiben unangetastet.
 ## Automatisierte Prüfung
 
 Erweiterung der bestehenden Dependency-Testdatei auf
-**17/17 isolierte V8-Regressionen** (vorher 10/10):
+**19/19 isolierte V8-Regressionen** (vorher 10/10):
 Wasserbild mit gleichen Klassen, Land→Wasser und
 Wasser→Land, Fluss-Quelltextur mit der gesamten Route,
 unbeteiligtes Wasserbild, ungültige Flussroute,
