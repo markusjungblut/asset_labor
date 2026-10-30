@@ -67,6 +67,7 @@ function summarizeTrace(trace){
  return {...counts,dropped:trace?.dropped||0,totalEvents:trace?.totalEvents||0,
   attributionComplete:(trace?.dropped||0)===0,
   groundRevisionDetails:revisions.slice(0,60),
+  groundAssetEventCount:groundAssets.length,
   groundAssetPaths:groundPaths.slice(0,60),
   groundAssetEvents:groundAssets.slice(0,30),
   assetEventSamples:[...assetReady.slice(0,15),...assetReady.slice(-15)],
@@ -439,7 +440,7 @@ async function main(){
    ]),
    '','## Globale Ground-Invalidierungen nach konkreter Bilddatei','',
    ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
-     '- '+p.kind+': '+(p.trace?.groundAssetEvents?.length||0)+
+     '- '+p.kind+': '+(p.trace?.groundAssetEventCount||0)+
        ' image-ready-ground-Ereignisse; Quellen: '+
        (p.trace?.groundAssetPaths||[]).join(', ')
    ]),
