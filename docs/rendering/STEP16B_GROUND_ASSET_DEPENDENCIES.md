@@ -26,7 +26,7 @@ verlässlich Erstdekodierung von Resolution-Upgrade.
   andere Varianten betreffen.
 - Eine unveränderte Auswahl mit neuem Bildinhalt invalidiert
   trotzdem ihre Quellzellen, sofern derselbe Dateipfad benutzt wird.
-- Der Vergleich verwendet `imageForBiome(cell,false)`: **keine**
+- Der Vergleich verwendet `imageForBiome(cell,false)` inklusive read-only\n  `typeOfCell`/`baseBiomeOf`: **keine**
   ImagePool-Ensure-/Upgrade-Anforderungen während des
   Diagnose-Durchgangs über 397 Hexfelder.
 - Betroffene World-Tiles werden mit denselben Zellnachbarn
@@ -58,15 +58,15 @@ pro World-Tile nötig.
 
 ## Regressionen und Diagnose
 
-Neun neue gezielte Regressionen am produktiven Funktionscode:
+Zehn neue gezielte Regressionen am produktiven Funktionscode:
 Pixel-Upgrade bei gleicher Auswahl, per-Biom-Variantenverschiebung,
 unabhängige Terrainmaterialien, mehrfacher Decode,
 globaler Wasser-/Forest-Floor-/Relief-/Unbekannt-Fallback,
 exakte Chunk-Nachbarschaft (inklusive entfernter Tiles),
 selektiver/globaler Branch im Batch sowie nachgewiesen
-nebenwirkungsfreier `imageForBiome(false)`-Pfad.
+nebenwirkungsfreier `imageForBiome(false)`-Pfad auch über\n`typeOfCell` und `baseBiomeOf`.
 
-**9/9 im isolierten V8 bestanden**, native Node-
+**10/10 im isolierten V8 bestanden**, native Node-
 und Windows-Chromium-Abnahme noch offen.
 
 Der Step16A-Audit berichtet pro Kamera-Phase zusätzlich
