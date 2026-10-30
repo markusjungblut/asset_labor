@@ -6,6 +6,25 @@
 window.VedrasChunks=(()=>{
  const SIZE=512,HALO=128;
  const key=(x,y)=>x+','+y;
+ // A rebuilt raster receives a NEW construction version, even when its
+ // source content has not changed. World-Tile source identity must instead
+ // be stable across cache eviction/rebuild and change with either the
+ // global render configuration or the tile-local content stamp.
+ // Four independent 32-bit streams keep the retained token bounded even
+ // for large river-network signatures; the length is included as a guard.
+ function sourceContentRevision(configuration,stamp){
+  const input=String(configuration)+'\u0000'+String(stamp);
+  let a=2166136261,b=2246822519,c=3266489917,d=668265263;
+  for(let i=0;i<input.length;i++){
+   const n=input.charCodeAt(i);
+   a=Math.imul(a^n,16777619);
+   b=Math.imul(b^n,2246822519);
+   c=Math.imul(c^n,3266489917);
+   d=Math.imul(d^n,668265263);
+  }
+  const hex=n=>(n>>>0).toString(16).padStart(8,'0');
+  return 'src-'+input.length.toString(36)+'-'+hex(a)+hex(b)+hex(c)+hex(d);
+ }
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  function worldPos(c){return {x:256*(c.q+c.r/2),y:1.5*(256/Math.sqrt(3))*c.r};}
  function tile(x,y,size=SIZE){return {x:x*size,y:y*size,size,id:key(x,y)};}
@@ -400,11 +419,12 @@ window.VedrasChunks=(()=>{
       schedule();return;
      }
      if(old){stats.pixels-=old.pixels||0;release(old);}
+     const sourceRevision=sourceContentRevision(signature,expectedStamp);
      if(!item)cache.set(id,{raster:null,relief:null,pixels:0,
-      stamp:expectedStamp,version:++rasterVersion});
+      stamp:expectedStamp,version:++rasterVersion,sourceRevision});
      else{
       cache.set(id,{...item,pixels,stamp:expectedStamp,
-       version:++rasterVersion});
+       version:++rasterVersion,sourceRevision});
       stats.pixels+=pixels;stats.built++;
       if(predictive&&!visibleNow)stats.prefetched++;
      }
