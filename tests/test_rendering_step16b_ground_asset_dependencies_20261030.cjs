@@ -197,3 +197,12 @@ test('separate shoreline PNGs retain global fallback in the production onReady b
  assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
  assert.match(app,/if\(changed===null\)groundAssetNeedsGlobal=true/);
 });
+
+test('4x visual audit keeps selected quality and names screenshot files uniquely',()=>{
+ const audit=fs.readFileSync(path.join(root,'scripts/rendering-step16a-audit.mjs'),'utf8');
+ assert.match(audit,/async function captureStep16bVisual\(c,run,o,quality\)/);
+ assert.match(audit,/setControls\(c,quality,false\)/);
+ assert.match(audit,/join\(dir,quality\+'-'\+stage\+'\.png'\)/);
+ assert.match(audit,/if\(o\.visual&&\['4','auto'\]\.includes\(quality\)\)/);
+ assert.doesNotMatch(audit,/setControls\(c,'auto',false\)/);
+});
