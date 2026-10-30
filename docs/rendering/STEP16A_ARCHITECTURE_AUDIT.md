@@ -76,3 +76,36 @@ Nur nach bewiesener 16B-Wirkung: mindestens **drei** Windows-Benchmarkwiederholu
 vergleichbarem Qualitätsprofil, Cold und Warm separat, 8/8 Readiness-Gates,
 p95 und Mainthreadzeit, Ground-Fallbacks, tatsächliche Cache-Hits, Bild-/GPU-Speicher
 sowie Ocean-/Fog-/Küsten-Screenshots. Ohne diese Daten bleibt Schritt 16 offen.
+
+## 30.10.2026 – Reparatur des realen 16A-Laufs
+
+Der erste Windows-Lauf zeigte: native 16A-Tests 8/8 und Readiness-Tests 6/6,
+aber ein alter Step16-Ground-Reuse-Regex-Test 13/14; vier reale Warm-Tests
+wurden als SKIPPED protokolliert. Die synthetischen Kontrollläufe waren
+gültig (Pan p95 0,86 ms; Zoom p95 0,66 ms).
+
+**Nachgewiesener Testfehler:** WorldTiles liefert `progress.exact` als
+Anzahl exakt dargestellter Kacheln, nicht als Bruchteil. Das 16A-Gate
+verlangte fälschlich `exact===1` und lehnte dadurch eine vollständig
+bereite Ansicht mit beispielsweise 16 exakten Tiles ab. Korrigiert auf
+`exact>=1`, ergänzt um `fallback===0`, keine fehlenden/vorläufigen
+Tiles, keine Retry-Endzustände und volle Coverage.
+
+**Weiterer reiner Testfehler:** Der Ground-Reuse-Test suchte nach
+`const semanticKey=JSON.stringify`, obwohl die zuvor korrekt extrahierte
+Hilfsfunktion `tileSemanticSignature()` verwendet wird. Die Regression
+prüft nun Funktion, Aufruf und vorbereiteten Revisionszustand.
+
+**Fehlermodus verbessert:** Kann der echte Renderer tatsächlich nicht
+stabil READY werden, zeichnet 16A jetzt trotzdem einen als
+`cold-diagnostic` gekennzeichneten Pan-/Zoom-Probelauf mit rAF- und
+CPU-Messwerten, Tile-/Asset-Ereignissen, konkreten Source-Reasons,
+ausstehenden Assets und den ersten betroffenen Tile-IDs auf.
+Diese Diagnose ist explizit KEIN gültiger Warm-Performancebeleg.
+Ergebnis-JSON und README benennen die Blockierungsgründe.
+
+Die neuen/revidierten neun Audit-Tests bestanden im isolierten V8-Lauf.
+Die Windows-Native-Node-Suite und Chromium-Neumessung stehen nach diesem
+Commit erneut aus. Im lokalen bereits ausgecheckten Branch nach `git fetch`
+unbedingt `git pull --ff-only origin audit/step16a-render-pipeline-20261029`
+ausführen; `git switch` allein aktualisiert eine bestehende Branch-Kopie nicht.
