@@ -78,5 +78,5 @@ test('production callback performs localized invalidation or global fallback, no
  assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
  assert.match(app,/lastGroundMaterialPaths=new Map\(worldCells\.map/);
  assert.match(app,/lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true/);
- assert.match(app,/groundAssetNeedsGlobal=false;\s*if\(spriteAssetBatchDirty\)/)===false;
+ assert.match(app,/pendingGroundCells\.clear\(\);pendingGroundPaths\.clear\(\)/);
 });
