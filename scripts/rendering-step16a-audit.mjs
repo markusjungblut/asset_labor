@@ -86,7 +86,7 @@ function buildDecision(run){
  if(!clean.length)reasons.push('No valid real warm run; cannot claim FPS improvement or choose rewrite');
  if(run.real.some(p=>p.start?.imagePool?.protectedBytes>p.start?.imagePool?.limitBytes))
   reasons.push('Protected decoded image bytes alone exceed the image budget');
- if(run.real.some(p=>!p.valid))
+ if(warm.some(p=>!p.valid))
   reasons.push('Actual real camera still allocates/rebuilds or fails readiness');
  const pass=Boolean(synthetic?.valid&&warm.length>0&&clean.length===warm.length);
  return {status:pass?'REAL_WARM_MEASURED':'INSUFFICIENT_REAL_WARM_EVIDENCE',
@@ -368,6 +368,17 @@ async function main(){
     ((x.end||x.stats)?.imagePool?.protectedBytes/1048576||0).toFixed(1)+
     ' / '+(((x.end||x.stats)?.imagePool?.limitBytes||0)/1048576).toFixed(1)
    ].join(' | ')+' |'),
+   '','## Warum reale Kameraphasen nicht warm sind','',
+   ...run.real.filter(x=>x.kind?.startsWith('warm-')&&!x.valid).flatMap(x=>[
+    '- '+x.quality+'/'+x.kind+': '+x.classification+
+     '; Gate-Gründe: '+(x.invalidReasons||[]).join('; ')+
+     '; nicht bereite Editor-Cores: '+(x.blockers?.sources?.unreadyEditorCores??'–')+
+     '; Bilddateien noch ausstehend: '+(x.blockers?.sources?.waitingAssets??'–'),
+    '  - Quellursachen: '+JSON.stringify(x.blockers?.sources?.reasons||{}),
+    '  - Tile-Ereignisse: '+JSON.stringify(x.trace?.types||{})+
+     '; CPU-Taskzeit: '+(x.cpuTaskSeconds??'–')+' s'+
+     '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
+   ]),
    '','## Entscheidung','',run.decision.recommendation,
    ...run.decision.blockers.map(x=>'- '+x),
    '','Nicht READY/ohne quiet gate gemessene Framezeiten sind diagnostisch, kein FPS-Abnahmebeleg.',
