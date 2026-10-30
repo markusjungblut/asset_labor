@@ -407,6 +407,18 @@ window.VedrasWorldTiles=(()=>{
     const item=queue.values().next().value;
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
+    // Terrain workers can replace a queued source while another tile bakes.
+    // Avoid a known-null bake and retain fog until a later request retries.
+    if(typeof canStartSource==='function'&&
+       canStartSource(item.tile,item.level)===false){
+     if(!blockedSourceTrace.has(item.key)){
+      blockedSourceTrace.add(item.key);
+      trace('tile.source-deferred',{key:item.key,id:item.tile.id,
+       level:item.level,epoch,reason:'source-became-unprepared-in-queue'});
+     }
+     continue;
+    }
+    blockedSourceTrace.delete(item.key);
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
     const token=++serial,job={controller,epoch:item.epoch,token,
      sourceVersion:typeof sourceRevision==='function'?
