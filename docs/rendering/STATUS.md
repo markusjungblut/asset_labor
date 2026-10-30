@@ -740,3 +740,35 @@ Audit protokolliert selektiv/global-Entscheidungen
 berührten Hexfelder/Kacheln. Native Node-/Chrome-
 Messung und visuelle 16C-Abnahme ausstehend.
 Schritt 17 weiter gesperrt.
+
+## 30.10.2026 – Schritt 16B: Wassertextur-/Flussquellen-Abhängigkeiten
+
+Erweiterung auf Draft #79 (base #78): Selektive Wasser-
+Material-Invalidierung nur bei unveränderter
+Land-/Wasserklassifikation aller 397 Hexfelder.
+Die Pixelrevision der Mündungsquelltextur betrifft
+den **gesamten** zugehörigen Flusslauf, dessen
+Quell- und Nachbar-Kacheln einbezogen werden.
+`riverRasterCache` bezieht neu `water.imageRevision`
+in seine Signatur ein; gleich große neu dekodierte
+Bilder können nicht mehr den alten Flussraster
+weiterverwenden.
+
+Sicherheitsregeln: Ein Klassifikationswechsel,
+unbekannter oder fehlerhafter Flussverlauf, fehlende
+Material-/Klassen-Basis, Relief, Wald-Overlays
+oder separate Uferkanten-PNGs verbleiben auf dem
+bisherigen globalen Invalidation-Pfad. Die vorhandenen
+Fog-/Export- und Kachel-Readiness-Gates bleiben.
+
+20/20 gezielte Dependency-Tests bestehen im
+isolierten V8. Native Windows-/Chromium-Messung,
+4×-Warm-Gate und visuelle Küsten-/Flussabnahme
+stehen noch aus. **Keine 4×-FPS-Verbesserung
+behauptet.** Schritt 16C/17 weiter gesperrt.
+
+
+Der optionale Step16A-Audit `--visual --qualities 4` speichert
+fünf 4×-Prüfbilder (Zoom und Ocean/Fog) mit Qualitätspräfix.
+Damit kann die spätere 16C-Sichtprüfung auf derselben Qualitätsstufe
+wie der Hardwaretest erfolgen. Native Tests und 4×-Visuals ausstehend.

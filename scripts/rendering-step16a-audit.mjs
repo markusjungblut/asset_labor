@@ -238,18 +238,18 @@ function readinessBlockers(){
    evicted:p.evicted,ready:p.ready}};
 }
 // Optional viewport-only screenshots; pixel hashes are not visual acceptance.
-async function captureStep16bVisual(c,run,o){
+async function captureStep16bVisual(c,run,o,quality){
  const dir=join(o.out,'images');await mkdir(dir,{recursive:true});
  async function shot(stage,settled=null){
   const state=await c.eval('(()=>{const v=window.VedrasAssetLabor;'+
    'return {zoom:v.state.zoom,panX:v.state.panX,panY:v.state.panY,'+
    'scenery:v.sceneryStats(),world:v.worldTileStats(),'+
    'ocean:v.cameraDiagnostics({q:-4,r:5})};})()');
-  const img=await screenshot(c,join(dir,stage+'.png'));
-  run.visual.push({stage,file:'images/'+img.file,sha256:img.sha256,
+  const img=await screenshot(c,join(dir,quality+'-'+stage+'.png'));
+  run.visual.push({quality,stage,file:'images/'+img.file,sha256:img.sha256,
    ready:settled?.ready??null,readinessReasons:settled?.reasons||[],...state});
  }
- await setControls(c,'auto',false);
+ await setControls(c,quality,false);
  await setCamera(c,{q:0,r:0},.70);
  const baseline=await settle(c,o.settleMs);
  await sleep(500);
@@ -270,7 +270,7 @@ async function captureStep16bVisual(c,run,o){
   'return true;})()');
  await sleep(600);
  await shot('05-fog-enabled');
- await setControls(c,'auto',false);
+ await setControls(c,quality,false);
 }
 async function main(){
  const o=args(process.argv.slice(2));
@@ -373,8 +373,8 @@ async function main(){
      ', tile events '+trace.totalEvents);
    }
     await c.eval('window.VedrasAssetLabor.enableStep15Trace(false)');
-    if(o.visual&&quality==='auto'){
-     try{await captureStep16bVisual(c,run,o);}
+    if(o.visual&&['4','auto'].includes(quality)){
+     try{await captureStep16bVisual(c,run,o,quality);}
      catch(error){run.warnings.push('Visual capture failed: '+String(error?.stack||error));}
     }
    }catch(error){

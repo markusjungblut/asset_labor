@@ -9,14 +9,20 @@ const begin=app.indexOf('function selectedGroundAssetChanges('),
 assert.ok(begin>=0&&end>begin,'Production dependency functions must exist');
 const production=app.slice(begin,end);
 function harness({cells=[{q:0,r:0},{q:1,r:0}],before=['a.png','b.png'],
- after=before,assetType='grassland',relief=false,hasBaseline=true}={}){
+ after=before,assetType='grassland',relief=false,hasBaseline=true,
+ wetBefore=[],wetAfter=wetBefore,riverPaths=[],river=false}={}){
  const choices=new Map(cells.map((c,i)=>[c.q+','+c.r,after[i]]));
  const original=hasBaseline?new Map(cells.map((c,i)=>[c.q+','+c.r,before[i]])):null;
+ const originalWet=hasBaseline?new Map(cells.map((c,i)=>[
+  c.q+','+c.r,wetBefore.includes(c.q+','+c.r)])):null;
+ const wetNow=new Set(wetAfter);
  const code=[
-  'let lastGroundMaterialPaths=original,terrainAssetGroups=new Map();',
-  'const worldCells=cells,state={relief:{enabled:relief}},',
+  'let lastGroundMaterialPaths=original,lastGroundWetCells=originalWet,',
+  'terrainAssetGroups=new Map();',
+  'const worldCells=cells,state={relief:{enabled:relief},river,riverPaths},',
   'typeOfAsset=a=>a.type,',
   "isWaterTerrain=t=>t==='ocean'||t==='coastal_water',",
+  'typeOfCell=c=>wetNow.has(c.q+","+c.r)?"coastal_water":"grassland",',
   'key=(q,r)=>q+","+r,',
   'imageForBiome=c=>{const p=choices.get(key(c.q,c.r));return p?{path:p}:null},',
   "baseImage=()=>({path:'fallback.png'}),",
@@ -25,8 +31,9 @@ function harness({cells=[{q:0,r:0},{q:1,r:0}],before=['a.png','b.png'],
   'return {evaluate:selectedGroundAssetChanges,tiles:changedGroundTileIds,',
   'selection:()=>lastGroundMaterialPaths,groups:()=>terrainAssetGroups};'
  ].join('\n');
- return new Function('original','cells','choices','relief','window',code)(
-  original,cells,choices,relief,window);
+ return new Function('original','originalWet','cells','choices','wetNow',
+  'relief','river','riverPaths','window',code)(
+  original,originalWet,cells,choices,wetNow,relief,river,riverPaths,window);
 }
 const sorted=set=>[...set].sort();
 test('changed pixels of a previously selected material invalidate its own cell',()=>{
@@ -50,10 +57,10 @@ test('multiple decode callbacks compare against previous planned selection',()=>
  assert.deepEqual(sorted(h.evaluate({path:'new.png',type:'grassland',terrainCheck:{ok:true}})),['0,0']);
  assert.deepEqual(sorted(h.evaluate({path:'new.png',type:'grassland',terrainCheck:{ok:true}})),['0,0']);
 });
-test('forest floor and water remain conservatively global',()=>{
+test('forest floor remains conservatively global; stable water is local',()=>{
  const h=harness();
  assert.equal(h.evaluate({path:'x.png',type:'forest_floor',terrainCheck:{ok:true}}),null);
- assert.equal(h.evaluate({path:'y.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+ assert.deepEqual(sorted(h.evaluate({path:'a.png',type:'coastal_water',terrainCheck:{ok:true}})),['0,0']);
 });
 test('relief, invalid graphics and unknown initial selection remain global',()=>{
  assert.equal(harness({relief:true}).evaluate({path:'a.png',type:'grassland',terrainCheck:{ok:true}}),null);
@@ -77,7 +84,7 @@ test('production callback performs localized invalidation or global fallback, no
  assert.match(app,/if\(groundIds===null\)worldTiles\?\.invalidate\('image-ready-ground'\);\s*else worldTiles\?\.invalidateTiles\(groundIds,'image-ready-ground-selective'\)/);
  assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
  assert.match(app,/lastGroundMaterialPaths=new Map\(worldCells\.map/);
- assert.match(app,/lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true/);
+ assert.match(app,/lastGroundMaterialPaths=null;lastGroundWetCells=null;\s*groundAssetNeedsGlobal=true/);
  assert.match(app,/pendingGroundCells\.clear\(\);pendingGroundPaths\.clear\(\)/);
 });
 
@@ -137,4 +144,65 @@ test('full biome lookup also remains read-only through baseBiomeOf and typeOfCel
  assert.equal(calls,0,'no indirect imagePool.ensure calls');
  assert.equal(choose(c),valid);
  assert.ok(calls>0,'ordinary draw still primes its assets');
+});
+
+
+test('water pixel upgrade keeps local cores if land/water classes stay stable',()=>{
+ const h=harness({before:['sea.png','land.png'],wetBefore:['0,0']});
+ const changed=h.evaluate({path:'sea.png',type:'coastal_water',terrainCheck:{ok:true}});
+ assert.deepEqual(sorted(changed),['0,0']);
+});
+test('newly valid water topology change forces global invalidation',()=>{
+ const h=harness({before:['land.png','land.png'],after:['sea.png','land.png'],
+  wetBefore:[],wetAfter:['0,0']});
+ assert.equal(h.evaluate({path:'sea.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+});
+test('water type becomes land forces global invalidation even with same image path',()=>{
+ const h=harness({before:['sea.png','land.png'],wetBefore:['0,0'],wetAfter:[]});
+ assert.equal(h.evaluate({path:'sea.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+});
+test('water used at a river mouth invalidates the entire river course',()=>{
+ const cells=Array.from({length:12},(_,q)=>({q,r:0}));
+ const before=cells.map((_,i)=>i===11?'water.png':'land.png');
+ const h=harness({cells,before,wetBefore:['11,0'],river:true,
+  riverPaths:[{hexes:cells.map(c=>[c.q,c.r])}]});
+ const changed=h.evaluate({path:'water.png',type:'coastal_water',terrainCheck:{ok:true}});
+ assert.deepEqual(sorted(changed),sorted(new Set(cells.map(c=>c.q+',0'))));
+ const dirty=h.tiles(changed),far=h.tiles(new Set(['11,0']));
+ assert.ok(dirty.size>=far.size);
+ assert.ok([...dirty].some(id=>!far.has(id)),'source water also dirties distant river segments');
+});
+test('unrelated water source keeps river cores untouched',()=>{
+ const cells=Array.from({length:12},(_,q)=>({q,r:0}));
+ const before=cells.map((_,i)=>i===11?'water.png':i===0?'other.png':'land.png');
+ const h=harness({cells,before,wetBefore:['11,0'],river:true,
+  riverPaths:[{hexes:cells.map(c=>[c.q,c.r])}]});
+ assert.deepEqual(sorted(h.evaluate({path:'other.png',type:'coastal_water',terrainCheck:{ok:true}})),['0,0']);
+});
+test('unknown/malformed river source path retains safe global fallback',()=>{
+ const h=harness({river:true,riverPaths:[{hexes:[[99,99]]}]});
+ assert.equal(h.evaluate({path:'a.png',type:'grassland',terrainCheck:{ok:true}}),null);
+});
+test('river raster key includes image revision so same-size decoded pixels refresh',()=>{
+ assert.match(app,/width,asset:water\?\.path,mtime:water\?\.mtime,\s*imageRevision:water\?\.imageRevision\|\|0,/);
+});
+
+
+test('non-array river route state cannot authorize selective water invalidation',()=>{
+ const h=harness({river:true,riverPaths:{not:'normalized'}});
+ assert.equal(h.evaluate({path:'a.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
+});
+test('separate shoreline PNGs retain global fallback in the production onReady batch',()=>{
+ assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
+ assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
+ assert.match(app,/if\(changed===null\)groundAssetNeedsGlobal=true/);
+});
+
+test('4x visual audit keeps selected quality and names screenshot files uniquely',()=>{
+ const audit=fs.readFileSync(path.join(root,'scripts/rendering-step16a-audit.mjs'),'utf8');
+ assert.match(audit,/async function captureStep16bVisual\(c,run,o,quality\)/);
+ assert.match(audit,/setControls\(c,quality,false\)/);
+ assert.match(audit,/join\(dir,quality\+'-'\+stage\+'\.png'\)/);
+ assert.match(audit,/if\(o\.visual&&\['4','auto'\]\.includes\(quality\)\)/);
+ assert.doesNotMatch(audit,/setControls\(c,'auto',false\)/);
 });

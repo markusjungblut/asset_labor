@@ -700,28 +700,57 @@ let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
 // Last terrain-build material selection is the local-invalidation baseline.
 // If it is missing or an image has nonlocal consumers, keep global reset.
-let lastGroundMaterialPaths=null,groundAssetNeedsGlobal=false;
+let lastGroundMaterialPaths=null,lastGroundWetCells=null,
+ groundAssetNeedsGlobal=false;
 const pendingGroundCells=new Set(),pendingGroundPaths=new Set();
 function selectedGroundAssetChanges(asset){
- if(!lastGroundMaterialPaths||lastGroundMaterialPaths.size!==worldCells.length||
+ if(!lastGroundMaterialPaths||!lastGroundWetCells||
+    lastGroundMaterialPaths.size!==worldCells.length||
+    lastGroundWetCells.size!==worldCells.length||
     !asset?.path||!asset.terrainCheck?.ok)return null;
  const type=typeOfAsset(asset);
- // Forest-floor may be used in vegetation, and water feeds river rasters.
- if(!type||type==='forest_floor'||isWaterTerrain(type)||
-    state.relief?.enabled)return null;
+ // Forest-floor overlays and relief can consume non-local sources.
+ if(!type||type==='forest_floor'||state.relief?.enabled)return null;
  terrainAssetGroups=null;
- const fallback=baseImage(),current=new Map(),changed=new Set();
+ const fallback=baseImage(),current=new Map(),wet=new Map(),changed=new Set();
  for(const cell of worldCells){
   const id=key(cell.q,cell.r);
-  if(!lastGroundMaterialPaths.has(id))return null;
+  if(!lastGroundMaterialPaths.has(id)||!lastGroundWetCells.has(id))
+   return null;
   const before=lastGroundMaterialPaths.get(id);
   const after=(imageForBiome(cell,false)||fallback)?.path||null;
-  current.set(id,after);
-  // An added material variant can reindex every cell of its biome.
+  const isWet=isWaterTerrain(typeOfCell(cell,false));
+  // Coast masks, river topology and bridges must not change under a
+  // selective image invalidation. A wet-type flip forces global fallback.
+  if(lastGroundWetCells.get(id)!==isWet)return null;
+  current.set(id,after);wet.set(id,isWet);
   if(before!==after||before===asset.path||after===asset.path)
    changed.add(id);
  }
- lastGroundMaterialPaths=current;
+ // The river uses the terminal hex's selected PNG across its full course.
+ // Include every route hex, not only the cell containing the source PNG.
+ if(state.river&&!Array.isArray(state.riverPaths))return null;
+ if(state.river&&state.riverPaths.length){
+  for(const route of state.riverPaths){
+   if(!Array.isArray(route?.hexes)||!route.hexes.length)return null;
+   const last=route.hexes.at(-1);
+   if(!Array.isArray(last)||last.length!==2||
+      !Number.isInteger(last[0])||!Number.isInteger(last[1]))return null;
+   const mouth=key(last[0],last[1]);
+   if(!current.has(mouth))return null;
+   if(lastGroundMaterialPaths.get(mouth)!==asset.path&&
+      current.get(mouth)!==asset.path&&!changed.has(mouth))continue;
+   for(const pair of route.hexes){
+    if(!Array.isArray(pair)||pair.length!==2||
+       !Number.isInteger(pair[0])||!Number.isInteger(pair[1]))
+     return null;
+    const segment=key(pair[0],pair[1]);
+    if(!current.has(segment))return null;
+    changed.add(segment);
+   }
+  }
+ }
+ lastGroundMaterialPaths=current;lastGroundWetCells=wet;
  return changed;
 }
 function changedGroundTileIds(changed){
@@ -1128,7 +1157,8 @@ let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all',dirtyWorldTiles=null){
- lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true;
+ lastGroundMaterialPaths=null;lastGroundWetCells=null;
+ groundAssetNeedsGlobal=true;
  // An authoritative terrain change invalidates the old ground source.
  // Local edits are still selective in WorldTiles; ground cache keys include
  // scene revisions and therefore never serve stale adjacent rasters.
@@ -1443,6 +1473,8 @@ function drawGroundImpl(){
   const id=key(cell.q,cell.r);
   return [id,(selectedMap.get(id)||fallback)?.path||null];
  }));
+ lastGroundWetCells=new Map(worldCells.map(cell=>
+  [key(cell.q,cell.r),isWaterTerrain(typeOfCell(cell,false))]));
  const groundPrepMs=performance.now()-groundPrepStart;
  const graphMissing=terrainRasterCache.signature!==signature||!terrainRasterCache.graph;
  if(graphMissing){
@@ -1725,6 +1757,7 @@ function drawRoadsImpl(){
     const water=cell?imageForBiome(cell):null;
     const signature=JSON.stringify({hexes:route.hexes,corner:route.corner,
      width,asset:water?.path,mtime:water?.mtime,
+     imageRevision:water?.imageRevision||0,
      img:water?.img?.naturalWidth||0,relief:state.relief,mask:'original-water-sdf-v5'});
     return {route,water,signature};
    });
