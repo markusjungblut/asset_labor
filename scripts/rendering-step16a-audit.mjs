@@ -61,6 +61,14 @@ function summarizeTrace(trace){
  const assetReady=all.filter(e=>e.type==='asset.invalidate');
  const groundAssets=assetReady.filter(e=>e.detail?.reason==='image-ready-ground');
  const groundPaths=[...new Set(groundAssets.map(e=>e.detail?.path).filter(Boolean))];
+ // A byte-identical reload is I/O, not a new ground content revision.
+ const poolReady=all.filter(e=>e.type==='asset.pool-ready');
+ const poolEvicted=all.filter(e=>e.type==='asset.pool-evict');
+ const poolKinds=poolReady.reduce((out,e)=>{
+  const kind=e.detail?.kind||'unknown';out[kind]=(out[kind]||0)+1;
+  return out;
+ },{});
+ const reuseChanges=all.filter(e=>e.type==='ground.reuse-invalidate');
  const groundDependencies=all.filter(e=>e.type==='ground.asset-dependency');
  const groundDependencyModes=groundDependencies.reduce((out,e)=>{
   const mode=e.detail?.mode||'unknown';out[mode]=(out[mode]||0)+1;
@@ -73,6 +81,11 @@ function summarizeTrace(trace){
   attributionComplete:(trace?.dropped||0)===0,
   groundRevisionDetails:revisions.slice(0,60),
   groundAssetEventCount:groundAssets.length,
+  poolReadyKinds:poolKinds,poolReadyCount:poolReady.length,
+  poolEvictionCount:poolEvicted.length,
+  poolReadyEvents:poolReady.slice(0,60),
+  poolEvictionEvents:poolEvicted.slice(0,60),
+  groundReuseChanges:reuseChanges.slice(0,30),
   groundAssetDependencyModes:groundDependencyModes,
   groundAssetDependencies:groundDependencies.slice(0,30),
   groundAssetPaths:groundPaths.slice(0,60),
@@ -93,7 +106,8 @@ function simplify(snapshot){
   imagePool:{decodedBytes:p.decodedBytes,limitBytes:p.limitBytes,
    protectedBytes:p.protectedBytes,protectedAssets:p.protectedAssets,
    resident:p.resident,queued:p.queued,active:p.active,evicted:p.evicted,
-   ready:p.ready,overLimitBytes:p.overLimitBytes,
+   ready:p.ready,identicalRedecodes:p.identicalRedecodes,
+   sourceChanges:p.sourceChanges,overLimitBytes:p.overLimitBytes,
    previewSpritePx:p.previewSpritePx,previewTerrainPx:p.previewTerrainPx}};
 }
 function cameraCondition(s){
@@ -217,6 +231,15 @@ function readinessBlockers(){
  const diag=v.tileDiagnostics({limit:48,includeReadiness:true});
  const waiting=(diag.artwork||[]).filter(item=>!item.ready);
  const reasons={},paths=new Set();
+ // Artwork includes 96-unit editor overscan. Distinguish actual requested
+ // WorldTiles without relaxing the full READY/quiet validation.
+ const requestedIds=new Set((diag.world?.tiles||[]).map(t=>t.id));
+ const requestedWaiting=waiting.filter(t=>requestedIds.has(t.id));
+ const requestReasons={};
+ for(const t of requestedWaiting){
+  const reason=String(t.reason||'unknown');
+  requestReasons[reason]=(requestReasons[reason]||0)+1;
+ }
  for(const t of waiting){
   const reason=String(t.reason||'unknown');
   reasons[reason]=(reasons[reason]||0)+1;
@@ -228,6 +251,9 @@ function readinessBlockers(){
    pending:w.pending,progress:w.progress,coverage:w.coverage,
    retryExhausted:w.retryExhausted},
   sources:{unreadyEditorCores:waiting.length,reasons,
+   unreadyRequestedWorldCores:requestedWaiting.length,
+   unreadyOverscanCores:waiting.length-requestedWaiting.length,
+   requestedReasons:requestReasons,
    waitingAssets:paths.size,firstWaitingAssets:[...paths].slice(0,15),
    firstUnready:waiting.slice(0,12).map(t=>({id:t.id,
     reason:t.reason,terrainVersion:t.terrainVersion,
@@ -439,14 +465,21 @@ async function main(){
     '- '+x.quality+'/'+x.kind+': '+x.classification+
      '; Gate-Gründe: '+(x.invalidReasons||[]).join('; ')+
      '; nicht bereite Editor-Cores: '+(x.blockers?.sources?.unreadyEditorCores??'–')+
+     '; angefragte unbereite World-Cores: '+
+      (x.blockers?.sources?.unreadyRequestedWorldCores??'–')+
+     '; unbereite Overscan-Cores: '+
+      (x.blockers?.sources?.unreadyOverscanCores??'–')+
      '; Bilddateien noch ausstehend: '+(x.blockers?.sources?.waitingAssets??'–'),
     '  - Quellursachen: '+JSON.stringify(x.blockers?.sources?.reasons||{}),
     '  - Tile-Ereignisse: '+JSON.stringify(x.trace?.types||{})+
      '; CPU-Taskzeit: '+(x.cpuTaskSeconds??'–')+' s'+
      '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
    ]),
-   '','## Globale Ground-Invalidierungen nach konkreter Bilddatei','',
+   '','## Ground-Asset-Invalidierungen nach konkreter Bilddatei','',
    ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
+     '- '+p.kind+': '+(p.trace?.poolReadyCount||0)+
+      ' Pool-Decodes ('+JSON.stringify(p.trace?.poolReadyKinds||{})+
+      '), '+(p.trace?.poolEvictionCount||0)+' Pool-Evictions',
      '- '+p.kind+': '+(p.trace?.groundAssetEventCount||0)+
        ' image-ready-ground-Ereignisse; Quellen: '+
        (p.trace?.groundAssetPaths||[]).join(', '),
