@@ -57,7 +57,7 @@ test('legacy source hosts without gate continue as before',async()=>{
 });
 test('only local editor enables the gate; source-readiness and fog checks remain',()=>{
  const app=read('app.js');
- assert.match(app,/canStartSource:tile=>!!currentTerrainCore\(tile\)/);
+ assert.match(app,/canStartSource:tile=>tileArtworkStatus\(tile,null,true\)/);
  assert.match(app,/source:bakeWorldTile,requireScenery:true/);
  assert.match(app,/const snapshotReady=tileArtworkReady\(t\)/);
  assert.match(app,/if\(!snapshotReady&&!tileArtworkStatus\(t,null,true\)\)/);

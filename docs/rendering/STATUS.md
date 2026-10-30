@@ -837,3 +837,45 @@ noch keine native Windows/Chrome-Abnahme des Fixes.
 Küstenfoto ist bei ZIP8 `READY=false` (`missing:2`);
 visuelle Uferlinie/Tileseams bleiben offen.
 Schritt 16C und 17 weiterhin gesperrt, Draft nicht mergen.
+
+
+## 30.10.2026 – ZIP9: Ufer-Reset entlastet, Sprite-Start weiter verfrüht
+
+Der Windows-Test des Ufer-Seitenstempel-Patches (#81)
+hat in den realen **Pan- und Zoomphasen jeweils null**
+`image-ready-ground`-Invalidierungen und null
+Tile-Invalidierungen. Pan 1 Bake, p95 16,80 ms und
+End-Coverage **24,4 %**; Zoom 3 Bakes,
+p95 33,36 ms, End-Coverage 100 %.
+**Beide nicht warm-valide** (Pan initial
+0 % Coverage und 16 unbereite Terrain-Cores,
+Zoom nicht quiet und drei Bakes).
+Nachfolgende 4×-Visual-Settled-Aufnahme
+hat erneut nur 25 % Coverage, Ozean-Aufnahme
+ebenfalls nicht READY; Fog-Bild zeigt
+weiterhin vollständige Verdeckung unbekannter Bereiche.
+
+Während der Vorbereitung: 93 Ground- und
+264 Scenery-Image-Ready-Events, zwei globale
+Ground-Invalidierungen, **24 vergebliche**
+`tile.bake`-Versuche mit
+`sprite-source-not-ready` sowie
+zwei `fallback-ground-changed`.
+Ein ImagePool-Überlauf und mehrere Evictions
+bleiben beobachtbar; kein belegter FPS-Gewinn.
+
+Neuer gestapelter Draft #82 lässt den Source-Gate
+das bereits vorhandene vollständige
+`tileArtworkStatus(tile,null,true)` nutzen:
+Terrain, erforderliche Küste **und** authored
+Sprite-Bilder. Fehlende Bilder werden mit
+`imagePool.ensure(asset,11)` priorisiert,
+bevor Source-Queue/Bake/Retry verbraucht werden.
+**50/50 isolierte V8-Tests bestanden**,
+native Node-/Chrome-Abnahme ausstehend.
+
+Nächste Messung bei `--settle-ms 30000`,
+um die verlängerte Initialvorbereitung zu
+unterscheiden von echter Tile-Source-Starvation.
+Die Wasser-Tile-Linien und 16C-Sichtprüfung
+bleiben offen. **Nicht mergen; Schritt 17 gesperrt.**

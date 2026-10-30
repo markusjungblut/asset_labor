@@ -73,7 +73,7 @@ test('renderer uses stable shoreline geometry family, revisioned per-chunk stamp
  assert.match(app,/const shoreGeometryKey=JSON\.stringify\(\{cells:classes/);
 });
 test('editor source start gate also requires prepared coastal art',()=>{
- assert.match(app,/canStartSource:tile=>!!currentTerrainCore\(tile\)&&\s*shorelineTileStatus\(tile,true\)/);
+ assert.match(app,/canStartSource:tile=>tileArtworkStatus\(tile,null,true\)/);
  assert.match(app,/if\(!ready\)\{\s*if\(details\)details\.shorelineReason='shoreline-chunk-not-ready';/);
 });
 test('production image-ready dispatcher uses direction-aware dependency and global fallback',()=>{

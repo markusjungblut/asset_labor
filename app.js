@@ -30,8 +30,10 @@ const worldTiles=window.VedrasWorldTiles?.create({
  concurrency:1,source:bakeWorldTile,requireScenery:true,
  // Work already known to lack a prepared terrain core must not occupy the
  // sole source slot; the terrain redraw callback requests another frame.
- canStartSource:tile=>!!currentTerrainCore(tile)&&
-   shorelineTileStatus(tile,true),
+ // Match the source's actual completeness contract: terrain, coast and
+  // authored sprites must be ready before occupying the single bake slot.
+  // With details=null, tileArtworkStatus also prioritizes missing images.
+  canStartSource:tile=>tileArtworkStatus(tile,null,true),
  sourceRevision:tile=>groundSourceRevision(tile),
  lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
