@@ -1,6 +1,6 @@
 # Rendering-Status
 
-> **Schritt 16B – Bildpool-Lebenszyklen (Draft auf #84, 2026-10-30):** Identische Bild-Neudekodierungen nach Eviction behalten ihre semantische Revision; selektive Ground-Reuse-Invalidierung und neue Audit-Attribution implementiert. **Native Node-/Windows-Chromium-Tests offen; keine Warm-/FPS-/Visuell-Abnahme.** Siehe [STEP16B_STABLE_IMAGE_CONTENT_REUSE.md](STEP16B_STABLE_IMAGE_CONTENT_REUSE.md). Schritt 16C/17 gesperrt.
+> **Schritt 16B – Bildpool-Lebenszyklen (Draft auf #84, 2026-10-30):** Identische Bild-Neudekodierungen nach Eviction behalten ihre semantische Revision; selektive Ground-Reuse-Invalidierung und neue Audit-Attribution implementiert. **Windows-Node: initial 50/58, acht Harness-/Cross-Realm-Fehler eingegrenzt und korrigiert; erneuter nativer Lauf offen.** Keine Warm-/FPS-/Visuell-Abnahme. Siehe [STEP16B_STABLE_IMAGE_CONTENT_REUSE.md](STEP16B_STABLE_IMAGE_CONTENT_REUSE.md). Schritt 16C/17 gesperrt.
 
 > **Schritt 15:** Reale 397-Hex-Windows-Diagnose wurde ausgewertet (4×-Pan: 12 Terrain-Fallbacks, 1128 ms; Auto-Pan: 25, 3014 ms; 4×-Zoom: 0 bei bereits bereiten Tiles). [Messanleitung](STEP15_TILE_CAMERA_DIAGNOSTICS.md). **Schritt 16:** [Ground-Reuse/Revisionstrennung](STEP16_GROUND_REUSE.md) implementiert, **Performance-/Bildabnahme auf Windows offen**. Schritt 17 noch nicht freigegeben.
 
