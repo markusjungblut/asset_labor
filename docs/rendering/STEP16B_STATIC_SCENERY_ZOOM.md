@@ -71,3 +71,21 @@ Nach Node-Tests `START_STEP16A_WINDOWS.cmd --qualities 4,auto
 Schritt 17 bleibt gesperrt. Wenn die Zähler nicht deutlich besser
 werden, diesen isolierten 16B-Eingriff zurücknehmen, statt
 weitere Renderpfade blind anzupassen.
+
+## Optionale visuelle Zoom-Prüfung (30.10.2026)
+
+Mit dem Flag `--visual` erzeugt Step16A fünf **ausschließlich auf den Kartenviewport
+beschränkte** PNGs: vor Zoom (70 %), während Zoom (77 %), nach Idle-Erneuerung,
+Ozean/Küste bei (-4,5), und Fog-Anzeige. Die Dateien sowie Status/Hash im
+JSON werden in die ZIP aufgenommen. Bild-Hashes sind **keine automatische
+visuelle Abnahme**; besonders zu prüfen sind abgeschnittene Waldkronen,
+Falschpositionen von Schatten, temporäre Unschärfe, Küsten/Meer und Fog.
+Ausgabeverzeichnis und bestehende Produktionseinstellungen bleiben unverändert.
+
+```powershell
+.\START_STEP16A_WINDOWS.cmd --qualities auto --frames 90 --settle-ms 12000 --visual
+```
+
+Der Screenshot-Zusatz ist ausdrücklich optional und wird erst nach Abschluss
+der eigentlichen Zeitmessung ausgeführt; die gemessenen Performancephasen
+werden dadurch nicht kontaminiert.
