@@ -209,6 +209,7 @@ async function settle(cdp,timeoutMs=9000,{edgeSite=false}={}){
     if((w.progress?.exact??0)<1)reasons.push('no-exact-world-tiles');
     if(w.progress?.missing>0)reasons.push('missing:'+w.progress.missing);
     if(w.progress?.provisional>0)reasons.push('provisional:'+w.progress.provisional);
+     if(w.progress?.stale>0)reasons.push('stale-ground-refresh:'+w.progress.stale);
     if(w.visiblePreviews>0)reasons.push('visible-previews');
     // tileDiagnostics checks whether the *editor chunk* was painted, which
     // may legitimately remain false after the complete World-Tile has been
