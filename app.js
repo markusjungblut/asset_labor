@@ -551,7 +551,8 @@ function fastRender(){
    // Reconcile only the CURRENT LOD after selection. Each source layer has
    // its own authoritative version; scenery and units do not affect it.
    const prepared=(chunks,stableSource=false)=>new Map(
-    chunks.readyTiles(bounds,{limit:100}).map(({tile,artwork})=>[
+    chunks.readyTiles(bounds,{limit:100,sourceKeys:stableSource})
+    .map(({tile,artwork})=>[
      tile.id,stableSource?artwork.sourceRevision??artwork.version:artwork.version
     ]));
    const layers={
@@ -668,7 +669,8 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
  const versionFor=(cache,map,stableSource=false)=>{
   if(map)return map.get(t.id)??'pending';
   const artwork=cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
-   {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork;
+   {limit:12,sourceKeys:stableSource})
+   .find(entry=>entry.tile.id===t.id)?.artwork;
   if(!artwork)return 'pending';
   // Road and river work may be evicted/rebuilt with unchanged pixels.
   // Incrementing rasterVersion is a build counter, not a content revision.
