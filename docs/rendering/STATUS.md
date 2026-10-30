@@ -725,6 +725,7 @@ nur World-Tiles, deren `VedrasChunks.neighbors`
 Quellzellen berühren. Ein Bild-Upgrade bei gleichem
 Pfad bleibt invalidierend. Der Vergleich nutzt einen
 seiteneffektfreien `imageForBiome(cell,false)`-Zugriff
+(einschließlich `typeOfCell`/`baseBiomeOf`)
 ohne neue `imagePool.ensure`-Anforderungen.
 
 Wasser, Waldboden-Overlay, Relief, Shore und
@@ -733,7 +734,7 @@ Der gemischte 4×-Zoom-Batch mit 4 Wasser-PNGs
 wird daher weiterhin **global** behandelt;
 noch kein 4×-FPS-Gewinn behauptet.
 
-9/9 Regressionstests im isolierten V8 bestanden.
+10/10 Regressionstests im isolierten V8 bestanden.
 Audit protokolliert selektiv/global-Entscheidungen
 über `ground.asset-dependency` und listet die
 berührten Hexfelder/Kacheln. Native Node-/Chrome-
