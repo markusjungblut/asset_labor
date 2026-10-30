@@ -879,3 +879,40 @@ um die verlängerte Initialvorbereitung zu
 unterscheiden von echter Tile-Source-Starvation.
 Die Wasser-Tile-Linien und 16C-Sichtprüfung
 bleiben offen. **Nicht mergen; Schritt 17 gesperrt.**
+
+
+## 30.10.2026 – ZIP10: selektiver Asset-Refresh löscht alle sichtbaren Tiles
+
+Referenzszene weiterhin 397 Hex / 2631 Nature.
+Nach PR #82 sind 24 Sprite-Source-Fehlversuche auf
+0 gesunken; Vorbereitung erstmals READY (~29,8 s).
+Pan: 24 spätere Terrain-PNG-Bereitstellungen führen
+zu einer **selektiven 114-WorldTile-Invalidierung**,
+die sämtliche vier sichtbaren Tiles sofort löscht.
+End-Coverage 0 % und rAF-p95 173,6 ms
+(ungültiger Warm-Test). Zoom zeigt später
+100 % Coverage; die Bild-/Fog-Sichtprüfung
+ist teilweise READY, dünne Wasserlinien bleiben.
+
+Neuer gestapelter Draft #83:
+`world-tile-streamer.invalidateTiles` erhält
+bei reinen Asset-/Ground-Source-Revisionswechseln
+eine **vollständige alte Bitmap pro betroffenem
+sichtbarem Tile** bis zum fertigen Austausch
+(`dirty` / `stale`), statt sofort eine
+Wolkenlücke zu erzeugen. Außerhalb des Sichtbereichs,
+bei Preview-Paketen, globalen Invalidierungen und
+expliziten Szenenänderungen bleibt das harte
+Freigeben erhalten. Neue Source-Bakes werden
+trotz altem Paket normal angefordert;
+Bitmap-Ressourcen werden nach dem Austausch
+freigegeben. Kein Edit-/Fog-Freigabeverhalten
+aufgeweicht.
+
+Readiness und Bench messen `stale` getrennt;
+weder die Warm-Gates noch READY-Screenshots
+dürfen durch die Übergangsdarstellung
+fälschlich bestehen. **63/63 isolierte V8-
+Regressionen bestanden.**
+Windows-/Chromium-Nachtest weiterhin offen;
+keine FPS-/16C-Abnahme, kein Merge.
