@@ -761,7 +761,7 @@ oder separate Uferkanten-PNGs verbleiben auf dem
 bisherigen globalen Invalidation-Pfad. Die vorhandenen
 Fog-/Export- und Kachel-Readiness-Gates bleiben.
 
-17/17 gezielte Dependency-Tests bestehen im
+19/19 gezielte Dependency-Tests bestehen im
 isolierten V8. Native Windows-/Chromium-Messung,
 4×-Warm-Gate und visuelle Küsten-/Flussabnahme
 stehen noch aus. **Keine 4×-FPS-Verbesserung
