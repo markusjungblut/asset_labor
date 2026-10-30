@@ -806,3 +806,34 @@ die Quelle dieser Kanten nachgewiesen und
 gegebenenfalls behoben ist.
 
 **Nicht mergen. Schritt 17 bleibt gesperrt.**
+
+
+## 30.10.2026 – ZIP8: Geography-Relief-Selektivpfad wirkt, globale Ufer-Resets bleiben
+
+Der reale 4×-Windows-Nachtest von #80 belegt für vier
+Terrain-PNGs den **selektiven** Pfad (78 Hexfelder, 76 WorldTiles).
+Pan rAF-p95 16,86 ms und End-Coverage 100 % (ZIP7: 250,24 ms,
+50 %), aber Pan Quiet=false und zwei Tile-Bakes, daher
+**kein valider Warm-FPS-Wert**. Zoom p95 327,76 ms (ZIP7:
+200,22 ms), 82 Frameintervalle und Ende **25 % Coverage**.
+Zwei separate globale `image-ready-ground`-Batches enthalten
+je zwei Ufer-PNGs; drei WorldTile-Bakes scheitern an
+`shoreline-chunk-not-ready`, ein Bake dauert ~3.039 ms.
+Zoom war zu Beginn READY/quiet, während der Messung
+mutierend und somit **ungültig**. Null JS-Fehler und Warnungen;
+Compositor-only-Pan und -Zoom valide.
+
+Neuer gestapelter Draft #81: `SHORE_EDGE_PATHS` wird pro
+Uferseite auf tatsächliche Segmente zurückgeführt;
+`shorelineChunks` erhält geometriebasierte globale
+Signaturen und seitenweise Bildrevisions-Stempel. Nur
+betroffene WorldTiles werden aktualisiert; unbekannte
+Küstenbezüge, fehlende Segmentbasis oder Wet-Änderungen
+bleiben global. WorldTile-Source-Start erfordert zusätzlich
+einen vorbereiteten Ufer-Chunk.
+
+**34/34 isolierte Ground-/Shoreline-Regressionen bestanden**,
+noch keine native Windows/Chrome-Abnahme des Fixes.
+Küstenfoto ist bei ZIP8 `READY=false` (`missing:2`);
+visuelle Uferlinie/Tileseams bleiben offen.
+Schritt 16C und 17 weiterhin gesperrt, Draft nicht mergen.
