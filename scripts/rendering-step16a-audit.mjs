@@ -139,6 +139,45 @@ function buildDecision(run){
   blockers:reasons};
 }
 
+// Audit-only warm preparation: visit the *actual* extrema of the gesture
+// before measuring, pin those source paths, and perform idle LRU housekeeping.
+// Full READY and 1200 ms quiet gates below remain mandatory. Failed prewarm is
+// a diagnostic, not evidence for increased FPS.
+async function prepareCameraTrajectory(c,kind,settleMs){
+ const poses=await c.eval('(()=>{const v=window.VedrasAssetLabor,'+
+  's=v.state,b={zoom:s.zoom,panX:s.panX,panY:s.panY};'+
+  'return '+JSON.stringify(kind)+'==="pan"?[b,'+
+  '{...b,panX:b.panX+90,panY:b.panY+20},'+
+  '{...b,panX:b.panX-90,panY:b.panY-20}]:'+
+  '[b,{...b,zoom:b.zoom+.11}];})()');
+ const configured=await c.eval(
+  'window.VedrasAssetLabor.configureCameraWarmFootprint('+
+  JSON.stringify(poses)+')');
+ const image=await c.eval(
+  'window.VedrasAssetLabor.prepareCameraWarmImages('+
+  Math.min(16000,settleMs)+')');
+ const stops=[];
+ // Render and settle every extrema plus the original pose, outside sampling.
+ // Keep the trajectory's pins until the measured gesture is finished.
+ for(const pose of [...poses.slice(1),poses[0]]){
+  await c.eval('(()=>{const v=window.VedrasAssetLabor,p='+
+   JSON.stringify(pose)+';v.state.zoom=p.zoom;v.state.panX=p.panX;'+
+   'v.state.panY=p.panY;v.activateTileCamera();v.requestDraw();'+
+   'return true;})()');
+  const outcome=await settle(c,settleMs);
+  stops.push({pose,ready:outcome.ready,reasons:outcome.reasons||[],
+   waitMs:outcome.waitMs});
+ }
+ const idle=await c.eval('window.VedrasAssetLabor.pruneIdleImagePool()');
+ const mem=await c.eval('window.VedrasAssetLabor.assetMemory()');
+ const ready=configured.missing===0&&image.ready&&
+  stops.every(p=>p.ready)&&mem.queued===0&&mem.active===0&&
+  mem.overLimitBytes===0&&mem.protectedBytes<=mem.limitBytes;
+ return {ready,configured,image,stops,idle,
+  pool:{decodedBytes:mem.decodedBytes,protectedBytes:mem.protectedBytes,
+   limitBytes:mem.limitBytes,overLimitBytes:mem.overLimitBytes,
+   evicted:mem.evicted,queued:mem.queued,active:mem.active}};
+}
 // Runs in the actual editor, after initial loading. Never patches renderer
 // internals or suppresses legitimate invalidations.
 async function editorCameraProbe(kind,frames){
@@ -344,6 +383,7 @@ async function main(){
     trace:summarizeTrace(await c.eval('window.VedrasAssetLabor.step15Trace()'))});
    for(const kind of ['pan','zoom']){
     await setCamera(c,{q:0,r:0},.70);
+    const prewarm=await prepareCameraTrajectory(c,kind,o.settleMs);
     const gate=await settle(c,o.settleMs);
     // Track state across an additional quiet interval; "READY" for a single
     // instant is insufficient to call the next phase a warm measurement.
@@ -354,7 +394,7 @@ async function main(){
     const quietTrace=summarizeTrace(await c.eval(
      'window.VedrasAssetLabor.step15Trace()'));
     const start=simplify(pre),previous=simplify(before);
-    const quiet=gate.ready&&cameraCondition(start)&&
+    const quiet=prewarm.ready&&gate.ready&&cameraCondition(start)&&
      start.bakes===previous.bakes&&
      start.imagePool.queued===0&&start.imagePool.active===0&&
      start.imagePool.ready===previous.imagePool.ready&&
@@ -384,15 +424,17 @@ async function main(){
     const valid=quiet&&cameraCondition(end)&&probe.activated&&
      enoughFrames&&!mutating&&trace.dropped===0;
     run.real.push({quality,kind:'warm-'+kind,classification,valid,
-     gateReady:gate.ready,quiet,mutating,blockers,
+     prewarm,gateReady:gate.ready,quiet,mutating,blockers,
      start,end,quietTrace,trace,cpuTaskSeconds:delta(startCpu,endCpu,'TaskDuration'),
      frame:{count:probe.intervals.length,p50:percentile(probe.intervals,.5),
       p95:percentile(probe.intervals,.95),
       requestDrawSchedulingP95Ms:percentile(probe.drawMs,.95)},
-     invalidReasons:[...(!gate.ready?gate.reasons:[]),
+     invalidReasons:[...(!prewarm.ready?['trajectory-preparation-incomplete']:[]),
+      ...(!gate.ready?gate.reasons:[]),
       ...(!quiet?['not-quiescent-before-sampling']:[]),
       ...(mutating?['asset/tile work occurred during camera-only test']:[]),
       ...(!enoughFrames?['insufficient stable animation frames']:[])]});
+    await c.eval('window.VedrasAssetLabor.configureCameraWarmFootprint(null)');
     console.log('  '+kind+': '+(valid?'VALID REAL WARM':classification.toUpperCase())+
      ', exact tiles '+String(end.progress?.exact)+
      ', blockers '+(gate.reasons||[]).join('; ')+
@@ -460,6 +502,21 @@ async function main(){
     ((x.end||x.stats)?.imagePool?.protectedBytes/1048576||0).toFixed(1)+
     ' / '+(((x.end||x.stats)?.imagePool?.limitBytes||0)/1048576).toFixed(1)
    ].join(' | ')+' |'),
+   '','## Vorbereitung der tatsächlichen Pan-/Zoom-Strecken','',
+   ...run.real.filter(x=>x.kind?.startsWith('warm-')).map(x=>
+    '- '+x.quality+'/'+x.kind+': '+
+     (x.prewarm?.ready?'vorbereitet':'NICHT vollständig vorbereitet')+
+     '; Quellen '+(x.prewarm?.configured?.paths??0)+
+     '; fehlend '+(x.prewarm?.configured?.missing??0)+
+     '; nicht vollständig geladen/hochgestuft '+
+       (x.prewarm?.image?.remaining??'–')+
+     '; vorbereitete Kamerapositionen '+
+       (x.prewarm?.stops?.filter(p=>p.ready).length??0)+'/'+
+       (x.prewarm?.stops?.length??0)+
+     '; idle evicted '+(x.prewarm?.idle?.evicted??0)+
+     '; decoded / budget MiB '+
+       (((x.prewarm?.pool?.decodedBytes||0)/1048576).toFixed(1))+' / '+
+       (((x.prewarm?.pool?.limitBytes||0)/1048576).toFixed(1))),
    '','## Warum reale Kameraphasen nicht warm sind','',
    ...run.real.filter(x=>x.kind?.startsWith('warm-')&&!x.valid).flatMap(x=>[
     '- '+x.quality+'/'+x.kind+': '+x.classification+
