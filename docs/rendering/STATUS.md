@@ -707,3 +707,36 @@ PR #77 bleibt Draft. Erst eine semantisch
 abgesicherte, selektive Ground-Abhängigkeit
 oder ein belegter Async-Load-Plan ist sinnvoll.
 Step16C noch nicht valide, Schritt 17 gesperrt.
+
+## 30.10.2026 – Schritt 16B: Nachweisbare Landmaterial-Abhängigkeiten
+
+ZIP6 belegte während des 4×-Zooms 7 verspätete
+Terrain-PNGs und einen globalen Ground-Reset.
+Der echte Quellvergleich zeigt, dass die
+Terrain-Variantenauswahl von neu dekodierten
+Materialien abhängen kann und auch Zellen anderer
+Variantendateien betrifft.
+
+**Neuer gestapelter Draft #78:**
+`selectedGroundAssetChanges` vergleicht die vor der
+Bildbereitstellung benutzte Ground-Materialauswahl
+mit der neuen, und invalidiert für reine Landmaterialien
+nur World-Tiles, deren `VedrasChunks.neighbors`
+Quellzellen berühren. Ein Bild-Upgrade bei gleichem
+Pfad bleibt invalidierend. Der Vergleich nutzt einen
+seiteneffektfreien `imageForBiome(cell,false)`-Zugriff
+(einschließlich `typeOfCell`/`baseBiomeOf`)
+ohne neue `imagePool.ensure`-Anforderungen.
+
+Wasser, Waldboden-Overlay, Relief, Shore und
+unbekannte Eingänge behalten den globalen Reset.
+Der gemischte 4×-Zoom-Batch mit 4 Wasser-PNGs
+wird daher weiterhin **global** behandelt;
+noch kein 4×-FPS-Gewinn behauptet.
+
+10/10 Regressionstests im isolierten V8 bestanden.
+Audit protokolliert selektiv/global-Entscheidungen
+über `ground.asset-dependency` und listet die
+berührten Hexfelder/Kacheln. Native Node-/Chrome-
+Messung und visuelle 16C-Abnahme ausstehend.
+Schritt 17 weiter gesperrt.

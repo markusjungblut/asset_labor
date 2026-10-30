@@ -698,6 +698,50 @@ function tileSemanticSignature(){
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
 let spriteAssetBatchDirty=false,spriteBatchGroundDirty=false;
 const pendingSpriteAssetPaths=new Set();
+// Last terrain-build material selection is the local-invalidation baseline.
+// If it is missing or an image has nonlocal consumers, keep global reset.
+let lastGroundMaterialPaths=null,groundAssetNeedsGlobal=false;
+const pendingGroundCells=new Set(),pendingGroundPaths=new Set();
+function selectedGroundAssetChanges(asset){
+ if(!lastGroundMaterialPaths||lastGroundMaterialPaths.size!==worldCells.length||
+    !asset?.path||!asset.terrainCheck?.ok)return null;
+ const type=typeOfAsset(asset);
+ // Forest-floor may be used in vegetation, and water feeds river rasters.
+ if(!type||type==='forest_floor'||isWaterTerrain(type)||
+    state.relief?.enabled)return null;
+ terrainAssetGroups=null;
+ const fallback=baseImage(),current=new Map(),changed=new Set();
+ for(const cell of worldCells){
+  const id=key(cell.q,cell.r);
+  if(!lastGroundMaterialPaths.has(id))return null;
+  const before=lastGroundMaterialPaths.get(id);
+  const after=(imageForBiome(cell,false)||fallback)?.path||null;
+  current.set(id,after);
+  // An added material variant can reindex every cell of its biome.
+  if(before!==after||before===asset.path||after===asset.path)
+   changed.add(id);
+ }
+ lastGroundMaterialPaths=current;
+ return changed;
+}
+function changedGroundTileIds(changed){
+ if(!(changed instanceof Set)||!worldCells.length)return null;
+ if(!changed.size)return new Set();
+ const positions=worldCells.map(c=>axialPos(c.q,c.r));
+ const minX=Math.min(...positions.map(p=>p.x))-2048,
+  maxX=Math.max(...positions.map(p=>p.x))+2048,
+  minY=Math.min(...positions.map(p=>p.y))-2048,
+  maxY=Math.max(...positions.map(p=>p.y))+2048;
+ const tiles=window.VedrasChunks.visible({
+  x:minX,y:minY,width:maxX-minX,height:maxY-minY
+ },worldCells,512);
+ const ids=new Set();
+ // Same halo-neighbor footprint as terrainChunks.stampTile.
+ for(const tile of tiles)
+  if(window.VedrasChunks.neighbors(tile,worldCells)
+    .some(c=>changed.has(key(c.q,c.r))))ids.add(tile.id);
+ return ids;
+}
 const spriteAtlas=window.VedrasSpriteAtlas?.create({
  base:'atlases/',limitPages:6,onReady:()=>requestDraw()
 })||null;
@@ -714,8 +758,14 @@ const imagePool=window.VedrasImagePool.create({
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){
    groundTileReuse?.clear();
+   const changed=isTerrain(a)?selectedGroundAssetChanges(a):null;
+   if(changed===null)groundAssetNeedsGlobal=true;
+   else for(const id of changed)pendingGroundCells.add(id);
+   pendingGroundPaths.add(a.path);
    window.VedrasStep15Trace?.record('asset.invalidate',{
-    reason:'image-ready-ground',path:a.path,category:a.category});
+    reason:'image-ready-ground',path:a.path,category:a.category,
+    dependency:changed===null?'unknown-global':'terrain-neighbor-tiles',
+    changedCells:changed?.size??null});
    frameMemo.invalidate();backgroundScene.clear();
    spriteBatchGroundDirty=true;}
   if(['nature','buildings','units'].includes(a.category)){
@@ -739,7 +789,17 @@ const imagePool=window.VedrasImagePool.create({
   assetReadyTimer=setTimeout(()=>{
    assetReadyTimer=null;
    const groundChanged=spriteBatchGroundDirty;
-   if(groundChanged)worldTiles?.invalidate('image-ready-ground');
+   const groundIds=groundChanged&&!groundAssetNeedsGlobal?
+    changedGroundTileIds(pendingGroundCells):null;
+   if(groundChanged){
+    if(groundIds===null)worldTiles?.invalidate('image-ready-ground');
+    else worldTiles?.invalidateTiles(groundIds,'image-ready-ground-selective');
+    window.VedrasStep15Trace?.record('ground.asset-dependency',{
+     mode:groundIds===null?'global':'selective',
+     assets:pendingGroundPaths.size,changedCells:pendingGroundCells.size,
+     changedTiles:groundIds?.size??null,
+     paths:[...pendingGroundPaths].slice(0,16)});
+   }
    if(spriteAssetBatchDirty){
     spriteAssetBatchDirty=false;
     const paths=new Set(pendingSpriteAssetPaths);
@@ -750,9 +810,11 @@ const imagePool=window.VedrasImagePool.create({
    }
    if(groundChanged){
     lastTileSnapshotSignature=tileSemanticSignature();
-    worldTileSelectiveSnapshot=false;
+    worldTileSelectiveSnapshot=groundIds!==null;
    }
    spriteBatchGroundDirty=false;
+   pendingGroundCells.clear();pendingGroundPaths.clear();
+   groundAssetNeedsGlobal=false;
    requestDraw();
    window.dispatchEvent(new Event('vedras:asset-image-loaded'));
   },delay);
@@ -841,23 +903,24 @@ const demoTypes={plains:'grassland',forest:'forest_floor',jungle:'jungle',hills:
 function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
 // Ground-material selection, the original habitat and the forest canopy are
 // distinct layers. forest_floor is a VISUAL TEXTURE, never an ecological biome.
-function baseBiomeOf(c){
+function baseBiomeOf(c,ensureSource=true){
  if(!c)return null;
+ const select=ensureSource?useAsset:path=>assetByPath.get(path)||null;
  const k=key(c.q,c.r);
  // Authored water geography cannot turn into grassland while its image loads.
  if(c.sceneWaterTerrain===true&&
     window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
   return c.terrainTypeId;
- const own=typeOfAsset(useAsset(state.hexTerrain[k]));
+ const own=typeOfAsset(select(state.hexTerrain[k]));
  if(own&&own!=='forest_floor')return own;
- const perBiome=typeOfAsset(useAsset(state.biomeTerrain[c.biome]));
+ const perBiome=typeOfAsset(select(state.biomeTerrain[c.biome]));
  if(!own&&perBiome&&perBiome!=='forest_floor')return perBiome;
  const fallback=c.terrainTypeId==='forest_floor'?'grassland':c.terrainTypeId||demoTypes[c.biome]||'grassland';
  const remembered=state.baseBiomeByHex?.[k];
  return remembered&&catalog.terrainTypes.some(t=>t.id===remembered&&t.materialClass==='ground')?remembered:fallback;
 }
-function typeOfCell(c){
- const base=baseBiomeOf(c);
+function typeOfCell(c,ensureSource=true){
+ const base=baseBiomeOf(c,ensureSource);
  return window.VedrasForest.jungleAllowed(base)&&state.forest?.jungleHexes?.[key(c.q,c.r)]===true?'jungle':base;
 }
 let forestMemoSignature='',forestMemoCells=[];
@@ -943,21 +1006,24 @@ function terrainAssetsByType(type){
  }
  return terrainAssetGroups.get(type)||[];
 }
-function imageForBiome(c){
+function imageForBiome(c,ensureSource=true){
+ // Dependency comparison is read-only. Do not request/promote 397 assets
+ // from inside a single PNG-decode callback.
+ const select=ensureSource?useAsset:path=>assetByPath.get(path)||null;
  // Forest-floor PNGs are overlay materials. Never use them as the opaque
  // ground of a moor (or any other base biome), even when painted manually.
  if(state.hexTerrain[key(c.q,c.r)]){
-  const a=useAsset(state.hexTerrain[key(c.q,c.r)]);
+  const a=select(state.hexTerrain[key(c.q,c.r)]);
   if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;
  }
  const chosen=state.biomeTerrain[c.biome];
- if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
- const typeId=typeOfCell(c),jungle=typeId==='jungle';
+ if(chosen){const a=select(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
+ const typeId=typeOfCell(c,ensureSource),jungle=typeId==='jungle';
  let matches=terrainAssetsByType(typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
  if(jungle&&!matches.length)matches=terrainAssetsByType('forest_floor');
- return matches.length?useAsset(matches[hash(c.q,c.r,11)%matches.length].path):null;
+ return matches.length?select(matches[hash(c.q,c.r,11)%matches.length].path):null;
 }
 function effectiveBiome(c){return typeOfCell(c);}
 function baseImage(){return terrainAssetsByType('grassland')[0]||null;}
@@ -1062,6 +1128,7 @@ let reliefFieldCache={signature:null,value:null};
 let reliefRasterCache={signature:null,raster:null,hits:0,misses:0};
 const geographyMaterialTiles=new Map(); // terrain textures independent of relief
 function invalidateTerrain(scope='all',dirtyWorldTiles=null){
+ lastGroundMaterialPaths=null;groundAssetNeedsGlobal=true;
  // An authoritative terrain change invalidates the old ground source.
  // Local edits are still selective in WorldTiles; ground cache keys include
  // scene revisions and therefore never serve stale adjacent rasters.
@@ -1372,6 +1439,10 @@ function drawGroundImpl(){
   });
  const {fallback,selectedMap,signature,geographyRelief,workerActive,lod,
   materialFamily,chunkFamily,chunkSignature,terrainFactor}=groundPrep;
+ lastGroundMaterialPaths=new Map(worldCells.map(cell=>{
+  const id=key(cell.q,cell.r);
+  return [id,(selectedMap.get(id)||fallback)?.path||null];
+ }));
  const groundPrepMs=performance.now()-groundPrepStart;
  const graphMissing=terrainRasterCache.signature!==signature||!terrainRasterCache.graph;
  if(graphMissing){
@@ -3254,6 +3325,8 @@ async function loadLibrary(list,mode){
    worldTileSelectiveSnapshot=false;
   }
   spriteBatchGroundDirty=false;
+  pendingGroundCells.clear();pendingGroundPaths.clear();
+  groundAssetNeedsGlobal=false;
  }
  const sourceRules=window.VedrasTerrainSources;
  const typesAdded=sourceRules?.ensureTypes(catalog)||false;
