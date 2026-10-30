@@ -196,10 +196,28 @@ window.VedrasWorldTiles=(()=>{
     const expected=versions.get(item.tile.id);
     if(expected==null||item.revision==null)continue;
     if(item.revision!==expected){
+     const old=parts(item.revision),next=parts(expected);
+     const changed=fields.filter((field,i)=>old[i]!==next[i]);
+     // A previously completed road/river raster does NOT become stale just
+     // because the corresponding chunk temporarily leaves readyTiles()
+     // during camera streaming. An actual new prepared revision must be
+     // compared against the retained completed packet. Explicit edits still
+     // invalidate their affected tiles via invalidateTiles()/invalidate().
+     const temporaryMissing=old.length===4&&next.length===4&&
+      old[0]===next[0]&&old[1]===next[1]&&
+      changed.length>0&&changed.every(field=>{
+       const i=fields.indexOf(field);
+       return i>=2&&old[i]!=='pending'&&old[i]!=='off'&&
+        next[i]==='pending';
+      });
+     if(temporaryMissing){
+      if(diagnose)trace('tile.ground-revision-deferred',{
+       id:item.tile.id,level:item.tileLod,changed:changed.join(','),
+       reason:'previously-ready-road-or-river-temporarily-unavailable'});
+      continue;
+     }
      stale.add(item.tile.id);
      if(diagnose){
-      const old=parts(item.revision),next=parts(expected);
-      const changed=fields.filter((field,i)=>old[i]!==next[i]);
       trace('tile.ground-revision-detail',{id:item.tile.id,level:item.tileLod,
        changed:changed.join(','),fromTerrain:old[0]??null,toTerrain:next[0]??null,
        fromShore:old[1]??null,toShore:next[1]??null,
