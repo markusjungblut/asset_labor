@@ -362,7 +362,8 @@ window.VedrasWorldTiles=(()=>{
   // maxPixels or maxTiles; budget overflow remains a failed warm test.
   let warmReserved=new Set();
   function reserveWarmTiles(keys=null){
-   if(keys===null){warmReserved.clear();return {active:false,keys:0};}
+   if(keys===null){warmReserved.clear();trim(visibleSourceKeys());
+    return {active:false,keys:0};}
    const iterable=Array.isArray(keys)||keys instanceof Set;
    if(!iterable||keys.length>80||keys.size>80)
     throw Error('Invalid bounded World-Tile warm reservation');
