@@ -13,4 +13,7 @@ with ZipFile(destination, "w", ZIP_DEFLATED, compresslevel=6) as archive:
         file = root / name
         if file.is_file():
             archive.write(file, arcname=name)
+    for file in sorted((root / "images").glob("*.png")):
+        if file.is_file():
+            archive.write(file, arcname="images/" + file.name)
 print("Step16A archive:", destination)

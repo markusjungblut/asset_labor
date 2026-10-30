@@ -427,6 +427,7 @@ function staticScenerySignature(){
   state.mode,state.sceneSize
  ]);
 }
+let sceneryZoomExactTimer=null;
 function drawFastStaticScenery(g,view){
  if(!state.objects)return;
  const old={ctx,W,H,zoom:state.zoom,panX:state.panX,
@@ -434,8 +435,8 @@ function drawFastStaticScenery(g,view){
  try{
   state.zoom=view.zoom;state.panX=view.panX;state.panY=view.panY;
   state.dpr=view.dpr;
-  staticScenery.paint({
-   ctx:g,signature:staticScenerySignature(),
+  const sceneryResult=staticScenery.paint({
+   ctx:g,signature:staticScenerySignature(),allowZoomReprojection:true,
    view:{width:view.width,height:view.height,dpr:view.dpr,zoom:view.zoom,
     panX:view.panX,panY:view.panY},
    drawScene:({ctx:layerCtx,width,height})=>{
@@ -446,6 +447,20 @@ function drawFastStaticScenery(g,view){
     }finally{ctx=oldCtx;W=oldW;H=oldH;}
    }
   });
+  if(sceneryResult.zoomReprojected){
+   // During camera motion only: postpone ONE native-resolution rebuild
+   // until the zoom has stopped. Exact export/editor rendering is unchanged.
+   clearTimeout(sceneryZoomExactTimer);
+   const sourceZoom=view.zoom,sourceSignature=staticScenerySignature();
+   sceneryZoomExactTimer=setTimeout(()=>{
+    sceneryZoomExactTimer=null;
+    if(finalRendering||state.view!=='map'||state.mode==='far'||
+       !(fastInteracting||tileModeActive)||state.zoom!==sourceZoom||
+       staticScenerySignature()!==sourceSignature)return;
+    staticScenery.clear();
+    fastRender();
+   },250);
+  }
  }finally{
   ctx=old.ctx;W=old.W;H=old.H;state.zoom=old.zoom;
   state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;

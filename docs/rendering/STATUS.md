@@ -478,3 +478,42 @@ Rasterzeit und GPU-Relevanz bleiben ausdrücklich offen.
 nach Attribution des dominanten Engpasses; 16C erst nach validen
 Warm-/Cold-Messungen, visueller Freigabe und drei Hardwarewiederholungen.
 Schritt 17 bleibt offen/gesperrt.
+
+## 2026-10-30 – Ergebnis von Schritt 16A und erster zielgerichteter Schritt-16B-PR
+
+Audit: `step16a-audit.zip`, Referenzszenen-SHA
+`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`.
+Beide frischen Browser-Imports brachten 397 Hex / 2631 Vegetationsinstanzen
+ohne fehlende Instanzen und ohne Skriptfehler.
+
+- Isolierter Production-WorldTile-Compositor: beide Kontrollen valide,
+  16/16 vorbereitete Tiles, 0 Evictions, 0 neue Source-Tiles, Coverage 100 %.
+  Compositor-Zeichnen p95 **0,40 ms Pan / 0,20 ms Zoom**;
+  rAF-p95 **60,04 / 33,50 ms**. Diese Zahlen sind nicht austauschbar.
+- Reales Auto-Pan: 89 Intervalle, rAF-p95 **16,80 ms**, aber 2
+  neue Tile-Bakes/Cache-Misses, daher warm **nicht abgenommen**.
+- Reales Auto-Zoom: 13 Intervalle, rAF-p95 **817,34 ms** (nicht valide),
+  0 Tile-Bakes/Invalidierungen/Asset-Dekodes, jedoch **13 neue
+  StaticScenery-Builds**. `static-object-layer.js` erforderte exakte
+  Zoom-Gleichheit und baute die gesamte Vegetations-/Schattenebene
+  bei jedem Zoom-Inkrement wieder auf. Das ist ein belegter Hotspot.
+- Reales 4×-Pan: 27 zusätzliche Tile-Bakes, 13 Terrain-Builds,
+  Tile/Asset-Revisionsänderungen und rAF-p95 133,40 ms; nicht warm.
+- Reales 4×-Zoom: 5 Sampleintervalle und p95 3803,04 ms,
+  Tile-/Terrain-Fallbacks plus 5 Scenery-Builds; nicht warm.
+- In diesem Test: Bildpool Auto 288/288 MiB, geschützt 177 MiB.
+  4× etwa 626 MiB dekodiert gegenüber 576 MiB Limit;
+  geschützte Assets ~380 MiB. Keine Aussage, dass der
+  Auto-Bildpool grundsätzlich gelöst wäre; Speicherprofil
+  unterscheidet sich zwischen den Benchmarkläufen.
+
+**Schritt 16B – ein Ursache-Patch als Draft #73:**
+Nur Fast-Scenery-Zoom kann statische Layer aus identischer Source
+innerhalb Skalierungs-/Viewport-Grenzen geometrisch re-projizieren.
+Nach Zoomstillstand folgt einmal ein exakter Pixel-Rasteraufbau.
+Alle anderen Renderpfade behalten ihre vorherigen Regeln.
+Geometrie und Code im isolierten V8 geprüft; Windows-Test, Native-
+Node-Suite und visueller Vergleich ausstehend. Kein nachgewiesener
+Performancegewinn, kein Merge, keine Schritt-16C-Freigabe.
+4×-Ground/World-Tile-Revisionen sind ein separater noch offener Fall.
+Schritt 17 weiterhin gesperrt.
