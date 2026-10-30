@@ -376,17 +376,29 @@ window.VedrasWorldTiles=(()=>{
    return {active:true,keys:warmReserved.size};
   }
   function warmTileStatus(){
-   let ready=0,stale=0,preview=0,missing=0;
-   const incomplete=[];
+   let ready=0,stale=0,preview=0,missing=0,revisionMismatch=0;
+   const incomplete=[],changedRevisions=[];
    for(const k of warmReserved){
     const item=cache.get(k);
     if(!item||!drawable(item)){missing++;incomplete.push(k);continue;}
     if(item.dirty){stale++;incomplete.push(k);}
     else if(item.packet.preview){preview++;incomplete.push(k);}
-    else ready++;
+    else {
+     // An exact-looking cached tile can still have been baked while road
+     // or river was "pending". Read prepared source identity without
+     // queuing new work; do not pass such a tile as a fully warm result.
+     const expected=typeof sourceRevision==='function'?
+      sourceRevision(item.tile,item.tileLod):item.revision;
+     if(expected==null||expected!==item.revision){
+      revisionMismatch++;incomplete.push(k);
+      changedRevisions.push({key:k,from:item.revision,to:expected});
+     }else ready++;
+    }
    }
    return {active:warmReserved.size>0,keys:warmReserved.size,
-    ready,missing,stale,preview,firstIncomplete:incomplete.slice(0,20),
+    ready,missing,stale,preview,revisionMismatch,
+    changedRevisions:changedRevisions.slice(0,12),
+    firstIncomplete:incomplete.slice(0,20),
     cached:cache.size,pixels,budgetPixels:maxPixels,
     overBudgetPixels:Math.max(0,pixels-maxPixels),
     overTileLimit:Math.max(0,cache.size-maxTiles)};
