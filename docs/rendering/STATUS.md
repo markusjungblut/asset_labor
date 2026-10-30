@@ -761,8 +761,14 @@ oder separate Uferkanten-PNGs verbleiben auf dem
 bisherigen globalen Invalidation-Pfad. Die vorhandenen
 Fog-/Export- und Kachel-Readiness-Gates bleiben.
 
-19/19 gezielte Dependency-Tests bestehen im
+20/20 gezielte Dependency-Tests bestehen im
 isolierten V8. Native Windows-/Chromium-Messung,
 4×-Warm-Gate und visuelle Küsten-/Flussabnahme
 stehen noch aus. **Keine 4×-FPS-Verbesserung
 behauptet.** Schritt 16C/17 weiter gesperrt.
+
+
+Der optionale Step16A-Audit `--visual --qualities 4` speichert
+fünf 4×-Prüfbilder (Zoom und Ocean/Fog) mit Qualitätspräfix.
+Damit kann die spätere 16C-Sichtprüfung auf derselben Qualitätsstufe
+wie der Hardwaretest erfolgen. Native Tests und 4×-Visuals ausstehend.
