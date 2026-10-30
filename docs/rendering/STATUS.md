@@ -622,3 +622,30 @@ Strategie-Moduswechsel bleiben unverändert.
 Windows-/Chrome-Messung ausstehend.
 Die alte Road/River-Pending-Regel in #75 bleibt unabhängig
 und unbewiesen. Schritt 16C/17 weiterhin gesperrt.
+
+## 30.10.2026 – Nachtest von PR #77, `step16a-audit(5).zip`
+
+Referenz-SHA unverändert. 4×-Vorbereitung: Terrain-not-ready
+95 → 2, Bake-Versuche 132 → 36; 33 geblockte
+Source-Anfragen per Trace. 4×-Pan: Terrain-not-ready
+29 → 11, Bake-Versuche 34 → 25, 18 geblockte
+Source-Anfragen. Aktiver Tile-Kameramodus und 89 rAF-
+Intervalle in beiden Phasen; keine JS-Ausführungsfehler.
+4×-Pan rAF-p95 123,42 ms (zuvor 60,06), 4×-Zoom
+126,46 ms (zuvor 126,76), **beide formal kein Warm-Lauf**.
+Bei Pan eine globale `image-ready-ground`-Invalidierung
+von 15 fertigen Kacheln; am Ende nur 11 Cache-Tiles
+und 2 Pending. Bildpool ~51,5 MiB über Budget,
+23 neue Evictions während Pan; Zoom 50.
+4×-Vorbereitung READY=false; Pan und Zoom
+nach dem vorgeschalteten Readiness-Gate READY,
+aber beide während Geste durch Asset-/Tile-Arbeit invalid.
+
+PR #77 um zweite Terrain-Startprüfung beim tatsächlichen
+Dequeuing erweitert (Race im wartenden Source-Queue).
+5/5 gezielte Tests im isolierten V8 bestanden, native
+Node-/Windows-Abnahme steht aus. Audit legt beim
+nächsten Lauf konkrete Pfade der späten Ground-Bilddateien
+offen, damit eine **selektive** Invalidierung nur nach
+nachgewiesenen Abhängigkeiten implementiert wird.
+Schritt 16C/17 gesperrt.
