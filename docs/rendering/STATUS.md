@@ -649,3 +649,61 @@ nächsten Lauf konkrete Pfade der späten Ground-Bilddateien
 offen, damit eine **selektive** Invalidierung nur nach
 nachgewiesenen Abhängigkeiten implementiert wird.
 Schritt 16C/17 gesperrt.
+
+## 30.10.2026 – 4×-Nachtest ZIP6: zweite Source-Gate-Prüfung
+
+Referenzszene weiter identisch: 397 Hex, 2631 Nature, SHA
+`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`.
+Keine JavaScript-Ausführungsfehler oder Terminal-Retries.
+
+Vergleich ZIP5 → ZIP6:
+
+- Vorbereitung: 36 → 39 WorldTile-Bakes; 33 → 37
+  zurückgestellte Source-Anfragen, 14,391 → 14,084 Sekunden;
+  beide Vorbereitungssnapshots nicht READY.
+- 4×-Pan: 25 → 4 Bakes, 4,41 → 0,78 Sekunden
+  CPU-Taskdauer und 123,42 → 43,34 ms rAF-p95.
+  **Nicht vergleichbar als gültige Warm-FPS-Messung:**
+  ZIP6 hat vor Pan GateReady=false/Quiet=false,
+  obwohl 16 Cache-Tiles und 100 % Coverage zum
+  Start der eigentlichen Messung vorhanden sind.
+  Während Pan zwei tatsächliche Road-/River-Revisionen,
+  vier temporäre Pending-Übergänge ohne Invalidierung.
+- 4×-Zoom: 13 → 17 Bakes, rAF-p95 126,46 →
+  133,40 ms; 3,86 Sekunden CPU-Taskdauer.
+  Eine globale image-ready-ground-Invalidierung
+  und eine lokalisierte Scenery-Invalidierung;
+  Ende 14 Cache-Tiles, ein Pending-Tile;
+  Coverage bleibt 100 %. **Kein Warm-Gate.**
+
+Die neu erfassten **sieben** Ground-Bilddateien
+während Zoom: grassland_03, grassland_04,
+halbwueste_03 und cosatal_water_01 bis _04
+(sämtlich `assets/terrain/*.png`).
+Daneben 26 Scenery-Image-Ready-Ereignisse,
+16 zusätzliche Terrain-Builds und 17 Tile-Bakes.
+Der Asset-Callback bündelt die Ground-Änderungen
+zu einem globalen Cache-Reset. Da die Texturen
+tatsächlich sichtbar sein können, ist blindes
+Entfernen dieser Invalidierung **nicht zulässig**.
+Eine Änderung erfordert eine belastbare
+Tile-/Material-Abhängigkeitsabbildung und darf
+weder Terrainqualität noch Fog/Exporte verfälschen.
+
+Der Asset-Pool befindet sich nach Pan bei
+603,46 MiB vs. 603,98 MiB Limit (unter Budget);
+nach Zoom bei 612,63 MiB (8,25 MiB über Budget).
+Der vorangehende größere Überlauf ist nicht
+gleichbedeutend mit einem dauerhaften Speicherleck.
+
+Die Step16A-README hatte bisher durch einen
+30-Event-Sample-Cap in der `groundAssetEvents`-
+Liste für die Vorbereitung eine irreführende
+Zählung. Der Trace-Reporter nutzt nun
+`groundAssetEventCount` für die **volle Anzahl**.
+
+**Keine neue Produktionsoptimierung nach ZIP6,**
+PR #77 bleibt Draft. Erst eine semantisch
+abgesicherte, selektive Ground-Abhängigkeit
+oder ein belegter Async-Load-Plan ist sinnvoll.
+Step16C noch nicht valide, Schritt 17 gesperrt.
