@@ -183,13 +183,30 @@ window.VedrasWorldTiles=(()=>{
   // an invalidation of every cached world tile.
   function reconcileGroundRevisions(versions){
    if(!versions||typeof versions.get!=='function')return 0;
-   const stale=new Set();
+   const stale=new Set(),diagnose=window.VedrasStep15Trace?.enabled()===true;
+   const fields=['terrain','shore','road','river'];
+   const parts=revision=>{
+    try{const parsed=JSON.parse(revision);
+     return Array.isArray(parsed)?parsed.map(String):[String(revision)];
+    }catch{return [String(revision)];}
+   };
    for(const [k,item] of cache){
-    // LOD variants remain independently reusable across camera zooms.
+    // Preserve LOD variants: only compare the current level.
     if(item.tileLod!==lod||!versions.has(item.tile.id))continue;
     const expected=versions.get(item.tile.id);
     if(expected==null||item.revision==null)continue;
-    if(item.revision!==expected)stale.add(item.tile.id);
+    if(item.revision!==expected){
+     stale.add(item.tile.id);
+     if(diagnose){
+      const old=parts(item.revision),next=parts(expected);
+      const changed=fields.filter((field,i)=>old[i]!==next[i]);
+      trace('tile.ground-revision-detail',{id:item.tile.id,level:item.tileLod,
+       changed:changed.join(','),fromTerrain:old[0]??null,toTerrain:next[0]??null,
+       fromShore:old[1]??null,toShore:next[1]??null,
+       fromRoad:old[2]??null,toRoad:next[2]??null,
+       fromRiver:old[3]??null,toRiver:next[3]??null});
+     }
+    }
    }
    if(!stale.size)return 0;
    trace('tile.ground-revision-changed',{count:stale.size,epoch,lod});

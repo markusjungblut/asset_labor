@@ -53,8 +53,14 @@ function summarizeTrace(trace){
   if(event.type==='tile.bake')push(counts.bakes,d.outcome);
   if(event.type==='tile.cache-miss')push(counts.cacheMisses,d.reason);
  }
+ const all=trace?.events||[];
+ const revisions=all.filter(e=>e.type==='tile.ground-revision-detail');
+ const samples=all.filter(e=>['tile.ground-revision-detail','tile.cache-miss',
+  'tile.invalidate','tile.bake'].includes(e.type));
  return {...counts,dropped:trace?.dropped||0,totalEvents:trace?.totalEvents||0,
-  attributionComplete:(trace?.dropped||0)===0};
+  attributionComplete:(trace?.dropped||0)===0,
+  groundRevisionDetails:revisions.slice(0,60),
+  eventSamples:[...samples.slice(0,35),...samples.slice(-35)]};
 }
 function simplify(snapshot){
  const w=snapshot?.world||{},p=snapshot?.quality?.images||{};
@@ -419,6 +425,11 @@ async function main(){
      '; CPU-Taskzeit: '+(x.cpuTaskSeconds??'–')+' s'+
      '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
    ]),
+   '','## 4x-Quellrevisionen pro Kachel','',
+   ...run.real.filter(p=>p.quality==='4').flatMap(p=>
+    (p.trace?.groundRevisionDetails||[]).map(e=>'- '+p.kind+' '+
+     e.detail?.id+' '+e.detail?.level+': '+e.detail?.changed+
+     ' ('+e.detail?.fromTerrain+' -> '+e.detail?.toTerrain+')')),
    '','## Optionale visuelle Prüfbilder','',
    ...run.visual.map(x=>'- '+x.stage+': '+x.file+'; Zoom '+x.zoom+
      '; Scenery-Builds '+x.scenery?.builds+

@@ -517,3 +517,39 @@ Node-Suite und visueller Vergleich ausstehend. Kein nachgewiesener
 Performancegewinn, kein Merge, keine Schritt-16C-Freigabe.
 4×-Ground/World-Tile-Revisionen sind ein separater noch offener Fall.
 Schritt 17 weiterhin gesperrt.
+
+## 2026-10-30 – Nachweis der Auto-Zoom-Korrektur und 4×-Quellenattribution
+
+Hardware-Retest `step16a-audit(1).zip` bestätigte **Auto-Zoom
+16,80 ms rAF-p95 über 89 Intervalle** statt 817,34 ms p95
+über nur 13 Intervalle in der vorherigen Diagnose. Die
+statischen Scenery-Neuaufbauten sanken von **13 auf 0**
+innerhalb der Kameramessung. Bei gleicher Szenen-SHA und
+gleichzeitig 0 Tile-/Asset-Invalidierungen, 0 Terrain-Builds.
+Die Phase blieb formal **nicht vollständig warm** wegen eines
+zusätzlichen Reuse-Ground-Tile-Bakes. Auto-Pan erreichte
+16,92 ms p95 über 89 Intervalle (zuvor 16,80 ms),
+ebenfalls mit zwei kleinen Kachel-Nachfüllvorgängen.
+Keine belastbare Faktor-48-Beschleunigungsbehauptung aus
+der vorherigen unzureichenden 13-Frame-Probe.
+
+Zoom-Fix #73 bleibt ein Draft, bis Bilder von Bäumen,
+Schatten, Meer/Küste und Fog vor/während/nach Zoom überprüft
+sind. Ein optionaler, ausschließlich Kartenviewport-
+bezogener 5-PNG-Test kann auf dem gestapelten Branch mit
+`--visual` erstellt werden.
+
+4× ist davon unabhängig offen: 13 Terrain-Revision-
+Invalidierungen und neue Kachel-/Terrain-Arbeit. Der
+vorherige Trace reichte nicht für die Attribution
+der Versionsteile (Terrain, Shore, Road, River).
+Der neue Draft #74 zeichnet diese Versionen je Tile
+nur bei aktivierter Trace auf; die Cached-Tile-
+Entscheidungen bleiben unverändert. Vier Regressionen
+im isolierten V8 mit echter Tile-Streamer-Quelle: 4/4.
+
+**Nächster Schritt:** Ein kombinierter lokaler
+`START_STEP16A_WINDOWS.cmd --qualities 4,auto --frames 90 --settle-ms 12000 --visual`
+zur Ursachenbestimmung plus Bildabnahme; nicht weitere
+ungenannte Performance-Patches auf Verdacht. Schritt 16C
+nicht abgenommen, Schritt 17 gesperrt.
