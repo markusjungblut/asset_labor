@@ -105,7 +105,9 @@ test('preview seeds only upgrade when source is higher density, exact stays immu
 });
 test('editor staging identity cannot globally invalidate unchanged world content',()=>{
  const src=read('app.js');
- assert.match(src,/const semanticKey=JSON\.stringify/);
+ assert.match(src,/function tileSemanticSignature\(\)/);
+ assert.match(src,/const semanticKey=tileSemanticSignature\(\)/);
+ assert.match(src,/frameMemo\.stats\(\)\.revision/);
  assert.match(src,/const stagingChanged=stagedKey!==lastTilePreparedSignature/);
  assert.match(src,/worldTiles\.invalidate\('semantic-content-changed'\)/);
  assert.doesNotMatch(src,/worldTiles\.invalidate\('staging-signature-changed'\)/);
