@@ -1,0 +1,823 @@
+{
+  "schema": "vedras-step16a-audit-v1",
+  "timestamp": "2026-10-30T09:42:53.883Z",
+  "sceneSha256": "1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f",
+  "source": "real editor + production compositor-only control",
+  "environment": {
+    "qualities": [
+      "4",
+      "auto"
+    ],
+    "frames": 90
+  },
+  "real": [
+    {
+      "quality": "4",
+      "kind": "preparation",
+      "ready": false,
+      "prepareMs": 12879,
+      "reasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles",
+        "coverage:0",
+        "no-exact-world-tiles",
+        "missing:4"
+      ],
+      "stats": {
+        "active": false,
+        "tiles": 1,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 0,
+        "coverage": 0,
+        "progress": {
+          "exact": 0,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 4
+        },
+        "bakes": 0,
+        "groundReuse": {
+          "entries": 1,
+          "bytes": 2051280,
+          "budgetBytes": 46137344,
+          "hits": 0,
+          "misses": 2,
+          "evicted": 0,
+          "stored": 1
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 643563520,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 87,
+          "ready": 372,
+          "overLimitBytes": 39583744,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "trace": {
+        "invalidations": {
+          "image-ready-ground": 2,
+          "scenery-revision-changed": 2,
+          "semantic-content-changed": 2
+        },
+        "assetEvents": {
+          "image-ready-ground": 74,
+          "image-ready-scenery": 262
+        },
+        "bakes": {
+          "terrain-or-assets-not-ready:sprite-source-not-ready": 40,
+          "terrain-or-assets-not-ready:terrain-core-not-ready": 96,
+          "fallback-ground-changed": 2
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 96
+        },
+        "types": {
+          "asset.invalidate": 336,
+          "camera.request": 62,
+          "tile.cache-miss": 96,
+          "tile.state": 415,
+          "tile.source-start": 138,
+          "tile.bake": 138,
+          "tile.source-end": 138,
+          "fog.mask": 4,
+          "tile.invalidate": 6,
+          "terrain.invalidate": 2,
+          "scenery.invalidate": 3,
+          "terrain.draw": 6,
+          "roads.draw": 6,
+          "tile.semantic-revision-changed": 2,
+          "tile.snapshot-signature-change": 4,
+          "tile.snapshot": 2,
+          "tile.accept": 1
+        },
+        "dropped": 0,
+        "totalEvents": 1359,
+        "attributionComplete": true
+      }
+    },
+    {
+      "quality": "4",
+      "kind": "warm-pan",
+      "valid": false,
+      "skipped": true,
+      "gateReady": false,
+      "quiet": false,
+      "mutating": null,
+      "start": {
+        "active": true,
+        "tiles": 14,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 70,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 1,
+          "misses": 78,
+          "evicted": 0,
+          "stored": 70
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 655360000,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 110,
+          "ready": 395,
+          "overLimitBytes": 51380224,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 14,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 70,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 1,
+          "misses": 78,
+          "evicted": 0,
+          "stored": 70
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 655360000,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 110,
+          "ready": 395,
+          "overLimitBytes": 51380224,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "quietTrace": {
+        "invalidations": {
+          "terrain-core-revision-changed": 6
+        },
+        "assetEvents": {},
+        "bakes": {
+          "fallback-complete": 10
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 12
+        },
+        "types": {
+          "camera.request": 17,
+          "tile.ground-revision-changed": 6,
+          "tile.invalidate": 6,
+          "tile.state": 45,
+          "tile.cache-miss": 12,
+          "tile.source-start": 11,
+          "tile.snapshot": 11,
+          "terrain.draw": 10,
+          "roads.draw": 10,
+          "tile.bake": 10,
+          "tile.accept": 10,
+          "tile.source-end": 10
+        },
+        "dropped": 0,
+        "totalEvents": 158,
+        "attributionComplete": true
+      },
+      "trace": {
+        "types": {},
+        "dropped": 0
+      },
+      "cpuTaskSeconds": null,
+      "frame": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "syncDrawP95Ms": null
+      },
+      "invalidReasons": [
+        "tile-queue-pending:1",
+        "not-quiescent-before-sampling"
+      ]
+    },
+    {
+      "quality": "4",
+      "kind": "warm-zoom",
+      "valid": false,
+      "skipped": true,
+      "gateReady": false,
+      "quiet": false,
+      "mutating": null,
+      "start": {
+        "active": true,
+        "tiles": 13,
+        "pending": 3,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 152,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 2,
+          "misses": 171,
+          "evicted": 0,
+          "stored": 151
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 38,
+        "imagePool": {
+          "decodedBytes": 657719296,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 286,
+          "queued": 0,
+          "active": 0,
+          "evicted": 132,
+          "ready": 418,
+          "overLimitBytes": 53739520,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 13,
+        "pending": 3,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 152,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 2,
+          "misses": 171,
+          "evicted": 0,
+          "stored": 151
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 38,
+        "imagePool": {
+          "decodedBytes": 657719296,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 286,
+          "queued": 0,
+          "active": 0,
+          "evicted": 132,
+          "ready": 418,
+          "overLimitBytes": 53739520,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "quietTrace": {
+        "invalidations": {
+          "terrain-core-revision-changed": 7
+        },
+        "assetEvents": {},
+        "bakes": {
+          "fallback-complete": 6,
+          "fallback-ground-changed": 2
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 7
+        },
+        "types": {
+          "camera.request": 15,
+          "tile.ground-revision-changed": 7,
+          "tile.invalidate": 7,
+          "tile.state": 33,
+          "terrain.draw": 8,
+          "roads.draw": 8,
+          "tile.bake": 8,
+          "tile.accept": 6,
+          "tile.source-end": 8,
+          "tile.source-start": 8,
+          "tile.snapshot": 8,
+          "tile.cache-miss": 7
+        },
+        "dropped": 0,
+        "totalEvents": 123,
+        "attributionComplete": true
+      },
+      "trace": {
+        "types": {},
+        "dropped": 0
+      },
+      "cpuTaskSeconds": null,
+      "frame": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "syncDrawP95Ms": null
+      },
+      "invalidReasons": [
+        "tile-queue-pending:2",
+        "not-quiescent-before-sampling"
+      ]
+    },
+    {
+      "quality": "auto",
+      "kind": "preparation",
+      "ready": false,
+      "prepareMs": 12100,
+      "reasons": [
+        "no-visible-world-tiles",
+        "coverage:0",
+        "no-exact-world-tiles",
+        "missing:4"
+      ],
+      "stats": {
+        "active": true,
+        "tiles": 0,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 9,
+        "visible": 16,
+        "coverage": 0,
+        "progress": {
+          "exact": 0,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 4
+        },
+        "bakes": 0,
+        "groundReuse": {
+          "entries": 0,
+          "bytes": 0,
+          "budgetBytes": 46137344,
+          "hits": 0,
+          "misses": 0,
+          "evicted": 0,
+          "stored": 0
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 12,
+        "imagePool": {
+          "decodedBytes": 301989888,
+          "limitBytes": 301989888,
+          "protectedBytes": 164626432,
+          "protectedAssets": 177,
+          "resident": 336,
+          "queued": 44,
+          "active": 4,
+          "evicted": 2,
+          "ready": 290,
+          "overLimitBytes": 0,
+          "previewSpritePx": 512,
+          "previewTerrainPx": 512
+        }
+      },
+      "trace": {
+        "invalidations": {
+          "image-ready-ground": 2,
+          "scenery-revision-changed": 2,
+          "semantic-content-changed": 2
+        },
+        "assetEvents": {
+          "image-ready-ground": 69,
+          "image-ready-scenery": 184
+        },
+        "bakes": {
+          "terrain-or-assets-not-ready:sprite-source-not-ready": 29,
+          "terrain-or-assets-not-ready:terrain-core-not-ready": 149,
+          "terrain-or-assets-not-ready:shoreline-chunk-not-ready": 3
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 85
+        },
+        "types": {
+          "asset.invalidate": 253,
+          "camera.request": 55,
+          "tile.cache-miss": 85,
+          "tile.state": 543,
+          "tile.source-start": 181,
+          "tile.bake": 181,
+          "tile.source-end": 181,
+          "fog.mask": 5,
+          "tile.invalidate": 6,
+          "terrain.invalidate": 2,
+          "scenery.invalidate": 3,
+          "terrain.draw": 4,
+          "roads.draw": 4,
+          "tile.semantic-revision-changed": 2,
+          "tile.snapshot-signature-change": 4
+        },
+        "dropped": 0,
+        "totalEvents": 1509,
+        "attributionComplete": true
+      }
+    },
+    {
+      "quality": "auto",
+      "kind": "warm-pan",
+      "valid": false,
+      "skipped": true,
+      "gateReady": true,
+      "quiet": false,
+      "mutating": null,
+      "start": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 32,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 5,
+          "misses": 28,
+          "evicted": 0,
+          "stored": 27
+        },
+        "sceneryBuilds": 10,
+        "terrainBuilds": 22,
+        "imagePool": {
+          "decodedBytes": 301989888,
+          "limitBytes": 301989888,
+          "protectedBytes": 185597952,
+          "protectedAssets": 177,
+          "resident": 288,
+          "queued": 0,
+          "active": 0,
+          "evicted": 88,
+          "ready": 376,
+          "overLimitBytes": 0,
+          "previewSpritePx": 512,
+          "previewTerrainPx": 512
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 32,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 5,
+          "misses": 28,
+          "evicted": 0,
+          "stored": 27
+        },
+        "sceneryBuilds": 10,
+        "terrainBuilds": 22,
+        "imagePool": {
+          "decodedBytes": 301989888,
+          "limitBytes": 301989888,
+          "protectedBytes": 185597952,
+          "protectedAssets": 177,
+          "resident": 288,
+          "queued": 0,
+          "active": 0,
+          "evicted": 88,
+          "ready": 376,
+          "overLimitBytes": 0,
+          "previewSpritePx": 512,
+          "previewTerrainPx": 512
+        }
+      },
+      "quietTrace": {
+        "invalidations": {},
+        "assetEvents": {},
+        "bakes": {},
+        "cacheMisses": {},
+        "types": {},
+        "dropped": 0,
+        "totalEvents": 0,
+        "attributionComplete": true
+      },
+      "trace": {
+        "types": {},
+        "dropped": 0
+      },
+      "cpuTaskSeconds": null,
+      "frame": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "syncDrawP95Ms": null
+      },
+      "invalidReasons": [
+        "not-quiescent-before-sampling"
+      ]
+    },
+    {
+      "quality": "auto",
+      "kind": "warm-zoom",
+      "valid": false,
+      "skipped": true,
+      "gateReady": true,
+      "quiet": false,
+      "mutating": null,
+      "start": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 32,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 5,
+          "misses": 28,
+          "evicted": 0,
+          "stored": 27
+        },
+        "sceneryBuilds": 10,
+        "terrainBuilds": 22,
+        "imagePool": {
+          "decodedBytes": 301989888,
+          "limitBytes": 301989888,
+          "protectedBytes": 185597952,
+          "protectedAssets": 177,
+          "resident": 288,
+          "queued": 0,
+          "active": 0,
+          "evicted": 88,
+          "ready": 376,
+          "overLimitBytes": 0,
+          "previewSpritePx": 512,
+          "previewTerrainPx": 512
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 32,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 5,
+          "misses": 28,
+          "evicted": 0,
+          "stored": 27
+        },
+        "sceneryBuilds": 10,
+        "terrainBuilds": 22,
+        "imagePool": {
+          "decodedBytes": 301989888,
+          "limitBytes": 301989888,
+          "protectedBytes": 185597952,
+          "protectedAssets": 177,
+          "resident": 288,
+          "queued": 0,
+          "active": 0,
+          "evicted": 88,
+          "ready": 376,
+          "overLimitBytes": 0,
+          "previewSpritePx": 512,
+          "previewTerrainPx": 512
+        }
+      },
+      "quietTrace": {
+        "invalidations": {},
+        "assetEvents": {},
+        "bakes": {},
+        "cacheMisses": {},
+        "types": {},
+        "dropped": 0,
+        "totalEvents": 0,
+        "attributionComplete": true
+      },
+      "trace": {
+        "types": {},
+        "dropped": 0
+      },
+      "cpuTaskSeconds": null,
+      "frame": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "syncDrawP95Ms": null
+      },
+      "invalidReasons": [
+        "not-quiescent-before-sampling"
+      ]
+    }
+  ],
+  "control": [
+    {
+      "kind": "pan",
+      "valid": true,
+      "seeded": 16,
+      "retained": 16,
+      "cacheBytes": 64192512,
+      "coverageMin": 1,
+      "sourcePending": false,
+      "completedChange": 0,
+      "evictedChange": 0,
+      "frame": {
+        "count": 89,
+        "p50": 33.4,
+        "p95": 50.1,
+        "requestRenderP95Ms": 0.86,
+        "compositeP95Ms": 0.4
+      }
+    },
+    {
+      "kind": "zoom",
+      "valid": true,
+      "seeded": 16,
+      "retained": 16,
+      "cacheBytes": 64192512,
+      "coverageMin": 1,
+      "sourcePending": false,
+      "completedChange": 0,
+      "evictedChange": 0,
+      "frame": {
+        "count": 89,
+        "p50": 33.4,
+        "p95": 50.1,
+        "requestRenderP95Ms": 0.66,
+        "compositeP95Ms": 0.36
+      }
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "import": {
+    "file": "C:\\Users\\marku\\Desktop\\asset_labor\\artifacts\\rendering-step13\\vedras_scene.json",
+    "expectedNature": 2631,
+    "sceneSize": 397,
+    "catalogAssets": 480,
+    "nature": 2631,
+    "missingNatureInstances": 0,
+    "missingPaths": [],
+    "sites": [
+      {
+        "label": "center",
+        "q": 0,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "dense-forest",
+        "q": -3,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "coast",
+        "q": 1,
+        "r": 3,
+        "terrain": "grassland",
+        "forestClass": "none",
+        "waterNeighbors": 4
+      },
+      {
+        "label": "mountains",
+        "q": -10,
+        "r": 3,
+        "terrain": "highland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "moor",
+        "q": -7,
+        "r": 4,
+        "terrain": "moor",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 1
+      },
+      {
+        "label": "open-water",
+        "q": -4,
+        "r": 5,
+        "terrain": "ocean",
+        "forestClass": "none",
+        "waterNeighbors": 6
+      }
+    ]
+  },
+  "importByQuality": {
+    "4": {
+      "importMs": 1328,
+      "nature": 2631,
+      "missingNatureInstances": 0
+    },
+    "auto": {
+      "importMs": 1300,
+      "nature": 2631,
+      "missingNatureInstances": 0
+    }
+  },
+  "decision": {
+    "status": "INSUFFICIENT_REAL_WARM_EVIDENCE",
+    "rendererRewriteRecommended": false,
+    "recommendation": "Investigate real scene preparation/readiness and asset lifetimes before changing backend",
+    "blockers": [
+      "No valid real warm run; cannot claim FPS improvement or choose rewrite",
+      "Actual real camera still allocates/rebuilds or fails readiness"
+    ]
+  }
+}

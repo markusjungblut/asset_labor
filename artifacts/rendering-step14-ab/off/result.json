@@ -1,0 +1,4560 @@
+{
+  "atlas": "off",
+  "phases": [
+    {
+      "quality": "auto",
+      "kind": "pan",
+      "elapsedSeconds": 3.325,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 589.1,
+          "over50ms": 0
+        },
+        "images.loaded": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 1,
+          "totalMs": 75.5,
+          "maxMsSession": 139,
+          "over50ms": 1
+        },
+        "roads.editorDrawMs": {
+          "count": 1,
+          "totalMs": 0.5,
+          "maxMsSession": 7.6,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 18,
+          "totalMs": 5.8,
+          "maxMsSession": 80.2,
+          "over50ms": 0
+        },
+        "sprites.occlusionMs": {
+          "count": 18,
+          "totalMs": 0,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 18,
+          "totalMs": 39.1,
+          "maxMsSession": 1724.7,
+          "over50ms": 0
+        },
+        "sprites.drawMs": {
+          "count": 18,
+          "totalMs": 13.5,
+          "maxMsSession": 44.1,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 520,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 54,
+          "totalMs": 94.4,
+          "maxMsSession": 9.4,
+          "over50ms": 0
+        },
+        "tile.bakeWallMs": {
+          "count": 17,
+          "totalMs": 1541.6,
+          "maxMsSession": 1988.4,
+          "over50ms": 17
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 17,
+          "totalMs": 1255,
+          "maxMsSession": 475.7,
+          "over50ms": 17
+        },
+        "tile.sceneryMs": {
+          "count": 17,
+          "totalMs": 58.1,
+          "maxMsSession": 7.3,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 520,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 6,
+        "images": 4,
+        "atlas": 0,
+        "transferBytes": 1710496,
+        "imageTransferBytes": 1708682
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 0,
+        "decodedBytesDelta": 0
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 9412364,
+        "jsHeapAfter": 15255148,
+        "imagePoolDecodedBytes": 301989888,
+        "worldTileRgbaEstimateBytes": 105000192,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 53.8,
+      "frameIntervalMs": {
+        "count": 145,
+        "p50": 16.7,
+        "p95": 66.7,
+        "over50ms": 17
+      },
+      "longTasks": {
+        "count": 18,
+        "p95Ms": 89.3
+      },
+      "cpuTaskSeconds": 1.79,
+      "heapUsedBefore": 9412364,
+      "heapUsedAfter": 15255148,
+      "tileBakes": 17,
+      "fastFrames": 54,
+      "sceneryBuilds": 0,
+      "terrainBuilds": 3,
+      "visiblePreviews": 0,
+      "remainingTiles": 0,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 16,
+      "coverage": 1,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 1,
+      "end": {
+        "quality": {
+          "quality": "auto",
+          "requestedDpr": 1,
+          "effectiveDpr": 1,
+          "limiter": "none",
+          "budgetPixels": 3200000,
+          "canvasPixels": 319410,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 512,
+          "spritePx": 512,
+          "imagePoolBytes": 301989888,
+          "backingWidth": 702,
+          "backingHeight": 455,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 367,
+            "decodedBytes": 301989888,
+            "peakBytes": 303038464,
+            "promoted": 0,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 178,
+            "protectedBytes": 186646528,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 512,
+            "previewSpritePx": 512,
+            "limitBytes": 301989888
+          },
+          "scenery": {
+            "builds": 9,
+            "hits": 122,
+            "misses": 9,
+            "disabled": 0,
+            "lastBuildMs": 1869.1000000014901,
+            "lastCompositeMs": 0,
+            "bytes": 8447880,
+            "active": true
+          },
+          "background": {
+            "builds": 23,
+            "hits": 0,
+            "misses": 23,
+            "disabled": 0,
+            "lastBuildMs": 76,
+            "lastCompositeMs": 0.2000000011175871,
+            "bytes": 4088360,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 3,
+          "zoomFallbacks": 0,
+          "fastFrames": 108,
+          "worldTileBakes": 24,
+          "backgroundBuilds": 23,
+          "sceneryBuilds": 9,
+          "terrainBuilds": 36,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 16,
+          "pixels": 26250048,
+          "bytes": 105000192,
+          "budgetBytes": 104000000,
+          "evicted": 1,
+          "completed": 40,
+          "failed": 0,
+          "pending": 0,
+          "inFlight": 0,
+          "visible": 16,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 0,
+          "selectiveTiles": 0,
+          "priorityReorders": 1,
+          "agedPromotions": 0,
+          "discardedObsolete": 0,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 1.5,
+          "coverage": 1,
+          "drawn": 4,
+          "frames": 109,
+          "tileBakes": 24,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 264,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 4,
+          "staticSceneryBuilds": 9,
+          "staticSceneryHits": 122,
+          "worldTileBakes": 24
+        },
+        "streaming": {
+          "terrain": {
+            "built": 34,
+            "cacheHits": 118,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 750.5,
+            "visible": 24,
+            "pending": 3,
+            "painted": 21,
+            "stalePainted": 0,
+            "pixels": 14732676,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 123,
+            "prefetched": 4,
+            "prefetchDiscarded": 0,
+            "obsolete": 1,
+            "visibleRevision": 30,
+            "prefetchPending": 8,
+            "manualPending": 0,
+            "priorityReorders": 3,
+            "agedPromotions": 1,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 48,
+            "obsoleteVisibleDiscarded": 57,
+            "cached": 25,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 2,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 58930704,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 167,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 78.80000000074506,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 62,
+            "prefetched": 0,
+            "prefetchDiscarded": 1,
+            "obsolete": 2,
+            "visibleRevision": 43,
+            "prefetchPending": 6,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 26,
+            "obsoleteVisibleDiscarded": 9,
+            "cached": 16,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 1,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 72,
+            "cacheHits": 244,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0.19999999925494194,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 8618880,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 72,
+            "prefetched": 9,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 63,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 30,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 34475520,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 30,
+          "pending": 0,
+          "jobs": 65,
+          "completed": 65,
+          "failed": 0,
+          "workerMs": 0,
+          "transferred": 26,
+          "shorelineJobs": 52,
+          "shorelineCompleted": 52,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 358,
+              "totalMs": 39802.7,
+              "maxMs": 589.1,
+              "over50ms": 358
+            },
+            "images.loaded": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 358,
+              "totalMs": 72.3,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 18,
+              "totalMs": 1238,
+              "maxMs": 139,
+              "over50ms": 9
+            },
+            "roads.editorDrawMs": {
+              "count": 18,
+              "totalMs": 18.8,
+              "maxMs": 7.6,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 47,
+              "totalMs": 106.8,
+              "maxMs": 80.2,
+              "over50ms": 1
+            },
+            "sprites.occlusionMs": {
+              "count": 47,
+              "totalMs": 19.2,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 47,
+              "totalMs": 1764,
+              "maxMs": 1724.7,
+              "over50ms": 1
+            },
+            "sprites.drawMs": {
+              "count": 47,
+              "totalMs": 57.6,
+              "maxMs": 44.1,
+              "over50ms": 0
+            },
+            "sprites.drawnCount": {
+              "count": 2068,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 108,
+              "totalMs": 205,
+              "maxMs": 9.4,
+              "over50ms": 0
+            },
+            "tile.bakeWallMs": {
+              "count": 174,
+              "totalMs": 5831.2,
+              "maxMs": 1988.4,
+              "over50ms": 25
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 24,
+              "totalMs": 2550.2,
+              "maxMs": 475.7,
+              "over50ms": 24
+            },
+            "tile.sceneryMs": {
+              "count": 24,
+              "totalMs": 58.6,
+              "maxMs": 7.3,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 2068,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 488,
+          "images": 400,
+          "atlas": 1,
+          "transferBytes": 647003180,
+          "imageTransferBytes": 644264050
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.7,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 1.00× · tatsächlich 1.00× · volle gewählte Qualität · Canvas 702×455 px / 3 MP Budget · Bildquellen bis 512 / 512 px (Terrain/Sprites)",
+        "perfText": "Ø 201.4 ms / Frame · Gelände 77.6 ms · Wege/Flüsse 1.1 ms · Sprites/Schatten 120.7 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 27 / 27 · Bilder 0 in Warteschlange / 0 laden · Terrain 3 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "pan",
+      "validStart": false,
+      "readyAfter": true,
+      "readinessReasons": []
+    },
+    {
+      "quality": "auto",
+      "kind": "zoom",
+      "elapsedSeconds": 2.157,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 589.1,
+          "over50ms": 0
+        },
+        "images.loaded": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 139,
+          "over50ms": 0
+        },
+        "roads.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 7.6,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 4,
+          "totalMs": 3.1,
+          "maxMsSession": 80.2,
+          "over50ms": 0
+        },
+        "sprites.occlusionMs": {
+          "count": 4,
+          "totalMs": 2.5,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 4,
+          "totalMs": 141,
+          "maxMsSession": 1724.7,
+          "over50ms": 1
+        },
+        "sprites.drawMs": {
+          "count": 4,
+          "totalMs": 184.4,
+          "maxMsSession": 73.6,
+          "over50ms": 2
+        },
+        "sprites.drawnCount": {
+          "count": 4794,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 5,
+          "totalMs": 346.8,
+          "maxMsSession": 123.7,
+          "over50ms": 4
+        },
+        "tile.bakeWallMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 1988.4,
+          "over50ms": 0
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 475.7,
+          "over50ms": 0
+        },
+        "tile.sceneryMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 7.3,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 4794,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 0,
+        "images": 0,
+        "atlas": 0,
+        "transferBytes": 0,
+        "imageTransferBytes": 0
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 0,
+        "decodedBytesDelta": 0
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 22958908,
+        "jsHeapAfter": 18141880,
+        "imagePoolDecodedBytes": 301989888,
+        "worldTileRgbaEstimateBytes": 98437680,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 18.5,
+      "frameIntervalMs": {
+        "count": 9,
+        "p50": 16.7,
+        "p95": 737.28,
+        "over50ms": 3
+      },
+      "longTasks": {
+        "count": 4,
+        "p95Ms": 131.95
+      },
+      "cpuTaskSeconds": 0.4,
+      "heapUsedBefore": 22958908,
+      "heapUsedAfter": 18141880,
+      "tileBakes": 0,
+      "fastFrames": 5,
+      "sceneryBuilds": 4,
+      "terrainBuilds": 0,
+      "visiblePreviews": 0,
+      "remainingTiles": 0,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 8,
+      "coverage": 1,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 1,
+      "end": {
+        "quality": {
+          "quality": "auto",
+          "requestedDpr": 1,
+          "effectiveDpr": 1,
+          "limiter": "none",
+          "budgetPixels": 3200000,
+          "canvasPixels": 319410,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 512,
+          "spritePx": 512,
+          "imagePoolBytes": 301989888,
+          "backingWidth": 702,
+          "backingHeight": 455,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 367,
+            "decodedBytes": 301989888,
+            "peakBytes": 303038464,
+            "promoted": 0,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 160,
+            "protectedBytes": 167772160,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 512,
+            "previewSpritePx": 512,
+            "limitBytes": 301989888
+          },
+          "scenery": {
+            "builds": 13,
+            "hits": 128,
+            "misses": 13,
+            "disabled": 0,
+            "lastBuildMs": 51.899999998509884,
+            "lastCompositeMs": 0,
+            "bytes": 8447880,
+            "active": true
+          },
+          "background": {
+            "builds": 23,
+            "hits": 0,
+            "misses": 23,
+            "disabled": 0,
+            "lastBuildMs": 76,
+            "lastCompositeMs": 0.2000000011175871,
+            "bytes": 4088360,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 24,
+          "zoomFallbacks": 0,
+          "fastFrames": 118,
+          "worldTileBakes": 24,
+          "backgroundBuilds": 23,
+          "sceneryBuilds": 13,
+          "terrainBuilds": 36,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 15,
+          "pixels": 24609420,
+          "bytes": 98437680,
+          "budgetBytes": 104000000,
+          "evicted": 2,
+          "completed": 40,
+          "failed": 0,
+          "pending": 0,
+          "inFlight": 0,
+          "visible": 8,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 0,
+          "selectiveTiles": 0,
+          "priorityReorders": 1,
+          "agedPromotions": 0,
+          "discardedObsolete": 0,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 53.899999998509884,
+          "coverage": 1,
+          "drawn": 4,
+          "frames": 119,
+          "tileBakes": 24,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 295,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 4,
+          "staticSceneryBuilds": 13,
+          "staticSceneryHits": 128,
+          "worldTileBakes": 24
+        },
+        "streaming": {
+          "terrain": {
+            "built": 34,
+            "cacheHits": 118,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 750.5,
+            "visible": 24,
+            "pending": 3,
+            "painted": 21,
+            "stalePainted": 0,
+            "pixels": 14732676,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 123,
+            "prefetched": 4,
+            "prefetchDiscarded": 0,
+            "obsolete": 1,
+            "visibleRevision": 30,
+            "prefetchPending": 8,
+            "manualPending": 0,
+            "priorityReorders": 3,
+            "agedPromotions": 1,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 48,
+            "obsoleteVisibleDiscarded": 57,
+            "cached": 25,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 2,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 58930704,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 167,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 78.80000000074506,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 62,
+            "prefetched": 0,
+            "prefetchDiscarded": 1,
+            "obsolete": 2,
+            "visibleRevision": 43,
+            "prefetchPending": 6,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 26,
+            "obsoleteVisibleDiscarded": 9,
+            "cached": 16,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 1,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 72,
+            "cacheHits": 244,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0.19999999925494194,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 8618880,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 72,
+            "prefetched": 9,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 63,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 30,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 34475520,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 30,
+          "pending": 0,
+          "jobs": 65,
+          "completed": 65,
+          "failed": 0,
+          "workerMs": 0,
+          "transferred": 26,
+          "shorelineJobs": 52,
+          "shorelineCompleted": 52,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 358,
+              "totalMs": 39802.7,
+              "maxMs": 589.1,
+              "over50ms": 358
+            },
+            "images.loaded": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 358,
+              "totalMs": 72.3,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 18,
+              "totalMs": 1238,
+              "maxMs": 139,
+              "over50ms": 9
+            },
+            "roads.editorDrawMs": {
+              "count": 18,
+              "totalMs": 18.8,
+              "maxMs": 7.6,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 51,
+              "totalMs": 109.9,
+              "maxMs": 80.2,
+              "over50ms": 1
+            },
+            "sprites.occlusionMs": {
+              "count": 51,
+              "totalMs": 21.7,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 51,
+              "totalMs": 1905,
+              "maxMs": 1724.7,
+              "over50ms": 2
+            },
+            "sprites.drawMs": {
+              "count": 51,
+              "totalMs": 242,
+              "maxMs": 73.6,
+              "over50ms": 2
+            },
+            "sprites.drawnCount": {
+              "count": 6862,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 118,
+              "totalMs": 559.7,
+              "maxMs": 123.7,
+              "over50ms": 4
+            },
+            "tile.bakeWallMs": {
+              "count": 174,
+              "totalMs": 5831.2,
+              "maxMs": 1988.4,
+              "over50ms": 25
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 24,
+              "totalMs": 2550.2,
+              "maxMs": 475.7,
+              "over50ms": 24
+            },
+            "tile.sceneryMs": {
+              "count": 24,
+              "totalMs": 58.6,
+              "maxMs": 7.3,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 6862,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 488,
+          "images": 400,
+          "atlas": 1,
+          "transferBytes": 647003180,
+          "imageTransferBytes": 644264050
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.73,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 1.00× · tatsächlich 1.00× · volle gewählte Qualität · Canvas 702×455 px / 3 MP Budget · Bildquellen bis 512 / 512 px (Terrain/Sprites)",
+        "perfText": "Ø 201.4 ms / Frame · Gelände 77.6 ms · Wege/Flüsse 1.1 ms · Sprites/Schatten 120.7 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 27 / 27 · Bilder 0 in Warteschlange / 0 laden · Terrain 3 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "zoom",
+      "validStart": true,
+      "readyAfter": true,
+      "readinessReasons": []
+    },
+    {
+      "quality": "auto",
+      "kind": "zoom",
+      "elapsedSeconds": 2.846,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 589.1,
+          "over50ms": 0
+        },
+        "images.loaded": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 1,
+          "totalMs": 72.2,
+          "maxMsSession": 148.1,
+          "over50ms": 1
+        },
+        "roads.editorDrawMs": {
+          "count": 1,
+          "totalMs": 0.6,
+          "maxMsSession": 7.6,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 13,
+          "totalMs": 5.4,
+          "maxMsSession": 85.1,
+          "over50ms": 0
+        },
+        "sprites.occlusionMs": {
+          "count": 13,
+          "totalMs": 1,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 13,
+          "totalMs": 182,
+          "maxMsSession": 1724.7,
+          "over50ms": 0
+        },
+        "sprites.drawMs": {
+          "count": 13,
+          "totalMs": 151.8,
+          "maxMsSession": 73.6,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 5574,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 5,
+          "totalMs": 324.9,
+          "maxMsSession": 123.7,
+          "over50ms": 4
+        },
+        "tile.bakeWallMs": {
+          "count": 7,
+          "totalMs": 1425.4,
+          "maxMsSession": 1988.4,
+          "over50ms": 7
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 7,
+          "totalMs": 674.3,
+          "maxMsSession": 475.7,
+          "over50ms": 7
+        },
+        "tile.sceneryMs": {
+          "count": 7,
+          "totalMs": 29,
+          "maxMsSession": 7.6,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 5574,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 69,
+        "images": 46,
+        "atlas": 0,
+        "transferBytes": 19470649,
+        "imageTransferBytes": 19449744
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 0,
+        "decodedBytesDelta": 0
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 24921932,
+        "jsHeapAfter": 23090280,
+        "imagePoolDecodedBytes": 301989888,
+        "worldTileRgbaEstimateBytes": 45937584,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 45.7,
+      "frameIntervalMs": {
+        "count": 5,
+        "p50": 583.8,
+        "p95": 757.18,
+        "over50ms": 5
+      },
+      "longTasks": {
+        "count": 12,
+        "p95Ms": 138.25
+      },
+      "cpuTaskSeconds": 1.3,
+      "heapUsedBefore": 24921932,
+      "heapUsedAfter": 23090280,
+      "tileBakes": 7,
+      "fastFrames": 5,
+      "sceneryBuilds": 5,
+      "terrainBuilds": 23,
+      "visiblePreviews": 0,
+      "remainingTiles": 1,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 8,
+      "coverage": 1,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 1,
+      "end": {
+        "quality": {
+          "quality": "auto",
+          "requestedDpr": 1,
+          "effectiveDpr": 1,
+          "limiter": "none",
+          "budgetPixels": 3200000,
+          "canvasPixels": 319410,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 512,
+          "spritePx": 512,
+          "imagePoolBytes": 301989888,
+          "backingWidth": 702,
+          "backingHeight": 455,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 367,
+            "decodedBytes": 301989888,
+            "peakBytes": 303038464,
+            "promoted": 0,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 170,
+            "protectedBytes": 178257920,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 512,
+            "previewSpritePx": 512,
+            "limitBytes": 301989888
+          },
+          "scenery": {
+            "builds": 21,
+            "hits": 132,
+            "misses": 21,
+            "disabled": 0,
+            "lastBuildMs": 60.09999999962747,
+            "lastCompositeMs": 0,
+            "bytes": 8447880,
+            "active": true
+          },
+          "background": {
+            "builds": 25,
+            "hits": 0,
+            "misses": 25,
+            "disabled": 0,
+            "lastBuildMs": 72.80000000074506,
+            "lastCompositeMs": 0,
+            "bytes": 4088360,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 46,
+          "zoomFallbacks": 0,
+          "fastFrames": 128,
+          "worldTileBakes": 32,
+          "backgroundBuilds": 25,
+          "sceneryBuilds": 21,
+          "terrainBuilds": 59,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 7,
+          "pixels": 11484396,
+          "bytes": 45937584,
+          "budgetBytes": 104000000,
+          "evicted": 2,
+          "completed": 48,
+          "failed": 0,
+          "pending": 1,
+          "inFlight": 1,
+          "visible": 8,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 0,
+          "selectiveTiles": 0,
+          "priorityReorders": 1,
+          "agedPromotions": 0,
+          "discardedObsolete": 0,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 62.29999999888241,
+          "coverage": 1,
+          "drawn": 4,
+          "frames": 129,
+          "tileBakes": 32,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 352,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 4,
+          "staticSceneryBuilds": 21,
+          "staticSceneryHits": 132,
+          "worldTileBakes": 32
+        },
+        "streaming": {
+          "terrain": {
+            "built": 36,
+            "cacheHits": 260,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 26.700000001117587,
+            "visible": 24,
+            "pending": 24,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 335,
+            "prefetched": 4,
+            "prefetchDiscarded": 0,
+            "obsolete": 5,
+            "visibleRevision": 32,
+            "prefetchPending": 12,
+            "manualPending": 0,
+            "priorityReorders": 3,
+            "agedPromotions": 1,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 51,
+            "obsoleteVisibleDiscarded": 73,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 1,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 281,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 6.199999999254942,
+            "visible": 16,
+            "pending": 14,
+            "painted": 2,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 175,
+            "prefetched": 0,
+            "prefetchDiscarded": 1,
+            "obsolete": 5,
+            "visibleRevision": 49,
+            "prefetchPending": 6,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 28,
+            "obsoleteVisibleDiscarded": 52,
+            "cached": 2,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 1,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 79,
+            "cacheHits": 431,
+            "evicted": 1,
+            "errors": 0,
+            "lastMs": 0.40000000037252903,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 10342656,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 191,
+            "prefetched": 9,
+            "prefetchDiscarded": 14,
+            "obsolete": 0,
+            "visibleRevision": 70,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 36,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 41370624,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 33,
+          "pending": 4,
+          "jobs": 87,
+          "completed": 83,
+          "failed": 0,
+          "workerMs": 0,
+          "transferred": 28,
+          "shorelineJobs": 71,
+          "shorelineCompleted": 69,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 358,
+              "totalMs": 39802.7,
+              "maxMs": 589.1,
+              "over50ms": 358
+            },
+            "images.loaded": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 358,
+              "totalMs": 72.3,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 358,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 20,
+              "totalMs": 1458.3,
+              "maxMs": 148.1,
+              "over50ms": 11
+            },
+            "roads.editorDrawMs": {
+              "count": 20,
+              "totalMs": 20.6,
+              "maxMs": 7.6,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 69,
+              "totalMs": 202.4,
+              "maxMs": 85.1,
+              "over50ms": 2
+            },
+            "sprites.occlusionMs": {
+              "count": 69,
+              "totalMs": 24,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 69,
+              "totalMs": 2182.3,
+              "maxMs": 1724.7,
+              "over50ms": 2
+            },
+            "sprites.drawMs": {
+              "count": 69,
+              "totalMs": 496.4,
+              "maxMs": 73.6,
+              "over50ms": 2
+            },
+            "sprites.drawnCount": {
+              "count": 17018,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 128,
+              "totalMs": 1023.7,
+              "maxMs": 123.7,
+              "over50ms": 10
+            },
+            "tile.bakeWallMs": {
+              "count": 182,
+              "totalMs": 7426.2,
+              "maxMs": 1988.4,
+              "over50ms": 33
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 32,
+              "totalMs": 3292.8,
+              "maxMs": 475.7,
+              "over50ms": 32
+            },
+            "tile.sceneryMs": {
+              "count": 32,
+              "totalMs": 94,
+              "maxMs": 7.6,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 17018,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 557,
+          "images": 446,
+          "atlas": 1,
+          "transferBytes": 666473829,
+          "imageTransferBytes": 663713794
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.73,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 1.00× · tatsächlich 1.00× · volle gewählte Qualität · Canvas 702×455 px / 3 MP Budget · Bildquellen bis 512 / 512 px (Terrain/Sprites)",
+        "perfText": "Ø 219.2 ms / Frame · Gelände 86.8 ms · Wege/Flüsse 1.1 ms · Sprites/Schatten 129.5 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 0 / 27 · Bilder 0 in Warteschlange / 0 laden · Terrain 24 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "cold-zoom",
+      "validStart": true,
+      "readyAfter": true,
+      "readinessReasons": []
+    },
+    {
+      "quality": "4",
+      "kind": "pan",
+      "elapsedSeconds": 94.426,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 68,
+          "totalMs": 14719.6,
+          "maxMsSession": 3747.5,
+          "over50ms": 42
+        },
+        "images.loaded": {
+          "count": 68,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 68,
+          "totalMs": 13.5,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 68,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 3621.9,
+          "over50ms": 0
+        },
+        "roads.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 47.4,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 50,
+          "totalMs": 2379.3,
+          "maxMsSession": 218.6,
+          "over50ms": 25
+        },
+        "sprites.occlusionMs": {
+          "count": 50,
+          "totalMs": 5.3,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 50,
+          "totalMs": 2279.8,
+          "maxMsSession": 1724.7,
+          "over50ms": 5
+        },
+        "sprites.drawMs": {
+          "count": 50,
+          "totalMs": 602.7,
+          "maxMsSession": 73.6,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 28240,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 72,
+          "totalMs": 5025.6,
+          "maxMsSession": 1311.3,
+          "over50ms": 23
+        },
+        "tile.bakeWallMs": {
+          "count": 121,
+          "totalMs": 84766.8,
+          "maxMsSession": 7319.8,
+          "over50ms": 46
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 23,
+          "totalMs": 77168.1,
+          "maxMsSession": 3794.3,
+          "over50ms": 23
+        },
+        "tile.sceneryMs": {
+          "count": 23,
+          "totalMs": 119.8,
+          "maxMsSession": 24.1,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 28240,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 91,
+        "images": 83,
+        "atlas": 0,
+        "transferBytes": 94612560,
+        "imageTransferBytes": 94605516
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 68,
+        "decodedBytesDelta": 89128960
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 12508144,
+        "jsHeapAfter": 11688828,
+        "imagePoolDecodedBytes": 433061888,
+        "worldTileRgbaEstimateBytes": 16229184,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 88.1,
+      "frameIntervalMs": {
+        "count": 116,
+        "p50": 133.4,
+        "p95": 3657.17,
+        "over50ms": 69
+      },
+      "longTasks": {
+        "count": 47,
+        "p95Ms": 3774.1
+      },
+      "cpuTaskSeconds": 83.2,
+      "heapUsedBefore": 12508144,
+      "heapUsedAfter": 11688828,
+      "tileBakes": 23,
+      "fastFrames": 72,
+      "sceneryBuilds": 25,
+      "terrainBuilds": 6,
+      "visiblePreviews": 0,
+      "remainingTiles": 12,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 16,
+      "coverage": 1,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 4,
+      "end": {
+        "quality": {
+          "quality": "4",
+          "requestedDpr": 4,
+          "effectiveDpr": 4,
+          "limiter": "none",
+          "budgetPixels": 8000000,
+          "canvasPixels": 5110560,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 768,
+          "spritePx": 768,
+          "imagePoolBytes": 603979776,
+          "backingWidth": 2808,
+          "backingHeight": 1820,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 467,
+            "decodedBytes": 433061888,
+            "peakBytes": 433061888,
+            "promoted": 100,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 178,
+            "protectedBytes": 317718528,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 768,
+            "previewSpritePx": 768,
+            "limitBytes": 603979776
+          },
+          "scenery": {
+            "builds": 53,
+            "hits": 212,
+            "misses": 53,
+            "disabled": 0,
+            "lastBuildMs": 134.90000000037253,
+            "lastCompositeMs": 0,
+            "bytes": 67781120,
+            "active": true
+          },
+          "background": {
+            "builds": 33,
+            "hits": 5,
+            "misses": 33,
+            "disabled": 0,
+            "lastBuildMs": 3590.0999999996275,
+            "lastCompositeMs": 0,
+            "bytes": 65413760,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 49,
+          "zoomFallbacks": 0,
+          "fastFrames": 227,
+          "worldTileBakes": 66,
+          "backgroundBuilds": 33,
+          "sceneryBuilds": 53,
+          "terrainBuilds": 89,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 4,
+          "pixels": 4057296,
+          "bytes": 16229184,
+          "budgetBytes": 104000000,
+          "evicted": 2,
+          "completed": 179,
+          "failed": 0,
+          "pending": 12,
+          "inFlight": 1,
+          "visible": 16,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 29,
+          "selectiveTiles": 2869,
+          "priorityReorders": 6,
+          "agedPromotions": 1,
+          "discardedObsolete": 7,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 2.699999999254942,
+          "coverage": 1,
+          "drawn": 4,
+          "frames": 228,
+          "tileBakes": 66,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 582,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 4,
+          "staticSceneryBuilds": 53,
+          "staticSceneryHits": 212,
+          "worldTileBakes": 66
+        },
+        "streaming": {
+          "terrain": {
+            "built": 84,
+            "cacheHits": 431,
+            "evicted": 9,
+            "errors": 0,
+            "lastMs": 3837.7999999988824,
+            "visible": 16,
+            "pending": 0,
+            "painted": 18,
+            "stalePainted": 1,
+            "pixels": 23318082,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 634,
+            "prefetched": 6,
+            "prefetchDiscarded": 3,
+            "obsolete": 13,
+            "visibleRevision": 77,
+            "prefetchPending": 8,
+            "manualPending": 0,
+            "priorityReorders": 21,
+            "agedPromotions": 4,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 80,
+            "obsoleteVisibleDiscarded": 152,
+            "cached": 17,
+            "variants": 1,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 93272328,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 548,
+            "evicted": 21,
+            "errors": 0,
+            "lastMs": 4.800000000745058,
+            "visible": 8,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 334,
+            "prefetched": 0,
+            "prefetchDiscarded": 4,
+            "obsolete": 7,
+            "visibleRevision": 88,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 5,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 33,
+            "obsoleteVisibleDiscarded": 94,
+            "cached": 16,
+            "variants": 1,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 103,
+            "cacheHits": 739,
+            "evicted": 1,
+            "errors": 0,
+            "lastMs": 0.09999999962747097,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 9525600,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 301,
+            "prefetched": 17,
+            "prefetchDiscarded": 22,
+            "obsolete": 0,
+            "visibleRevision": 86,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 24,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 38102400,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 38,
+          "pending": 0,
+          "jobs": 125,
+          "completed": 125,
+          "failed": 0,
+          "workerMs": 0,
+          "transferred": 34,
+          "shorelineJobs": 108,
+          "shorelineCompleted": 108,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 458,
+              "totalMs": 57601.5,
+              "maxMs": 3747.5,
+              "over50ms": 416
+            },
+            "images.loaded": {
+              "count": 458,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 458,
+              "totalMs": 92,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 458,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 28,
+              "totalMs": 9498.8,
+              "maxMs": 3621.9,
+              "over50ms": 19
+            },
+            "roads.editorDrawMs": {
+              "count": 28,
+              "totalMs": 74.3,
+              "maxMs": 47.4,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 148,
+              "totalMs": 2870.9,
+              "maxMs": 218.6,
+              "over50ms": 31
+            },
+            "sprites.occlusionMs": {
+              "count": 148,
+              "totalMs": 31.1,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 148,
+              "totalMs": 4920.5,
+              "maxMs": 1724.7,
+              "over50ms": 10
+            },
+            "sprites.drawMs": {
+              "count": 148,
+              "totalMs": 1267.8,
+              "maxMs": 73.6,
+              "over50ms": 2
+            },
+            "sprites.drawnCount": {
+              "count": 53438,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 227,
+              "totalMs": 6316.3,
+              "maxMs": 1311.3,
+              "over50ms": 35
+            },
+            "tile.bakeWallMs": {
+              "count": 381,
+              "totalMs": 102144.3,
+              "maxMs": 7319.8,
+              "over50ms": 94
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 70,
+              "totalMs": 81920,
+              "maxMs": 3794.3,
+              "over50ms": 70
+            },
+            "tile.sceneryMs": {
+              "count": 66,
+              "totalMs": 267.1,
+              "maxMs": 24.1,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 53438,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 761,
+          "images": 612,
+          "atlas": 1,
+          "transferBytes": 879547357,
+          "imageTransferBytes": 876753806
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.7,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 4.00× · tatsächlich 4.00× · volle gewählte Qualität · Canvas 2808×1820 px / 8 MP Budget · Bildquellen bis 768 / 768 px (Terrain/Sprites)",
+        "perfText": "Ø 604.0 ms / Frame · Gelände 521.1 ms · Wege/Flüsse 3.5 ms · Sprites/Schatten 77.3 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 27 / 27 · Bilder 1 in Warteschlange / 1 laden · Terrain 0 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "pan",
+      "validStart": false,
+      "readyAfter": false,
+      "readinessReasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles"
+      ]
+    },
+    {
+      "quality": "4",
+      "kind": "zoom",
+      "elapsedSeconds": 2.089,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 2,
+          "totalMs": 3516.5,
+          "maxMsSession": 3747.5,
+          "over50ms": 1
+        },
+        "images.loaded": {
+          "count": 2,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 2,
+          "totalMs": 0.3,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 2,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 3621.9,
+          "over50ms": 0
+        },
+        "roads.editorDrawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 47.4,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 3505.1,
+          "over50ms": 0
+        },
+        "sprites.occlusionMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 1724.7,
+          "over50ms": 0
+        },
+        "sprites.drawMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 73.6,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 1311.3,
+          "over50ms": 0
+        },
+        "tile.bakeWallMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 7319.8,
+          "over50ms": 0
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 3794.3,
+          "over50ms": 0
+        },
+        "tile.sceneryMs": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 24.1,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 2,
+        "images": 2,
+        "atlas": 0,
+        "transferBytes": 1794521,
+        "imageTransferBytes": 1794521
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 2,
+        "decodedBytesDelta": 2621440
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 23195932,
+        "jsHeapAfter": 25314196,
+        "imagePoolDecodedBytes": 459276288,
+        "worldTileRgbaEstimateBytes": 0,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 1,
+      "frameIntervalMs": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "over50ms": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "p95Ms": null
+      },
+      "cpuTaskSeconds": 0.02,
+      "heapUsedBefore": 23195932,
+      "heapUsedAfter": 25314196,
+      "tileBakes": 0,
+      "fastFrames": 0,
+      "sceneryBuilds": 0,
+      "terrainBuilds": 0,
+      "visiblePreviews": 0,
+      "remainingTiles": 0,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 0,
+      "coverage": 1,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 4,
+      "end": {
+        "quality": {
+          "quality": "4",
+          "requestedDpr": 4,
+          "effectiveDpr": 4,
+          "limiter": "none",
+          "budgetPixels": 8000000,
+          "canvasPixels": 5110560,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 768,
+          "spritePx": 768,
+          "imagePoolBytes": 603979776,
+          "backingWidth": 2808,
+          "backingHeight": 1820,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 487,
+            "decodedBytes": 459276288,
+            "peakBytes": 459276288,
+            "promoted": 120,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 170,
+            "protectedBytes": 330301440,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 768,
+            "previewSpritePx": 768,
+            "limitBytes": 603979776
+          },
+          "scenery": {
+            "builds": 61,
+            "hits": 218,
+            "misses": 61,
+            "disabled": 0,
+            "lastBuildMs": 3489,
+            "lastCompositeMs": 0.09999999962747097,
+            "bytes": 0,
+            "active": false
+          },
+          "background": {
+            "builds": 37,
+            "hits": 12,
+            "misses": 37,
+            "disabled": 0,
+            "lastBuildMs": 90.20000000111759,
+            "lastCompositeMs": 0,
+            "bytes": 65413760,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 70,
+          "zoomFallbacks": 0,
+          "fastFrames": 230,
+          "worldTileBakes": 68,
+          "backgroundBuilds": 37,
+          "sceneryBuilds": 61,
+          "terrainBuilds": 93,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 0,
+          "pixels": 0,
+          "bytes": 0,
+          "budgetBytes": 104000000,
+          "evicted": 2,
+          "completed": 223,
+          "failed": 0,
+          "pending": 0,
+          "inFlight": 0,
+          "visible": 0,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 38,
+          "selectiveTiles": 3730,
+          "priorityReorders": 6,
+          "agedPromotions": 1,
+          "discardedObsolete": 7,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 2.800000000745058,
+          "coverage": 1,
+          "drawn": 4,
+          "frames": 231,
+          "tileBakes": 68,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 640,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 4,
+          "staticSceneryBuilds": 61,
+          "staticSceneryHits": 218,
+          "worldTileBakes": 68
+        },
+        "streaming": {
+          "terrain": {
+            "built": 93,
+            "cacheHits": 694,
+            "evicted": 19,
+            "errors": 0,
+            "lastMs": 1201.699999999255,
+            "visible": 16,
+            "pending": 0,
+            "painted": 22,
+            "stalePainted": 0,
+            "pixels": 23863104,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 932,
+            "prefetched": 6,
+            "prefetchDiscarded": 9,
+            "obsolete": 14,
+            "visibleRevision": 85,
+            "prefetchPending": 1,
+            "manualPending": 0,
+            "priorityReorders": 21,
+            "agedPromotions": 4,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 83,
+            "obsoleteVisibleDiscarded": 194,
+            "cached": 22,
+            "variants": 1,
+            "warmPending": 0,
+            "inFlight": 1,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 95452416,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 792,
+            "evicted": 30,
+            "errors": 0,
+            "lastMs": 11.5,
+            "visible": 8,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 499,
+            "prefetched": 0,
+            "prefetchDiscarded": 8,
+            "obsolete": 7,
+            "visibleRevision": 98,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 5,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 34,
+            "obsoleteVisibleDiscarded": 133,
+            "cached": 19,
+            "variants": 1,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 108,
+            "cacheHits": 1023,
+            "evicted": 1,
+            "errors": 0,
+            "lastMs": 0.19999999925494194,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 11510100,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 473,
+            "prefetched": 17,
+            "prefetchDiscarded": 24,
+            "obsolete": 0,
+            "visibleRevision": 92,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 29,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 46040400,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 38,
+          "pending": 0,
+          "jobs": 134,
+          "completed": 134,
+          "failed": 0,
+          "workerMs": 483.59999999962747,
+          "transferred": 44,
+          "shorelineJobs": 112,
+          "shorelineCompleted": 112,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 478,
+              "totalMs": 80011.3,
+              "maxMs": 3747.5,
+              "over50ms": 428
+            },
+            "images.loaded": {
+              "count": 478,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 478,
+              "totalMs": 95.5,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 478,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 32,
+              "totalMs": 16828,
+              "maxMs": 3621.9,
+              "over50ms": 23
+            },
+            "roads.editorDrawMs": {
+              "count": 32,
+              "totalMs": 92.4,
+              "maxMs": 47.4,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 169,
+              "totalMs": 16121.8,
+              "maxMs": 3505.1,
+              "over50ms": 39
+            },
+            "sprites.occlusionMs": {
+              "count": 169,
+              "totalMs": 32.9,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 169,
+              "totalMs": 6162.2,
+              "maxMs": 1724.7,
+              "over50ms": 13
+            },
+            "sprites.drawMs": {
+              "count": 169,
+              "totalMs": 1445.2,
+              "maxMs": 73.6,
+              "over50ms": 2
+            },
+            "sprites.drawnCount": {
+              "count": 62161,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 230,
+              "totalMs": 6325.4,
+              "maxMs": 1311.3,
+              "over50ms": 35
+            },
+            "tile.bakeWallMs": {
+              "count": 385,
+              "totalMs": 113527.8,
+              "maxMs": 7319.8,
+              "over50ms": 98
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 72,
+              "totalMs": 89023,
+              "maxMs": 3794.3,
+              "over50ms": 72
+            },
+            "tile.sceneryMs": {
+              "count": 68,
+              "totalMs": 285.4,
+              "maxMs": 24.1,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 62161,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 803,
+          "images": 646,
+          "atlas": 1,
+          "transferBytes": 913306812,
+          "imageTransferBytes": 910506209
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.73,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 4.00× · tatsächlich 4.00× · volle gewählte Qualität · Canvas 2808×1820 px / 8 MP Budget · Bildquellen bis 768 / 768 px (Terrain/Sprites)",
+        "perfText": "Ø 1659.8 ms / Frame · Gelände 691.6 ms · Wege/Flüsse 4.1 ms · Sprites/Schatten 961.8 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 27 / 27 · Bilder 1 in Warteschlange / 1 laden · Terrain 0 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "zoom",
+      "validStart": false,
+      "readyAfter": false,
+      "readinessReasons": [
+        "world-tile-compositor-not-active"
+      ]
+    },
+    {
+      "quality": "4",
+      "kind": "zoom",
+      "elapsedSeconds": 16.632,
+      "atlasMode": "off",
+      "profile": {
+        "images.loadWallMs": {
+          "count": 7,
+          "totalMs": 8036.4,
+          "maxMsSession": 3785.7,
+          "over50ms": 5
+        },
+        "images.loaded": {
+          "count": 7,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 7,
+          "totalMs": 1.4,
+          "maxMsSession": 0.9,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 7,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 3,
+          "totalMs": 7263.9,
+          "maxMsSession": 3623.5,
+          "over50ms": 3
+        },
+        "roads.editorDrawMs": {
+          "count": 3,
+          "totalMs": 1.6,
+          "maxMsSession": 47.4,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 10,
+          "totalMs": 147.4,
+          "maxMsSession": 3505.1,
+          "over50ms": 2
+        },
+        "sprites.occlusionMs": {
+          "count": 10,
+          "totalMs": 2.7,
+          "maxMsSession": 19.1,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 10,
+          "totalMs": 7224.4,
+          "maxMsSession": 3551.5,
+          "over50ms": 4
+        },
+        "sprites.drawMs": {
+          "count": 10,
+          "totalMs": 105.3,
+          "maxMsSession": 73.6,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 5105,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.compositeMs": {
+          "count": 3,
+          "totalMs": 5904.7,
+          "maxMsSession": 3574.1,
+          "over50ms": 2
+        },
+        "tile.bakeWallMs": {
+          "count": 8,
+          "totalMs": 3726.5,
+          "maxMsSession": 7319.8,
+          "over50ms": 1
+        },
+        "images.evicted": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        },
+        "tile.groundRoadsMs": {
+          "count": 1,
+          "totalMs": 67.4,
+          "maxMsSession": 3794.3,
+          "over50ms": 1
+        },
+        "tile.sceneryMs": {
+          "count": 1,
+          "totalMs": 5.3,
+          "maxMsSession": 24.1,
+          "over50ms": 0
+        },
+        "atlas.bypass": {
+          "count": 5105,
+          "totalMs": 0,
+          "maxMsSession": 0,
+          "over50ms": 0
+        }
+      },
+      "resourceLoads": {
+        "total": 40,
+        "images": 29,
+        "atlas": 0,
+        "transferBytes": 20165046,
+        "imageTransferBytes": 20155339
+      },
+      "imagePoolChanges": {
+        "ready": 0,
+        "evicted": 0,
+        "promoted": 7,
+        "decodedBytesDelta": 9175040
+      },
+      "atlasChanges": {
+        "pageLoads": 0,
+        "pageEvictions": 0,
+        "cooldownFallbacks": 0
+      },
+      "memory": {
+        "jsHeapBefore": 11467492,
+        "jsHeapAfter": 21872836,
+        "imagePoolDecodedBytes": 494665728,
+        "worldTileRgbaEstimateBytes": 0,
+        "gpuTerrainEstimateBytes": 0,
+        "gpuSpriteEstimateBytes": 0
+      },
+      "mainThreadTaskUtilizationPercent": 90,
+      "frameIntervalMs": {
+        "count": 7,
+        "p50": 2301.8,
+        "p95": 3690.4,
+        "over50ms": 5
+      },
+      "longTasks": {
+        "count": 7,
+        "p95Ms": 3686
+      },
+      "cpuTaskSeconds": 14.97,
+      "heapUsedBefore": 11467492,
+      "heapUsedAfter": 21872836,
+      "tileBakes": 1,
+      "fastFrames": 3,
+      "sceneryBuilds": 5,
+      "terrainBuilds": 10,
+      "visiblePreviews": 0,
+      "remainingTiles": 0,
+      "failedTiles": 0,
+      "exhaustedRetries": 0,
+      "visibleTiles": 8,
+      "coverage": 0,
+      "lodMatchesWorld": true,
+      "qualityEffectiveDpr": 4,
+      "end": {
+        "quality": {
+          "quality": "4",
+          "requestedDpr": 4,
+          "effectiveDpr": 4,
+          "limiter": "none",
+          "budgetPixels": 8000000,
+          "canvasPixels": 5110560,
+          "viewportPixels": 319410,
+          "dense": true,
+          "terrainPx": 768,
+          "spritePx": 768,
+          "imagePoolBytes": 603979776,
+          "backingWidth": 2808,
+          "backingHeight": 1820,
+          "images": {
+            "ready": 367,
+            "failed": 0,
+            "evicted": 79,
+            "requests": 514,
+            "decodedBytes": 494665728,
+            "peakBytes": 494665728,
+            "promoted": 147,
+            "promotionFailures": 0,
+            "deferredUpgrades": 0,
+            "active": 0,
+            "activeUpgrades": 0,
+            "queued": 0,
+            "resident": 288,
+            "protectedAssets": 163,
+            "protectedBytes": 353107968,
+            "overLimitBytes": 0,
+            "previewTerrainPx": 768,
+            "previewSpritePx": 768,
+            "limitBytes": 603979776
+          },
+          "scenery": {
+            "builds": 76,
+            "hits": 226,
+            "misses": 76,
+            "disabled": 0,
+            "lastBuildMs": 44.20000000111759,
+            "lastCompositeMs": 0,
+            "bytes": 0,
+            "active": false
+          },
+          "background": {
+            "builds": 44,
+            "hits": 18,
+            "misses": 44,
+            "disabled": 0,
+            "lastBuildMs": 83.19999999925494,
+            "lastCompositeMs": 0,
+            "bytes": 65413760,
+            "active": true
+          }
+        },
+        "atlas": {
+          "active": true,
+          "tier": "desktop",
+          "pages": 0,
+          "pending": 0,
+          "sprites": 352,
+          "failed": false,
+          "pageLoads": 0,
+          "pageEvictions": 0,
+          "cooldownFallbacks": 0,
+          "benchmarkMode": "off"
+        },
+        "camera": {
+          "zoomComposites": 92,
+          "zoomFallbacks": 0,
+          "fastFrames": 240,
+          "worldTileBakes": 72,
+          "backgroundBuilds": 44,
+          "sceneryBuilds": 76,
+          "terrainBuilds": 103,
+          "active": true,
+          "interacting": false
+        },
+        "world": {
+          "version": "0.22.3",
+          "clouds": {
+            "bases": 4,
+            "edges": 0,
+            "pending": 0,
+            "hexCache": 469,
+            "seed": 1656391409,
+            "version": 1
+          },
+          "fogFrontier": 0,
+          "tiles": 0,
+          "pixels": 0,
+          "bytes": 0,
+          "budgetBytes": 104000000,
+          "evicted": 2,
+          "completed": 261,
+          "failed": 0,
+          "pending": 0,
+          "inFlight": 0,
+          "visible": 8,
+          "lod": "mid",
+          "scope": "region",
+          "lodDensity": 1.5,
+          "selectiveInvalidations": 49,
+          "selectiveTiles": 4538,
+          "priorityReorders": 6,
+          "agedPromotions": 1,
+          "discardedObsolete": 15,
+          "parallelLimit": 1,
+          "visiblePreviews": 0,
+          "previews": 16,
+          "upgraded": 4,
+          "progress": {
+            "exact": 0,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 4
+          },
+          "retryWaiting": 0,
+          "retryExhausted": 0,
+          "renderMs": 47.09999999962747,
+          "coverage": 0,
+          "drawn": 0,
+          "frames": 241,
+          "tileBakes": 72,
+          "active": true
+        },
+        "lod": {
+          "id": "mid",
+          "label": "Mittel",
+          "scope": "region",
+          "worldTileDensity": 1.5,
+          "terrain": 0.83,
+          "shore": 0.9,
+          "bank": 0.9,
+          "river": 0.86,
+          "road": 0.82,
+          "forest": 0.9,
+          "roadDetail": true,
+          "tier": "mid",
+          "changes": 1,
+          "evaluations": 720,
+          "worldTile": "mid"
+        },
+        "scenery": {
+          "mode": "world-tiles",
+          "staticSpritesThisFrame": 0,
+          "staticShadowsThisFrame": 0,
+          "dynamicSpritesThisFrame": null,
+          "worldTileDrawCalls": 0,
+          "staticSceneryBuilds": 76,
+          "staticSceneryHits": 226,
+          "worldTileBakes": 72
+        },
+        "streaming": {
+          "terrain": {
+            "built": 93,
+            "cacheHits": 772,
+            "evicted": 19,
+            "errors": 0,
+            "lastMs": 1201.699999999255,
+            "visible": 24,
+            "pending": 24,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 1005,
+            "prefetched": 6,
+            "prefetchDiscarded": 11,
+            "obsolete": 16,
+            "visibleRevision": 86,
+            "prefetchPending": 12,
+            "manualPending": 0,
+            "priorityReorders": 21,
+            "agedPromotions": 4,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 87,
+            "obsoleteVisibleDiscarded": 212,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 2,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 96000000
+          },
+          "shore": {
+            "built": 0,
+            "cacheHits": 864,
+            "evicted": 30,
+            "errors": 0,
+            "lastMs": 18.5,
+            "visible": 16,
+            "pending": 13,
+            "painted": 3,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 553,
+            "prefetched": 0,
+            "prefetchDiscarded": 14,
+            "obsolete": 7,
+            "visibleRevision": 102,
+            "prefetchPending": 6,
+            "manualPending": 0,
+            "priorityReorders": 5,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 35,
+            "obsoleteVisibleDiscarded": 150,
+            "cached": 3,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 34000000
+          },
+          "rivers": {
+            "built": 0,
+            "cacheHits": 0,
+            "evicted": 0,
+            "errors": 0,
+            "lastMs": 0,
+            "visible": 0,
+            "pending": 0,
+            "painted": 0,
+            "stalePainted": 0,
+            "pixels": 0,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 0,
+            "prefetched": 0,
+            "prefetchDiscarded": 0,
+            "obsolete": 0,
+            "visibleRevision": 0,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 0,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 0,
+            "budgetBytes": 48000000
+          },
+          "roads": {
+            "built": 108,
+            "cacheHits": 1162,
+            "evicted": 1,
+            "errors": 0,
+            "lastMs": 0.19999999925494194,
+            "visible": 16,
+            "pending": 0,
+            "painted": 16,
+            "stalePainted": 0,
+            "pixels": 11510100,
+            "warmTotal": 0,
+            "warmDone": 0,
+            "prefetchQueued": 499,
+            "prefetched": 17,
+            "prefetchDiscarded": 26,
+            "obsolete": 0,
+            "visibleRevision": 93,
+            "prefetchPending": 0,
+            "manualPending": 0,
+            "priorityReorders": 0,
+            "agedPromotions": 0,
+            "backgroundFairTurns": 0,
+            "duplicateBuildSkips": 0,
+            "obsoleteVisibleDiscarded": 0,
+            "cached": 29,
+            "variants": 0,
+            "warmPending": 0,
+            "inFlight": 0,
+            "retryWaiting": 0,
+            "retryExhausted": 0,
+            "backgroundPaused": false,
+            "bytes": 46040400,
+            "budgetBytes": 48000000
+          }
+        },
+        "gpuTerrain": {
+          "uploads": 0,
+          "reused": 0,
+          "evicted": 0,
+          "draws": 0,
+          "gpuBytes": 0,
+          "peakGpuBytes": 0,
+          "frames": 0,
+          "failures": 0,
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "textureCount": 0,
+          "budgetBytes": 134217728,
+          "renderer": "WebGL2"
+        },
+        "gpuSprites": {
+          "ready": true,
+          "active": false,
+          "reason": "",
+          "uploads": 0,
+          "draws": 0,
+          "frames": 0,
+          "failures": 0,
+          "gpuBytes": 0,
+          "renderer": "WebGL2 static scene"
+        },
+        "worker": {
+          "supported": true,
+          "enabled": true,
+          "active": true,
+          "failedReason": "",
+          "textures": 38,
+          "pending": 0,
+          "jobs": 151,
+          "completed": 151,
+          "failed": 0,
+          "workerMs": 0,
+          "transferred": 46,
+          "shorelineJobs": 128,
+          "shorelineCompleted": 128,
+          "shorelineFailed": 0,
+          "shorelineMs": 0
+        },
+        "profiler": {
+          "enabled": true,
+          "entries": {
+            "images.loadWallMs": {
+              "count": 505,
+              "totalMs": 110053.5,
+              "maxMs": 3785.7,
+              "over50ms": 446
+            },
+            "images.loaded": {
+              "count": 505,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.resampleMs": {
+              "count": 505,
+              "totalMs": 100.9,
+              "maxMs": 0.9,
+              "over50ms": 0
+            },
+            "images.resampled": {
+              "count": 505,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "terrain.editorDrawMs": {
+              "count": 39,
+              "totalMs": 27970.2,
+              "maxMs": 3623.5,
+              "over50ms": 30
+            },
+            "roads.editorDrawMs": {
+              "count": 39,
+              "totalMs": 97.2,
+              "maxMs": 47.4,
+              "over50ms": 0
+            },
+            "sprites.layoutMs": {
+              "count": 201,
+              "totalMs": 26557.2,
+              "maxMs": 3505.1,
+              "over50ms": 50
+            },
+            "sprites.occlusionMs": {
+              "count": 201,
+              "totalMs": 38.4,
+              "maxMs": 19.1,
+              "over50ms": 0
+            },
+            "shadows.drawMs": {
+              "count": 201,
+              "totalMs": 17151.7,
+              "maxMs": 3551.5,
+              "over50ms": 22
+            },
+            "sprites.drawMs": {
+              "count": 201,
+              "totalMs": 1765.5,
+              "maxMs": 73.6,
+              "over50ms": 2
+            },
+            "sprites.drawnCount": {
+              "count": 77895,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "images.requested": {
+              "count": 257,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.compositeMs": {
+              "count": 240,
+              "totalMs": 15804.1,
+              "maxMs": 3574.1,
+              "over50ms": 39
+            },
+            "tile.bakeWallMs": {
+              "count": 403,
+              "totalMs": 132722.1,
+              "maxMs": 7319.8,
+              "over50ms": 105
+            },
+            "images.evicted": {
+              "count": 79,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            },
+            "tile.groundRoadsMs": {
+              "count": 76,
+              "totalMs": 100063.4,
+              "maxMs": 3794.3,
+              "over50ms": 76
+            },
+            "tile.sceneryMs": {
+              "count": 72,
+              "totalMs": 325.1,
+              "maxMs": 24.1,
+              "over50ms": 0
+            },
+            "atlas.bypass": {
+              "count": 77895,
+              "totalMs": 0,
+              "maxMs": 0,
+              "over50ms": 0
+            }
+          }
+        },
+        "resourceLoads": {
+          "total": 866,
+          "images": 697,
+          "atlas": 1,
+          "transferBytes": 960913903,
+          "imageTransferBytes": 958102710
+        },
+        "cellCount": 397,
+        "natureCount": 2631,
+        "zoom": 0.73,
+        "view": "map",
+        "mode": "normal",
+        "qualityText": "Interaktive Qualität: gewählt 4.00× · tatsächlich 4.00× · volle gewählte Qualität · Canvas 2808×1820 px / 8 MP Budget · Bildquellen bis 768 / 768 px (Terrain/Sprites)",
+        "perfText": "Ø 2068.0 ms / Frame · Gelände 696.4 ms · Wege/Flüsse 0.3 ms · Sprites/Schatten 1369.0 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 0 / 27 · Bilder 1 in Warteschlange / 1 laden · Terrain 24 ausstehend · Nature sichtbar 745 · Sprite-Bilder 144/144 · Bildabrufe 0 · Pfade fehlen 0"
+      },
+      "scenario": "cold-zoom",
+      "validStart": false,
+      "readyAfter": false,
+      "readinessReasons": [
+        "tile-queue-pending:12"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "pan",
+      "stage": "before",
+      "ready": false,
+      "reasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles"
+      ],
+      "waitMs": 11058
+    },
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "pan",
+      "stage": "after",
+      "ready": true,
+      "reasons": [],
+      "waitMs": 1535
+    },
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "zoom",
+      "stage": "before",
+      "ready": true,
+      "reasons": [],
+      "waitMs": 1522
+    },
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "zoom",
+      "stage": "after",
+      "ready": true,
+      "reasons": [],
+      "waitMs": 1528
+    },
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "cold-zoom",
+      "stage": "before",
+      "ready": true,
+      "reasons": [],
+      "waitMs": 1541
+    },
+    {
+      "atlas": "off",
+      "quality": "auto",
+      "kind": "cold-zoom",
+      "stage": "after",
+      "ready": true,
+      "reasons": [],
+      "waitMs": 3824
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "pan",
+      "stage": "before",
+      "ready": false,
+      "reasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles",
+        "coverage:0.5",
+        "missing:2"
+      ],
+      "waitMs": 12582
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "pan",
+      "stage": "after",
+      "ready": false,
+      "reasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles"
+      ],
+      "waitMs": 12101
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "zoom",
+      "stage": "before",
+      "ready": false,
+      "reasons": [
+        "world-tile-compositor-not-active",
+        "no-visible-world-tiles"
+      ],
+      "waitMs": 11018
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "zoom",
+      "stage": "after",
+      "ready": false,
+      "reasons": [
+        "world-tile-compositor-not-active"
+      ],
+      "waitMs": 9697
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "cold-zoom",
+      "stage": "before",
+      "ready": false,
+      "reasons": [
+        "tile-queue-pending:11"
+      ],
+      "waitMs": 10645
+    },
+    {
+      "atlas": "off",
+      "quality": "4",
+      "kind": "cold-zoom",
+      "stage": "after",
+      "ready": false,
+      "reasons": [
+        "tile-queue-pending:12"
+      ],
+      "waitMs": 10334
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "auto-baseline-diagnostic.png",
+      "bytes": 723600,
+      "width": 702,
+      "height": 455,
+      "sha256": "9a6f79b0682ccb5cfc234381d20e0e255b8a59801e6786cdfa7cd36afceb99ba",
+      "stage": "before",
+      "quality": "auto",
+      "verified": false
+    },
+    {
+      "file": "auto-zoom-ready.png",
+      "bytes": 654890,
+      "width": 702,
+      "height": 455,
+      "sha256": "35d72487daa54b825e9a595cefa3d9904800178349850e104b7cfe70563bb508",
+      "stage": "after",
+      "quality": "auto",
+      "verified": true
+    },
+    {
+      "file": "auto-cold-zoom-ready.png",
+      "bytes": 654862,
+      "width": 702,
+      "height": 455,
+      "sha256": "cfa31294bd52c2aaa8ea8f9b5aa4bd9c81a9ce199f3c030cdb46734fbe01eb69",
+      "stage": "after",
+      "quality": "auto",
+      "verified": true
+    },
+    {
+      "file": "4-baseline-diagnostic.png",
+      "bytes": 714740,
+      "width": 702,
+      "height": 455,
+      "sha256": "011cb655d5163bec93655276522aee63c4eddbcbab88963d43e9a5cb4bfd6efe",
+      "stage": "before",
+      "quality": "4",
+      "verified": false
+    },
+    {
+      "file": "4-zoom-diagnostic.png",
+      "bytes": 712031,
+      "width": 702,
+      "height": 455,
+      "sha256": "32b051b26ce813ba02efd890df50ffe6ef4bf079049c7274c01b32f923b90820",
+      "stage": "after",
+      "quality": "4",
+      "verified": false
+    },
+    {
+      "file": "4-cold-zoom-diagnostic.png",
+      "bytes": 711576,
+      "width": 702,
+      "height": 455,
+      "sha256": "081a09033194ed6680ccad83062d015e4caac8b3d7dc0b6534b7e1822643bd4d",
+      "stage": "after",
+      "quality": "4",
+      "verified": false
+    }
+  ],
+  "errors": [],
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe (headless)",
+  "started": "2026-10-29T01:50:50.327Z",
+  "atlasSwitch": {
+    "mode": "off",
+    "atlas": {
+      "active": true,
+      "tier": "desktop",
+      "pages": 0,
+      "pending": 0,
+      "sprites": 352,
+      "failed": false,
+      "pageLoads": 0,
+      "pageEvictions": 0,
+      "cooldownFallbacks": 0
+    }
+  },
+  "import": {
+    "file": "C:\\Users\\marku\\Desktop\\asset_labor\\artifacts\\rendering-step13\\vedras_scene.json",
+    "expectedNature": 2631,
+    "sceneSize": 397,
+    "catalogAssets": 480,
+    "nature": 2631,
+    "missingNatureInstances": 0,
+    "missingPaths": [],
+    "sites": [
+      {
+        "label": "center",
+        "q": 0,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "dense-forest",
+        "q": -3,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "coast",
+        "q": 1,
+        "r": 3,
+        "terrain": "grassland",
+        "forestClass": "none",
+        "waterNeighbors": 4
+      },
+      {
+        "label": "mountains",
+        "q": -10,
+        "r": 3,
+        "terrain": "highland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "moor",
+        "q": -7,
+        "r": 4,
+        "terrain": "moor",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 1
+      },
+      {
+        "label": "open-water",
+        "q": -4,
+        "r": 5,
+        "terrain": "ocean",
+        "forestClass": "none",
+        "waterNeighbors": 6
+      }
+    ]
+  },
+  "scene": {
+    "quality": {
+      "quality": "fast",
+      "requestedDpr": 0.8,
+      "effectiveDpr": 0.8,
+      "limiter": "none",
+      "budgetPixels": 1300000,
+      "canvasPixels": 204568,
+      "viewportPixels": 319410,
+      "dense": true,
+      "terrainPx": 512,
+      "spritePx": 512,
+      "imagePoolBytes": 301989888,
+      "backingWidth": 562,
+      "backingHeight": 364,
+      "images": {
+        "ready": 29,
+        "failed": 0,
+        "evicted": 0,
+        "requests": 338,
+        "decodedBytes": 30408704,
+        "peakBytes": 30408704,
+        "promoted": 0,
+        "promotionFailures": 0,
+        "deferredUpgrades": 0,
+        "active": 4,
+        "activeUpgrades": 0,
+        "queued": 305,
+        "resident": 338,
+        "protectedAssets": 156,
+        "protectedBytes": 7340032,
+        "overLimitBytes": 0,
+        "previewTerrainPx": 512,
+        "previewSpritePx": 512,
+        "limitBytes": 301989888
+      },
+      "scenery": {
+        "builds": 5,
+        "hits": 6,
+        "misses": 5,
+        "disabled": 0,
+        "lastBuildMs": 12,
+        "lastCompositeMs": 0,
+        "bytes": 5408352,
+        "active": true
+      },
+      "background": {
+        "builds": 11,
+        "hits": 0,
+        "misses": 11,
+        "disabled": 0,
+        "lastBuildMs": 35.09999999962747,
+        "lastCompositeMs": 0.5,
+        "bytes": 2617696,
+        "active": true
+      }
+    },
+    "atlas": {
+      "active": true,
+      "tier": "desktop",
+      "pages": 0,
+      "pending": 0,
+      "sprites": 352,
+      "failed": false,
+      "pageLoads": 0,
+      "pageEvictions": 0,
+      "cooldownFallbacks": 0,
+      "benchmarkMode": "off"
+    },
+    "camera": {
+      "zoomComposites": 0,
+      "zoomFallbacks": 0,
+      "fastFrames": 0,
+      "worldTileBakes": 0,
+      "backgroundBuilds": 11,
+      "sceneryBuilds": 5,
+      "terrainBuilds": 1,
+      "active": false,
+      "interacting": false
+    },
+    "world": {
+      "version": "0.22.3",
+      "clouds": {
+        "bases": 4,
+        "edges": 0,
+        "pending": 0,
+        "hexCache": 157,
+        "seed": 1656391409,
+        "version": 1
+      },
+      "fogFrontier": 0,
+      "tiles": 0,
+      "pixels": 0,
+      "bytes": 0,
+      "budgetBytes": 104000000,
+      "evicted": 0,
+      "completed": 0,
+      "failed": 0,
+      "pending": 0,
+      "inFlight": 0,
+      "visible": 0,
+      "lod": "mid",
+      "scope": "region",
+      "lodDensity": 1.5,
+      "selectiveInvalidations": 0,
+      "selectiveTiles": 0,
+      "priorityReorders": 0,
+      "agedPromotions": 0,
+      "discardedObsolete": 0,
+      "parallelLimit": 1,
+      "visiblePreviews": 0,
+      "previews": 0,
+      "upgraded": 0,
+      "progress": {
+        "exact": 0,
+        "fallback": 0,
+        "provisional": 0,
+        "missing": 0
+      },
+      "retryWaiting": 0,
+      "retryExhausted": 0,
+      "renderMs": 0.900000000372529,
+      "coverage": 0,
+      "drawn": 0,
+      "frames": 1,
+      "tileBakes": 0,
+      "active": false
+    },
+    "lod": {
+      "id": "mid",
+      "label": "Mittel",
+      "scope": "region",
+      "worldTileDensity": 1.5,
+      "terrain": 0.83,
+      "shore": 0.9,
+      "bank": 0.9,
+      "river": 0.86,
+      "road": 0.82,
+      "forest": 0.9,
+      "roadDetail": true,
+      "tier": "mid",
+      "changes": 1,
+      "evaluations": 53,
+      "worldTile": "mid"
+    },
+    "scenery": {
+      "mode": "editor",
+      "staticSpritesThisFrame": 0,
+      "staticShadowsThisFrame": 0,
+      "dynamicSpritesThisFrame": 0,
+      "worldTileDrawCalls": 0,
+      "staticSceneryBuilds": 5,
+      "staticSceneryHits": 6,
+      "worldTileBakes": 0
+    },
+    "streaming": {
+      "terrain": {
+        "built": 1,
+        "cacheHits": 1,
+        "evicted": 0,
+        "errors": 0,
+        "lastMs": 325,
+        "visible": 36,
+        "pending": 35,
+        "painted": 1,
+        "stalePainted": 0,
+        "pixels": 294912,
+        "warmTotal": 0,
+        "warmDone": 0,
+        "prefetchQueued": 12,
+        "prefetched": 0,
+        "prefetchDiscarded": 0,
+        "obsolete": 0,
+        "visibleRevision": 1,
+        "prefetchPending": 12,
+        "manualPending": 0,
+        "priorityReorders": 1,
+        "agedPromotions": 0,
+        "backgroundFairTurns": 0,
+        "duplicateBuildSkips": 3,
+        "obsoleteVisibleDiscarded": 0,
+        "cached": 1,
+        "variants": 0,
+        "warmPending": 0,
+        "inFlight": 0,
+        "retryWaiting": 0,
+        "retryExhausted": 0,
+        "backgroundPaused": false,
+        "bytes": 1179648,
+        "budgetBytes": 96000000
+      },
+      "shore": {
+        "built": 0,
+        "cacheHits": 34,
+        "evicted": 0,
+        "errors": 0,
+        "lastMs": 320.5,
+        "visible": 16,
+        "pending": 15,
+        "painted": 1,
+        "stalePainted": 0,
+        "pixels": 0,
+        "warmTotal": 0,
+        "warmDone": 0,
+        "prefetchQueued": 6,
+        "prefetched": 0,
+        "prefetchDiscarded": 0,
+        "obsolete": 1,
+        "visibleRevision": 19,
+        "prefetchPending": 6,
+        "manualPending": 0,
+        "priorityReorders": 0,
+        "agedPromotions": 0,
+        "backgroundFairTurns": 0,
+        "duplicateBuildSkips": 4,
+        "obsoleteVisibleDiscarded": 0,
+        "cached": 1,
+        "variants": 0,
+        "warmPending": 0,
+        "inFlight": 0,
+        "retryWaiting": 0,
+        "retryExhausted": 0,
+        "backgroundPaused": false,
+        "bytes": 0,
+        "budgetBytes": 34000000
+      },
+      "rivers": {
+        "built": 0,
+        "cacheHits": 0,
+        "evicted": 0,
+        "errors": 0,
+        "lastMs": 0,
+        "visible": 0,
+        "pending": 0,
+        "painted": 0,
+        "stalePainted": 0,
+        "pixels": 0,
+        "warmTotal": 0,
+        "warmDone": 0,
+        "prefetchQueued": 0,
+        "prefetched": 0,
+        "prefetchDiscarded": 0,
+        "obsolete": 0,
+        "visibleRevision": 0,
+        "prefetchPending": 0,
+        "manualPending": 0,
+        "priorityReorders": 0,
+        "agedPromotions": 0,
+        "backgroundFairTurns": 0,
+        "duplicateBuildSkips": 0,
+        "obsoleteVisibleDiscarded": 0,
+        "cached": 0,
+        "variants": 0,
+        "warmPending": 0,
+        "inFlight": 0,
+        "retryWaiting": 0,
+        "retryExhausted": 0,
+        "backgroundPaused": false,
+        "bytes": 0,
+        "budgetBytes": 48000000
+      },
+      "roads": {
+        "built": 19,
+        "cacheHits": 86,
+        "evicted": 0,
+        "errors": 0,
+        "lastMs": 0.19999999925494194,
+        "visible": 36,
+        "pending": 33,
+        "painted": 3,
+        "stalePainted": 0,
+        "pixels": 428652,
+        "warmTotal": 0,
+        "warmDone": 0,
+        "prefetchQueued": 8,
+        "prefetched": 0,
+        "prefetchDiscarded": 0,
+        "obsolete": 0,
+        "visibleRevision": 19,
+        "prefetchPending": 8,
+        "manualPending": 0,
+        "priorityReorders": 0,
+        "agedPromotions": 0,
+        "backgroundFairTurns": 0,
+        "duplicateBuildSkips": 0,
+        "obsoleteVisibleDiscarded": 0,
+        "cached": 3,
+        "variants": 0,
+        "warmPending": 0,
+        "inFlight": 0,
+        "retryWaiting": 0,
+        "retryExhausted": 0,
+        "backgroundPaused": false,
+        "bytes": 1714608,
+        "budgetBytes": 48000000
+      }
+    },
+    "gpuTerrain": {
+      "uploads": 0,
+      "reused": 0,
+      "evicted": 0,
+      "draws": 0,
+      "gpuBytes": 0,
+      "peakGpuBytes": 0,
+      "frames": 0,
+      "failures": 0,
+      "ready": true,
+      "active": false,
+      "reason": "",
+      "textureCount": 0,
+      "budgetBytes": 134217728,
+      "renderer": "WebGL2"
+    },
+    "gpuSprites": {
+      "ready": true,
+      "active": false,
+      "reason": "",
+      "uploads": 0,
+      "draws": 0,
+      "frames": 0,
+      "failures": 0,
+      "gpuBytes": 0,
+      "renderer": "WebGL2 static scene"
+    },
+    "worker": {
+      "supported": true,
+      "enabled": true,
+      "active": true,
+      "failedReason": "",
+      "textures": 7,
+      "pending": 0,
+      "jobs": 21,
+      "completed": 21,
+      "failed": 0,
+      "workerMs": 0,
+      "transferred": 2,
+      "shorelineJobs": 20,
+      "shorelineCompleted": 20,
+      "shorelineFailed": 0,
+      "shorelineMs": 0
+    },
+    "profiler": {
+      "enabled": true,
+      "entries": {
+        "images.loadWallMs": {
+          "count": 20,
+          "totalMs": 2873.3,
+          "maxMs": 273.4,
+          "over50ms": 20
+        },
+        "images.loaded": {
+          "count": 20,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        },
+        "images.resampleMs": {
+          "count": 20,
+          "totalMs": 3.4,
+          "maxMs": 0.2,
+          "over50ms": 0
+        },
+        "images.resampled": {
+          "count": 20,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        },
+        "terrain.editorDrawMs": {
+          "count": 6,
+          "totalMs": 141.4,
+          "maxMs": 44.3,
+          "over50ms": 0
+        },
+        "roads.editorDrawMs": {
+          "count": 6,
+          "totalMs": 5.4,
+          "maxMs": 1.6,
+          "over50ms": 0
+        },
+        "sprites.layoutMs": {
+          "count": 7,
+          "totalMs": 11.9,
+          "maxMs": 11.9,
+          "over50ms": 0
+        },
+        "sprites.occlusionMs": {
+          "count": 7,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        },
+        "shadows.drawMs": {
+          "count": 7,
+          "totalMs": 0.1,
+          "maxMs": 0.1,
+          "over50ms": 0
+        },
+        "sprites.drawMs": {
+          "count": 7,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        },
+        "sprites.drawnCount": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        },
+        "images.requested": {
+          "count": 228,
+          "totalMs": 0,
+          "maxMs": 0,
+          "over50ms": 0
+        }
+      }
+    },
+    "resourceLoads": {
+      "total": 95,
+      "images": 37,
+      "atlas": 1,
+      "transferBytes": 100087568,
+      "imageTransferBytes": 98418294
+    },
+    "cellCount": 397,
+    "natureCount": 2631,
+    "zoom": 0.65,
+    "view": "map",
+    "mode": "normal",
+    "qualityText": "Interaktive Qualität: gewählt 0.80× · tatsächlich 0.80× · volle gewählte Qualität · Canvas 562×364 px / 1 MP Budget · Bildquellen bis 512 / 512 px (Terrain/Sprites)",
+    "perfText": "Ø 19.9 ms / Frame · Gelände 15.2 ms · Wege/Flüsse 0.8 ms · Sprites/Schatten 2.6 ms · Schatten-Cache 0 Treffer / 0 neu · Hex bereit 0 / 27 · Bilder 305 in Warteschlange / 4 laden · Terrain 35 ausstehend · Nature sichtbar 0 · Sprite-Bilder 0/0 · Bildabrufe 0 · Pfade fehlen 0"
+  },
+  "completed": true
+}
