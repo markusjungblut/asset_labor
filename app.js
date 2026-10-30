@@ -30,7 +30,8 @@ const worldTiles=window.VedrasWorldTiles?.create({
  concurrency:1,source:bakeWorldTile,requireScenery:true,
  // Work already known to lack a prepared terrain core must not occupy the
  // sole source slot; the terrain redraw callback requests another frame.
- canStartSource:tile=>!!currentTerrainCore(tile),
+ canStartSource:tile=>!!currentTerrainCore(tile)&&
+   shorelineTileStatus(tile,true),
  sourceRevision:tile=>groundSourceRevision(tile),
  lodSelector:zoom=>updateTerrainLod(zoom),
  onReady:()=>{if(fastInteracting||tileModeActive)fastRender();}
@@ -756,6 +757,26 @@ function selectedGroundAssetChanges(asset){
  lastGroundMaterialPaths=current;lastGroundWetCells=wet;
  return changed;
 }
+// Shoreline art is indexed by six edge directions. Its direct pixel
+// dependencies are the LAND hexes whose corresponding edge uses the PNG.
+// Incomplete geometry or a wet topology change must retain the global path.
+function shorelineSideCells(asset){
+ if(!asset?.path)return null;
+ if(state.shoreline?.enabled===false)return new Set();
+ if(state.shoreline?.mode!=='art'||!Array.isArray(shorelineCache.segments)||
+    !lastGroundWetCells||lastGroundWetCells.size!==worldCells.length)
+  return null;
+ const side=SHORE_EDGE_PATHS.indexOf(asset.path);
+ if(side<0)return null;
+ for(const c of worldCells){
+  const id=key(c.q,c.r);
+  if(!lastGroundWetCells.has(id)||
+     lastGroundWetCells.get(id)!==isWaterTerrain(typeOfCell(c,false)))
+   return null;
+ }
+ return new Set(shorelineCache.segments.filter(s=>s.side===side)
+  .map(s=>key(s.cell.q,s.cell.r)));
+}
 function changedGroundTileIds(changed){
  if(!(changed instanceof Set)||!worldCells.length)return null;
  if(!changed.size)return new Set();
@@ -790,7 +811,8 @@ const imagePool=window.VedrasImagePool.create({
     state.mountainInstances?.some(m=>m.assetPath===a.path)));
   if(affectsGround){
    groundTileReuse?.clear();
-   const changed=isTerrain(a)?selectedGroundAssetChanges(a):null;
+   const changed=isTerrain(a)?selectedGroundAssetChanges(a):
+    a.category==='shorelines'?shorelineSideCells(a):null;
    if(changed===null)groundAssetNeedsGlobal=true;
    else for(const id of changed)pendingGroundCells.add(id);
    pendingGroundPaths.add(a.path);
@@ -1265,14 +1287,16 @@ function drawShorelines(){
  const report=$('shorelineStats');
  if(!opts.enabled){if(report)report.textContent='Ufer-Overlays ausgeschaltet.';return;}
  const shoreDensity=finalRendering?1.5:previewDensity()*lodProfile().shore;
- const {files,mouthPortals,signature}=frameMemo.use('shores',
+ const {files,mouthPortals,signature,shoreGeometryKey}=frameMemo.use('shores',
   shoreDensity+'|'+finalRendering+'|'+opts.enabled+'|'+opts.mode+'|'+opts.width+'|'+opts.outer,()=>{
    const classes=worldCells.map(c=>[c.q,c.r,isWaterTerrain(typeOfCell(c))]);
    const files=SHORE_EDGE_PATHS.map(path=>useAsset(path));
    const mouthPortals=state.river?window.VedrasRivers.mouthPortals(riverRoutes(),worldCells,wetHex,state.riverWidth):[];
-   const signature=JSON.stringify({cells:classes,mode:opts.mode,width:opts.width,outer:opts.outer,
-    images:files.map(a=>[a?.path,a?.mtime,a?.imageRevision]),mouthPortals,version:4});
-   return {files,mouthPortals,signature};
+   const shoreGeometryKey=JSON.stringify({cells:classes,mode:opts.mode,
+    width:opts.width,outer:opts.outer,mouthPortals,version:4});
+   const signature=JSON.stringify({geometry:shoreGeometryKey,
+    images:files.map(a=>[a?.path,a?.mtime,a?.imageRevision])});
+   return {files,mouthPortals,signature,shoreGeometryKey};
   });
  const chunkMode=state.chunkRendering||state.sceneSize>37;
  if(chunkMode){
@@ -1294,8 +1318,23 @@ function drawShorelines(){
    shorelineChunks.clear();
    return;
   }
-  shorelineChunks.configure(signature+'|density='+shoreDensity,{
-   worldCells,
+  // Image revisions belong to each tile's actual coastline sides, not
+  // the global chunk family. Keep untouched shore rasters across late PNGs.
+  const stampTile=tile=>{
+   const margin=window.VedrasChunks.HALO+260;
+   return JSON.stringify(segments.filter(seg=>
+    seg.center.x>=tile.x-margin&&
+    seg.center.x<=tile.x+tile.size+margin&&
+    seg.center.y>=tile.y-margin&&
+    seg.center.y<=tile.y+tile.size+margin).map(seg=>[
+     seg.cell.q,seg.cell.r,seg.side,
+     opts.mode==='art'?files[seg.side]?.path:null,
+     opts.mode==='art'?files[seg.side]?.mtime:null,
+     opts.mode==='art'?(files[seg.side]?.imageRevision||0):0
+    ]));
+  };
+  shorelineChunks.configure(shoreGeometryKey+'|density='+shoreDensity,{
+   worldCells,stampTile,
    buildTile:(tile)=>{
     const halo=window.VedrasChunks.HALO,bounds={
      x:tile.x-halo,y:tile.y-halo,width:tile.size+2*halo,height:tile.size+2*halo};
@@ -1335,7 +1374,7 @@ function drawShorelines(){
    redraw:tile=>{
     if(tile?.id)worldTiles?.terrainReady(tile.id,groundSourceRevision(tile));
     requestDraw();
-   },family:signature
+   },family:shoreGeometryKey
   });
   const a=fromScreen(-60,-60),b=fromScreen(W+60,H+60);
   const stats=shorelineChunks.draw(ctx,{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
