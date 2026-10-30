@@ -715,7 +715,7 @@ function selectedGroundAssetChanges(asset){
   const id=key(cell.q,cell.r);
   if(!lastGroundMaterialPaths.has(id))return null;
   const before=lastGroundMaterialPaths.get(id);
-  const after=(imageForBiome(cell)||fallback)?.path||null;
+  const after=(imageForBiome(cell,false)||fallback)?.path||null;
   current.set(id,after);
   // An added material variant can reindex every cell of its biome.
   if(before!==after||before===asset.path||after===asset.path)
@@ -1005,21 +1005,24 @@ function terrainAssetsByType(type){
  }
  return terrainAssetGroups.get(type)||[];
 }
-function imageForBiome(c){
+function imageForBiome(c,ensureSource=true){
+ // Dependency comparison is read-only. Do not request/promote 397 assets
+ // from inside a single PNG-decode callback.
+ const select=ensureSource?useAsset:path=>assetByPath.get(path)||null;
  // Forest-floor PNGs are overlay materials. Never use them as the opaque
  // ground of a moor (or any other base biome), even when painted manually.
  if(state.hexTerrain[key(c.q,c.r)]){
-  const a=useAsset(state.hexTerrain[key(c.q,c.r)]);
+  const a=select(state.hexTerrain[key(c.q,c.r)]);
   if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;
  }
  const chosen=state.biomeTerrain[c.biome];
- if(chosen){const a=useAsset(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
+ if(chosen){const a=select(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
  const typeId=typeOfCell(c),jungle=typeId==='jungle';
  let matches=terrainAssetsByType(typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
  if(jungle&&!matches.length)matches=terrainAssetsByType('forest_floor');
- return matches.length?useAsset(matches[hash(c.q,c.r,11)%matches.length].path):null;
+ return matches.length?select(matches[hash(c.q,c.r,11)%matches.length].path):null;
 }
 function effectiveBiome(c){return typeOfCell(c);}
 function baseImage(){return terrainAssetsByType('grassland')[0]||null;}
