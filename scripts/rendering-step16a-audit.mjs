@@ -102,7 +102,7 @@ function cameraCondition(s){
  return !!s?.active&&s?.pending===0&&s?.retryExhausted===0&&
   (s?.progress?.exact??0)>=1&&s?.progress?.fallback===0&&
   s?.progress?.missing===0&&s?.progress?.provisional===0&&
-  s?.coverage>=.999;
+  (s?.progress?.stale??0)===0&&s?.coverage>=.999;
 }
 function buildDecision(run){
  const synthetic=run.control;

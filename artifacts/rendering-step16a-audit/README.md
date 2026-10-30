@@ -2,56 +2,69 @@
 
 **Status:** INSUFFICIENT_REAL_WARM_EVIDENCE
 **Szene SHA-256:** 1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f
-**Unabhängiger Szenenimport:** 4: 1368 ms
+**Unabhängiger Szenenimport:** 4: 1332 ms
 **Keine Renderingoptimierungen in diesem Lauf.**
 
 ## Produktionscompositor allein (statische 16 vorbereitete Tiles)
 
 | Geste | Test gültig | rAF-p95 ms | request+render-p95 ms | compositor-p95 ms |
 |---|---|---:|---:|---:|
-| pan | ja | 66.7 | 0.7 | 0.46 |
+| pan | ja | 60.06 | 0.6 | 0.4 |
 | zoom | ja | 33.5 | 0.4 | 0.2 |
 
 ## Reale 397-Hex-Szene
 
 | Qualität | Phase | Bereit/gültig | rAF-p95 ms | Bake-Events | Tile-Invalidierungen | geschützte MiB / Budget MiB |
 |---|---|---|---:|---:|---:|---:|
-| 4 | preparation | NEIN | – | 30 | 6 | 380.8 / 576.0 |
-| 4 | warm-pan | cold-diagnostic | 16.8 | 1 | 0 | 387.0 / 576.0 |
-| 4 | warm-zoom | cold-diagnostic | 33.36 | 3 | 0 | 387.0 / 576.0 |
+| 4 | preparation | bereit | – | 20 | 7 | 379.5 / 576.0 |
+| 4 | warm-pan | cold-diagnostic | 116.8 | 8 | 6 | 378.8 / 576.0 |
+| 4 | warm-zoom | cold-diagnostic | 83.4 | 9 | 4 | 383.3 / 576.0 |
 
 ## Warum reale Kameraphasen nicht warm sind
 
-- 4/warm-pan: cold-diagnostic; Gate-Gründe: no-visible-world-tiles; coverage:0; no-exact-world-tiles; missing:4; not-quiescent-before-sampling; asset/tile work occurred during camera-only test; nicht bereite Editor-Cores: 16; Bilddateien noch ausstehend: 0
-  - Quellursachen: {"terrain-core-not-ready":16}
-  - Tile-Ereignisse: {"camera.request":89,"tile.source-deferred":14,"tile.cache-miss":1,"tile.state":3,"tile.source-start":1,"tile.snapshot":1,"terrain.draw":1,"roads.draw":1,"tile.bake":1,"tile.accept":1,"tile.source-end":1}; CPU-Taskzeit: 0.86 s; rAF-p95: 16.8 ms (nur Kalt-Diagnose)
-- 4/warm-zoom: cold-diagnostic; Gate-Gründe: not-quiescent-before-sampling; asset/tile work occurred during camera-only test; nicht bereite Editor-Cores: 11; Bilddateien noch ausstehend: 0
-  - Quellursachen: {"terrain-not-painted":5,"terrain-core-not-ready":6}
-  - Tile-Ereignisse: {"camera.request":89,"tile.cache-miss":3,"tile.state":9,"tile.source-start":3,"tile.snapshot":3,"tile.bake":3,"tile.source-end":3,"terrain.draw":2,"roads.draw":2,"tile.accept":2,"tile.source-deferred":4}; CPU-Taskzeit: 0.87 s; rAF-p95: 33.36 ms (nur Kalt-Diagnose)
+- 4/warm-pan: cold-diagnostic; Gate-Gründe: not-quiescent-before-sampling; asset/tile work occurred during camera-only test; nicht bereite Editor-Cores: 12; Bilddateien noch ausstehend: 0
+  - Quellursachen: {"terrain-not-painted":12}
+  - Tile-Ereignisse: {"terrain.draw":8,"roads.draw":8,"tile.bake":8,"tile.accept":7,"tile.state":534,"tile.source-end":8,"camera.request":89,"tile.ground-revision-deferred":4,"tile.ground-revision-detail":4,"tile.ground-revision-changed":4,"tile.invalidate":6,"tile.stale-retained":20,"tile.cache-miss":21,"tile.source-start":7,"tile.snapshot":7,"tile.evict":2,"asset.invalidate":25,"ground.asset-dependency":2,"tile.source-deferred":23}; CPU-Taskzeit: 2.93 s; rAF-p95: 116.8 ms (nur Kalt-Diagnose)
+- 4/warm-zoom: cold-diagnostic; Gate-Gründe: not-quiescent-before-sampling; asset/tile work occurred during camera-only test; nicht bereite Editor-Cores: 12; Bilddateien noch ausstehend: 0
+  - Quellursachen: {"terrain-not-painted":11,"terrain-core-not-ready":1}
+  - Tile-Ereignisse: {"camera.request":90,"terrain.draw":9,"roads.draw":9,"tile.bake":9,"tile.accept":9,"tile.state":31,"tile.source-end":9,"tile.ground-revision-deferred":6,"tile.source-deferred":2,"tile.cache-miss":8,"tile.source-start":8,"tile.snapshot":8,"tile.evict":1,"tile.ground-revision-detail":6,"tile.ground-revision-changed":4,"tile.invalidate":4,"tile.stale-retained":6}; CPU-Taskzeit: 1.84 s; rAF-p95: 83.4 ms (nur Kalt-Diagnose)
 
 ## Globale Ground-Invalidierungen nach konkreter Bilddatei
 
-- preparation: 93 image-ready-ground-Ereignisse; Quellen: assets/terrain/lehmwueste_03.png, assets/terrain/lehmwueste_04.png, assets/terrain/marshland_01.png, assets/terrain/marshland_02.png, assets/terrain/marshland_03.png, assets/terrain/marshland_04.png, assets/terrain/moor_01.png, assets/terrain/moor_02.png, assets/terrain/moor_03.png, assets/terrain/moor_04.png, assets/terrain/ocean_01.png, assets/terrain/ocean_02.png, assets/terrain/ocean_03.png, assets/terrain/ocean_04.png, assets/terrain/oedland_01.png, assets/terrain/oedland_02.png, assets/terrain/oedland_03.png, assets/terrain/oedland_04.png, assets/terrain/sandige_steinige_wueste_01.png, assets/terrain/sandige_steinige_wueste_02.png, assets/terrain/sandige_steinige_wueste_03.png, assets/terrain/sandige_steinige_wueste_04.png, assets/terrain/sandy_badlands_01.png, assets/terrain/sandy_badlands_02.png, assets/terrain/sandy_badlands_03.png, assets/terrain/sandy_badlands_04.png, assets/terrain/savanne_01.png, assets/terrain/savanne_02.png, assets/terrain/savanne_03.png, assets/terrain/savanne_04.png, assets/terrain/schneefeld_01.png, assets/terrain/schneefeld_02.png, assets/terrain/schneefeld_03.png, assets/terrain/schneefeld_04.png, assets/terrain/steinige_badlands_01.png, assets/terrain/steinige_badlands_02.png, assets/terrain/steinige_badlands_03.png, assets/terrain/steinige_badlands_04.png, assets/terrain/steinige_wueste_01.png, assets/terrain/steinige_wueste_02.png, assets/terrain/steinige_wueste_03.png, assets/terrain/steinige_wueste_04.png, assets/terrain/stormy_ocean_01.png, assets/terrain/stormy_ocean_02.png, assets/terrain/stormy_ocean_03.png, assets/terrain/stormy_ocean_04.png, assets/terrain/stormy_ocean_05.png, assets/terrain/stormy_ocean_06.png, assets/terrain/stormy_ocean_07.png, assets/terrain/stormy_ocean_08.png, assets/terrain/sumpf_01.png, assets/terrain/sumpf_02.png, assets/terrain/sumpf_03.png, assets/terrain/sumpf_04.png, assets/terrain/tundra_base_01.png, assets/terrain/tundra_base_02.png, assets/terrain/tundra_base_03.png, assets/terrain/tundra_base_04.png, assets/terrain/wald_01.png, assets/terrain/wald_02.png
+- preparation: 96 image-ready-ground-Ereignisse; Quellen: assets/terrain/karges_weideland_04.png, assets/terrain/lehmwueste_01.png, assets/terrain/lehmwueste_02.png, assets/terrain/lehmwueste_03.png, assets/terrain/lehmwueste_04.png, assets/terrain/marshland_01.png, assets/terrain/marshland_02.png, assets/terrain/marshland_03.png, assets/terrain/marshland_04.png, assets/terrain/moor_01.png, assets/terrain/moor_02.png, assets/terrain/moor_03.png, assets/terrain/moor_04.png, assets/terrain/ocean_01.png, assets/terrain/ocean_02.png, assets/terrain/ocean_03.png, assets/terrain/ocean_04.png, assets/terrain/oedland_01.png, assets/terrain/oedland_02.png, assets/terrain/oedland_03.png, assets/terrain/oedland_04.png, assets/terrain/sandige_steinige_wueste_01.png, assets/terrain/sandige_steinige_wueste_02.png, assets/terrain/sandige_steinige_wueste_03.png, assets/terrain/sandige_steinige_wueste_04.png, assets/terrain/sandy_badlands_01.png, assets/terrain/sandy_badlands_02.png, assets/terrain/sandy_badlands_03.png, assets/terrain/sandy_badlands_04.png, assets/terrain/savanne_01.png, assets/terrain/savanne_02.png, assets/terrain/savanne_03.png, assets/terrain/savanne_04.png, assets/terrain/schneefeld_01.png, assets/terrain/schneefeld_02.png, assets/terrain/schneefeld_03.png, assets/terrain/schneefeld_04.png, assets/terrain/steinige_badlands_01.png, assets/terrain/steinige_badlands_02.png, assets/terrain/steinige_badlands_03.png, assets/terrain/steinige_badlands_04.png, assets/terrain/steinige_wueste_01.png, assets/terrain/steinige_wueste_02.png, assets/terrain/steinige_wueste_03.png, assets/terrain/steinige_wueste_04.png, assets/terrain/stormy_ocean_01.png, assets/terrain/stormy_ocean_02.png, assets/terrain/stormy_ocean_03.png, assets/terrain/stormy_ocean_04.png, assets/terrain/stormy_ocean_05.png, assets/terrain/stormy_ocean_06.png, assets/terrain/stormy_ocean_07.png, assets/terrain/stormy_ocean_08.png, assets/terrain/sumpf_01.png, assets/terrain/sumpf_02.png, assets/terrain/sumpf_03.png, assets/terrain/sumpf_04.png, assets/terrain/tundra_base_01.png, assets/terrain/tundra_base_02.png, assets/terrain/tundra_base_03.png
 - preparation: Ground-Abhängigkeitsentscheidungen {"global":1}
-  - global: 3 Dateien, 22 Hexfelder, null betroffene World-Tiles
-- warm-pan: 0 image-ready-ground-Ereignisse; Quellen: 
-- warm-pan: Ground-Abhängigkeitsentscheidungen {}
+  - global: 23 Dateien, 96 Hexfelder, null betroffene World-Tiles
+- warm-pan: 25 image-ready-ground-Ereignisse; Quellen: assets/terrain/grassland_02.png, assets/terrain/halbwueste_01.png, assets/terrain/grassland_03.png, assets/terrain/icy_ocean_02.png, assets/terrain/schneefeld_04.png, assets/terrain/icy_ocean_03.png, assets/terrain/tundra_base_04.png, assets/terrain/frozen_tundra_base_04.png, assets/terrain/frozen_tundra_base_02.png, assets/terrain/schneefeld_03.png, assets/terrain/frozen_tundra_base_01.png, assets/terrain/frozen_tundra_base_03.png, assets/terrain/hochland_01.png, assets/terrain/hochland_02.png, assets/terrain/hochland_03.png, assets/terrain/hochland_04.png, assets/terrain/sandy_badlands_02.png, assets/terrain/sandy_badlands_04.png, assets/terrain/oedland_02.png, assets/terrain/oedland_03.png, assets/terrain/moor_04.png, assets/terrain/ocean_02.png, assets/terrain/stormy_ocean_08.png, assets/terrain/stormy_ocean_04.png, assets/terrain/stormy_ocean_06.png
+- warm-pan: Ground-Abhängigkeitsentscheidungen {"selective":2}
+  - selective: 3 Dateien, 52 Hexfelder, 75 betroffene World-Tiles
+  - selective: 22 Dateien, 66 Hexfelder, 89 betroffene World-Tiles
 - warm-zoom: 0 image-ready-ground-Ereignisse; Quellen: 
 - warm-zoom: Ground-Abhängigkeitsentscheidungen {}
 
 ## 4x-Quellrevisionen pro Kachel
 
 - preparation: 0 temporäre Road/River-pending-Verluste ohne Cache-Invalidierung
-- warm-pan: 0 temporäre Road/River-pending-Verluste ohne Cache-Invalidierung
-- warm-zoom: 0 temporäre Road/River-pending-Verluste ohne Cache-Invalidierung
+- preparation -1,-1 mid: terrain (5 -> 15)
+- warm-pan: 4 temporäre Road/River-pending-Verluste ohne Cache-Invalidierung
+- warm-pan 1,-2 mid: road,river (28 -> 28)
+- warm-pan 0,-2 mid: road,river (21 -> 21)
+- warm-pan -1,1 mid: road,river (23 -> 23)
+- warm-pan -2,1 mid: road,river (25 -> 25)
+- warm-zoom: 6 temporäre Road/River-pending-Verluste ohne Cache-Invalidierung
+- warm-zoom -1,0 mid: road,river (31 -> 31)
+- warm-zoom 0,0 mid: road (29 -> 29)
+- warm-zoom 1,0 mid: road (35 -> 35)
+- warm-zoom -2,1 mid: road,river (44 -> 44)
+- warm-zoom 1,1 mid: road (41 -> 41)
+- warm-zoom -1,1 mid: road,river (38 -> 38)
 
 ## Optionale visuelle Prüfbilder
 
-- 01-zoom-before: images/4-01-zoom-before.png; Zoom 0.7; Scenery-Builds 10; READY true; manuelle Bildprüfung erforderlich
-- 02-zoom-during: images/4-02-zoom-during.png; Zoom 0.77; Scenery-Builds 10; READY nicht geprüft; manuelle Bildprüfung erforderlich
-- 03-zoom-settled: images/4-03-zoom-settled.png; Zoom 0.77; Scenery-Builds 13; READY false; manuelle Bildprüfung erforderlich
-- 04-ocean-shore: images/4-04-ocean-shore.png; Zoom 0.7; Scenery-Builds 17; READY false; manuelle Bildprüfung erforderlich
-- 05-fog-enabled: images/4-05-fog-enabled.png; Zoom 0.7; Scenery-Builds 17; READY nicht geprüft; manuelle Bildprüfung erforderlich
+- 01-zoom-before: images/4-01-zoom-before.png; Zoom 0.7; Scenery-Builds 8; READY true; manuelle Bildprüfung erforderlich
+- 02-zoom-during: images/4-02-zoom-during.png; Zoom 0.77; Scenery-Builds 8; READY nicht geprüft; manuelle Bildprüfung erforderlich
+- 03-zoom-settled: images/4-03-zoom-settled.png; Zoom 0.77; Scenery-Builds 12; READY true; manuelle Bildprüfung erforderlich
+- 04-ocean-shore: images/4-04-ocean-shore.png; Zoom 0.7; Scenery-Builds 14; READY true; manuelle Bildprüfung erforderlich
+- 05-fog-enabled: images/4-05-fog-enabled.png; Zoom 0.7; Scenery-Builds 14; READY nicht geprüft; manuelle Bildprüfung erforderlich
 
 ## Entscheidung
 
