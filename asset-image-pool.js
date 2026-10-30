@@ -35,7 +35,7 @@ window.VedrasImagePool=(()=>{
    peakBytes:0,promoted:0,promotionFailures:0,deferredUpgrades:0,
    identicalRedecodes:0,sourceChanges:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
-  function prune(force=false,headroom=0){
+  function prune(force=false,headroom=0,ignoreAge=false){
    if(stats.decodedBytes+headroom<=maxBytes&&!force)return;
    // Never evict an asset which has just been decoded or requested.
    // Repeated frame requests previously reloaded an evicted PNG immediately:
@@ -45,7 +45,7 @@ window.VedrasImagePool=(()=>{
    const protectAge=Math.min(2500,Math.max(0,protectMs));
    const time=now();
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
-    !protectedPaths.has(r.asset.path)&&time-r.lastUsed>=protectAge)
+    !protectedPaths.has(r.asset.path)&&(ignoreAge||time-r.lastUsed>=protectAge))
     .sort((a,b)=>{
      // Small shared terrain materials are preferred over transient sprites.
      const priority=e=>['terrain','terrain_base','shorelines'].includes(e.asset.category)?1:0;
@@ -190,6 +190,18 @@ window.VedrasImagePool=(()=>{
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
   function protect(paths){protectedPaths=new Set(paths||[]);prune();}
+  // The audit invokes this outside frame sampling, after the entire camera
+  // gesture footprint has been protected. Unlike force=true, only remove
+  // unprotected images while bytes actually exceed the existing budget.
+  function pruneIdle(){
+   const before=stats.evicted;
+   prune(false,0,true);
+   const result={evicted:stats.evicted-before,
+    decodedBytes:stats.decodedBytes,limitBytes:maxBytes,
+    overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes)};
+   window.VedrasStep15Trace?.record('asset.pool-idle-prune',result);
+   return result;
+  }
   function setBudgetBytes(bytes){
    if(!Number.isFinite(bytes)||bytes<64*1048576||bytes>768*1048576)
     throw Error('Invalid decoded preview memory budget');
@@ -248,7 +260,7 @@ window.VedrasImagePool=(()=>{
     overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes),
     previewTerrainPx,previewSpritePx,limitBytes:maxBytes};
   }
-  return {ensure,clear,prune,report,originals,protect,setPreviewLimits,setBudgetBytes};
+  return {ensure,clear,prune,pruneIdle,report,originals,protect,setPreviewLimits,setBudgetBytes};
  }
  return {create};
 })();
