@@ -1,0 +1,4637 @@
+{
+  "schema": "vedras-step16a-audit-v1",
+  "timestamp": "2026-10-30T13:53:20.800Z",
+  "sceneSha256": "1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f",
+  "source": "real editor + production compositor-only control",
+  "environment": {
+    "qualities": [
+      "4"
+    ],
+    "frames": 90
+  },
+  "real": [
+    {
+      "quality": "4",
+      "kind": "preparation",
+      "ready": false,
+      "prepareMs": 14084,
+      "reasons": [
+        "coverage:0.25",
+        "missing:3"
+      ],
+      "stats": {
+        "active": true,
+        "tiles": 0,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 0,
+        "progress": {
+          "exact": 0,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 4
+        },
+        "bakes": 3,
+        "groundReuse": {
+          "entries": 0,
+          "bytes": 0,
+          "budgetBytes": 46137344,
+          "hits": 0,
+          "misses": 5,
+          "evicted": 0,
+          "stored": 5
+        },
+        "sceneryBuilds": 7,
+        "terrainBuilds": 20,
+        "imagePool": {
+          "decodedBytes": 651427840,
+          "limitBytes": 603979776,
+          "protectedBytes": 397934592,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 75,
+          "ready": 360,
+          "overLimitBytes": 47448064,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "trace": {
+        "invalidations": {
+          "image-ready-ground": 2,
+          "scenery-revision-changed": 2,
+          "semantic-content-changed": 1,
+          "terrain-core-revision-changed": 1
+        },
+        "assetEvents": {
+          "image-ready-ground": 88,
+          "image-ready-scenery": 235
+        },
+        "bakes": {
+          "terrain-or-assets-not-ready:sprite-source-not-ready": 32,
+          "fallback-complete": 3,
+          "snapshot-hit": 2,
+          "fallback-ground-changed": 2
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 37
+        },
+        "types": {
+          "asset.invalidate": 323,
+          "camera.request": 59,
+          "tile.cache-miss": 37,
+          "tile.state": 125,
+          "tile.source-start": 39,
+          "tile.bake": 39,
+          "tile.source-end": 39,
+          "fog.mask": 6,
+          "tile.invalidate": 6,
+          "scenery.invalidate": 4,
+          "camera.mode-reset": 1,
+          "terrain.invalidate": 2,
+          "terrain.draw": 14,
+          "roads.draw": 14,
+          "tile.semantic-revision-changed": 1,
+          "tile.snapshot-signature-change": 9,
+          "tile.source-deferred": 37,
+          "tile.snapshot": 7,
+          "tile.accept": 5,
+          "tile.ground-revision-detail": 1,
+          "tile.ground-revision-changed": 1,
+          "camera.mode-retained": 1
+        },
+        "dropped": 0,
+        "totalEvents": 770,
+        "attributionComplete": true,
+        "groundRevisionDetails": [
+          {
+            "seq": 733,
+            "ms": 14963.2,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-1,-1",
+              "level": "mid",
+              "changed": "terrain",
+              "fromTerrain": "6",
+              "toTerrain": "18",
+              "fromShore": "no-coast",
+              "toShore": "no-coast",
+              "fromRoad": "45",
+              "toRoad": "45",
+              "fromRiver": "pending",
+              "toRiver": "pending"
+            }
+          }
+        ],
+        "groundAssetPaths": [
+          "assets/terrain/lehmwueste_04.png",
+          "assets/terrain/marshland_01.png",
+          "assets/terrain/marshland_02.png",
+          "assets/terrain/marshland_03.png",
+          "assets/terrain/marshland_04.png",
+          "assets/terrain/moor_01.png",
+          "assets/terrain/moor_02.png",
+          "assets/terrain/moor_03.png",
+          "assets/terrain/moor_04.png",
+          "assets/terrain/ocean_01.png",
+          "assets/terrain/ocean_02.png",
+          "assets/terrain/ocean_03.png",
+          "assets/terrain/ocean_04.png",
+          "assets/terrain/oedland_01.png",
+          "assets/terrain/oedland_02.png",
+          "assets/terrain/oedland_03.png",
+          "assets/terrain/oedland_04.png",
+          "assets/terrain/sandige_steinige_wueste_01.png",
+          "assets/terrain/sandige_steinige_wueste_02.png",
+          "assets/terrain/sandige_steinige_wueste_03.png",
+          "assets/terrain/sandige_steinige_wueste_04.png",
+          "assets/terrain/sandy_badlands_01.png",
+          "assets/terrain/sandy_badlands_02.png",
+          "assets/terrain/sandy_badlands_03.png",
+          "assets/terrain/sandy_badlands_04.png",
+          "assets/terrain/savanne_01.png",
+          "assets/terrain/savanne_02.png",
+          "assets/terrain/savanne_03.png",
+          "assets/terrain/savanne_04.png",
+          "assets/terrain/schneefeld_01.png",
+          "assets/terrain/schneefeld_02.png",
+          "assets/terrain/schneefeld_03.png",
+          "assets/terrain/schneefeld_04.png",
+          "assets/terrain/steinige_badlands_01.png",
+          "assets/terrain/steinige_badlands_02.png",
+          "assets/terrain/steinige_badlands_03.png",
+          "assets/terrain/steinige_badlands_04.png",
+          "assets/terrain/steinige_wueste_01.png",
+          "assets/terrain/steinige_wueste_02.png",
+          "assets/terrain/steinige_wueste_03.png",
+          "assets/terrain/steinige_wueste_04.png",
+          "assets/terrain/stormy_ocean_01.png",
+          "assets/terrain/stormy_ocean_02.png",
+          "assets/terrain/stormy_ocean_03.png",
+          "assets/terrain/stormy_ocean_04.png",
+          "assets/terrain/stormy_ocean_05.png",
+          "assets/terrain/stormy_ocean_06.png",
+          "assets/terrain/stormy_ocean_07.png",
+          "assets/terrain/stormy_ocean_08.png",
+          "assets/terrain/sumpf_01.png",
+          "assets/terrain/sumpf_02.png",
+          "assets/terrain/sumpf_03.png",
+          "assets/terrain/sumpf_04.png",
+          "assets/terrain/tundra_base_01.png",
+          "assets/terrain/tundra_base_02.png",
+          "assets/terrain/tundra_base_03.png",
+          "assets/terrain/tundra_base_04.png",
+          "assets/terrain/wald_01.png",
+          "assets/terrain/wald_02.png",
+          "assets/terrain/wald_03.png"
+        ],
+        "groundAssetEvents": [
+          {
+            "seq": 1,
+            "ms": 3751.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/lehmwueste_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 3,
+            "ms": 3827.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 4,
+            "ms": 3875.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 5,
+            "ms": 3922.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 14,
+            "ms": 3983.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 16,
+            "ms": 4045,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 18,
+            "ms": 4093.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 19,
+            "ms": 4129.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 21,
+            "ms": 4223.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 22,
+            "ms": 4262.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 23,
+            "ms": 4307.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 25,
+            "ms": 4353.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 26,
+            "ms": 4385.3,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 27,
+            "ms": 4431.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 36,
+            "ms": 4484.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 37,
+            "ms": 4549.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 39,
+            "ms": 4589,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 40,
+            "ms": 4631.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandige_steinige_wueste_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 41,
+            "ms": 4683.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandige_steinige_wueste_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 43,
+            "ms": 4735.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandige_steinige_wueste_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 44,
+            "ms": 4777.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandige_steinige_wueste_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 53,
+            "ms": 4846.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandy_badlands_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 54,
+            "ms": 4896.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandy_badlands_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 63,
+            "ms": 4987.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandy_badlands_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 64,
+            "ms": 5045.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandy_badlands_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 66,
+            "ms": 5100,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/savanne_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 67,
+            "ms": 5143.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/savanne_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 69,
+            "ms": 5208.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/savanne_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 70,
+            "ms": 5251.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/savanne_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 71,
+            "ms": 5293.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/schneefeld_01.png",
+              "category": "terrain"
+            }
+          }
+        ],
+        "assetEventSamples": [
+          {
+            "seq": 1,
+            "ms": 3751.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/lehmwueste_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 3,
+            "ms": 3827.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 4,
+            "ms": 3875.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 5,
+            "ms": 3922.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 14,
+            "ms": 3983.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/marshland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 16,
+            "ms": 4045,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 18,
+            "ms": 4093.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 19,
+            "ms": 4129.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 21,
+            "ms": 4223.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/moor_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 22,
+            "ms": 4262.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 23,
+            "ms": 4307.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 25,
+            "ms": 4353.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 26,
+            "ms": 4385.3,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/ocean_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 27,
+            "ms": 4431.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 36,
+            "ms": 4484.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 710,
+            "ms": 14369,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/halbwueste_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 711,
+            "ms": 14406.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/schneefeld_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 712,
+            "ms": 14444.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/icy_ocean_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 714,
+            "ms": 14498,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/tundra_base_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 715,
+            "ms": 14537,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/frozen_tundra_base_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 716,
+            "ms": 14583.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/frozen_tundra_base_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 717,
+            "ms": 14624.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/schneefeld_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 718,
+            "ms": 14676,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/frozen_tundra_base_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 719,
+            "ms": 14710,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/hochland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 720,
+            "ms": 14751.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/frozen_tundra_base_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 722,
+            "ms": 14802.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/hochland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 723,
+            "ms": 14839,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/hochland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 724,
+            "ms": 14878.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/sandy_badlands_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 725,
+            "ms": 14912.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 726,
+            "ms": 14949.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/oedland_03.png",
+              "category": "terrain"
+            }
+          }
+        ],
+        "deferredGroundRevisions": [],
+        "deferredGroundRevisionCount": 0,
+        "eventSamples": [
+          {
+            "seq": 7,
+            "ms": 3930.4,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 11,
+            "ms": 3934,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"1\",\"no-coast\",\"17\",\"pending\"]",
+              "wallMs": 0.7999999988824129
+            }
+          },
+          {
+            "seq": 29,
+            "ms": 4436.2,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 33,
+            "ms": 4439.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"2\",\"5\",\"18\",\"pending\"]",
+              "wallMs": 0.8000000007450581
+            }
+          },
+          {
+            "seq": 46,
+            "ms": 4801.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 50,
+            "ms": 4805.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"1\",\"no-coast\",\"17\",\"pending\"]",
+              "wallMs": 0.7999999988824129
+            }
+          },
+          {
+            "seq": 56,
+            "ms": 4910.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 60,
+            "ms": 4915,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"2\",\"5\",\"18\",\"pending\"]",
+              "wallMs": 0.599999999627471
+            }
+          },
+          {
+            "seq": 73,
+            "ms": 5295.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 77,
+            "ms": 5298.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"3\",\"6\",\"19\",\"3\"]",
+              "wallMs": 0.5
+            }
+          },
+          {
+            "seq": 94,
+            "ms": 5826.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 96,
+            "ms": 5826.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 100,
+            "ms": 5830.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"2\",\"5\",\"18\",\"pending\"]",
+              "wallMs": 0.599999999627471
+            }
+          },
+          {
+            "seq": 105,
+            "ms": 5830.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"3\",\"6\",\"19\",\"3\"]",
+              "wallMs": 0.09999999962747097
+            }
+          },
+          {
+            "seq": 116,
+            "ms": 6076.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 120,
+            "ms": 6078.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"4\",\"7\",\"20\",\"pending\"]",
+              "wallMs": 0.2000000011175871
+            }
+          },
+          {
+            "seq": 134,
+            "ms": 6433.2,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 138,
+            "ms": 6435.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"1\",\"no-coast\",\"17\",\"pending\"]",
+              "wallMs": 0.40000000037252903
+            }
+          },
+          {
+            "seq": 144,
+            "ms": 6538.4,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 148,
+            "ms": 6540.6,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"4\",\"7\",\"20\",\"pending\"]",
+              "wallMs": 0.3999999985098839
+            }
+          },
+          {
+            "seq": 155,
+            "ms": 6671.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 159,
+            "ms": 6673.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"3\",\"6\",\"19\",\"3\"]",
+              "wallMs": 0.09999999962747097
+            }
+          },
+          {
+            "seq": 164,
+            "ms": 6776.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-2@mid",
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 20,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 168,
+            "ms": 6778.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"5\",\"no-coast\",\"21\",\"pending\"]",
+              "wallMs": 0.19999999925494194
+            }
+          },
+          {
+            "seq": 185,
+            "ms": 7211.6,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "image-ready-ground",
+              "epoch": 20,
+              "cacheCount": 0,
+              "pending": 0,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 190,
+            "ms": 7237.7,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "scenery-revision-changed",
+              "epoch": 21,
+              "cacheCount": 0,
+              "pending": 0,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 193,
+            "ms": 7308.1,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "scenery-revision-changed",
+              "epoch": 22,
+              "cacheCount": 0,
+              "pending": 0,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 197,
+            "ms": 7728.8,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "semantic-content-changed",
+              "epoch": 23,
+              "cacheCount": 0,
+              "pending": 0,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 266,
+            "ms": 9994.6,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 268,
+            "ms": 9994.6,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 286,
+            "ms": 9997.6,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"6\",\"no-coast\",\"45\",\"pending\"]",
+              "wallMs": 0.599999999627471
+            }
+          },
+          {
+            "seq": 291,
+            "ms": 9997.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"7\",\"11\",\"46\",\"pending\"]",
+              "wallMs": 0.2000000011175871
+            }
+          },
+          {
+            "seq": 320,
+            "ms": 10447.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 322,
+            "ms": 10447.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 324,
+            "ms": 10447.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 443,
+            "ms": 11299.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"6\",\"no-coast\",\"45\",\"pending\"]",
+              "wallMs": 0.5
+            }
+          },
+          {
+            "seq": 448,
+            "ms": 11299.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"7\",\"11\",\"46\",\"pending\"]",
+              "wallMs": 0.09999999962747097
+            }
+          },
+          {
+            "seq": 453,
+            "ms": 11299.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"11\",\"no-coast\",\"50\",\"34\"]",
+              "wallMs": 0.30000000074505806
+            }
+          },
+          {
+            "seq": 467,
+            "ms": 11436.3,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"10\",\"no-coast\",\"49\",\"pending\"]",
+              "wallMs": 0.2000000011175871
+            }
+          },
+          {
+            "seq": 483,
+            "ms": 11572.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-1@mid",
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 487,
+            "ms": 11574.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"12\",\"no-coast\",\"51\",\"35\"]",
+              "wallMs": 0.19999999925494194
+            }
+          },
+          {
+            "seq": 504,
+            "ms": 11724.3,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"8\",\"13\",\"47\",\"31\"]",
+              "wallMs": 0.30000000074505806
+            }
+          },
+          {
+            "seq": 512,
+            "ms": 11750.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"11\",\"no-coast\",\"50\",\"34\"]",
+              "wallMs": 0.30000000074505806
+            }
+          },
+          {
+            "seq": 522,
+            "ms": 11824,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,-1@mid",
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 526,
+            "ms": 11827,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"13\",\"18\",\"52\",\"pending\"]",
+              "wallMs": 0.19999999925494194
+            }
+          },
+          {
+            "seq": 548,
+            "ms": 12019.6,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"12\",\"no-coast\",\"51\",\"35\"]",
+              "wallMs": 0.2999999988824129
+            }
+          },
+          {
+            "seq": 556,
+            "ms": 12066.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 558,
+            "ms": 12066.5,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 562,
+            "ms": 12068.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"9\",\"14\",\"48\",\"pending\"]",
+              "wallMs": 0.10000000149011612
+            }
+          },
+          {
+            "seq": 567,
+            "ms": 12069.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "terrain-or-assets-not-ready:sprite-source-not-ready",
+              "snapshotReason": "not-evaluated",
+              "sourceGroundVersion": "[\"14\",\"19\",\"53\",\"37\"]",
+              "wallMs": 0.19999999925494194
+            }
+          },
+          {
+            "seq": 597,
+            "ms": 12313.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,0@mid",
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 608,
+            "ms": 13061.3,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"13\",\"18\",\"52\",\"pending\"]",
+              "wallMs": 783.5999999996275
+            }
+          },
+          {
+            "seq": 616,
+            "ms": 13063.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 618,
+            "ms": 13063.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 620,
+            "ms": 13063.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-2@mid",
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 622,
+            "ms": 13063.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-1@mid",
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 624,
+            "ms": 13063.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 639,
+            "ms": 13345.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"10\",\"no-coast\",\"49\",\"pending\"]",
+              "wallMs": 283.2999999988824
+            }
+          },
+          {
+            "seq": 646,
+            "ms": 13345.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "snapshot-hit",
+              "snapshotReason": "snapshot-hit",
+              "sourceGroundVersion": "[\"6\",\"no-coast\",\"45\",\"pending\"]",
+              "wallMs": 0.599999999627471
+            }
+          },
+          {
+            "seq": 653,
+            "ms": 13346.3,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "snapshot-hit",
+              "snapshotReason": "snapshot-hit",
+              "sourceGroundVersion": "[\"7\",\"11\",\"46\",\"pending\"]",
+              "wallMs": 0.2000000011175871
+            }
+          },
+          {
+            "seq": 661,
+            "ms": 13347,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 671,
+            "ms": 13549,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 676,
+            "ms": 13707.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "ground-snapshot-out-of-bounds",
+              "sourceGroundVersion": "[\"11\",\"no-coast\",\"50\",\"34\"]",
+              "wallMs": 360.90000000037253
+            }
+          },
+          {
+            "seq": 684,
+            "ms": 13708.2,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 696,
+            "ms": 14182.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-ground-changed",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"8\",\"13\",\"47\",\"31\"]",
+              "wallMs": 474.6000000014901
+            }
+          },
+          {
+            "seq": 733,
+            "ms": 14963.2,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-1,-1",
+              "level": "mid",
+              "changed": "terrain",
+              "fromTerrain": "6",
+              "toTerrain": "18",
+              "fromShore": "no-coast",
+              "toShore": "no-coast",
+              "fromRoad": "45",
+              "toRoad": "45",
+              "fromRiver": "pending",
+              "toRiver": "pending"
+            }
+          },
+          {
+            "seq": 735,
+            "ms": 14963.2,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "terrain-core-revision-changed",
+              "epoch": 24,
+              "tiles": 1,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 739,
+            "ms": 14985.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 24,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 743,
+            "ms": 15234.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-ground-changed",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"17\",\"13\",\"47\",\"31\"]",
+              "wallMs": 282.7000000011176
+            }
+          },
+          {
+            "seq": 749,
+            "ms": 15239.7,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "image-ready-ground",
+              "epoch": 24,
+              "cacheCount": 4,
+              "pending": 0,
+              "lod": "mid"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "quality": "4",
+      "kind": "warm-pan",
+      "classification": "cold-diagnostic",
+      "valid": false,
+      "gateReady": false,
+      "quiet": false,
+      "mutating": true,
+      "blockers": {
+        "world": {
+          "active": true,
+          "visible": 16,
+          "drawn": 4,
+          "pending": 0,
+          "progress": {
+            "exact": 4,
+            "fallback": 0,
+            "provisional": 0,
+            "missing": 0
+          },
+          "coverage": 1,
+          "retryExhausted": 0
+        },
+        "sources": {
+          "unreadyEditorCores": 12,
+          "reasons": {
+            "terrain-not-painted": 12
+          },
+          "waitingAssets": 0,
+          "firstWaitingAssets": [],
+          "firstUnready": [
+            {
+              "id": "-1,-1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 26,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "0,-1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 27,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-1,0",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 23,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-1,-2",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 32,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "0,-2",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 33,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-2,-1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 34,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "1,-1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 30,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-2,0",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 24,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-1,1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 22,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-2,-2",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 36,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "1,-2",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 35,
+              "paintedVersion": null,
+              "waitingAssets": []
+            },
+            {
+              "id": "-2,1",
+              "reason": "terrain-not-painted",
+              "terrainVersion": 21,
+              "paintedVersion": null,
+              "waitingAssets": []
+            }
+          ]
+        },
+        "imagePool": {
+          "decodedBytes": 654049280,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "queued": 0,
+          "active": 0,
+          "evicted": 98,
+          "ready": 383
+        }
+      },
+      "start": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 22,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 2,
+          "misses": 22,
+          "evicted": 0,
+          "stored": 22
+        },
+        "sceneryBuilds": 8,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 654049280,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 98,
+          "ready": 383,
+          "overLimitBytes": 50069504,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 26,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 3,
+          "misses": 25,
+          "evicted": 0,
+          "stored": 25
+        },
+        "sceneryBuilds": 8,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 603455488,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 263,
+          "queued": 0,
+          "active": 0,
+          "evicted": 120,
+          "ready": 383,
+          "overLimitBytes": 0,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "quietTrace": {
+        "invalidations": {},
+        "assetEvents": {},
+        "bakes": {},
+        "cacheMisses": {},
+        "types": {},
+        "dropped": 0,
+        "totalEvents": 0,
+        "attributionComplete": true,
+        "groundRevisionDetails": [],
+        "groundAssetPaths": [],
+        "groundAssetEvents": [],
+        "assetEventSamples": [],
+        "deferredGroundRevisions": [],
+        "deferredGroundRevisionCount": 0,
+        "eventSamples": []
+      },
+      "trace": {
+        "invalidations": {
+          "terrain-core-revision-changed": 2
+        },
+        "assetEvents": {},
+        "bakes": {
+          "fallback-complete": 3,
+          "fallback-reused-ground": 1
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 4
+        },
+        "types": {
+          "camera.request": 89,
+          "tile.evict": 2,
+          "tile.cache-miss": 4,
+          "tile.state": 14,
+          "tile.source-start": 4,
+          "tile.snapshot": 4,
+          "terrain.draw": 3,
+          "roads.draw": 3,
+          "tile.bake": 4,
+          "tile.accept": 4,
+          "tile.source-end": 4,
+          "tile.ground-revision-detail": 2,
+          "tile.ground-revision-changed": 2,
+          "tile.invalidate": 2,
+          "tile.ground-revision-deferred": 4
+        },
+        "dropped": 0,
+        "totalEvents": 145,
+        "attributionComplete": true,
+        "groundRevisionDetails": [
+          {
+            "seq": 43,
+            "ms": 32246.3,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-1,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "22",
+              "toTerrain": "22",
+              "fromShore": "21",
+              "toShore": "21",
+              "fromRoad": "pending",
+              "toRoad": "87",
+              "fromRiver": "pending",
+              "toRiver": "71"
+            }
+          },
+          {
+            "seq": 52,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-2,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "21",
+              "toTerrain": "21",
+              "fromShore": "24",
+              "toShore": "24",
+              "fromRoad": "59",
+              "toRoad": "88",
+              "fromRiver": "43",
+              "toRiver": "72"
+            }
+          }
+        ],
+        "groundAssetPaths": [],
+        "groundAssetEvents": [],
+        "assetEventSamples": [],
+        "deferredGroundRevisions": [
+          {
+            "seq": 53,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 61,
+            "ms": 32313.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 63,
+            "ms": 32337.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 86,
+            "ms": 32620.2,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          }
+        ],
+        "deferredGroundRevisionCount": 4,
+        "eventSamples": [
+          {
+            "seq": 30,
+            "ms": 32093.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 37,
+            "ms": 32199.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"22\",\"21\",\"pending\",\"pending\"]",
+              "wallMs": 103.19999999925494
+            }
+          },
+          {
+            "seq": 43,
+            "ms": 32246.3,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-1,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "22",
+              "toTerrain": "22",
+              "fromShore": "21",
+              "toShore": "21",
+              "fromRoad": "pending",
+              "toRoad": "87",
+              "fromRiver": "pending",
+              "toRiver": "71"
+            }
+          },
+          {
+            "seq": 45,
+            "ms": 32246.3,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "terrain-core-revision-changed",
+              "epoch": 26,
+              "tiles": 1,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 48,
+            "ms": 32299.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 52,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-2,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "21",
+              "toTerrain": "21",
+              "fromShore": "24",
+              "toShore": "24",
+              "fromRoad": "59",
+              "toRoad": "88",
+              "fromRiver": "43",
+              "toRiver": "72"
+            }
+          },
+          {
+            "seq": 53,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 55,
+            "ms": 32300.1,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "terrain-core-revision-changed",
+              "epoch": 26,
+              "tiles": 1,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 59,
+            "ms": 32313.3,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,1@mid",
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 61,
+            "ms": 32313.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 63,
+            "ms": 32337.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 67,
+            "ms": 32462.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"22\",\"21\",\"87\",\"71\"]",
+              "wallMs": 160.5
+            }
+          },
+          {
+            "seq": 78,
+            "ms": 32586,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"21\",\"24\",\"88\",\"72\"]",
+              "wallMs": 122.90000000037253
+            }
+          },
+          {
+            "seq": 86,
+            "ms": 32620.2,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 121,
+            "ms": 33160.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-2@mid",
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 126,
+            "ms": 33171.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-reused-ground",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"32\",\"no-coast\",\"49\",\"pending\"]",
+              "wallMs": 8.699999999254942
+            }
+          },
+          {
+            "seq": 30,
+            "ms": 32093.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 37,
+            "ms": 32199.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"22\",\"21\",\"pending\",\"pending\"]",
+              "wallMs": 103.19999999925494
+            }
+          },
+          {
+            "seq": 43,
+            "ms": 32246.3,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-1,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "22",
+              "toTerrain": "22",
+              "fromShore": "21",
+              "toShore": "21",
+              "fromRoad": "pending",
+              "toRoad": "87",
+              "fromRiver": "pending",
+              "toRiver": "71"
+            }
+          },
+          {
+            "seq": 45,
+            "ms": 32246.3,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "terrain-core-revision-changed",
+              "epoch": 26,
+              "tiles": 1,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 48,
+            "ms": 32299.9,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 52,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-detail",
+            "detail": {
+              "id": "-2,1",
+              "level": "mid",
+              "changed": "road,river",
+              "fromTerrain": "21",
+              "toTerrain": "21",
+              "fromShore": "24",
+              "toShore": "24",
+              "fromRoad": "59",
+              "toRoad": "88",
+              "fromRiver": "43",
+              "toRiver": "72"
+            }
+          },
+          {
+            "seq": 53,
+            "ms": 32300.1,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 55,
+            "ms": 32300.1,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "terrain-core-revision-changed",
+              "epoch": 26,
+              "tiles": 1,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 59,
+            "ms": 32313.3,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,1@mid",
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 61,
+            "ms": 32313.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-2",
+              "level": "mid",
+              "changed": "road,river",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 63,
+            "ms": 32337.5,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "1,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 67,
+            "ms": 32462.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"22\",\"21\",\"87\",\"71\"]",
+              "wallMs": 160.5
+            }
+          },
+          {
+            "seq": 78,
+            "ms": 32586,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"21\",\"24\",\"88\",\"72\"]",
+              "wallMs": 122.90000000037253
+            }
+          },
+          {
+            "seq": 86,
+            "ms": 32620.2,
+            "type": "tile.ground-revision-deferred",
+            "detail": {
+              "id": "0,-1",
+              "level": "mid",
+              "changed": "road",
+              "reason": "previously-ready-road-or-river-temporarily-unavailable"
+            }
+          },
+          {
+            "seq": 121,
+            "ms": 33160.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-2@mid",
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 26,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 126,
+            "ms": 33171.9,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-reused-ground",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"32\",\"no-coast\",\"49\",\"pending\"]",
+              "wallMs": 8.699999999254942
+            }
+          }
+        ]
+      },
+      "cpuTaskSeconds": 0.78,
+      "frame": {
+        "count": 89,
+        "p50": 16.7,
+        "p95": 43.34,
+        "requestDrawSchedulingP95Ms": 0.1
+      },
+      "invalidReasons": [
+        "not-quiescent-before-sampling",
+        "asset/tile work occurred during camera-only test"
+      ]
+    },
+    {
+      "quality": "4",
+      "kind": "warm-zoom",
+      "classification": "warm-candidate",
+      "valid": false,
+      "gateReady": true,
+      "quiet": true,
+      "mutating": true,
+      "blockers": null,
+      "start": {
+        "active": true,
+        "tiles": 16,
+        "pending": 0,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 53,
+        "groundReuse": {
+          "entries": 16,
+          "bytes": 32820480,
+          "budgetBytes": 46137344,
+          "hits": 4,
+          "misses": 55,
+          "evicted": 0,
+          "stored": 51
+        },
+        "sceneryBuilds": 8,
+        "terrainBuilds": 37,
+        "imagePool": {
+          "decodedBytes": 655360000,
+          "limitBytes": 603979776,
+          "protectedBytes": 400556032,
+          "protectedAssets": 177,
+          "resident": 285,
+          "queued": 0,
+          "active": 0,
+          "evicted": 121,
+          "ready": 406,
+          "overLimitBytes": 51380224,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "end": {
+        "active": true,
+        "tiles": 14,
+        "pending": 1,
+        "failed": 0,
+        "retryExhausted": 0,
+        "visible": 16,
+        "coverage": 1,
+        "progress": {
+          "exact": 4,
+          "fallback": 0,
+          "provisional": 0,
+          "missing": 0
+        },
+        "bakes": 68,
+        "groundReuse": {
+          "entries": 14,
+          "bytes": 28717920,
+          "budgetBytes": 46137344,
+          "hits": 5,
+          "misses": 70,
+          "evicted": 0,
+          "stored": 65
+        },
+        "sceneryBuilds": 9,
+        "terrainBuilds": 53,
+        "imagePool": {
+          "decodedBytes": 612630528,
+          "limitBytes": 603979776,
+          "protectedBytes": 409731072,
+          "protectedAssets": 177,
+          "resident": 263,
+          "queued": 0,
+          "active": 0,
+          "evicted": 169,
+          "ready": 432,
+          "overLimitBytes": 8650752,
+          "previewSpritePx": 768,
+          "previewTerrainPx": 768
+        }
+      },
+      "quietTrace": {
+        "invalidations": {},
+        "assetEvents": {},
+        "bakes": {},
+        "cacheMisses": {},
+        "types": {},
+        "dropped": 0,
+        "totalEvents": 0,
+        "attributionComplete": true,
+        "groundRevisionDetails": [],
+        "groundAssetPaths": [],
+        "groundAssetEvents": [],
+        "assetEventSamples": [],
+        "deferredGroundRevisions": [],
+        "deferredGroundRevisionCount": 0,
+        "eventSamples": []
+      },
+      "trace": {
+        "invalidations": {
+          "image-ready-ground": 1,
+          "localized-scenery-change": 1
+        },
+        "assetEvents": {
+          "image-ready-ground": 7,
+          "image-ready-scenery": 26
+        },
+        "bakes": {
+          "fallback-ground-changed": 1,
+          "fallback-complete": 15,
+          "fallback-reused-ground": 1
+        },
+        "cacheMisses": {
+          "not-in-current-lod-cache": 23
+        },
+        "types": {
+          "camera.request": 91,
+          "asset.invalidate": 33,
+          "tile.evict": 1,
+          "tile.invalidate": 2,
+          "tile.cache-miss": 23,
+          "tile.state": 217,
+          "tile.source-start": 17,
+          "tile.snapshot": 17,
+          "terrain.draw": 16,
+          "roads.draw": 16,
+          "tile.bake": 17,
+          "tile.source-end": 17,
+          "tile.source-deferred": 13,
+          "tile.accept": 16,
+          "scenery.invalidate": 1,
+          "fog.mask": 1,
+          "camera.mode-retained": 1
+        },
+        "dropped": 0,
+        "totalEvents": 499,
+        "attributionComplete": true,
+        "groundRevisionDetails": [],
+        "groundAssetPaths": [
+          "assets/terrain/grassland_03.png",
+          "assets/terrain/halbwueste_03.png",
+          "assets/terrain/grassland_04.png",
+          "assets/terrain/cosatal_water_04.png",
+          "assets/terrain/cosatal_water_01.png",
+          "assets/terrain/cosatal_water_02.png",
+          "assets/terrain/cosatal_water_03.png"
+        ],
+        "groundAssetEvents": [
+          {
+            "seq": 16,
+            "ms": 43704.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/grassland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 20,
+            "ms": 43789.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/halbwueste_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 25,
+            "ms": 43855.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/grassland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 28,
+            "ms": 43909,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 32,
+            "ms": 43988.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 35,
+            "ms": 44041.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 38,
+            "ms": 44077.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_03.png",
+              "category": "terrain"
+            }
+          }
+        ],
+        "assetEventSamples": [
+          {
+            "seq": 16,
+            "ms": 43704.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/grassland_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 20,
+            "ms": 43789.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/halbwueste_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 25,
+            "ms": 43855.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/grassland_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 28,
+            "ms": 43909,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_04.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 32,
+            "ms": 43988.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_01.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 35,
+            "ms": 44041.6,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_02.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 38,
+            "ms": 44077.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-ground",
+              "path": "assets/terrain/cosatal_water_03.png",
+              "category": "terrain"
+            }
+          },
+          {
+            "seq": 82,
+            "ms": 44800.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/dead_tree_01.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 83,
+            "ms": 44808.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/Baumstumpf_15.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 84,
+            "ms": 44819.3,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/ice_block_01.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 85,
+            "ms": 44830,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/zeder7.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 87,
+            "ms": 44842.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/zeder9.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 88,
+            "ms": 44852.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/tanne_schnee_03.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 89,
+            "ms": 44863.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/snow_patch_08.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 90,
+            "ms": 44873.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/snowy_bush_08.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 95,
+            "ms": 44921.4,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/boulder_34.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 97,
+            "ms": 44947,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/boulder_25.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 98,
+            "ms": 44957.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/tanne_schnee_08.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 99,
+            "ms": 44968.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/snow_patch_01.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 100,
+            "ms": 44977.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/tanne_schnee_06.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 102,
+            "ms": 44989.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/tanne_schnee_07.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 103,
+            "ms": 44999.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/tanne_schnee_01.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 104,
+            "ms": 45012,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/fallen_log_13.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 105,
+            "ms": 45020.3,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/boulder_29.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 107,
+            "ms": 45035.1,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/snow_patch_04.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 108,
+            "ms": 45044.5,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/dead_tree_12.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 113,
+            "ms": 45055.8,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/boulder_33.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 114,
+            "ms": 45067.9,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/Baumstumpf_11.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 115,
+            "ms": 45078.2,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/dead_tree_11.png",
+              "category": "nature"
+            }
+          },
+          {
+            "seq": 116,
+            "ms": 45088.7,
+            "type": "asset.invalidate",
+            "detail": {
+              "reason": "image-ready-scenery",
+              "path": "assets/nature/snow_patch_02.png",
+              "category": "nature"
+            }
+          }
+        ],
+        "deferredGroundRevisions": [],
+        "deferredGroundRevisionCount": 0,
+        "eventSamples": [
+          {
+            "seq": 48,
+            "ms": 44198.2,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "all",
+              "reason": "image-ready-ground",
+              "epoch": 28,
+              "cacheCount": 15,
+              "pending": 0,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 50,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 52,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 54,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 56,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 58,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-1@mid",
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 60,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,-1@mid",
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 62,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 64,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,0@mid",
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 71,
+            "ms": 44797.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8066830941432249,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-ground-changed",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"26\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 593.9000000003725
+            }
+          },
+          {
+            "seq": 122,
+            "ms": 45351,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8094647437807863,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"38\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 295.7999999988824
+            }
+          },
+          {
+            "seq": 127,
+            "ms": 45353.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 133,
+            "ms": 45356.3,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "localized-scenery-change",
+              "epoch": 29,
+              "tiles": 53,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 296,
+            "ms": 45359,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 298,
+            "ms": 45359.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 304,
+            "ms": 45636.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8066830941432249,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"39\",\"11\",\"94\",\"pending\"]",
+              "wallMs": 282.59999999962747
+            }
+          },
+          {
+            "seq": 312,
+            "ms": 45721.6,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8016426452886034,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-reused-ground",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"38\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 85.09999999962747
+            }
+          },
+          {
+            "seq": 321,
+            "ms": 45932.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7994959346906221,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"40\",\"13\",\"47\",\"31\"]",
+              "wallMs": 210.7999999988824
+            }
+          },
+          {
+            "seq": 326,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 328,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-1@mid",
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 330,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,-1@mid",
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 332,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 334,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,0@mid",
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 341,
+            "ms": 48568.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7994959346906221,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"41\",\"14\",\"120\",\"pending\"]",
+              "wallMs": 155.40000000037253
+            }
+          },
+          {
+            "seq": 352,
+            "ms": 48707.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7971324443715437,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"44\",\"no-coast\",\"125\",\"109\"]",
+              "wallMs": 138.5
+            }
+          },
+          {
+            "seq": 363,
+            "ms": 48839.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7918021833497372,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"42\",\"18\",\"96\",\"pending\"]",
+              "wallMs": 131.5
+            }
+          },
+          {
+            "seq": 377,
+            "ms": 49054.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7857556096908911,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"45\",\"19\",\"53\",\"37\"]",
+              "wallMs": 215.5
+            }
+          },
+          {
+            "seq": 388,
+            "ms": 49173,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7683057042579817,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"43\",\"20\",\"54\",\"pending\"]",
+              "wallMs": 118.09999999962747
+            }
+          },
+          {
+            "seq": 400,
+            "ms": 49240.6,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 402,
+            "ms": 49240.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,1@mid",
+              "id": "0,1",
+              "x": 0,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 406,
+            "ms": 49240.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,1@mid",
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 414,
+            "ms": 49344,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7416942957420183,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"46\",\"21\",\"87\",\"71\"]",
+              "wallMs": 100.80000000074506
+            }
+          },
+          {
+            "seq": 426,
+            "ms": 49492.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,1",
+              "x": 0,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7380040653093779,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"48\",\"23\",\"118\",\"pending\"]",
+              "wallMs": 148.80000000074506
+            }
+          },
+          {
+            "seq": 435,
+            "ms": 49501,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-2@mid",
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 439,
+            "ms": 49612.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7274999999999999,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"47\",\"24\",\"133\",\"117\"]",
+              "wallMs": 119.40000000037253
+            }
+          },
+          {
+            "seq": 62,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 64,
+            "ms": 44203.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,0@mid",
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 71,
+            "ms": 44797.7,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8066830941432249,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-ground-changed",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"26\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 593.9000000003725
+            }
+          },
+          {
+            "seq": 122,
+            "ms": 45351,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8094647437807863,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"38\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 295.7999999988824
+            }
+          },
+          {
+            "seq": 127,
+            "ms": 45353.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-1@mid",
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 133,
+            "ms": 45356.3,
+            "type": "tile.invalidate",
+            "detail": {
+              "scope": "selective",
+              "reason": "localized-scenery-change",
+              "epoch": 29,
+              "tiles": 53,
+              "lod": "mid"
+            }
+          },
+          {
+            "seq": 296,
+            "ms": 45359,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-1@mid",
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 298,
+            "ms": 45359.1,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,0@mid",
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 304,
+            "ms": 45636.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-1",
+              "x": 0,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8066830941432249,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"39\",\"11\",\"94\",\"pending\"]",
+              "wallMs": 282.59999999962747
+            }
+          },
+          {
+            "seq": 312,
+            "ms": 45721.6,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-1",
+              "x": -512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.8016426452886034,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-reused-ground",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"38\",\"no-coast\",\"123\",\"pending\"]",
+              "wallMs": 85.09999999962747
+            }
+          },
+          {
+            "seq": 321,
+            "ms": 45932.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,0",
+              "x": -512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7994959346906221,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"40\",\"13\",\"47\",\"31\"]",
+              "wallMs": 210.7999999988824
+            }
+          },
+          {
+            "seq": 326,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,0@mid",
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 328,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-1@mid",
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 330,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,-1@mid",
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 332,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,0@mid",
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 334,
+            "ms": 48410.8,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,0@mid",
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 341,
+            "ms": 48568.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,0",
+              "x": 0,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7994959346906221,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"41\",\"14\",\"120\",\"pending\"]",
+              "wallMs": 155.40000000037253
+            }
+          },
+          {
+            "seq": 352,
+            "ms": 48707.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,-1",
+              "x": -1024,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7971324443715437,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"44\",\"no-coast\",\"125\",\"109\"]",
+              "wallMs": 138.5
+            }
+          },
+          {
+            "seq": 363,
+            "ms": 48839.2,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,-1",
+              "x": 512,
+              "y": -512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7918021833497372,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"42\",\"18\",\"96\",\"pending\"]",
+              "wallMs": 131.5
+            }
+          },
+          {
+            "seq": 377,
+            "ms": 49054.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,0",
+              "x": -1024,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7857556096908911,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"45\",\"19\",\"53\",\"37\"]",
+              "wallMs": 215.5
+            }
+          },
+          {
+            "seq": 388,
+            "ms": 49173,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,0",
+              "x": 512,
+              "y": 0,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7683057042579817,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"43\",\"20\",\"54\",\"pending\"]",
+              "wallMs": 118.09999999962747
+            }
+          },
+          {
+            "seq": 400,
+            "ms": 49240.6,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,1@mid",
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 402,
+            "ms": 49240.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,1@mid",
+              "id": "0,1",
+              "x": 0,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 406,
+            "ms": 49240.7,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,1@mid",
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 414,
+            "ms": 49344,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,1",
+              "x": -512,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7416942957420183,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"46\",\"21\",\"87\",\"71\"]",
+              "wallMs": 100.80000000074506
+            }
+          },
+          {
+            "seq": 426,
+            "ms": 49492.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,1",
+              "x": 0,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7380040653093779,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "insufficient-snapshot-density",
+              "sourceGroundVersion": "[\"48\",\"23\",\"118\",\"pending\"]",
+              "wallMs": 148.80000000074506
+            }
+          },
+          {
+            "seq": 435,
+            "ms": 49501,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-1,-2@mid",
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 439,
+            "ms": 49612.4,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,1",
+              "x": -1024,
+              "y": 512,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7274999999999999,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"47\",\"24\",\"133\",\"117\"]",
+              "wallMs": 119.40000000037253
+            }
+          },
+          {
+            "seq": 450,
+            "ms": 49735.8,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-1,-2",
+              "x": -512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7211386188570887,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"50\",\"no-coast\",\"124\",\"pending\"]",
+              "wallMs": 123.30000000074506
+            }
+          },
+          {
+            "seq": 456,
+            "ms": 49745.3,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "0,-2@mid",
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 466,
+            "ms": 50000.1,
+            "type": "tile.bake",
+            "detail": {
+              "id": "0,-2",
+              "x": 0,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7128675556284562,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"51\",\"no-coast\",\"95\",\"79\"]",
+              "wallMs": 251.59999999962747
+            }
+          },
+          {
+            "seq": 472,
+            "ms": 50044.4,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "-2,-2@mid",
+              "id": "-2,-2",
+              "x": -1024,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 480,
+            "ms": 50282.5,
+            "type": "tile.bake",
+            "detail": {
+              "id": "-2,-2",
+              "x": -1024,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.703316905856775,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"52\",\"no-coast\",\"126\",\"110\"]",
+              "wallMs": 235.90000000037253
+            }
+          },
+          {
+            "seq": 488,
+            "ms": 50388,
+            "type": "tile.cache-miss",
+            "detail": {
+              "key": "1,-2@mid",
+              "id": "1,-2",
+              "x": 512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "epoch": 29,
+              "reason": "not-in-current-lod-cache"
+            }
+          },
+          {
+            "seq": 495,
+            "ms": 50513.3,
+            "type": "tile.bake",
+            "detail": {
+              "id": "1,-2",
+              "x": 512,
+              "y": -1024,
+              "size": 512,
+              "level": "mid",
+              "zoom": 0.7,
+              "dpr": 4,
+              "lod": "mid",
+              "outcome": "fallback-complete",
+              "snapshotReason": "not-painted",
+              "sourceGroundVersion": "[\"53\",\"no-coast\",\"145\",\"129\"]",
+              "wallMs": 122.40000000037253
+            }
+          }
+        ]
+      },
+      "cpuTaskSeconds": 3.86,
+      "frame": {
+        "count": 89,
+        "p50": 16.7,
+        "p95": 133.4,
+        "requestDrawSchedulingP95Ms": 0.6
+      },
+      "invalidReasons": [
+        "asset/tile work occurred during camera-only test"
+      ]
+    }
+  ],
+  "control": [
+    {
+      "kind": "pan",
+      "valid": true,
+      "seeded": 16,
+      "retained": 16,
+      "cacheBytes": 64192512,
+      "coverageMin": 1,
+      "sourcePending": false,
+      "completedChange": 0,
+      "evictedChange": 0,
+      "frame": {
+        "count": 89,
+        "p50": 33.4,
+        "p95": 66.7,
+        "requestRenderP95Ms": 0.7,
+        "compositeP95Ms": 0.46
+      }
+    },
+    {
+      "kind": "zoom",
+      "valid": true,
+      "seeded": 16,
+      "retained": 16,
+      "cacheBytes": 64192512,
+      "coverageMin": 1,
+      "sourcePending": false,
+      "completedChange": 0,
+      "evictedChange": 0,
+      "frame": {
+        "count": 89,
+        "p50": 33.3,
+        "p95": 50.02,
+        "requestRenderP95Ms": 0.4,
+        "compositeP95Ms": 0.25
+      }
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "visual": [],
+  "import": {
+    "file": "C:\\Users\\marku\\Desktop\\asset_labor\\artifacts\\rendering-step13\\vedras_scene.json",
+    "expectedNature": 2631,
+    "sceneSize": 397,
+    "catalogAssets": 480,
+    "nature": 2631,
+    "missingNatureInstances": 0,
+    "missingPaths": [],
+    "sites": [
+      {
+        "label": "center",
+        "q": 0,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "dense-forest",
+        "q": -3,
+        "r": 0,
+        "terrain": "grassland",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "coast",
+        "q": 1,
+        "r": 3,
+        "terrain": "grassland",
+        "forestClass": "none",
+        "waterNeighbors": 4
+      },
+      {
+        "label": "mountains",
+        "q": -10,
+        "r": 3,
+        "terrain": "highland",
+        "forestClass": "light_forest",
+        "waterNeighbors": 0
+      },
+      {
+        "label": "moor",
+        "q": -7,
+        "r": 4,
+        "terrain": "moor",
+        "forestClass": "dense_forest",
+        "waterNeighbors": 1
+      },
+      {
+        "label": "open-water",
+        "q": -4,
+        "r": 5,
+        "terrain": "ocean",
+        "forestClass": "none",
+        "waterNeighbors": 6
+      }
+    ]
+  },
+  "importByQuality": {
+    "4": {
+      "importMs": 1497,
+      "nature": 2631,
+      "missingNatureInstances": 0
+    }
+  },
+  "decision": {
+    "status": "INSUFFICIENT_REAL_WARM_EVIDENCE",
+    "rendererRewriteRecommended": false,
+    "recommendation": "Investigate real scene preparation/readiness and asset lifetimes before changing backend",
+    "blockers": [
+      "No valid real warm run; cannot claim FPS improvement or choose rewrite",
+      "Actual real camera still allocates/rebuilds or fails readiness"
+    ]
+  }
+}
