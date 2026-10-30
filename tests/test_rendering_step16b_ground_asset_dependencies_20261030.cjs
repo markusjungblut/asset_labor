@@ -82,7 +82,7 @@ test('terrain tiles use actual chunk neighbor footprint, not only center cell',(
 });
 test('production callback performs localized invalidation or global fallback, not both',()=>{
  assert.match(app,/if\(groundIds===null\)worldTiles\?\.invalidate\('image-ready-ground'\);\s*else worldTiles\?\.invalidateTiles\(groundIds,'image-ready-ground-selective'\)/);
- assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
+ assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):\s*a\.category==='shorelines'\?shorelineSideCells\(a\):null/);
  assert.match(app,/lastGroundMaterialPaths=new Map\(worldCells\.map/);
  assert.match(app,/lastGroundMaterialPaths=null;lastGroundWetCells=null;\s*groundAssetNeedsGlobal=true/);
  assert.match(app,/pendingGroundCells\.clear\(\);pendingGroundPaths\.clear\(\)/);
@@ -192,8 +192,8 @@ test('non-array river route state cannot authorize selective water invalidation'
  const h=harness({river:true,riverPaths:{not:'normalized'}});
  assert.equal(h.evaluate({path:'a.png',type:'coastal_water',terrainCheck:{ok:true}}),null);
 });
-test('separate shoreline PNGs retain global fallback in the production onReady batch',()=>{
- assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):null/);
+test('unrecognized shoreline sources retain global fallback and recognized sides use local mapping',()=>{
+ assert.match(app,/const changed=isTerrain\(a\)\?selectedGroundAssetChanges\(a\):\s*a\.category==='shorelines'\?shorelineSideCells\(a\):null/);
  assert.match(app,/const affectsGround=isTerrain\(a\)\|\|a\.category==='shorelines'/);
  assert.match(app,/if\(changed===null\)groundAssetNeedsGlobal=true/);
 });
