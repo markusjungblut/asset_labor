@@ -6,17 +6,18 @@ import {existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {launch,preflight,waitFor,importScene,setControls,setCamera,settle,
- snapshot,measureMetrics,delta,percentile} from './rendering-step13-browser.mjs';
+ snapshot,measureMetrics,delta,percentile,screenshot} from './rendering-step13-browser.mjs';
 
 function args(argv){
  const options={url:'http://127.0.0.1:8780/',
   scene:resolve('artifacts/rendering-step13/vedras_scene.json'),
   out:resolve('artifacts/rendering-step16a-audit'),
-  qualities:['4','auto'],frames:90,settleMs:12000,headed:false};
+  qualities:['4','auto'],frames:90,settleMs:12000,headed:false,visual:false};
  for(let i=0;i<argv.length;i++){
   const key=argv[i];
   if(key==='--help'){options.help=true;continue;}
   if(key==='--headed'){options.headed=true;continue;}
+  if(key==='--visual'){options.visual=true;continue;}
   if(!['--url','--scene','--out','--qualities','--frames','--settle-ms','--chrome'].includes(key))
    throw Error('Unknown option '+key);
   const value=argv[++i];
@@ -210,6 +211,41 @@ function readinessBlockers(){
    protectedBytes:p.protectedBytes,queued:p.queued,active:p.active,
    evicted:p.evicted,ready:p.ready}};
 }
+// Optional viewport-only screenshots; pixel hashes are not visual acceptance.
+async function captureStep16bVisual(c,run,o){
+ const dir=join(o.out,'images');await mkdir(dir,{recursive:true});
+ async function shot(stage,settled=null){
+  const state=await c.eval('(()=>{const v=window.VedrasAssetLabor;'+
+   'return {zoom:v.state.zoom,panX:v.state.panX,panY:v.state.panY,'+
+   'scenery:v.sceneryStats(),world:v.worldTileStats(),'+
+   'ocean:v.cameraDiagnostics({q:-4,r:5})};})()');
+  const img=await screenshot(c,join(dir,stage+'.png'));
+  run.visual.push({stage,file:'images/'+img.file,sha256:img.sha256,
+   ready:settled?.ready??null,readinessReasons:settled?.reasons||[],...state});
+ }
+ await setControls(c,'auto',false);
+ await setCamera(c,{q:0,r:0},.70);
+ const baseline=await settle(c,o.settleMs);
+ await sleep(500);
+ await shot('01-zoom-before',baseline);
+ await c.eval('(()=>{const el=document.getElementById("zoomSlider");'+
+  'el.value=77;el.dispatchEvent(new Event("input",{bubbles:true}));'+
+  'return true;})()');
+ await c.eval('new Promise(resolve=>requestAnimationFrame(()=>resolve(true)))');
+ await shot('02-zoom-during');
+ await sleep(800);
+ const exact=await settle(c,o.settleMs);
+ await shot('03-zoom-settled',exact);
+ await setCamera(c,{q:-4,r:5},.70);
+ const ocean=await settle(c,o.settleMs,{edgeSite:true});
+ await shot('04-ocean-shore',ocean);
+ await c.eval('(()=>{const el=document.getElementById("fogPreview");'+
+  'el.checked=true;el.dispatchEvent(new Event("change",{bubbles:true}));'+
+  'return true;})()');
+ await sleep(600);
+ await shot('05-fog-enabled');
+ await setControls(c,'auto',false);
+}
 async function main(){
  const o=args(process.argv.slice(2));
  if(o.help){console.log('node scripts/rendering-step16a-audit.mjs --url LOCAL --qualities 4,auto --frames 90');return;}
@@ -222,7 +258,7 @@ async function main(){
   sceneSha256:createHash('sha256').update(sceneRaw).digest('hex'),
   source:'real editor + production compositor-only control',
   environment:{qualities:o.qualities,frames:o.frames},real:[],control:[],
-  warnings:[],errors:[]};
+  warnings:[],errors:[],visual:[]};
  let engine;
  try{
   // Each quality gets a fresh Chrome profile, so the first run cannot
@@ -311,6 +347,10 @@ async function main(){
      ', tile events '+trace.totalEvents);
    }
     await c.eval('window.VedrasAssetLabor.enableStep15Trace(false)');
+    if(o.visual&&quality==='auto'){
+     try{await captureStep16bVisual(c,run,o);}
+     catch(error){run.warnings.push('Visual capture failed: '+String(error?.stack||error));}
+    }
    }catch(error){
     run.errors.push('Quality '+quality+': '+String(error?.stack||error));
    }finally{
@@ -379,6 +419,11 @@ async function main(){
      '; CPU-Taskzeit: '+(x.cpuTaskSeconds??'–')+' s'+
      '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
    ]),
+   '','## Optionale visuelle Prüfbilder','',
+   ...run.visual.map(x=>'- '+x.stage+': '+x.file+'; Zoom '+x.zoom+
+     '; Scenery-Builds '+x.scenery?.builds+
+     '; READY '+(x.ready===null?'nicht geprüft':x.ready)+
+     '; manuelle Bildprüfung erforderlich'),
    '','## Entscheidung','',run.decision.recommendation,
    ...run.decision.blockers.map(x=>'- '+x),
    '','Nicht READY/ohne quiet gate gemessene Framezeiten sind diagnostisch, kein FPS-Abnahmebeleg.',
