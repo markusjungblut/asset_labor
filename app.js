@@ -550,13 +550,16 @@ function fastRender(){
    worldTiles.request(fastView(),tiles);
    // Reconcile only the CURRENT LOD after selection. Each source layer has
    // its own authoritative version; scenery and units do not affect it.
-   const prepared=(chunks)=>new Map(chunks.readyTiles(bounds,{limit:100})
-    .map(({tile,artwork})=>[tile.id,artwork.version]));
+   const prepared=(chunks,stableSource=false)=>new Map(
+    chunks.readyTiles(bounds,{limit:100,sourceKeys:stableSource})
+    .map(({tile,artwork})=>[
+     tile.id,stableSource?artwork.sourceRevision??artwork.version:artwork.version
+    ]));
    const layers={
     shore:state.shoreline?.enabled!==false?prepared(shorelineChunks):null,
-    road:state.roadShown?prepared(roadChunks):null,
+    road:state.roadShown?prepared(roadChunks,true):null,
     river:state.river&&state.riverBanks&&state.riverBankStrength>0?
-     prepared(riverChunks):null
+     prepared(riverChunks,true):null
    };
    const versions=new Map(ready.map(({tile,artwork})=>
     [tile.id,groundSourceRevision(tile,artwork.version,layers)]));
@@ -663,10 +666,15 @@ const groundTileReuse=window.VedrasGroundTileReuse?.create({
 function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
  const sourceVersion=terrainVersion??currentTerrainCore(t)?.artwork?.version??null;
  if(sourceVersion==null)return null;
- const versionFor=(cache,map)=>{
+ const versionFor=(cache,map,stableSource=false)=>{
   if(map)return map.get(t.id)??'pending';
-  return cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
-   {limit:12}).find(entry=>entry.tile.id===t.id)?.artwork?.version??'pending';
+  const artwork=cache.readyTiles({x:t.x,y:t.y,width:t.size-1,height:t.size-1},
+   {limit:12,sourceKeys:stableSource})
+   .find(entry=>entry.tile.id===t.id)?.artwork;
+  if(!artwork)return 'pending';
+  // Road and river work may be evicted/rebuilt with unchanged pixels.
+  // Incrementing rasterVersion is a build counter, not a content revision.
+  return stableSource?artwork.sourceRevision??artwork.version:artwork.version;
  };
  // Noncoastal tiles deliberately have no shoreline raster; this is not pending.
  const coastal=Array.isArray(shorelineCache.segments)?
@@ -675,9 +683,9 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
    s.center.y<=t.y+t.size+256):null;
  const coast=state.shoreline?.enabled===false?'off':
   coastal===false?'no-coast':versionFor(shorelineChunks,readyMaps?.shore);
- const road=state.roadShown?versionFor(roadChunks,readyMaps?.road):'off';
+ const road=state.roadShown?versionFor(roadChunks,readyMaps?.road,true):'off';
  const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
-  versionFor(riverChunks,readyMaps?.river):'off';
+  versionFor(riverChunks,readyMaps?.river,true):'off';
  return JSON.stringify([String(sourceVersion),String(coast),
   String(road),String(river)]);
 }

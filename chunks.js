@@ -6,6 +6,25 @@
 window.VedrasChunks=(()=>{
  const SIZE=512,HALO=128;
  const key=(x,y)=>x+','+y;
+ // A rebuilt raster receives a NEW construction version, even when its
+ // source content has not changed. World-Tile source identity must instead
+ // be stable across cache eviction/rebuild and change with either the
+ // global render configuration or the tile-local content stamp.
+ // Four independent 32-bit streams keep the retained token bounded even
+ // for large river-network signatures; the length is included as a guard.
+ function sourceContentRevision(configuration,stamp){
+  const input=String(configuration)+'\u0000'+String(stamp);
+  let a=2166136261,b=2246822519,c=3266489917,d=668265263;
+  for(let i=0;i<input.length;i++){
+   const n=input.charCodeAt(i);
+   a=Math.imul(a^n,16777619);
+   b=Math.imul(b^n,2246822519);
+   c=Math.imul(c^n,3266489917);
+   d=Math.imul(d^n,668265263);
+  }
+  const hex=n=>(n>>>0).toString(16).padStart(8,'0');
+  return 'src-'+input.length.toString(36)+'-'+hex(a)+hex(b)+hex(c)+hex(d);
+ }
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  function worldPos(c){return {x:256*(c.q+c.r/2),y:1.5*(256/Math.sqrt(3))*c.r};}
  function tile(x,y,size=SIZE){return {x:x*size,y:y*size,size,id:key(x,y)};}
@@ -547,7 +566,7 @@ window.VedrasChunks=(()=>{
   // camera compositor. No queue mutation, canvas copy or worker cost.
   // Consumers must finish painting synchronously: eviction still owns bitmaps.
   function paintedVersions(){return new Map(lastDrawnVersions);}
-  function readyTiles(bounds,{limit=100}={}){
+  function readyTiles(bounds,{limit=100,sourceKeys=false}={}){
    if(!signature||!cells?.length||!bounds)return [];
    const result=[];
    for(const t of visible(bounds,cells,size)){
@@ -555,6 +574,10 @@ window.VedrasChunks=(()=>{
     if(current&&current.stamp===stampForTile(t)&&
       (current.relief?.canvas||current.raster?.canvas||
        current.raster?.waterLayer?.canvas)){
+     // Only consumers of semantic road/river identity pay hashing cost.
+     // Terrain and shoreline still use the integer paint build counter.
+     if(sourceKeys&&current.sourceRevision===undefined)
+      current.sourceRevision=sourceContentRevision(signature,current.stamp);
      result.push({tile:t,artwork:current});
      if(result.length>=limit)break;
     }

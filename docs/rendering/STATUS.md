@@ -965,3 +965,40 @@ Compositor-Bug. Der definitive visuelle 16C-Seam-Nachweis
 und eine gültige reale 4×-Warm-Messung stehen weiter aus.
 
 **PR #83 bleibt Draft und ungemergt; Schritt 16C/17 gesperrt.**
+
+
+## 30.10.2026 – Windows-Audit 17:50:43: unnötige Straßen-/Fluss-Revisionswechsel
+
+Im 4×-Audit nach #83 entstehen bei den echten Kameragesten
+**vier Pan- und sechs Zoom-Revisionswechsel** allein in
+Road-/River-Quellen, bei jeweils unverändertem Terrain-
+und Shore-Kern. Vergleich z. B. Tile `-1,0`:
+Road `50→127`, River `35→112`, Terrain `31→31`.
+Die Chunkverwaltung vergibt den bisherigen
+`rasterVersion`-Zähler bei jedem Render-Neubau,
+selbst wenn der visuelle Inhalt unverändert ist.
+Diesen monotonen Zähler hatte die WorldTile-Quelle
+als Inhaltsrevision verwendet.
+
+Gestapelter Draft #84: `chunks.readyTiles(...,
+{sourceKeys:true})` stellt eine stabile, begrenzt
+gehashte `sourceRevision` aus Chunk-
+Konfigurationssignatur und lokalem Tile-Stempel
+bereit. Nur Road-/River-WorldTile-Quellen nutzen
+diesen neuen Token. Terrain, Shore, Paint-Versionen,
+Load-Gates, vorübergehendes `pending`-Deferral
+und sämtliche Fog-Regeln bleiben unverändert.
+Die Berechnung erfolgt nur bei tatsächlicher
+Road-/River-Abfrage, **nicht** auf jedem Terrain-
+Chunk-Build.
+
+**72/72 isolierte V8-Regressionsprüfungen
+bestanden**, einschließlich identischer Neuaufbau,
+echter Road-/River-Edit, geänderte Auflösung,
+Route, WorldTile-Reconcile und lazy-Fingerprint.
+Native Windows-Node/Chrome-Abnahme des Patches
+ausstehend. Die sichtbare 4×-Kontinuität von #83
+ist verbessert, aber kein gültiger Real-Warm-FPS-
+Nachweis und keine 16C-Sichtfreigabe.
+Vertikale Wasserlinien weiterhin offen.
+**Kein Merge; Schritt 17 gesperrt.**
