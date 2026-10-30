@@ -709,8 +709,11 @@ function selectedGroundAssetChanges(asset){
     lastGroundWetCells.size!==worldCells.length||
     !asset?.path||!asset.terrainCheck?.ok)return null;
  const type=typeOfAsset(asset);
- // Forest-floor overlays and relief can consume non-local sources.
- if(!type||type==='forest_floor'||state.relief?.enabled)return null;
+ // Forest-floor overlays and legacy relief can consume non-local
+ // sources. Geography relief derives elevation from authored geography,
+ // with immutable class topology guarded against wet-cell changes below.
+ if(!type||type==='forest_floor'||
+    (state.relief?.enabled&&state.relief?.mode!=='geography'))return null;
  terrainAssetGroups=null;
  const fallback=baseImage(),current=new Map(),wet=new Map(),changed=new Set();
  for(const cell of worldCells){
@@ -1512,7 +1515,7 @@ function drawGroundImpl(){
        const a=selectedMap.get(key(c.q,c.r))||fallback;
        return [c.q,c.r,c.biome,effectiveBiome(c),c.reliefClass,
         c.hillProfile,c.hillStrength,c.worldQ,c.worldR,a?.path,a?.mtime,
-        a?.meta?.textureWorldSize||256];
+        a?.imageRevision||0,a?.meta?.textureWorldSize||256];
       })
      }):null;
      const precomputed=diskKey?await staticTerrain.read(diskKey):null;
