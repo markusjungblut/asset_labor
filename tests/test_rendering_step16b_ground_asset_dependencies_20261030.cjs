@@ -106,3 +106,35 @@ test('read-only material comparison cannot start or promote image-pool requests'
  assert.equal(imageForBiome(cell),asset);
  assert.equal(ensures,1);
 });
+
+test('full biome lookup also remains read-only through baseBiomeOf and typeOfCell',()=>{
+ const begin=app.indexOf('function baseBiomeOf(c,ensureSource=true){'),
+  end=app.indexOf('let forestMemoSignature',begin);
+ const selector=app.indexOf('function imageForBiome(c,ensureSource=true){'),
+  selectorEnd=app.indexOf('\nfunction effectiveBiome',selector);
+ assert.ok(begin>0&&end>begin&&selector>0&&selectorEnd>selector);
+ const invalid={path:'invalid.png',type:'grassland',ok:false},
+  valid={path:'valid.png',type:'grassland',ok:true};
+ const assetByPath=new Map([['invalid.png',invalid],['valid.png',valid]]);
+ let calls=0;
+ const state={hexTerrain:{},biomeTerrain:{plains:'invalid.png'},baseBiomeByHex:{}},
+  window={VedrasForest:{jungleAllowed:()=>false},VedrasCatalog:{terrainType:()=>null}},
+  catalog={terrainTypes:[]};
+ const code=[
+  "const key=(q,r)=>q+','+r,",
+  "typeOfAsset=a=>a?.type||null,isTerrainValid=a=>a?.ok===true,",
+  "terrainAssetsByType=t=>t==='grassland'?[valid]:[],hash=()=>0,",
+  "demoTypes={plains:'grassland'},",
+  "useAsset=p=>{calls.increment();return assetByPath.get(p)||null};",
+  app.slice(begin,end),app.slice(selector,selectorEnd),
+  'return imageForBiome;'
+ ].join('\n');
+ const make=new Function('state','window','catalog','assetByPath','valid','calls',code);
+ const counter={increment(){calls++}};
+ const choose=make(state,window,catalog,assetByPath,valid,counter);
+ const c={q:0,r:0,biome:'plains',terrainTypeId:'grassland'};
+ assert.equal(choose(c,false),valid);
+ assert.equal(calls,0,'no indirect imagePool.ensure calls');
+ assert.equal(choose(c),valid);
+ assert.ok(calls>0,'ordinary draw still primes its assets');
+});
