@@ -29,7 +29,7 @@ window.VedrasGroundTileReuse=(()=>{
   // Ground invalidation follows the same world-tile IDs as the authoritative
   // terrain neighbor-footprint. A changed source must not flush distant tiles.
   function invalidateTiles(ids){
-   if(!(ids instanceof Set))return 0;
+   if(!ids||typeof ids.has!=='function')return 0;
    let count=0;
    for(const [k,v] of entries){
     if(!ids.has(k.slice(0,k.lastIndexOf('@'))))continue;
