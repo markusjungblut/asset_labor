@@ -173,3 +173,23 @@ test('camera warm acceptance rejects stale visible tiles even with 100% pixel co
  assert.equal(cameraCondition({...ready,progress:{...ready.progress,stale:1}}),false);
  assert.equal(cameraCondition({...ready,progress:{...ready.progress,exact:0,stale:4}}),false);
 });
+
+test('screenshot settle refuses stale pixels despite full coverage',async()=>{
+ const browser=fs.readFileSync(path.join(__dirname,'../scripts/rendering-step13-browser.mjs'),'utf8');
+ const a=browser.indexOf('async function settle(cdp,'),
+  b=browser.indexOf('\nasync function setCamera',a);
+ assert.ok(a>=0&&b>a);
+ const verify=async(stale)=>{
+  let now=0;
+  const settle=new Function('Date','sleep',browser.slice(a,b)+'\nreturn settle;')(
+   {now:()=>now},async(ms)=>{now+=ms});
+  return settle({eval:async()=>({view:'map',mode:'normal',assetPool:{},
+   artwork:{artwork:[]},world:{active:true,visible:4,drawn:4,pending:0,
+   retryExhausted:0,coverage:1,visiblePreviews:0,
+   progress:{exact:4-stale,missing:0,provisional:0,stale}}})},3000);
+ };
+ const waiting=await verify(1);
+ assert.equal(waiting.ready,false);
+ assert.ok(waiting.reasons.includes('stale-ground-refresh:1'));
+ assert.equal((await verify(0)).ready,true);
+});
