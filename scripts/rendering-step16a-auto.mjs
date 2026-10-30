@@ -3,10 +3,20 @@
 import {spawn,spawnSync} from 'node:child_process';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {mkdir,rm} from 'node:fs/promises';
+import {mkdir} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 process.chdir(root);
-const output=resolve(root,'artifacts/rendering-step16a-audit');
+// Every audit gets its own directory. Never delete the user's prior
+// result.json/README/screenshots or any modified tracked artifacts.
+const stamp=new Date().toISOString().replace(/[^0-9]/g,'');
+const cli=process.argv.slice(2);
+const outIndex=cli.indexOf('--out');
+if(outIndex>=0&&(!cli[outIndex+1]||cli[outIndex+1].startsWith('--')))
+ throw Error('--out requires a new, unused directory');
+const output=resolve(root,outIndex>=0?cli[outIndex+1]:
+ 'artifacts/rendering-step16b-warm-'+stamp);
+if(outIndex>=0)cli.splice(outIndex,2);
 let server=null;
 async function startServer(){
  const candidates=process.platform==='win32'?
@@ -42,12 +52,13 @@ async function startServer(){
 async function main(){
  if(Number(process.versions.node.split('.')[0])<22)throw Error('Node 22+ required');
  if(process.argv.includes('--url'))throw Error('Launcher chooses isolated local server; omit --url');
- await rm(output,{recursive:true,force:true});
+ if(existsSync(output))throw Error('Audit directory already exists: '+output+
+  '. Select a fresh --out to preserve prior evidence.');
  await mkdir(output,{recursive:true});
  const {candidate,url}=await startServer();
  console.log('Step16A: isolated local server '+url);
  const args=[resolve(root,'scripts/rendering-step16a-audit.mjs'),
-  '--url',url,'--out',output,...process.argv.slice(2)];
+  '--url',url,'--out',output,...cli];
  const child=spawn(process.execPath,args,{cwd:root,stdio:'inherit'});
  const code=await new Promise((yes,no)=>{
   child.once('error',no);child.once('close',status=>yes(status??1));
@@ -57,7 +68,7 @@ async function main(){
   [...candidate.args.slice(0,-1),'scripts/rendering-step16a-pack.py',output],
   {cwd:root,stdio:'inherit',timeout:30000});
  if(packed.status!==0)console.error('ZIP packaging failed; JSON/README remain at '+output);
- console.log('Step16A files: '+output);
+ console.log('Step16B warm audit files and ZIP: '+output);
  if(code!==0)throw Error('Audit failed (see output/result.json for partial evidence)');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>{
