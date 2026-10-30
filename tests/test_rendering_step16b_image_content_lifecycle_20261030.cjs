@@ -149,3 +149,13 @@ test('ground asset callback uses selective reuse invalidation with global fallba
  assert.match(app,/else groundTileReuse\?\.invalidateTiles\(reuseIds\)/);
  assert.match(app,/if\(groundIds===null\)worldTiles\?\.invalidate\('image-ready-ground'\);/);
 });
+
+test('real audit reports image-pool event categories without weakening warm gates',()=>{
+ const audit=fs.readFileSync(path.join(root,'scripts/rendering-step16a-audit.mjs'),'utf8');
+ assert.match(audit,/poolReadyKinds:poolKinds/);
+ assert.match(audit,/poolEvictionCount:poolEvicted.length/);
+ assert.match(audit,/unreadyRequestedWorldCores:requestedWaiting.length/);
+ assert.match(audit,/unreadyOverscanCores:waiting.length-requestedWaiting.length/);
+ assert.match(audit,/const valid=quiet&&cameraCondition\(end\)/);
+ assert.match(audit,/!mutating&&trace.dropped===0/);
+});
