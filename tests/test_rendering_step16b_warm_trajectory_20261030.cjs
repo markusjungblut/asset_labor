@@ -168,7 +168,7 @@ test('warm footprint is opt-in and is merged into ordinary camera protection',()
  assert.match(app,/if\(warmCameraFootprint\)\s+for\(const path of warmCameraFootprint\)pinned\.add\(path\)/);
  assert.match(app,/configureCameraWarmFootprint,prepareCameraWarmImages/);
  assert.match(app,/pruneIdleImagePool:\(\)=>imagePool\.pruneIdle\(\)/);
- assert.match(app,/warmCameraFootprint=null;lastProtectedCameraSignature='';/);
+ assert.match(app,/warmCameraFootprint=null;[\s\S]*?worldTiles\?\.reserveWarmTiles\(null\);[\s\S]*?lastProtectedCameraSignature='';/);
 });
 
 test('Windows audit launcher never deletes previous result files',()=>{
