@@ -49,6 +49,7 @@ test('insufficient fixed pixel budget is reported rather than silently enlarged'
  renderer.seed(b,'mid',packet('b'));
  const status=renderer.warmTileStatus();
  assert.equal(status.ready,2);
+ assert.equal(status.revisionMismatch,0);
  assert.equal(status.budgetPixels,25000);
  assert.equal(status.overBudgetPixels,15000);
  renderer.reserveWarmTiles(null);
@@ -122,7 +123,7 @@ test('audit prewarm rejects an overbudget union despite individually READY stati
   activateTileCamera(){return true},requestDraw(){},
   primeCameraWarmChunks(){return {terrain:0,road:0,river:0,shore:0}},
   warmWorldTileStatus(){return {active:true,keys:12,ready:12,missing:0,
-   stale:0,preview:0,overBudgetPixels:100,overTileLimit:0}},
+   stale:0,preview:0,revisionMismatch:0,overBudgetPixels:100,overTileLimit:0}},
   pruneIdleImagePool(){return {evicted:0}},
   assetMemory(){return {queued:0,active:0,overLimitBytes:0,
    protectedBytes:300,limitBytes:500,decodedBytes:400,evicted:0}}
@@ -149,7 +150,7 @@ test('audit does not report warm until every reserved WorldTile is exact',async(
   async prepareCameraWarmImages(){return {ready:true}},
   activateTileCamera(){},requestDraw(){},primeCameraWarmChunks(){},
   warmWorldTileStatus:()=>({active:true,keys:12,ready:readyCount,missing:12-readyCount,
-   stale:0,preview:0,overBudgetPixels:0,overTileLimit:0}),
+   stale:0,preview:0,revisionMismatch:0,overBudgetPixels:0,overTileLimit:0}),
   pruneIdleImagePool:()=>({evicted:0}),
   assetMemory:()=>({queued:0,active:0,protectedBytes:10,limitBytes:100,
    overLimitBytes:0,decodedBytes:10,evicted:0})};
@@ -168,4 +169,30 @@ test('normal gameplay only enables image-request filtering during explicit audit
  assert.match(audit,/const quiet=prewarm\.ready&&gate\.ready&&cameraCondition\(start\)/);
  assert.match(audit,/const valid=quiet&&cameraCondition\(end\)/);
  assert.match(app,/worldTiles\?\.reserveWarmTiles\(null\)/);
+});
+
+test('source content change makes complete-looking reserved tile NOT warm',()=>{
+ const window={};
+ vm.runInNewContext(worldSrc,{window,console,Date,Promise,
+  setTimeout,clearTimeout,performance,AbortController});
+ const g={save(){},restore(){},setTransform(){},clearRect(){},fillRect(){},
+  beginPath(){},moveTo(){},lineTo(){},closePath(){},clip(){},fill(){},drawImage(){}};
+ let authoritative='old-road';
+ const renderer=window.VedrasWorldTiles.create({
+  canvas:{width:1,height:1,getContext:()=>g},source:null,
+  maxPixels:40000,requireScenery:true,lodSelector:()=> 'mid',
+  sourceRevision:()=>authoritative
+ });
+ const tile={id:'-1,-2',x:-512,y:-1024,size:512,visibility:'visible'};
+ renderer.reserveWarmTiles([tile.id+'@mid']);
+ renderer.seed(tile,'mid',{complete:true,revision:'old-road',layers:[
+  {layer:'ground',image:{width:60,height:60}},
+  {layer:'scenery',image:{width:60,height:60}}]});
+ assert.equal(renderer.warmTileStatus().ready,1);
+ authoritative='new-road';
+ const result=renderer.warmTileStatus();
+ assert.equal(result.ready,0);
+ assert.equal(result.revisionMismatch,1);
+ assert.equal(result.changedRevisions[0].to,'new-road');
+ renderer.reserveWarmTiles(null);
 });
