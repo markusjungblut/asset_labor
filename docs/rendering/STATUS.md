@@ -916,3 +916,52 @@ fälschlich bestehen. **63/63 isolierte V8-
 Regressionen bestanden.**
 Windows-/Chromium-Nachtest weiterhin offen;
 keine FPS-/16C-Abnahme, kein Merge.
+
+
+## 30.10.2026 – PR #83 Hardware-Nachtest (Audit 17:50)
+
+Windows-Audit `step16a-audit(20261030-175043).zip`:
+**Referenz-SHA unverändert** (`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`),
+397 Hexfelder, 2.631 Nature, null JS-Fehler/Warnungen.
+Präparation erstmals nach **22.394 ms READY**, 4/4 aktuelle
+sichtbare Tiles, `progress.stale=0`, 100 % Coverage.
+Der Source-Gate verhindert weiter vergebliche Sprite-Bakes;
+Bake-Ausgänge Vorbereitung: 17 `fallback-complete`,
+2 `snapshot-hit`, 1 `fallback-ground-changed`.
+
+**Pan:** 25 Ground-PNG-Bereitstellungen, zwei selektive
+Abhängigkeitspakete (3 Dateien/75 Tiles und 22 Dateien/89 Tiles),
+**keine globalen** Ground-Invalidierungen während der Geste.
+20 `tile.stale-retained`-Events. End-Coverage **100 %** statt
+0 % in ZIP10, aber **1 exact + 3 stale**, 0 missing,
+0 pending. 8 Bake-Events/7 accept; p95 **116,8 ms**
+(ZIP10: 173,6 ms), CPU-Taskzeit 2,93 s.
+Die Pixelabdeckung wurde erfolgreich stabilisiert;
+vollständige Aktualität während des Pans nicht.
+Der Pan ist **nicht warm-valide** (quiet=false/mutating=true).
+
+**Zoom:** 0 Asset-Ready-Events, 4 durch vorbereitete
+Road-/River-Revisionen ausgelöste Tile-Invalidierungen
+(6 Revisions-Details), 6 temporäre Revisionen deferred,
+9 vollständige Bakes. End-Coverage **100 %**, 4 exact/0 stale,
+p95 **83,4 ms**, CPU-Taskzeit 1,84 s.
+Start `pending=1`, quiet=false; ebenfalls **kein**
+gültiger Warm-Test. Drei echte Testbilder
+`zoom-before`, `zoom-settled`, `ocean-shore`
+melden READY, 100 % Coverage und `stale=0`.
+`zoom-during` und Fog-Prüfbild sind diagnostisch,
+nicht automatisch READY-zertifiziert.
+
+**Weiter offene Punkte:** Nach Pan brauchen drei sichtbare
+Stale-Tiles noch ihre vollständige Ersatzfassung.
+Beim Zoom entsteht verbleibende Arbeit insbesondere durch
+spät fertiggestellte Road-/River-Quellen; nicht durch
+neue Terrain-PNGs. Die Küstenaufnahme zeigt weiterhin
+schmale vertikale Wasserlinien im Abstand von ungefähr
+358 Bildschirmpixeln, passend zu **512 World Units × Zoom 0,70**.
+Diese Korrelation deutet auf eine Tile-Grenze hin, beweist
+aber weder die genaue Resampling-Ursache noch einen fixbaren
+Compositor-Bug. Der definitive visuelle 16C-Seam-Nachweis
+und eine gültige reale 4×-Warm-Messung stehen weiter aus.
+
+**PR #83 bleibt Draft und ungemergt; Schritt 16C/17 gesperrt.**
