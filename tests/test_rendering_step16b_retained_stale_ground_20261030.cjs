@@ -113,6 +113,7 @@ test('fresh alternative LOD takes precedence over stale higher resolution fallba
  const h=setup({sourceFn:()=>null});
  assert.equal(h.renderer.seed(tile,'mid',h.make('mid-fresh')),true);
  assert.equal(h.renderer.seed(tile,'near',h.make('near-before')),true);
+ h.renderer.request(view,[tile]);
  h.renderer.invalidateTiles([tile.id],'image-ready-ground-selective',['near']);
  h.renderer.request(view,[tile]);
  const display=h.renderer.render(view);
@@ -192,4 +193,18 @@ test('screenshot settle refuses stale pixels despite full coverage',async()=>{
  assert.equal(waiting.ready,false);
  assert.ok(waiting.reasons.includes('stale-ground-refresh:1'));
  assert.equal((await verify(0)).ready,true);
+});
+
+test('large asset invalidation retains only viewport tiles, releasing far-off owned bitmaps',async()=>{
+ const h=setup();
+ h.renderer.request(view,[tile]);await flush();
+ assert.equal(h.renderer.stats().tiles,1);
+ const away={...tile,id:'7,0',x:7*512};
+ h.renderer.request(view,[away]);await flush();
+ assert.equal(h.renderer.stats().tiles,2);
+ h.renderer.invalidateTiles(new Set([tile.id,away.id]),'image-ready-ground-selective');
+ assert.equal(h.renderer.stats().staleTiles,1,'only currently visible tile is preserved');
+ assert.equal(h.renderer.stats().tiles,1);
+ assert.equal(h.closed,2,'offscreen pair was released immediately');
+ h.renderer.invalidate('cleanup');
 });
