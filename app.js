@@ -903,23 +903,24 @@ const demoTypes={plains:'grassland',forest:'forest_floor',jungle:'jungle',hills:
 function typeOfAsset(a){return window.VedrasCatalog.materialType(catalog,a);}
 // Ground-material selection, the original habitat and the forest canopy are
 // distinct layers. forest_floor is a VISUAL TEXTURE, never an ecological biome.
-function baseBiomeOf(c){
+function baseBiomeOf(c,ensureSource=true){
  if(!c)return null;
+ const select=ensureSource?useAsset:path=>assetByPath.get(path)||null;
  const k=key(c.q,c.r);
  // Authored water geography cannot turn into grassland while its image loads.
  if(c.sceneWaterTerrain===true&&
     window.VedrasCatalog.terrainType(catalog,c.terrainTypeId)?.materialClass==='water')
   return c.terrainTypeId;
- const own=typeOfAsset(useAsset(state.hexTerrain[k]));
+ const own=typeOfAsset(select(state.hexTerrain[k]));
  if(own&&own!=='forest_floor')return own;
- const perBiome=typeOfAsset(useAsset(state.biomeTerrain[c.biome]));
+ const perBiome=typeOfAsset(select(state.biomeTerrain[c.biome]));
  if(!own&&perBiome&&perBiome!=='forest_floor')return perBiome;
  const fallback=c.terrainTypeId==='forest_floor'?'grassland':c.terrainTypeId||demoTypes[c.biome]||'grassland';
  const remembered=state.baseBiomeByHex?.[k];
  return remembered&&catalog.terrainTypes.some(t=>t.id===remembered&&t.materialClass==='ground')?remembered:fallback;
 }
-function typeOfCell(c){
- const base=baseBiomeOf(c);
+function typeOfCell(c,ensureSource=true){
+ const base=baseBiomeOf(c,ensureSource);
  return window.VedrasForest.jungleAllowed(base)&&state.forest?.jungleHexes?.[key(c.q,c.r)]===true?'jungle':base;
 }
 let forestMemoSignature='',forestMemoCells=[];
@@ -1017,7 +1018,7 @@ function imageForBiome(c,ensureSource=true){
  }
  const chosen=state.biomeTerrain[c.biome];
  if(chosen){const a=select(chosen);if(isTerrainValid(a)&&typeOfAsset(a)&&typeOfAsset(a)!=='forest_floor')return a;}
- const typeId=typeOfCell(c),jungle=typeId==='jungle';
+ const typeId=typeOfCell(c,ensureSource),jungle=typeId==='jungle';
  let matches=terrainAssetsByType(typeId);
  // Ein Jungle-Biom benötigt keine erfundene PNG. Bis eine echte Jungle-Bodengrafik
  // vorhanden ist, wird vorhandener Waldboden NUR visuell als Material verwendet.
