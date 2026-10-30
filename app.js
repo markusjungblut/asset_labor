@@ -1068,7 +1068,11 @@ function useAsset(path){
  const a=assetByPath.get(path)||null;
  // Upgrades after a manual 3x/4x selection occur lazily for assets that
  // actually participate in a draw, including already decoded 512px previews.
- if(a)imagePool.ensure(a,5);
+ // Building the global sprite index may inspect many off-camera entries.
+ // While an explicit audit trajectory is reserved, do not decode sources
+ // outside its authorised tile/overhang union. Ordinary gameplay is intact.
+ if(a&&(!warmCameraFootprint||warmCameraFootprint.has(a.path)))
+  imagePool.ensure(a,5);
  return a;
 }
 function allAssets(){return assets.filter(a=>a.img?.naturalWidth>0);}
@@ -2702,6 +2706,16 @@ function worldFrontierGeometry(){
 }
 // Audit-only trajectory lease. Normal gameplay keeps its camera-local pins.
 let warmCameraFootprint=null;
+function cameraTilesAtPose({panX,panY,zoom}){
+ const margin=96;
+ const bounds={
+  x:(-margin-W/2-panX)/zoom,
+  y:(-margin-H/2-panY)/(zoom*PROJECT_Y),
+  width:(W+2*margin)/zoom,
+  height:(H+2*margin)/(zoom*PROJECT_Y)};
+ return window.VedrasChunks.visible(bounds,worldCells,512).filter(t=>
+  !visibleFogTiles||visibleFogTiles.has(t.id));
+}
 function cameraSourcesAtPose({panX,panY,zoom}){
  const pad=480;
  const minX=(-pad-W/2-panX)/zoom,maxX=(W/2+pad-panX)/zoom;
@@ -2709,6 +2723,13 @@ function cameraSourcesAtPose({panX,panY,zoom}){
   maxY=(H/2+pad-panY)/(zoom*PROJECT_Y);
  const paths=new Set();
  for(const a of assets)if(a.category==='shorelines')paths.add(a.path);
+ // Match the real WorldTile source readiness footprint, including sprite
+ // overhang from neighbouring cores. A center-only pin misses trees later
+ // picked up when the global scene snapshot is rebuilt.
+ const cores=cameraTilesAtPose({panX,panY,zoom});
+ const touches=(x,y)=>cores.some(t=>
+  x>=t.x-320&&x<=t.x+t.size+320&&
+  y>=t.y-320&&y<=t.y+t.size+320);
  for(const cell of worldCells){
   const p=axialPos(cell.q,cell.r);
   if(p.x<minX-HEX||p.x>maxX+HEX||p.y<minY-R*2||p.y>maxY+R*2)
@@ -2718,28 +2739,35 @@ function cameraSourcesAtPose({panX,panY,zoom}){
  }
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
-  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY&&n.assetPath)
+  if((touches(x,y)||(x>=minX&&x<=maxX&&y>=minY&&y<=maxY))&&n.assetPath)
    paths.add(n.assetPath);
  }
  for(const m of state.mountainInstances||[]){
   const p=axialPos(m.q,m.r);
-  if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&
-   p.y<=maxY+450&&m.assetPath)paths.add(m.assetPath);
+  if((touches(p.x,p.y)||
+   (p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450))&&
+   m.assetPath)paths.add(m.assetPath);
  }
  for(const [cell,o] of Object.entries(state.hexObject||{})){
   const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
-  if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&
-   p.y<=maxY+260&&o?.path)paths.add(o.path);
+  if(touches(p.x,p.y)||
+   (p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)){
+   if(o?.path)paths.add(o.path);
+   const shadow=state.hexShadow?.[cell];
+   if(typeof shadow==='string')paths.add(shadow);
+  }
  }
  return paths;
 }
 function configureCameraWarmFootprint(poses=null){
  if(poses===null){
-  warmCameraFootprint=null;lastProtectedCameraSignature='';
+  warmCameraFootprint=null;
+  worldTiles?.reserveWarmTiles(null);
+  lastProtectedCameraSignature='';
   protectCameraImagePool();
   return {active:false,paths:0};
  }
- if(!Array.isArray(poses)||!poses.length||poses.length>16||
+ if(!Array.isArray(poses)||!poses.length||poses.length>128||
   poses.some(p=>!p||![p.zoom,p.panX,p.panY].every(Number.isFinite)||
    p.zoom<.1||p.zoom>4||Math.abs(p.panX)>30000||
    Math.abs(p.panY)>30000))
@@ -2747,6 +2775,15 @@ function configureCameraWarmFootprint(poses=null){
  const paths=new Set();
  for(const pose of poses)for(const path of cameraSourcesAtPose(pose))
   paths.add(path);
+ const tileKeys=new Set();
+ for(const pose of poses){
+  const level=worldTiles?.chooseLod(pose.zoom)||'mid';
+  for(const tile of cameraTilesAtPose(pose))
+   tileKeys.add(tile.id+'@'+level);
+ }
+ // Reservation is a real finite cache lease, not a budget expansion.
+ // The status check rejects incomplete and overbudget camera unions.
+ const reservation=worldTiles?.reserveWarmTiles([...tileKeys]);
  warmCameraFootprint=paths;lastProtectedCameraSignature='';
  protectCameraImagePool();
  const missing=[...paths].filter(path=>!assetByPath.has(path));
@@ -2756,6 +2793,7 @@ function configureCameraWarmFootprint(poses=null){
   protectedBytes:report.protectedBytes});
  return {active:true,poses:poses.length,paths:paths.size,
   missing:missing.length,firstMissing:missing.slice(0,12),
+  tiles:reservation?.keys??0,
   protectedBytes:report.protectedBytes,limitBytes:report.limitBytes};
 }
 function cameraWarmImageNeeded(a,p){
@@ -4300,6 +4338,7 @@ window.VedrasAssetLabor={shadowSprites:{
  }
 },ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
  configureCameraWarmFootprint,prepareCameraWarmImages,
+ warmWorldTileStatus:()=>worldTiles?.warmTileStatus()||null,
  pruneIdleImagePool:()=>imagePool.pruneIdle(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
  benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
  step15Trace:()=>window.VedrasStep15Trace?.snapshot()||null,
