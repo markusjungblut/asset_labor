@@ -37,15 +37,28 @@ test('Step16A explicitly rejects live scene mutations as warm camera performance
   audit.indexOf('async function compositorOnlyProbe')),/invalidate\(|activateTileCamera\(/);
 });
 
-test('a provisional or unready tile cannot produce a valid warm-gate',()=>{
+test('WorldTiles exact is a COUNT and accepts multiple ready tiles',()=>{
  const valid={active:true,pending:0,retryExhausted:0,progress:{
-  exact:1,missing:0,provisional:0},coverage:1};
+  exact:16,fallback:0,missing:0,provisional:0},coverage:1};
  assert.equal(cameraCondition(valid),true);
+ assert.equal(cameraCondition({...valid,progress:{...valid.progress,exact:1}}),true);
+ assert.equal(cameraCondition({...valid,progress:{...valid.progress,exact:0}}),false);
  assert.equal(cameraCondition({...valid,pending:1}),false);
- assert.equal(cameraCondition({...valid,progress:{...valid.progress,exact:0.9}}),false);
+ assert.equal(cameraCondition({...valid,progress:{...valid.progress,fallback:1}}),false);
  assert.equal(cameraCondition({...valid,progress:{...valid.progress,missing:1}}),false);
+ assert.equal(cameraCondition({...valid,progress:{...valid.progress,provisional:1}}),false);
  assert.equal(cameraCondition({...valid,retryExhausted:1}),false);
  assert.equal(cameraCondition({...valid,coverage:0.99}),false);
+});
+
+test('cold camera audit still runs and records blockers when warm gate fails',()=>{
+ assert.match(audit,/const blockers=quiet\?null:await c\.eval/);
+ assert.match(audit,/classification=quiet\?'warm-candidate':'cold-diagnostic'/);
+ assert.match(audit,/const startCpu=await measureMetrics\(c\)/);
+ assert.match(audit,/await c\.eval\(\s*'\('\+editorCameraProbe\.toString\(\)/);
+ assert.match(audit,/unreadyEditorCores:waiting\.length/);
+ assert.doesNotMatch(audit,/SKIPPED – no stable fully ready source/);
+ assert.doesNotMatch(audit,/if\(!quiet\)\{[\s\S]{0,650}?continue;/);
 });
 
 test('trace attribution acknowledges dropped events rather than guessing missing causes',()=>{
