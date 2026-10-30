@@ -176,7 +176,11 @@ window.VedrasWorldTiles=(()=>{
    running.clear();queue.clear();
    for(const item of cache.values())release(item.packet);
    cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
+   deferredRevisionTrace.clear();
   }
+  // Diagnostic-only deduplication of transient pending source changes:
+  // one event per tile/revision rather than one event per camera frame.
+  const deferredRevisionTrace=new Map();
   // A refreshed terrain core may replace only its own World-Tile packets.
   // The editor supplies the *prepared* authoritative terrain revision per
   // visible tile. A changed background snapshot or camera pose is not itself
@@ -211,11 +215,16 @@ window.VedrasWorldTiles=(()=>{
         next[i]==='pending';
       });
      if(temporaryMissing){
-      if(diagnose)trace('tile.ground-revision-deferred',{
-       id:item.tile.id,level:item.tileLod,changed:changed.join(','),
-       reason:'previously-ready-road-or-river-temporarily-unavailable'});
+      if(diagnose&&deferredRevisionTrace.get(k)!==expected){
+       if(deferredRevisionTrace.size>=384)deferredRevisionTrace.clear();
+       deferredRevisionTrace.set(k,expected);
+       trace('tile.ground-revision-deferred',{
+        id:item.tile.id,level:item.tileLod,changed:changed.join(','),
+        reason:'previously-ready-road-or-river-temporarily-unavailable'});
+      }
       continue;
      }
+     deferredRevisionTrace.delete(k);
      stale.add(item.tile.id);
      if(diagnose){
       trace('tile.ground-revision-detail',{id:item.tile.id,level:item.tileLod,
@@ -242,6 +251,7 @@ window.VedrasWorldTiles=(()=>{
    let changed=0;
    for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
+    deferredRevisionTrace.delete(k);
     if(old){
      cache.delete(k);pixels-=old.pixels;release(old.packet);
      changed++;
