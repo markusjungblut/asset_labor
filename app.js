@@ -2796,6 +2796,19 @@ function configureCameraWarmFootprint(poses=null){
   tiles:reservation?.keys??0,
   protectedBytes:report.protectedBytes,limitBytes:report.limitBytes};
 }
+function primeCameraWarmChunks(){
+ if(!warmCameraFootprint)throw Error('Audit camera reservation not active');
+ const bounds=streamingViewBounds(96);
+ const options={prefetch:{enabled:false},notifyReady:false};
+ terrainChunks.prime(bounds,options);
+ if(state.shoreline?.enabled!==false)shorelineChunks.prime(bounds,options);
+ if(state.roadShown)roadChunks.prime(bounds,options);
+ if(state.river&&state.riverBanks&&state.riverBankStrength>0)
+  riverChunks.prime(bounds,options);
+ return {terrain:terrainChunks.stats().pending,
+  shore:shorelineChunks.stats().pending,
+  road:roadChunks.stats().pending,river:riverChunks.stats().pending};
+}
 function cameraWarmImageNeeded(a,p){
  if(!a.img?.naturalWidth)return true;
  if(!a.previewReduced)return false;
@@ -4338,6 +4351,7 @@ window.VedrasAssetLabor={shadowSprites:{
  }
 },ensureAsset:a=>imagePool.ensure(a,10),assetMemory:()=>imagePool.report(),
  configureCameraWarmFootprint,prepareCameraWarmImages,
+ primeCameraWarmChunks,
  warmWorldTileStatus:()=>worldTiles?.warmTileStatus()||null,
  pruneIdleImagePool:()=>imagePool.pruneIdle(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
  benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
