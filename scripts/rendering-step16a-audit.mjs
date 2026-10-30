@@ -192,7 +192,7 @@ async function prepareCameraTrajectory(c,kind,settleMs,frames){
   if(stops.every(x=>x.ready)&&image.ready&&world?.active&&
    world.keys>0&&world.ready===world.keys&&
    world.missing===0&&world.stale===0&&world.preview===0&&
-   world.overBudgetPixels===0&&world.overTileLimit===0)break;
+   world.revisionMismatch===0&&world.overBudgetPixels===0&&world.overTileLimit===0)break;
  }
  const idle=await c.eval('window.VedrasAssetLabor.pruneIdleImagePool()');
  const mem=await c.eval('window.VedrasAssetLabor.assetMemory()');
@@ -202,7 +202,7 @@ async function prepareCameraTrajectory(c,kind,settleMs,frames){
   last.image.ready&&last.stops.every(p=>p.ready)&&
   world?.active&&world.keys>0&&world.ready===world.keys&&
   world.missing===0&&world.stale===0&&world.preview===0&&
-  world.overBudgetPixels===0&&world.overTileLimit===0&&
+  world.revisionMismatch===0&&world.overBudgetPixels===0&&world.overTileLimit===0&&
   mem.queued===0&&mem.active===0&&mem.overLimitBytes===0&&
   mem.protectedBytes<=mem.limitBytes;
  return {ready,configured,image:initialImage,passes,world,
@@ -547,6 +547,8 @@ async function main(){
      '; reservierte World-Tiles '+
        (x.prewarm?.world?.ready??0)+'/'+
        (x.prewarm?.world?.keys??0)+
+     '; WorldTile-Quellrevisionen abweichend '+
+       (x.prewarm?.world?.revisionMismatch??0)+
      '; WorldTile-Pixel über Budget '+
        (x.prewarm?.world?.overBudgetPixels??0)+
      '; Stichprobenpositionen '+(x.prewarm?.stations??0)+
