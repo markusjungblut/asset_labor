@@ -27,8 +27,9 @@ dieses Verhalten bleibt erhalten.
 
 ## Eng begrenzte Korrektur
 
-1. `VedrasChunks` speichert neben `version` (weiterhin der laufende
-   Build-/Paint-Zähler) eine **stabile `sourceRevision`**.
+1. `VedrasChunks` stellt neben `version` (weiterhin der laufende
+   Build-/Paint-Zähler) bei ausdrücklicher `sourceKeys:true`-Abfrage
+   eine **stabile `sourceRevision`** bereit.
    Sie wird über 128-Bit-Fingerprints aus globaler
    `configure(signature)` und exakt dem für das Tile verwendeten
    `stampTile` gebildet. Die Darstellung ist fest begrenzt,
@@ -51,9 +52,9 @@ dieses Verhalten bleibt erhalten.
 
 ## Testnachweis
 
-**71/71 gezielte Regressionstests im isolierten V8-Lauf bestanden:**
+**72/72 gezielte Regressionstests im isolierten V8-Lauf bestanden:**
 63 vorherige Material-, Ufer-, Sprite-/Terrain-Readiness-,
-Retain-Stale- und Kamera-Fälle sowie 8 zusätzliche Tests
+Retain-Stale- und Kamera-Fälle sowie 9 zusätzliche Tests
 gegen die echte `chunks.js`-Chunkverwaltung und
 `world-tile-streamer.js`-Reconciliation:
 
@@ -67,6 +68,8 @@ gegen die echte `chunks.js`-Chunkverwaltung und
 - World-Tile-Reconciliation ignoriert identische Quellrevision,
   invalidiert aber echte Änderung
 - `pending` bleibt verschieden vom ersten fertigen Token
+- Unbenutzte Terrain-/Ufer-Chunk-Quellen erzeugen **keinen** Fingerprint;
+  er wird nur bei `readyTiles(..., {sourceKeys:true})` berechnet
 
 **Noch keine native Windows-Node-/Chromium-Abnahme dieses Patches.**
 Die bisherigen rAF-p95-Werte sind nicht warm-valide und beweisen
