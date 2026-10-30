@@ -150,3 +150,26 @@ test('late source errors keep visible fallback and report failure, not a falsely
  assert.equal(h.renderer.render(view).stale,1);
  h.renderer.invalidate('cleanup');
 });
+
+test('staging-canvas snapshots cannot overwrite a stale higher-density full tile',async()=>{
+ const h=setup();
+ h.renderer.request(view,[tile]);await flush();
+ h.renderer.invalidateTiles([tile.id],'image-ready-ground-selective');
+ assert.equal(h.renderer.needsSeed(tile,'mid',2.5),false);
+ assert.equal(h.renderer.seed(tile,'mid',h.make('intermediate-snapshot')),false);
+ assert.equal(h.renderer.stats().staleTiles,1);
+ assert.equal(h.renderer.render(view).stale,1);
+ h.renderer.invalidate('cleanup');
+});
+test('camera warm acceptance rejects stale visible tiles even with 100% pixel coverage',()=>{
+ const audit=fs.readFileSync(path.join(__dirname,'../scripts/rendering-step16a-audit.mjs'),'utf8');
+ const start=audit.indexOf('function cameraCondition(s){'),
+  end=audit.indexOf('\nfunction buildDecision',start);
+ assert.ok(start>=0&&end>start);
+ const cameraCondition=new Function(audit.slice(start,end)+'\nreturn cameraCondition;')();
+ const ready={active:true,pending:0,retryExhausted:0,
+  progress:{exact:3,fallback:0,provisional:0,missing:0,stale:0},coverage:1};
+ assert.equal(cameraCondition(ready),true);
+ assert.equal(cameraCondition({...ready,progress:{...ready.progress,stale:1}}),false);
+ assert.equal(cameraCondition({...ready,progress:{...ready.progress,exact:0,stale:4}}),false);
+});
