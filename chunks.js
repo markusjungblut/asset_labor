@@ -419,12 +419,11 @@ window.VedrasChunks=(()=>{
       schedule();return;
      }
      if(old){stats.pixels-=old.pixels||0;release(old);}
-     const sourceRevision=sourceContentRevision(signature,expectedStamp);
      if(!item)cache.set(id,{raster:null,relief:null,pixels:0,
-      stamp:expectedStamp,version:++rasterVersion,sourceRevision});
+      stamp:expectedStamp,version:++rasterVersion});
      else{
       cache.set(id,{...item,pixels,stamp:expectedStamp,
-       version:++rasterVersion,sourceRevision});
+       version:++rasterVersion});
       stats.pixels+=pixels;stats.built++;
       if(predictive&&!visibleNow)stats.prefetched++;
      }
@@ -567,7 +566,7 @@ window.VedrasChunks=(()=>{
   // camera compositor. No queue mutation, canvas copy or worker cost.
   // Consumers must finish painting synchronously: eviction still owns bitmaps.
   function paintedVersions(){return new Map(lastDrawnVersions);}
-  function readyTiles(bounds,{limit=100}={}){
+  function readyTiles(bounds,{limit=100,sourceKeys=false}={}){
    if(!signature||!cells?.length||!bounds)return [];
    const result=[];
    for(const t of visible(bounds,cells,size)){
@@ -575,6 +574,10 @@ window.VedrasChunks=(()=>{
     if(current&&current.stamp===stampForTile(t)&&
       (current.relief?.canvas||current.raster?.canvas||
        current.raster?.waterLayer?.canvas)){
+     // Only consumers of semantic road/river identity pay hashing cost.
+     // Terrain and shoreline still use the integer paint build counter.
+     if(sourceKeys&&current.sourceRevision===undefined)
+      current.sourceRevision=sourceContentRevision(signature,current.stamp);
      result.push({tile:t,artwork:current});
      if(result.length>=limit)break;
     }
