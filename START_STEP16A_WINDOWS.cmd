@@ -9,5 +9,5 @@ if errorlevel 1 (
 echo VEDRAS - SCHRITT 16A: ARCHITEKTUR-AUDIT (keine Optimierung)
 node "%~dp0scripts\rendering-step16a-auto.mjs" %*
 set "RESULT=%ERRORLEVEL%"
-echo Audit: artifacts\rendering-step16a-audit\step16a-audit.zip
+echo Audit: Der Node-Launcher gibt den eindeutigen Ergebnisordner mit ZIP aus.
 exit /b %RESULT%
