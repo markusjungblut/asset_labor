@@ -55,11 +55,15 @@ function summarizeTrace(trace){
  }
  const all=trace?.events||[];
  const revisions=all.filter(e=>e.type==='tile.ground-revision-detail');
- const samples=all.filter(e=>['tile.ground-revision-detail','tile.cache-miss',
+ const deferred=all.filter(e=>e.type==='tile.ground-revision-deferred');
+ const samples=all.filter(e=>['tile.ground-revision-detail',
+  'tile.ground-revision-deferred','tile.cache-miss',
   'tile.invalidate','tile.bake'].includes(e.type));
  return {...counts,dropped:trace?.dropped||0,totalEvents:trace?.totalEvents||0,
   attributionComplete:(trace?.dropped||0)===0,
   groundRevisionDetails:revisions.slice(0,60),
+  deferredGroundRevisions:deferred.slice(0,60),
+  deferredGroundRevisionCount:deferred.length,
   eventSamples:[...samples.slice(0,35),...samples.slice(-35)]};
 }
 function simplify(snapshot){
@@ -426,10 +430,13 @@ async function main(){
      '; rAF-p95: '+(x.frame?.p95??'–')+' ms (nur Kalt-Diagnose)'
    ]),
    '','## 4x-Quellrevisionen pro Kachel','',
-   ...run.real.filter(p=>p.quality==='4').flatMap(p=>
-    (p.trace?.groundRevisionDetails||[]).map(e=>'- '+p.kind+' '+
+   ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
+    '- '+p.kind+': '+(p.trace?.deferredGroundRevisionCount||0)+
+     ' temporäre Road/River-pending-Verluste ohne Cache-Invalidierung',
+    ...(p.trace?.groundRevisionDetails||[]).map(e=>'- '+p.kind+' '+
      e.detail?.id+' '+e.detail?.level+': '+e.detail?.changed+
-     ' ('+e.detail?.fromTerrain+' -> '+e.detail?.toTerrain+')')),
+     ' ('+e.detail?.fromTerrain+' -> '+e.detail?.toTerrain+')')
+   ]),
    '','## Optionale visuelle Prüfbilder','',
    ...run.visual.map(x=>'- '+x.stage+': '+x.file+'; Zoom '+x.zoom+
      '; Scenery-Builds '+x.scenery?.builds+
