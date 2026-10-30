@@ -114,7 +114,7 @@ window.VedrasImagePool=(()=>{
       if(contentChanged){
        r.asset.imageRevision=previousRevision+1;
        r.asset.imageContentKey=contentKey;
-       if(!firstDecode)stats.sourceChanges++;
+       if(!firstDecode&&!upgrading)stats.sourceChanges++;
       }else stats.identicalRedecodes++;
       const kind=firstDecode?'first-decode':!contentChanged?'repeat-decode':
        upgrading?'quality-upgrade':'source-change';
