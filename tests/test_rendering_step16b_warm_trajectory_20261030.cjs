@@ -69,12 +69,12 @@ function cameraSources({
   end=app.indexOf('function configureCameraWarmFootprint(',start);
  assert.ok(start>0&&end>start);
  const create=new Function('W','H','PROJECT_Y','HEX','R','assets',
-  'worldCells','axialPos','imageForBiome','state',
+  'worldCells','axialPos','imageForBiome','state','cameraTilesAtPose',
   app.slice(start,end)+'\nreturn cameraSourcesAtPose;');
  const scan=create(640,400,.85,256,148,assets,worldCells,
   (q,r)=>({x:256*(q+r/2),y:222*r}),
   cell=>({path:'ground_'+cell.q+'.png'}),
-  {natureInstances:nature,mountainInstances:[],hexObject:{}});
+  {natureInstances:nature,mountainInstances:[],hexObject:{}},()=>[]);
  return scan({panX,panY,zoom});
 }
 test('source footprints include terrain, nature and coast but not distant assets',()=>{
@@ -143,11 +143,15 @@ test('audit visits both pan extrema and zoom peak before measurements',()=>{
  const end=audit.indexOf('async function editorCameraProbe(',begin);
  assert.ok(begin>0&&end>begin);
  const block=audit.slice(begin,end);
- assert.match(block,/panX:b\.panX\+90,panY:b\.panY\+20/);
+ assert.match(block,/panX:b\.panX\+90/);
+ assert.match(block,/panY:b\.panY\+20/);
  assert.match(block,/panX:b\.panX-90,panY:b\.panY-20/);
  assert.match(block,/zoom:b\.zoom\+\.11/);
- assert.match(block,/\.\.\.poses\.slice\(1\),poses\[0\]/);
+ assert.match(block,/world\.ready===world\.keys/);
+ assert.match(block,/world\.overBudgetPixels===0/);
+ assert.match(block,/poses\.filter/);
  assert.match(block,/await settle\(c,settleMs\)/);
+ assert.match(block,/primeCameraWarmChunks\(\)/);
  assert.match(block,/pruneIdleImagePool\(\)/);
 });
 test('audit requires successful trajectory preparation AND unchanged quiet gates',()=>{
@@ -164,7 +168,7 @@ test('warm footprint is opt-in and is merged into ordinary camera protection',()
  assert.match(app,/if\(warmCameraFootprint\)\s+for\(const path of warmCameraFootprint\)pinned\.add\(path\)/);
  assert.match(app,/configureCameraWarmFootprint,prepareCameraWarmImages/);
  assert.match(app,/pruneIdleImagePool:\(\)=>imagePool\.pruneIdle\(\)/);
- assert.match(app,/warmCameraFootprint=null;lastProtectedCameraSignature='';/);
+ assert.match(app,/warmCameraFootprint=null;[\s\S]*?worldTiles\?\.reserveWarmTiles\(null\);[\s\S]*?lastProtectedCameraSignature='';/);
 });
 
 test('Windows audit launcher never deletes previous result files',()=>{

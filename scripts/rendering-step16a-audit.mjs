@@ -143,41 +143,75 @@ function buildDecision(run){
 // before measuring, pin those source paths, and perform idle LRU housekeeping.
 // Full READY and 1200 ms quiet gates below remain mandatory. Failed prewarm is
 // a diagnostic, not evidence for increased FPS.
-async function prepareCameraTrajectory(c,kind,settleMs){
+async function prepareCameraTrajectory(c,kind,settleMs,frames){
+ // Every sampled rAF position is part of the reservation. The two exact
+ // extrema are added separately so a fractional frame count cannot miss
+ // tile-grid boundaries at a maximum pan or zoom.
  const poses=await c.eval('(()=>{const v=window.VedrasAssetLabor,'+
-  's=v.state,b={zoom:s.zoom,panX:s.panX,panY:s.panY};'+
-  'return '+JSON.stringify(kind)+'==="pan"?[b,'+
-  '{...b,panX:b.panX+90,panY:b.panY+20},'+
-  '{...b,panX:b.panX-90,panY:b.panY-20}]:'+
-  '[b,{...b,zoom:b.zoom+.11}];})()');
+  's=v.state,b={zoom:s.zoom,panX:s.panX,panY:s.panY},'+
+  'n='+Math.min(120,frames)+',out=[b];'+
+  'for(let i=1;i<=n;i++){const f=i/n,'+
+  'wave=Math.sin(Math.PI*2*f);'+
+  'out.push('+JSON.stringify(kind)+'==="pan"?'+
+  '{...b,panX:b.panX+wave*90,panY:b.panY+wave*20}:'+
+  '{...b,zoom:b.zoom+.055*(1-Math.cos(2*Math.PI*f))});}'+
+  'if('+JSON.stringify(kind)+'==="pan"){out.push({...b,panX:b.panX+90,'+
+  'panY:b.panY+20},{...b,panX:b.panX-90,panY:b.panY-20});}'+
+  'else out.push({...b,zoom:b.zoom+.11});return out;})()');
  const configured=await c.eval(
   'window.VedrasAssetLabor.configureCameraWarmFootprint('+
   JSON.stringify(poses)+')');
- const image=await c.eval(
+ const initialImage=await c.eval(
   'window.VedrasAssetLabor.prepareCameraWarmImages('+
   Math.min(16000,settleMs)+')');
- const stops=[];
- // Render and settle every extrema plus the original pose, outside sampling.
- // Keep the trajectory's pins until the measured gesture is finished.
- for(const pose of [...poses.slice(1),poses[0]]){
-  await c.eval('(()=>{const v=window.VedrasAssetLabor,p='+
-   JSON.stringify(pose)+';v.state.zoom=p.zoom;v.state.panX=p.panX;'+
-   'v.state.panY=p.panY;v.activateTileCamera();v.requestDraw();'+
-   'return true;})()');
-  const outcome=await settle(c,settleMs);
-  stops.push({pose,ready:outcome.ready,reasons:outcome.reasons||[],
-   waitMs:outcome.waitMs});
+ // Exact rAF union is reserved above; visit a sufficient selection of
+ // intermediate positions to build every newly introduced tile. The final
+ // reservation status below authoritatively checks all planned tile keys,
+ // including any tile a sparse station tour did not actually produce.
+ const step=Math.max(1,Math.floor((poses.length-1)/16));
+ const visit=[...poses.filter((p,i)=>i>0&&
+  (i%step===0||i===poses.length-1)),poses[0]];
+ const passes=[];
+ for(let pass=0;pass<2;pass++){
+  const stops=[];
+  for(const pose of visit){
+   const chunks=await c.eval('(()=>{const v=window.VedrasAssetLabor,p='+
+    JSON.stringify(pose)+';v.state.zoom=p.zoom;v.state.panX=p.panX;'+
+    'v.state.panY=p.panY;v.activateTileCamera();v.requestDraw();'+
+    'return v.primeCameraWarmChunks();})()');
+   const outcome=await settle(c,settleMs);
+   stops.push({pose,ready:outcome.ready,reasons:outcome.reasons||[],
+    waitMs:outcome.waitMs,chunks});
+  }
+  const image=await c.eval(
+   'window.VedrasAssetLabor.prepareCameraWarmImages('+
+   Math.min(12000,settleMs)+')');
+  const world=await c.eval(
+   'window.VedrasAssetLabor.warmWorldTileStatus()');
+  passes.push({stops,image,world});
+  if(stops.every(x=>x.ready)&&image.ready&&world?.active&&
+   world.keys>0&&world.ready===world.keys&&
+   world.missing===0&&world.stale===0&&world.preview===0&&
+   world.revisionMismatch===0&&world.overBudgetPixels===0&&world.overTileLimit===0)break;
  }
  const idle=await c.eval('window.VedrasAssetLabor.pruneIdleImagePool()');
  const mem=await c.eval('window.VedrasAssetLabor.assetMemory()');
- const ready=configured.missing===0&&image.ready&&
-  stops.every(p=>p.ready)&&mem.queued===0&&mem.active===0&&
-  mem.overLimitBytes===0&&mem.protectedBytes<=mem.limitBytes;
- return {ready,configured,image,stops,idle,
+ const last=passes.at(-1),world=await c.eval(
+  'window.VedrasAssetLabor.warmWorldTileStatus()');
+ const ready=configured.missing===0&&initialImage.ready&&
+  last.image.ready&&last.stops.every(p=>p.ready)&&
+  world?.active&&world.keys>0&&world.ready===world.keys&&
+  world.missing===0&&world.stale===0&&world.preview===0&&
+  world.revisionMismatch===0&&world.overBudgetPixels===0&&world.overTileLimit===0&&
+  mem.queued===0&&mem.active===0&&mem.overLimitBytes===0&&
+  mem.protectedBytes<=mem.limitBytes;
+ return {ready,configured,image:initialImage,passes,world,
+  stops:last.stops,idle,poses:poses.length,stations:visit.length,
   pool:{decodedBytes:mem.decodedBytes,protectedBytes:mem.protectedBytes,
    limitBytes:mem.limitBytes,overLimitBytes:mem.overLimitBytes,
    evicted:mem.evicted,queued:mem.queued,active:mem.active}};
 }
+
 // Runs in the actual editor, after initial loading. Never patches renderer
 // internals or suppresses legitimate invalidations.
 async function editorCameraProbe(kind,frames){
@@ -383,7 +417,7 @@ async function main(){
     trace:summarizeTrace(await c.eval('window.VedrasAssetLabor.step15Trace()'))});
    for(const kind of ['pan','zoom']){
     await setCamera(c,{q:0,r:0},.70);
-    const prewarm=await prepareCameraTrajectory(c,kind,o.settleMs);
+    const prewarm=await prepareCameraTrajectory(c,kind,o.settleMs,o.frames);
     const gate=await settle(c,o.settleMs);
     // Track state across an additional quiet interval; "READY" for a single
     // instant is insufficient to call the next phase a warm measurement.
@@ -510,6 +544,14 @@ async function main(){
      '; fehlend '+(x.prewarm?.configured?.missing??0)+
      '; nicht vollständig geladen/hochgestuft '+
        (x.prewarm?.image?.remaining??'–')+
+     '; reservierte World-Tiles '+
+       (x.prewarm?.world?.ready??0)+'/'+
+       (x.prewarm?.world?.keys??0)+
+     '; WorldTile-Quellrevisionen abweichend '+
+       (x.prewarm?.world?.revisionMismatch??0)+
+     '; WorldTile-Pixel über Budget '+
+       (x.prewarm?.world?.overBudgetPixels??0)+
+     '; Stichprobenpositionen '+(x.prewarm?.stations??0)+
      '; vorbereitete Kamerapositionen '+
        (x.prewarm?.stops?.filter(p=>p.ready).length??0)+'/'+
        (x.prewarm?.stops?.length??0)+

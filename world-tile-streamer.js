@@ -357,11 +357,58 @@ window.VedrasWorldTiles=(()=>{
    }
    return lastLod;
   }
+  // Explicit audit-only reservation of the full motion envelope. The
+  // ordinary renderer never reserves anything. Reservation does NOT raise
+  // maxPixels or maxTiles; budget overflow remains a failed warm test.
+  let warmReserved=new Set();
+  function reserveWarmTiles(keys=null){
+   if(keys===null){warmReserved.clear();trim(visibleSourceKeys());
+    return {active:false,keys:0};}
+   const iterable=Array.isArray(keys)||keys instanceof Set;
+   if(!iterable||keys.length>80||keys.size>80)
+    throw Error('Invalid bounded World-Tile warm reservation');
+   const collected=new Set(keys);
+   if(collected.size>80||[...collected].some(k=>
+    typeof k!=='string'||!/^[-]?\d+,[-]?\d+@(far|mid|near)$/.test(k)))
+    throw Error('Invalid bounded World-Tile reservation key');
+   warmReserved=collected;
+   trim(visibleSourceKeys());
+   return {active:true,keys:warmReserved.size};
+  }
+  function warmTileStatus(){
+   let ready=0,stale=0,preview=0,missing=0,revisionMismatch=0;
+   const incomplete=[],changedRevisions=[];
+   for(const k of warmReserved){
+    const item=cache.get(k);
+    if(!item||!drawable(item)){missing++;incomplete.push(k);continue;}
+    if(item.dirty){stale++;incomplete.push(k);}
+    else if(item.packet.preview){preview++;incomplete.push(k);}
+    else {
+     // An exact-looking cached tile can still have been baked while road
+     // or river was "pending". Read prepared source identity without
+     // queuing new work; do not pass such a tile as a fully warm result.
+     const expected=typeof sourceRevision==='function'?
+      sourceRevision(item.tile,item.tileLod):item.revision;
+     if(expected==null||expected!==item.revision){
+      revisionMismatch++;incomplete.push(k);
+      changedRevisions.push({key:k,from:item.revision,to:expected});
+     }else ready++;
+    }
+   }
+   return {active:warmReserved.size>0,keys:warmReserved.size,
+    ready,missing,stale,preview,revisionMismatch,
+    changedRevisions:changedRevisions.slice(0,12),
+    firstIncomplete:incomplete.slice(0,20),
+    cached:cache.size,pixels,budgetPixels:maxPixels,
+    overBudgetPixels:Math.max(0,pixels-maxPixels),
+    overTileLimit:Math.max(0,cache.size-maxTiles)};
+  }
   function trim(protect=new Set()){
    while((cache.size>maxTiles||pixels>maxPixels)&&cache.size){
     let candidate=null;
     for(const [k,item] of cache)
-     if(!protect.has(k)&&(!candidate||item.used<candidate[1].used))
+     if(!protect.has(k)&&!warmReserved.has(k)&&
+       (!candidate||item.used<candidate[1].used))
       candidate=[k,item];
     if(!candidate)break;
     const [k,item]=candidate;cache.delete(k);pixels-=item.pixels;
@@ -852,6 +899,7 @@ window.VedrasWorldTiles=(()=>{
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
   return {request,render,seed,setSource,setFogCells,setCloudAssets,
+    reserveWarmTiles,warmTileStatus,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
     needsSeed,stats,diagnostics,terrainReady};
