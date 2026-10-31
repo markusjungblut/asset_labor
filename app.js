@@ -253,6 +253,7 @@ function packWorldTileScenery(source,level){
  if(level!=='mid'||!source?.width||!source.height)
   return {image:source};
  const width=source.width,height=source.height;
+ const packStart=performance.now();
  try{
   const data=source.getContext('2d',{willReadFrequently:true})
    ?.getImageData(0,0,width,height).data;
@@ -278,8 +279,11 @@ function packWorldTileScenery(source,level){
   const g=trimmed.getContext('2d',{alpha:true});
   if(!g)return {image:source};
   g.drawImage(source,left,top,cw,ch,0,0,cw,ch);
+  const elapsedMs=performance.now()-packStart;
+  window.VedrasBenchmarkProfiler?.record('tile.sceneryPackMs',elapsedMs);
+  window.VedrasBenchmarkProfiler?.count('tile.sceneryPacked');
   window.VedrasStep15Trace?.record('tile.scenery-pack',{
-   width,height,packedWidth:cw,packedHeight:ch,
+   width,height,packedWidth:cw,packedHeight:ch,elapsedMs,
    removedPixels:width*height-cw*ch});
   return {image:trimmed,crop:{x:left,y:top,fullWidth:width,
    fullHeight:height}};
