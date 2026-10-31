@@ -221,9 +221,10 @@ function seedReadyWorldTiles(){
    if(token)groundTileReuse?.put(t,lod,token,a);
   }
   // Landscape and canopy must stay in separate render layers.
+  const sceneryLayer=preview?{image:b}:packWorldTileScenery(b,lod);
   worldTiles.seed(t,lod,{complete:true,revision:sourceVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-   {layer:'scenery',image:b}],preview,sourceDensity});
+   {layer:'scenery',...sceneryLayer}],preview,sourceDensity});
  }
 }
 function snapshotTile(s,t,level,pad=0){
@@ -243,6 +244,50 @@ function snapshotTile(s,t,level,pad=0){
  result.getContext('2d').drawImage(s.canvas,sx,sy,sw,sh,
   0,0,result.width,result.height);
  return result;
+}
+// Pack only fully rendered mid-LOD scenery, never terrain, Fog or preview
+// sources. The transparent strips already exist in the 128-world-unit
+// overhang; omit their storage without moving any opaque sprite pixel.
+// This runs once at source bake/seed, not during rAF camera composition.
+function packWorldTileScenery(source,level){
+ if(level!=='mid'||!source?.width||!source.height)
+  return {image:source};
+ const width=source.width,height=source.height;
+ try{
+  const data=source.getContext('2d',{willReadFrequently:true})
+   ?.getImageData(0,0,width,height).data;
+  if(!data||data.length!==width*height*4)return {image:source};
+  let left=width,top=height,right=-1,bottom=-1;
+  for(let y=0,i=3;y<height;y++)for(let x=0;x<width;x++,i+=4){
+   if(data[i]===0)continue;
+   if(x<left)left=x;if(x>right)right=x;
+   if(y<top)top=y;if(y>bottom)bottom=y;
+  }
+  // Preserve two fully transparent pixels around every nonempty edge.
+  // This retains the original interpolation neighborhood when zooming.
+  if(right<0){left=0;top=0;right=0;bottom=0;}
+  else{
+   left=Math.max(0,left-2);top=Math.max(0,top-2);
+   right=Math.min(width-1,right+2);
+   bottom=Math.min(height-1,bottom+2);
+  }
+  const cw=right-left+1,ch=bottom-top+1;
+  if(width*height-cw*ch<4096)return {image:source};
+  const trimmed=document.createElement('canvas');
+  trimmed.width=cw;trimmed.height=ch;
+  const g=trimmed.getContext('2d',{alpha:true});
+  if(!g)return {image:source};
+  g.drawImage(source,left,top,cw,ch,0,0,cw,ch);
+  window.VedrasStep15Trace?.record('tile.scenery-pack',{
+   width,height,packedWidth:cw,packedHeight:ch,
+   removedPixels:width*height-cw*ch});
+  return {image:trimmed,crop:{x:left,y:top,fullWidth:width,
+   fullHeight:height}};
+ }catch(error){
+  // SecurityError (tainted canvas) or unavailable readback: retain the
+  // untouched original. Never mark an incomplete picture as complete.
+  return {image:source};
+ }
 }
 async function bakeWorldTile(t,level,{signal}={}){
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
@@ -290,9 +335,10 @@ async function bakeWorldTile(t,level,{signal}={}){
   if(token)groundTileReuse?.put(t,level,token,a);
   // Nature, rocks, buildings and their ground shadows are fully prepared
   // without mobile units. Only the independent unit layer moves each frame.
+  const sceneryLayer=packWorldTileScenery(b,level);
   return {complete:true,revision:sourceGroundVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-    {layer:'scenery',image:b}]};
+    {layer:'scenery',...sceneryLayer}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
  if(!tileArtworkStatus(t,null,true)){
@@ -382,9 +428,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  }
  __outcome=canReuseGround?'fallback-reused-ground':'fallback-complete';
  tileBakes++;
+ const sceneryLayer=packWorldTileScenery(overlay,level);
  return {complete:true,revision:sourceGroundVersion,
   layers:[{layer:'ground',image:out,pad:groundPad},
-   {layer:'scenery',image:overlay,pad}]};
+   {layer:'scenery',...sceneryLayer,pad}]};
 
  }catch(error){
   // Keep the original exception/retry behavior. Record the concrete failure
