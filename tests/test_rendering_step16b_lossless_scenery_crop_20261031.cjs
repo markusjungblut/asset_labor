@@ -125,9 +125,9 @@ test('cropped display maps to the original continuous screen-space rectangle',()
   clip(){},fill(){},drawImage:(...a)=>draws.push(a),
   globalAlpha:1};
  const renderer=window.VedrasWorldTiles.create({
-  canvas:{width:800,height:600,getContext:()=>g},source:null,
+  canvas:{width:1600,height:1200,getContext:()=>g},source:null,
   requireScenery:true,lodSelector:()=> 'mid',maxPixels:1000000});
- const view={width:800,height:600,zoom:.7,panX:0,panY:0,dpr:1,projectY:.85};
+ const view={width:1600,height:1200,zoom:.7,panX:0,panY:0,dpr:1,projectY:.85};
  const tile={id:'0,0',x:0,y:0,size:512,visibility:'visible'};
  const full={width:100,height:80},packed={width:40,height:30};
  const ground={width:30,height:30};
@@ -142,7 +142,7 @@ test('cropped display maps to the original continuous screen-space rectangle',()
  const idx=draws.length;
  // A fresh renderer avoids completed-tile overwrite guards.
  const rr=window.VedrasWorldTiles.create({
-  canvas:{width:800,height:600,getContext:()=>g},source:null,
+  canvas:{width:1600,height:1200,getContext:()=>g},source:null,
   requireScenery:true,lodSelector:()=> 'mid',maxPixels:1000000});
  rr.seed(tile,'mid',{...common,layers:[
   {layer:'ground',image:ground},
