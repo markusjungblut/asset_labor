@@ -551,6 +551,16 @@ async function main(){
        (x.prewarm?.world?.revisionMismatch??0)+
      '; WorldTile-Pixel über Budget '+
        (x.prewarm?.world?.overBudgetPixels??0)+
+     '; Ground-Pixel (reserviert) '+
+       ((x.prewarm?.world?.reservedLayerPixels?.ground||0)+
+        (x.prewarm?.world?.reservedLayerPixels?.terrain||0))+
+     '; Scenery-Pixel (reserviert) '+
+       ((x.prewarm?.world?.reservedLayerPixels?.scenery||0)+
+        (x.prewarm?.world?.reservedLayerPixels?.structures||0))+
+     '; unreservierte Cache-Pixel '+
+       (x.prewarm?.world?.unreservedPixels??0)+
+     '; Raster-Zählabweichungen '+
+       (x.prewarm?.world?.rasterAccountingMismatch??0)+
      '; Stichprobenpositionen '+(x.prewarm?.stations??0)+
      '; vorbereitete Kamerapositionen '+
        (x.prewarm?.stops?.filter(p=>p.ready).length??0)+'/'+
