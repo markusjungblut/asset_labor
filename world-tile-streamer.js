@@ -378,6 +378,28 @@ window.VedrasWorldTiles=(()=>{
   function warmTileStatus(){
    let ready=0,stale=0,preview=0,missing=0,revisionMismatch=0;
    const incomplete=[],changedRevisions=[];
+   // Read-only footprint telemetry: distinguish pixels actually retained
+   // by the complete warm route from unrelated cached LODs. Never infer a
+   // byte saving, alter ownership or relax either budget/readiness gate.
+   const rasterDetails=[],layerPixels={},reservedLayerPixels={};
+   let reservedPixels=0,rasterAccountingMismatch=0;
+   for(const [key,item] of cache){
+    const reserved=warmReserved.has(key);
+    if(reserved)reservedPixels+=item.pixels;
+    const layers=(item.packet?.layers||[]).map(layer=>{
+     const width=layer.image?.width||0,height=layer.image?.height||0,
+      pixels=width*height,name=layer.layer;
+     layerPixels[name]=(layerPixels[name]||0)+pixels;
+     if(reserved)reservedLayerPixels[name]=(reservedLayerPixels[name]||0)+pixels;
+     return {layer:name,width,height,pad:layer.pad||0,
+      owned:layer.owned===true,pixels};
+    });
+    const accountedPixels=layers.reduce((sum,layer)=>sum+layer.pixels,0);
+    if(accountedPixels!==item.pixels)rasterAccountingMismatch++;
+    if(reserved)rasterDetails.push({key,totalPixels:item.pixels,
+     accountedPixels,preview:item.packet?.preview===true,dirty:!!item.dirty,
+     layers});
+   }
    for(const k of warmReserved){
     const item=cache.get(k);
     if(!item||!drawable(item)){missing++;incomplete.push(k);continue;}
@@ -399,6 +421,11 @@ window.VedrasWorldTiles=(()=>{
     ready,missing,stale,preview,revisionMismatch,
     changedRevisions:changedRevisions.slice(0,12),
     firstIncomplete:incomplete.slice(0,20),
+    // Ground/scenery numbers are actual retained raster dimensions, not
+    // estimated from LOD. Capture full reserved keys (bounded to 80).
+    rasterDetails,layerPixels,reservedLayerPixels,
+    reservedPixels,unreservedPixels:Math.max(0,pixels-reservedPixels),
+    rasterAccountingMismatch,
     cached:cache.size,pixels,budgetPixels:maxPixels,
     overBudgetPixels:Math.max(0,pixels-maxPixels),
     overTileLimit:Math.max(0,cache.size-maxTiles)};
