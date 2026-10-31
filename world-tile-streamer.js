@@ -392,7 +392,7 @@ window.VedrasWorldTiles=(()=>{
      layerPixels[name]=(layerPixels[name]||0)+pixels;
      if(reserved)reservedLayerPixels[name]=(reservedLayerPixels[name]||0)+pixels;
      return {layer:name,width,height,pad:layer.pad||0,
-      owned:layer.owned===true,pixels};
+      crop:layer.crop||null,owned:layer.owned===true,pixels};
     });
     const accountedPixels=layers.reduce((sum,layer)=>sum+layer.pixels,0);
     if(accountedPixels!==item.pixels)rasterAccountingMismatch++;
@@ -450,8 +450,20 @@ window.VedrasWorldTiles=(()=>{
    for(const layer of packet.layers){
     if(!layer?.image?.width||!layer.image.height||
       !ORDER.includes(layer.layer))continue;
+    // A packed scenery image is a pixel-exact subrectangle of its
+    // originally rendered canvas. Validate offsets before storing; an
+    // invalid crop must never be interpreted as an already-ready layer.
+    let crop=null;
+    if(layer.crop!=null){
+     const c=layer.crop,w=layer.image.width,h=layer.image.height;
+     if(!['scenery','structures'].includes(layer.layer)||
+       ![c.x,c.y,c.fullWidth,c.fullHeight].every(Number.isSafeInteger)||
+       c.x<0||c.y<0||c.fullWidth<w||c.fullHeight<h||
+       c.x+w>c.fullWidth||c.y+h>c.fullHeight)continue;
+     crop={x:c.x,y:c.y,fullWidth:c.fullWidth,fullHeight:c.fullHeight};
+    }
     normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned,
-      pad:finite(layer.pad)?clamp(layer.pad,0,512):0});
+      pad:finite(layer.pad)?clamp(layer.pad,0,512):0,crop});
    }
    // An unpainted shoreline, an absent terrain core, or an incomplete
    // scenery layer may NEVER be stored as a visually ready preview.
@@ -844,11 +856,26 @@ window.VedrasWorldTiles=(()=>{
       const source=core&&pad?{x:asset.image.width*ratio,
        y:asset.image.height*ratio,w:asset.image.width*(1-2*ratio),
        h:asset.image.height*(1-2*ratio)}:null;
-      const area=core?
-       drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,view,source):
-       drawImage(asset.image,obj.dx-pad*view.zoom,
-        obj.dy-pad*view.zoom*proj,obj.dw+pad*2*view.zoom,
-        obj.dh+pad*2*view.zoom*proj,view);
+      let area;
+      if(core)area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,
+       view,source);
+      else{
+       const fullX=obj.dx-pad*view.zoom,
+        fullY=obj.dy-pad*view.zoom*proj,
+        fullW=obj.dw+pad*2*view.zoom,
+        fullH=obj.dh+pad*2*view.zoom*proj;
+       if(asset.crop){
+        const c=asset.crop;
+        // Keep the SAME world-space scale and canvas source pixels.
+        // Only the known-transparent strips are omitted. The two-pixel
+        // preserved alpha border protects fractional zoom interpolation.
+        area=drawImage(asset.image,
+         fullX+fullW*c.x/c.fullWidth,
+         fullY+fullH*c.y/c.fullHeight,
+         fullW*asset.image.width/c.fullWidth,
+         fullH*asset.image.height/c.fullHeight,view);
+       }else area=drawImage(asset.image,fullX,fullY,fullW,fullH,view);
+      }
       if(area){draws++;if(layer==='ground'||layer==='terrain')
        covered+=area;}
      }
