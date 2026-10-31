@@ -25,8 +25,8 @@ function fixture(width,height,opaque=[],throws=false){
  const trace=[];
  const window={VedrasStep15Trace:{record:(type,details)=>
   trace.push({type,details})}};
- const pack=new Function('document','window',packCode+
-  '\nreturn packWorldTileScenery;')(document,window);
+ const pack=new Function('document','window','performance',packCode+
+  '\nreturn packWorldTileScenery;')(document,window,performance);
  return {pack,source,draws,trace,srcAlpha};
 }
 test('mid scenery removes only transparent margins and retains 2px guard',()=>{
