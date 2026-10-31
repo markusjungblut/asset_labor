@@ -78,11 +78,11 @@ test('other LODs retain their original full scenery geometry',()=>{
  assert.equal(f.draws.length,0);
 });
 test('alpha scan treats any nonzero coverage as content, never thresholds detail',()=>{
- const f=fixture(100,80,[[15,15,1],[85,65,255]]);
+ const f=fixture(100,100,[[15,15,1],[75,65,255]]);
  const p=f.pack(f.source,'mid');
  assert.equal(p.crop.x,13);
  assert.equal(p.crop.y,13);
- assert.equal(p.image.width,75);
+ assert.equal(p.image.width,65);
  assert.equal(p.image.height,55);
 });
 test('packed packet is validated and retains exact fog/complete layer contract',()=>{
