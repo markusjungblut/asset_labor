@@ -3909,7 +3909,10 @@ function frozenSceneKey(){
  // selected Hex, Fog status, cache revisions or dynamic unit positions.
  // A static edit automatically switches to a different frozen-map archive.
  const fields=[
-  'game-map-export-renderer-v1',worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
+  // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
+  // A low-density image must never silently satisfy a later 4x tour.
+  'game-map-export-renderer-v2',state.quality==='4'?'atlas-4x':'atlas-native',
+  worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
   state.natureInstances,state.mountainInstances,state.hexObject,state.hexShadow,
@@ -3953,9 +3956,13 @@ $('frozenCapture').addEventListener('click',async()=>{
  const button=$('frozenCapture');button.disabled=true;
  try{
   const scene=frozenSceneKey();
+  let prior=null;
+  try{prior=await frozenMap.loadManifest(scene);}catch(_){}
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
-   levels:[packets[0].level],pose:{zoom:state.zoom,panX:state.panX,
+   levels:[...new Set([...(prior?.levels||[]),packets[0].level])],
+   pose:prior?.pose||{zoom:state.zoom,panX:state.panX,
     panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y},
+   expectedTiles:prior?.expectedTiles??null,
    clouds:frozenCloudSettings()});
   const result=await frozenMap.capture(scene,packets,{onProgress:progress=>
    frozenNotice('Fertige Spielkacheln sichern: '+progress.saved+
@@ -4045,6 +4052,10 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
      const exact=await bakeWorldTile(tile,'near');
      if(!exact?.complete||run.cancel)continue;
+     const ground=exact.layers?.find(l=>l.layer==='ground');
+     if(!ground||ground.image.width<
+       (tile.size+2*WORLD_TILE_GUTTER)*4-.5)
+      throw Error('Der Offline-Bake lieferte keine 4x-Pixelquelle: '+tile.id);
      ready=[{...exact,tile:{...tile},level:'near',
       dirty:false,preview:false}];
     }else{
@@ -4082,7 +4093,8 @@ $('frozenExport').addEventListener('click',async()=>{
  const button=$('frozenExport');button.disabled=true;
  try{
   const scene=frozenSceneKey(),level=frozenMapMode?
-   frozenMap.report().level:(worldTiles?.stats().lod||'mid');
+   frozenMap.report().level:(state.quality==='4'?'near':
+    (worldTiles?.stats().lod||'mid'));
   const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
    xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
   const all=worldCells.length?window.VedrasChunks.visible({
