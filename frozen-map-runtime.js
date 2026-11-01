@@ -78,7 +78,7 @@ window.VedrasFrozenMap=(()=>{
   return new Promise((resolve,reject)=>cv.toBlob(blob=>
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
- function create({canvas,storage=indexedStore(),decode=null,onStatus=()=>{},
+ function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=18000000}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
@@ -231,7 +231,7 @@ window.VedrasFrozenMap=(()=>{
     const layers=[];
     for(const layer of packet.layers)layers.push({
      layer:layer.layer,pad:layer.pad||0,crop:layer.crop||null,
-     png:await encodeImage(layer.image)
+     png:await encode(layer.image)
     });
     await storage.put({key,sceneKey:scene,level:packet.level,
      tile:{...packet.tile},revision:packet.revision,layers});
