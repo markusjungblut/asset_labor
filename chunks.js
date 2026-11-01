@@ -92,7 +92,7 @@ window.VedrasChunks=(()=>{
   const MAX_VISIBLE_WAIT_MS=2500,MAX_WARM_STREAK=6;
   let warmStreak=0,lastAgedPriority=null;
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
-   backgroundPaused=false,
+   backgroundPaused=false,playbackPaused=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
    viewportWanted=new Set(),prefetchWanted=new Set(),prefetchRejected=new Set(),
    lastDrawnVersions=new Map(),rasterVersion=0,lastFocus=null,
@@ -320,6 +320,7 @@ window.VedrasChunks=(()=>{
   // A foreground slot is independent of the speculative/explicit warm slot:
   // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
+   if(playbackPaused)return;
    const foreground=queue.size>0&&!inFlightInteractive;
    // Once the first visible build is running, the second, otherwise idle
    // asynchronous lane may help with MORE visible tiles while the camera is
@@ -338,6 +339,7 @@ window.VedrasChunks=(()=>{
    const task=()=>{
     if(generation!==epoch)return;
     if(urgent)urgentScheduled=false;else scheduled=false;
+    if(playbackPaused)return;
     const interactive=urgent&&queue.size>0&&!inFlightInteractive;
     const canBackground=!interactive&&!backgroundPaused&&!inFlightBackground;
     // A second visible chunk outranks speculative work, but only while
@@ -700,13 +702,17 @@ window.VedrasChunks=(()=>{
    backgroundPaused=!!active;
    if(!backgroundPaused)schedule();
   }
-  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,diagnostics,
+  function setPlaybackPaused(yes){
+   playbackPaused=!!yes;
+   if(!playbackPaused)schedule();
+  }
+  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,setPlaybackPaused,diagnostics,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
     inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
     retryWaiting:retryTimers.size,retryExhausted:[...failures.values()].filter(f=>f.terminal).length,
-    backgroundPaused,
+    backgroundPaused,playbackPaused,
     bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }
