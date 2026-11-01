@@ -83,6 +83,7 @@ window.VedrasFrozenMap=(()=>{
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
+  let generation=0,paintScheduled=false;
   const decoded=new Map(),loading=new Set();
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
   const decodePNG=decode||(async blob=>{
@@ -97,12 +98,15 @@ window.VedrasFrozenMap=(()=>{
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
    pending:loading.size,frames:frame,paintMs};}
-  function clearDecoded(){for(const entry of decoded.values())
+  function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();loading.clear();decodedPixels=0;
   }
-  const repaint=()=>{if(active&&typeof requestAnimationFrame==='function')
-   requestAnimationFrame(draw);};
+  const repaint=()=>{
+   if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
+   paintScheduled=true;
+   requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
+  };
   function keepWithinBudget(){
    while(decodedPixels>maxDecodedPixels&&decoded.size>1){
     const [key,entry]=decoded.entries().next().value;
@@ -118,20 +122,23 @@ window.VedrasFrozenMap=(()=>{
    if(!available.has(key)||loading.has(key))return null;
    // Bound simultaneous disk reads/decodes – rendering is always nonblocking.
    if(loading.size>=3)return null;
-   loading.add(key);
+   loading.add(key);const run=generation;
    storage.get(key).then(async record=>{
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
     const images=[];
     try{
      for(const l of record.layers)images.push(await decodePNG(l.png));
     }catch(e){for(const im of images)im.close?.();throw e;}
-    if(!active||record.key!==key||record.sceneKey!==sceneKey||record.level!==level){
+    if(!active||run!==generation||record.key!==key||
+       record.sceneKey!==sceneKey||record.level!==level){
      for(const im of images)im.close?.();return;
     }
     const pixels=images.reduce((n,im)=>n+(im.width||0)*(im.height||0),0);
     decoded.set(key,{record,images,pixels});decodedPixels+=pixels;
     loads++;keepWithinBudget();
-   }).catch(()=>{failures++;}).finally(()=>{loading.delete(key);repaint();});
+   }).catch(()=>{if(run===generation)failures++;}).finally(()=>{
+    if(run===generation){loading.delete(key);repaint();}
+   });
    return null;
   }
   function getPose(){return pose?{...pose}:null;}
@@ -218,6 +225,31 @@ window.VedrasFrozenMap=(()=>{
    active=true;repaint();onStatus(report());return report();
   }
   function stop(){active=false;clearDecoded();onStatus(report());}
+  // The manifest is NOT a terrain raster. It is local, authored metadata
+  // used by a standalone player that does not load app.js or any workers.
+  // Runtime visibility MUST be resolved by a game server in multiplayer.
+  async function saveManifest(scene,{cells:mapCells,levels=['mid'],
+      pose:initialPose=null}={}){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
+   if(!Array.isArray(mapCells)||!mapCells.every(c=>
+      Number.isInteger(c.q)&&Number.isInteger(c.r)&&
+      [c.x,c.y,c.radius].every(Number.isFinite)&&c.radius>0))
+     throw Error('Ungültige Hex-Geometrie im Spielkartenmanifest');
+   const chosen=[...new Set(levels)].filter(l=>['far','mid','near'].includes(l));
+   if(!chosen.length)throw Error('Keine gültige Kartenauflösung');
+   const record={key:scene+'|manifest',schema:SCHEMA,sceneKey:scene,
+    levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
+    pose:initialPose?{...initialPose}:null,savedAt:new Date().toISOString()};
+   await storage.put(record);return record;
+  }
+  async function loadManifest(scene){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
+   const data=await storage.get(scene+'|manifest');
+   if(!data||data.schema!==SCHEMA||data.sceneKey!==scene||
+      !Array.isArray(data.cells)||!Array.isArray(data.levels))
+    throw Error('Keine vorbereitete Spielkarten-Geometrie gefunden');
+   return data;
+  }
   async function capture(scene,packets,{onProgress=()=>{}}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    const exact=packets.filter(valid),rejected=packets.length-exact.length;
@@ -240,7 +272,7 @@ window.VedrasFrozenMap=(()=>{
    return {saved,skipped,rejected,total:packets.length};
   }
   return {capture,load,stop,draw,report,getPose,setPose,
-   isActive:()=>active,storage};
+   saveManifest,loadManifest,isActive:()=>active,storage};
  }
  return {create,memoryStore,valid,makeKey};
 })();
