@@ -142,6 +142,53 @@ test('real WorldTile emitter exports only current complete non-dirty exact sourc
   panX:0,panY:0,projectY:.85},[{...tile,visibility:'unknown'}]);
  assert.equal(renderer.exportExactPackets().length,0);
 });
+test('finished-game playback pauses the WorldTile source queue without deleting exact tile content',async()=>{
+ const window={};
+ vm.runInNewContext(worldSource,{window,console,Date,Promise,performance,
+  setTimeout,clearTimeout,AbortController});
+ const gfx={setTransform(){},clearRect(){},fillRect(){},save(){},
+  restore(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},
+  clip(){},fill(){},drawImage(){}};
+ let started=0;
+ const packet=makeWorldTile();
+ const renderer=window.VedrasWorldTiles.create({
+  canvas:{width:0,height:0,getContext:()=>gfx},
+  source:()=>{started++;return {complete:true,revision:packet.revision,
+   layers:packet.layers}},sourceTimeoutMs:0,
+  requireScenery:true,lodSelector:()=> 'mid'
+ });
+ const view={width:680,height:420,zoom:.81,dpr:1,panX:0,panY:0,projectY:.85};
+ renderer.setPlaybackPaused(true);
+ renderer.request(view,[packet.tile]);
+ await now();
+ assert.equal(started,0);
+ assert.equal(renderer.stats().playbackPaused,true);
+ assert.ok(renderer.stats().pending>=1);
+ renderer.setPlaybackPaused(false);
+ await now();await now();await now();
+ assert.equal(started,1);
+ assert.equal(renderer.exportExactPackets().length,1);
+});
+test('finished-game playback suspends terrain scheduling and resumes normal editor without cache reset',async()=>{
+ const chunksCode=fs.readFileSync(path.join(root,'chunks.js'),'utf8');
+ const window={};
+ vm.runInNewContext(chunksCode,{window,console,Date,Promise,performance,setTimeout,clearTimeout});
+ const chunk=window.VedrasChunks.create({size:512,maxTiles:12,maxPixels:5000000});
+ let built=0;
+ chunk.configure('fixed-map-test',{worldCells:[{q:0,r:0}],
+  stampTile:()=> 'stable-ground',requireRaster:true,
+  redraw:()=>{},buildTile:()=>{built++;return {
+   raster:{canvas:{width:32,height:32}}};}});
+ chunk.setPlaybackPaused(true);
+ chunk.prime({x:0,y:0,width:511,height:511},{prefetch:{enabled:false}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(built,0);
+ assert.equal(chunk.stats().playbackPaused,true);
+ chunk.setPlaybackPaused(false);
+ await new Promise(resolve=>setTimeout(resolve,30));
+ assert.equal(built,1);
+ assert.equal(chunk.readyTiles({x:0,y:0,width:511,height:511}).length,1);
+});
 test('UI has explicit whole-map offline preparation, cancel and separate read-only canvas',()=>{
  for(const id of ['frozenCaptureAll','frozenCancel','frozenCapture',
   'frozenPlay','frozenExit','frozenGameCanvas','frozenStatus'])
