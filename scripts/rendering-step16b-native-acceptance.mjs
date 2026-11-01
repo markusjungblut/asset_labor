@@ -92,14 +92,16 @@ async function run(){
  log.end();await once(log,'finish');
  const counts=Object.fromEntries(['tests','pass','fail','cancelled','skipped'].map(
   name=>[name,tapCount(output,name)]));
+ // The frozen Step16B suite has exactly 94 test cases in eight files.
+ // Do not accept partial success if a file/test silently disappears.
  const passed=!spawnError&&exitCode===0&&
-  counts.tests!==null&&counts.tests>0&&counts.fail===0&&
-  counts.pass+counts.skipped+counts.cancelled===counts.tests;
+  counts.tests===94&&counts.pass===94&&counts.fail===0&&
+  counts.skipped===0&&counts.cancelled===0;
  const result={schema:1,startedAt,finishedAt:new Date().toISOString(),
   sceneAuditReference:'397-hex / 2631-nature / three valid 2026-10-31 warm audits',
   platform:process.platform,nodeVersion:process.version,
   branch,sha,worktreeDirty:changes.length>0,
-  changedPaths:changes.split(/\\r?\\n/).filter(Boolean).slice(0,200),
+  changedPaths:changes.split(/\r?\n/).filter(Boolean).slice(0,200),
   command:[process.execPath,...args],testFiles,counts,
   exitCode,spawnError,passed,
   warnings:passed?[]:['Native regression evidence not accepted; inspect node-tests.tap'],
