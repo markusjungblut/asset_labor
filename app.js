@@ -4037,6 +4037,32 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   fastLastPrime=0;fastRender();
  }
 });
+$('frozenExport').addEventListener('click',async()=>{
+ if(!frozenMap||frozenTour||!window.VedrasFrozenMapPackage)return;
+ const button=$('frozenExport');button.disabled=true;
+ try{
+  const scene=frozenSceneKey(),level=frozenMapMode?
+   frozenMap.report().level:(worldTiles?.stats().lod||'mid');
+  const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+   xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
+  const all=worldCells.length?window.VedrasChunks.visible({
+   x:Math.min(...xs)-pad,y:Math.min(...ys)-pad,
+   width:Math.max(...xs)-Math.min(...xs)+pad*2,
+   height:Math.max(...ys)-Math.min(...ys)+pad*2
+  },worldCells,512):[];
+  const result=await window.VedrasFrozenMapPackage.exportMap(
+   frozenMap.storage,scene,level,{totalExpected:all.length,
+    onProgress:p=>frozenNotice('ZIP exportieren: '+p.done+' / '+p.total+' Bildkacheln …')});
+  const url=URL.createObjectURL(result.blob),link=document.createElement('a');
+  link.href=url;link.download='vedras_spielkarte_'+scene+'_'+level+'.zip';
+  link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  frozenNotice('Spielkartenpaket exportiert: '+result.manifest.exportedTiles+
+   ' / '+(result.manifest.expectedTiles||'?')+' Bildkacheln · '+
+   (result.manifest.complete?'vollständig':'UNVOLLSTÄNDIG (im Manifest markiert)')+
+   ' · '+Math.round(result.blob.size/1024/1024)+' MiB');
+ }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
+ finally{button.disabled=false;}
+});
 $('frozenPlay').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  if($('fogPreview')?.checked){
