@@ -620,44 +620,63 @@ window.VedrasChunks=(()=>{
    ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
    return {space:'world'};
   }
-  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null}={}){
+  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null,
+    // A nested offscreen WorldTile bake paints ALREADY PREPARED imagery.
+    // It must NOT change this chunk streamer's camera viewport, queue,
+    // protected cache IDs or the editor-snapshot paintedVersions contract.
+    renderOnly=false}={}){
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
-   diagnosticTiles=tiles;
-   stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
-   updateStreaming(viewport,tiles,prefetch);
-   trim();
+   let painted=0,stalePainted=0;
+   if(!renderOnly){
+    diagnosticTiles=tiles;
+    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
+    updateStreaming(viewport,tiles,prefetch);
+    trim();
+   }
    const paintedVersions=new Map();
    for(const t of tiles){
-    let result=use(t.id);
+    // Nested drawing should read what the camera already requested. It
+    // must not refresh LRU order, evict or repurpose the foreground queue.
+    let result=renderOnly?cache.get(t.id):use(t.id);
     if(result&&(result.stamp!==stampForTile(t)||
       (requireArtwork&&!drawable(result)))){
-     cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
+     if(!renderOnly){
+      cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);
+     }
+     result=null;
     }
-    if(!result&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
-     backgroundQueue.delete(t.id);enqueueVisible(t);
-    }else if(!result&&building(t.id))stats.duplicateBuildSkips++;
+    if(!renderOnly){
+     if(!result&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
+      backgroundQueue.delete(t.id);enqueueVisible(t);
+     }else if(!result&&building(t.id))stats.duplicateBuildSkips++;
+    }
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
-    paintedVersions.set(t.id,artwork.version);
-    // The source halo is still present. Its destination is clipped to one
-    // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
+    if(!renderOnly)paintedVersions.set(t.id,artwork.version);
+    // Keep identical pixel clipping for the offscreen core and editor.
     ctx.save();clipCore(ctx,t);
     if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer,t);
     if(artwork.relief)drawRaster(ctx,artwork.relief,t);
     else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
-    ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
+    ctx.restore();painted++;if(fallback)stalePainted++;
    }
-   lastDrawnVersions=paintedVersions;
-   prioritizeVisible();
-   stats.pending=queue.size+(inFlightInteractive?1:0);
-   stats.prefetchPending=prefetchQueue.size;
-   stats.manualPending=backgroundQueue.size;
-   schedule();
-   return {...stats,cached:cache.size,variants:retired.size};
+   if(!renderOnly){
+    stats.painted=painted;stats.stalePainted=stalePainted;
+    lastDrawnVersions=paintedVersions;
+    prioritizeVisible();
+    stats.pending=queue.size+(inFlightInteractive?1:0);
+    stats.prefetchPending=prefetchQueue.size;
+    stats.manualPending=backgroundQueue.size;
+    schedule();
+   }
+   return {...stats,visible:renderOnly?tiles.length:stats.visible,
+    painted:renderOnly?painted:stats.painted,
+    stalePainted:renderOnly?stalePainted:stats.stalePainted,
+    cached:cache.size,variants:retired.size};
   }
   function warm(tiles,{progress=()=>{}}={}){
    backgroundQueue.clear();warmRemaining.clear();onWarmProgress=progress;
