@@ -601,6 +601,7 @@ function fastRender(){
  fastFrameScheduled=true;
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
+  if(frozenMapMode)return;
   if((!fastInteracting&&!tileModeActive)||state.mode==='far'||
     state.view!=='map')return;
   const now=performance.now(),bounds=streamingViewBounds(96);
@@ -4050,6 +4051,9 @@ $('frozenPlay').addEventListener('click',async()=>{
   if(!result.saved){frozenMap.stop();
    frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
   frozenMapMode=true;
+  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+   chunks.setPlaybackPaused(true);
+  worldTiles?.setPlaybackPaused(true);
   frozenCanvas.hidden=false;frozenCanvas.style.display='block';
   $('frozenExit').hidden=false;button.hidden=true;
   frozenMap.draw();
@@ -4060,6 +4064,9 @@ $('frozenPlay').addEventListener('click',async()=>{
 $('frozenExit').addEventListener('click',()=>{
  if(!frozenMapMode)return;
  frozenMapMode=false;frozenMap?.stop();
+ for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+  chunks.setPlaybackPaused(false);
+ worldTiles?.setPlaybackPaused(false);
  frozenCanvas.style.display='none';frozenCanvas.hidden=true;
  $('frozenExit').hidden=true;$('frozenPlay').hidden=false;
  frozenNotice('Spielkarten-Test beendet. Der Editor und seine Worker sind wieder aktiv.');
