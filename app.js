@@ -4040,14 +4040,34 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  let totalSaved=0,already=0,missing=0,failed=0,processed=0;
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
-  // In this AUTHORING pass alone, the normal renderer is intentionally
-  // enabled. End any active pointer gesture first to permit idle lane work.
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
-  // The editor's 28%-zoom world-Lod must NOT become the permanent
-  // high-quality game image. Prepare near terrain before the 4x source bake.
-  if(quality4)state.zoom=Math.max(1.1,pose.zoom);
-  // Deterministic scan; the next region can reuse already painted neighbors.
+  if(quality4){
+   // Set up near-detail SOURCE queues once on a small temporary canvas.
+   // No visible camera pan and no WorldTile live compositor during export.
+   state.zoom=Math.max(1.1,pose.zoom);
+   updateTerrainLod(state.zoom);
+   run.offlineOnly=true;
+   const prev={ctx,W,H,panX:state.panX,panY:state.panY,
+    gpuFrame,paintContext:step15PaintContext};
+   const cv=document.createElement('canvas');
+   cv.width=Math.ceil(384*state.dpr);
+   cv.height=Math.ceil(384*state.dpr);
+   try{
+    ctx=cv.getContext('2d',{alpha:true});
+    if(!ctx)throw Error('Offscreen-Canvas für 4x-Vorbereitung fehlt');
+    W=384;H=384;gpuFrame=false;
+    state.panX=-(all[0].x+all[0].size/2)*state.zoom;
+    state.panY=-(all[0].y+all[0].size/2)*state.zoom*PROJECT_Y;
+    step15PaintContext={origin:'frozen-offline-source-setup'};
+    drawGround();drawRoads();
+   }finally{
+    ctx=prev.ctx;W=prev.W;H=prev.H;
+    state.panX=prev.panX;state.panY=prev.panY;
+    gpuFrame=prev.gpuFrame;step15PaintContext=prev.paintContext;
+   }
+  }
+  // Deterministic scan; each actual completed tile is saved separately.
   for(const tile of all){
    if(run.cancel)break;
    if(frozenSceneKey()!==scene){
