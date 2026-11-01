@@ -297,7 +297,7 @@ window.VedrasFrozenMap=(()=>{
   // used by a standalone player that does not load app.js or any workers.
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
-      pose:initialPose=null,clouds:cloudData=null}={}){
+      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -308,6 +308,7 @@ window.VedrasFrozenMap=(()=>{
    const record={key:scene+'|manifest',schema:SCHEMA,sceneKey:scene,
     levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
     pose:initialPose?{...initialPose}:null,
+    expectedTiles:Number.isSafeInteger(expectedTiles)&&expectedTiles>=0?expectedTiles:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
     savedAt:new Date().toISOString()};
