@@ -4006,8 +4006,8 @@ function frozenPrepare4xSourceQueues(tile){
     ctx=cv.getContext('2d',{alpha:true});
     if(!ctx)throw Error('Offscreen-Canvas für 4x-Vorbereitung fehlt');
     W=384;H=384;gpuFrame=false;
-    state.panX=-(tile.x+all[0].size/2)*state.zoom;
-    state.panY=-(tile.y+all[0].size/2)*state.zoom*PROJECT_Y;
+    state.panX=-(tile.x+tile.size/2)*state.zoom;
+    state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
     step15PaintContext={origin:'frozen-offline-source-setup'};
     drawGround();drawRoads();
    }finally{
