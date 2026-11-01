@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vedras Reiche – Fertige Spielkarte testen</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:#101d24;color:#ebf4ef}
+body{display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#14272c;border-bottom:1px solid #48615b}
+h1{font-size:1rem;margin:0}small{color:#a4bfb5}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button,a{font:inherit;color:#e9f6ec;background:#254f43;border:1px solid #577e6c;border-radius:6px;padding:7px 10px;text-decoration:none;cursor:pointer}
+button:hover,a:hover{background:#367058}
+button:disabled{opacity:.5;cursor:not-allowed}
+main{position:relative;flex:1;min-height:0;overflow:hidden;background:#bccbd1}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+canvas:active{cursor:grabbing}
+footer{padding:7px 13px;background:#14272c;display:flex;gap:15px;justify-content:space-between;flex-wrap:wrap;font-size:.75rem;color:#b5cfc5}
+#message{white-space:pre-wrap}#metrics{font-variant-numeric:tabular-nums}
+</style></head>
+<body>
+<header><div><h1>Vedras Reiche · Fertige Spielkarte</h1>
+<small>Eigenständiger Lesemodus – keine Editor-, Terrain-Worker- oder Bake-Skripte</small></div>
+<div class="controls"><button id="zoomOut">−</button><span id="zoom">100 %</span>
+<button id="zoomIn">+</button><button id="resetView">Ansicht zurücksetzen</button>
+<a href="index.html">Asset-Labor öffnen</a></div></header>
+<main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas></main>
+<footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
+<span id="metrics">Keine Renderaufträge</span></footer>
+<script src="frozen-map-runtime.js?v=20261101-2"></script>
+<script src="frozen-map-game.js?v=20261101-1"></script>
+</body></html>

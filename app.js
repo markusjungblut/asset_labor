@@ -457,6 +457,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  }
 }
 
+let frozenMapMode=false;
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
  fastLastPrime=0,fastNewTerrain=0;
@@ -590,6 +591,7 @@ function stopFastCameraForStrategy(){
  realtimeMap.hide();
 }
 function fastRender(){
+ if(frozenMapMode)return;
  if(state.mode==='far'||state.view!=='map'){
   if(fastInteracting||tileModeActive)stopFastCameraForStrategy();
   return;
@@ -599,6 +601,7 @@ function fastRender(){
  fastFrameScheduled=true;
  requestAnimationFrame(()=>{
   fastFrameScheduled=false;
+  if(frozenMapMode)return;
   if((!fastInteracting&&!tileModeActive)||state.mode==='far'||
     state.view!=='map')return;
   const now=performance.now(),bounds=streamingViewBounds(96);
@@ -1228,6 +1231,7 @@ function makePattern(a,patternCtx=ctx){
  return pat;
 }
 function requestDraw(){
+ if(frozenMapMode)return; // Frozen game test never invokes editor/Worker baking.
  if(state.mode==='far'&&(fastInteracting||tileModeActive))
   stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -2989,6 +2993,7 @@ function protectCameraImagePool(){
 
 }
 function draw(){
+ if(frozenMapMode)return; // A pending editor rAF cannot sneak behind playback.
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(!ctx||!canvas.width)return;
@@ -3880,6 +3885,271 @@ function precomputeAllStaticTerrain(){
 }
 window.__vedrasPrecomputeTerrain=precomputeAllStaticTerrain;
 $('terrainBake').addEventListener('click',precomputeAllStaticTerrain);
+
+// Step 17 experiment: the shipped game uses PRE-COMPUTED immutable image
+// tiles. This local player has no reference to the terrain/WorldTile workers.
+// Capture is explicitly manual, only after full exact WorldTile completion.
+const frozenCanvas=$('frozenGameCanvas');
+const frozenStatus=$('frozenStatus');
+const frozenMap=window.VedrasFrozenMap?.create({
+ canvas:frozenCanvas,onStatus:stats=>{
+  if(!frozenStatus||!frozenMapMode)return;
+  frozenStatus.textContent='Spielkarten-Test: '+stats.saved+
+   ' gespeicherte Bildkacheln · '+stats.decoded+' dekodiert · '+
+   stats.pending+' Bilddateien laden · '+stats.paintMs.toFixed(1)+
+   ' ms Bildkomposition · KEINE Terrain-/WorldTile-Neuberechnung';
+ }
+})||null;
+function frozenSceneKey(){
+ // Fingerprint of ALL authored static map features; no camera coordinates,
+ // selected Hex, Fog status, cache revisions or dynamic unit positions.
+ // A static edit automatically switches to a different frozen-map archive.
+ const fields=[
+  'game-map-export-renderer-v1',worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
+   c.reliefClass,c.hillProfile,c.hillStrength]),
+  state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
+  state.natureInstances,state.mountainInstances,state.hexObject,state.hexShadow,
+  state.forest,state.materialScales,state.visualPolish,state.relief,
+  state.shoreline,state.roadEdges,state.roadShown,
+  state.river,state.riverPaths,state.riverBanks,state.riverBankStrength,
+  state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
+  state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
+  catalog.assets,catalog.terrainTypes,catalog.categories,
+  assets.map(a=>[a.path,a.mtime,a.imageRevision||0]).sort((a,b)=>
+   String(a[0]).localeCompare(String(b[0])))
+ ];
+ const value=JSON.stringify(fields);let h=2166136261;
+ for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}
+ return 'v1-'+(h>>>0).toString(16).padStart(8,'0');
+}
+function frozenLocalCells(){
+ return worldCells.map(c=>{
+  const p=axialPos(c.q,c.r);
+  return {q:c.q,r:c.r,x:p.x,y:p.y,radius:R,visibility:'visible'};
+ });
+}
+function frozenNotice(message){if(frozenStatus)frozenStatus.textContent=message;}
+$('frozenCapture').addEventListener('click',async()=>{
+ if(!frozenMap||frozenMapMode)return;
+ if($('fogPreview')?.checked){
+  frozenNotice('Fog-Demo deaktivieren: Im lokalen Test nur vollständig freigegebene Sichtbereiche sichern.');return;
+ }
+ const packets=worldTiles?.exportExactPackets({limit:96})||[];
+ if(!packets.length){
+  frozenNotice('Noch keine komplett fertiggestellte World-Tile im aktuellen Bild. Erst Landschaft fertig laden lassen.');return;
+ }
+ const button=$('frozenCapture');button.disabled=true;
+ try{
+  const scene=frozenSceneKey();
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
+   levels:[packets[0].level],pose:{zoom:state.zoom,panX:state.panX,
+    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y}});
+  const result=await frozenMap.capture(scene,packets,{onProgress:progress=>
+   frozenNotice('Fertige Spielkacheln sichern: '+progress.saved+
+    ' / '+progress.total+' · kein Terrain-Worker aktiv durch den Export')});
+  frozenNotice(result.saved+' vollständige Bildkacheln gespeichert. '+
+   result.rejected+' unvollständige ausgeschlossen. In weiteren Regionen erneut erfassen.');
+ }catch(e){frozenNotice('Speichern fehlgeschlagen: '+String(e.message||e));}
+ finally{button.disabled=false;}
+});
+// ONE-TIME editor-side preparation of a finished local game atlas. This is
+// deliberately a separate, cancellable OFFLINE pass: the shipped read-only
+// frozen viewport below never runs these expensive terrain/WorldTile jobs.
+// Each completed exact packet is persisted BEFORE moving the camera away;
+// the bounded 26M-WorldTile LRU is not expected to hold the whole 397-Hex map.
+let frozenTour=null;
+$('frozenCancel').addEventListener('click',()=>{
+ if(frozenTour)frozenTour.cancel=true;
+ frozenNotice('Karten-Vorbereitung wird nach dem aktuellen Schritt beendet; bereits gespeicherte PNGs bleiben erhalten.');
+});
+$('frozenCaptureAll').addEventListener('click',async()=>{
+ if(!frozenMap||frozenMapMode||frozenTour)return;
+ if(state.view!=='map'||state.mode==='far'){
+  frozenNotice('Zuerst Kartendarstellung (nicht Strategieansicht) auswählen.');return;
+ }
+ if($('fogPreview')?.checked){
+  frozenNotice('Fog-Demo deaktivieren: Keine verborgenen Spielbereiche in eine lokale Karte exportieren.');return;
+ }
+ if(!worldCells.length){frozenNotice('Keine fertige Welt vorhanden.');return;}
+ const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+  xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
+ const all=window.VedrasChunks.visible({
+  x:Math.min(...xs)-pad,y:Math.min(...ys)-pad,
+  width:Math.max(...xs)-Math.min(...xs)+pad*2,
+  height:Math.max(...ys)-Math.min(...ys)+pad*2
+ },worldCells,512);
+ if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
+ const scene=frozenSceneKey(),lod=worldTiles?.chooseLod(state.zoom)||'mid';
+ const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
+ try{
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
+   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y}});
+ }catch(error){
+  frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
+   String(error?.message||error));return;
+ }
+ const run={cancel:false};frozenTour=run;
+ const button=$('frozenCaptureAll');button.disabled=true;
+ $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
+ $('frozenPlay').disabled=true;
+ let totalSaved=0,already=0,missing=0,failed=0,processed=0;
+ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ try{
+  // In this AUTHORING pass alone, the normal renderer is intentionally
+  // enabled. End any active pointer gesture first to permit idle lane work.
+  if(fastInteracting)endFastCamera(true);
+  tileModeActive=true;
+  // Deterministic scan; the next region can reuse already painted neighbors.
+  for(const tile of all){
+   if(run.cancel)break;
+   if(frozenSceneKey()!==scene){
+    frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
+   }
+   const fileKey=window.VedrasFrozenMap.makeKey(scene,lod,tile.id);
+   if((await frozenMap.storage.keys(scene+'|'+lod+'|')).includes(fileKey)){
+    already++;processed++;continue;
+   }
+   state.panX=-(tile.x+tile.size/2)*state.zoom;
+   state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
+   fastLastPrime=0;fastRender();
+   let found=false;
+   // Genuine cold tile rendering may require sources, shore and Scenery.
+   // Never write a partial/provisional tile just to claim progress.
+   const deadline=performance.now()+15000;
+   while(!run.cancel&&performance.now()<deadline){
+    await delay(350);
+    if(frozenSceneKey()!==scene){run.cancel=true;break;}
+    fastRender();
+    const ready=worldTiles?.exportExactPackets({limit:96})||[];
+    if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
+    const result=await frozenMap.capture(scene,ready);
+    totalSaved+=result.saved;found=true;break;
+   }
+   if(!found)missing++;
+   processed++;
+   if(!run.cancel)frozenNotice('Fertige Spielkarte vorbereiten: '+processed+' / '+
+    all.length+' Welt-Chunks besucht · '+totalSaved+' PNG-Pakete neu gespeichert · '+
+    already+' bereits vorhanden · '+missing+' noch nicht fertig. '+
+    'Der Browser berechnet die hochwertige Karte NUR bei dieser Vorbereitung.');
+  }
+  failed=missing;
+  if(!run.cancel)frozenNotice('Vorbereitung beendet: '+processed+' / '+all.length+
+   ' Regionen besucht, '+totalSaved+' fertige Bildpakete gespeichert, '+
+   already+' bereits vorhanden, '+failed+' nicht fertig. '+
+   (failed?'Erneut starten, um fehlende Regionen nachzuholen.':
+    'Spielkarten-Test kann ohne Terrain-Worker gestartet werden.'));
+ }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
+   '. Bereits gespeicherte PNGs bleiben erhalten.');}
+ finally{
+  state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
+  frozenTour=null;button.disabled=false;
+  $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
+  $('frozenPlay').disabled=false;
+  fastLastPrime=0;fastRender();
+ }
+});
+$('frozenExport').addEventListener('click',async()=>{
+ if(!frozenMap||frozenTour||!window.VedrasFrozenMapPackage)return;
+ const button=$('frozenExport');button.disabled=true;
+ try{
+  const scene=frozenSceneKey(),level=frozenMapMode?
+   frozenMap.report().level:(worldTiles?.stats().lod||'mid');
+  const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+   xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
+  const all=worldCells.length?window.VedrasChunks.visible({
+   x:Math.min(...xs)-pad,y:Math.min(...ys)-pad,
+   width:Math.max(...xs)-Math.min(...xs)+pad*2,
+   height:Math.max(...ys)-Math.min(...ys)+pad*2
+  },worldCells,512):[];
+  const result=await window.VedrasFrozenMapPackage.exportMap(
+   frozenMap.storage,scene,level,{totalExpected:all.length,
+    onProgress:p=>frozenNotice('ZIP exportieren: '+p.done+' / '+p.total+' Bildkacheln …')});
+  const url=URL.createObjectURL(result.blob),link=document.createElement('a');
+  link.href=url;link.download='vedras_spielkarte_'+scene+'_'+level+'.zip';
+  link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  frozenNotice('Spielkartenpaket exportiert: '+result.manifest.exportedTiles+
+   ' / '+(result.manifest.expectedTiles||'?')+' Bildkacheln · '+
+   (result.manifest.complete?'vollständig':'UNVOLLSTÄNDIG (im Manifest markiert)')+
+   ' · '+Math.round(result.blob.size/1024/1024)+' MiB');
+ }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
+ finally{button.disabled=false;}
+});
+$('frozenStandalone').addEventListener('click',()=>{
+ if(!frozenMap||frozenTour)return;
+ const scene=frozenSceneKey();
+ const lod=frozenMapMode?frozenMap.report().level:
+  worldTiles?.stats().lod||'mid';
+ // IMPORTANT: opening must happen synchronously in the trusted click
+ // handler; browsers block window.open after an awaited IndexedDB lookup.
+ // The isolated viewer itself checks the manifest and tile availability.
+ const url='frozen-map-game.html?scene='+encodeURIComponent(scene)+
+  '&lod='+encodeURIComponent(lod);
+ window.open(url,'_blank','noopener');
+ frozenNotice('Eigenständigen Spielkarten-Test in neuem Tab geöffnet. '+
+  'Der Kartenviewer meldet fehlende oder unvollständige Bildkacheln selbst.');
+});
+$('frozenPlay').addEventListener('click',async()=>{
+ if(!frozenMap||frozenMapMode||frozenTour)return;
+ if($('fogPreview')?.checked){
+  frozenNotice('Zum isolierten lokalen Spielkarten-Test die Fog-Demo deaktivieren.');return;
+ }
+ const button=$('frozenPlay');button.disabled=true;
+ try{
+  const scene=frozenSceneKey(),level=worldTiles?.stats().lod||'mid';
+  const initial={zoom:state.zoom,panX:state.panX,panY:state.panY,
+   dpr:state.dpr,projectY:PROJECT_Y};
+  const result=await frozenMap.load(scene,level,initial,frozenLocalCells());
+  if(!result.saved){frozenMap.stop();
+   frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
+  frozenMapMode=true;
+  for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+   chunks.setPlaybackPaused(true);
+  worldTiles?.setPlaybackPaused(true);
+  frozenCanvas.hidden=false;frozenCanvas.style.display='block';
+  $('frozenExit').hidden=false;button.hidden=true;
+  frozenMap.draw();
+ }catch(e){frozenMapMode=false;frozenMap.stop();
+  frozenNotice('Spielkartentest konnte nicht starten: '+String(e.message||e));}
+ finally{button.disabled=false;}
+});
+$('frozenExit').addEventListener('click',()=>{
+ if(!frozenMapMode)return;
+ frozenMapMode=false;frozenMap?.stop();
+ for(const chunks of [terrainChunks,shorelineChunks,riverChunks,roadChunks])
+  chunks.setPlaybackPaused(false);
+ worldTiles?.setPlaybackPaused(false);
+ frozenCanvas.style.display='none';frozenCanvas.hidden=true;
+ $('frozenExit').hidden=true;$('frozenPlay').hidden=false;
+ frozenNotice('Spielkarten-Test beendet. Der Editor und seine Worker sind wieder aktiv.');
+ requestDraw();
+});
+let frozenPointer=null;
+frozenCanvas.addEventListener('pointerdown',e=>{
+ if(!frozenMapMode)return;
+ frozenCanvas.setPointerCapture?.(e.pointerId);
+ frozenPointer={id:e.pointerId,x:e.clientX,y:e.clientY};
+});
+frozenCanvas.addEventListener('pointermove',e=>{
+ if(!frozenMapMode||!frozenPointer||frozenPointer.id!==e.pointerId)return;
+ const old=frozenMap.getPose();
+ frozenMap.setPose({panX:old.panX+e.clientX-frozenPointer.x,
+  panY:old.panY+e.clientY-frozenPointer.y});
+ frozenPointer={id:e.pointerId,x:e.clientX,y:e.clientY};
+});
+function stopFrozenPointer(){frozenPointer=null;}
+frozenCanvas.addEventListener('pointerup',stopFrozenPointer);
+frozenCanvas.addEventListener('pointercancel',stopFrozenPointer);
+frozenCanvas.addEventListener('wheel',e=>{
+ if(!frozenMapMode)return;
+ e.preventDefault();const p=frozenMap.getPose(),r=frozenCanvas.getBoundingClientRect();
+ const mx=e.clientX-r.left,my=e.clientY-r.top,
+  oldZoom=p.zoom,zoom=clamp(oldZoom*(e.deltaY<0?1.10:.90),ZMIN,ZMAX);
+ const wx=(mx-r.width/2-p.panX)/oldZoom,
+  wy=(my-r.height/2-p.panY)/(oldZoom*(p.projectY||PROJECT_Y));
+ frozenMap.setPose({zoom,panX:mx-r.width/2-wx*zoom,
+  panY:my-r.height/2-wy*zoom*(p.projectY||PROJECT_Y)});
+},{passive:false});
+window.addEventListener('resize',()=>{if(frozenMapMode)frozenMap.draw();});
 // Atlas building runs as an OFFLINE local-server job, never on startup
 // or on a map frame. No original image or path is modified by the builder.
 $('atlasBuild').addEventListener('click',async()=>{
@@ -4422,7 +4692,8 @@ window.addEventListener('vedras:cloud-assets-ready',()=>{
  // Only the background snapshots are stale; terrain chunks are untouched.
  backgroundScene.clear();requestDraw();
 });
-window.VedrasAssetLabor={shadowSprites:{
+window.VedrasAssetLabor={frozenMapTest:()=>({
+ ...frozenMap?.report(),mode:frozenMapMode,scene:frozenSceneKey()}),shadowSprites:{
  bounds:visibleBounds,silhouette:shadowSilhouette,
  // The editor preview resolves the same mountain settings as the map.
  mountainSettingsForAsset:(asset)=>{

@@ -8,6 +8,37 @@
 
 > **Arbeitsauftrag für spätere Entwicklungsrunden:** Dieses Dokument **vor jeder neuen Rendering-Optimierung lesen**, die *erste noch offene Phase* bearbeiten, keine Phase ohne belegte Abnahme als abgeschlossen markieren. Neue Befunde dürfen die Reihenfolge nur mit begründeter, hier dokumentierter Entscheidung verändern. Eine einzelne Änderung pro PR, getrennte Vorher-/Nachher-Messung; keine willkürlichen Atlas-, Cache- und GPU-Eingriffe gleichzeitig.
 
+## Architekturentscheidung vom 01.11.2026 – getrennte Editor- und Spielkarten-Pipeline
+
+**Begründete Erweiterung, keine vorzeitige Phase-17-Abnahme:** Die reale
+397-Hex-4×-Karte baut bisher Terrainmaterial und Hex-Übergänge beim
+Erkunden neu. Das ist für eine veränderbare Asset-Labor-Szene nötig,
+für eine **fertig gestaltete Spielkarte** jedoch nicht. Der Nutzer fordert
+einen Performance-Test mit bereits feststehender Welt.
+
+**Neuer paralleler Experimentzweig:**
+[Spielkarten-Test mit persistenten, vollständig gerenderten Bildkacheln]
+(STEP17_FROZEN_MAP_TEST_20261101.md).
+Die einmaligen teuren Terrain-/Küsten-/Scenery-Raster werden beim
+**Offline-Prebaking im Asset-Labor** vorbereitet und als PNG-Layer mit
+Hex-Geometrie gespeichert. Ein **eigenständiger Kartenviewer ohne
+Editor, Worker oder WorldTile-Baker** komponiert anschließend nur die
+fertigen Bilder beim Pan und Zoom. Einheiten, Fog, bewegliche und
+spielmechanisch veränderliche Objekte werden später als getrennte
+Runtime-Layer ergänzt. Eine aktive Kartenänderung muss künftig nur
+die semantisch abhängigen Bildkacheln neu vorbacken.
+
+**Wichtig:** Dies testet die Produktarchitektur **Editor einmal /
+Spiel viele Male**. Es ersetzt die geforderte Fehlerbehebung für die
+weißen Land-/Wasser-Nähte nicht, und eine 50-fach schnellere *komplette
+Neuberechnung* der Editorwelt ist hierdurch nicht bewiesen.
+Schritt 16B/16C bleibt offen, Schritt 17 noch nicht vollständig
+abgenommen; Schritte 18–20 bleiben gemäß Kriterien gesperrt.
+Diese experimentelle Abzweigung liefert Entscheidungsdaten, ob
+ein großer GPU-Terrain-Generator **für die Spiel-Runtime** überhaupt
+notwendig ist. Offline-Baking kann weiterhin GPU-/Atlas-Unterstützung
+brauchen.
+
 ## 0. Gesicherter Ausgangspunkt und Unsicherheiten
 
 - Referenzszene: **397 Hexfelder, 2.631 Vegetationsinstanzen, 0 fehlende Asset-Pfade**; Szenendatei `artifacts/rendering-step13/vedras_scene.json`.
