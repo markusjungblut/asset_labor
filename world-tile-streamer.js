@@ -882,16 +882,17 @@ window.VedrasWorldTiles=(()=>{
     }
     return true;
    };
-   let previewHexes=new Set();
+   let previewHexes=new Set(),previewMs=0;
    // A native-texture per-hex preview can appear before the expensive
    // 850k-pixel blend raster exists. Clip through the SAME authorized hex
    // mask as exact imagery. It is provisional quality, never cached/ready.
    if(missing>0&&hasMask&&Array.isArray(fog)&&typeof drawPreview==='function'){
+    const previewStart=clock();
     g.save();drawKnownPath(0);
     try{
      const painted=drawPreview(g,view,fog,exactReady);
      if(painted instanceof Set)previewHexes=painted;
-    }finally{g.restore();}
+    }finally{g.restore();previewMs=clock()-previewStart;}
    }
    let covered=0,draws=0;
    function layerPass(layers,halo){
@@ -978,12 +979,12 @@ window.VedrasWorldTiles=(()=>{
    }
    painted=draws;frame++;lastMs=clock()-start;
    lastProgress={exact,fallback,provisional,stale,missing,
-    previewHexes:previewHexes.size};
+    previewHexes:previewHexes.size,previewMs};
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,exact,fallback,provisional,stale,missing,
-    previewHexes:previewHexes.size,pending:queue.size+running.size};
+    previewHexes:previewHexes.size,previewMs,pending:queue.size+running.size};
   }
   function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
