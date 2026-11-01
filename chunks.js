@@ -320,12 +320,17 @@ window.VedrasChunks=(()=>{
   // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
    const foreground=queue.size>0&&!inFlightInteractive;
+   // Once the first visible build is running, the second, otherwise idle
+   // asynchronous lane may help with MORE visible tiles while the camera is
+   // stationary. Active pan/drag retains the original one-lane behavior.
+   const assistVisible=queue.size>0&&inFlightInteractive&&
+    !backgroundPaused&&!inFlightBackground;
    const background=!backgroundPaused&&!inFlightBackground&&
-    (backgroundQueue.size||prefetchQueue.size);
+    (backgroundQueue.size||prefetchQueue.size||assistVisible);
    if(!foreground&&!background)return;
-   // Two scheduled callbacks allow a fresh visible request to bypass an
-   // already pending requestIdleCallback for speculative background work.
-   const urgent=foreground;
+   // Never make a visible build wait for idle time, even if it is using
+   // the spare background slot; speculative requests remain idle-only.
+   const urgent=foreground||assistVisible;
    if(urgent?urgentScheduled:scheduled)return;
    if(urgent)urgentScheduled=true;else scheduled=true;
    const generation=epoch;
@@ -333,29 +338,33 @@ window.VedrasChunks=(()=>{
     if(generation!==epoch)return;
     if(urgent)urgentScheduled=false;else scheduled=false;
     const interactive=urgent&&queue.size>0&&!inFlightInteractive;
-    const canBackground=!urgent&&!backgroundPaused&&!inFlightBackground;
-    const warm=canBackground&&backgroundQueue.size>0&&
+    const canBackground=!interactive&&!backgroundPaused&&!inFlightBackground;
+    // A second visible chunk outranks speculative work, but only while
+    // a foreground job already occupies the first lane.
+    const assisting=canBackground&&inFlightInteractive&&queue.size>0;
+    const visibleJob=interactive||assisting;
+    const warm=canBackground&&!assisting&&backgroundQueue.size>0&&
      (prefetchQueue.size===0||warmStreak<MAX_WARM_STREAK);
-    const predictive=canBackground&&!warm&&prefetchQueue.size>0;
-    if(!interactive&&!warm&&!predictive){schedule();return;}
-    const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
+    const predictive=canBackground&&!assisting&&!warm&&prefetchQueue.size>0;
+    if(!visibleJob&&!warm&&!predictive){schedule();return;}
+    const targetQueue=visibleJob?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
-    if(interactive)visibleQueuedAt.delete(id);
+    if(visibleJob)visibleQueuedAt.delete(id);
     if(warm)warmStreak++;
     else if(predictive){
      if(backgroundQueue.size)stats.backgroundFairTurns++;
      warmStreak=0;
     }
     const isVisible=viewportWanted.has(id)||protectedIds.has(id);
-    if(interactive&&!viewportWanted.has(id)){
+    if(visibleJob&&!viewportWanted.has(id)){
      stats.obsoleteVisibleDiscarded++;schedule();return;
     }
-    if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
+    if(!visibleJob&&!isVisible&&predictive&&!prefetchWanted.has(id)){
      stats.prefetchDiscarded++;schedule();return;
     }
-    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)&&
+    if(!visibleJob&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)&&
       (!requireArtwork||drawable(cache.get(id)))){
      markWarm(id);schedule();return;
     }
@@ -385,7 +394,7 @@ window.VedrasChunks=(()=>{
      // Old foreground work may finish after the camera leaves its region.
      // Never publish such a result unless it belongs to the new bounded
      // prefetch ring or an explicit manual warm job.
-     if(interactive&&!visibleNow&&!prefetchWanted.has(id)&&
+     if(visibleJob&&!visibleNow&&!prefetchWanted.has(id)&&
         !warmRemaining.has(id)){
       observe(id,'obsolete',{reason:'outside-viewport'});
       release(item);stats.obsolete++;schedule();return;
@@ -442,7 +451,7 @@ window.VedrasChunks=(()=>{
      if(requireArtwork)retryFailure(id,t,expectedStamp,'build-error',error);
      else observe(id,'failed',{error:String(error?.message||error)});
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     if(!requireArtwork&&(interactive||viewportWanted.has(id)))requestDraw();
+     if(!requireArtwork&&(visibleJob||viewportWanted.has(id)))requestDraw();
      markWarm(id);schedule();
     };
     if(interactive)inFlightInteractive=true;
@@ -473,7 +482,9 @@ window.VedrasChunks=(()=>{
      }else{finish();complete(output);}
     }catch(err){finish();fail(err);}
     // If another lane has work, it can run without waiting for this Promise.
-    if(queue.size&&!inFlightInteractive)schedule();
+    // The foreground promise may take hundreds of milliseconds; wake the
+    // spare lane immediately rather than waiting for it to settle.
+    if(queue.size)schedule();
    };
    // Foreground tiles must never wait for idle time under continuous input.
    if(urgent&&typeof setTimeout==='function')setTimeout(task,0);
