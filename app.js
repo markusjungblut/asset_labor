@@ -4077,17 +4077,38 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    if((await frozenMap.storage.keys(scene+'|'+lod+'|')).includes(fileKey)){
     already++;processed++;continue;
    }
-   state.panX=-(tile.x+tile.size/2)*state.zoom;
-   state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
-   fastLastPrime=0;fastRender();
+   if(!quality4){
+    state.panX=-(tile.x+tile.size/2)*state.zoom;
+    state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
+    fastLastPrime=0;fastRender();
+   }
    let found=false;
    // Genuine cold tile rendering may require sources, shore and Scenery.
    // Never write a partial/provisional tile just to claim progress.
-   const deadline=performance.now()+15000;
+   const deadline=performance.now()+(quality4?60000:15000);
    while(!run.cancel&&performance.now()<deadline){
+    if(quality4){
+     // Prime targeted world-coordinate inputs, not an entire 4x viewport.
+     const margin=WORLD_TILE_GUTTER+1;
+     const bounds={x:tile.x-margin,y:tile.y-margin,
+      width:tile.size+2*margin,height:tile.size+2*margin};
+     const opts={prefetch:{enabled:false},notifyReady:false};
+     terrainChunks.prime(bounds,opts);
+     if(state.shoreline?.enabled!==false)shorelineChunks.prime(bounds,opts);
+     if(state.river&&state.riverBanks)riverChunks.prime(bounds,opts);
+     if(state.roadShown)roadChunks.prime(bounds,opts);
+     const diagnostic={};
+     if(!tileArtworkStatus(tile,diagnostic,true))
+      for(const path of diagnostic.waitingAssets||[]){
+       const asset=assetByPath.get(path);
+       if(asset)imagePool.ensure(asset,10);
+      }
+    }else fastRender();
     await delay(350);
-    if(frozenSceneKey()!==scene){run.cancel=true;break;}
-    fastRender();
+    if(frozenSceneKey()!==scene){
+     frozenNotice('Statische Kartendaten während der Vorbereitung verändert.');
+     run.cancel=true;break;
+    }
     let ready=[];
     if(quality4){
      if(!tileArtworkStatus(tile,null,true))continue;
