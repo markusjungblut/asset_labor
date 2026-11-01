@@ -224,6 +224,42 @@ test('incomplete whole-map archive is explicitly partial and includes named PNG 
  assert.equal(result.manifest.tiles[0].layers[1].file,'tiles/mid/0_0.1.png');
  assert.ok(result.blob.size>100);
 });
+
+test('portable manifest preserves authored hex geometry for the standalone page',async()=>{
+ const h=harness(),scene='v1-1234abcd';
+ const cells=h.cells.map(c=>({...c,visibility:'visible'}));
+ const m=await h.view.saveManifest(scene,{cells,levels:['mid'],
+  pose:{zoom:.81,panX:12,panY:-7,dpr:1,projectY:.85}});
+ assert.equal(m.sceneKey,scene);
+ assert.equal(m.levels[0],'mid');
+ const loaded=await h.view.loadManifest(scene);
+ assert.equal(loaded.cells.length,1);
+ assert.equal(loaded.cells[0].q,0);
+ assert.equal(loaded.pose.panX,12);
+ assert.equal((await h.storage.keys(scene+'|mid|')).length,0,
+  'manifest must not masquerade as a completed tile');
+});
+test('manifest rejects invalid world geometry and does not overwrite archives',async()=>{
+ const h=harness(),scene='v1-1234abcd';
+ await assert.rejects(h.view.saveManifest(scene,{
+  cells:[{q:0,r:0,x:0,y:Infinity,radius:147}],levels:['mid']}));
+ await assert.rejects(h.view.loadManifest(scene));
+ assert.equal((await h.storage.keys(scene+'|')).length,0);
+});
+test('standalone HTML only loads PNG map viewer without app or worker modules',()=>{
+ const standalone=fs.readFileSync(path.join(root,'frozen-map-game.html'),'utf8');
+ const js=fs.readFileSync(path.join(root,'frozen-map-game.js'),'utf8');
+ assert.match(standalone,/frozen-map-runtime\.js/);
+ assert.match(standalone,/frozen-map-game\.js/);
+ assert.doesNotMatch(standalone,/(?:src="|import\(['"])(?:app|chunks|autotile|terrain-worker|world-tile-streamer)\.js/);
+ assert.match(js,/loadManifest\(scene\)/);
+ assert.match(js,/player\.load\(scene,lod,startPose,manifest\.cells\)/);
+ assert.match(js,/pointermove/);
+ assert.match(js,/wheel/);
+ assert.doesNotMatch(js,/VedrasTerrainWorker|bakeWorldTile|worldTiles\.request|terrainChunks\.prime/);
+ assert.match(appSource,/frozenMap\.saveManifest\(scene,/);
+ assert.match(appSource,/window\.open\(url,'_blank','noopener'\)/);
+});
 test('UI has explicit whole-map offline preparation, cancel and separate read-only canvas',()=>{
  for(const id of ['frozenCaptureAll','frozenCancel','frozenCapture',
   'frozenPlay','frozenExit','frozenExport','frozenGameCanvas','frozenStatus'])
