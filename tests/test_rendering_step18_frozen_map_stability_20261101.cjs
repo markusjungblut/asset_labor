@@ -129,3 +129,45 @@ test('4x whole-map exporter freezes editor mutations and primes source chunks wi
  assert.match(app,/roadChunks\.prime\(bounds,opts\)/);
  assert.match(app,/if\(!quality4\)\{\s*state\.panX=/);
 });
+
+test('archive ID stays unchanged after 4x decode promotions but changes on real authored content changes',()=>{
+ const block=app.slice(app.indexOf('function frozenSceneKey()'),
+  app.indexOf('function frozenCloudSettings()'));
+ const keyFor=new Function('worldCells','state','catalog','assets',
+  block+';return frozenSceneKey();');
+ const worldCells=[{q:0,r:0,biome:'plains',terrainTypeId:'grassland'}];
+ const state={quality:'4',hexTerrain:{},natureInstances:[],forest:{seed:12},
+  materialScales:{},visualPolish:{},relief:{},shoreline:{},roadEdges:[]};
+ const catalog={assets:[],terrainTypes:[],categories:[]},
+  assets=[{path:'forest.png',mtime:10,imageRevision:1}];
+ const base=keyFor(worldCells,state,catalog,assets);
+ assets[0].imageRevision=100;
+ assert.equal(keyFor(worldCells,state,catalog,assets),base,
+  'image decoding/promoting the same source is not an authored map edit');
+ assets[0].mtime=11;
+ assert.notEqual(keyFor(worldCells,state,catalog,assets),base);
+ const afterMtime=keyFor(worldCells,state,catalog,assets);
+ state.hexTerrain['0,0']='changed-source.png';
+ assert.notEqual(keyFor(worldCells,state,catalog,assets),afterMtime);
+});
+test('4x offscreen source queue configuration preserves the visible editor camera',()=>{
+ const block=app.slice(app.indexOf('function frozenPrepare4xSourceQueues(tile){'),
+  app.indexOf('const frozenTourLockedEvents='));
+ const simulate=new Function('state','document','tile',`
+  let ctx={original:true},W=1200,H=800,gpuFrame=true,
+   step15PaintContext={origin:'editor'};
+  const originalCtx=ctx,PROJECT_Y=.85;
+  let terrain=0,road=0;
+  function drawGround(){terrain++;}
+  function drawRoads(){road++;}
+  ${block}
+  frozenPrepare4xSourceQueues(tile);
+  return {terrain,road,restored:ctx===originalCtx&&W===1200&&H===800&&
+   gpuFrame===true&&step15PaintContext.origin==='editor'};`);
+ const state={zoom:1.1,panX:40,panY:-20,dpr:4},
+  canvas={createElement:()=>({getContext:()=>({})})};
+ const result=simulate(state,canvas,{id:'1,2',x:512,y:1024,size:512});
+ assert.deepEqual(result,{terrain:1,road:1,restored:true});
+ assert.equal(state.panX,40);
+ assert.equal(state.panY,-20);
+});
