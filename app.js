@@ -322,7 +322,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
- const reuseSnapshot=snapshotReady&&
+ // During the explicit offline 4x atlas export, snapshots made for normal
+ // camera LODs (near=2.5 px/world-unit) are NOT a 4x source.
+ const offline4x=frozenTour?.quality==='4'&&level==='near';
+ const reuseSnapshot=!offline4x&&snapshotReady&&
   worldTileSnapshotsSharp(ground,scenery,level);
  const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
   b=reuseSnapshot?snapshotTile(scenery,t,level):null;
@@ -362,8 +365,9 @@ async function bakeWorldTile(t,level,{signal}={}){
  }
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
- const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
-  pad=128,sceneryScale=Math.min(scale,1.9),groundPad=WORLD_TILE_GUTTER;
+ const z=state.zoom,scale=offline4x?4:({far:.85,mid:1.5,near:2.5}[level]||1),
+  pad=128,sceneryScale=offline4x?4:Math.min(scale,1.9),
+  groundPad=WORLD_TILE_GUTTER;
  const make=(w,h)=>{
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(w));
@@ -3988,17 +3992,18 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   height:Math.max(...ys)-Math.min(...ys)+pad*2
  },worldCells,512);
  if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
- const scene=frozenSceneKey(),lod=worldTiles?.chooseLod(state.zoom)||'mid';
+ const scene=frozenSceneKey(),quality4=state.quality==='4',
+  lod=quality4?'near':(worldTiles?.chooseLod(state.zoom)||'mid');
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
  try{
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
-   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y},
+   pose:{...pose,dpr:quality4?4:state.dpr,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings()});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
  }
- const run={cancel:false};frozenTour=run;
+ const run={cancel:false,quality:quality4?'4':null};frozenTour=run;
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
  $('frozenPlay').disabled=true;
@@ -4009,6 +4014,9 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   // enabled. End any active pointer gesture first to permit idle lane work.
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
+  // The editor's 28%-zoom world-Lod must NOT become the permanent
+  // high-quality game image. Prepare near terrain before the 4x source bake.
+  if(quality4)state.zoom=Math.max(1.1,pose.zoom);
   // Deterministic scan; the next region can reuse already painted neighbors.
   for(const tile of all){
    if(run.cancel)break;
@@ -4030,7 +4038,18 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     await delay(350);
     if(frozenSceneKey()!==scene){run.cancel=true;break;}
     fastRender();
-    const ready=worldTiles?.exportExactPackets({limit:96})||[];
+    let ready=[];
+    if(quality4){
+     if(!tileArtworkStatus(tile,null,true))continue;
+     // Separate editor-only full-resolution source. WorldTile's normal
+     // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
+     const exact=await bakeWorldTile(tile,'near');
+     if(!exact?.complete||run.cancel)continue;
+     ready=[{...exact,tile:{...tile},level:'near',
+      dirty:false,preview:false}];
+    }else{
+     ready=worldTiles?.exportExactPackets({limit:96})||[];
+    }
     if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
     const result=await frozenMap.capture(scene,ready);
     totalSaved+=result.saved;found=true;break;
@@ -4088,7 +4107,7 @@ $('frozenStandalone').addEventListener('click',()=>{
  if(!frozenMap||frozenTour)return;
  const scene=frozenSceneKey();
  const lod=frozenMapMode?frozenMap.report().level:
-  worldTiles?.stats().lod||'mid';
+  state.quality==='4'?'near':(worldTiles?.stats().lod||'mid');
  // IMPORTANT: opening must happen synchronously in the trusted click
  // handler; browsers block window.open after an awaited IndexedDB lookup.
  // The isolated viewer itself checks the manifest and tile availability.
@@ -4105,10 +4124,13 @@ $('frozenPlay').addEventListener('click',async()=>{
  }
  const button=$('frozenPlay');button.disabled=true;
  try{
-  const scene=frozenSceneKey(),level=worldTiles?.stats().lod||'mid';
+  const scene=frozenSceneKey(),manifest=await frozenMap.loadManifest(scene),
+   level=manifest.levels.includes('near')?'near':
+    manifest.levels.includes(worldTiles?.stats().lod)?worldTiles.stats().lod:
+    manifest.levels[0];
   const initial={zoom:state.zoom,panX:state.panX,panY:state.panY,
-   dpr:state.dpr,projectY:PROJECT_Y};
-  frozenMap.setClouds(frozenCloudSettings());
+   dpr:Math.max(state.dpr,manifest.pose?.dpr||1),projectY:PROJECT_Y};
+  frozenMap.setClouds(manifest.clouds||frozenCloudSettings());
   const result=await frozenMap.load(scene,level,initial,frozenLocalCells());
   if(!result.saved){frozenMap.stop();
    frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
