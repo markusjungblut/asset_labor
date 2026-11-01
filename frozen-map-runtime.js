@@ -58,10 +58,8 @@ window.VedrasFrozenMap=(()=>{
      req.onerror=()=>reject(req.error);
     });
    },
-   clearPrefix:async prefix=>{
-    const keys=await this.keys(prefix);
-    for(const k of keys)await job('readwrite',os=>os.delete(k));
-   }
+   // No implicit cleanup: archived evidence is persistent until an explicit
+   // future user-requested deletion workflow is added.
   };
  }
  function valid(packet){
@@ -223,19 +221,23 @@ window.VedrasFrozenMap=(()=>{
   async function capture(scene,packets,{onProgress=()=>{}}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    const exact=packets.filter(valid),rejected=packets.length-exact.length;
-   let saved=0;
+   const known=new Set();
+   for(const level of new Set(exact.map(p=>p.level)))
+    for(const key of await storage.keys(scene+'|'+level+'|'))known.add(key);
+   let saved=0,skipped=0;
    for(const packet of exact){
+    const key=makeKey(scene,packet.level,packet.tile.id);
+    if(known.has(key)){skipped++;continue;}
     const layers=[];
     for(const layer of packet.layers)layers.push({
      layer:layer.layer,pad:layer.pad||0,crop:layer.crop||null,
      png:await encodeImage(layer.image)
     });
-    const key=makeKey(scene,packet.level,packet.tile.id);
     await storage.put({key,sceneKey:scene,level:packet.level,
      tile:{...packet.tile},revision:packet.revision,layers});
-    saved++;onProgress({saved,total:exact.length,rejected});
+    saved++;known.add(key);onProgress({saved,skipped,total:exact.length,rejected});
    }
-   return {saved,rejected,total:packets.length};
+   return {saved,skipped,rejected,total:packets.length};
   }
   return {capture,load,stop,draw,report,getPose,setPose,
    isActive:()=>active,storage};
