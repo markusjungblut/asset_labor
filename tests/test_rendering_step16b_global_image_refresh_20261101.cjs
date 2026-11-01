@@ -8,11 +8,11 @@ const view={width:640,height:400,zoom:.7,dpr:1,panX:0,panY:0,projectY:.85};
 const tile=id=>({id,x:Number(id.split(',')[0])*512,
  y:Number(id.split(',')[1])*512,size:512,visibility:'visible'});
 function fixture({bake=null,gate=true}={}){
- const window={},draws=[],clips=[];
+ const window={},draws=[],clips=[],pathMoves=[];
  vm.runInNewContext(source,{window,Date,Promise,AbortController,
   setTimeout,clearTimeout,performance,console});
  const g={save(){},restore(){},setTransform(){},clearRect(){},
-  fillRect(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},
+  fillRect(){},beginPath(){},moveTo(){pathMoves.push('hex')},lineTo(){},closePath(){},
   clip(){clips.push('clip')},fill(){},
   drawImage(img){draws.push(img.id||'anonymous')}};
  let closed=0,calls=0,permitted=gate;
@@ -33,7 +33,7 @@ function fixture({bake=null,gate=true}={}){
  });
  renderer.setFogCells([{q:0,r:0,x:0,y:0,radius:150,
   visibility:'visible'}]);
- return {renderer,packet,draws,clips,view,tile,
+ return {renderer,packet,draws,clips,pathMoves,view,tile,
   setGate:v=>{permitted=v},get calls(){return calls},
   get closed(){return closed}};
 }
@@ -56,12 +56,12 @@ test('global asynchronous image refresh keeps one finished viewport tile as stal
 test('Fog authorization remains active after background image refresh',async()=>{
  const h=fixture(),a=tile('0,0');
  h.renderer.request(view,[a]);await flush();
- h.renderer.render(view);const oldClips=h.clips.length;
- assert.ok(oldClips>0,'initial normal renderer must clip authorized hexes');
+ h.renderer.render(view);const beforeMoves=h.pathMoves.length;
+ assert.ok(beforeMoves>0,'initial normal renderer must draw authorized hex paths');
  h.renderer.invalidate('image-ready-ground');
  h.renderer.render(view);
- assert.ok(h.clips.length>oldClips,
-  'image readiness must not erase Fog mask and its clip paths');
+ assert.ok(h.pathMoves.length>beforeMoves,
+  'image readiness must retain the existing authorized Fog hex paths');
  h.draws.length=0;
  h.renderer.request(view,[{...a,visibility:'unknown'}]);
  h.renderer.render(view);
@@ -112,11 +112,11 @@ test('real authored/global scene change still hard-evicts and clears previous ma
  h.renderer.invalidate('scene-change');
  assert.equal(h.renderer.stats().tiles,0);
  assert.equal(h.closed,2);
- const before=h.clips.length;
+ const before=h.pathMoves.length;
  h.renderer.render(view);
  // Global authored scene invalidation forgets old authorization until
  // the caller explicitly publishes the newly computed Fog policy.
- assert.equal(h.clips.length,before);
+ assert.equal(h.pathMoves.length,before);
 });
 test('repeated image-ready callbacks keep stale pixels without unbounded cache growth',async()=>{
  const h=fixture(),a=tile('0,0');
