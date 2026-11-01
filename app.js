@@ -75,7 +75,8 @@ function currentTerrainCore(t){
    {tile:t,artwork:{version:terrainRasterCache.signature}}:null;
  }
  const tiles=terrainChunks.readyTiles(
-  {x:t.x,y:t.y,width:t.size-1,height:t.size-1},{limit:32});
+  {x:t.x,y:t.y,width:t.size-1,height:t.size-1},
+  {limit:32,sourceKeys:true});
  return tiles.find(entry=>entry.tile.id===t.id)||null;
 }
 function paintedTerrainCore(t){
@@ -589,7 +590,7 @@ function fastRender(){
    if(state.shoreline?.enabled!==false)
     shorelineChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
-  const ready=terrainChunks.readyTiles(bounds,{limit:100});
+  const ready=terrainChunks.readyTiles(bounds,{limit:100,sourceKeys:true});
   let result;
   if(worldTiles){
    const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
@@ -609,13 +610,14 @@ function fastRender(){
      tile.id,stableSource?artwork.sourceRevision??artwork.version:artwork.version
     ]));
    const layers={
-    shore:state.shoreline?.enabled!==false?prepared(shorelineChunks):null,
+    shore:state.shoreline?.enabled!==false?prepared(shorelineChunks,true):null,
     road:state.roadShown?prepared(roadChunks,true):null,
     river:state.river&&state.riverBanks&&state.riverBankStrength>0?
      prepared(riverChunks,true):null
    };
    const versions=new Map(ready.map(({tile,artwork})=>
-    [tile.id,groundSourceRevision(tile,artwork.version,layers)]));
+    [tile.id,groundSourceRevision(tile,
+     artwork.sourceRevision??artwork.version,layers)]));
    worldTiles.reconcileGroundRevisions(versions);
    for(const [tileId,revision] of versions)
     worldTiles.terrainReady(tileId,revision);
@@ -717,7 +719,9 @@ const groundTileReuse=window.VedrasGroundTileReuse?.create({
 // Ground's independent prepared sources. A finished road/river/shore
 // update is detected per core; unfinished chunks are never treated as fresh.
 function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
- const sourceVersion=terrainVersion??currentTerrainCore(t)?.artwork?.version??null;
+ const terrainArtwork=terrainVersion==null?currentTerrainCore(t)?.artwork:null;
+ const sourceVersion=terrainVersion??terrainArtwork?.sourceRevision??
+  terrainArtwork?.version??null;
  if(sourceVersion==null)return null;
  const versionFor=(cache,map,stableSource=false)=>{
   if(map)return map.get(t.id)??'pending';
@@ -735,7 +739,7 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
    s.center.x<=t.x+t.size+256&&s.center.y>=t.y-256&&
    s.center.y<=t.y+t.size+256):null;
  const coast=state.shoreline?.enabled===false?'off':
-  coastal===false?'no-coast':versionFor(shorelineChunks,readyMaps?.shore);
+  coastal===false?'no-coast':versionFor(shorelineChunks,readyMaps?.shore,true);
  const road=state.roadShown?versionFor(roadChunks,readyMaps?.road,true):'off';
  const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
   versionFor(riverChunks,readyMaps?.river,true):'off';
