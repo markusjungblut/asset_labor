@@ -31,17 +31,10 @@ function harness(store=null){
   getContext:()=>ctx,getBoundingClientRect:()=>({width:680,height:420})};
  const getImage=async blob=>({width:blob.width,height:blob.height,
   id:blob.id,close(){}});
- const fakeDocument={createElement:()=>({
-  width:0,height:0,ctx:null,
-  getContext(){return {drawImage(image){this.src=image}};},
-  toBlob(done){done({width:this.width,height:this.height,id:this.getContext().src?.id||'saved'});}
- })};
- // Preserve image identity in the fake document; actual browser uses PNG
- // blobs and will recompress the data losslessly.
- const view=frozen.create({canvas,storage,decode:getImage,onStatus:()=>{}});
+ const encode=async image=>({id:image.id,width:image.width,height:image.height});
+ const view=frozen.create({canvas,storage,decode:getImage,encode,onStatus:()=>{}});
  const cells=[{q:0,r:0,x:0,y:0,radius:147.8,visibility:'visible'}];
- return {frozen,view,storage,ctx,drawings,paths,cells,
-  document:fakeDocument};
+ return {frozen,view,storage,ctx,drawings,paths,cells};
 }
 test('only exact complete tiles with scenery and terrain can be frozen',()=>{
  const h=harness(),packet=makeWorldTile();
@@ -54,9 +47,8 @@ test('only exact complete tiles with scenery and terrain can be frozen',()=>{
 });
 test('one-time capture persists exact PNG packets and does not save previews',async()=>{
  const h=harness();
- const prev=global.document;global.document=h.document;
- try{
-  const r=await h.view.capture('v1-1234abcd',[makeWorldTile(),
+
+ const r=await h.view.capture('v1-1234abcd',[makeWorldTile(),
    {...makeWorldTile('unknown'),preview:true}]);
   assert.equal(r.saved,1);assert.equal(r.rejected,1);
   const keys=await h.storage.keys('v1-1234abcd|mid|');
@@ -66,20 +58,18 @@ test('one-time capture persists exact PNG packets and does not save previews',as
   assert.equal(saved.layers[0].pad,3);
   assert.deepEqual(saved.layers[1].crop,
    {x:1,y:1,fullWidth:35,fullHeight:35});
- }finally{global.document=prev;}
+ 
 });
 test('capturing identical prebuilt tile twice never re-encodes or replaces it',async()=>{
- const h=harness(),prev=global.document;global.document=h.document;
- try{
-  assert.equal((await h.view.capture('v1-1234abcd',[makeWorldTile()])).saved,1);
+ const h=harness();
+ assert.equal((await h.view.capture('v1-1234abcd',[makeWorldTile()])).saved,1);
   const r=await h.view.capture('v1-1234abcd',[makeWorldTile()]);
   assert.equal(r.saved,0);assert.equal(r.skipped,1);
- }finally{global.document=prev;}
+ 
 });
 test('game-mode player reopens an archived scene with ZERO terrain source builds',async()=>{
- const h=harness(),prev=global.document;global.document=h.document;
- try{
-  await h.view.capture('v1-1234abcd',[makeWorldTile()]);
+ const h=harness();
+ await h.view.capture('v1-1234abcd',[makeWorldTile()]);
   await h.view.load('v1-1234abcd','mid',{
    zoom:.81,panX:0,panY:0,dpr:1,projectY:.85},h.cells);
   h.view.draw();await now();await now();h.view.draw();
@@ -89,12 +79,11 @@ test('game-mode player reopens an archived scene with ZERO terrain source builds
   assert.equal(h.view.report().saved,1);
   assert.equal(/VedrasTerrainWorker|autotile\.build|worldTiles\.request|bakeWorldTile/.test(frozenSource),false,
    'shipped-map viewer must never enter pixel/worker build pathway');
- }finally{global.document=prev;}
+ 
 });
 test('panning and zooming a frozen image never writes or launches terrain jobs',async()=>{
- const h=harness(),prev=global.document;global.document=h.document;
- try{
-  await h.view.capture('v1-1234abcd',[makeWorldTile()]);
+ const h=harness();
+ await h.view.capture('v1-1234abcd',[makeWorldTile()]);
   await h.view.load('v1-1234abcd','mid',{
    zoom:.81,panX:0,panY:0,dpr:1,projectY:.85},h.cells);
   await now();h.view.draw();await now();h.view.draw();
@@ -104,23 +93,21 @@ test('panning and zooming a frozen image never writes or launches terrain jobs',
   assert.equal(h.view.report().loads,first,'image already decoded once');
   assert.equal(h.view.getPose().zoom,1.35);
   assert.equal(h.view.report().active,true);
- }finally{global.document=prev;}
+ 
 });
 test('separate authored map fingerprints cannot access each others frozen tiles',async()=>{
- const h=harness(),prev=global.document;global.document=h.document;
- try{
-  await h.view.capture('v1-1234abcd',[makeWorldTile()]);
+ const h=harness();
+ await h.view.capture('v1-1234abcd',[makeWorldTile()]);
   const s=await h.view.load('v1-deadbeef','mid',{
    zoom:.81,panX:0,panY:0,dpr:1,projectY:.85},h.cells);
   assert.equal(s.saved,0);
   assert.equal(h.view.draw().saved,0);
   assert.equal(h.drawings.length,0);
- }finally{global.document=prev;}
+ 
 });
 test('frozen player uses visible authorized Hex clip instead of rectangular leak',async()=>{
- const h=harness(),prev=global.document;global.document=h.document;
- try{
-  await h.view.capture('v1-1234abcd',[makeWorldTile()]);
+ const h=harness();
+ await h.view.capture('v1-1234abcd',[makeWorldTile()]);
   await h.view.load('v1-1234abcd','mid',{
    zoom:.81,panX:0,panY:0,dpr:1,projectY:.85},
   [{...h.cells[0],visibility:'unknown'}]);
@@ -128,7 +115,7 @@ test('frozen player uses visible authorized Hex clip instead of rectangular leak
   assert.equal(h.paths.filter(p=>p==='move').length,0,
    'unknown hexes cannot add authorized geometry to image clip');
   assert.ok(h.paths.includes('clip'));
- }finally{global.document=prev;}
+ 
 });
 test('real WorldTile emitter exports only current complete non-dirty exact source',()=>{
  const window={};
