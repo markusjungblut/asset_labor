@@ -4077,6 +4077,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    frozenPrepare4xSourceQueues(all[0]);
    run.sourceRevision=frameMemo.stats().revision;
   }
+  // The IndexedDB key scan is once per tour, not O(tiles²).
+  const knownFrozenTiles=new Set(await frozenMap.storage.keys(scene+'|'+lod+'|'));
   // Deterministic scan; each actual completed tile is saved separately.
   for(const tile of all){
    if(run.cancel)break;
@@ -4084,7 +4086,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
    }
    const fileKey=window.VedrasFrozenMap.makeKey(scene,lod,tile.id);
-   if((await frozenMap.storage.keys(scene+'|'+lod+'|')).includes(fileKey)){
+   if(knownFrozenTiles.has(fileKey)){
     already++;processed++;continue;
    }
    if(!quality4){
@@ -4119,6 +4121,14 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
        const asset=assetByPath.get(path);
        if(asset)imagePool.ensure(asset,10);
       }
+     const now=performance.now();
+     if(now-(run.lastNoticeAt||0)>1800){
+      run.lastNoticeAt=now;
+      frozenNotice('4×-Offline-Vorbereitung: '+processed+' / '+all.length+
+       ' abgeschlossen · Quell-Chunk '+tile.id+' · '+
+       (diagnostic.reason||diagnostic.shorelineReason||'Quellgrafiken werden geprüft')+
+       ' · '+totalSaved+' PNG-Pakete gespeichert.');
+     }
     }else fastRender();
     await delay(350);
     if(frozenSceneKey()!==scene){
@@ -4143,6 +4153,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     }
     if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
     const result=await frozenMap.capture(scene,ready);
+    for(const packet of ready)if(window.VedrasFrozenMap.valid(packet))
+     knownFrozenTiles.add(window.VedrasFrozenMap.makeKey(scene,packet.level,packet.tile.id));
     totalSaved+=result.saved;found=true;break;
    }
    if(!found)missing++;
