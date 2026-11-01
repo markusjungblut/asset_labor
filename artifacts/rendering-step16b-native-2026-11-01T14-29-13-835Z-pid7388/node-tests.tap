@@ -1,0 +1,574 @@
+TAP version 13
+# Subtest: entire planned tile union is retained while an unrelated cache entry is evicted
+ok 1 - entire planned tile union is retained while an unrelated cache entry is evicted
+  ---
+  duration_ms: 16.9912
+  type: 'test'
+  ...
+# Subtest: insufficient fixed pixel budget is reported rather than silently enlarged
+ok 2 - insufficient fixed pixel budget is reported rather than silently enlarged
+  ---
+  duration_ms: 3.8139
+  type: 'test'
+  ...
+# Subtest: reservation cannot mistake missing or preview tiles for fully exact
+ok 3 - reservation cannot mistake missing or preview tiles for fully exact
+  ---
+  duration_ms: 5.9091
+  type: 'test'
+  ...
+# Subtest: reservation validates bounded level-qualified IDs and never authorizes unknown tiles
+ok 4 - reservation validates bounded level-qualified IDs and never authorizes unknown tiles
+  ---
+  duration_ms: 3.1916
+  type: 'test'
+  ...
+# Subtest: camera tile geometry matches the compositor footprint and respects fog restrictions
+ok 5 - camera tile geometry matches the compositor footprint and respects fog restrictions
+  ---
+  duration_ms: 0.9486
+  type: 'test'
+  ...
+# Subtest: sprite halo includes authored neighbour beyond visible-camera point bounds
+ok 6 - sprite halo includes authored neighbour beyond visible-camera point bounds
+  ---
+  duration_ms: 1.0507
+  type: 'test'
+  ...
+# Subtest: audit prewarm rejects an overbudget union despite individually READY stations
+ok 7 - audit prewarm rejects an overbudget union despite individually READY stations
+  ---
+  duration_ms: 8.6095
+  type: 'test'
+  ...
+# Subtest: audit does not report warm until every reserved WorldTile is exact
+ok 8 - audit does not report warm until every reserved WorldTile is exact
+  ---
+  duration_ms: 7.4043
+  type: 'test'
+  ...
+# Subtest: normal gameplay only enables image-request filtering during explicit audit lease
+ok 9 - normal gameplay only enables image-request filtering during explicit audit lease
+  ---
+  duration_ms: 1.3555
+  type: 'test'
+  ...
+# Subtest: source content change makes complete-looking reserved tile NOT warm
+ok 10 - source content change makes complete-looking reserved tile NOT warm
+  ---
+  duration_ms: 9.3901
+  type: 'test'
+  ...
+# Subtest: changed pixels of a previously selected material invalidate its own cell
+ok 11 - changed pixels of a previously selected material invalidate its own cell
+  ---
+  duration_ms: 6.1396
+  type: 'test'
+  ...
+# Subtest: new variant reindex detects OTHER changed paths, not only newly decoded filename
+ok 12 - new variant reindex detects OTHER changed paths, not only newly decoded filename
+  ---
+  duration_ms: 1.433
+  type: 'test'
+  ...
+# Subtest: unrelated already valid land image has zero affected cells
+ok 13 - unrelated already valid land image has zero affected cells
+  ---
+  duration_ms: 0.4306
+  type: 'test'
+  ...
+# Subtest: multiple decode callbacks compare against previous planned selection
+ok 14 - multiple decode callbacks compare against previous planned selection
+  ---
+  duration_ms: 0.6027
+  type: 'test'
+  ...
+# Subtest: forest floor remains conservatively global; stable water is local
+ok 15 - forest floor remains conservatively global; stable water is local
+  ---
+  duration_ms: 1.1895
+  type: 'test'
+  ...
+# Subtest: relief, invalid graphics and unknown initial selection remain global
+ok 16 - relief, invalid graphics and unknown initial selection remain global
+  ---
+  duration_ms: 0.623
+  type: 'test'
+  ...
+# Subtest: terrain tiles use actual chunk neighbor footprint, not only center cell
+ok 17 - terrain tiles use actual chunk neighbor footprint, not only center cell
+  ---
+  duration_ms: 2.4121
+  type: 'test'
+  ...
+# Subtest: production callback performs localized invalidation or global fallback, not both
+ok 18 - production callback performs localized invalidation or global fallback, not both
+  ---
+  duration_ms: 0.8802
+  type: 'test'
+  ...
+# Subtest: read-only material comparison cannot start or promote image-pool requests
+ok 19 - read-only material comparison cannot start or promote image-pool requests
+  ---
+  duration_ms: 0.8928
+  type: 'test'
+  ...
+# Subtest: full biome lookup also remains read-only through baseBiomeOf and typeOfCell
+ok 20 - full biome lookup also remains read-only through baseBiomeOf and typeOfCell
+  ---
+  duration_ms: 1.2621
+  type: 'test'
+  ...
+# Subtest: water pixel upgrade keeps local cores if land/water classes stay stable
+ok 21 - water pixel upgrade keeps local cores if land/water classes stay stable
+  ---
+  duration_ms: 0.4693
+  type: 'test'
+  ...
+# Subtest: newly valid water topology change forces global invalidation
+ok 22 - newly valid water topology change forces global invalidation
+  ---
+  duration_ms: 0.3595
+  type: 'test'
+  ...
+# Subtest: water type becomes land forces global invalidation even with same image path
+ok 23 - water type becomes land forces global invalidation even with same image path
+  ---
+  duration_ms: 0.3256
+  type: 'test'
+  ...
+# Subtest: water used at a river mouth invalidates the entire river course
+ok 24 - water used at a river mouth invalidates the entire river course
+  ---
+  duration_ms: 1.0708
+  type: 'test'
+  ...
+# Subtest: unrelated water source keeps river cores untouched
+ok 25 - unrelated water source keeps river cores untouched
+  ---
+  duration_ms: 0.5217
+  type: 'test'
+  ...
+# Subtest: unknown/malformed river source path retains safe global fallback
+ok 26 - unknown/malformed river source path retains safe global fallback
+  ---
+  duration_ms: 0.3011
+  type: 'test'
+  ...
+# Subtest: river raster key includes image revision so same-size decoded pixels refresh
+ok 27 - river raster key includes image revision so same-size decoded pixels refresh
+  ---
+  duration_ms: 0.368
+  type: 'test'
+  ...
+# Subtest: non-array river route state cannot authorize selective water invalidation
+ok 28 - non-array river route state cannot authorize selective water invalidation
+  ---
+  duration_ms: 0.2473
+  type: 'test'
+  ...
+# Subtest: unrecognized shoreline sources retain global fallback and recognized sides use local mapping
+ok 29 - unrecognized shoreline sources retain global fallback and recognized sides use local mapping
+  ---
+  duration_ms: 0.2711
+  type: 'test'
+  ...
+# Subtest: 4x visual audit keeps selected quality and names screenshot files uniquely
+ok 30 - 4x visual audit keeps selected quality and names screenshot files uniquely
+  ---
+  duration_ms: 0.7865
+  type: 'test'
+  ...
+# Subtest: real geography relief allows localized grassland PNG revision with stable wet classes
+ok 31 - real geography relief allows localized grassland PNG revision with stable wet classes
+  ---
+  duration_ms: 0.298
+  type: 'test'
+  ...
+# Subtest: geography relief allows coastal-water PNG revision without changing shore topology
+ok 32 - geography relief allows coastal-water PNG revision without changing shore topology
+  ---
+  duration_ms: 0.2517
+  type: 'test'
+  ...
+# Subtest: geography relief with changed wet classification still forces global invalidation
+ok 33 - geography relief with changed wet classification still forces global invalidation
+  ---
+  duration_ms: 0.2321
+  type: 'test'
+  ...
+# Subtest: legacy relief still uses original global fallback
+ok 34 - legacy relief still uses original global fallback
+  ---
+  duration_ms: 0.2213
+  type: 'test'
+  ...
+# Subtest: static terrain disk key includes imageRevision to avoid caching superseded image pixels
+ok 35 - static terrain disk key includes imageRevision to avoid caching superseded image pixels
+  ---
+  duration_ms: 0.3936
+  type: 'test'
+  ...
+# Subtest: first missing texture has a semantic revision and triggers an actual update
+ok 36 - first missing texture has a semantic revision and triggers an actual update
+  ---
+  duration_ms: 19.7401
+  type: 'test'
+  ...
+# Subtest: eviction then identical re-decode does not change content or revision
+ok 37 - eviction then identical re-decode does not change content or revision
+  ---
+  duration_ms: 5.2194
+  type: 'test'
+  ...
+# Subtest: versioned source URL/mtime change remains a real ground content change
+ok 38 - versioned source URL/mtime change remains a real ground content change
+  ---
+  duration_ms: 3.9078
+  type: 'test'
+  ...
+# Subtest: higher resolution preview promotion is not confused with identical decode
+ok 39 - higher resolution preview promotion is not confused with identical decode
+  ---
+  duration_ms: 8.0662
+  type: 'test'
+  ...
+# Subtest: protected image does not get evicted by forced prune
+ok 40 - protected image does not get evicted by forced prune
+  ---
+  duration_ms: 2.0491
+  type: 'test'
+  ...
+# Subtest: ground reuse retains distant LODs and purges local LODs only
+ok 41 - ground reuse retains distant LODs and purges local LODs only
+  ---
+  duration_ms: 3.1771
+  type: 'test'
+  ...
+# Subtest: global ground flush still blocks previously cached sources
+ok 42 - global ground flush still blocks previously cached sources
+  ---
+  duration_ms: 1.6415
+  type: 'test'
+  ...
+# Subtest: app short circuits only unchanged re-decodes, not first loads or upgrades
+ok 43 - app short circuits only unchanged re-decodes, not first loads or upgrades
+  ---
+  duration_ms: 0.511
+  type: 'test'
+  ...
+# Subtest: ground content key does not contain unrelated frame memo revision
+ok 44 - ground content key does not contain unrelated frame memo revision
+  ---
+  duration_ms: 0.349
+  type: 'test'
+  ...
+# Subtest: ground asset callback uses selective reuse invalidation with global fallback
+ok 45 - ground asset callback uses selective reuse invalidation with global fallback
+  ---
+  duration_ms: 0.6559
+  type: 'test'
+  ...
+# Subtest: real audit reports image-pool event categories without weakening warm gates
+ok 46 - real audit reports image-pool event categories without weakening warm gates
+  ---
+  duration_ms: 1.2402
+  type: 'test'
+  ...
+# Subtest: mid scenery removes only transparent margins and retains 2px guard
+ok 47 - mid scenery removes only transparent margins and retains 2px guard
+  ---
+  duration_ms: 9.4743
+  type: 'test'
+  ...
+# Subtest: one-pixel fully transparent image remains valid complete scenery
+ok 48 - one-pixel fully transparent image remains valid complete scenery
+  ---
+  duration_ms: 1.6149
+  type: 'test'
+  ...
+# Subtest: no edge cut is allowed if true opaque pixels reach both boundaries
+ok 49 - no edge cut is allowed if true opaque pixels reach both boundaries
+  ---
+  duration_ms: 0.8579
+  type: 'test'
+  ...
+# Subtest: no crop when the memory saving is below 4096 raster pixels
+ok 50 - no crop when the memory saving is below 4096 raster pixels
+  ---
+  duration_ms: 0.5729
+  type: 'test'
+  ...
+# Subtest: unknown or tainted alpha remains untouched rather than faking readiness
+ok 51 - unknown or tainted alpha remains untouched rather than faking readiness
+  ---
+  duration_ms: 0.4393
+  type: 'test'
+  ...
+# Subtest: other LODs retain their original full scenery geometry
+ok 52 - other LODs retain their original full scenery geometry
+  ---
+  duration_ms: 0.3481
+  type: 'test'
+  ...
+# Subtest: alpha scan treats any nonzero coverage as content, never thresholds detail
+ok 53 - alpha scan treats any nonzero coverage as content, never thresholds detail
+  ---
+  duration_ms: 0.5126
+  type: 'test'
+  ...
+# Subtest: packed packet is validated and retains exact fog/complete layer contract
+ok 54 - packed packet is validated and retains exact fog/complete layer contract
+  ---
+  duration_ms: 6.1938
+  type: 'test'
+  ...
+# Subtest: cropped display maps to the original continuous screen-space rectangle
+ok 55 - cropped display maps to the original continuous screen-space rectangle
+  ---
+  duration_ms: 4.9987
+  type: 'test'
+  ...
+# Subtest: camera normal path keeps the same gates, without a crop scan per frame
+ok 56 - camera normal path keeps the same gates, without a crop scan per frame
+  ---
+  duration_ms: 0.9978
+  type: 'test'
+  ...
+# Subtest: diagnostic records exact per-layer dimensions, padding and pixel count
+ok 57 - diagnostic records exact per-layer dimensions, padding and pixel count
+  ---
+  duration_ms: 16.2111
+  type: 'test'
+  ...
+# Subtest: reserved and unrelated retained raster pixels are kept separate
+ok 58 - reserved and unrelated retained raster pixels are kept separate
+  ---
+  duration_ms: 2.2362
+  type: 'test'
+  ...
+# Subtest: preview and stale states stay unready, while raster footprint remains observable
+ok 59 - preview and stale states stay unready, while raster footprint remains observable
+  ---
+  duration_ms: 2.4102
+  type: 'test'
+  ...
+# Subtest: renderer formula explains measured 16-tile 26,250,048-pixel footprint
+ok 60 - renderer formula explains measured 16-tile 26,250,048-pixel footprint
+  ---
+  duration_ms: 0.3338
+  type: 'test'
+  ...
+# Subtest: telemetry is read-only; existing exactness and budget gates remain
+ok 61 - telemetry is read-only; existing exactness and budget gates remain
+  ---
+  duration_ms: 0.7666
+  type: 'test'
+  ...
+# Subtest: large selective ground refresh retains visible complete pixels but not exact readiness
+ok 62 - large selective ground refresh retains visible complete pixels but not exact readiness
+  ---
+  duration_ms: 38.4346
+  type: 'test'
+  ...
+# Subtest: a fresh exact bake atomically replaces and releases only its stale predecessor
+ok 63 - a fresh exact bake atomically replaces and releases only its stale predecessor
+  ---
+  duration_ms: 5.6849
+  type: 'test'
+  ...
+# Subtest: retained stale packet does not suppress requeue after source resources are ready
+ok 64 - retained stale packet does not suppress requeue after source resources are ready
+  ---
+  duration_ms: 5.0573
+  type: 'test'
+  ...
+# Subtest: global and authored scene changes still hard-evict all stale packets
+ok 65 - global and authored scene changes still hard-evict all stale packets
+  ---
+  duration_ms: 5.1486
+  type: 'test'
+  ...
+# Subtest: temporary stale is not double-invalidated when source revision reconciliation catches up
+ok 66 - temporary stale is not double-invalidated when source revision reconciliation catches up
+  ---
+  duration_ms: 4.5355
+  type: 'test'
+  ...
+# Subtest: fresh alternative LOD takes precedence over stale higher resolution fallback
+ok 67 - fresh alternative LOD takes precedence over stale higher resolution fallback
+  ---
+  duration_ms: 3.0971
+  type: 'test'
+  ...
+# Subtest: preview packets are never kept as authoritative stale complete fallback
+ok 68 - preview packets are never kept as authoritative stale complete fallback
+  ---
+  duration_ms: 2.094
+  type: 'test'
+  ...
+# Subtest: unauthorized hidden tile cannot reuse previously retained image after fog visibility changes
+ok 69 - unauthorized hidden tile cannot reuse previously retained image after fog visibility changes
+  ---
+  duration_ms: 4.4142
+  type: 'test'
+  ...
+# Subtest: late source errors keep visible fallback and report failure, not a falsely ready tile
+ok 70 - late source errors keep visible fallback and report failure, not a falsely ready tile
+  ---
+  duration_ms: 3.953
+  type: 'test'
+  ...
+# Subtest: staging-canvas snapshots cannot overwrite a stale higher-density full tile
+ok 71 - staging-canvas snapshots cannot overwrite a stale higher-density full tile
+  ---
+  duration_ms: 3.7913
+  type: 'test'
+  ...
+# Subtest: camera warm acceptance rejects stale visible tiles even with 100% pixel coverage
+ok 72 - camera warm acceptance rejects stale visible tiles even with 100% pixel coverage
+  ---
+  duration_ms: 1.2196
+  type: 'test'
+  ...
+# Subtest: screenshot settle refuses stale pixels despite full coverage
+ok 73 - screenshot settle refuses stale pixels despite full coverage
+  ---
+  duration_ms: 3.1487
+  type: 'test'
+  ...
+# Subtest: large asset invalidation retains only viewport tiles, releasing far-off owned bitmaps
+ok 74 - large asset invalidation retains only viewport tiles, releasing far-off owned bitmaps
+  ---
+  duration_ms: 5.0016
+  type: 'test'
+  ...
+# Subtest: build counters change after eviction, stable source revision does not
+ok 75 - build counters change after eviction, stable source revision does not
+  ---
+  duration_ms: 48.6009
+  type: 'test'
+  ...
+# Subtest: road-edge edits are a real source revision even without configuration change
+ok 76 - road-edge edits are a real source revision even without configuration change
+  ---
+  duration_ms: 29.1197
+  type: 'test'
+  ...
+# Subtest: render settings and LOD density invalidate otherwise identical raster stamp
+ok 77 - render settings and LOD density invalidate otherwise identical raster stamp
+  ---
+  duration_ms: 30.4555
+  type: 'test'
+  ...
+# Subtest: river bank source changes react to altered content signature, not build count
+ok 78 - river bank source changes react to altered content signature, not build count
+  ---
+  duration_ms: 46.7075
+  type: 'test'
+  ...
+# Subtest: stable source key distinguishes configuration boundary, not concatenation ambiguity
+ok 79 - stable source key distinguishes configuration boundary, not concatenation ambiguity
+  ---
+  duration_ms: 31.7021
+  type: 'test'
+  ...
+# Subtest: fast camera and direct source getter both use stable road/river tokens
+ok 80 - fast camera and direct source getter both use stable road/river tokens
+  ---
+  duration_ms: 0.3881
+  type: 'test'
+  ...
+# Subtest: world tile reconciliation ignores newer build counter when source content token matches
+ok 81 - world tile reconciliation ignores newer build counter when source content token matches
+  ---
+  duration_ms: 4.0186
+  type: 'test'
+  ...
+# Subtest: pending source transitions still differ from stable prepared source tokens
+ok 82 - pending source transitions still differ from stable prepared source tokens
+  ---
+  duration_ms: 0.1973
+  type: 'test'
+  ...
+# Subtest: ordinary terrain/shore chunk access does not compute unused semantic fingerprints
+ok 83 - ordinary terrain/shore chunk access does not compute unused semantic fingerprints
+  ---
+  duration_ms: 40.7119
+  type: 'test'
+  ...
+# Subtest: idle prune releases young unprotected overbudget images, never the pinned footprint
+ok 84 - idle prune releases young unprotected overbudget images, never the pinned footprint
+  ---
+  duration_ms: 16.0461
+  type: 'test'
+  ...
+# Subtest: idle prune reports protected-overbudget condition instead of increasing budget
+ok 85 - idle prune reports protected-overbudget condition instead of increasing budget
+  ---
+  duration_ms: 2.507
+  type: 'test'
+  ...
+# Subtest: normal gameplay still uses age-protected pruning; special idle mode is opt-in
+ok 86 - normal gameplay still uses age-protected pruning; special idle mode is opt-in
+  ---
+  duration_ms: 1.1289
+  type: 'test'
+  ...
+# Subtest: source footprints include terrain, nature and coast but not distant assets
+ok 87 - source footprints include terrain, nature and coast but not distant assets
+  ---
+  duration_ms: 1.1907
+  type: 'test'
+  ...
+# Subtest: a shifted pan extremum includes terrain/nature absent from center camera
+ok 88 - a shifted pan extremum includes terrain/nature absent from center camera
+  ---
+  duration_ms: 1.3198
+  type: 'test'
+  ...
+# Subtest: warm image preparation reports insufficient protected budget, never silently READY
+ok 89 - warm image preparation reports insufficient protected budget, never silently READY
+  ---
+  duration_ms: 50.8887
+  type: 'test'
+  ...
+# Subtest: warm image preparation can complete without new decodes when inside budget
+ok 90 - warm image preparation can complete without new decodes when inside budget
+  ---
+  duration_ms: 61.5078
+  type: 'test'
+  ...
+# Subtest: audit visits both pan extrema and zoom peak before measurements
+ok 91 - audit visits both pan extrema and zoom peak before measurements
+  ---
+  duration_ms: 0.5547
+  type: 'test'
+  ...
+# Subtest: audit requires successful trajectory preparation AND unchanged quiet gates
+ok 92 - audit requires successful trajectory preparation AND unchanged quiet gates
+  ---
+  duration_ms: 0.2676
+  type: 'test'
+  ...
+# Subtest: warm footprint is opt-in and is merged into ordinary camera protection
+ok 93 - warm footprint is opt-in and is merged into ordinary camera protection
+  ---
+  duration_ms: 0.6998
+  type: 'test'
+  ...
+# Subtest: Windows audit launcher never deletes previous result files
+ok 94 - Windows audit launcher never deletes previous result files
+  ---
+  duration_ms: 2.8903
+  type: 'test'
+  ...
+1..94
+# tests 94
+# suites 0
+# pass 94
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 463.9137
