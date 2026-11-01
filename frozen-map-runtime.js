@@ -85,7 +85,7 @@ window.VedrasFrozenMap=(()=>{
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
   const decoded=new Map(),loading=new Set();
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
-  const decodePNG=decode||async blob=>{
+  const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
    return new Promise((resolve,reject)=>{
     const url=URL.createObjectURL(blob),im=new Image();
@@ -93,7 +93,7 @@ window.VedrasFrozenMap=(()=>{
     im.onerror=()=>{URL.revokeObjectURL(url);reject(Error('PNG konnte nicht dekodiert werden'))};
     im.src=url;
    });
-  };
+  });
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
    pending:loading.size,frames:frame,paintMs};}
