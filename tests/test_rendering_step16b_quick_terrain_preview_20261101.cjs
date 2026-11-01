@@ -48,7 +48,8 @@ test('decoded native material image covers visible hex instantly without raster 
 });
 test('missing or undecoded texture never reveals terrain under Fog',()=>{
  const p=previewHarness(),ctx=g();
- for(const val of [null,{}, {img:{}},{img:{naturalWidth:0,naturalHeight:0}}]){
+ for(const val of [null,{}, {img:{}},
+  {img:{naturalWidth:0,naturalHeight:0,width:512,height:512}}]){
   const ready=p.paint(ctx,view,[visible()],()=>val);
   assert.equal(ready.size,0);
  }
