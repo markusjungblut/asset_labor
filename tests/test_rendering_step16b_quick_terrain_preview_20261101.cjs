@@ -96,6 +96,7 @@ test('fully cached WorldTile never enters extra preview/clip work on warm camera
  const {renderer}=rendererHarness();
  const tile={id:'0,0',x:0,y:0,size:512,visibility:'visible'};
  renderer.setFogCells([visible()]);
+ renderer.request(view,[tile]); // select near LOD for the actual camera
  const packet={complete:true,revision:'unchanged',
   layers:[{layer:'ground',image:{width:32,height:32}},
    {layer:'scenery',image:{width:32,height:32}}]};
