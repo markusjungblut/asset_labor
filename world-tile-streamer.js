@@ -797,7 +797,8 @@ window.VedrasWorldTiles=(()=>{
    }
    context.restore();return count;
   }
-  function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,fog=fogCells}={}){
+  function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,
+    drawPreview=null,fog=fogCells}={}){
    if(!view||!(view.width>0)||!(view.height>0)||!(view.zoom>0)||
     !(view.dpr>0)||!finite(view.panX)||!finite(view.panY))return false;
    const start=clock(),cw=Math.max(1,Math.round(view.width*view.dpr)),
@@ -863,6 +864,40 @@ window.VedrasWorldTiles=(()=>{
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
+   const byCore=new Map(items.map(o=>[o.t.id,o.item]));
+   // Exact quality still requires BOTH completed ground and scenery in
+   // EVERY world core touching a hex. Preview does not change exact stats.
+   const exactReady=c=>{
+    const R=c.radius,halfWidth=R*Math.sqrt(3)/2-0.01;
+    const xmin=Math.floor((c.x-halfWidth)/512),
+     xmax=Math.floor((c.x+halfWidth)/512),
+     ymin=Math.floor((c.y-R+0.01)/512),
+     ymax=Math.floor((c.y+R-0.01)/512);
+    for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
+     const item=byCore.get(tx+','+ty);
+     if(!item||item.packet.complete===false)return false;
+     const layers=item.packet.layers;
+     if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
+      !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;
+    }
+    return true;
+   };
+   let previewHexes=new Set(),previewMs=0;
+   // A native-texture per-hex preview can appear before the expensive
+   // 850k-pixel blend raster exists. Clip through the SAME authorized hex
+   // mask as exact imagery. It is provisional quality, never cached/ready.
+   if(missing>0&&hasMask&&Array.isArray(fog)&&typeof drawPreview==='function'){
+    const previewStart=clock();
+    g.save();drawKnownPath(0);
+    try{
+     const painted=drawPreview(g,view,fog,exactReady);
+     // The callback may originate from a different VM realm in native
+     // integration tests. Accept any iterable returned by our painter;
+     // never trust IDs to grant Fog rights unless the cell is visible.
+     if(painted&&typeof painted[Symbol.iterator]==='function')
+      previewHexes=new Set(painted);
+    }finally{g.restore();previewMs=clock()-previewStart;}
+   }
    let covered=0,draws=0;
    function layerPass(layers,halo){
     g.save();drawKnownPath(halo);
@@ -928,22 +963,10 @@ window.VedrasWorldTiles=(()=>{
     // The cloud is ONLY removed once every image tile touching a visible
     // hex contains BOTH finished terrain and finished scenery. Testing only
     // the center tile leaked unfinished quarters of a hex during streaming.
-    const byCore=new Map(items.map(o=>[o.t.id,o.item]));
-    const ready=c=>{
-     const R=c.radius,halfWidth=R*Math.sqrt(3)/2-0.01;
-     const xmin=Math.floor((c.x-halfWidth)/512),
-      xmax=Math.floor((c.x+halfWidth)/512),
-      ymin=Math.floor((c.y-R+0.01)/512),
-      ymax=Math.floor((c.y+R-0.01)/512);
-     for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
-      const item=byCore.get(tx+','+ty);
-      if(!item||item.packet.complete===false)return false;
-      const layers=item.packet.layers;
-      if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
-       !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;
-     }
-     return true;
-    };
+    // A known-texture preview is visible, but NOT exact WorldTile readiness.
+    // Unknown/explored Fog cells never gain this temporary authorization.
+    const ready=c=>exactReady(c)||
+     (c.visibility==='visible'&&previewHexes.has(c.q+','+c.r));
     if(clouds?.stats().bases){
      // Foreground ONLY AFTER terrain, scenery and dynamic units. These
      // SAME four cloud textures mask any sprite parts in hidden terrain.
@@ -959,12 +982,13 @@ window.VedrasWorldTiles=(()=>{
     }
    }
    painted=draws;frame++;lastMs=clock()-start;
-   lastProgress={exact,fallback,provisional,stale,missing};
+   lastProgress={exact,fallback,provisional,stale,missing,
+    previewHexes:previewHexes.size,previewMs};
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,exact,fallback,provisional,stale,missing,
-    pending:queue.size+running.size};
+    previewHexes:previewHexes.size,previewMs,pending:queue.size+running.size};
   }
   function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,

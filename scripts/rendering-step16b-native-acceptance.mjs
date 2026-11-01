@@ -23,7 +23,8 @@ export const testFiles=[
  'tests/test_rendering_step16b_live_near_readiness_20261101.cjs',
  'tests/test_rendering_step16b_idle_visible_chunk_parallelism_20261101.cjs',
  'tests/test_rendering_step16b_offscreen_does_not_steal_streamer_20261101.cjs',
- 'tests/test_rendering_step16b_stable_terrain_shore_revisions_20261101.cjs'
+ 'tests/test_rendering_step16b_stable_terrain_shore_revisions_20261101.cjs',
+ 'tests/test_rendering_step16b_quick_terrain_preview_20261101.cjs'
 ];
 function git(...args){
  try{return execFileSync('git',args,{cwd:root,encoding:'utf8',
@@ -97,10 +98,10 @@ async function run(){
  log.end();await once(log,'finish');
  const counts=Object.fromEntries(['tests','pass','fail','cancelled','skipped'].map(
   name=>[name,tapCount(output,name)]));
- // Current Step16B acceptance suite: 118 deterministic cases in thirteen files.
+ // Current Step16B acceptance suite: 126 deterministic cases in fourteen files.
  // Do not accept partial success if a file/test silently disappears.
  const passed=!spawnError&&exitCode===0&&
-  counts.tests===118&&counts.pass===118&&counts.fail===0&&
+  counts.tests===126&&counts.pass===126&&counts.fail===0&&
   counts.skipped===0&&counts.cancelled===0;
  const result={schema:1,startedAt,finishedAt:new Date().toISOString(),
   sceneAuditReference:'397-hex / 2631-nature / three valid 2026-10-31 warm audits',

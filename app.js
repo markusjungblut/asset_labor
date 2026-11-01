@@ -460,6 +460,24 @@ async function bakeWorldTile(t,level,{signal}={}){
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
  fastLastPrime=0,fastNewTerrain=0;
+// The exact blended material field is expensive (~850k pixel samples per
+// cold 512-unit chunk). While it is computed, show an authored image-backed
+// preview only inside existing, explicitly VISIBLE Fog hexes. No readback,
+// bake, sprite preview or worker request is permitted in the camera rAF.
+let quickPreviewCellsRef=null,quickPreviewCellsById=new Map();
+function drawFastTerrainPreview(g,view,fog){
+ const preview=window.VedrasQuickTerrainPreview;
+ if(!preview||state.view!=='map'||state.mode==='far'||
+    state.fogPreview===true||!Array.isArray(fog))return new Set();
+ if(quickPreviewCellsRef!==worldCells){
+  quickPreviewCellsRef=worldCells;
+  quickPreviewCellsById=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
+ }
+ return preview.paint(g,view,fog,c=>{
+  const cell=quickPreviewCellsById.get(key(c.q,c.r));
+  return cell?imageForBiome(cell,false):null;
+ });
+}
 function fastView(){return {width:W,height:H,
  // Quality planning already caps the output against physical pixel limits.
  // Never silently downgrade the fast camera to 2x after 3x/4x is selected.
@@ -622,7 +640,8 @@ function fastRender(){
    for(const [tileId,revision] of versions)
     worldTiles.terrainReady(tileId,revision);
    result=worldTiles.render(fastView(),{
-     drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics
+     drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics,
+     drawPreview:drawFastTerrainPreview
     });
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
@@ -634,7 +653,8 @@ function fastRender(){
    if(status)status.textContent='Tile-Kamera v0.22.3: '+fastFrames+
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
     Math.round(fastLastCoverage*100)+'% sichtbares Terrain · '+
-    fastNewTerrain+' fertige Weltkacheln · LOD '+(result.lod||'legacy')+
+    fastNewTerrain+' fertige Weltkacheln · '+(result.previewHexes||0)+
+    ' vorläufig texturierte Hexe · LOD '+(result.lod||'legacy')+
     ' · '+(result.exact??0)+' Ziel-LOD'+
     ' · '+(result.fallback??0)+' ältere LOD'+
     ' · '+(result.provisional??0)+' Qualitätsvorschau'+
