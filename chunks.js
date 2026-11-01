@@ -101,7 +101,8 @@ window.VedrasChunks=(()=>{
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
     visibleRevision:0,prefetchPending:0,manualPending:0,
     priorityReorders:0,agedPromotions:0,backgroundFairTurns:0,
-    duplicateBuildSkips:0,obsoleteVisibleDiscarded:0};
+    duplicateBuildSkips:0,obsoleteVisibleDiscarded:0,
+    visibleAssistStarted:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   // Only the terrain layer requires a drawable raster; empty roads/banks are valid.
   let requireArtwork=false,taskTimeoutMs=60000;
@@ -371,6 +372,7 @@ window.VedrasChunks=(()=>{
     if(!eligible(id,t)){markWarm(id);schedule();return;}
     const expectedStamp=stampForTile(t);
     const lane=interactive?'foreground':'background';
+    if(assisting)stats.visibleAssistStarted++;
     const job={id,lane,epoch,startedAt:Date.now(),watchdog:null};
     activeJobs[lane]=job;
     let expired=false;
