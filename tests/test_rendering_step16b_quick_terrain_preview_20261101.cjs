@@ -92,6 +92,22 @@ test('missing WorldTile may show preview but MUST NOT count as exact/complete/ca
  assert.ok(ctx.log.filter(x=>x==='fillRect').length<noPreviewFills,
   'provisional painted hex should not get a second cloud mask');
 });
+test('fully cached WorldTile never enters extra preview/clip work on warm camera',()=>{
+ const {renderer}=rendererHarness();
+ const tile={id:'0,0',x:0,y:0,size:512,visibility:'visible'};
+ renderer.setFogCells([visible()]);
+ const packet={complete:true,revision:'unchanged',
+  layers:[{layer:'ground',image:{width:32,height:32}},
+   {layer:'scenery',image:{width:32,height:32}}]};
+ assert.equal(renderer.seed(tile,'near',packet),true);
+ let called=0;
+ const r=renderer.render(view,{tiles:[tile],
+  drawPreview:()=>{called++;return new Set(['0,0']);}});
+ assert.equal(r.missing,0);
+ assert.equal(r.exact,1);
+ assert.equal(called,0,'no extra texture clips on a fully warm camera');
+ assert.equal(r.previewHexes,0);
+});
 test('empty Fog authorization blocks drawPreview and does not leak pixels',()=>{
  const {renderer,ctx}=rendererHarness();
  renderer.setFogCells([]);ctx.log.length=0;
