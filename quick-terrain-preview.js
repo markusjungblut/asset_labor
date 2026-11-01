@@ -50,8 +50,11 @@ window.VedrasQuickTerrainPreview=(()=>{
    if(processed>=limit)break;
    processed++;
    const asset=assetForCell(c),img=asset?.img;
-   if(!img||!(img.naturalWidth>0||img.width>0)||
-      !(img.naturalHeight>0||img.height>0))continue;
+   // HTMLImageElement.width may be a configured layout width while its
+   // naturalWidth is still zero. Never draw an undecoded image.
+   const naturalW=typeof img?.naturalWidth==='number'?img.naturalWidth:img?.width;
+   const naturalH=typeof img?.naturalHeight==='number'?img.naturalHeight:img?.height;
+   if(!(naturalW>0&&naturalH>0))continue;
    const py=view.projectY||1,rx=(c.radius||R)*view.zoom,
     ry=rx*py,
     x=view.width/2+view.panX+c.x*view.zoom,
