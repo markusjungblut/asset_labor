@@ -37,9 +37,15 @@
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const status=await player.load(scene,lod,startPose,manifest.cells);
+  const raster=$('rasterQuality');
+  if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent='Gespeicherte Karte '+scene+' · '+lod+' · '+
-   status.saved+' vollständig vorgerenderte Bildkacheln verfügbar.'+
-   (status.saved?' Kamera verschieben und zoomen.':' Noch keine vollständigen Kacheln für diese Detailstufe.');
+   status.saved+' / '+(manifest.expectedTiles??'?')+
+   ' vollständig vorgerenderte Bildkacheln verfügbar.'+
+   (manifest.expectedTiles!=null&&status.saved<manifest.expectedTiles?
+    ' Karte UNVOLLSTÄNDIG: Fehlende Regionen bleiben unter Wolken. Im Asset-Labor fehlende Kacheln nachberechnen.':
+    status.saved?' Kamera verschieben und zoomen.':
+    ' Noch keine vollständigen Kacheln für diese Detailstufe.');
   player.draw();
  }catch(error){fail(error);return;}
  const setPose=next=>player.setPose(next);
