@@ -90,3 +90,14 @@ test('the standalone viewer draws authored cloud textures without terrain worker
  assert.doesNotMatch(page,/(?:src=")(?:app|world-tile-streamer|autotile|terrain-worker)\.js/);
  assert.match(app,/clouds:frozenCloudSettings\(\)/);
 });
+
+test('4x atlas capture uses a distinct fingerprint and its own near-tier raster bake',()=>{
+ assert.match(app,/atlas-4x/);
+ assert.match(app,/game-map-export-renderer-v2/);
+ assert.match(app,/scale=offline4x\?4:/);
+ assert.match(app,/sceneryScale=offline4x\?4:/);
+ assert.match(app,/bakeWorldTile\(tile,'near'\)/);
+ assert.match(app,/WORLD_TILE_GUTTER\)\*4-\.5/);
+ assert.match(app,/expectedTiles:all\.length/);
+ assert.match(app,/manifest\.levels\.includes\('near'\)/);
+});
