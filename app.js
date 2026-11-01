@@ -1469,7 +1469,8 @@ function drawShorelines(){
   const stats=shorelineChunks.draw(ctx,{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),
    width:Math.abs(b.x-a.x),height:Math.abs(b.y-a.y)},
    {drawRaster:(g,r)=>g.drawImage(r.canvas,r.x,r.y,r.width,r.height),
-    margin:0,prefetch:streamingOptions(6)});
+    margin:0,prefetch:streamingOptions(6),
+    renderOnly:step15PaintContext.origin==='world-tile-fallback'});
   window.__vedrasShoreChunkProfile=stats;
   if(report)report.textContent=segments.length+' echte Küstenkanten · Chunk-Raster '+stats.painted+'/'+stats.visible+
    ' sichtbar · '+stats.pending+' geplant';
@@ -1728,7 +1729,8 @@ function drawGroundImpl(){
     if(gpuFrame&&gpuTerrain?.draw(r,t))return;
     if(gpuFrame){gpuFrame=false;gpuTerrain?.hide();requestDraw();}
     window.VedrasAutotile.draw(g,r);
-   },margin:0,prefetch:streamingOptions(12)});
+   },margin:0,prefetch:streamingOptions(12),
+   renderOnly:step15PaintContext.origin==='world-tile-fallback'});
   window.__vedrasTerrainRaster={chunked:true,stats:lastChunkStats};
   window.__vedrasChunkProfile={terrain:lastChunkStats,shore:shorelineChunks.stats()};
   window.__vedrasReliefRaster=state.relief.enabled?{chunked:true}:null;
@@ -1935,7 +1937,8 @@ function drawRoadsImpl(){
   });
   window.__vedrasRiverBankStats=riverChunks.draw(ctx,bounds,{
    margin:0,drawRaster:window.VedrasAutotile.draw,
-   prefetch:streamingOptions(6)
+   prefetch:streamingOptions(6),
+   renderOnly:step15PaintContext.origin==='world-tile-fallback'
   });
  }else{
   riverChunks.clear();window.__vedrasRiverBankStats=null;
@@ -2035,7 +2038,8 @@ function drawRoadsImpl(){
     redraw:requestDraw,family:signature
    });
    roadChunks.draw(ctx,bounds,{margin:0,drawRaster:window.VedrasAutotile.draw,
-    prefetch:streamingOptions(8)});
+    prefetch:streamingOptions(8),
+    renderOnly:step15PaintContext.origin==='world-tile-fallback'});
   }else{
    roadChunks.clear();
    window.VedrasRoads.render(ctx,visibleEdges,{hex:HEX,groundY:projection,
