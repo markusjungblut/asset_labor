@@ -3922,6 +3922,14 @@ function frozenSceneKey(){
  for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}
  return 'v1-'+(h>>>0).toString(16).padStart(8,'0');
 }
+function frozenCloudSettings(){
+ // The standalone viewer loads only the four authored cloud PNGs; it needs
+ // neither the editor scene nor a terrain worker to draw atmosphere.
+ const cloudAssets=assets.filter(a=>window.VedrasCloudArtwork?.classify(a)==='base')
+  .sort((a,b)=>String(a.path).localeCompare(String(b.path)))
+  .slice(0,4).map(a=>({path:a.path}));
+ return {seed:state.fogSeed||'vedras-local-preview',assets:cloudAssets};
+}
 function frozenLocalCells(){
  return worldCells.map(c=>{
   const p=axialPos(c.q,c.r);
@@ -3943,7 +3951,8 @@ $('frozenCapture').addEventListener('click',async()=>{
   const scene=frozenSceneKey();
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
    levels:[packets[0].level],pose:{zoom:state.zoom,panX:state.panX,
-    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y}});
+    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y},
+   clouds:frozenCloudSettings()});
   const result=await frozenMap.capture(scene,packets,{onProgress:progress=>
    frozenNotice('Fertige Spielkacheln sichern: '+progress.saved+
     ' / '+progress.total+' · kein Terrain-Worker aktiv durch den Export')});
@@ -3983,7 +3992,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
  try{
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
-   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y}});
+   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y},
+   clouds:frozenCloudSettings()});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
@@ -4098,6 +4108,7 @@ $('frozenPlay').addEventListener('click',async()=>{
   const scene=frozenSceneKey(),level=worldTiles?.stats().lod||'mid';
   const initial={zoom:state.zoom,panX:state.panX,panY:state.panY,
    dpr:state.dpr,projectY:PROJECT_Y};
+  frozenMap.setClouds(frozenCloudSettings());
   const result=await frozenMap.load(scene,level,initial,frozenLocalCells());
   if(!result.saved){frozenMap.stop();
    frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
