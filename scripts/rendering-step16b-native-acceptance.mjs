@@ -98,10 +98,10 @@ async function run(){
  log.end();await once(log,'finish');
  const counts=Object.fromEntries(['tests','pass','fail','cancelled','skipped'].map(
   name=>[name,tapCount(output,name)]));
- // Current Step16B acceptance suite: 125 deterministic cases in fourteen files.
+ // Current Step16B acceptance suite: 126 deterministic cases in fourteen files.
  // Do not accept partial success if a file/test silently disappears.
  const passed=!spawnError&&exitCode===0&&
-  counts.tests===125&&counts.pass===125&&counts.fail===0&&
+  counts.tests===126&&counts.pass===126&&counts.fail===0&&
   counts.skipped===0&&counts.cancelled===0;
  const result={schema:1,startedAt,finishedAt:new Date().toISOString(),
   sceneAuditReference:'397-hex / 2631-nature / three valid 2026-10-31 warm audits',
