@@ -32,3 +32,19 @@
 - `tests/test_rendering_step18_frozen_map_stability_20261101.cjs` prüft gepinnte sichtbare Tiles gegen LRU-Flackern, Gutter-Überzug, Cloud-Basis/Frontier, 4×-Canvasauflösung und die getrennte Offline-4×-Quelllogik.
 - JavaScript-Syntax wurde bei der Änderung validiert. Ein isolierter V8-Smoke-Test mit realem Produktionsskript ergab 7/7 Bilddateien einmal geladen und anschließend 0 erneute Decodes trotz eines absichtlich zu kleinen Cache-Budgets; Wolkenaufrufe und 4×-Canvasbreite waren vorhanden.
 - **Windows-Testsuite und echter Firefox-End-to-End-Test sind noch nicht auf der Zielmaschine ausgeführt.** Ohne solche Abnahme keine Garantie, dass jede sichtbare starre Source-Seam vollständig behoben ist.
+
+## Hotfix nach erneutem 4×-Praxistest
+
+**Reproduktionsmeldung:** Ein sehr kleiner Kameraschwenk führt zu mehrfachen Nachladevorgängen und erneut aufziehenden Wolken. Die Schaltfläche zum Ganzkarten-Export bricht mit „Karteninhalt während des Backens verändert“ ab.
+
+**Konkrete Codeursachen und Gegenmaßnahmen:**
+
+- Der Szenenfingerprint enthielt `asset.imageRevision`, obwohl dieser Wert auf Qualitätsupgrade oder erneute PNG-Dekodierung reagiert. Der neue `game-map-export-renderer-v3-stable-authored`-Fingerprint verwendet stattdessen die stabile Kombination aus Asset-Pfad und Dateizeitpunkt zusammen mit tatsächlichen Geometrie-/Material-/Natur-Einstellungen. Ein erneutes Dekodieren desselben PNGs ändert die Archiv-ID nicht mehr.
+- `tileSemanticSignature()` enthielt `frameMemo.stats().revision` und `objectLayoutCache.stats().revision`. Beide können sich nach dem Laden von Bildern ändern und wurden fälschlich als globaler Szenenwechsel betrachtet. Die tatsächlich betroffenen WorldTiles werden weiterhin selektiv über die existierenden Quellen-/Scenery-Invalidierungen erneuert; eine ganze Karte wird nicht mehr allein wegen einer neuen Bilddekodierung verworfen.
+- Während der 4×-Ganzkartenvorbereitung werden Editor-Kamera und Live-WorldTile-Arbeit nicht mehr für jeden Chunk verschoben/neu aufgebaut. Ein kleiner Offscreen-Canvas konfiguriert die Near-Quellpipelines; danach `prime()` für Terrain, Küste, Fluss und Straße im jeweiligen **Weltkoordinatenbereich**. Bei einer neuen Source-/Bildrevision wird nur diese Offscreen-Konfiguration erneuert. Der Live-WorldTile-Compositor wird währenddessen pausiert und danach wieder freigegeben.
+- Während der Vorbereitung sind alle Bearbeitungs-/Kameraeingaben außer **Abbrechen** gesperrt, sodass ein echter manueller Edit das schreibende Archiv nicht unbemerkt verändert. Der originale Kamera-Zustand wird im `finally` wiederhergestellt.
+- Die Script-URL in `index.html` wurde geändert. Firefox muss damit die aktualisierte `app.js` und `frozen-map-runtime.js` laden, statt eine bisherige Version mit derselben Query-Version wiederzuverwenden.
+
+**Wichtige Grenzen:** Die lokale IndexedDB kann sehr große 4×-PNG-Archive enthalten. Ein Offline-Bake kann wegen nicht fertig geladener Source-PNGs immer noch einzelne Bildkacheln als fehlend melden; das ist **kein** falscher Erfolg. Ein echter Browser-Test auf dem Windows-Rechner steht weiterhin aus. Die oben genannten Ursachen sind Codebefunde; vollständige Beseitigung aller visuellen Nachlade-/Fog-Effekte ist damit noch nicht behauptet.
+
+**Neuer Testablauf:** PR #102 Branch aktualisieren, lokalen Server neu starten, Firefox hart neu laden; `Renderqualität 4×` einstellen und `Gesamte Karte einmalig ... vorbereiten`. Im Editor muss die Kamera bei der 4×-Tour **stehen bleiben**, während die Fortschrittsanzeige anwächst. Ein Wechsel der Archivkennung nur durch Nachladen/Upgraden eines PNGs darf nicht mehr auftreten. Nach Abschluss bzw. Abbruch muss die vorherige Kamera wieder bedienbar sein. Anschließend den separaten Spieler öffnen und vollständige Chunks, Wolken und Seams prüfen.
