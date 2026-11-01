@@ -81,11 +81,18 @@ window.VedrasFrozenMapPackage=(()=>{
     size:packet.tile.size,revision:packet.revision,layers});
    onProgress({done:i+1,total:keys.length});
   }
+  // Portable atlas must include static Hex topology as well as raster
+  // filenames. A future standalone client cannot reconstruct Fog geometry
+  // from 512-unit bitmap rectangles alone.
+  const authored=await storage.get(scene+'|manifest');
   const manifest={schemaVersion:1,format:'vedras-static-game-map',
    scene,level,worldTileSize:512,projectY:.85,
    complete:totalExpected!=null&&keys.length===totalExpected,
    expectedTiles:totalExpected,exportedTiles:keys.length,
    note:'Prebaked static terrain/scenery only. Units/Fog/UI remain runtime layers.',
+   cells:Array.isArray(authored?.cells)?authored.cells:[],
+   initialPose:authored?.pose||null,
+   visibilityPolicy:'local-test-all-authored; multiplayer requires server Fog',
    tiles:items};
   const encoded=JSON.stringify(manifest,null,2);
   const blob=await zipEntries([{name:'manifest.json',blob:new Blob([encoded],
