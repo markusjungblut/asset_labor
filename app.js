@@ -4066,6 +4066,9 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
   if(quality4){
+   // The viewer's ordinary WorldTile jobs compete for the same CPU/PNG
+   // pipeline. Pause them without deleting already displayed cache entries.
+   worldTiles?.setPlaybackPaused(true);
    // Set up near-detail SOURCE queues once on a small temporary canvas.
    // No visible camera pan and no WorldTile live compositor during export.
    state.zoom=Math.max(1.1,pose.zoom);
@@ -4162,6 +4165,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
   updateTerrainLod(pose.zoom);
   frozenTour=null;lockFrozenTourEditor(false);button.disabled=false;
+  if(quality4)worldTiles?.setPlaybackPaused(false);
   $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
   $('frozenPlay').disabled=false;
   fastLastPrime=0;fastRender();
