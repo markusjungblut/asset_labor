@@ -18,6 +18,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 });
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
+let frozenTour=null; // Hoisted: requestDraw/fastRender may run during bootstrap.
 let tileModeActive=false,tileBakes=0,
  visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null,
  lastTileQualitySignature=null;
@@ -3988,7 +3989,6 @@ $('frozenCapture').addEventListener('click',async()=>{
 // frozen viewport below never runs these expensive terrain/WorldTile jobs.
 // Each completed exact packet is persisted BEFORE moving the camera away;
 // the bounded 26M-WorldTile LRU is not expected to hold the whole 397-Hex map.
-let frozenTour=null;
 function preventEditorMutationDuringFrozenTour(event){
  if($('frozenCancel')?.contains(event.target))return;
  event.preventDefault();event.stopImmediatePropagation();
