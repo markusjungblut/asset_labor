@@ -72,10 +72,19 @@ test('unknown or tainted alpha remains untouched rather than faking readiness',(
  assert.equal(p.image,f.source);
  assert.equal(f.draws.length,0);
 });
-test('other LODs retain their original full scenery geometry',()=>{
+test('far LOD retains original scenery while mid and near pack exact alpha',()=>{
  const f=fixture(100,80,[[40,40]]);
- for(const lod of ['far','near'])assert.equal(f.pack(f.source,lod).image,f.source);
+ assert.equal(f.pack(f.source,'far').image,f.source);
  assert.equal(f.draws.length,0);
+ for(const lod of ['mid','near']){
+  const p=f.pack(f.source,lod);
+  assert.notEqual(p.image,f.source);
+  assert.equal(p.crop.x,38);
+  assert.equal(p.crop.y,38);
+  assert.equal(p.image.width,5);
+  assert.equal(p.image.height,5);
+ }
+ assert.equal(f.draws.length,2);
 });
 test('alpha scan treats any nonzero coverage as content, never thresholds detail',()=>{
  const f=fixture(100,100,[[15,15,1],[75,65,255]]);
