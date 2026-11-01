@@ -3947,6 +3947,93 @@ $('frozenCapture').addEventListener('click',async()=>{
  }catch(e){frozenNotice('Speichern fehlgeschlagen: '+String(e.message||e));}
  finally{button.disabled=false;}
 });
+// ONE-TIME editor-side preparation of a finished local game atlas. This is
+// deliberately a separate, cancellable OFFLINE pass: the shipped read-only
+// frozen viewport below never runs these expensive terrain/WorldTile jobs.
+// Each completed exact packet is persisted BEFORE moving the camera away;
+// the bounded 26M-WorldTile LRU is not expected to hold the whole 397-Hex map.
+let frozenTour=null;
+$('frozenCancel').addEventListener('click',()=>{
+ if(frozenTour)frozenTour.cancel=true;
+ frozenNotice('Karten-Vorbereitung wird nach dem aktuellen Schritt beendet; bereits gespeicherte PNGs bleiben erhalten.');
+});
+$('frozenCaptureAll').addEventListener('click',async()=>{
+ if(!frozenMap||frozenMapMode||frozenTour)return;
+ if(state.view!=='map'||state.mode==='far'){
+  frozenNotice('Zuerst Kartendarstellung (nicht Strategieansicht) auswählen.');return;
+ }
+ if($('fogPreview')?.checked){
+  frozenNotice('Fog-Demo deaktivieren: Keine verborgenen Spielbereiche in eine lokale Karte exportieren.');return;
+ }
+ if(!worldCells.length){frozenNotice('Keine fertige Welt vorhanden.');return;}
+ const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+  xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
+ const all=window.VedrasChunks.visible({
+  x:Math.min(...xs)-pad,y:Math.min(...ys)-pad,
+  width:Math.max(...xs)-Math.min(...xs)+pad*2,
+  height:Math.max(...ys)-Math.min(...ys)+pad*2
+ },worldCells,512);
+ if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
+ const scene=frozenSceneKey(),lod=worldTiles?.chooseLod(state.zoom)||'mid';
+ const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
+ const run={cancel:false};frozenTour=run;
+ const button=$('frozenCaptureAll');button.disabled=true;
+ $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
+ let totalSaved=0,already=0,missing=0,failed=0,processed=0;
+ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ try{
+  // In this AUTHORING pass alone, the normal renderer is intentionally
+  // enabled. End any active pointer gesture first to permit idle lane work.
+  if(fastInteracting)endFastCamera(true);
+  tileModeActive=true;
+  // Deterministic scan; the next region can reuse already painted neighbors.
+  for(const tile of all){
+   if(run.cancel)break;
+   if(frozenSceneKey()!==scene){
+    frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
+   }
+   const fileKey=window.VedrasFrozenMap.makeKey(scene,lod,tile.id);
+   if((await frozenMap.storage.keys(scene+'|'+lod+'|')).includes(fileKey)){
+    already++;processed++;continue;
+   }
+   state.panX=-(tile.x+tile.size/2)*state.zoom;
+   state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
+   fastLastPrime=0;fastRender();
+   let found=false;
+   // Genuine cold tile rendering may require sources, shore and Scenery.
+   // Never write a partial/provisional tile just to claim progress.
+   const deadline=performance.now()+15000;
+   while(!run.cancel&&performance.now()<deadline){
+    await delay(350);
+    if(frozenSceneKey()!==scene){run.cancel=true;break;}
+    fastRender();
+    const ready=worldTiles?.exportExactPackets({limit:96})||[];
+    if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
+    const result=await frozenMap.capture(scene,ready);
+    totalSaved+=result.saved;found=true;break;
+   }
+   if(!found)missing++;
+   processed++;
+   if(!run.cancel)frozenNotice('Fertige Spielkarte vorbereiten: '+processed+' / '+
+    all.length+' Welt-Chunks besucht · '+totalSaved+' PNG-Pakete neu gespeichert · '+
+    already+' bereits vorhanden · '+missing+' noch nicht fertig. '+
+    'Der Browser berechnet die hochwertige Karte NUR bei dieser Vorbereitung.');
+  }
+  failed=missing;
+  if(!run.cancel)frozenNotice('Vorbereitung beendet: '+processed+' / '+all.length+
+   ' Regionen besucht, '+totalSaved+' fertige Bildpakete gespeichert, '+
+   already+' bereits vorhanden, '+failed+' nicht fertig. '+
+   (failed?'Erneut starten, um fehlende Regionen nachzuholen.':
+    'Spielkarten-Test kann ohne Terrain-Worker gestartet werden.'));
+ }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
+   '. Bereits gespeicherte PNGs bleiben erhalten.');}
+ finally{
+  state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
+  frozenTour=null;button.disabled=false;
+  $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
+  fastLastPrime=0;fastRender();
+ }
+});
 $('frozenPlay').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode)return;
  if($('fogPreview')?.checked){
