@@ -4074,26 +4074,19 @@ $('frozenExport').addEventListener('click',async()=>{
  }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
  finally{button.disabled=false;}
 });
-$('frozenStandalone').addEventListener('click',async()=>{
+$('frozenStandalone').addEventListener('click',()=>{
  if(!frozenMap||frozenTour)return;
  const scene=frozenSceneKey();
- try{
-  const manifest=await frozenMap.loadManifest(scene);
-  const level=(frozenMapMode?frozenMap.report().level:
-   worldTiles?.stats().lod)||manifest.levels[0];
-  const chosen=manifest.levels.includes(level)?level:manifest.levels[0];
-  const keys=await frozenMap.storage.keys(scene+'|'+chosen+'|');
-  if(!keys.length){
-   frozenNotice('Noch keine fertigen Bildkacheln für den eigenständigen Spielkarten-Test gespeichert.');return;
-  }
-  // Open only on an explicit user click. This is a distinct HTML page;
-  // it does not load app.js, chunks.js or terrain-worker-client.js.
-  const url='frozen-map-game.html?scene='+encodeURIComponent(scene)+
-   '&lod='+encodeURIComponent(chosen);
-  const opened=window.open(url,'_blank','noopener');
-  if(!opened)frozenNotice('Spielkarten-Test: Popup blockiert. Bitte „frozen-map-game.html“ im gleichen lokalen Server öffnen.');
- }catch(error){frozenNotice('Spielkarten-Test noch nicht vorbereitet: '+
-  String(error?.message||error));}
+ const lod=frozenMapMode?frozenMap.report().level:
+  worldTiles?.stats().lod||'mid';
+ // IMPORTANT: opening must happen synchronously in the trusted click
+ // handler; browsers block window.open after an awaited IndexedDB lookup.
+ // The isolated viewer itself checks the manifest and tile availability.
+ const url='frozen-map-game.html?scene='+encodeURIComponent(scene)+
+  '&lod='+encodeURIComponent(lod);
+ window.open(url,'_blank','noopener');
+ frozenNotice('Eigenständigen Spielkarten-Test in neuem Tab geöffnet. '+
+  'Der Kartenviewer meldet fehlende oder unvollständige Bildkacheln selbst.');
 });
 $('frozenPlay').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
