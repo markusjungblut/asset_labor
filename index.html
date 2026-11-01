@@ -339,10 +339,12 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <details id="frozenMapPanel"><summary>Spielkarten-Test · fertig vorberechnete Karte</summary>
 <p class="muted">Nur vollständig fertige Bildkacheln speichern. Im Test werden weder Terrain-Mischungen noch Küsten, Schatten oder Weltkacheln neu berechnet. Der gespeicherte Bereich kann ohne neue Renderaufträge bewegt und gezoomt werden.</p>
 <button type="button" id="frozenCapture" class="button outline block">Fertige sichtbare Bildkacheln einfrieren</button>
+<button type="button" id="frozenCaptureAll" class="button primary block">Gesamte Karte einmalig als Spielkacheln vorbereiten</button>
+<button type="button" id="frozenCancel" class="button outline block" hidden>Vorbereitung abbrechen</button>
 <button type="button" id="frozenPlay" class="button outline block">Spielkarten-Test starten</button>
 <button type="button" id="frozenExit" class="button outline block" hidden>Zum Asset-Labor zurück</button>
 <div id="frozenStatus" class="infobox" role="status">Noch keine Spielkarten-Kacheln eingefroren. Die gesamte Karte kann schrittweise in mehreren Blickbereichen erfasst werden.</div>
-<p class="muted">Teststand: Browserlokale IndexedDB-Bildkacheln. Noch kein transportables Ganzkartenpaket und keine automatisierte Vollkartenaufnahme. Laufende Einheiten, Sichtbarkeit und interaktive Effekte bleiben eigenständige spätere Spiel-Layer.</p>
+<p class="muted">Teststand: Browserlokale IndexedDB-Bildkacheln. Die Ganzkarten-Vorbereitung durchläuft alle belegten 512er Welt-Chunks einmalig; sie kann bei fehlerhaften Quellen unvollständig enden und lässt sich erneut ausführen. Die PNGs bleiben browserlokal in IndexedDB – noch kein transportables ZIP. Laufende Einheiten, Sichtbarkeit und interaktive Effekte bleiben eigenständige spätere Spiel-Layer.</p>
 </details>
 <button type="button" id="atlasBuild" title="Alpha-Trimming und Atlas-PNGs aus neuen Nature-/Gebäude-/Einheiten-Grafiken im Hintergrund erzeugen">Sprite-Atlanten offline aktualisieren</button><div id="atlasBuildStatus" class="muted">Atlas optional · Original-PNGs bleiben erhalten</div>
 <label class="checkbox"><input type="checkbox" id="workerTerrain" checked> Web Worker + OffscreenCanvas für Terrain-Chunks verwenden</label>
