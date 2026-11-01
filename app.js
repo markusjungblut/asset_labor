@@ -797,8 +797,9 @@ function tileSemanticSignature(){
   state.shoreline,state.riverPaths,state.roadEdges,
   state.hexTerrain,state.biomeTerrain,state.materialScales,
   state.edgeBlend,state.edgeWidth,state.edgeIrregularity,
-  state.cornerBlend,state.waterSampling,state.relief,
-  objectLayoutCache.stats().revision
+  state.cornerBlend,state.waterSampling,state.relief
+  // Sprite layout revisions from decoded PNGs are not authored changes.
+  // invalidateSpriteLayout() already handles precise affected WorldTiles.
  ]);
 }
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
