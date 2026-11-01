@@ -3914,7 +3914,8 @@ function frozenSceneKey(){
   state.river,state.riverPaths,state.riverBanks,state.riverBankStrength,
   state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
   state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
-  catalogRevision,assets.map(a=>[a.path,a.mtime,a.imageRevision||0]).sort((a,b)=>
+  catalog.assets,catalog.terrainTypes,catalog.categories,
+  assets.map(a=>[a.path,a.mtime,a.imageRevision||0]).sort((a,b)=>
    String(a[0]).localeCompare(String(b[0])))
  ];
  const value=JSON.stringify(fields);let h=2166136261;
