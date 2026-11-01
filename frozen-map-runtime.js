@@ -84,8 +84,13 @@ window.VedrasFrozenMap=(()=>{
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
   let generation=0,paintScheduled=false;
+  // Decoded image packets are immutable and committed only after ALL layers
+  // decode. Keep the entire visible set pinned while the viewport is shown;
+  // the old 30M LRU evicted still-visible tiles on every camera repaint.
+  let protectedKeys=new Set();
   const decoded=new Map(),loading=new Set();
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
+  const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
    return new Promise((resolve,reject)=>{
@@ -97,10 +102,10 @@ window.VedrasFrozenMap=(()=>{
   });
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
-   pending:loading.size,frames:frame,paintMs};}
+   pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
-   decoded.clear();loading.clear();decodedPixels=0;
+   decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -108,9 +113,14 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
+   // Never evict a tile that is currently on screen. Exceeding the ordinary
+   // LRU budget while zoomed out is preferable to an infinite decode/flicker
+   // loop. Off-screen packets are reclaimed promptly on the next camera frame.
    while(decodedPixels>maxDecodedPixels&&decoded.size>1){
-    const [key,entry]=decoded.entries().next().value;
-    decoded.delete(key);decodedPixels-=entry.pixels;
+    const candidate=[...decoded.keys()].find(key=>!protectedKeys.has(key));
+    if(!candidate)break;
+    const entry=decoded.get(candidate);decoded.delete(candidate);
+    decodedPixels-=entry.pixels;
     for(const img of entry.images)img.close?.();
    }
   }
@@ -143,76 +153,134 @@ window.VedrasFrozenMap=(()=>{
   }
   function getPose(){return pose?{...pose}:null;}
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
+  function setClouds({seed='vedras-local-preview',assets=[]}={}){
+   if(!clouds)return false;
+   clouds.setSeed(seed);
+   clouds.setAssets(Array.isArray(assets)?assets:[]);
+   repaint();return true;
+  }
   function draw(){
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
-   const dpr=Math.max(1,pose.dpr||1);
+   const dpr=Math.max(1,Math.min(4,pose.dpr||1));
    const dw=Math.round(width*dpr),dh=Math.round(height*dpr);
    if(canvas.width!==dw||canvas.height!==dh){canvas.width=dw;canvas.height=dh;}
    ctx.setTransform(dpr,0,0,dpr,0,0);
-   ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,width,height);
-   const view={...pose,width,height},proj=view.projectY||.85,tiles=[];
+   ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
+   ctx.imageSmoothingQuality='high';
+   const view={...pose,width,height},proj=view.projectY||.85;
+   if(clouds)clouds.drawBase(ctx,view);
+   else{ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,width,height);}
+   const snap=v=>Math.round(v*dpr)/dpr;
+   const visible=[];
    for(const key of available){
     const tail=key.slice((sceneKey+'|'+level+'|').length);
     const [ix,iy]=tail.split(',').map(Number);
-    if(!Number.isInteger(ix)||!Number.isInteger(iy))continue;
+    if(!Number.isSafeInteger(ix)||!Number.isSafeInteger(iy))continue;
     const x=ix*512,y=iy*512;
-    const snap=v=>Math.round(v*dpr)/dpr,
-     left=snap(width/2+view.panX+x*view.zoom),
+    const left=snap(width/2+view.panX+x*view.zoom),
      top=snap(height/2+view.panY+y*view.zoom*proj),
      right=snap(width/2+view.panX+(x+512)*view.zoom),
      bottom=snap(height/2+view.panY+(y+512)*view.zoom*proj);
     if(left>=width||top>=height||right<=0||bottom<=0)continue;
-    const entry=read(key);
-    if(entry)tiles.push({left,top,right,bottom,entry});
+    visible.push({key,left,top,right,bottom});
+   }
+   protectedKeys=new Set(visible.map(t=>t.key));
+   keepWithinBudget();
+   // Decode the middle of the viewport first when the map opens; always
+   // keep already decoded tiles, even when 30M pixels cannot hold all of them.
+   visible.sort((a,b)=>{
+    const ax=(a.left+a.right)/2-width/2,ay=(a.top+a.bottom)/2-height/2,
+     bx=(b.left+b.right)/2-width/2,by=(b.top+b.bottom)/2-height/2;
+    return ax*ax+ay*ay-bx*bx-by*by;
+   });
+   const tiles=[];
+   for(const t of visible){
+    const entry=read(t.key);
+    if(entry)tiles.push({...t,entry});
     else misses++;
    }
-   // Even locally baked image packets are clipped to the known authored
-   // map geometry. A future network client must supply a stricter,
-   // server-authorized visible list, never merely this local array.
-   ctx.save();ctx.beginPath();
-   for(const c of cells){
-    if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
-    const x=width/2+view.panX+c.x*view.zoom,
-     y=height/2+view.panY+c.y*view.zoom*proj,
-     rx=c.radius*view.zoom,ry=rx*proj;
-    if(x+rx<0||x-rx>width||y+ry<0||y-ry>height)continue;
-    for(let i=0;i<6;i++){
-     const theta=-Math.PI/2+i*Math.PI/3,px=x+rx*Math.cos(theta),
-      py=y+ry*Math.sin(theta);
-     if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
-    }
-    ctx.closePath();
-   }
-   ctx.clip();
-   for(const layerType of [['ground','terrain'],['scenery','structures']])
-    for(const t of tiles){
-     const rec=t.entry.record;
-     for(let i=0;i<rec.layers.length;i++){
-      const layer=rec.layers[i];
-      if(!layerType.includes(layer.layer))continue;
-      const image=t.entry.images[i],pad=layer.pad||0,core=layerType[0]==='ground';
-      const x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
-      if(core){
-       const ratio=pad/(512+pad*2),sx=image.width*ratio,sy=image.height*ratio,
-        sw=image.width*(1-ratio*2),sh=image.height*(1-ratio*2);
-       ctx.drawImage(image,sx,sy,sw,sh,x,y,w,h);
-      }else{
-       const fx=x-pad*view.zoom,fy=y-pad*view.zoom*proj,
-        fw=w+pad*2*view.zoom,fh=h+pad*2*view.zoom*proj;
-       const c=layer.crop;
-       if(c)ctx.drawImage(image,fx+fw*c.x/c.fullWidth,
-        fy+fh*c.y/c.fullHeight,fw*image.width/c.fullWidth,
-        fh*image.height/c.fullHeight);
-       else ctx.drawImage(image,fx,fy,fw,fh);
-      }
+   function clipCells(halo=0){
+    ctx.beginPath();
+    for(const c of cells){
+     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
+     const x=width/2+view.panX+c.x*view.zoom,
+      y=height/2+view.panY+c.y*view.zoom*proj,
+      rx=(c.radius+halo)*view.zoom,ry=rx*proj;
+     if(x+rx<0||x-rx>width||y+ry<0||y-ry>height)continue;
+     for(let i=0;i<6;i++){
+      const theta=-Math.PI/2+i*Math.PI/3,
+       px=x+rx*Math.cos(theta),py=y+ry*Math.sin(theta);
+      if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
      }
+     ctx.closePath();
     }
+    ctx.clip();
+   }
+   // Ground uses exclusive device-snapped borders with an infinitesimal
+   // source-gutter overdraw. It covers fractional-DPR seams without changing
+   // the baked terrain content, and never samples outside the original PNG.
+   ctx.save();clipCells(0);
+   for(const t of tiles)for(let i=0;i<t.entry.record.layers.length;i++){
+    const layer=t.entry.record.layers[i];
+    if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
+    const image=t.entry.images[i],pad=Math.max(0,layer.pad||0),
+     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
+    if(pad){
+     const bx=Math.min(.65/dpr,pad*view.zoom*.8),
+      by=Math.min(.65/dpr,pad*view.zoom*proj*.8),
+      sx=image.width*(pad-bx/view.zoom)/(512+2*pad),
+      sy=image.height*(pad-by/(view.zoom*proj))/(512+2*pad),
+      sw=image.width*(512+2*bx/view.zoom)/(512+2*pad),
+      sh=image.height*(512+2*by/(view.zoom*proj))/(512+2*pad);
+     ctx.drawImage(image,sx,sy,sw,sh,x-bx,y-by,w+2*bx,h+2*by);
+    }else ctx.drawImage(image,x,y,w,h);
+   }
    ctx.restore();
-   // This player draws no dynamic entities. Fog/units/etc must remain
-   // runtime layers; the local editor test is explicitly terrain/scenery.
+   // Tree crowns and cast shadows extend beyond the owning 512-unit core.
+   ctx.save();clipCells(45);
+   for(const t of tiles)for(let i=0;i<t.entry.record.layers.length;i++){
+    const layer=t.entry.record.layers[i];
+    if(layer.layer!=='scenery'&&layer.layer!=='structures')continue;
+    const image=t.entry.images[i],pad=layer.pad||0,
+     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top,
+     fx=x-pad*view.zoom,fy=y-pad*view.zoom*proj,
+     fw=w+pad*2*view.zoom,fh=h+pad*2*view.zoom*proj;
+    const c=layer.crop;
+    if(c)ctx.drawImage(image,fx+fw*c.x/c.fullWidth,
+     fy+fh*c.y/c.fullHeight,fw*image.width/c.fullWidth,
+     fh*image.height/c.fullHeight);
+    else ctx.drawImage(image,fx,fy,fw,fh);
+   }
+   ctx.restore();
+   if(clouds){
+    const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
+     .map(c=>c.q+','+c.r));
+    const directions=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+    const edges=[];
+    for(const c of cells)if(c.visibility==='visible')
+     for(let direction=0;direction<6;direction++){
+      const d=directions[direction];
+      if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
+       edges.push({q:c.q,r:c.r,direction});
+     }
+    // Do not reveal a partially loaded hex: both completed PNG layers of
+    // every intersecting tile must be decoded before fog retreats.
+    const ready=c=>{
+     if(c.visibility!=='visible')return false;
+     const half=c.radius*Math.sqrt(3)/2-.01;
+     for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
+      for(let iy=Math.floor((c.y-c.radius+.01)/512);
+       iy<=Math.floor((c.y+c.radius-.01)/512);iy++){
+       if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
+      }
+     return true;
+    };
+    clouds.drawUnready(ctx,view,cells,ready);
+    clouds.drawTransitions(ctx,view,edges);
+   }
    frame++;paintMs=(typeof performance!=='undefined'?performance.now():Date.now())-now;
    onStatus(report());return report();
   }
@@ -229,7 +297,7 @@ window.VedrasFrozenMap=(()=>{
   // used by a standalone player that does not load app.js or any workers.
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
-      pose:initialPose=null}={}){
+      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -239,7 +307,11 @@ window.VedrasFrozenMap=(()=>{
    if(!chosen.length)throw Error('Keine gültige Kartenauflösung');
    const record={key:scene+'|manifest',schema:SCHEMA,sceneKey:scene,
     levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
-    pose:initialPose?{...initialPose}:null,savedAt:new Date().toISOString()};
+    pose:initialPose?{...initialPose}:null,
+    expectedTiles:Number.isSafeInteger(expectedTiles)&&expectedTiles>=0?expectedTiles:null,
+    clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
+     assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
+    savedAt:new Date().toISOString()};
    await storage.put(record);return record;
   }
   async function loadManifest(scene){
@@ -271,7 +343,7 @@ window.VedrasFrozenMap=(()=>{
    }
    return {saved,skipped,rejected,total:packets.length};
   }
-  return {capture,load,stop,draw,report,getPose,setPose,
+  return {capture,load,stop,draw,report,getPose,setPose,setClouds,
    saveManifest,loadManifest,isActive:()=>active,storage};
  }
  return {create,memoryStore,valid,makeKey};

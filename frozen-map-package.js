@@ -93,6 +93,7 @@ window.VedrasFrozenMapPackage=(()=>{
    cells:Array.isArray(authored?.cells)?authored.cells:[],
    initialPose:authored?.pose||null,
    visibilityPolicy:'local-test-all-authored; multiplayer requires server Fog',
+   clouds:authored?.clouds||null,
    tiles:items};
   const encoded=JSON.stringify(manifest,null,2);
   const blob=await zipEntries([{name:'manifest.json',blob:new Blob([encoded],

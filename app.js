@@ -18,6 +18,7 @@ const realtimeMap=window.VedrasRealtimeMap.create({
 });
 /* v0.21: retained world-space raster tiles. The editor is one data source;
  * the future game backend supplies the same contract with redacted tiles. */
+let frozenTour=null; // Hoisted: requestDraw/fastRender may run during bootstrap.
 let tileModeActive=false,tileBakes=0,
  visibleFogTiles=null,lastTileSnapshotSignature=null,lastTilePreparedSignature=null,
  lastTileQualitySignature=null;
@@ -322,7 +323,10 @@ async function bakeWorldTile(t,level,{signal}={}){
  // Copy previously completed imagery to world-aligned tiles once; panning
  // thereafter never reprojects the entire old oversized scene.
  const ground=backgroundScene.snapshot(),scenery=staticScenery.snapshot();
- const reuseSnapshot=snapshotReady&&
+ // During the explicit offline 4x atlas export, snapshots made for normal
+ // camera LODs (near=2.5 px/world-unit) are NOT a 4x source.
+ const offline4x=frozenTour?.quality==='4'&&level==='near';
+ const reuseSnapshot=!offline4x&&snapshotReady&&
   worldTileSnapshotsSharp(ground,scenery,level);
  const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
   b=reuseSnapshot?snapshotTile(scenery,t,level):null;
@@ -362,8 +366,9 @@ async function bakeWorldTile(t,level,{signal}={}){
  }
  // Two independently composited layers. Owner-by-anchor scenery prevents
  // duplicate sprite silhouettes across overlapping padded tile rasters.
- const z=state.zoom,scale={far:.85,mid:1.5,near:2.5}[level]||1,
-  pad=128,sceneryScale=Math.min(scale,1.9),groundPad=WORLD_TILE_GUTTER;
+ const z=state.zoom,scale=offline4x?4:({far:.85,mid:1.5,near:2.5}[level]||1),
+  pad=128,sceneryScale=offline4x?4:Math.min(scale,1.9),
+  groundPad=WORLD_TILE_GUTTER;
  const make=(w,h)=>{
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(w));
@@ -591,7 +596,7 @@ function stopFastCameraForStrategy(){
  realtimeMap.hide();
 }
 function fastRender(){
- if(frozenMapMode)return;
+ if(frozenMapMode||frozenTour?.offlineOnly)return;
  if(state.mode==='far'||state.view!=='map'){
   if(fastInteracting||tileModeActive)stopFastCameraForStrategy();
   return;
@@ -783,11 +788,18 @@ function groundTileContentKey(t,level,coreVersion){
 }
 
 function tileSemanticSignature(){
+ // frameMemo.revision changes when an existing PNG is decoded/promoted at
+ // 4x; that is NOT an authored map change. Previously this forced global
+ // WorldTile invalidation, removed complete images and caused cloud flicker
+ // on every small pan. Source revisions are reconciled PER TILE instead.
  return JSON.stringify([
-  frameMemo.stats().revision,
-  state.selected,state.quality,state.objects,state.roadShown,state.river,
+  catalogRevision,state.quality,state.objects,state.roadShown,state.river,
   state.shoreline,state.riverPaths,state.roadEdges,
-  objectLayoutCache.stats().revision
+  state.hexTerrain,state.biomeTerrain,state.materialScales,
+  state.edgeBlend,state.edgeWidth,state.edgeIrregularity,
+  state.cornerBlend,state.waterSampling,state.relief
+  // Sprite layout revisions from decoded PNGs are not authored changes.
+  // invalidateSpriteLayout() already handles precise affected WorldTiles.
  ]);
 }
 let gpuFrame=false,imagePoolPriming=false,assetReadyTimer=null;
@@ -1231,6 +1243,7 @@ function makePattern(a,patternCtx=ctx){
  return pat;
 }
 function requestDraw(){
+ if(frozenTour?.offlineOnly)return;
  if(frozenMapMode)return; // Frozen game test never invokes editor/Worker baking.
  if(state.mode==='far'&&(fastInteracting||tileModeActive))
   stopFastCameraForStrategy();
@@ -2993,6 +3006,7 @@ function protectCameraImagePool(){
 
 }
 function draw(){
+ if(frozenTour?.offlineOnly)return;
  if(frozenMapMode)return; // A pending editor rAF cannot sneak behind playback.
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -3905,7 +3919,10 @@ function frozenSceneKey(){
  // selected Hex, Fog status, cache revisions or dynamic unit positions.
  // A static edit automatically switches to a different frozen-map archive.
  const fields=[
-  'game-map-export-renderer-v1',worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
+  // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
+  // A low-density image must never silently satisfy a later 4x tour.
+  'game-map-export-renderer-v3-stable-authored',state.quality==='4'?'atlas-4x':'atlas-native',
+  worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
   state.natureInstances,state.mountainInstances,state.hexObject,state.hexShadow,
@@ -3915,12 +3932,23 @@ function frozenSceneKey(){
   state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
   state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
   catalog.assets,catalog.terrainTypes,catalog.categories,
-  assets.map(a=>[a.path,a.mtime,a.imageRevision||0]).sort((a,b)=>
+  // Runtime imageRevision changes when the SAME source is decoded at a
+  // different resolution or revived after eviction. Only persistent file
+  // identity participates in the authored archive key.
+  assets.map(a=>[a.path,a.mtime]).sort((a,b)=>
    String(a[0]).localeCompare(String(b[0])))
  ];
  const value=JSON.stringify(fields);let h=2166136261;
  for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}
  return 'v1-'+(h>>>0).toString(16).padStart(8,'0');
+}
+function frozenCloudSettings(){
+ // The standalone viewer loads only the four authored cloud PNGs; it needs
+ // neither the editor scene nor a terrain worker to draw atmosphere.
+ const cloudAssets=assets.filter(a=>window.VedrasCloudArtwork?.classify(a)==='base')
+  .sort((a,b)=>String(a.path).localeCompare(String(b.path)))
+  .slice(0,4).map(a=>({path:a.path}));
+ return {seed:state.fogSeed||'vedras-local-preview',assets:cloudAssets};
 }
 function frozenLocalCells(){
  return worldCells.map(c=>{
@@ -3941,9 +3969,14 @@ $('frozenCapture').addEventListener('click',async()=>{
  const button=$('frozenCapture');button.disabled=true;
  try{
   const scene=frozenSceneKey();
+  let prior=null;
+  try{prior=await frozenMap.loadManifest(scene);}catch(_){}
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
-   levels:[packets[0].level],pose:{zoom:state.zoom,panX:state.panX,
-    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y}});
+   levels:[...new Set([...(prior?.levels||[]),packets[0].level])],
+   pose:prior?.pose||{zoom:state.zoom,panX:state.panX,
+    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y},
+   expectedTiles:prior?.expectedTiles??null,
+   clouds:frozenCloudSettings()});
   const result=await frozenMap.capture(scene,packets,{onProgress:progress=>
    frozenNotice('Fertige Spielkacheln sichern: '+progress.saved+
     ' / '+progress.total+' · kein Terrain-Worker aktiv durch den Export')});
@@ -3957,7 +3990,39 @@ $('frozenCapture').addEventListener('click',async()=>{
 // frozen viewport below never runs these expensive terrain/WorldTile jobs.
 // Each completed exact packet is persisted BEFORE moving the camera away;
 // the bounded 26M-WorldTile LRU is not expected to hold the whole 397-Hex map.
-let frozenTour=null;
+function preventEditorMutationDuringFrozenTour(event){
+ if($('frozenCancel')?.contains(event.target))return;
+ event.preventDefault();event.stopImmediatePropagation();
+}
+function frozenPrepare4xSourceQueues(tile){
+ // Rebuild source configuration after a real image-pool revision, but never
+ // repaint the visible editor. The temporary canvas has a bounded footprint.
+   const prev={ctx,W,H,panX:state.panX,panY:state.panY,
+    gpuFrame,paintContext:step15PaintContext};
+   const cv=document.createElement('canvas');
+   cv.width=Math.ceil(384*state.dpr);
+   cv.height=Math.ceil(384*state.dpr);
+   try{
+    ctx=cv.getContext('2d',{alpha:true});
+    if(!ctx)throw Error('Offscreen-Canvas für 4x-Vorbereitung fehlt');
+    W=384;H=384;gpuFrame=false;
+    state.panX=-(tile.x+tile.size/2)*state.zoom;
+    state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
+    step15PaintContext={origin:'frozen-offline-source-setup'};
+    drawGround();drawRoads();
+   }finally{
+    ctx=prev.ctx;W=prev.W;H=prev.H;
+    state.panX=prev.panX;state.panY=prev.panY;
+    gpuFrame=prev.gpuFrame;step15PaintContext=prev.paintContext;
+   }
+}
+const frozenTourLockedEvents=['pointerdown','click','wheel','keydown','change','input'];
+function lockFrozenTourEditor(lock){
+ for(const type of frozenTourLockedEvents){
+  if(lock)document.addEventListener(type,preventEditorMutationDuringFrozenTour,{capture:true,passive:false});
+  else document.removeEventListener(type,preventEditorMutationDuringFrozenTour,true);
+ }
+}
 $('frozenCancel').addEventListener('click',()=>{
  if(frozenTour)frozenTour.cancel=true;
  frozenNotice('Karten-Vorbereitung wird nach dem aktuellen Schritt beendet; bereits gespeicherte PNGs bleiben erhalten.');
@@ -3979,50 +4044,117 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   height:Math.max(...ys)-Math.min(...ys)+pad*2
  },worldCells,512);
  if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
- const scene=frozenSceneKey(),lod=worldTiles?.chooseLod(state.zoom)||'mid';
+ const scene=frozenSceneKey(),quality4=state.quality==='4',
+  lod=quality4?'near':(worldTiles?.chooseLod(state.zoom)||'mid');
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
  try{
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
-   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y}});
+   pose:{...pose,dpr:quality4?4:state.dpr,projectY:PROJECT_Y},
+   expectedTiles:all.length,clouds:frozenCloudSettings()});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
  }
- const run={cancel:false};frozenTour=run;
+ const run={cancel:false,quality:quality4?'4':null,offlineOnly:false};
+ frozenTour=run;lockFrozenTourEditor(true);
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
  $('frozenPlay').disabled=true;
  let totalSaved=0,already=0,missing=0,failed=0,processed=0;
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
-  // In this AUTHORING pass alone, the normal renderer is intentionally
-  // enabled. End any active pointer gesture first to permit idle lane work.
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
-  // Deterministic scan; the next region can reuse already painted neighbors.
+  if(quality4){
+   // The viewer's ordinary WorldTile jobs compete for the same CPU/PNG
+   // pipeline. Pause them without deleting already displayed cache entries.
+   worldTiles?.setPlaybackPaused(true);
+   // Set up near-detail SOURCE queues once on a small temporary canvas.
+   // No visible camera pan and no WorldTile live compositor during export.
+   state.zoom=Math.max(1.1,pose.zoom);
+   updateTerrainLod(state.zoom);
+   run.offlineOnly=true;
+   frozenPrepare4xSourceQueues(all[0]);
+   run.sourceRevision=frameMemo.stats().revision;
+  }
+  // The IndexedDB key scan is once per tour, not O(tiles²).
+  const knownFrozenTiles=new Set(await frozenMap.storage.keys(scene+'|'+lod+'|'));
+  // Deterministic scan; each actual completed tile is saved separately.
   for(const tile of all){
    if(run.cancel)break;
    if(frozenSceneKey()!==scene){
     frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
    }
    const fileKey=window.VedrasFrozenMap.makeKey(scene,lod,tile.id);
-   if((await frozenMap.storage.keys(scene+'|'+lod+'|')).includes(fileKey)){
+   if(knownFrozenTiles.has(fileKey)){
     already++;processed++;continue;
    }
-   state.panX=-(tile.x+tile.size/2)*state.zoom;
-   state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
-   fastLastPrime=0;fastRender();
+   if(!quality4){
+    state.panX=-(tile.x+tile.size/2)*state.zoom;
+    state.panY=-(tile.y+tile.size/2)*state.zoom*PROJECT_Y;
+    fastLastPrime=0;fastRender();
+   }
    let found=false;
    // Genuine cold tile rendering may require sources, shore and Scenery.
    // Never write a partial/provisional tile just to claim progress.
-   const deadline=performance.now()+15000;
+   const deadline=performance.now()+(quality4?60000:15000);
    while(!run.cancel&&performance.now()<deadline){
+    if(quality4){
+     // Newly decoded terrain PNGs may advance source preparation while
+     // exporting. Reconfigure the offscreen inputs, not the live camera.
+     if(run.sourceRevision!==frameMemo.stats().revision){
+      frozenPrepare4xSourceQueues(tile);
+      run.sourceRevision=frameMemo.stats().revision;
+     }
+     // Prime targeted world-coordinate inputs, not an entire 4x viewport.
+     const margin=WORLD_TILE_GUTTER+1;
+     const bounds={x:tile.x-margin,y:tile.y-margin,
+      width:tile.size+2*margin,height:tile.size+2*margin};
+     const opts={prefetch:{enabled:false},notifyReady:false};
+     terrainChunks.prime(bounds,opts);
+     if(state.shoreline?.enabled!==false)shorelineChunks.prime(bounds,opts);
+     if(state.river&&state.riverBanks)riverChunks.prime(bounds,opts);
+     if(state.roadShown)roadChunks.prime(bounds,opts);
+     const diagnostic={};
+     if(!tileArtworkStatus(tile,diagnostic,true))
+      for(const path of diagnostic.waitingAssets||[]){
+       const asset=assetByPath.get(path);
+       if(asset)imagePool.ensure(asset,10);
+      }
+     const now=performance.now();
+     if(now-(run.lastNoticeAt||0)>1800){
+      run.lastNoticeAt=now;
+      frozenNotice('4×-Offline-Vorbereitung: '+processed+' / '+all.length+
+       ' abgeschlossen · Quell-Chunk '+tile.id+' · '+
+       (diagnostic.reason||diagnostic.shorelineReason||'Quellgrafiken werden geprüft')+
+       ' · '+totalSaved+' PNG-Pakete gespeichert.');
+     }
+    }else fastRender();
     await delay(350);
-    if(frozenSceneKey()!==scene){run.cancel=true;break;}
-    fastRender();
-    const ready=worldTiles?.exportExactPackets({limit:96})||[];
+    if(frozenSceneKey()!==scene){
+     frozenNotice('Statische Kartendaten während der Vorbereitung verändert.');
+     run.cancel=true;break;
+    }
+    let ready=[];
+    if(quality4){
+     if(!tileArtworkStatus(tile,null,true))continue;
+     // Separate editor-only full-resolution source. WorldTile's normal
+     // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
+     const exact=await bakeWorldTile(tile,'near');
+     if(!exact?.complete||run.cancel)continue;
+     const ground=exact.layers?.find(l=>l.layer==='ground');
+     if(!ground||ground.image.width<
+       (tile.size+2*WORLD_TILE_GUTTER)*4-.5)
+      throw Error('Der Offline-Bake lieferte keine 4x-Pixelquelle: '+tile.id);
+     ready=[{...exact,tile:{...tile},level:'near',
+      dirty:false,preview:false}];
+    }else{
+     ready=worldTiles?.exportExactPackets({limit:96})||[];
+    }
     if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
     const result=await frozenMap.capture(scene,ready);
+    for(const packet of ready)if(window.VedrasFrozenMap.valid(packet))
+     knownFrozenTiles.add(window.VedrasFrozenMap.makeKey(scene,packet.level,packet.tile.id));
     totalSaved+=result.saved;found=true;break;
    }
    if(!found)missing++;
@@ -4041,8 +4173,11 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
    '. Bereits gespeicherte PNGs bleiben erhalten.');}
  finally{
+  run.offlineOnly=false;
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
-  frozenTour=null;button.disabled=false;
+  updateTerrainLod(pose.zoom);
+  frozenTour=null;lockFrozenTourEditor(false);button.disabled=false;
+  if(quality4)worldTiles?.setPlaybackPaused(false);
   $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
   $('frozenPlay').disabled=false;
   fastLastPrime=0;fastRender();
@@ -4053,7 +4188,8 @@ $('frozenExport').addEventListener('click',async()=>{
  const button=$('frozenExport');button.disabled=true;
  try{
   const scene=frozenSceneKey(),level=frozenMapMode?
-   frozenMap.report().level:(worldTiles?.stats().lod||'mid');
+   frozenMap.report().level:(state.quality==='4'?'near':
+    (worldTiles?.stats().lod||'mid'));
   const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
    xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
   const all=worldCells.length?window.VedrasChunks.visible({
@@ -4078,7 +4214,7 @@ $('frozenStandalone').addEventListener('click',()=>{
  if(!frozenMap||frozenTour)return;
  const scene=frozenSceneKey();
  const lod=frozenMapMode?frozenMap.report().level:
-  worldTiles?.stats().lod||'mid';
+  state.quality==='4'?'near':(worldTiles?.stats().lod||'mid');
  // IMPORTANT: opening must happen synchronously in the trusted click
  // handler; browsers block window.open after an awaited IndexedDB lookup.
  // The isolated viewer itself checks the manifest and tile availability.
@@ -4095,9 +4231,13 @@ $('frozenPlay').addEventListener('click',async()=>{
  }
  const button=$('frozenPlay');button.disabled=true;
  try{
-  const scene=frozenSceneKey(),level=worldTiles?.stats().lod||'mid';
+  const scene=frozenSceneKey(),manifest=await frozenMap.loadManifest(scene),
+   level=manifest.levels.includes('near')?'near':
+    manifest.levels.includes(worldTiles?.stats().lod)?worldTiles.stats().lod:
+    manifest.levels[0];
   const initial={zoom:state.zoom,panX:state.panX,panY:state.panY,
-   dpr:state.dpr,projectY:PROJECT_Y};
+   dpr:Math.max(state.dpr,manifest.pose?.dpr||1),projectY:PROJECT_Y};
+  frozenMap.setClouds(manifest.clouds||frozenCloudSettings());
   const result=await frozenMap.load(scene,level,initial,frozenLocalCells());
   if(!result.saved){frozenMap.stop();
    frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
