@@ -19,7 +19,8 @@
    metrics.textContent=stats.decoded+' / '+stats.saved+
     ' gespeicherte Tiles im Bildspeicher · '+stats.pending+
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
-    ' ms pro Bild · 0 Terrain-Bakes';
+    ' ms pro Bild · 0 Terrain-Bakes · Wolken: '+
+    (stats.clouds?.bases??0)+'/4';
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
@@ -31,7 +32,10 @@
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
-  startPose={...startPose,dpr:Math.min(2,devicePixelRatio||1)};
+  startPose={...startPose,dpr:Math.min(4,Math.max(1,
+   Number(startPose.dpr)||1,devicePixelRatio||1))};
+  // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
+  player.setClouds(manifest.clouds||{});
   const status=await player.load(scene,lod,startPose,manifest.cells);
   output.textContent='Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' vollständig vorgerenderte Bildkacheln verfügbar.'+
