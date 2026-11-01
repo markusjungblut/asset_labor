@@ -267,7 +267,8 @@ test('standalone HTML only loads PNG map viewer without app or worker modules',(
 });
 test('UI has explicit whole-map offline preparation, cancel and separate read-only canvas',()=>{
  for(const id of ['frozenCaptureAll','frozenCancel','frozenCapture',
-  'frozenPlay','frozenExit','frozenExport','frozenGameCanvas','frozenStatus'])
+  'frozenPlay','frozenExit','frozenExport','frozenStandalone',
+  'frozenGameCanvas','frozenStatus'])
   assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(appSource,/if\(frozenMapMode\)return; \/\/ Frozen game test/);
  assert.match(appSource,/if\(frozenMapMode\)return; \/\/ A pending editor rAF/);
