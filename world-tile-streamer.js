@@ -990,6 +990,25 @@ window.VedrasWorldTiles=(()=>{
     loaded:items.length,exact,fallback,provisional,stale,missing,
     previewHexes:previewHexes.size,previewMs,pending:queue.size+running.size};
   }
+  // Read-only exact packet export for the separate shipped-map experiment.
+  // Source images are BORROWED for immediate PNG serialization by the
+  // caller; this never transfers/evicts ownership or broadens Fog rights.
+  function exportExactPackets({limit=96}={}){
+   const result=[],n=Math.max(1,Math.min(192,Math.floor(limit)||96));
+   for(const tile of visibleTiles){
+    if(result.length>=n)break;
+    const item=cache.get(key(tile,lod));
+    if(!item||item.dirty||item.packet.preview||
+       item.packet.complete===false||item.tileLod!==lod||
+       !item.packet.layers?.some(x=>x.layer==='ground'||x.layer==='terrain')||
+       !item.packet.layers?.some(x=>x.layer==='scenery'||x.layer==='structures'))
+      continue;
+    result.push({tile:{...tile},level:item.tileLod,dirty:false,
+     preview:false,complete:true,revision:item.revision,
+     layers:item.packet.layers.map(layer=>({...layer}))});
+   }
+   return result;
+  }
   function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
    budgetBytes:maxPixels*4,evicted,completed,failed,pending:queue.size+running.size,
@@ -1002,7 +1021,7 @@ window.VedrasWorldTiles=(()=>{
    visiblePreviews,previews,upgraded,progress:{...lastProgress},
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
    renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
-  return {request,render,seed,setSource,setFogCells,setCloudAssets,
+  return {request,render,seed,exportExactPackets,setSource,setFogCells,setCloudAssets,
     reserveWarmTiles,warmTileStatus,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
