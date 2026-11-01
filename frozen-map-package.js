@@ -75,7 +75,7 @@ window.VedrasFrozenMapPackage=(()=>{
        !(layer.png instanceof Blob)||paths.has(file))throw Error('PNG-Schicht fehlt');
     paths.add(file);entries.push({name:file,blob:layer.png});
     layers.push({layer:layer.layer,file,pad:layer.pad||0,crop:layer.crop||null,
-     width:layer.png.size});
+     byteSize:layer.png.size});
    }
    items.push({id:packet.tile.id,x:packet.tile.x,y:packet.tile.y,
     size:packet.tile.size,revision:packet.revision,layers});
