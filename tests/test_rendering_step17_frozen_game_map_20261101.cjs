@@ -5,6 +5,7 @@ const root=path.join(__dirname,'..');
 const frozenSource=fs.readFileSync(path.join(root,'frozen-map-runtime.js'),'utf8');
 const worldSource=fs.readFileSync(path.join(root,'world-tile-streamer.js'),'utf8');
 const appSource=fs.readFileSync(path.join(root,'app.js'),'utf8');
+const packageSource=fs.readFileSync(path.join(root,'frozen-map-package.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const makeWorldTile=(name='tile')=>({
  tile:{id:'0,0',x:0,y:0,size:512,visibility:'visible'},
@@ -189,9 +190,43 @@ test('finished-game playback suspends terrain scheduling and resumes normal edit
  assert.equal(built,1);
  assert.equal(chunk.readyTiles({x:0,y:0,width:511,height:511}).length,1);
 });
+test('portable frozen game ZIP uses standard PK signatures and correct CRC32',async()=>{
+ const window={};
+ vm.runInNewContext(packageSource,{window,Blob,TextEncoder,Uint8Array,DataView,Set});
+ const api=window.VedrasFrozenMapPackage;
+ assert.equal(api.crc32(new TextEncoder().encode('123456789')),0xcbf43926);
+ const zip=await api.zipEntries([
+  {name:'manifest.json',blob:new Blob(['{"test":true}'])},
+  {name:'tiles/mid/0_0.0.png',blob:new Blob(['png-bytes'])}
+ ]);
+ const bytes=new Uint8Array(await zip.arrayBuffer()),dv=new DataView(bytes.buffer);
+ assert.equal(dv.getUint32(0,true),0x04034b50);
+ assert.equal(dv.getUint32(bytes.length-22,true),0x06054b50);
+ assert.equal(dv.getUint16(bytes.length-12,true),2);
+ const center=dv.getUint32(bytes.length-6,true);
+ assert.equal(dv.getUint32(center,true),0x02014b50);
+});
+test('incomplete whole-map archive is explicitly partial and includes named PNG files',async()=>{
+ const window={};
+ vm.runInNewContext(packageSource,{window,Blob,TextEncoder,Uint8Array,DataView,Set});
+ const storage=harness().frozen.memoryStore();
+ const scene='v1-1234abcd',level='mid';
+ await storage.put({key:scene+'|mid|0,0',sceneKey:scene,level,
+  tile:{id:'0,0',x:0,y:0,size:512},revision:'scene-a',
+  layers:[{layer:'ground',pad:3,png:new Blob(['ground'])},
+   {layer:'scenery',pad:128,png:new Blob(['scenery'])}]});
+ const result=await window.VedrasFrozenMapPackage.exportMap(
+  storage,scene,level,{totalExpected:24});
+ assert.equal(result.manifest.complete,false);
+ assert.equal(result.manifest.exportedTiles,1);
+ assert.equal(result.manifest.expectedTiles,24);
+ assert.equal(result.manifest.tiles[0].layers[0].file,'tiles/mid/0_0.0.png');
+ assert.equal(result.manifest.tiles[0].layers[1].file,'tiles/mid/0_0.1.png');
+ assert.ok(result.blob.size>100);
+});
 test('UI has explicit whole-map offline preparation, cancel and separate read-only canvas',()=>{
  for(const id of ['frozenCaptureAll','frozenCancel','frozenCapture',
-  'frozenPlay','frozenExit','frozenGameCanvas','frozenStatus'])
+  'frozenPlay','frozenExit','frozenExport','frozenGameCanvas','frozenStatus'])
   assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(appSource,/if\(frozenMapMode\)return; \/\/ Frozen game test/);
  assert.match(appSource,/if\(frozenMapMode\)return; \/\/ A pending editor rAF/);
