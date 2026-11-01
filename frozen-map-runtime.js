@@ -79,7 +79,7 @@ window.VedrasFrozenMap=(()=>{
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
-    maxDecodedPixels=18000000}={}){
+    maxDecodedPixels=30000000}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
