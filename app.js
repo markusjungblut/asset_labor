@@ -3994,6 +3994,28 @@ function preventEditorMutationDuringFrozenTour(event){
  if($('frozenCancel')?.contains(event.target))return;
  event.preventDefault();event.stopImmediatePropagation();
 }
+function frozenPrepare4xSourceQueues(tile){
+ // Rebuild source configuration after a real image-pool revision, but never
+ // repaint the visible editor. The temporary canvas has a bounded footprint.
+   const prev={ctx,W,H,panX:state.panX,panY:state.panY,
+    gpuFrame,paintContext:step15PaintContext};
+   const cv=document.createElement('canvas');
+   cv.width=Math.ceil(384*state.dpr);
+   cv.height=Math.ceil(384*state.dpr);
+   try{
+    ctx=cv.getContext('2d',{alpha:true});
+    if(!ctx)throw Error('Offscreen-Canvas für 4x-Vorbereitung fehlt');
+    W=384;H=384;gpuFrame=false;
+    state.panX=-(tile.x+all[0].size/2)*state.zoom;
+    state.panY=-(tile.y+all[0].size/2)*state.zoom*PROJECT_Y;
+    step15PaintContext={origin:'frozen-offline-source-setup'};
+    drawGround();drawRoads();
+   }finally{
+    ctx=prev.ctx;W=prev.W;H=prev.H;
+    state.panX=prev.panX;state.panY=prev.panY;
+    gpuFrame=prev.gpuFrame;step15PaintContext=prev.paintContext;
+   }
+}
 const frozenTourLockedEvents=['pointerdown','click','wheel','keydown','change','input'];
 function lockFrozenTourEditor(lock){
  for(const type of frozenTourLockedEvents){
@@ -4049,24 +4071,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    state.zoom=Math.max(1.1,pose.zoom);
    updateTerrainLod(state.zoom);
    run.offlineOnly=true;
-   const prev={ctx,W,H,panX:state.panX,panY:state.panY,
-    gpuFrame,paintContext:step15PaintContext};
-   const cv=document.createElement('canvas');
-   cv.width=Math.ceil(384*state.dpr);
-   cv.height=Math.ceil(384*state.dpr);
-   try{
-    ctx=cv.getContext('2d',{alpha:true});
-    if(!ctx)throw Error('Offscreen-Canvas für 4x-Vorbereitung fehlt');
-    W=384;H=384;gpuFrame=false;
-    state.panX=-(all[0].x+all[0].size/2)*state.zoom;
-    state.panY=-(all[0].y+all[0].size/2)*state.zoom*PROJECT_Y;
-    step15PaintContext={origin:'frozen-offline-source-setup'};
-    drawGround();drawRoads();
-   }finally{
-    ctx=prev.ctx;W=prev.W;H=prev.H;
-    state.panX=prev.panX;state.panY=prev.panY;
-    gpuFrame=prev.gpuFrame;step15PaintContext=prev.paintContext;
-   }
+   frozenPrepare4xSourceQueues(all[0]);
+   run.sourceRevision=frameMemo.stats().revision;
   }
   // Deterministic scan; each actual completed tile is saved separately.
   for(const tile of all){
@@ -4089,6 +4095,12 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    const deadline=performance.now()+(quality4?60000:15000);
    while(!run.cancel&&performance.now()<deadline){
     if(quality4){
+     // Newly decoded terrain PNGs may advance source preparation while
+     // exporting. Reconfigure the offscreen inputs, not the live camera.
+     if(run.sourceRevision!==frameMemo.stats().revision){
+      frozenPrepare4xSourceQueues(tile);
+      run.sourceRevision=frameMemo.stats().revision;
+     }
      // Prime targeted world-coordinate inputs, not an entire 4x viewport.
      const margin=WORLD_TILE_GUTTER+1;
      const bounds={x:tile.x-margin,y:tile.y-margin,
