@@ -245,12 +245,14 @@ function snapshotTile(s,t,level,pad=0){
   0,0,result.width,result.height);
  return result;
 }
-// Pack only fully rendered mid-LOD scenery, never terrain, Fog or preview
-// sources. The transparent strips already exist in the 128-world-unit
-// overhang; omit their storage without moving any opaque sprite pixel.
+// Pack only completely baked mid/near scenery, never terrain, Fog or
+// preview. Both LODs have the original 128-world-unit overscan; the
+// transparent margins need not stay allocated at full raster dimensions.
+// Near's 1.9x scenery raster otherwise uses ~1.81M pixels PER tile.
+// The compositor retains the original full-width/height crop mapping.
 // This runs once at source bake/seed, not during rAF camera composition.
 function packWorldTileScenery(source,level){
- if(level!=='mid'||!source?.width||!source.height)
+ if(!['mid','near'].includes(level)||!source?.width||!source.height)
   return {image:source};
  const width=source.width,height=source.height;
  const packStart=performance.now();
@@ -4482,7 +4484,16 @@ window.VedrasAssetLabor={shadowSprites:{
    world:worldTiles?.diagnostics({limit:max})||null,
    artwork:includeReadiness?visible.map(t=>{
     const details={},ready=tileArtworkStatus(t,details);
-    return {id:t.id,ready,...details};
+    // Snapshot publication requires already painted editor chunks.
+   // Direct live WorldTile bakes explicitly accept prepared, unpainted
+   // chunks. Report BOTH contracts: 'terrain-not-painted' by itself
+   // must never be mistaken for a bake blocker in the fast camera.
+   const bakeDetails={};
+   const bakeReady=tileArtworkStatus(t,bakeDetails,true);
+   return {id:t.id,ready,...details,bakeReady,
+    bakeReason:bakeDetails.reason,
+    bakeTerrainVersion:bakeDetails.terrainVersion,
+    bakeWaitingAssets:bakeDetails.waitingAssets?.slice(0,8)||[]};
    }):[],imagePool:imagePool.report(),worker:window.VedrasTerrainWorker.status()};
  },
  setFogSeed:seed=>{
