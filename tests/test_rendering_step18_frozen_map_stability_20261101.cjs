@@ -93,11 +93,39 @@ test('the standalone viewer draws authored cloud textures without terrain worker
 
 test('4x atlas capture uses a distinct fingerprint and its own near-tier raster bake',()=>{
  assert.match(app,/atlas-4x/);
- assert.match(app,/game-map-export-renderer-v2/);
+ assert.match(app,/game-map-export-renderer-v3-stable-authored/);
  assert.match(app,/scale=offline4x\?4:/);
  assert.match(app,/sceneryScale=offline4x\?4:/);
  assert.match(app,/bakeWorldTile\(tile,'near'\)/);
  assert.match(app,/WORLD_TILE_GUTTER\)\*4-\.5/);
  assert.match(app,/expectedTiles:all\.length/);
  assert.match(app,/manifest\.levels\.includes\('near'\)/);
+});
+
+test('4x scene fingerprint ignores runtime PNG redecodes while preserving authored revisions',()=>{
+ const key=app.slice(app.indexOf('function frozenSceneKey()'),
+  app.indexOf('function frozenCloudSettings()'));
+ assert.match(key,/assets\.map\(a=>\[a\.path,a\.mtime\]\)/);
+ assert.doesNotMatch(key,/assets\.map\(a=>\[a\.path,a\.mtime,a\.imageRevision/);
+ assert.match(key,/state\.natureInstances/);
+ assert.match(key,/state\.hexTerrain/);
+});
+test('image decoding and sprite-cache layout never trigger a global semantic invalidation',()=>{
+ const semantic=app.slice(app.indexOf('function tileSemanticSignature()'),
+  app.indexOf('let gpuFrame=',app.indexOf('function tileSemanticSignature()')));
+ assert.doesNotMatch(semantic,/frameMemo\.stats\(\)\.revision/);
+ assert.doesNotMatch(semantic,/objectLayoutCache\.stats\(\)\.revision/);
+ assert.match(semantic,/catalogRevision,state\.quality/);
+});
+test('4x whole-map exporter freezes editor mutations and primes source chunks without camera movement',()=>{
+ assert.match(app,/function lockFrozenTourEditor\(lock\)/);
+ assert.match(app,/lockFrozenTourEditor\(true\)/);
+ assert.match(app,/lockFrozenTourEditor\(false\)/);
+ assert.match(app,/if\(frozenTour\?\.offlineOnly\)return/);
+ assert.match(app,/frozen-offline-source-setup/);
+ assert.match(app,/terrainChunks\.prime\(bounds,opts\)/);
+ assert.match(app,/shorelineChunks\.prime\(bounds,opts\)/);
+ assert.match(app,/riverChunks\.prime\(bounds,opts\)/);
+ assert.match(app,/roadChunks\.prime\(bounds,opts\)/);
+ assert.match(app,/if\(!quality4\)\{\s*state\.panX=/);
 });
