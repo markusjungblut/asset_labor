@@ -215,11 +215,16 @@ test('incomplete whole-map archive is explicitly partial and includes named PNG 
   tile:{id:'0,0',x:0,y:0,size:512},revision:'scene-a',
   layers:[{layer:'ground',pad:3,png:new Blob(['ground'])},
    {layer:'scenery',pad:128,png:new Blob(['scenery'])}]});
+ await storage.put({key:scene+'|manifest',schema:1,sceneKey:scene,
+  levels:['mid'],cells:[{q:0,r:0,x:0,y:0,radius:147,visibility:'visible'}],
+  pose:{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85}});
  const result=await window.VedrasFrozenMapPackage.exportMap(
   storage,scene,level,{totalExpected:24});
  assert.equal(result.manifest.complete,false);
  assert.equal(result.manifest.exportedTiles,1);
  assert.equal(result.manifest.expectedTiles,24);
+ assert.equal(result.manifest.cells[0].radius,147);
+ assert.equal(result.manifest.initialPose.zoom,.81);
  assert.equal(result.manifest.tiles[0].layers[0].file,'tiles/mid/0_0.0.png');
  assert.equal(result.manifest.tiles[0].layers[1].file,'tiles/mid/0_0.1.png');
  assert.ok(result.blob.size>100);
