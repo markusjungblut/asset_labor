@@ -3904,7 +3904,7 @@ function frozenSceneKey(){
  // selected Hex, Fog status, cache revisions or dynamic unit positions.
  // A static edit automatically switches to a different frozen-map archive.
  const fields=[
-  worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
+  'game-map-export-renderer-v1',worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
   state.natureInstances,state.mountainInstances,state.hexObject,state.hexShadow,
@@ -3979,6 +3979,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  const run={cancel:false};frozenTour=run;
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
+ $('frozenPlay').disabled=true;
  let totalSaved=0,already=0,missing=0,failed=0,processed=0;
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
@@ -4031,11 +4032,12 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
   frozenTour=null;button.disabled=false;
   $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
+  $('frozenPlay').disabled=false;
   fastLastPrime=0;fastRender();
  }
 });
 $('frozenPlay').addEventListener('click',async()=>{
- if(!frozenMap||frozenMapMode)return;
+ if(!frozenMap||frozenMapMode||frozenTour)return;
  if($('fogPreview')?.checked){
   frozenNotice('Zum isolierten lokalen Spielkarten-Test die Fog-Demo deaktivieren.');return;
  }
