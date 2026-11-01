@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "startedAt": "2026-11-01T15:50:49.155Z",
+  "finishedAt": "2026-11-01T15:50:49.821Z",
+  "sceneAuditReference": "397-hex / 2631-nature / three valid 2026-10-31 warm audits",
+  "platform": "win32",
+  "nodeVersion": "v24.19.0",
+  "branch": "fix/step16b-near-cold-tile-memory-and-readiness-20261101",
+  "sha": "02e0d6ba42a04776030373d30bf0ee566704fbe9",
+  "worktreeDirty": true,
+  "changedPaths": [
+    "?? artifacts/rendering-step16b-native-2026-11-01T15-32-32-895Z-pid22484/",
+    "?? artifacts/rendering-step16b-native-2026-11-01T15-48-02-421Z-pid13452/"
+  ],
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "--test-reporter=tap",
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs",
+    "tests/test_rendering_step16b_global_image_refresh_20261101.cjs",
+    "tests/test_rendering_step16b_live_near_readiness_20261101.cjs"
+  ],
+  "testFiles": [
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs",
+    "tests/test_rendering_step16b_global_image_refresh_20261101.cjs",
+    "tests/test_rendering_step16b_live_near_readiness_20261101.cjs"
+  ],
+  "counts": {
+    "tests": 105,
+    "pass": 105,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "exitCode": 0,
+  "spawnError": null,
+  "passed": true,
+  "warnings": [],
+  "logFile": "node-tests.tap"
+}

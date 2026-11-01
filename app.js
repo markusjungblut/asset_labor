@@ -4501,7 +4501,14 @@ window.VedrasAssetLabor={shadowSprites:{
   state.fogSeed=seed;worldTiles?.setCloudSeed(seed);
   backgroundScene.clear();persistScene(false);requestDraw();
  },
- streamingStats:()=>window.__vedrasStreamingProfile||{},
+ // The retained camera skips draw(), so __vedrasStreamingProfile can be
+ // minutes old. Read current queue/cache counters directly from each
+ // independent chunk renderer; never mistake historical zero 'cached' for
+ // the live situation while diagnosing normal cold terrain streaming.
+ streamingStats:()=>({...window.__vedrasStreamingProfile,
+  terrain:terrainChunks.stats(),shore:shorelineChunks.stats(),
+  rivers:riverChunks.stats(),roads:roadChunks.stats(),
+  current:true}),
  lodStats:()=>({...lodProfile(),...adaptiveLOD.stats(),
   worldTile:worldTiles?.stats().lod??null,
   worldTileDensity:worldTiles?.stats().lodDensity??null}),
