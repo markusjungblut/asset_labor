@@ -168,8 +168,17 @@ window.VedrasWorldTiles=(()=>{
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
   function invalidate(reason='unknown'){
+   // A newly decoded terrain image is not an authored map edit. Invalidating
+   // every finished visible tile and clearing the unchanged Fog policy made
+   // an already-painted viewport turn back into clouds on the 900ms image
+   // readiness debounce. Keep complete *authorized* pixels as stale fallbacks
+   // until the newly prepared source replaces them atomically. An actual
+   // editor/scene/fog mutation still hard-clears the cache.
+   const imageRefresh=reason==='image-ready-ground';
+   const visibleIds=imageRefresh?
+    new Set(visibleTiles.filter(t=>t.visibility!=='unknown').map(t=>t.id)):null;
    trace('tile.invalidate',{scope:'all',reason,epoch,cacheCount:cache.size,
-    pending:queue.size+running.size,lod});
+    pending:queue.size+running.size,lod,retained:imageRefresh});
    lastAgedPriority=null;
    for(const k of retryTimers.keys())cancelRetry(k);
    retries.clear();
@@ -179,8 +188,25 @@ window.VedrasWorldTiles=(()=>{
    for(const k of running.keys())observe(k,'aborted',{reason:'invalidate'});
    epoch++;for(const task of running.values())task.controller?.abort?.();
    running.clear();queue.clear();
-   for(const item of cache.values())release(item.packet);
-   cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
+   if(imageRefresh){
+    for(const [k,item] of cache){
+     if(visibleIds.has(item.tile.id)&&drawable(item)&&!item.packet.preview){
+      item.dirty=true;item.dirtyReason=reason;
+      item.dirtyAt=item.dirtyAt??Date.now();
+      trace('tile.stale-retained',{key:k,id:item.tile.id,
+       level:item.tileLod,reason,epoch});
+     }else{
+      cache.delete(k);pixels-=item.pixels;release(item.packet);
+     }
+    }
+    // Do not erase fogCells or visibleTiles. Only setFogCells may change
+    // authorization. Rendering still clips every retained raster to the
+    // existing authorized Hex mask. Readiness continues to reject dirty.
+   }else{
+    for(const item of cache.values())release(item.packet);
+    cache.clear();pixels=0;visibleTiles=[];fogCells=[];
+   }
+   wantedTiles.clear();
    deferredRevisionTrace.clear();blockedSourceTrace.clear();
   }
   // Diagnostic-only deduplication of transient pending source changes:
