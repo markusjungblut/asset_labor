@@ -61,6 +61,11 @@ function summarizeTrace(trace){
  const assetReady=all.filter(e=>e.type==='asset.invalidate');
  const groundAssets=assetReady.filter(e=>e.detail?.reason==='image-ready-ground');
  const groundPaths=[...new Set(groundAssets.map(e=>e.detail?.path).filter(Boolean))];
+ const groundDependencies=all.filter(e=>e.type==='ground.asset-dependency');
+ const groundDependencyModes=groundDependencies.reduce((out,e)=>{
+  const mode=e.detail?.mode||'unknown';out[mode]=(out[mode]||0)+1;
+  return out;
+ },{});
  const samples=all.filter(e=>['tile.ground-revision-detail',
   'tile.ground-revision-deferred','tile.cache-miss',
   'tile.invalidate','tile.bake'].includes(e.type));
@@ -68,6 +73,8 @@ function summarizeTrace(trace){
   attributionComplete:(trace?.dropped||0)===0,
   groundRevisionDetails:revisions.slice(0,60),
   groundAssetEventCount:groundAssets.length,
+  groundAssetDependencyModes:groundDependencyModes,
+  groundAssetDependencies:groundDependencies.slice(0,30),
   groundAssetPaths:groundPaths.slice(0,60),
   groundAssetEvents:groundAssets.slice(0,30),
   assetEventSamples:[...assetReady.slice(0,15),...assetReady.slice(-15)],
@@ -442,7 +449,13 @@ async function main(){
    ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
      '- '+p.kind+': '+(p.trace?.groundAssetEventCount||0)+
        ' image-ready-ground-Ereignisse; Quellen: '+
-       (p.trace?.groundAssetPaths||[]).join(', ')
+       (p.trace?.groundAssetPaths||[]).join(', '),
+     '- '+p.kind+': Ground-Abhängigkeitsentscheidungen '+
+       JSON.stringify(p.trace?.groundAssetDependencyModes||{}),
+     ...(p.trace?.groundAssetDependencies||[]).map(e=>
+      '  - '+e.detail?.mode+': '+e.detail?.assets+' Dateien, '+
+      e.detail?.changedCells+' Hexfelder, '+e.detail?.changedTiles+
+      ' betroffene World-Tiles')
    ]),
    '','## 4x-Quellrevisionen pro Kachel','',
    ...run.real.filter(p=>p.quality==='4').flatMap(p=>[
