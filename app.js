@@ -787,10 +787,16 @@ function groundTileContentKey(t,level,coreVersion){
 }
 
 function tileSemanticSignature(){
+ // frameMemo.revision changes when an existing PNG is decoded/promoted at
+ // 4x; that is NOT an authored map change. Previously this forced global
+ // WorldTile invalidation, removed complete images and caused cloud flicker
+ // on every small pan. Source revisions are reconciled PER TILE instead.
  return JSON.stringify([
-  frameMemo.stats().revision,
-  state.selected,state.quality,state.objects,state.roadShown,state.river,
+  catalogRevision,state.quality,state.objects,state.roadShown,state.river,
   state.shoreline,state.riverPaths,state.roadEdges,
+  state.hexTerrain,state.biomeTerrain,state.materialScales,
+  state.edgeBlend,state.edgeWidth,state.edgeIrregularity,
+  state.cornerBlend,state.waterSampling,state.relief,
   objectLayoutCache.stats().revision
  ]);
 }
@@ -3911,7 +3917,7 @@ function frozenSceneKey(){
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v2',state.quality==='4'?'atlas-4x':'atlas-native',
+  'game-map-export-renderer-v3-stable-authored',state.quality==='4'?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
@@ -3922,7 +3928,10 @@ function frozenSceneKey(){
   state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
   state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
   catalog.assets,catalog.terrainTypes,catalog.categories,
-  assets.map(a=>[a.path,a.mtime,a.imageRevision||0]).sort((a,b)=>
+  // Runtime imageRevision changes when the SAME source is decoded at a
+  // different resolution or revived after eviction. Only persistent file
+  // identity participates in the authored archive key.
+  assets.map(a=>[a.path,a.mtime]).sort((a,b)=>
    String(a[0]).localeCompare(String(b[0])))
  ];
  const value=JSON.stringify(fields);let h=2166136261;
