@@ -891,7 +891,11 @@ window.VedrasWorldTiles=(()=>{
     g.save();drawKnownPath(0);
     try{
      const painted=drawPreview(g,view,fog,exactReady);
-     if(painted instanceof Set)previewHexes=painted;
+     // The callback may originate from a different VM realm in native
+     // integration tests. Accept any iterable returned by our painter;
+     // never trust IDs to grant Fog rights unless the cell is visible.
+     if(painted&&typeof painted[Symbol.iterator]==='function')
+      previewHexes=new Set(painted);
     }finally{g.restore();previewMs=clock()-previewStart;}
    }
    let covered=0,draws=0;
