@@ -241,11 +241,16 @@ window.VedrasWorldTiles=(()=>{
      // during camera streaming. An actual new prepared revision must be
      // compared against the retained completed packet. Explicit edits still
      // invalidate their affected tiles via invalidateTiles()/invalidate().
+     // A cached shoreline can temporarily disappear from readyTiles()
+     // under cold streaming / LRU just like roads and rivers. It does NOT
+     // mean the authored coast changed. Keep its exact WorldTile until a
+     // new non-pending semantic fingerprint is actually prepared.
+     // Terrain is already excluded when unprepared (no terrain version).
      const temporaryMissing=old.length===4&&next.length===4&&
-      old[0]===next[0]&&old[1]===next[1]&&
-      changed.length>0&&changed.every(field=>{
+      old[0]===next[0]&&changed.length>0&&
+      changed.every(field=>{
        const i=fields.indexOf(field);
-       return i>=2&&old[i]!=='pending'&&old[i]!=='off'&&
+       return i>=1&&old[i]!=='pending'&&old[i]!=='off'&&
         next[i]==='pending';
       });
      if(temporaryMissing){
@@ -254,7 +259,7 @@ window.VedrasWorldTiles=(()=>{
        deferredRevisionTrace.set(k,expected);
        trace('tile.ground-revision-deferred',{
         id:item.tile.id,level:item.tileLod,changed:changed.join(','),
-        reason:'previously-ready-road-or-river-temporarily-unavailable'});
+        reason:'previously-ready-ground-layer-temporarily-unavailable'});
       }
       continue;
      }
@@ -819,11 +824,14 @@ window.VedrasWorldTiles=(()=>{
    const hasMask=Array.isArray(fog)&&typeof g.clip==='function'&&
     (fogConfigured||fog!==fogCells);
    const atmosphere=window.VedrasFogAtmosphere;
-   const drawKnownPath=(halo)=>{
+   const drawKnownPath=(halo,exclude=null)=>{
     if(!hasMask)return;
     g.beginPath();let drawn=0;
     for(const c of fog){
      if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
+     // A textured provisional Hex must not be partly overwritten by an
+     // exact tile rectangle until ALL cores touching the Hex are ready.
+     if(exclude?.has(c.q+','+c.r))continue;
      const x=view.width/2+view.panX+c.x*view.zoom,
       y=view.height/2+view.panY+c.y*view.zoom*proj,
       reach=(c.radius+halo)*view.zoom;
@@ -898,9 +906,18 @@ window.VedrasWorldTiles=(()=>{
       previewHexes=new Set(painted);
     }finally{g.restore();previewMs=clock()-previewStart;}
    }
+   // Promote from provisional material preview to final terrain atomically
+   // PER HEX, never as a square 512-unit core. This prevents the bright
+   // rectangular material boundaries seen during partial completion.
+   const previewPendingHexes=new Set();
+   if(previewHexes.size&&Array.isArray(fog))for(const c of fog){
+    if(c.visibility==='visible'&&previewHexes.has(c.q+','+c.r)&&
+       !exactReady(c))previewPendingHexes.add(c.q+','+c.r);
+   }
    let covered=0,draws=0;
    function layerPass(layers,halo){
-    g.save();drawKnownPath(halo);
+    g.save();drawKnownPath(halo,
+     halo===0&&previewPendingHexes.size?previewPendingHexes:null);
     for(const layer of layers)for(const obj of items)
      for(const asset of obj.item.packet.layers)if(asset.layer===layer){
       // Completed world tiles must be fully opaque. Per-chunk opacity ramps
@@ -983,12 +1000,14 @@ window.VedrasWorldTiles=(()=>{
    }
    painted=draws;frame++;lastMs=clock()-start;
    lastProgress={exact,fallback,provisional,stale,missing,
-    previewHexes:previewHexes.size,previewMs};
+    previewHexes:previewHexes.size,previewPending:previewPendingHexes.size,
+    previewMs};
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
     loaded:items.length,exact,fallback,provisional,stale,missing,
-    previewHexes:previewHexes.size,previewMs,pending:queue.size+running.size};
+    previewHexes:previewHexes.size,previewPending:previewPendingHexes.size,
+    previewMs,pending:queue.size+running.size};
   }
   function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
