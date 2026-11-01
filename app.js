@@ -3993,7 +3993,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  try{
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
    pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y},
-   clouds:frozenCloudSettings()});
+   expectedTiles:all.length,clouds:frozenCloudSettings()});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
