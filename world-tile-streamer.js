@@ -886,7 +886,7 @@ window.VedrasWorldTiles=(()=>{
    // A native-texture per-hex preview can appear before the expensive
    // 850k-pixel blend raster exists. Clip through the SAME authorized hex
    // mask as exact imagery. It is provisional quality, never cached/ready.
-   if(hasMask&&Array.isArray(fog)&&typeof drawPreview==='function'){
+   if(missing>0&&hasMask&&Array.isArray(fog)&&typeof drawPreview==='function'){
     g.save();drawKnownPath(0);
     try{
      const painted=drawPreview(g,view,fog,exactReady);
