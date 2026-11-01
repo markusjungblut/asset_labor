@@ -3941,6 +3941,9 @@ $('frozenCapture').addEventListener('click',async()=>{
  const button=$('frozenCapture');button.disabled=true;
  try{
   const scene=frozenSceneKey();
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
+   levels:[packets[0].level],pose:{zoom:state.zoom,panX:state.panX,
+    panY:state.panY,dpr:state.dpr,projectY:PROJECT_Y}});
   const result=await frozenMap.capture(scene,packets,{onProgress:progress=>
    frozenNotice('Fertige Spielkacheln sichern: '+progress.saved+
     ' / '+progress.total+' · kein Terrain-Worker aktiv durch den Export')});
@@ -3978,6 +3981,13 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
  const scene=frozenSceneKey(),lod=worldTiles?.chooseLod(state.zoom)||'mid';
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
+ try{
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
+   pose:{...pose,dpr:state.dpr,projectY:PROJECT_Y}});
+ }catch(error){
+  frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
+   String(error?.message||error));return;
+ }
  const run={cancel:false};frozenTour=run;
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
@@ -4063,6 +4073,27 @@ $('frozenExport').addEventListener('click',async()=>{
    ' · '+Math.round(result.blob.size/1024/1024)+' MiB');
  }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
  finally{button.disabled=false;}
+});
+$('frozenStandalone').addEventListener('click',async()=>{
+ if(!frozenMap||frozenTour)return;
+ const scene=frozenSceneKey();
+ try{
+  const manifest=await frozenMap.loadManifest(scene);
+  const level=(frozenMapMode?frozenMap.report().level:
+   worldTiles?.stats().lod)||manifest.levels[0];
+  const chosen=manifest.levels.includes(level)?level:manifest.levels[0];
+  const keys=await frozenMap.storage.keys(scene+'|'+chosen+'|');
+  if(!keys.length){
+   frozenNotice('Noch keine fertigen Bildkacheln für den eigenständigen Spielkarten-Test gespeichert.');return;
+  }
+  // Open only on an explicit user click. This is a distinct HTML page;
+  // it does not load app.js, chunks.js or terrain-worker-client.js.
+  const url='frozen-map-game.html?scene='+encodeURIComponent(scene)+
+   '&lod='+encodeURIComponent(chosen);
+  const opened=window.open(url,'_blank','noopener');
+  if(!opened)frozenNotice('Spielkarten-Test: Popup blockiert. Bitte „frozen-map-game.html“ im gleichen lokalen Server öffnen.');
+ }catch(error){frozenNotice('Spielkarten-Test noch nicht vorbereitet: '+
+  String(error?.message||error));}
 });
 $('frozenPlay').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
