@@ -539,8 +539,13 @@ window.VedrasWorldTiles=(()=>{
       (layer.layer==='scenery'||layer.layer==='structures')&&layer.image?.width>0)))return false;
    return accept(tile,level,packet);
   }
+  let playbackPaused=false;
+  function setPlaybackPaused(yes){
+   playbackPaused=!!yes;
+   if(!playbackPaused)pump();
+  }
   function pump(){
-   if(typeof source!=='function')return;
+   if(playbackPaused||typeof source!=='function')return;
    while(running.size<parallelLimit&&queue.size){
     const item=queue.values().next().value;
     queue.delete(item.key);
@@ -1020,8 +1025,9 @@ window.VedrasWorldTiles=(()=>{
    priorityReorders,agedPromotions,discardedObsolete,parallelLimit,
    visiblePreviews,previews,upgraded,progress:{...lastProgress},
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
-   renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
-  return {request,render,seed,exportExactPackets,setSource,setFogCells,setCloudAssets,
+   renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame,
+   playbackPaused};}
+  return {request,render,seed,exportExactPackets,setPlaybackPaused,setSource,setFogCells,setCloudAssets,
     reserveWarmTiles,warmTileStatus,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
