@@ -595,7 +595,7 @@ function stopFastCameraForStrategy(){
  realtimeMap.hide();
 }
 function fastRender(){
- if(frozenMapMode)return;
+ if(frozenMapMode||frozenTour?.offlineOnly)return;
  if(state.mode==='far'||state.view!=='map'){
   if(fastInteracting||tileModeActive)stopFastCameraForStrategy();
   return;
@@ -1241,6 +1241,7 @@ function makePattern(a,patternCtx=ctx){
  return pat;
 }
 function requestDraw(){
+ if(frozenTour?.offlineOnly)return;
  if(frozenMapMode)return; // Frozen game test never invokes editor/Worker baking.
  if(state.mode==='far'&&(fastInteracting||tileModeActive))
   stopFastCameraForStrategy();
@@ -3003,6 +3004,7 @@ function protectCameraImagePool(){
 
 }
 function draw(){
+ if(frozenTour?.offlineOnly)return;
  if(frozenMapMode)return; // A pending editor rAF cannot sneak behind playback.
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
@@ -3987,6 +3989,17 @@ $('frozenCapture').addEventListener('click',async()=>{
 // Each completed exact packet is persisted BEFORE moving the camera away;
 // the bounded 26M-WorldTile LRU is not expected to hold the whole 397-Hex map.
 let frozenTour=null;
+function preventEditorMutationDuringFrozenTour(event){
+ if($('frozenCancel')?.contains(event.target))return;
+ event.preventDefault();event.stopImmediatePropagation();
+}
+const frozenTourLockedEvents=['pointerdown','click','wheel','keydown','change','input'];
+function lockFrozenTourEditor(lock){
+ for(const type of frozenTourLockedEvents){
+  if(lock)document.addEventListener(type,preventEditorMutationDuringFrozenTour,{capture:true,passive:false});
+  else document.removeEventListener(type,preventEditorMutationDuringFrozenTour,true);
+ }
+}
 $('frozenCancel').addEventListener('click',()=>{
  if(frozenTour)frozenTour.cancel=true;
  frozenNotice('Karten-Vorbereitung wird nach dem aktuellen Schritt beendet; bereits gespeicherte PNGs bleiben erhalten.');
@@ -4019,7 +4032,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
  }
- const run={cancel:false,quality:quality4?'4':null};frozenTour=run;
+ const run={cancel:false,quality:quality4?'4':null,offlineOnly:false};
+ frozenTour=run;lockFrozenTourEditor(true);
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
  $('frozenPlay').disabled=true;
@@ -4090,8 +4104,10 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
    '. Bereits gespeicherte PNGs bleiben erhalten.');}
  finally{
+  run.offlineOnly=false;
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
-  frozenTour=null;button.disabled=false;
+  updateTerrainLod(pose.zoom);
+  frozenTour=null;lockFrozenTourEditor(false);button.disabled=false;
   $('frozenCancel').hidden=true;$('frozenCapture').disabled=false;
   $('frozenPlay').disabled=false;
   fastLastPrime=0;fastRender();
