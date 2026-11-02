@@ -111,10 +111,9 @@ window.VedrasFrozenDerived1x=(()=>{
    get:key=>source.get(key),
    getVariant:(key,variant)=>variant==='1x'?get1x(key):source.get(key),
    keys:prefix=>source.keys(prefix),
-   setEnabled:value=>{
-    enabled=value===true;
-    source.setEnabled?.(true);
-   },
+   // The source 2x store owns its own enabled state. The overview
+   // derivative must NOT re-enable 4x→2x conversion for native-2x maps.
+   setEnabled:value=>{enabled=value===true;},
    stats:()=>({...counts,enabled,pending:inFlight.size,
     volatileTiles:volatile.size,volatileBytes,
     source2x:source.stats?.()||null}),
