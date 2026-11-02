@@ -20,7 +20,8 @@ window.VedrasFrozenProfiler=(()=>{
   maxFrames=clamp(Math.round(maxFrames)||2400,60,8000);
   maxTiles=clamp(Math.round(maxTiles)||750,20,3000);
   const frames=[],tileReads=[],inputs={pan:0,zoom:0,other:0};
-  let pendingInput=null,lastFrameTime=null,firstFrameTime=null,recorded=0,
+  let pendingInput=null,lastFrameTime=null,lastFrameActive=false,
+   firstFrameTime=null,recorded=0,
    droppedFrames=0,recordedTiles=0,droppedTiles=0,frameInputs=0,
    activeFrames=0;
   const limited=(buffer,value,max)=>{buffer.push(value);if(buffer.length>max)buffer.shift();};
@@ -36,24 +37,28 @@ window.VedrasFrozenProfiler=(()=>{
    const t=Number.isFinite(data.time)?data.time:now();
    if(firstFrameTime===null)firstFrameTime=t;
    const gap=lastFrameTime!==null?t-lastFrameTime:null;
-   lastFrameTime=t;
    const gesture=pendingInput?.kind||data.gesture||null;
    const delay=pendingInput?Math.max(0,t-pendingInput.at):null;
    if(pendingInput)frameInputs++;
    pendingInput=null;
    const active=gesture!==null||data.active===true;
+   // A frame after seconds of not panning is not a 2-second "jank"
+   // frame. Frame gaps for active input must be CONTIGUOUS.
+   const activeGap=active&&lastFrameActive&&gap!==null&&gap<=350?gap:null;
+   lastFrameTime=t;lastFrameActive=active;
    if(active)activeFrames++;
    const sample={
     tMs:round(t-firstFrameTime),
     kind:gesture||'background',
     active,
     drawMs:round(data.drawMs||0),
-    frameGapMs:Number.isFinite(gap)?round(gap):null,
+    frameGapMs:Number.isFinite(activeGap)?round(activeGap):null,
     inputToDrawEndMs:Number.isFinite(delay)?round(delay):null,
     selectMs:round(data.selectMs||0),
     worldMs:round(data.worldMs||0),
     groundMs:round(data.groundMs||0),
     sceneryMs:round(data.sceneryMs||0),
+    maskMs:round(data.maskMs||0),
     cloudMs:round(data.cloudMs||0),
     fogMs:round(data.fogMs||0),
     statusMs:round(data.statusMs||0),
@@ -93,7 +98,7 @@ window.VedrasFrozenProfiler=(()=>{
   function reset(){
    frames.length=0;tileReads.length=0;
    inputs.pan=inputs.zoom=inputs.other=0;
-   pendingInput=null;lastFrameTime=null;firstFrameTime=null;
+   pendingInput=null;lastFrameTime=null;lastFrameActive=false;firstFrameTime=null;
    recorded=0;droppedFrames=0;recordedTiles=0;droppedTiles=0;
    frameInputs=0;activeFrames=0;
   }
@@ -106,7 +111,7 @@ window.VedrasFrozenProfiler=(()=>{
     };
    const selected=active.length>=5?active:frames;
    const phaseNames=['drawMs','frameGapMs','inputToDrawEndMs','selectMs',
-    'worldMs','groundMs','sceneryMs','cloudMs','fogMs','statusMs'];
+    'worldMs','groundMs','sceneryMs','maskMs','cloudMs','fogMs','statusMs'];
    const phases=Object.fromEntries(phaseNames.map(key=>[key,metric(selected,key)]));
    const readPhases=Object.fromEntries(['storageMs','decodeMs','totalMs'].map(
     key=>[key,metric(tileReads.filter(t=>t.kind==='loaded'),key)]));
@@ -126,7 +131,13 @@ window.VedrasFrozenProfiler=(()=>{
     inputEvents:{...inputs,framesWithInput:frameInputs,activeFrames},
     frameCounts:{stored:frames.length,selected: selected.length,
      active:active.length,renderModes:distinct},
-    phasesMs:phases,tiles:{counts:{
+    phasesMs:phases,
+    byGesture:Object.fromEntries(['pan','zoom'].map(kind=>[kind,{
+     draws:metric(frames.filter(f=>f.kind===kind),'drawMs'),
+     gaps:metric(frames.filter(f=>f.kind===kind),'frameGapMs'),
+     inputLatency:metric(frames.filter(f=>f.kind===kind),'inputToDrawEndMs')
+    }])),
+    tiles:{counts:{
      loaded:tileReads.filter(t=>t.kind==='loaded').length,
      failed:tileReads.filter(t=>t.kind==='failed').length,
      derived2x:tileReads.filter(t=>t.source==='derived2x').length,
