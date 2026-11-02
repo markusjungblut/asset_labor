@@ -93,9 +93,12 @@ window.VedrasFrozenMap=(()=>{
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
-  const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
+  const clouds=window.VedrasCloudArtwork?.create({
+   onReady:()=>{cloudBackdropRaster=null;repaint();}
+  })||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
    return new Promise((resolve,reject)=>{
@@ -112,6 +115,7 @@ window.VedrasFrozenMap=(()=>{
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
+   cloudBackdropHits,cloudBackdropBuilds,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
@@ -120,6 +124,7 @@ window.VedrasFrozenMap=(()=>{
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
+   cloudBackdropRaster=null;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -292,9 +297,47 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
+   cloudBackdropRaster=null;
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
+  }
+  function paintCloudBackdrop(target,view,dpr){
+   if(!clouds)return false;
+   // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
+   // stamps every time a warm 2x game scene pans a few screen pixels.
+   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160,
+    cw=Math.ceil((view.width+pad*2)*dpr),
+    ch=Math.ceil((view.height+pad*2)*dpr);
+   if(cw*ch>6500000||typeof document==='undefined')return false;
+   if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+    c.visibility==='visible'||c.visibility==='explored')
+    .map(c=>c.q+','+c.r));
+   const previous=cloudBackdropRaster;
+   const usable=previous&&previous.zoom===view.zoom&&
+    previous.dpr===dpr&&previous.width===view.width&&
+    previous.height===view.height&&
+    Math.abs(previous.panX-view.panX)<pad-8&&
+    Math.abs(previous.panY-view.panY)<pad-8;
+   if(!usable){
+    const buffer=document.createElement('canvas');
+    buffer.width=cw;buffer.height=ch;
+    const g=buffer.getContext('2d',{alpha:true});
+    if(!g)return false;
+    g.setTransform(dpr,0,0,dpr,0,0);
+    clouds.drawBase(g,{...view,width:view.width+pad*2,
+     height:view.height+pad*2},authoredFogSet);
+    cloudBackdropRaster={canvas:buffer,width:view.width,
+     height:view.height,zoom:view.zoom,dpr,panX:view.panX,
+     panY:view.panY,pad};
+    cloudBackdropBuilds++;
+   }else cloudBackdropHits++;
+   const current=cloudBackdropRaster;
+   const sx=(current.pad+current.panX-view.panX)*dpr,
+    sy=(current.pad+current.panY-view.panY)*dpr;
+   target.drawImage(current.canvas,sx,sy,
+    view.width*dpr,view.height*dpr,0,0,view.width,view.height);
+   return true;
   }
   function paintWorld(g,view,list,dpr){
    const width=view.width,height=view.height,proj=view.projectY||.85;
@@ -436,8 +479,9 @@ window.VedrasFrozenMap=(()=>{
    // During a longer cloud dissolve, cache the static baked landscape
    // even in ordinary detail view when memory permits. Only the lightweight
    // fog overlay then needs to change on animation frames.
-   const rasterPad=viewportPolicy&&
-    (view.zoom<=.52||(dissolveActive&&view.zoom<=1.2))?
+   // Warm panning at ordinary zoom should reuse the same padded world
+   // raster as overview zoom. paintOverview enforces an 8.5 MP memory cap.
+   const rasterPad=viewportPolicy?
     viewportPolicy.cameraCacheMargin(view.zoom):0;
    const worldMargin=Math.max(viewportPolicy?.MARGIN_WORLD||0,
     rasterPad?(rasterPad+45)/view.zoom:0);
@@ -510,10 +554,12 @@ window.VedrasFrozenMap=(()=>{
     }
    }
    if(clouds){
-    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
-     c.visibility==='visible'||c.visibility==='explored')
-     .map(c=>c.q+','+c.r));
-    clouds.drawBase(ctx,view,authoredFogSet);
+    if(!paintCloudBackdrop(ctx,view,dpr)){
+     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+      c.visibility==='visible'||c.visibility==='explored')
+      .map(c=>c.q+','+c.r));
+     clouds.drawBase(ctx,view,authoredFogSet);
+    }
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
     // Normal zoom: draw the two baked world-image layers directly.
