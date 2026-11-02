@@ -1608,8 +1608,7 @@ function drawGround(){
 }
 // Authored scene diagnostics are camera independent and can be cached;
 // visual debug overlays and hex highlighting must still render every frame.
-let groundInfoCache={graph:null,selected:null,relief:null,reliefDebug:null,
- waterSampling:null,edgeWidth:null,river:null,cells:null};
+let groundInfoSemanticKey=null;
 function drawGroundImpl(){
  updateTerrainLod(state.zoom);
  ctx.save();ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
@@ -1839,19 +1838,20 @@ function drawGroundImpl(){
  const shoreMs=performance.now()-shoreStart;
  const diagnosticsStart=performance.now();
  if(state.edgeDebug)window.VedrasAutotile.drawDebug(ctx,graph,{mode:state.transitionDebugMode,band:state.edgeWidth});
- const infoDirty=groundInfoCache.graph!==graph||
-  groundInfoCache.selected!==state.selected||
-  groundInfoCache.relief!==state.relief||
-  groundInfoCache.reliefDebug!==state.relief.debug||
-  groundInfoCache.waterSampling!==state.waterSampling||
-  groundInfoCache.edgeWidth!==state.edgeWidth||
-  groundInfoCache.river!==state.river||
-  groundInfoCache.cells!==worldCells;
- if(infoDirty){
-  groundInfoCache={graph,selected:state.selected,relief:state.relief,
-   reliefDebug:state.relief.debug,waterSampling:state.waterSampling,
-   edgeWidth:state.edgeWidth,river:state.river,cells:worldCells};
- const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.mode==='geography'?'Geografie-Hügelfeld':state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
+ // Decode/imageRevision churn changes the cached graph instance without
+ // changing authored water types, terrain mappings, hexes or relief settings.
+ // Use a SEMANTIC key: avoid a ~350ms catalogue/DOM pass on each image load.
+ const infoSemanticKey=JSON.stringify([
+  state.selected,state.relief,state.waterSampling,state.edgeWidth,state.river,
+  state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,state.hexObject,
+  state.materialScales,state.shoreline,state.edgeBlend,state.blendVariants,
+  state.cornerBlend,state.edgeIrregularity,catalogRevision,
+  worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.reliefClass,
+   c.hillProfile,c.hillStrength,c.sceneWaterTerrain])
+ ]);
+ if(groundInfoSemanticKey!==infoSemanticKey){
+  groundInfoSemanticKey=infoSemanticKey;
+  const reliefLabel=$('reliefStats');if(reliefLabel){const [cq,cr]=state.relief.center.split(',').map(Number),pp=axialPos(cq,cr);reliefLabel.textContent=(state.relief.enabled?'Relief aktiv':'Flachland')+' · Höhe am Reliefzentrum '+reliefHeight(pp.x,pp.y).toFixed(1)+' Welt-Einheiten · '+(state.relief.mode==='geography'?'Geografie-Hügelfeld':state.relief.connected?'hexübergreifend':'lokale Kuppe')+' · Seed '+state.relief.seed;}
  const padLabel=$('buildingPadStats');if(padLabel){
   const houses=genericObjects().filter(o=>o.type==='building');
   if(!state.relief.enabled||!houses.length)padLabel.textContent=state.relief.enabled?'Keine Gebäude in dieser Szene.':'Bauplätze: Relief ausgeschaltet.';
