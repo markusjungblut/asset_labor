@@ -67,6 +67,7 @@ window.VedrasFrozenProfiler=(()=>{
     dpr:round(data.dpr||1),
     canvasPixels:data.canvasPixels||0,
     visibleTiles:data.visibleTiles||0,
+    visibleReadyTiles:data.visibleReadyTiles||0,
     decodedTiles:data.decodedTiles||0,
     pendingTiles:data.pendingTiles||0,
     worldCacheBuilds:data.worldCacheBuilds||0,
@@ -129,6 +130,8 @@ window.VedrasFrozenProfiler=(()=>{
     note:'FrameGap = intervals between rendered frames, not monitor refresh; drawMs is synchronous JS/Canvas call wall time, NOT GPU present/driver upload duration. Input latency is event handler to end of Canvas draw, not physical device-to-photon. Cold converted tile storageMs can INCLUDE 4x read, half-size conversion and IndexedDB write.',
     sampleLimit:{maxFrames,maxTiles,recorded,droppedFrames,recordedTiles,droppedTiles},
     inputEvents:{...inputs,framesWithInput:frameInputs,activeFrames},
+    firstFullyVisibleMs:frames.find(f=>f.visibleTiles>0&&
+     f.visibleReadyTiles===f.visibleTiles)?.tMs??null,
     frameCounts:{stored:frames.length,selected: selected.length,
      active:active.length,renderModes:distinct},
     phasesMs:phases,
