@@ -75,7 +75,7 @@
     ' Noch keine vollständigen Kacheln für diese Detailstufe.');
   player.draw();
  }catch(error){fail(error);return;}
- const setPose=next=>{
+ const setPose=(next,{deferDpr=false}={})=>{
   const prior=player.getPose();
   if(!prior)return;
   const view={...prior,...next};
@@ -84,7 +84,7 @@
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
    baseDpr:2
   }):Math.min(2,view.dpr||1);
-  if(Math.abs(outDpr-(view.dpr||1))>.015){
+  if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
    if(raster)raster.textContent='Raster '+outDpr.toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+'×';
@@ -98,6 +98,7 @@
   // replacing the immediate preview with the high-quality full view.
   if(!player.endZoomPreview({waitForVisible:true,maxHoldMs:950}))
    zoomSettler=setTimeout(settleZoom,55);
+  else setPose({}); // Apply the final 2×/1.25× canvas density ONCE.
  };
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
@@ -106,7 +107,8 @@
   const wx=(x-canvas.clientWidth/2-p.panX)/p.zoom,
    wy=(y-canvas.clientHeight/2-p.panY)/(p.zoom*(p.projectY||.85));
   setPose({zoom,panX:x-canvas.clientWidth/2-wx*zoom,
-   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85)});
+   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85)},
+   {deferDpr:true});
   if(zoomSettler!==null)clearTimeout(zoomSettler);
   zoomSettler=setTimeout(settleZoom,145);
  };
