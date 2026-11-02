@@ -27,7 +27,7 @@ Stand: 02.11.2026 · **Implementiert im Draft-Branch, lokale Firefox-Abnahme aus
 
 `drawGroundImpl()` berechnete bei jedem Aufbau u. a. Nachbarprofil- und Wasserkantenlisten, Gebäudefundamentbeispiele und HTML für das ausgewählte Hex. Im bisherigen Beispiel kostete der gesamte gemessene Diagnoseabschnitt **356 ms**.
 
-`groundInfoCache` überspringt nur diese **informativen DOM-Auswertungen**, wenn Autotile-Graph, ausgewähltes Hex, Reliefobjekt, Wasser- und Uferoptionen sowie Weltzellen unverändert sind. Die echten visuellen Debug-Overlays (Hexraster, Kanten, Auswahl) werden weiterhin pro Renderdurchlauf aktualisiert. Bei Szene-/Auswahländerung aktualisieren sich die Informationsfelder erneut.
+`groundInfoCache` überspringt nur diese **informativen DOM-Auswertungen**, wenn authored Hex-Geometrie, Geländezuordnungen, ausgewähltes Hex, Relief, Wasser- und Uferoptionen unverändert sind. Reine PNG-Dekodierungsrevisionen lösen keinen teuren Neuaufbau der Informationstexte aus. Die echten visuellen Debug-Overlays (Hexraster, Kanten, Auswahl) werden weiterhin pro Renderdurchlauf aktualisiert. Bei Szene-/Auswahländerung aktualisieren sich die Informationsfelder erneut.
 
 **Noch nicht gelöst:** 64 ausstehende Terrain-Chunks, 114 wartende Bildquellen, komplettes großes Hintergrund-/Scenery-Canvas bei kaltem Aufbau. Die Maßnahme allein garantiert noch keine 60 FPS.
 
