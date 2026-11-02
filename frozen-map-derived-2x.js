@@ -43,8 +43,10 @@ window.VedrasFrozenDerived2x=(()=>{
   };
  }
  function createStore({source=window.VedrasFrozenMap.indexedStore()}={}){
-  const open=getDb(),inflight=new Map();
-  const counters={converted:0,hits:0,skipped:0,bytes:0,failures:0,lastError:null};
+  const open=getDb(),inflight=new Map(),volatile=new Map();
+  let volatileBytes=0;
+  const maxVolatileBytes=48*1048576;
+  const counters={converted:0,hits:0,volatileHits:0,bytes:0,failures:0,lastError:null};
   let enabled=false;
   async function job(mode,action){
    const db=await open();
@@ -102,11 +104,28 @@ window.VedrasFrozenDerived2x=(()=>{
    counters.bytes+=layers.reduce((n,l)=>n+(l.png?.size||0),0);
    // A browser storage quota failure must not hide an otherwise valid tile.
    try{await job('readwrite',os=>os.put(derived));}
-   catch(error){counters.failures++;counters.lastError=String(error?.message||error);}
+   catch(error){
+    counters.failures++;counters.lastError=String(error?.message||error);
+    const bytes=layers.reduce((n,l)=>n+(l.png?.size||0),0);
+    // Quota exhaustion must not force constant 4x re-decodes during a pan.
+    // Volatile fallback never touches the immutable original archive.
+    if(bytes<=maxVolatileBytes){
+     volatile.set(key,{record:derived,bytes});volatileBytes+=bytes;
+     while(volatileBytes>maxVolatileBytes&&volatile.size>1){
+      const oldest=volatile.keys().next().value,e=volatile.get(oldest);
+      volatile.delete(oldest);volatileBytes-=e.bytes;
+     }
+    }
+   }
    return derived;
   }
   async function get(key){
    if(!enabled||key.endsWith('|manifest'))return source.get(key);
+   if(volatile.has(key)){
+    const e=volatile.get(key);
+    volatile.delete(key);volatile.set(key,e);
+    counters.volatileHits++;return e.record;
+   }
    try{
     const cached=await job('readonly',os=>os.get(key));
     if(cached?.derivedFormat==='2x-png-v1'){
@@ -122,7 +141,8 @@ window.VedrasFrozenDerived2x=(()=>{
    get,keys:prefix=>source.keys(prefix),
    put:()=>Promise.reject(Error('2×-Abspielcache ist nur lesend; Originalarchiv bleibt unverändert')),
    setEnabled:value=>{enabled=value===true;},
-   stats:()=>({...counters,enabled,pending:inflight.size})
+   stats:()=>({...counters,enabled,pending:inflight.size,
+    volatileTiles:volatile.size,volatileBytes})
   };
  }
  return {DB,scaledCrop,dimensions,createStore};
