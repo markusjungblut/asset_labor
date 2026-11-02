@@ -25,6 +25,10 @@
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
     ' ms pro Bild · 0 Terrain-Bakes · Wolken: '+
     (stats.clouds?.bases??0)+'/4'+
+    ' · Wolkenvorlauf ≥ '+stats.cloudBufferHexes+' Hex'+
+    (stats.cloudDissolveActive?' · Auflösen aktiv':'')+
+    ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
+    stats.overviewRasterBuilds+' Neuaufbauten'+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
