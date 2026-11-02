@@ -724,6 +724,7 @@ window.VedrasFrozenMap=(()=>{
      canvasPixels:dw*dh,visibleTiles:visible.length,
      visibleReadyTiles:tiles.length,
      decodedTiles:decoded.size,pendingTiles:loading.size,
+     activeVariant,decodedPixels,evictions,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
     });
