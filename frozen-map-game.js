@@ -25,6 +25,10 @@
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
     ' ms pro Bild · 0 Terrain-Bakes · Wolken: '+
     (stats.clouds?.bases??0)+'/4'+
+    ' · Wolkenvorlauf ≥ '+stats.cloudBufferHexes+' Hex'+
+    (stats.cloudDissolveActive?' · Auflösen aktiv':'')+
+    ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
+    stats.overviewRasterBuilds+' Neuaufbauten'+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
@@ -49,7 +53,10 @@
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
    const gameDpr=Math.min(2,Math.sqrt(8000000/area),4096/edge);
-   startPose={...startPose,dpr:Math.max(1,gameDpr)};
+   startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
+    window.VedrasFrozenViewPolicy.displayDpr({
+     zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
+     baseDpr:2}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const status=await player.load(scene,lod,startPose,manifest.cells);
@@ -66,7 +73,22 @@
     ' Noch keine vollständigen Kacheln für diese Detailstufe.');
   player.draw();
  }catch(error){fail(error);return;}
- const setPose=next=>player.setPose(next);
+ const setPose=next=>{
+  const prior=player.getPose();
+  if(!prior)return;
+  const view={...prior,...next};
+  const policy=window.VedrasFrozenViewPolicy;
+  const outDpr=policy?policy.displayDpr({
+   zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
+   baseDpr:2
+  }):Math.min(2,view.dpr||1);
+  if(Math.abs(outDpr-(view.dpr||1))>.015){
+   next={...next,dpr:outDpr};
+   const raster=$('rasterQuality');
+   if(raster)raster.textContent='Raster '+outDpr.toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+'×';
+  }
+  player.setPose(next);
+ };
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
   const zoom=Math.min(4,Math.max(.15,p.zoom*factor));
@@ -95,7 +117,7 @@
  });
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
   canvas.addEventListener(evt,()=>{drag=null;});
- window.addEventListener('resize',()=>player.draw());
+ window.addEventListener('resize',()=>setPose({}));
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)player.draw();});
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),

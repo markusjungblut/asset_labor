@@ -89,6 +89,10 @@ window.VedrasFrozenMap=(()=>{
   // the old 30M LRU evicted still-visible tiles on every camera repaint.
   let protectedKeys=new Set();
   const decoded=new Map(),loading=new Set();
+  const viewportPolicy=window.VedrasFrozenViewPolicy||null;
+  const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=560;
+  let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
+  let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
   const decodePNG=decode||(async blob=>{
@@ -102,10 +106,18 @@ window.VedrasFrozenMap=(()=>{
   });
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
-   pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null};}
+   pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
+   cloudDissolveActive:dissolveActive,
+   cloudBufferHexes:viewportPolicy?1:0,
+   overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
+   overviewRasterMiB:overviewRaster?
+    Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
+   revealedAt.clear();unreadyObserved.clear();
+   dissolveActive=false;authoredFogSet=null;
+   authoredEdges=null;overviewRaster=null;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -159,6 +171,129 @@ window.VedrasFrozenMap=(()=>{
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
   }
+  function paintWorld(g,view,list,dpr){
+   const width=view.width,height=view.height,proj=view.projectY||.85;
+   const snap=v=>Math.round(v*dpr)/dpr;
+   g.setTransform(dpr,0,0,dpr,0,0);
+   g.imageSmoothingEnabled=true;
+   g.imageSmoothingQuality=view.zoom<=.52?'medium':'high';
+   // A cached raster has a different screen center from the visible canvas:
+   // recompute coordinates from immutable 512-world-unit tile positions.
+   list=list.map(t=>{
+    const tile=t.entry.record.tile;
+    return {...t,
+     left:snap(width/2+view.panX+tile.x*view.zoom),
+     top:snap(height/2+view.panY+tile.y*view.zoom*proj),
+     right:snap(width/2+view.panX+(tile.x+tile.size)*view.zoom),
+     bottom:snap(height/2+view.panY+(tile.y+tile.size)*view.zoom*proj)};
+   });
+   function clipCells(halo=0){
+    g.beginPath();
+    for(const c of cells){
+     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
+     const x=width/2+view.panX+c.x*view.zoom,
+      y=height/2+view.panY+c.y*view.zoom*proj,
+      rx=(c.radius+halo)*view.zoom,ry=rx*proj;
+     if(x+rx<0||x-rx>width||y+ry<0||y-ry>height)continue;
+     for(let i=0;i<6;i++){
+      const theta=-Math.PI/2+i*Math.PI/3,
+       px=x+rx*Math.cos(theta),py=y+ry*Math.sin(theta);
+      if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
+     }
+     g.closePath();
+    }
+    g.clip();
+   }
+   // Ground uses exclusive device-snapped borders with an infinitesimal
+   // source-gutter overdraw. It covers fractional-DPR seams without changing
+   // the baked terrain content, and never samples outside the original PNG.
+   g.save();clipCells(0);
+   for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
+    const layer=t.entry.record.layers[i];
+    if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
+    const image=t.entry.images[i],pad=Math.max(0,layer.pad||0),
+     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
+    if(pad){
+     const bx=Math.min(.65/dpr,pad*view.zoom*.8),
+      by=Math.min(.65/dpr,pad*view.zoom*proj*.8),
+      sx=image.width*(pad-bx/view.zoom)/(512+2*pad),
+      sy=image.height*(pad-by/(view.zoom*proj))/(512+2*pad),
+      sw=image.width*(512+2*bx/view.zoom)/(512+2*pad),
+      sh=image.height*(512+2*by/(view.zoom*proj))/(512+2*pad);
+     g.drawImage(image,sx,sy,sw,sh,x-bx,y-by,w+2*bx,h+2*by);
+    }else g.drawImage(image,x,y,w,h);
+   }
+   g.restore();
+   // Tree crowns and cast shadows extend beyond the owning 512-unit core.
+   g.save();clipCells(45);
+   for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
+    const layer=t.entry.record.layers[i];
+    if(layer.layer!=='scenery'&&layer.layer!=='structures')continue;
+    const image=t.entry.images[i],pad=layer.pad||0,
+     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top,
+     fx=x-pad*view.zoom,fy=y-pad*view.zoom*proj,
+     fw=w+pad*2*view.zoom,fh=h+pad*2*view.zoom*proj;
+    const c=layer.crop;
+    if(c)g.drawImage(image,fx+fw*c.x/c.fullWidth,
+     fy+fh*c.y/c.fullHeight,fw*image.width/c.fullWidth,
+     fh*image.height/c.fullHeight);
+    else g.drawImage(image,fx,fy,fw,fh);
+   }
+   g.restore();
+  }
+  function paintOverview(target,view,list,dpr){
+   const pad=viewportPolicy.cameraCacheMargin(view.zoom),
+    cw=Math.ceil((view.width+2*pad)*dpr),
+    ch=Math.ceil((view.height+2*pad)*dpr);
+   if(cw*ch>8500000||typeof document==='undefined')return false;
+   const anchorView=overviewRaster&&overviewRaster.zoom===view.zoom&&
+    overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
+    overviewRaster.height===view.height&&
+    Math.abs(overviewRaster.panX-view.panX)<pad-8&&
+    Math.abs(overviewRaster.panY-view.panY)<pad-8?
+     {...view,panX:overviewRaster.panX,panY:overviewRaster.panY}:view;
+   const bufferedBounds=viewportPolicy.screenBounds(anchorView,{
+    marginWorld:(pad+48)/view.zoom});
+   const bufferKeys=[...decoded.entries()].filter(([,entry])=>
+    viewportPolicy.visibleTile(
+     Math.round(entry.record.tile.x/512),Math.round(entry.record.tile.y/512),
+     bufferedBounds)).map(([key])=>key).sort();
+   // Map iteration order is LRU order and changes on every tile read.
+   // Sort to prevent a false raster rebuild during a simple camera pan.
+   const signature=bufferKeys.join(';');
+   const usable=overviewRaster&&overviewRaster.zoom===view.zoom&&
+    overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
+    overviewRaster.height===view.height&&overviewRaster.signature===signature&&
+    Math.abs(overviewRaster.panX-view.panX)<pad-8&&
+    Math.abs(overviewRaster.panY-view.panY)<pad-8;
+   if(usable){
+    overviewHits++;
+   }else{
+    // During cold streaming the exact bitmap contents change for every
+    // completed image; avoid building a multi-megapixel overview atlas on
+    // each step. Build it once when the visible request queue settles.
+    if(loading.size)return false;
+    const buffer=document.createElement('canvas');
+    buffer.width=cw;buffer.height=ch;
+    const g=buffer.getContext('2d',{alpha:true});
+    if(!g)return false;
+    const bufferView={...view,width:view.width+2*pad,
+     height:view.height+2*pad};
+    paintWorld(g,bufferView,bufferKeys.map(key=>({
+     entry:decoded.get(key)
+    })),dpr);
+    overviewRaster={canvas:buffer,width:view.width,height:view.height,
+     zoom:view.zoom,dpr,panX:view.panX,panY:view.panY,
+     signature,pad};
+    overviewBuilds++;
+   }
+   const m=overviewRaster;
+   const sx=(m.pad+m.panX-view.panX)*dpr,
+    sy=(m.pad+m.panY-view.panY)*dpr;
+   target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
+    0,0,view.width,view.height);
+   return true;
+  }
   function draw(){
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
@@ -171,10 +306,22 @@ window.VedrasFrozenMap=(()=>{
    ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
    ctx.imageSmoothingQuality='high';
    const view={...pose,width,height},proj=view.projectY||.85;
-   if(clouds)clouds.drawBase(ctx,view);
+   if(clouds){
+    // Render cloud stamps only outside the authored visible map. They are
+    // completely overpainted by world PNGs inside authorized hexes.
+    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored')
+     .map(c=>c.q+','+c.r));
+    clouds.drawBase(ctx,view,authoredFogSet);
+   }
    else{ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,width,height);}
    const snap=v=>Math.round(v*dpr)/dpr;
-   const visible=[];
+   const visible=[],prefetch=[];
+   const rasterPad=viewportPolicy&&view.zoom<=.52?
+    viewportPolicy.cameraCacheMargin(view.zoom):0;
+   const worldMargin=Math.max(viewportPolicy?.MARGIN_WORLD||0,
+    rasterPad?(rasterPad+45)/view.zoom:0);
+   const extra=viewportPolicy?.screenBounds(view,{marginWorld:worldMargin})||null;
    for(const key of available){
     const tail=key.slice((sceneKey+'|'+level+'|').length);
     const [ix,iy]=tail.split(',').map(Number);
@@ -184,10 +331,17 @@ window.VedrasFrozenMap=(()=>{
      top=snap(height/2+view.panY+y*view.zoom*proj),
      right=snap(width/2+view.panX+(x+512)*view.zoom),
      bottom=snap(height/2+view.panY+(y+512)*view.zoom*proj);
-    if(left>=width||top>=height||right<=0||bottom<=0)continue;
+    if(left>=width||top>=height||right<=0||bottom<=0){
+     // A full authored hex beyond each screen edge is decoded before
+     // the camera arrives. Use world coordinates, not fixed screen pixels,
+     // so the overscan stays correct under distant zoom.
+     if(extra&&viewportPolicy.visibleTile(ix,iy,extra))
+      prefetch.push({key,left,top,right,bottom});
+     continue;
+    }
     visible.push({key,left,top,right,bottom});
    }
-   protectedKeys=new Set(visible.map(t=>t.key));
+   protectedKeys=new Set([...visible,...prefetch].map(t=>t.key));
    keepWithinBudget();
    // Decode the middle of the viewport first when the map opens; always
    // keep already decoded tiles, even when 30M pixels cannot hold all of them.
@@ -202,70 +356,33 @@ window.VedrasFrozenMap=(()=>{
     if(entry)tiles.push({...t,entry});
     else misses++;
    }
-   function clipCells(halo=0){
-    ctx.beginPath();
-    for(const c of cells){
-     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
-     const x=width/2+view.panX+c.x*view.zoom,
-      y=height/2+view.panY+c.y*view.zoom*proj,
-      rx=(c.radius+halo)*view.zoom,ry=rx*proj;
-     if(x+rx<0||x-rx>width||y+ry<0||y-ry>height)continue;
-     for(let i=0;i<6;i++){
-      const theta=-Math.PI/2+i*Math.PI/3,
-       px=x+rx*Math.cos(theta),py=y+ry*Math.sin(theta);
-      if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
-     }
-     ctx.closePath();
-    }
-    ctx.clip();
+   // Demand is ordered after on-screen keys; a new visible packet can
+   // pre-empt speculative work on the next RAF, but previously prefetched
+   // packets remain warm across short camera reversals.
+   prefetch.sort((a,b)=>{
+    const dx=a.left+a.right-width,dy=a.top+a.bottom-height,
+     ex=b.left+b.right-width,ey=b.top+b.bottom-height;
+    return dx*dx+dy*dy-ex*ex-ey*ey;
+   });
+   for(const t of prefetch)read(t.key);
+   if(!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
+    // Normal zoom: draw the two baked world-image layers directly.
+    overviewRaster=null;
+    paintWorld(ctx,view,tiles,dpr);
    }
-   // Ground uses exclusive device-snapped borders with an infinitesimal
-   // source-gutter overdraw. It covers fractional-DPR seams without changing
-   // the baked terrain content, and never samples outside the original PNG.
-   ctx.save();clipCells(0);
-   for(const t of tiles)for(let i=0;i<t.entry.record.layers.length;i++){
-    const layer=t.entry.record.layers[i];
-    if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
-    const image=t.entry.images[i],pad=Math.max(0,layer.pad||0),
-     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
-    if(pad){
-     const bx=Math.min(.65/dpr,pad*view.zoom*.8),
-      by=Math.min(.65/dpr,pad*view.zoom*proj*.8),
-      sx=image.width*(pad-bx/view.zoom)/(512+2*pad),
-      sy=image.height*(pad-by/(view.zoom*proj))/(512+2*pad),
-      sw=image.width*(512+2*bx/view.zoom)/(512+2*pad),
-      sh=image.height*(512+2*by/(view.zoom*proj))/(512+2*pad);
-     ctx.drawImage(image,sx,sy,sw,sh,x-bx,y-by,w+2*bx,h+2*by);
-    }else ctx.drawImage(image,x,y,w,h);
-   }
-   ctx.restore();
-   // Tree crowns and cast shadows extend beyond the owning 512-unit core.
-   ctx.save();clipCells(45);
-   for(const t of tiles)for(let i=0;i<t.entry.record.layers.length;i++){
-    const layer=t.entry.record.layers[i];
-    if(layer.layer!=='scenery'&&layer.layer!=='structures')continue;
-    const image=t.entry.images[i],pad=layer.pad||0,
-     x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top,
-     fx=x-pad*view.zoom,fy=y-pad*view.zoom*proj,
-     fw=w+pad*2*view.zoom,fh=h+pad*2*view.zoom*proj;
-    const c=layer.crop;
-    if(c)ctx.drawImage(image,fx+fw*c.x/c.fullWidth,
-     fy+fh*c.y/c.fullHeight,fw*image.width/c.fullWidth,
-     fh*image.height/c.fullHeight);
-    else ctx.drawImage(image,fx,fy,fw,fh);
-   }
-   ctx.restore();
    if(clouds){
-    const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
-     .map(c=>c.q+','+c.r));
-    const directions=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-    const edges=[];
-    for(const c of cells)if(c.visibility==='visible')
-     for(let direction=0;direction<6;direction++){
-      const d=directions[direction];
-      if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
-       edges.push({q:c.q,r:c.r,direction});
-     }
+    if(!authoredEdges){
+     const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
+      .map(c=>c.q+','+c.r));
+     const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+     authoredEdges=[];
+     for(const c of cells)if(c.visibility==='visible')
+      for(let direction=0;direction<6;direction++){
+       const d=dirs[direction];
+       if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
+        authoredEdges.push({q:c.q,r:c.r,direction});
+      }
+    }
     // Do not reveal a partially loaded hex: both completed PNG layers of
     // every intersecting tile must be decoded before fog retreats.
     const ready=c=>{
@@ -278,11 +395,42 @@ window.VedrasFrozenMap=(()=>{
       }
      return true;
     };
-    clouds.drawUnready(ctx,view,cells,ready);
-    clouds.drawTransitions(ctx,view,edges);
+    dissolveActive=false;
+    const nowFade=typeof performance!=='undefined'?performance.now():Date.now();
+    const fadeOpacity=(cell,isReady)=>{
+     const id=cell.q+','+cell.r;
+     const cx=width/2+view.panX+cell.x*view.zoom,
+      cy=height/2+view.panY+cell.y*view.zoom*proj,
+      r=cell.radius*view.zoom;
+     const onScreen=cx+r>=0&&cx-r<=width&&
+      cy+r*proj>=0&&cy-r*proj<=height;
+     if(!isReady){
+      revealedAt.delete(id);
+      if(onScreen)unreadyObserved.add(id);
+      return 1;
+     }
+     // A READY hex entering the viewport needs no transition at all:
+     // only dissolve the clouds that the player actually saw while waiting.
+     if(!unreadyObserved.has(id))return 0;
+     if(!revealedAt.has(id))revealedAt.set(id,nowFade);
+     const elapsed=Math.max(0,nowFade-revealedAt.get(id));
+     if(elapsed>=DISSOLVE_MS){
+      revealedAt.delete(id);unreadyObserved.delete(id);
+      return 0;
+     }
+     dissolveActive=true;
+     const t=elapsed/DISSOLVE_MS;
+     // Ease opacity down smoothly; the authored cloud artwork's soft
+     // edges make this look like dispersing mist instead of a hard cut.
+     return 1-t*t*(3-2*t);
+    };
+    clouds.drawUnready(ctx,view,cells,ready,fadeOpacity);
+    clouds.drawTransitions(ctx,view,authoredEdges);
    }
    frame++;paintMs=(typeof performance!=='undefined'?performance.now():Date.now())-now;
-   onStatus(report());return report();
+   onStatus(report());
+   if(dissolveActive)repaint();
+   return report();
   }
   async function load(scene,selectedLevel,initialPose,knownCells){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
