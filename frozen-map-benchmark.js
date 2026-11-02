@@ -39,7 +39,7 @@
  };
  function stopIfNeeded(){if(stopped)throw Error('Vom Benutzer abgebrochen');}
  async function hashBlob(blob){
-  if(!crypto?.subtle?.digest)return null;
+  if(typeof crypto==='undefined'||!crypto.subtle?.digest)return null;
   const bytes=await crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
   return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
  }
@@ -55,7 +55,7 @@
   const chosen=pairs.flatMap(p=>p.keys);
   records=[];const origin=[];
   for(const key of chosen){
-   const t=start(),rec=await source.get(key);
+   const t=start(),rec=await source.get(key),readMs=start()-t;
    if(!rec||rec.sceneKey!==scene||rec.level!==level||!Array.isArray(rec.layers)||
       !rec.layers.some(l=>l.layer==='ground')||
       !rec.layers.some(l=>l.layer==='scenery')||
@@ -67,7 +67,7 @@
     fingerprints.push({layer:l.layer,bytes:l.png.size,pad:l.pad||0,
      crop:l.crop||null,sha256:await hashBlob(l.png)});
    }
-   origin.push({id:rec.tile.id,readMs:round(start()-t),
+   origin.push({id:rec.tile.id,readMs:round(readMs),
     files:fingerprints});
   }
   samples.textContent=pairs.map((p,i)=>
