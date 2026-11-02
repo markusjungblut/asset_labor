@@ -346,5 +346,5 @@ window.VedrasFrozenMap=(()=>{
   return {capture,load,stop,draw,report,getPose,setPose,setClouds,
    saveManifest,loadManifest,isActive:()=>active,storage};
  }
- return {create,memoryStore,valid,makeKey};
+ return {create,memoryStore,indexedStore,valid,makeKey};
 })();
