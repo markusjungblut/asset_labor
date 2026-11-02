@@ -90,9 +90,10 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const decoded=new Map(),loading=new Set();
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;
-  const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=560;
+  const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
   const decodePNG=decode||(async blob=>{
@@ -108,6 +109,7 @@ window.VedrasFrozenMap=(()=>{
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
+   zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewRasterMiB:overviewRaster?
@@ -117,7 +119,7 @@ window.VedrasFrozenMap=(()=>{
    decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
-   authoredEdges=null;overviewRaster=null;
+   authoredEdges=null;overviewRaster=null;zoomPreview=null;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -164,6 +166,51 @@ window.VedrasFrozenMap=(()=>{
    return null;
   }
   function getPose(){return pose?{...pose}:null;}
+  function beginZoomPreview(){
+   if(zoomPreview||!active||!pose||typeof document==='undefined'||
+      !canvas.width||!canvas.height)return !!zoomPreview;
+   // The snapshot contains ONLY pixels already shown by the authorized
+   // viewer, including its existing fog. Never fetch hidden terrain here.
+   const maxPixels=4000000,
+    scale=Math.min(1,Math.sqrt(maxPixels/(canvas.width*canvas.height)));
+   const image=document.createElement('canvas');
+   image.width=Math.max(1,Math.round(canvas.width*scale));
+   image.height=Math.max(1,Math.round(canvas.height*scale));
+   const g=image.getContext('2d',{alpha:true});
+   if(!g)return false;
+   g.drawImage(canvas,0,0,image.width,image.height);
+   const bounds=canvas.getBoundingClientRect?.()||{
+    width:canvas.width/(pose.dpr||1),height:canvas.height/(pose.dpr||1)};
+   zoomPreview={image,pose:{...pose},
+    width:Math.max(1,Math.floor(bounds.width)),
+    height:Math.max(1,Math.floor(bounds.height))};
+   zoomPreviewStarted=typeof performance!=='undefined'?performance.now():Date.now();
+   return true;
+  }
+  function previewNeedsData(){
+   if(!zoomPreview||!pose)return false;
+   const b=canvas.getBoundingClientRect?.()||{
+    width:canvas.width/(pose.dpr||1),height:canvas.height/(pose.dpr||1)};
+   const bounds=viewportPolicy?.screenBounds({
+    ...pose,width:Math.max(1,Math.floor(b.width)),
+    height:Math.max(1,Math.floor(b.height))
+   },{marginWorld:0});
+   if(!bounds)return false;
+   for(const key of available){
+    const tail=key.slice((sceneKey+'|'+level+'|').length);
+    const [ix,iy]=tail.split(',').map(Number);
+    if(Number.isSafeInteger(ix)&&Number.isSafeInteger(iy)&&
+       viewportPolicy.visibleTile(ix,iy,bounds)&&!decoded.has(key))return true;
+   }
+   return false;
+  }
+  function endZoomPreview({waitForVisible=false,maxHoldMs=950}={}){
+   if(!zoomPreview)return true;
+   const now=typeof performance!=='undefined'?performance.now():Date.now();
+   if(waitForVisible&&now-zoomPreviewStarted<maxHoldMs&&previewNeedsData())
+    return false;
+   zoomPreview=null;repaint();return true;
+  }
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
@@ -306,15 +353,6 @@ window.VedrasFrozenMap=(()=>{
    ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
    ctx.imageSmoothingQuality='high';
    const view={...pose,width,height},proj=view.projectY||.85;
-   if(clouds){
-    // Render cloud stamps only outside the authored visible map. They are
-    // completely overpainted by world PNGs inside authorized hexes.
-    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
-     c.visibility==='visible'||c.visibility==='explored')
-     .map(c=>c.q+','+c.r));
-    clouds.drawBase(ctx,view,authoredFogSet);
-   }
-   else{ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,width,height);}
    const snap=v=>Math.round(v*dpr)/dpr;
    const visible=[],prefetch=[];
    const rasterPad=viewportPolicy&&view.zoom<=.52?
@@ -365,6 +403,29 @@ window.VedrasFrozenMap=(()=>{
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
    for(const t of prefetch)read(t.key);
+   if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
+    // Continuous wheel gesture: transform one authorized canvas snapshot
+    // instead of recomputing every Ground/Scenery and cloud stamp per tick.
+    // While previewing, tile reads above still warm the destination area.
+    const from=zoomPreview.pose,
+     ratio=view.zoom/(from.zoom||1),
+     ox=width/2+view.panX-ratio*(width/2+from.panX),
+     oy=height/2+view.panY-ratio*(height/2+from.panY);
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#bdced7';ctx.fillRect(0,0,width,height);
+    ctx.drawImage(zoomPreview.image,ox,oy,width*ratio,height*ratio);
+    zoomPreviewFrames++;
+    frame++;paintMs=(typeof performance!=='undefined'?
+     performance.now():Date.now())-now;
+    onStatus(report());
+    return report();
+   }
+   if(clouds){
+    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored')
+     .map(c=>c.q+','+c.r));
+    clouds.drawBase(ctx,view,authoredFogSet);
+   }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
     // Normal zoom: draw the two baked world-image layers directly.
     overviewRaster=null;
@@ -492,6 +553,7 @@ window.VedrasFrozenMap=(()=>{
    return {saved,skipped,rejected,total:packets.length};
   }
   return {capture,load,stop,draw,report,getPose,setPose,setClouds,
+   beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,isActive:()=>active,storage};
  }
  return {create,memoryStore,indexedStore,valid,makeKey};
