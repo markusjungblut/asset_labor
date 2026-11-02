@@ -257,7 +257,9 @@ window.VedrasFrozenMap=(()=>{
    const bufferKeys=[...decoded.entries()].filter(([,entry])=>
     viewportPolicy.visibleTile(
      Math.round(entry.record.tile.x/512),Math.round(entry.record.tile.y/512),
-     bufferedBounds)).map(([key])=>key);
+     bufferedBounds)).map(([key])=>key).sort();
+   // Map iteration order is LRU order and changes on every tile read.
+   // Sort to prevent a false raster rebuild during a simple camera pan.
    const signature=bufferKeys.join(';');
    const usable=overviewRaster&&overviewRaster.zoom===view.zoom&&
     overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
@@ -277,10 +279,9 @@ window.VedrasFrozenMap=(()=>{
     if(!g)return false;
     const bufferView={...view,width:view.width+2*pad,
      height:view.height+2*pad};
-    const keySet=new Set(bufferKeys);
-    paintWorld(g,bufferView,[...decoded.entries()]
-     .filter(([key])=>keySet.has(key))
-     .map(([,entry])=>({entry})),dpr);
+    paintWorld(g,bufferView,bufferKeys.map(key=>({
+     entry:decoded.get(key)
+    })),dpr);
     overviewRaster={canvas:buffer,width:view.width,height:view.height,
      zoom:view.zoom,dpr,panX:view.panX,panY:view.panY,
      signature,pad};
