@@ -145,7 +145,7 @@ test('runtime remains independent from editor, source baking and multiplayer fog
  assert.match(runtime,/bufferKeys\.join\(';\'\)/);
  assert.match(runtime,/bufferedBounds\)\)\.map\(\(\[key\]\)=>key\)\.sort\(\)/);
  assert.match(html,/frozen-map-view-policy\.js/);
- assert.match(html,/step21-overscan-cache/);
+ assert.match(html,/<script src="frozen-map-runtime\\.js\\?v=/);
  assert.doesNotMatch(runtime,/drawGround\(|drawRoads\(|bakeWorldTile\(/);
  assert.doesNotMatch(file('frozen-map-view-policy.js'),/source\.put\(/);
 });
