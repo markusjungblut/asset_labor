@@ -34,8 +34,8 @@
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
-  startPose={...startPose,dpr:Math.min(4,Math.max(1,
-   Number(startPose.dpr)||1,devicePixelRatio||1))};
+  // Original 4× baked PNGs stay as-is. Display raster is capped at 2×.
+   startPose={...startPose,dpr:Math.min(2,Math.max(1,devicePixelRatio||1))};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const status=await player.load(scene,lod,startPose,manifest.cells);
