@@ -16,9 +16,12 @@
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
+ // Optional A/B reference: identical source layers, no cached composites.
+ // Never modifies or clears the derived PNGs in IndexedDB.
+ const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,storage:twoXStore,
+  canvas,storage:twoXStore,useLayerCache:!directRenderer,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -75,6 +78,7 @@
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
+   (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
