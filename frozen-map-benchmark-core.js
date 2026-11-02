@@ -19,7 +19,18 @@ window.VedrasAtlasBenchmarkCore=(()=>{
   const [x,y]=id.split(',').map(Number);
   return Number.isSafeInteger(x)&&Number.isSafeInteger(y)?{x,y}:null;
  }
- function choosePairs(keys,count=5){
+ // Prefer actual inhabited map tiles. The previous geographically spread
+ // sampler selected 8 effectively EMPTY outer-ring tiles in the real atlas.
+ // Authored hex center coverage is available in the frozen manifest without
+ // reading or decoding hundreds of multi-megabyte PNG packets.
+ function tileHexCoverage(tile,cells){
+  if(!Array.isArray(cells))return 0;
+  const left=tile.x*512,top=tile.y*512;
+  return cells.reduce((n,c)=>n+(
+   Number.isFinite(c.x)&&Number.isFinite(c.y)&&
+   c.x>=left&&c.x<left+512&&c.y>=top&&c.y<top+512?1:0),0);
+ }
+ function choosePairs(keys,count=5,cells=[]){
   const tiles=new Map();
   for(const key of keys||[]){
    const id=idFromKey(key),at=tileIndex(id);
@@ -34,17 +45,32 @@ window.VedrasAtlasBenchmarkCore=(()=>{
    }
   }
   pairs.sort((a,b)=>a.x-b.x||a.y-b.y);
+  // Require at least two authored hex centres inside EACH tile whenever
+  // enough pairs exist; sparse perimeter tiles must not dominate the test.
+  let candidates=pairs;
+  if(Array.isArray(cells)&&cells.length){
+   for(const p of pairs){
+    const ca=tileHexCoverage(tiles.get(p.ids[0]),cells);
+    const cb=tileHexCoverage(tiles.get(p.ids[1]),cells);
+    p.coverage=Math.min(ca,cb);p.cellCount=ca+cb;
+   }
+   const rich=pairs.filter(p=>p.coverage>=2);
+   const moderate=pairs.filter(p=>p.coverage>=1);
+   candidates=rich.length>=count?rich:moderate.length>=count?moderate:pairs;
+  }
   const chosen=[],used=new Set();
   while(chosen.length<Math.max(1,count)){
-   const remaining=pairs.filter(pair=>pair.ids.every(id=>!used.has(id)));
+   const remaining=candidates.filter(pair=>pair.ids.every(id=>!used.has(id)));
    if(!remaining.length)break;
    let best=remaining[0],bestScore=-Infinity;
    for(const pair of remaining){
-    const score=chosen.length?
+    const distance=chosen.length?
      Math.min(...chosen.map(p=>(p.x-pair.x)**2+(p.y-pair.y)**2)):
-     // Deterministic first choice near center of actual tile distribution.
      -((pair.x-(pairs[0].x+pairs.at(-1).x)/2)**2+
        (pair.y-(pairs[0].y+pairs.at(-1).y)/2)**2);
+    // When the map has known hex geometry, coverage wins ties while the
+    // geographically separated sample still explores several regions.
+    const score=distance+(pair.coverage||0)*.1+(pair.cellCount||0)*.005;
     if(score>bestScore){bestScore=score;best=pair;}
    }
    chosen.push(best);
@@ -98,6 +124,6 @@ window.VedrasAtlasBenchmarkCore=(()=>{
   return {left:c.x/c.fullWidth,top:c.y/c.fullHeight,
    width:imgWidth/c.fullWidth,height:imgHeight/c.fullHeight};
  }
- return {VARIANTS,idFromKey,tileIndex,choosePairs,cropLayerMetadata,
+ return {VARIANTS,idFromKey,tileIndex,tileHexCoverage,choosePairs,cropLayerMetadata,
   resizeLayerMetadata,alphaBounds,quantile,visibleTiles,sceneryRect};
 })();
