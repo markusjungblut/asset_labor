@@ -8,6 +8,9 @@ body{display:flex;flex-direction:column}
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#14272c;border-bottom:1px solid #48615b}
 h1{font-size:1rem;margin:0}small{color:#a4bfb5}
 .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Reserve room for variable status labels without moving the toolbar. */
+#zoom{display:inline-block;min-width:5ch;text-align:center;font-variant-numeric:tabular-nums}
+#rasterQuality{display:inline-block;min-width:10ch;text-align:center;white-space:nowrap}
 button,a{font:inherit;color:#e9f6ec;background:#254f43;border:1px solid #577e6c;border-radius:6px;padding:7px 10px;text-decoration:none;cursor:pointer}
 button:hover,a:hover{background:#367058}
 button:disabled{opacity:.5;cursor:not-allowed}
