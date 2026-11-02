@@ -24,19 +24,22 @@
   return;
  }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
+ const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
+ const overview1x=params.get('overview1x')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,storage:twoXStore,useLayerCache:!directRenderer,profiler,
+  canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
+  overview1x,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
    const now=performance.now();
    if(stats.frames>1&&now-lastStatusPaint<180)return;
    lastStatusPaint=now;
-   const optimized=twoXStore.stats();
+   const optimized=twoXStore.stats(),overview=oneXStore.stats();
    metrics.textContent=stats.decoded+' / '+stats.saved+
     ' gespeicherte Tiles im Bildspeicher · '+stats.pending+
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
@@ -54,6 +57,11 @@
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
      (optimized.failures?' · Speicherwarnungen '+optimized.failures:''):'')+
+    (overview1x?' · LOD '+stats.activeVariant+
+     ' · 1×-Cache '+overview.hits+' / '+overview.converted:
+     ' · 1×-LOD deaktiviert')+
+    ' · 1×/2× im RAM '+stats.decoded1x+'/'+stats.decoded2x+
+    ' · Evictions '+stats.evictions+
     (profiler?' · Profilframes: '+profiler.stats().frames:'');
    metrics.title=metrics.textContent;
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
@@ -69,6 +77,7 @@
   // Derive 2× images ONLY for legacy full 4× near PNG sources.
   // The originals and the manifest continue to live in the original DB.
   twoXStore.setEnabled(lod==='near'&&Number(manifest.pose?.dpr)>=3);
+  oneXStore.setEnabled(overview1x&&lod==='near');
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
@@ -217,7 +226,8 @@
    viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
-   runtime:player.report(),derived2x:twoXStore.stats()
+   runtime:player.report(),derived2x:twoXStore.stats(),
+   derived1x:oneXStore.stats(),overview1x
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
@@ -242,6 +252,7 @@
   stats:()=>player.report(),pose:()=>player.getPose(),
   profileReport,profileReset,profileStatus,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
-  readOnly:true,scene,derived2x:()=>twoXStore.stats()
+  readOnly:true,scene,derived2x:()=>twoXStore.stats(),
+  derived1x:()=>oneXStore.stats()
  };
 })();
