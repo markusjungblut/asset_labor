@@ -89,6 +89,9 @@ window.VedrasFrozenMap=(()=>{
   // the old 30M LRU evicted still-visible tiles on every camera repaint.
   let protectedKeys=new Set();
   const decoded=new Map(),loading=new Set();
+  const viewportPolicy=window.VedrasFrozenViewPolicy||null;
+  const revealedAt=new Map(),DISSOLVE_MS=560;
+  let dissolveActive=false,authoredFogSet=null;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
   const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
   const decodePNG=decode||(async blob=>{
@@ -102,10 +105,13 @@ window.VedrasFrozenMap=(()=>{
   });
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
-   pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null};}
+   pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
+   cloudDissolveActive:dissolveActive,
+   cloudBufferHexes:viewportPolicy?1:0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
+   revealedAt.clear();dissolveActive=false;authoredFogSet=null;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -171,10 +177,18 @@ window.VedrasFrozenMap=(()=>{
    ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
    ctx.imageSmoothingQuality='high';
    const view={...pose,width,height},proj=view.projectY||.85;
-   if(clouds)clouds.drawBase(ctx,view);
+   if(clouds){
+    // Render cloud stamps only outside the authored visible map. They are
+    // completely overpainted by world PNGs inside authorized hexes.
+    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored')
+     .map(c=>c.q+','+c.r));
+    clouds.drawBase(ctx,view,authoredFogSet);
+   }
    else{ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,width,height);}
    const snap=v=>Math.round(v*dpr)/dpr;
-   const visible=[];
+   const visible=[],prefetch=[];
+   const extra=viewportPolicy?.screenBounds(view)||null;
    for(const key of available){
     const tail=key.slice((sceneKey+'|'+level+'|').length);
     const [ix,iy]=tail.split(',').map(Number);
@@ -184,10 +198,17 @@ window.VedrasFrozenMap=(()=>{
      top=snap(height/2+view.panY+y*view.zoom*proj),
      right=snap(width/2+view.panX+(x+512)*view.zoom),
      bottom=snap(height/2+view.panY+(y+512)*view.zoom*proj);
-    if(left>=width||top>=height||right<=0||bottom<=0)continue;
+    if(left>=width||top>=height||right<=0||bottom<=0){
+     // A full authored hex beyond each screen edge is decoded before
+     // the camera arrives. Use world coordinates, not fixed screen pixels,
+     // so the overscan stays correct under distant zoom.
+     if(extra&&viewportPolicy.visibleTile(ix,iy,extra))
+      prefetch.push({key,left,top,right,bottom});
+     continue;
+    }
     visible.push({key,left,top,right,bottom});
    }
-   protectedKeys=new Set(visible.map(t=>t.key));
+   protectedKeys=new Set([...visible,...prefetch].map(t=>t.key));
    keepWithinBudget();
    // Decode the middle of the viewport first when the map opens; always
    // keep already decoded tiles, even when 30M pixels cannot hold all of them.
@@ -202,6 +223,15 @@ window.VedrasFrozenMap=(()=>{
     if(entry)tiles.push({...t,entry});
     else misses++;
    }
+   // Demand is ordered after on-screen keys; a new visible packet can
+   // pre-empt speculative work on the next RAF, but previously prefetched
+   // packets remain warm across short camera reversals.
+   prefetch.sort((a,b)=>{
+    const dx=a.left+a.right-width,dy=a.top+a.bottom-height,
+     ex=b.left+b.right-width,ey=b.top+b.bottom-height;
+    return dx*dx+dy*dy-ex*ex-ey*ey;
+   });
+   for(const t of prefetch)read(t.key);
    function clipCells(halo=0){
     ctx.beginPath();
     for(const c of cells){
@@ -278,11 +308,30 @@ window.VedrasFrozenMap=(()=>{
       }
      return true;
     };
-    clouds.drawUnready(ctx,view,cells,ready);
+    dissolveActive=false;
+    const nowFade=typeof performance!=='undefined'?performance.now():Date.now();
+    const fadeOpacity=(cell,isReady)=>{
+     const id=cell.q+','+cell.r;
+     if(!isReady){
+      revealedAt.delete(id);
+      return 1;
+     }
+     if(!revealedAt.has(id))revealedAt.set(id,nowFade);
+     const elapsed=Math.max(0,nowFade-revealedAt.get(id));
+     if(elapsed>=DISSOLVE_MS)return 0;
+     dissolveActive=true;
+     const t=elapsed/DISSOLVE_MS;
+     // Ease opacity down smoothly; the authored cloud artwork's soft
+     // edges make this look like dispersing mist instead of a hard cut.
+     return 1-t*t*(3-2*t);
+    };
+    clouds.drawUnready(ctx,view,cells,ready,fadeOpacity);
     clouds.drawTransitions(ctx,view,edges);
    }
    frame++;paintMs=(typeof performance!=='undefined'?performance.now():Date.now())-now;
-   onStatus(report());return report();
+   onStatus(report());
+   if(dissolveActive)repaint();
+   return report();
   }
   async function load(scene,selectedLevel,initialPose,knownCells){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
