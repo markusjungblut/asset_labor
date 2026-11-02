@@ -15,14 +15,20 @@
   metrics.textContent='Kein Terrain-Worker aktiv';
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
+ const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const player=window.VedrasFrozenMap.create({
-  canvas,
+  canvas,storage:twoXStore,
   onStatus:stats=>{
+   const optimized=twoXStore.stats();
    metrics.textContent=stats.decoded+' / '+stats.saved+
     ' gespeicherte Tiles im Bildspeicher · '+stats.pending+
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
     ' ms pro Bild · 0 Terrain-Bakes · Wolken: '+
-    (stats.clouds?.bases??0)+'/4';
+    (stats.clouds?.bases??0)+'/4'+
+    (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
+     optimized.converted+' einmalig erzeugt'+
+     (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
+     (optimized.failures?' · Speicherwarnungen '+optimized.failures:''):'');
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
@@ -31,17 +37,27 @@
   const manifest=await player.loadManifest(scene);
   const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
    manifest.levels[0];
+  // Derive 2× images ONLY for legacy full 4× near PNG sources.
+  // The originals and the manifest continue to live in the original DB.
+  twoXStore.setEnabled(lod==='near'&&Number(manifest.pose?.dpr)>=3);
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
-  startPose={...startPose,dpr:Math.min(4,Math.max(1,
-   Number(startPose.dpr)||1,devicePixelRatio||1))};
+  // 2× is the deliberate GAME quality standard, even on 1× desktop
+   // monitors. Limit huge windows by an 8 MP backing budget / 4096px edge.
+   // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
+   const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
+   const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
+   const gameDpr=Math.min(2,Math.sqrt(8000000/area),4096/edge);
+   startPose={...startPose,dpr:Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const status=await player.load(scene,lod,startPose,manifest.cells);
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
-  output.textContent='Gespeicherte Karte '+scene+' · '+lod+' · '+
+  output.textContent=(twoXStore.stats().enabled?
+   '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
+   'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
    (manifest.expectedTiles!=null&&status.saved<manifest.expectedTiles?
@@ -84,6 +100,6 @@
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
-  readOnly:true,scene
+  readOnly:true,scene,derived2x:()=>twoXStore.stats()
  };
 })();
