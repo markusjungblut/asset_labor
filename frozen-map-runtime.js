@@ -408,7 +408,9 @@ window.VedrasFrozenMap=(()=>{
    // Ground uses exclusive device-snapped borders with an infinitesimal
    // source-gutter overdraw. It covers fractional-DPR seams without changing
    // the baked terrain content, and never samples outside the original PNG.
+   const groundClipStart=profileFrame?clock():0;
    g.save();clipCells(0);
+   if(profileFrame)profileFrame.maskMs+=clock()-groundClipStart;
    const groundStarted=profileFrame?clock():0;
    for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
     const layer=t.entry.record.layers[i];
@@ -428,7 +430,9 @@ window.VedrasFrozenMap=(()=>{
    g.restore();
    if(profileFrame)profileFrame.groundMs+=clock()-groundStarted;
    // Tree crowns and cast shadows extend beyond the owning 512-unit core.
+   const sceneryClipStart=profileFrame?clock():0;
    g.save();clipCells(45);
+   if(profileFrame)profileFrame.maskMs+=clock()-sceneryClipStart;
    const sceneryStarted=profileFrame?clock():0;
    for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
     const layer=t.entry.record.layers[i];
@@ -507,7 +511,7 @@ window.VedrasFrozenMap=(()=>{
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    profileFrame=profiler?{selectMs:0,worldMs:0,groundMs:0,sceneryMs:0,
-    worldPainterMs:0,cloudMs:0,fogMs:0,statusMs:0}:null;
+    maskMs:0,worldPainterMs:0,cloudMs:0,fogMs:0,statusMs:0}:null;
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
    const dpr=Math.max(1,Math.min(4,pose.dpr||1));
