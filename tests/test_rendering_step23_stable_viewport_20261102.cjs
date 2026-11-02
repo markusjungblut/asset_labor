@@ -129,7 +129,7 @@ test('extreme one-step zoom-out renders the real map rather than a square',async
  p.stop();
 });
 test('2x original atlas stays read-only and preview is fog-clipped',()=>{
- assert.match(game,/beginZoomPreview\(\{zoomOut:zoom<p\.zoom\}\)/);
+ assert.doesNotMatch(game,/player\.beginZoomPreview\(/);
  assert.match(runtime,/paintWorld\(g,extendedView,shown,backingDpr\)/);
  assert.match(runtime,/clouds\.drawTransitions\(g,extendedView,frontierEdges\(\)\)/);
  assert.match(runtime,/clouds\.drawUnready\(g,extendedView,cells,isHexReady/);
@@ -140,12 +140,11 @@ test('2x original atlas stays read-only and preview is fog-clipped',()=>{
   assert.doesNotThrow(()=>new Function(script));
 });
 
-test('panning and status labels cannot resize layout during camera movement',()=>{
+test('panning is a live world raster rather than frozen 4-MP screenshot',()=>{
  assert.ok(html.includes('min-width:10ch;text-align:center;white-space:nowrap'));
  assert.ok(game.includes('metrics.title=metrics.textContent'));
- assert.ok(game.includes('player.beginZoomPreview({zoomOut:true})'));
- assert.ok(game.includes('const finishPan=()=>'));
- assert.ok(game.includes('zoomSettler=setTimeout(settleZoom,90)'));
- assert.ok(runtime.includes('outsideBuffer=zoomOut&&('));
- assert.ok(runtime.includes('Math.abs(pose.panX-previous.pose.panX)>previous.padX*.85'));
+ assert.ok(!game.includes('player.beginZoomPreview('));
+ assert.ok(game.includes('setPose({panX:p.panX+dx,panY:p.panY+dy}'));
+ assert.ok(game.includes("for(const evt of ['pointerup','pointercancel','lostpointercapture'])"));
+ assert.ok(runtime.includes('list=[...list].sort'));
 });

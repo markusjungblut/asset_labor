@@ -16,9 +16,12 @@
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
+ // Optional A/B reference: identical source layers, no cached composites.
+ // Never modifies or clears the derived PNGs in IndexedDB.
+ const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,storage:twoXStore,
+  canvas,storage:twoXStore,useLayerCache:!directRenderer,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -75,6 +78,7 @@
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
+   (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -104,30 +108,30 @@
  let zoomSettler=null;
  const settleZoom=()=>{
   zoomSettler=null;
-  // Wait briefly for tiles newly covered by zoom-out to decode before
-  // replacing the immediate preview with the high-quality full view.
-  if(!player.endZoomPreview({waitForVisible:true,maxHoldMs:950}))
-   zoomSettler=setTimeout(settleZoom,55);
-  else setPose({}); // Apply the final 2×/1.25× canvas density ONCE.
+  // Final canvas backing density is calculated only once after wheel idle.
+  // Live world layers (never a blurry screenshot) remain visible throughout.
+  setPose({});
  };
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
   const zoom=Math.min(4,Math.max(.15,p.zoom*factor));
-  player.beginZoomPreview({zoomOut:zoom<p.zoom});
   const wx=(x-canvas.clientWidth/2-p.panX)/p.zoom,
    wy=(y-canvas.clientHeight/2-p.panY)/(p.zoom*(p.projectY||.85));
+  // Keep the backing raster at a bounded overview-like scale while the
+  // wheel is active; recompute the REAL scene every animation frame.
+  // Avoid repeatedly reallocating the display canvas during the gesture.
+  const gestureDpr=Math.min(p.dpr||2,1.25);
   setPose({zoom,panX:x-canvas.clientWidth/2-wx*zoom,
-   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85)},
-   {deferDpr:true});
+   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85),
+   dpr:gestureDpr},{deferDpr:true});
   if(zoomSettler!==null)clearTimeout(zoomSettler);
-  zoomSettler=setTimeout(settleZoom,145);
+  zoomSettler=setTimeout(settleZoom,130);
  };
  $('zoomIn').addEventListener('click',()=>onZoom(1.15));
  $('zoomOut').addEventListener('click',()=>onZoom(1/1.15));
  $('resetView').addEventListener('click',()=>{
   if(zoomSettler!==null)clearTimeout(zoomSettler);
   zoomSettler=null;
-  player.endZoomPreview();
   setPose(startPose);
  });
  canvas.addEventListener('wheel',e=>{
@@ -136,31 +140,22 @@
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
  canvas.addEventListener('pointerdown',e=>{
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY,
-   startX:e.clientX,startY:e.clientY,active:false};
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
   if(!drag||drag.id!==e.pointerId)return;
-  if(!drag.active&&Math.hypot(
-   e.clientX-drag.startX,e.clientY-drag.startY)<3)return;
-  const p=player.getPose(),dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-  if(!p)return;
-  // While dragging, move an already authorized buffered image. New tiles
-  // are still prefetched without recompositing scenery and clouds per move.
-  player.beginZoomPreview({zoomOut:true});
-  drag={...drag,x:e.clientX,y:e.clientY,active:true};
+  const p=player.getPose();if(!p)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!dx&&!dy)return;
+  drag.x=e.clientX;drag.y=e.clientY;
+  // Do not scale a 4-MP low-res snapshot across 2x scenery. Instead move
+  // the real camera and let the padded world/cloud raster caches repaint.
+  // Tile reads, fog readiness and fades continue WHILE dragging.
   setPose({panX:p.panX+dx,panY:p.panY+dy},{deferDpr:true});
  });
- const finishPan=()=>{
-  const moved=drag?.active;
-  drag=null;
-  if(!moved)return;
-  if(zoomSettler!==null)clearTimeout(zoomSettler);
-  zoomSettler=setTimeout(settleZoom,90);
- };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
-  canvas.addEventListener(evt,finishPan);
+  canvas.addEventListener(evt,()=>{drag=null;});
  // Layout-driven statistics never trigger a resize. Genuine viewport size
  // changes preserve the current world pose and all decoded image tiles;
  // repaint at most once per animation frame.
@@ -175,7 +170,6 @@
    if(w===lastViewportW&&h===lastViewportH)return;
    lastViewportW=w;lastViewportH=h;
    if(zoomSettler!==null){clearTimeout(zoomSettler);zoomSettler=null;}
-   player.endZoomPreview();
    setPose({});
   });
  };
