@@ -501,7 +501,7 @@ window.VedrasFrozenMap=(()=>{
     profileFrame.worldPainterMs+=clock()-worldStart;
    }
   }
-  function paintOverview(target,view,list,dpr){
+  function paintOverview(target,view,list,dpr,visibleComplete=false){
    const pad=viewportPolicy.cameraCacheMargin(view.zoom),
     cw=Math.ceil((view.width+2*pad)*dpr),
     ch=Math.ceil((view.height+2*pad)*dpr);
@@ -541,7 +541,9 @@ window.VedrasFrozenMap=(()=>{
     // During cold streaming the exact bitmap contents change for every
     // completed image; avoid building a multi-megapixel overview atlas on
     // each step. Build it once when the visible request queue settles.
-    if(loading.size)return false;
+    // Pending OFFSCREEN prefetch must not disable the world raster after
+    // every currently visible tile is already decoded.
+    if(loading.size&&!visibleComplete)return false;
     const buffer=document.createElement('canvas');
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
@@ -682,7 +684,7 @@ window.VedrasFrozenMap=(()=>{
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
    const worldCompositeStart=profileFrame?clock():0;
-   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
+   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
     // Cold streaming paints the real terrain; the completed viewport is
     // then cached at full resolution without a blurred snapshot.
     worldCacheFallbackFrames++;
@@ -742,7 +744,10 @@ window.VedrasFrozenMap=(()=>{
      decodedTiles:decoded.size,pendingTiles:loading.size,
      activeVariant,decodedPixels,evictions,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
-     cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
+     cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
+     worldCacheFallbackFrames,cloudCacheFallbackFrames,
+     worldRasterMiB:currentReport.overviewRasterMiB,
+     cloudRasterMiB:currentReport.cloudBackdropMiB
     });
    }
    profileFrame=null;
