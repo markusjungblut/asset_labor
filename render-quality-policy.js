@@ -13,11 +13,11 @@ window.VedrasRenderQuality=(()=>{
   '3':Object.freeze({requested:3,budget:14000000,terrainPx:1024,spritePx:2048}),
   '4':Object.freeze({requested:4,budget:14000000,terrainPx:1536,spritePx:2048})
  });
- function resolve({quality='fast',width,height,devicePixelRatio=1,
+ function resolve({quality='2',width,height,devicePixelRatio=1,
    natureCount=0,objects=true,final=false}={}){
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)
    throw Error('Render quality requires positive viewport dimensions');
-  const kind=String(quality) in profiles?String(quality):'fast';
+  const kind=String(quality) in profiles?String(quality):'2';
   const profile=profiles[kind];
   const highDensity=objects&&natureCount>500;
   // Keep the dense-scene two-layer budget bounded. Unlike the obsolete
