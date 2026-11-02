@@ -43,6 +43,7 @@
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
      (optimized.failures?' · Speicherwarnungen '+optimized.failures:''):'');
+   metrics.title=metrics.textContent;
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
@@ -81,6 +82,7 @@
     ' Karte UNVOLLSTÄNDIG: Fehlende Regionen bleiben unter Wolken. Im Asset-Labor fehlende Kacheln nachberechnen.':
     status.saved?' Kamera verschieben und zoomen.':
     ' Noch keine vollständigen Kacheln für diese Detailstufe.');
+  output.title=output.textContent;
   player.draw();
  }catch(error){fail(error);return;}
  const setPose=(next,{deferDpr=false}={})=>{
