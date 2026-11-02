@@ -79,7 +79,7 @@ window.VedrasFrozenMap=(()=>{
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
-    maxDecodedPixels=30000000}={}){
+    maxDecodedPixels=30000000,useLayerCache=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -114,6 +114,7 @@ window.VedrasFrozenMap=(()=>{
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
+   renderMode:useLayerCache?'cached':'direct',
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    cloudBackdropHits,cloudBackdropBuilds,
@@ -570,14 +571,14 @@ window.VedrasFrozenMap=(()=>{
     }
    }
    if(clouds){
-    if(!paintCloudBackdrop(ctx,view,dpr)){
+    if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
      if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
       c.visibility==='visible'||c.visibility==='explored')
       .map(c=>c.q+','+c.r));
      clouds.drawBase(ctx,view,authoredFogSet);
     }
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
-   if(!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
+   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
     // Normal zoom: draw the two baked world-image layers directly.
     overviewRaster=null;
     paintWorld(ctx,view,tiles,dpr);
