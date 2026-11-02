@@ -46,3 +46,31 @@ Originaldarstellung (25C an): `http://127.0.0.1:8780/frozen-map-game.html?scene=
 ## Prüfstatus
 
 Isolierter V8-Laufzeitversuch mit 9 gespeicherten WorldTiles und dem ultrabreiten **2859×929**-Viewport, Zoom 96%, DPR 1.735: Neuer Wolkencache 4274×1862 (~7.96MP), voller World-Raster 5932×2584 (~15.33MP). Beide werden **genau einmal** angelegt; nächstes Kamerapanning (+12,+5) erhöht `overviewRasterHits` und `cloudBackdropHits` ohne erneuten Vollzeichenvorgang. `worldCacheFallbackFrames` und `cloudCacheFallbackFrames` bleiben dabei konstant. Die Node-Regression liegt im Repo. Native Node- und Windows-Firefox-End-to-End-Abnahme **noch offen**. PR bleibt Draft.
+
+
+## Nutzerabnahme nach 25C: echte Firefox-Messung
+
+Aus Upload `vedras_profile_v1-0374527a_cached(3).json` (2026-11-02 16:23:44Z), gleiche Testszene und Fenster 2859×929 CSS, **917 Frames, 489 Pan- und 71 Zoom-Eingaben**. `firstFullyVisibleMs=1206` gegenüber ~6658ms im vorherigen Profil; das vorige Profil enthielt aber den erstmaligen 1×-Umbau, dieses nicht – kein isolierter Startzeit-Benchmark.
+
+| Metrik | vorher Step25B (cold 1×) | Step25C (warm 1×) | Befund |
+|---|---:|---:|---|
+| `drawMs p95` | 156ms | **6ms** | Großer Welt- und Wolken-Canvas-Bottleneck entfernt |
+| `worldMs p95` | 77ms | **1ms** | Welt-Hits statt Vollzeichner |
+| `cloudMs p95` | 74ms | **4ms** | Wolken-Backdrop-Hits |
+| `frameGapMs p95` | 172ms | **259ms** | Trotz schnelleren Zeichnens immer noch hängende Darstellung |
+| `decodeMs p95` | 778ms (enthielt 120 1×-Konvertierungen) | **79ms** (vollständig warmer 1×-Cache) | Decode unabhängig von Convert immer noch dominant |
+| Kachelladevorgänge | 524 | **797** | Unterschiedliche Gesten, kein normalisierter Vergleich |
+| Kachelverdrängungen | 465 | **731** | Sichtbare Re-Decode-/Eviction-Last |
+
+Im 25C-Bericht liegen **490** aktive Frame-Gap-Messungen vor:
+- Wenn `pendingTiles=0`: 318 Messungen, p50 **17ms**, p95 **54.9ms**, nur **10** Gaps >100ms.
+- Wenn `pendingTiles>0`: 172 Messungen, p50 **57.5ms**, p95 **290.7ms**, **74** Gaps >100ms.
+- Besonders bei Zoom **0.77×** (61 aktive Frames, p95 Gap ~309ms) und **0.70×** (35, p95 ~323ms) ist `pendingTiles` beinahe dauerhaft >0; bei **0.48×** (294 aktive Frames) p95 Gap ~52ms und nur ~5% der Frames enthalten laufende Tile-Anforderungen. Diese auffällige Korrelation rechtfertigt **Decode-/Eviction-Churn als Hauptarbeitsfeld** statt weiteres Draw-Microtuning. Sie beweist nicht allein, ob die tatsächliche Blockierung durch Firefox ImageBitmap-Decode, GPU-Upload, GC oder Input-/Event-Loop-Starvation entsteht. Auch direktes `drawMs` misst weder tatsächliche GPU-Präsentation noch Display-FPS.
+
+Weltcache `overviewRasterHits=501`, `overviewRasterBuilds=198`, Wolken `cloudBackdropHits=561`, `cloudBackdropBuilds=45`. Die zusätzlichen Builds sind bei Lade-/Zoomwechseln erwartbar, sollten später jedoch als sekundäres Cache-Invalidierungsproblem isoliert optimiert werden. Roh-Loads `797` unter liegen 750 detaillierte `tileReads`, 47 Einträge wurden vom Profiler-Limit verworfen.
+
+**Zusätzliche Testkorrektur:** Ursprünglicher Node-Test `test_rendering_step25b_lod_retention_20261102.cjs` konnte bei `awaitReads()` zu früh am Ende eines Dreier-Batches (`pending=0`, nur `decoded1x=3`) stoppen, weil die Testumgebung `requestAnimationFrame` unterdrückt. Geändert auf Warten bis **9** 1×-Kacheln plus stabilem weiterem `draw()`; isolierte V8-Reproduktion erfolgreich. Korrigiert in **beiden** Branches #111 und #112. Noch kein erneutes natives Node-Ergebnis des Nutzers.
+
+### Weiterer Schritt (in Roadmap festhalten, nicht ungemessen im 25C-PR hineinmischen)
+
+**25D: Speicherresidenten-Tiles und Dekodierpipeline**: Messung für spekulative Offscreen-Reads vs. tatsächlich sichtbare Tile-Anfragen erweitern; Eviction→Reload pro logischem Tile verfolgen; Budget-/Prefetch-Policy so anpassen, dass mehrfaches Dekodieren kurz zuvor verworfener 2×-Tiles bei 70–93 % vermieden wird, ohne die sichtbare Full-Resolution-Welt oder Fog-Sicherheit zu beeinträchtigen. Keine blind größere Cache-Grenze, kein Atlas-Rebake. Das neue Profil macht klar, dass ein weiterer reiner Canvas-Cache-Patch das 259ms-Gap-Problem nicht lösen wird.
