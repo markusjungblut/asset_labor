@@ -90,7 +90,7 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const decoded=new Map(),loading=new Set();
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;
-  const revealedAt=new Map(),DISSOLVE_MS=560;
+  const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=560;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
@@ -115,7 +115,8 @@ window.VedrasFrozenMap=(()=>{
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
-   revealedAt.clear();dissolveActive=false;authoredFogSet=null;
+   revealedAt.clear();unreadyObserved.clear();
+   dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;
   }
   const repaint=()=>{
@@ -245,7 +246,13 @@ window.VedrasFrozenMap=(()=>{
     cw=Math.ceil((view.width+2*pad)*dpr),
     ch=Math.ceil((view.height+2*pad)*dpr);
    if(cw*ch>8500000||typeof document==='undefined')return false;
-   const bufferedBounds=viewportPolicy.screenBounds(view,{
+   const anchorView=overviewRaster&&overviewRaster.zoom===view.zoom&&
+    overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
+    overviewRaster.height===view.height&&
+    Math.abs(overviewRaster.panX-view.panX)<pad-8&&
+    Math.abs(overviewRaster.panY-view.panY)<pad-8?
+     {...view,panX:overviewRaster.panX,panY:overviewRaster.panY}:view;
+   const bufferedBounds=viewportPolicy.screenBounds(anchorView,{
     marginWorld:(pad+48)/view.zoom});
    const bufferKeys=[...decoded.entries()].filter(([,entry])=>
     viewportPolicy.visibleTile(
@@ -260,6 +267,10 @@ window.VedrasFrozenMap=(()=>{
    if(usable){
     overviewHits++;
    }else{
+    // During cold streaming the exact bitmap contents change for every
+    // completed image; avoid building a multi-megapixel overview atlas on
+    // each step. Build it once when the visible request queue settles.
+    if(loading.size)return false;
     const buffer=document.createElement('canvas');
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
@@ -359,16 +370,18 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(ctx,view,tiles,dpr);
    }
    if(clouds){
-    const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
-     .map(c=>c.q+','+c.r));
-    const directions=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-    const edges=[];
-    for(const c of cells)if(c.visibility==='visible')
-     for(let direction=0;direction<6;direction++){
-      const d=directions[direction];
-      if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
-       edges.push({q:c.q,r:c.r,direction});
-     }
+    if(!authoredEdges){
+     const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
+      .map(c=>c.q+','+c.r));
+     const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+     authoredEdges=[];
+     for(const c of cells)if(c.visibility==='visible')
+      for(let direction=0;direction<6;direction++){
+       const d=dirs[direction];
+       if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
+        authoredEdges.push({q:c.q,r:c.r,direction});
+      }
+    }
     // Do not reveal a partially loaded hex: both completed PNG layers of
     // every intersecting tile must be decoded before fog retreats.
     const ready=c=>{
@@ -385,13 +398,25 @@ window.VedrasFrozenMap=(()=>{
     const nowFade=typeof performance!=='undefined'?performance.now():Date.now();
     const fadeOpacity=(cell,isReady)=>{
      const id=cell.q+','+cell.r;
+     const cx=width/2+view.panX+cell.x*view.zoom,
+      cy=height/2+view.panY+cell.y*view.zoom*proj,
+      r=cell.radius*view.zoom;
+     const onScreen=cx+r>=0&&cx-r<=width&&
+      cy+r*proj>=0&&cy-r*proj<=height;
      if(!isReady){
       revealedAt.delete(id);
+      if(onScreen)unreadyObserved.add(id);
       return 1;
      }
+     // A READY hex entering the viewport needs no transition at all:
+     // only dissolve the clouds that the player actually saw while waiting.
+     if(!unreadyObserved.has(id))return 0;
      if(!revealedAt.has(id))revealedAt.set(id,nowFade);
      const elapsed=Math.max(0,nowFade-revealedAt.get(id));
-     if(elapsed>=DISSOLVE_MS)return 0;
+     if(elapsed>=DISSOLVE_MS){
+      revealedAt.delete(id);unreadyObserved.delete(id);
+      return 0;
+     }
      dissolveActive=true;
      const t=elapsed/DISSOLVE_MS;
      // Ease opacity down smoothly; the authored cloud artwork's soft
@@ -399,7 +424,7 @@ window.VedrasFrozenMap=(()=>{
      return 1-t*t*(3-2*t);
     };
     clouds.drawUnready(ctx,view,cells,ready,fadeOpacity);
-    clouds.drawTransitions(ctx,view,edges);
+    clouds.drawTransitions(ctx,view,authoredEdges);
    }
    frame++;paintMs=(typeof performance!=='undefined'?performance.now():Date.now())-now;
    onStatus(report());
