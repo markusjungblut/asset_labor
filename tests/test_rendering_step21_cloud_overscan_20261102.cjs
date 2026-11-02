@@ -87,10 +87,25 @@ test('warm far-zoom camera reuses one cached scene raster during short pans',asy
  await player.load('v1-0374527a','near',
   {zoom:.30,panX:0,panY:0,dpr:1.25,projectY:.85},
   [{q:0,r:0,x:256,y:256,radius:140,visibility:'visible'}]);
- player.draw();await new Promise(resolve=>setTimeout(resolve,0));
+ // The mock intentionally disables requestAnimationFrame, so the normal
+ // browser-driven load chain is not advanced automatically. The renderer
+ // requests only 3 tile packets per draw and deliberately skips the panorama
+ // build while any packet is still in flight. Drive the mocked cold stream
+ // until all 9 fixture tiles have actually decoded, then test WARM panning.
+ const total=9;
+ for(let attempt=0;attempt<30;attempt++){
+  player.draw();
+  await new Promise(resolve=>setImmediate(resolve));
+  const progress=player.report();
+  if(progress.decoded===total&&progress.pending===0)break;
+ }
+ const ready=player.report();
+ assert.equal(ready.decoded,total,
+  'all requested fixture tiles should finish decoding before warm-cache assertions');
+ assert.equal(ready.pending,0,'warm scene must have no in-flight tile decodes');
  player.draw();
  const before=player.report();
- assert.ok(before.overviewRasterBuilds>=1,'overview should be prepared');
+ assert.ok(before.overviewRasterBuilds>=1,'overview should be prepared after load settles');
  for(let i=1;i<=5;i++){
   player.setPose({panX:i*5,panY:i*3});player.draw();
  }
