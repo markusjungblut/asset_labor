@@ -80,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false}={}){
+    overview1x=false,largeViewportCache=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -107,6 +107,9 @@ window.VedrasFrozenMap=(()=>{
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
+  let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
+  const worldRasterLimit=largeViewportCache?16500000:8500000;
+  const cloudRasterLimit=largeViewportCache?8500000:6500000;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0,
    evictions=0,profileFrame=null;
@@ -135,6 +138,11 @@ window.VedrasFrozenMap=(()=>{
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    cloudBackdropHits,cloudBackdropBuilds,
+   worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
+   worldRasterLimit,cloudRasterLimit,
+   cloudBackdropMiB:cloudBackdropRaster?
+    Math.round(cloudBackdropRaster.canvas.width*
+     cloudBackdropRaster.canvas.height*4/1048576):0,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
@@ -367,16 +375,20 @@ window.VedrasFrozenMap=(()=>{
    if(!clouds)return false;
    // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
    // stamps every time a warm 2x game scene pans a few screen pixels.
-   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160,
-    cw=Math.ceil((view.width+pad*2)*dpr),
-    ch=Math.ceil((view.height+pad*2)*dpr);
-   if(cw*ch>6500000||typeof document==='undefined')return false;
+   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
+   // Backdrop clouds are soft artwork; 1.25x is enough even when
+   // the fully detailed world layers require more than 1.25x.
+   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr,
+    cw=Math.ceil((view.width+pad*2)*cacheDpr),
+    ch=Math.ceil((view.height+pad*2)*cacheDpr);
+   if(cw*ch>cloudRasterLimit||cw>8192||ch>8192||
+      typeof document==='undefined')return false;
    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
     c.visibility==='visible'||c.visibility==='explored')
     .map(c=>c.q+','+c.r));
    const previous=cloudBackdropRaster;
    const usable=previous&&previous.zoom===view.zoom&&
-    previous.dpr===dpr&&previous.width===view.width&&
+    previous.dpr===cacheDpr&&previous.width===view.width&&
     previous.height===view.height&&
     Math.abs(previous.panX-view.panX)<pad-8&&
     Math.abs(previous.panY-view.panY)<pad-8;
@@ -385,19 +397,19 @@ window.VedrasFrozenMap=(()=>{
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
     if(!g)return false;
-    g.setTransform(dpr,0,0,dpr,0,0);
+    g.setTransform(cacheDpr,0,0,cacheDpr,0,0);
     clouds.drawBase(g,{...view,width:view.width+pad*2,
      height:view.height+pad*2},authoredFogSet);
     cloudBackdropRaster={canvas:buffer,width:view.width,
-     height:view.height,zoom:view.zoom,dpr,panX:view.panX,
+     height:view.height,zoom:view.zoom,dpr:cacheDpr,panX:view.panX,
      panY:view.panY,pad};
     cloudBackdropBuilds++;
    }else cloudBackdropHits++;
    const current=cloudBackdropRaster;
-   const sx=(current.pad+current.panX-view.panX)*dpr,
-    sy=(current.pad+current.panY-view.panY)*dpr;
+   const sx=(current.pad+current.panX-view.panX)*cacheDpr,
+    sy=(current.pad+current.panY-view.panY)*cacheDpr;
    target.drawImage(current.canvas,sx,sy,
-    view.width*dpr,view.height*dpr,0,0,view.width,view.height);
+    view.width*cacheDpr,view.height*cacheDpr,0,0,view.width,view.height);
    return true;
   }
   function paintWorld(g,view,list,dpr){
@@ -493,7 +505,8 @@ window.VedrasFrozenMap=(()=>{
    const pad=viewportPolicy.cameraCacheMargin(view.zoom),
     cw=Math.ceil((view.width+2*pad)*dpr),
     ch=Math.ceil((view.height+2*pad)*dpr);
-   if(cw*ch>8500000||typeof document==='undefined')return false;
+   if(cw*ch>worldRasterLimit||cw>8192||ch>8192||
+      typeof document==='undefined')return false;
    const anchorView=overviewRaster&&overviewRaster.zoom===view.zoom&&
     overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
     overviewRaster.height===view.height&&
@@ -660,6 +673,7 @@ window.VedrasFrozenMap=(()=>{
    const cloudStart=profileFrame?clock():0;
    if(clouds){
     if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
+     cloudCacheFallbackFrames++;
      if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
       c.visibility==='visible'||c.visibility==='explored')
       .map(c=>c.q+','+c.r));
@@ -669,7 +683,9 @@ window.VedrasFrozenMap=(()=>{
    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
    const worldCompositeStart=profileFrame?clock():0;
    if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
-    // Normal zoom: draw the two baked world-image layers directly.
+    // Cold streaming paints the real terrain; the completed viewport is
+    // then cached at full resolution without a blurred snapshot.
+    worldCacheFallbackFrames++;
     overviewRaster=null;
     paintWorld(ctx,view,tiles,dpr);
    }
