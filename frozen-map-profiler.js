@@ -76,7 +76,11 @@ window.VedrasFrozenProfiler=(()=>{
     worldCacheBuilds:data.worldCacheBuilds||0,
     worldCacheHits:data.worldCacheHits||0,
     cloudCacheBuilds:data.cloudCacheBuilds||0,
-    cloudCacheHits:data.cloudCacheHits||0
+    cloudCacheHits:data.cloudCacheHits||0,
+    worldCacheFallbackFrames:data.worldCacheFallbackFrames||0,
+    cloudCacheFallbackFrames:data.cloudCacheFallbackFrames||0,
+    worldRasterMiB:data.worldRasterMiB||0,
+    cloudRasterMiB:data.cloudRasterMiB||0
    };
    recorded++;
    if(frames.length>=maxFrames)droppedFrames++;
