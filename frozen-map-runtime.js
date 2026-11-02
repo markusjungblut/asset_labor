@@ -93,9 +93,12 @@ window.VedrasFrozenMap=(()=>{
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
-  const clouds=window.VedrasCloudArtwork?.create({onReady:()=>repaint()})||null;
+  const clouds=window.VedrasCloudArtwork?.create({
+   onReady:()=>{cloudBackdropRaster=null;repaint();}
+  })||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
    return new Promise((resolve,reject)=>{
@@ -112,6 +115,7 @@ window.VedrasFrozenMap=(()=>{
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
+   cloudBackdropHits,cloudBackdropBuilds,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
@@ -120,6 +124,7 @@ window.VedrasFrozenMap=(()=>{
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
+   cloudBackdropRaster=null;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -166,24 +171,102 @@ window.VedrasFrozenMap=(()=>{
    return null;
   }
   function getPose(){return pose?{...pose}:null;}
-  function beginZoomPreview(){
-   if(zoomPreview||!active||!pose||typeof document==='undefined'||
-      !canvas.width||!canvas.height)return !!zoomPreview;
-   // The snapshot contains ONLY pixels already shown by the authorized
-   // viewer, including its existing fog. Never fetch hidden terrain here.
-   const maxPixels=4000000,
-    scale=Math.min(1,Math.sqrt(maxPixels/(canvas.width*canvas.height)));
-   const image=document.createElement('canvas');
-   image.width=Math.max(1,Math.round(canvas.width*scale));
-   image.height=Math.max(1,Math.round(canvas.height*scale));
-   const g=image.getContext('2d',{alpha:true});
-   if(!g)return false;
-   g.drawImage(canvas,0,0,image.width,image.height);
+  function isHexReady(c){
+   if(c.visibility!=='visible')return false;
+   const half=c.radius*Math.sqrt(3)/2-.01;
+   for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
+    for(let iy=Math.floor((c.y-c.radius+.01)/512);
+     iy<=Math.floor((c.y+c.radius-.01)/512);iy++)
+     if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
+   return true;
+  }
+  function frontierEdges(){
+   if(authoredEdges)return authoredEdges;
+   const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
+    .map(c=>c.q+','+c.r));
+   const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+   authoredEdges=[];
+   for(const c of cells)if(c.visibility==='visible')
+    for(let direction=0;direction<6;direction++){
+     const d=dirs[direction];
+     if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
+      authoredEdges.push({q:c.q,r:c.r,direction});
+    }
+   return authoredEdges;
+  }
+  function zoomSnapshotOpacity(c,isReady){
+   if(!isReady)return 1;
+   const id=c.q+','+c.r;
+   if(!unreadyObserved.has(id))return 0;
+   const at=revealedAt.get(id);
+   if(at==null)return 1;
+   const t=Math.max(0,Math.min(1,
+    ((typeof performance!=='undefined'?performance.now():Date.now())-at)/DISSOLVE_MS));
+   return 1-t*t*(3-2*t);
+  }
+  function beginZoomPreview({zoomOut=false}={}){
+   if(!active||!pose||typeof document==='undefined'||
+      !canvas.width||!canvas.height)return false;
+   if(zoomPreview){
+    // Rebase at most once per significant camera travel. A drag or a long
+    // zoom gesture should never outrun its temporary world overscan.
+    const previous=zoomPreview;
+    const sourceRatio=pose.zoom/previous.pose.zoom;
+    const outsideBuffer=zoomOut&&(
+     sourceRatio<.40||
+     Math.abs(pose.panX-previous.pose.panX)>previous.padX*.85||
+     Math.abs(pose.panY-previous.pose.panY)>previous.padY*.85);
+    if(!outsideBuffer)return true;
+    zoomPreview=null;
+   }
    const bounds=canvas.getBoundingClientRect?.()||{
     width:canvas.width/(pose.dpr||1),height:canvas.height/(pose.dpr||1)};
-   zoomPreview={image,pose:{...pose},
-    width:Math.max(1,Math.floor(bounds.width)),
-    height:Math.max(1,Math.floor(bounds.height))};
+   const width=Math.max(1,Math.floor(bounds.width)),
+    height=Math.max(1,Math.floor(bounds.height));
+   // A screen-only screenshot becomes a visible square on zoom-out because
+   // it covers LESS than the destination viewport. Capture more *world*
+   // around it, with fog and authorization clipping already applied.
+   const padX=zoomOut?Math.ceil(width*1.45):0,
+    padY=zoomOut?Math.ceil(height*1.45):0;
+   const extendedWidth=width+2*padX,extendedHeight=height+2*padY,
+    maxPixels=4000000;
+   const backingDpr=Math.min(pose.dpr||1,1,
+    Math.sqrt(maxPixels/(extendedWidth*extendedHeight)));
+   const image=document.createElement('canvas');
+   image.width=Math.max(1,Math.round(extendedWidth*backingDpr));
+   image.height=Math.max(1,Math.round(extendedHeight*backingDpr));
+   const g=image.getContext('2d',{alpha:true});
+   if(!g)return false;
+   const extendedView={...pose,width:extendedWidth,height:extendedHeight};
+   if(zoomOut){
+    g.setTransform(backingDpr,0,0,backingDpr,0,0);
+    if(clouds){
+     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+      c.visibility==='visible'||c.visibility==='explored')
+      .map(c=>c.q+','+c.r));
+     clouds.drawBase(g,extendedView,authoredFogSet);
+    }else{
+     g.fillStyle='#bdced7';g.fillRect(0,0,extendedWidth,extendedHeight);
+    }
+    const region=viewportPolicy?.screenBounds(extendedView,{
+     marginWorld:viewportPolicy.MARGIN_WORLD});
+    const shown=[...decoded.values()].filter(entry=>{
+     const t=entry.record.tile;
+     return !region||viewportPolicy.visibleTile(
+      Math.floor(t.x/512),Math.floor(t.y/512),region);
+    }).map(entry=>({entry}));
+    paintWorld(g,extendedView,shown,backingDpr);
+    if(clouds){
+     g.setTransform(backingDpr,0,0,backingDpr,0,0);
+     clouds.drawUnready(g,extendedView,cells,isHexReady,zoomSnapshotOpacity);
+     clouds.drawTransitions(g,extendedView,frontierEdges());
+    }
+   }else{
+    // Zoom-in never exposes pixels beyond the original viewport.
+    g.drawImage(canvas,0,0,image.width,image.height);
+   }
+   zoomPreview={image,pose:{...pose},width,height,padX,padY,
+    extendedWidth,extendedHeight};
    zoomPreviewStarted=typeof performance!=='undefined'?performance.now():Date.now();
    return true;
   }
@@ -219,9 +302,47 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
+   cloudBackdropRaster=null;
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
+  }
+  function paintCloudBackdrop(target,view,dpr){
+   if(!clouds)return false;
+   // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
+   // stamps every time a warm 2x game scene pans a few screen pixels.
+   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160,
+    cw=Math.ceil((view.width+pad*2)*dpr),
+    ch=Math.ceil((view.height+pad*2)*dpr);
+   if(cw*ch>6500000||typeof document==='undefined')return false;
+   if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+    c.visibility==='visible'||c.visibility==='explored')
+    .map(c=>c.q+','+c.r));
+   const previous=cloudBackdropRaster;
+   const usable=previous&&previous.zoom===view.zoom&&
+    previous.dpr===dpr&&previous.width===view.width&&
+    previous.height===view.height&&
+    Math.abs(previous.panX-view.panX)<pad-8&&
+    Math.abs(previous.panY-view.panY)<pad-8;
+   if(!usable){
+    const buffer=document.createElement('canvas');
+    buffer.width=cw;buffer.height=ch;
+    const g=buffer.getContext('2d',{alpha:true});
+    if(!g)return false;
+    g.setTransform(dpr,0,0,dpr,0,0);
+    clouds.drawBase(g,{...view,width:view.width+pad*2,
+     height:view.height+pad*2},authoredFogSet);
+    cloudBackdropRaster={canvas:buffer,width:view.width,
+     height:view.height,zoom:view.zoom,dpr,panX:view.panX,
+     panY:view.panY,pad};
+    cloudBackdropBuilds++;
+   }else cloudBackdropHits++;
+   const current=cloudBackdropRaster;
+   const sx=(current.pad+current.panX-view.panX)*dpr,
+    sy=(current.pad+current.panY-view.panY)*dpr;
+   target.drawImage(current.canvas,sx,sy,
+    view.width*dpr,view.height*dpr,0,0,view.width,view.height);
+   return true;
   }
   function paintWorld(g,view,list,dpr){
    const width=view.width,height=view.height,proj=view.projectY||.85;
@@ -363,8 +484,9 @@ window.VedrasFrozenMap=(()=>{
    // During a longer cloud dissolve, cache the static baked landscape
    // even in ordinary detail view when memory permits. Only the lightweight
    // fog overlay then needs to change on animation frames.
-   const rasterPad=viewportPolicy&&
-    (view.zoom<=.52||(dissolveActive&&view.zoom<=1.2))?
+   // Warm panning at ordinary zoom should reuse the same padded world
+   // raster as overview zoom. paintOverview enforces an 8.5 MP memory cap.
+   const rasterPad=viewportPolicy?
     viewportPolicy.cameraCacheMargin(view.zoom):0;
    const worldMargin=Math.max(viewportPolicy?.MARGIN_WORLD||0,
     rasterPad?(rasterPad+45)/view.zoom:0);
@@ -418,22 +540,31 @@ window.VedrasFrozenMap=(()=>{
     // While previewing, tile reads above still warm the destination area.
     const from=zoomPreview.pose,
      ratio=view.zoom/(from.zoom||1),
-     ox=width/2+view.panX-ratio*(width/2+from.panX),
-     oy=height/2+view.panY-ratio*(height/2+from.panY);
-    ctx.globalAlpha=1;
-    ctx.fillStyle='#bdced7';ctx.fillRect(0,0,width,height);
-    ctx.drawImage(zoomPreview.image,ox,oy,width*ratio,height*ratio);
-    zoomPreviewFrames++;
-    frame++;paintMs=(typeof performance!=='undefined'?
-     performance.now():Date.now())-now;
-    onStatus(report());
-    return report();
+     ox=width/2+view.panX-ratio*(width/2+from.panX)-
+      zoomPreview.padX*ratio,
+     oy=height/2+view.panY-ratio*(height/2+from.panY)-
+      zoomPreview.padY*ratio,
+     destW=zoomPreview.extendedWidth*ratio,
+     destH=zoomPreview.extendedHeight*ratio;
+    // If a single extreme zoom step outruns the captured overscan, render
+    // the real scene rather than exposing a rectangular screenshot.
+    if(ox<=0&&oy<=0&&ox+destW>=width&&oy+destH>=height){
+     ctx.globalAlpha=1;
+     ctx.drawImage(zoomPreview.image,ox,oy,destW,destH);
+     zoomPreviewFrames++;
+     frame++;paintMs=(typeof performance!=='undefined'?
+      performance.now():Date.now())-now;
+     onStatus(report());
+     return report();
+    }
    }
    if(clouds){
-    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
-     c.visibility==='visible'||c.visibility==='explored')
-     .map(c=>c.q+','+c.r));
-    clouds.drawBase(ctx,view,authoredFogSet);
+    if(!paintCloudBackdrop(ctx,view,dpr)){
+     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+      c.visibility==='visible'||c.visibility==='explored')
+      .map(c=>c.q+','+c.r));
+     clouds.drawBase(ctx,view,authoredFogSet);
+    }
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
     // Normal zoom: draw the two baked world-image layers directly.
@@ -441,30 +572,10 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(ctx,view,tiles,dpr);
    }
    if(clouds){
-    if(!authoredEdges){
-     const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
-      .map(c=>c.q+','+c.r));
-     const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-     authoredEdges=[];
-     for(const c of cells)if(c.visibility==='visible')
-      for(let direction=0;direction<6;direction++){
-       const d=dirs[direction];
-       if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
-        authoredEdges.push({q:c.q,r:c.r,direction});
-      }
-    }
+    frontierEdges();
     // Do not reveal a partially loaded hex: both completed PNG layers of
     // every intersecting tile must be decoded before fog retreats.
-    const ready=c=>{
-     if(c.visibility!=='visible')return false;
-     const half=c.radius*Math.sqrt(3)/2-.01;
-     for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
-      for(let iy=Math.floor((c.y-c.radius+.01)/512);
-       iy<=Math.floor((c.y+c.radius-.01)/512);iy++){
-       if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
-      }
-     return true;
-    };
+    const ready=isHexReady;
     dissolveActive=false;
     const nowFade=typeof performance!=='undefined'?performance.now():Date.now();
     const fadeOpacity=(cell,isReady)=>{
