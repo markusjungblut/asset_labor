@@ -112,10 +112,11 @@ test('wheel-zoom preview reprojects an authorized snapshot and avoids full world
  assert.ok(displayLog.length>before,'full quality after gesture');
  player.stop();
 });
-test('zoom gesture defers canvas DPR reallocations until settle',()=>{
- assert.match(gameSource,/beginZoomPreview\(\)/);
- assert.match(gameSource,/endZoomPreview\(\{waitForVisible:true,maxHoldMs:950\}\)/);
- assert.match(gameSource,/\{deferDpr:true\}/);
- assert.match(gameSource,/if\(!deferDpr&&Math\.abs\(outDpr/);
- assert.match(gameHtml,/step22/);
+test('current game uses live layers while keeping final 2x DPR after zoom',()=>{
+ assert.doesNotMatch(gameSource,/player\.beginZoomPreview\(/);
+ assert.doesNotMatch(gameSource,/player\.endZoomPreview\(/);
+ assert.ok(gameSource.includes('const gestureDpr=Math.min(p.dpr||2,1.25)'));
+ assert.ok(gameSource.includes('{deferDpr:true}'));
+ assert.ok(gameSource.includes('if(!deferDpr&&Math.abs(outDpr'));
+ assert.match(gameHtml,/step24/);
 });
