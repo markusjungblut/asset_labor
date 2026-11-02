@@ -72,3 +72,15 @@ Zu beobachten: `overviewRasterHits/overviewRasterBuilds`, `overviewRasterMiB`, `
 - Der 2×-Standard ist **nicht rückgängig gemacht** und der originale 4×-Atlas bleibt unverändert.
 - Bei schnelleren Schwenks als der vorbereitete 1-Hex-Buffer kann Streaming weiterhin sichtbar werden; dann liegt die Priorität auf adaptivem Vorladen.
 - Keine Karten-Neuberechnung, kein ZIP-Import und keine Löschung lokaler Bildcaches.
+
+## Regression-Fix: Node-Test wartet auf den warmen Tile-Cache (02.11.2026)
+
+Ein echter Nutzerlauf von `node --test tests/test_rendering_step21_cloud_overscan_20261102.cjs` ergab **4/5 bestanden**, ein Fehler bei `warm far-zoom camera reuses one cached scene raster during short pans` (`overview should be prepared`). Das war eine **Race Condition im Test-Harness**:
+
+- Der Mock deaktiviert `requestAnimationFrame`, der echte Viewer nutzt es zum nächsten Nachlade-Durchlauf.
+- Ein `draw()` kann höchstens **drei** Tile-Pakete gleichzeitig lesen und dekodieren; die neun Fixture-Pakete brauchen daher mindestens drei aufeinanderfolgende Draw-/Promise-Zyklen.
+- Der Panorama-Cache wird absichtlich **nicht** aufgebaut, solange `pending > 0` ist (`if(loading.size) return false`). Der alte Test hatte nach nur einem Timerzyklus bloß zwei Draw-Aufrufe und untersuchte daher irrtümlich die **kalte** Kamera.
+
+**Korrektur im bestehenden PR #106:** Test pumpt die simulierte Tile-Pipeline kontrolliert, bis `decoded === 9` und `pending === 0`; erst dann wird `overviewRasterBuilds >= 1` und die Wiederverwendung bei fünf kurzen Pans geprüft. Das Testdatenarchiv enthält genau neun 512er Kacheln. Ein isolierter Echt-Code-V8-Runtime-Lauf bestätigte die Sequenz `3 → 6 → 9` dekodierte Tiles, danach **1 Panorama-Neuaufbau, 5 Cachetreffer beim Panning**. Dieser Test-Fix ändert **nicht** die produktive Karte, den Renderer oder gespeicherte Bildcaches.
+
+Der erneute **native Node-Test auf Windows** steht aus.
