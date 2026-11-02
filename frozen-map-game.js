@@ -16,9 +16,15 @@
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
+ let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,storage:twoXStore,
   onStatus:stats=>{
+   // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
+   // on each rAF while the user pans, zooms or watches fog dissolve.
+   const now=performance.now();
+   if(stats.frames>1&&now-lastStatusPaint<180)return;
+   lastStatusPaint=now;
    const optimized=twoXStore.stats();
    metrics.textContent=stats.decoded+' / '+stats.saved+
     ' gespeicherte Tiles im Bildspeicher · '+stats.pending+
@@ -31,6 +37,8 @@
     ' · Zoomvorschau-Bilder '+stats.zoomPreviewFrames+
     ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
     stats.overviewRasterBuilds+' Neuaufbauten'+
+    ' · Wolken-Cache '+stats.cloudBackdropHits+' Treffer / '+
+    stats.cloudBackdropBuilds+' Neuaufbauten'+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
@@ -103,7 +111,7 @@
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
   const zoom=Math.min(4,Math.max(.15,p.zoom*factor));
-  player.beginZoomPreview();
+  player.beginZoomPreview({zoomOut:zoom<p.zoom});
   const wx=(x-canvas.clientWidth/2-p.panX)/p.zoom,
    wy=(y-canvas.clientHeight/2-p.panY)/(p.zoom*(p.projectY||.85));
   setPose({zoom,panX:x-canvas.clientWidth/2-wx*zoom,
@@ -137,7 +145,27 @@
  });
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
   canvas.addEventListener(evt,()=>{drag=null;});
- window.addEventListener('resize',()=>setPose({}));
+ // Layout-driven statistics never trigger a resize. Genuine viewport size
+ // changes preserve the current world pose and all decoded image tiles;
+ // repaint at most once per animation frame.
+ let lastViewportW=Math.floor(canvas.clientWidth),
+  lastViewportH=Math.floor(canvas.clientHeight),resizeScheduled=false;
+ const handleViewportResize=()=>{
+  if(resizeScheduled)return;
+  resizeScheduled=true;
+  requestAnimationFrame(()=>{
+   resizeScheduled=false;
+   const w=Math.floor(canvas.clientWidth),h=Math.floor(canvas.clientHeight);
+   if(w===lastViewportW&&h===lastViewportH)return;
+   lastViewportW=w;lastViewportH=h;
+   if(zoomSettler!==null){clearTimeout(zoomSettler);zoomSettler=null;}
+   player.endZoomPreview();
+   setPose({});
+  });
+ };
+ if(typeof ResizeObserver==='function')
+  new ResizeObserver(handleViewportResize).observe(canvas);
+ else window.addEventListener('resize',handleViewportResize);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)player.draw();});
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
