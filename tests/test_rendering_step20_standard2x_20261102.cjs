@@ -120,7 +120,8 @@ test('step 20 applies 2x standard without altering 4x baked PNG manifest',()=>{
  assert.match(appSrc,/view:'map',dpr:1,quality:'2'/);
  assert.match(html,/<option value="2" selected>2×/);
  assert.match(html,/<option value="4" disabled>/);
- assert.match(gameSrc,/startPose=\{\.\.\.startPose,dpr:Math\.min\(2/);
+ assert.ok(gameSrc.includes('const gameDpr=Math.min(2,Math.sqrt(8000000/area),4096/edge)'));
+ assert.ok(gameSrc.includes('startPose={...startPose,dpr:Math.max(1,gameDpr)}'));
  assert.match(gameSrc,/twoXStore\.setEnabled\(lod==='near'/);
  assert.match(page,/frozen-map-derived-2x\.js/);
  assert.match(runtime,/return \{create,memoryStore,indexedStore,valid,makeKey\}/);
