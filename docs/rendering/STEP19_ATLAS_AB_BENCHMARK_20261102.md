@@ -78,3 +78,27 @@ Die Canvas-API in Firefox garantiert für `toBlob('image/webp')` keinen echten *
 ## Sicherheit und Status
 
 Dieser Branch enthält **keine vollständige ZIP-Rückimportfunktion** (separat Issue #103 P0). Aus dem Test werden keine 600 MB auf GitHub hochgeladen. PR bleibt Draft, bis native Tests und reproduzierbare Firefox-Daten ausgewertet sind.
+
+## Auswertung erster realer Firefox-Durchlauf (02.11.2026) und Korrektur
+
+Der Nutzer hat einen tatsächlich erzeugten JSON-Bericht für `v1-0374527a` geliefert (Firefox 159 / Windows 10 x64, Browser-DPR 1, Benchmark-DPR 2, Fenster 1252×540 CSS-Pixel). **Der Report ist ein erster Dateigrößen-/Pixelbudget-Beleg, aber ausdrücklich keine vollständige Performance- oder Qualitätsabnahme.**
+
+| Gruppe | 10 Testtiles Bytes MiB | Ersparnis ggü. A | rechnerische RGBA MiB | Ausgabe-Bildunterschied zur Original-Szene |
+| --- | ---: | ---: | ---: | ---: |
+| A PNG 4× | 17,63 | 0 % | 173,59 | Referenz |
+| B Zusatzbeschnitt | 17,63 | 0 % | 173,59 | 0 % |
+| C PNG 2× | 5,56 | 68,50 % | 43,42 | 7,74 % Pixel geändert (RMS 1,88) |
+| D PNG 1× | 1,67 | 90,53 % | 10,85 | 22,90 % Pixel geändert (RMS 4,97) |
+| E WebP 0,92 | 3,27 | 81,46 % | 173,59 | 18,60 % Pixel geändert (RMS 1,36) |
+
+`sourceUnchanged:true`; alle 120 erwarteten WorldTile-IDs waren in der Origin verfügbar und das Szenenmanifest enthielt 397 Hex-Geometrieeinträge.
+
+**Wesentlicher Testfehler erkannt:** Die alte Auswahl nahm fünf geografisch möglichst weit entfernte Nachbarpaare; **acht von zehn** WorldTiles waren überwiegend leer. Die zwei inhaltsreichen Tiles `-1,-1` und `-1,0` beanspruchten **17,24 von 17,63 MiB** PNG-Größe; die acht äußeren zusammen nur **0,40 MiB**, benötigten nach RGBA-Dekodierung jedoch **111,35 MiB**. Das erklärt den großen Unterschied zwischen Dateigröße und GPU-/RAM-Kosten fast einfarbiger Full-Resolution-Renderkacheln.
+
+**Warum nur „halbe Bilder“ sichtbar waren:** Der Test zeigte zwei einzelne Tiles in einem regulären, großen Viewport; die Umgebung war absichtlich nicht im Stichprobenspeicher. Bei herausgezoomter Kamera belegten die beiden Tiles nur einen winzigen Ausschnitt, also kein vollständiges Kartenbild. An den Bilddateien ist dadurch kein Defekt nachgewiesen.
+
+**Weitere Einschränkungen:** Die gemessenen `drawP95` 0–1 ms sind wegen des größtenteils leeren Viewports **nicht auf den vollständigen 120-Tile-Viewer übertragbar**. `frameGapP95` zwischen 17 und 36 ms ist durch Browser-Scheduling, asynchrone Arbeit und Testreihenfolge beeinflusst. Eine schnelle 60-FPS-Kamera ist nicht belegt. Die 2×-Variante erscheint aufgrund der Byte-/RGBA-Einsparung vielversprechend; die Auswahl einer endgültigen LOD-Stufe bleibt abhängig vom neuen visuellen Vergleich.
+
+**Hotfix auf PR #104:** `choosePairs(keys,5,cells)` bevorzugt ab jetzt Nachbarpaare mit jeweils mindestens zwei Hex-Zentren im Tile statt leerer Weltperipherie; `compositePair(memory,pair,cells)` erstellt vollständige, geometrisch korrekte Vergleichsbilder der zwei Kachel-Kerne inklusive Boden-Gutter, Scenery-`crop` und bereits gerenderten Schatten, statt einen riesigen, unvollständig befüllten Viewer-Screenshot. **Für alle fünf Kachelpaare und alle fünf Varianten** entstehen visuell prüfbare, separat öffnende PNGs. Die Originalatlas-Daten bleiben lesend.
+
+Die neue Fassung muss erneut unter Firefox laufen. Bereits vorhandene Berichte nicht überschreiben, sondern für den Vergleich archivieren. Siehe auch Issue #103.
