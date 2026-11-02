@@ -65,3 +65,13 @@ Den bestehenden Server auf `127.0.0.1:8780` starten. **Gleiches Firefox-Profil u
 | `inputToDrawEndMs` hoch bei kleinen synchronen Renderphasen | rAF-/Task-Queue-Blocker, asynchrone Bildkonvertierung und Main-Thread-Langtasks separat untersuchen |
 
 **Performance-Gates:** Zuerst beweisbarer warmer Pan **p95 ≤33,3 ms bei 30 FPS**, mittelfristig **p95 ≤16,7 ms bei 60 FPS**, keine zu früh freigegebenen Hexfelder, keine unscharfen Zwischenbilder, keine neuen Nähte oder Sprite-Überlagerungen. Erst dann schrittweise zum Server-Tile-Adapter und ZIP-Recovery vorgehen. Die 15.000-Hex-Welt bleibt langfristige Skalierungsprüfung, nicht Bestandteil dieses Mess-PR.
+
+## Konsolenbedienung präzisiert (02.11.2026)
+
+Früher gab `profileReset()` in beiden Fällen `undefined` zurück – sowohl bei erfolgreichem Reset als auch wenn die Seite ohne `&perf=1` aufgerufen wurde. Das erschwerte die Fehlersuche. Jetzt sind die drei Ausdrücke `profileStatus()`, `profileReset()` und `profileReport()` explizit: Inaktive Messung liefert eine klare Fehlermeldung und den Hinweis auf `&perf=1`; ein erfolgreicher Reset liefert `{ok:true,enabled:true,frames:0,message:...}`. `profileReport()` liefert bei aktiver Messung weiter den bisherigen Bericht. Das Modul kann nicht aktiviert sein, wenn der Skript-Import gescheitert ist: Hier erscheint jetzt eine eindeutige Fehlermeldung in der Viewer-Statuszeile. Der Script-Cache-Key wurde aktualisiert.
+
+```javascript
+window.__vedrasFrozenGameTest.profileStatus()
+window.__vedrasFrozenGameTest.profileReset()
+window.__vedrasFrozenGameTest.profileReport().sampleLimit
+```
