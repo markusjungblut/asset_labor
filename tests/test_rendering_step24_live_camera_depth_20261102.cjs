@@ -6,7 +6,7 @@ const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const runtime=read('frozen-map-runtime.js'),policy=read('frozen-map-view-policy.js'),
  game=read('frozen-map-game.js'),page=read('frozen-map-game.html');
 
-function fixture({width=1200,height=800,withClouds=false}={}){
+function fixture({width=1200,height=800,withClouds=false,useLayerCache=true}={}){
  const window={};
  vm.runInNewContext(policy,{window});
  const draws=[],sourceGets=[];
@@ -50,6 +50,7 @@ function fixture({width=1200,height=800,withClouds=false}={}){
  vm.runInNewContext(runtime,{window,document,console,
   requestAnimationFrame:()=>{},performance:{now:()=>now}});
  const player=window.VedrasFrozenMap.create({canvas:display,storage,
+  useLayerCache,
   decode:async image=>({...image,close(){}})});
  return {player,draws,sourceGets,advance(ms){now+=ms},
   cloudFades:()=>cloudFades,cloudFrames:()=>cloudFrames};
@@ -96,7 +97,7 @@ test('tree and shadow layers preserve same stable tile depth after zoom or reord
  f.player.stop();
 });
 test('a tile whose scenery overhang crosses the screen is rendered before its core',async()=>{
- const f=fixture({width:400,height:240});
+ const f=fixture({width:400,height:240,useLayerCache:false});
  await f.player.load('v1-0374527a','near',
   {zoom:.8,panX:-200,panY:0,dpr:1.25,projectY:.85},
   [{q:0,r:0,x:0,y:0,radius:148,visibility:'visible'}]);
