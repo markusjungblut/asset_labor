@@ -26,13 +26,14 @@
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
  const overview1x=params.get('overview1x')!=='0';
+ const largeViewportCache=params.get('cacheLarge')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
-  overview1x,
+  overview1x,largeViewportCache,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -62,6 +63,9 @@
      ' · 1×-LOD deaktiviert')+
     ' · 1×/2× im RAM '+stats.decoded1x+'/'+stats.decoded2x+
     ' · Evictions '+stats.evictions+
+    ' · Raster '+(largeViewportCache?'groß':'alt')+
+    ' · Direkt-Welt/Wolken '+stats.worldCacheFallbackFrames+'/'+
+     stats.cloudCacheFallbackFrames+
     (profiler?' · Profilframes: '+profiler.stats().frames:'');
    metrics.title=metrics.textContent;
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
@@ -227,7 +231,7 @@
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
-   derived1x:oneXStore.stats(),overview1x
+   derived1x:oneXStore.stats(),overview1x,largeViewportCache
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
