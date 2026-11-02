@@ -239,6 +239,8 @@
   for(let i=0;i<pairs.length;i++){
    stopIfNeeded();
    const pair=pairs[i],pose=pairPose(pair,1,2);
+   const touched=new Set(core.visibleTiles(records,pose,
+    canvas.clientWidth,canvas.clientHeight).map(r=>r.key));
    let sampleActive=false;
    const frames=[];
    const player=Frozen.create({canvas,storage:memory,maxDecodedPixels:30000000,
@@ -253,6 +255,8 @@
     for(const zoom of intervals){
      stopIfNeeded();
      const current=pairPose(pair,zoom,2);
+     for(const t of core.visibleTiles(records,current,canvas.clientWidth,canvas.clientHeight))
+      touched.add(t.key);
      player.setPose(current);
      await ready(player,current);
      // 3 warmup frames, 12 measured, same path per variant and zoom.
@@ -280,7 +284,7 @@
     }
     const stats=player.report();
     decodeCount+=stats.loads;
-    redecodes+=Math.max(0,stats.loads-10);
+    redecodes+=Math.max(0,stats.loads-touched.size);
    }finally{sampleActive=false;player.stop();}
    await idle();
   }
