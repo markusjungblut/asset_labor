@@ -16,8 +16,13 @@
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
  // Profiling is opt-in and does nothing in the normal game playback.
- const profiler=params.get('perf')==='1'?
+ const profileRequested=params.get('perf')==='1';
+ const profiler=profileRequested?
   window.VedrasFrozenProfiler?.create():null;
+ if(profileRequested&&!profiler){
+  fail('Performance-Modul konnte nicht geladen werden. Browser-Cache aktualisieren');
+  return;
+ }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
@@ -187,14 +192,37 @@
   new ResizeObserver(handleViewportResize).observe(canvas);
  else window.addEventListener('resize',handleViewportResize);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)player.draw();});
- const profileReport=()=>profiler?.report({
-  scene,level:requestedLevel||'near',renderMode:directRenderer?'direct':'cached',
-  browser:navigator.userAgent,
-  viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
-  canvasBacking:{width:canvas.width,height:canvas.height},
-  startup:{manifestReadMs,sceneRegisterMs},
-  runtime:player.report(),derived2x:twoXStore.stats()
+ const profileStatus=()=>({
+  enabled:!!profiler,
+  requested:profileRequested,
+  frames:profiler?.stats().frames??0,
+  message:profiler?
+   'Performance-Aufzeichnung aktiv. profileReset() setzt die Messwerte zurück.':
+   'Performance-Aufzeichnung ist ausgeschaltet. URL mit &perf=1 öffnen.'
  });
+ const profileReset=()=>{
+  if(!profiler)return {
+   ok:false,...profileStatus(),
+   message:'Keine Aufzeichnung aktiv. Bitte &perf=1 in der URL ergänzen.'
+  };
+  profiler.reset();
+  return {ok:true,...profileStatus(),
+   message:'Messwerte zurückgesetzt. Jetzt Karte bewegen und Performance-JSON exportieren.'};
+ };
+ const profileReport=()=>profiler?
+  profiler.report({
+   scene,level:requestedLevel||'near',
+   renderMode:directRenderer?'direct':'cached',
+   browser:navigator.userAgent,
+   viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
+   canvasBacking:{width:canvas.width,height:canvas.height},
+   startup:{manifestReadMs,sceneRegisterMs},
+   runtime:player.report(),derived2x:twoXStore.stats()
+  }):{
+   enabled:false,
+   message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
+   currentUrl:location.href
+  };
  if(profiler){
   const button=$('downloadProfile');
   if(button){
@@ -212,7 +240,7 @@
  }
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
-  profileReport,profileReset:()=>profiler?.reset(),
+  profileReport,profileReset,profileStatus,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats()
  };
