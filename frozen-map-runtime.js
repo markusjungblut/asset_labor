@@ -668,6 +668,7 @@ window.VedrasFrozenMap=(()=>{
      time:clock(),drawMs:clock()-now,...profileFrame,
      renderMode:currentReport.renderMode,zoom:view.zoom,dpr,
      canvasPixels:dw*dh,visibleTiles:visible.length,
+     visibleReadyTiles:tiles.length,
      decodedTiles:decoded.size,pendingTiles:loading.size,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
