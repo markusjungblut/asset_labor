@@ -6,6 +6,8 @@
   params=new URLSearchParams(location.search),
   scene=params.get('scene'),requestedLevel=params.get('lod');
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
+ const benchmark=$('atlasBenchmark');
+ if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
  const canvas=$('game');
  function fail(error){
   output.textContent=String(error?.message||error)+
