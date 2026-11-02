@@ -110,7 +110,10 @@ test('profiling is disabled by default and has no data/file side effects',()=>{
  assert.match(gameCode,/params\.get\('perf'\)==='1'/);
  assert.match(gameCode,/profiler\.input\('pan'\)/);
  assert.match(gameCode,/profiler\.input\('zoom'\)/);
- assert.match(gameCode,/profileReset:\(\)=>profiler\?\.reset\(\)/);
+ assert.match(gameCode,/const profileReset=\(\)=>/);
+ assert.match(gameCode,/profileReport,profileReset,profileStatus/);
+ assert.ok(gameCode.includes('Performance-Aufzeichnung ist ausgeschaltet.'));
+ assert.ok(gameCode.includes('Messwerte zurückgesetzt.'));
  assert.match(html,/frozen-map-profiler\.js\?v=20261102-step25a/);
  assert.match(html,/<button id="downloadProfile" hidden/);
  assert.doesNotMatch(profilerCode,/indexedDB|localStorage|source\.put|deleteDatabase/);
