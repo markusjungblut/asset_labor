@@ -54,9 +54,11 @@
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
- let startPose=null,drag=null;
+ let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null;
  try{
+  const manifestReadStarted=performance.now();
   const manifest=await player.loadManifest(scene);
+  manifestReadMs=performance.now()-manifestReadStarted;
   const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
    manifest.levels[0];
   // Derive 2× images ONLY for legacy full 4× near PNG sources.
@@ -77,7 +79,9 @@
      baseDpr:2}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
+  const registerStarted=performance.now();
   const status=await player.load(scene,lod,startPose,manifest.cells);
+  sceneRegisterMs=performance.now()-registerStarted;
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
@@ -188,6 +192,7 @@
   browser:navigator.userAgent,
   viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
   canvasBacking:{width:canvas.width,height:canvas.height},
+  startup:{manifestReadMs,sceneRegisterMs},
   runtime:player.report(),derived2x:twoXStore.stats()
  });
  if(profiler){
