@@ -69,6 +69,9 @@ window.VedrasFrozenProfiler=(()=>{
     visibleTiles:data.visibleTiles||0,
     visibleReadyTiles:data.visibleReadyTiles||0,
     decodedTiles:data.decodedTiles||0,
+    activeVariant:data.activeVariant||'2x',
+    decodedPixels:data.decodedPixels||0,
+    evictions:data.evictions||0,
     pendingTiles:data.pendingTiles||0,
     worldCacheBuilds:data.worldCacheBuilds||0,
     worldCacheHits:data.worldCacheHits||0,
@@ -82,7 +85,8 @@ window.VedrasFrozenProfiler=(()=>{
   }
   function tileRead(data){
    const sample={
-    source:data.source==='derived2x'?'derived2x':data.source==='original'?
+    source:data.source==='derived1x'?'derived1x':
+     data.source==='derived2x'?'derived2x':data.source==='original'?
      'original':'unknown',
     kind:data.error?'failed':'loaded',
     storageMs:round(data.storageMs||0),
@@ -144,6 +148,7 @@ window.VedrasFrozenProfiler=(()=>{
      loaded:tileReads.filter(t=>t.kind==='loaded').length,
      failed:tileReads.filter(t=>t.kind==='failed').length,
      derived2x:tileReads.filter(t=>t.source==='derived2x').length,
+     derived1x:tileReads.filter(t=>t.source==='derived1x').length,
      original:tileReads.filter(t=>t.source==='original').length,
      unknown:tileReads.filter(t=>t.source==='unknown').length
     },timingMs:readPhases,
