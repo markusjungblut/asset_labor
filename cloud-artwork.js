@@ -127,6 +127,17 @@ window.VedrasCloudArtwork=(()=>{
     if(loading===0){
      bases=incoming.sort((a,b)=>a.path.localeCompare(b.path));
      backdrop=bases.find(x=>x.tone)?.tone||'#bdced7';
+     // Bake each loading-cloud HEX into ONE premultiplied image. Fading
+     // backing/hard/soft layers separately causes non-linear opacity,
+     // while leaving the hard/soft stamps at alpha=1 causes a sudden POP.
+     for(const asset of bases){
+      const c=make(),g=c?.getContext('2d',{alpha:true});
+      if(!g)continue;
+      g.fillStyle=backdrop;polygon(g);g.fill();
+      g.drawImage(asset.hard,0,0,S,S);
+      g.drawImage(asset.soft,0,0,S,S);
+      asset.unready=c;
+     }
      onReady();
     }
    }
@@ -257,9 +268,18 @@ window.VedrasCloudArtwork=(()=>{
      }
      g.closePath();
     }
-    g.fillStyle=backdrop;g.fill();g.restore();
-    if(stamp(g,view,c.q,c.r,'hard'))count++;
-    stamp(g,view,c.q,c.r,'soft');
+    // The whole precomposed cloud – opaque backing + hard artwork +
+    // feathered highlights – is blended with ONE shared alpha value.
+    // In particular the two artwork stamps must never bypass the fade.
+    g.fillStyle=backdrop;
+    if(bases.some(a=>!a.unready)){
+     // Rare fallback if a browser did not provide a compositing canvas:
+     // keep alpha applied across every pass.
+     g.fill();
+     if(stamp(g,view,c.q,c.r,'hard'))count++;
+     stamp(g,view,c.q,c.r,'soft');
+    }else if(stamp(g,view,c.q,c.r,'unready'))count++;
+    g.restore();
    }
    return count;
   }

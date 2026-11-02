@@ -27,6 +27,8 @@
     (stats.clouds?.bases??0)+'/4'+
     ' · Wolkenvorlauf ≥ '+stats.cloudBufferHexes+' Hex'+
     (stats.cloudDissolveActive?' · Auflösen aktiv':'')+
+    (stats.zoomPreviewActive?' · Zoomvorschau aktiv':'')+
+    ' · Zoomvorschau-Bilder '+stats.zoomPreviewFrames+
     ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
     stats.overviewRasterBuilds+' Neuaufbauten'+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
@@ -73,7 +75,7 @@
     ' Noch keine vollständigen Kacheln für diese Detailstufe.');
   player.draw();
  }catch(error){fail(error);return;}
- const setPose=next=>{
+ const setPose=(next,{deferDpr=false}={})=>{
   const prior=player.getPose();
   if(!prior)return;
   const view={...prior,...next};
@@ -82,24 +84,42 @@
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
    baseDpr:2
   }):Math.min(2,view.dpr||1);
-  if(Math.abs(outDpr-(view.dpr||1))>.015){
+  if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
    if(raster)raster.textContent='Raster '+outDpr.toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+'×';
   }
   player.setPose(next);
  };
+ let zoomSettler=null;
+ const settleZoom=()=>{
+  zoomSettler=null;
+  // Wait briefly for tiles newly covered by zoom-out to decode before
+  // replacing the immediate preview with the high-quality full view.
+  if(!player.endZoomPreview({waitForVisible:true,maxHoldMs:950}))
+   zoomSettler=setTimeout(settleZoom,55);
+  else setPose({}); // Apply the final 2×/1.25× canvas density ONCE.
+ };
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
   const zoom=Math.min(4,Math.max(.15,p.zoom*factor));
+  player.beginZoomPreview();
   const wx=(x-canvas.clientWidth/2-p.panX)/p.zoom,
    wy=(y-canvas.clientHeight/2-p.panY)/(p.zoom*(p.projectY||.85));
   setPose({zoom,panX:x-canvas.clientWidth/2-wx*zoom,
-   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85)});
+   panY:y-canvas.clientHeight/2-wy*zoom*(p.projectY||.85)},
+   {deferDpr:true});
+  if(zoomSettler!==null)clearTimeout(zoomSettler);
+  zoomSettler=setTimeout(settleZoom,145);
  };
  $('zoomIn').addEventListener('click',()=>onZoom(1.15));
  $('zoomOut').addEventListener('click',()=>onZoom(1/1.15));
- $('resetView').addEventListener('click',()=>setPose(startPose));
+ $('resetView').addEventListener('click',()=>{
+  if(zoomSettler!==null)clearTimeout(zoomSettler);
+  zoomSettler=null;
+  player.endZoomPreview();
+  setPose(startPose);
+ });
  canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   const r=canvas.getBoundingClientRect();
