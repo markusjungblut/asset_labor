@@ -50,7 +50,7 @@
   const m=await sourceViewer.loadManifest(scene);
   if(!m.levels.includes(level))throw Error('Diese Szene enthält kein near-LOD');
   const keys=await source.keys(scene+'|'+level+'|');
-  pairs=core.choosePairs(keys,5);
+  pairs=core.choosePairs(keys,5,m.cells);
   if(!pairs.length)throw Error('Keine zwei benachbarten gespeicherten Bildkacheln gefunden');
   const chosen=pairs.flatMap(p=>p.keys);
   records=[];const origin=[];
@@ -203,9 +203,70 @@
    await new Promise(resolve=>setTimeout(resolve,60));
   }while(true);
  }
- async function screenshot(){
-  const blob=await encode(canvas,'image/png');
-  return blob;
+ // This image is a COMPLETE geometric composite of the selected two tile
+ // cores, not a screenshot of an enormous viewport filled by only two tiles.
+ // It uses their exact ground GUTTER and scenery CROP rectangles, and
+ // preserves baked shadows without consulting the editor or source sprites.
+ async function compositePair(memory,pair,cells){
+  const a=await memory.get(pair.keys[0]),b=await memory.get(pair.keys[1]);
+  if(!a||!b)throw Error('Vergleichspaar fehlt im Teststore');
+  const tiles=[a,b],minX=Math.min(...tiles.map(t=>t.tile.x)),
+   minY=Math.min(...tiles.map(t=>t.tile.y)),
+   maxX=Math.max(...tiles.map(t=>t.tile.x+t.tile.size)),
+   maxY=Math.max(...tiles.map(t=>t.tile.y+t.tile.size));
+  const proj=.85,scale=Math.min(1.5,1800/(maxX-minX),
+   1000/((maxY-minY)*proj));
+  const {cv,ctx}=canvasFor((maxX-minX)*scale,(maxY-minY)*scale*proj);
+  ctx.fillStyle='#bfcbd1';ctx.fillRect(0,0,cv.width,cv.height);
+  function clipAuthored(halo){
+   ctx.beginPath();
+   for(const c of cells){
+    if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
+    if(c.x+c.radius+halo<minX||c.x-c.radius-halo>maxX||
+     c.y+c.radius+halo<minY||c.y-c.radius-halo>maxY)continue;
+    const x=(c.x-minX)*scale,y=(c.y-minY)*scale*proj;
+    const rx=(c.radius+halo)*scale,ry=rx*proj;
+    for(let i=0;i<6;i++){
+     const theta=-Math.PI/2+i*Math.PI/3;
+     const px=x+rx*Math.cos(theta),py=y+ry*Math.sin(theta);
+     if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+   }
+   ctx.clip();
+  }
+  // Decode only one large image at a time to limit temporary memory.
+  ctx.save();clipAuthored(0);
+  for(const t of tiles)for(const layer of t.layers){
+   if(!['ground','terrain'].includes(layer.layer))continue;
+   const im=await makeImage(layer.png);
+   try{
+    const pad=Math.max(0,layer.pad||0),fraction=pad/(t.tile.size+2*pad),
+     sourceLeft=im.width*fraction,sourceTop=im.height*fraction,
+     sourceW=im.width*(1-2*fraction),sourceH=im.height*(1-2*fraction);
+    ctx.drawImage(im,sourceLeft,sourceTop,sourceW,sourceH,
+     (t.tile.x-minX)*scale,(t.tile.y-minY)*scale*proj,
+     t.tile.size*scale,t.tile.size*scale*proj);
+   }finally{im.close?.();}
+  }
+  ctx.restore();
+  ctx.save();clipAuthored(45);
+  for(const t of tiles)for(const layer of t.layers){
+   if(!['scenery','structures'].includes(layer.layer))continue;
+   const im=await makeImage(layer.png);
+   try{
+    const pad=layer.pad||0,
+     fx=(t.tile.x-pad-minX)*scale,fy=(t.tile.y-pad-minY)*scale*proj,
+     fw=(t.tile.size+2*pad)*scale,fh=(t.tile.size+2*pad)*scale*proj,
+     c=layer.crop;
+    if(c)ctx.drawImage(im,fx+fw*c.x/c.fullWidth,
+     fy+fh*c.y/c.fullHeight,fw*im.width/c.fullWidth,
+     fh*im.height/c.fullHeight);
+    else ctx.drawImage(im,fx,fy,fw,fh);
+   }finally{im.close?.();}
+  }
+  ctx.restore();
+  return encode(cv,'image/png');
  }
  async function compareScreenshot(reference,subject){
   if(!reference)return null;
