@@ -88,6 +88,7 @@ window.VedrasFrozenMap=(()=>{
   // decode. Keep the entire visible set pinned while the viewport is shown;
   // the old 30M LRU evicted still-visible tiles on every camera repaint.
   let protectedKeys=new Set();
+  const SCENERY_OVERHANG_WORLD=128; // Existing world-tile scene pad
   const decoded=new Map(),loading=new Set();
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
@@ -346,6 +347,13 @@ window.VedrasFrozenMap=(()=>{
   }
   function paintWorld(g,view,list,dpr){
    const width=view.width,height=view.height,proj=view.projectY||.85;
+   // Painted sprite layers must be ordered by WORLD depth, not distance
+   // from the cursor/camera, decode arrival, or last-used tile cache order.
+   list=[...list].sort((a,b)=>{
+    const ta=a.entry.record.tile,tb=b.entry.record.tile;
+    return (ta.y-tb.y)||(ta.x-tb.x)||
+     String(ta.id||'').localeCompare(String(tb.id||''));
+   });
    const snap=v=>Math.round(v*dpr)/dpr;
    g.setTransform(dpr,0,0,dpr,0,0);
    g.imageSmoothingEnabled=true;
@@ -426,7 +434,8 @@ window.VedrasFrozenMap=(()=>{
     Math.abs(overviewRaster.panY-view.panY)<pad-8?
      {...view,panX:overviewRaster.panX,panY:overviewRaster.panY}:view;
    const bufferedBounds=viewportPolicy.screenBounds(anchorView,{
-    marginWorld:(pad+48)/view.zoom});
+    marginWorld:Math.max((pad+48)/view.zoom,
+     SCENERY_OVERHANG_WORLD+32)});
    const bufferKeys=[...decoded.entries()].filter(([,entry])=>
     viewportPolicy.visibleTile(
      Math.round(entry.record.tile.x/512),Math.round(entry.record.tile.y/512),
@@ -500,10 +509,12 @@ window.VedrasFrozenMap=(()=>{
      top=snap(height/2+view.panY+y*view.zoom*proj),
      right=snap(width/2+view.panX+(x+512)*view.zoom),
      bottom=snap(height/2+view.panY+(y+512)*view.zoom*proj);
-    if(left>=width||top>=height||right<=0||bottom<=0){
-     // A full authored hex beyond each screen edge is decoded before
-     // the camera arrives. Use world coordinates, not fixed screen pixels,
-     // so the overscan stays correct under distant zoom.
+    const haloX=SCENERY_OVERHANG_WORLD*view.zoom,
+     haloY=SCENERY_OVERHANG_WORLD*view.zoom*proj;
+    if(left-haloX>=width||top-haloY>=height||
+       right+haloX<=0||bottom+haloY<=0){
+     // Tree crowns and shadows can be ON SCREEN even when their 512px
+     // tile core is not. Protect and paint the complete overhang too.
      if(extra&&viewportPolicy.visibleTile(ix,iy,extra))
       prefetch.push({key,left,top,right,bottom});
      continue;
