@@ -208,10 +208,15 @@ window.VedrasFrozenMap=(()=>{
    if(!active||!pose||typeof document==='undefined'||
       !canvas.width||!canvas.height)return false;
    if(zoomPreview){
-    // Rebase only after multiple zoom-out ticks would outrun the enlarged
-    // captured world. Never show a sharp rectangular screenshot boundary.
-    if(!zoomOut||pose.zoom/zoomPreview.pose.zoom>=.40)
-     return true;
+    // Rebase at most once per significant camera travel. A drag or a long
+    // zoom gesture should never outrun its temporary world overscan.
+    const previous=zoomPreview;
+    const sourceRatio=pose.zoom/previous.pose.zoom;
+    const outsideBuffer=zoomOut&&(
+     sourceRatio<.40||
+     Math.abs(pose.panX-previous.pose.panX)>previous.padX*.85||
+     Math.abs(pose.panY-previous.pose.panY)>previous.padY*.85);
+    if(!outsideBuffer)return true;
     zoomPreview=null;
    }
    const bounds=canvas.getBoundingClientRect?.()||{
