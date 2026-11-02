@@ -355,7 +355,11 @@ window.VedrasFrozenMap=(()=>{
    const view={...pose,width,height},proj=view.projectY||.85;
    const snap=v=>Math.round(v*dpr)/dpr;
    const visible=[],prefetch=[];
-   const rasterPad=viewportPolicy&&view.zoom<=.52?
+   // During a longer cloud dissolve, cache the static baked landscape
+   // even in ordinary detail view when memory permits. Only the lightweight
+   // fog overlay then needs to change on animation frames.
+   const rasterPad=viewportPolicy&&
+    (view.zoom<=.52||(dissolveActive&&view.zoom<=1.2))?
     viewportPolicy.cameraCacheMargin(view.zoom):0;
    const worldMargin=Math.max(viewportPolicy?.MARGIN_WORLD||0,
     rasterPad?(rasterPad+45)/view.zoom:0);
