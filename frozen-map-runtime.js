@@ -79,7 +79,8 @@ window.VedrasFrozenMap=(()=>{
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
-    maxDecodedPixels=30000000,useLayerCache=true,profiler=null}={}){
+    maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
+    overview1x=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -90,6 +91,17 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const SCENERY_OVERHANG_WORLD=128; // Existing world-tile scene pad
   const decoded=new Map(),loading=new Set();
+  // Each variant keeps a private RAM identity; persisted storage keys do
+  // not change. Keep previous 2x visible until a matching 1x tile is READY.
+  let activeVariant='2x',lodSwitches=0,variantFallbackFrames=0;
+  const cacheKey=(key,variant)=>key+'~'+variant;
+  const decodedEntry=(key,variant)=>decoded.get(cacheKey(key,variant));
+  const desiredVariant=()=>{
+   if(!overview1x||!storage.getVariant)return '2x';
+   if(activeVariant==='2x'&&pose?.zoom<=.60)activeVariant='1x';
+   else if(activeVariant==='1x'&&pose?.zoom>=.72)activeVariant='2x';
+   return activeVariant;
+  };
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
@@ -113,6 +125,9 @@ window.VedrasFrozenMap=(()=>{
   });
   function report(){return {active,sceneKey,level,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
+   decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
+   decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
+   activeVariant,lodSwitches,variantFallbackFrames,maxDecodedPixels,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
@@ -125,6 +140,7 @@ window.VedrasFrozenMap=(()=>{
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
+   activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
@@ -136,59 +152,76 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
-   // Never evict a tile that is currently on screen. Exceeding the ordinary
-   // LRU budget while zoomed out is preferable to an infinite decode/flicker
-   // loop. Off-screen packets are reclaimed promptly on the next camera frame.
+   // 30M pixels was smaller than the visible bitmaps of a wide-screen
+   // 2x viewport. 95M (~362 MiB RGBA) retains recently visited regions.
+   // Never evict currently painted tiles, including fallback at LOD switch.
    while(decodedPixels>maxDecodedPixels&&decoded.size>1){
-    const candidate=[...decoded.keys()].find(key=>!protectedKeys.has(key));
-    if(!candidate)break;
-    const entry=decoded.get(candidate);decoded.delete(candidate);
-    decodedPixels-=entry.pixels;evictions++;
-    for(const img of entry.images)img.close?.();
+    let victim=null;
+    for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
+      victim=key;break;
+     }
+    if(!victim)for(const key of decoded.keys())
+     if(!protectedKeys.has(key)){victim=key;break;}
+    if(!victim)break;
+    const entry=decoded.get(victim);
+    decoded.delete(victim);decodedPixels-=entry.pixels;evictions++;
+    for(const im of entry.images)im.close?.();
    }
   }
-  function read(key){
-   if(decoded.has(key)){
-    const entry=decoded.get(key);decoded.delete(key);decoded.set(key,entry);
-    hits++;return entry;
+  function read(key,variant=desiredVariant()){
+   const id=cacheKey(key,variant),
+    alternate=cacheKey(key,variant==='1x'?'2x':'1x');
+   const hit=decoded.get(id);
+   if(hit){
+    decoded.delete(id);decoded.set(id,hit);
+    hits++;return hit;
    }
-   if(!available.has(key)||loading.has(key))return null;
-   // Bound simultaneous disk reads/decodes – rendering is always nonblocking.
-   if(loading.size>=3)return null;
-   loading.add(key);const run=generation,readStarted=profiler?clock():0;
+   const fallback=decoded.get(alternate);
+   if(fallback){decoded.delete(alternate);decoded.set(alternate,fallback);}
+   if(!available.has(key)||loading.has(id))return fallback||null;
+   if(loading.size>=3)return fallback||null;
+   loading.add(id);
+   const run=generation,readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
-   storage.get(key).then(async record=>{
+   const operation=storage.getVariant?
+    storage.getVariant(key,variant):storage.get(key);
+   Promise.resolve(operation).then(async record=>{
     readFinished=profiler?clock():0;
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
     const images=[],decodeStarted=profiler?clock():0;
     try{
-     for(const l of record.layers)images.push(await decodePNG(l.png));
-    }catch(e){for(const im of images)im.close?.();throw e;}
+     for(const layer of record.layers)images.push(await decodePNG(layer.png));
+    }catch(error){for(const im of images)im.close?.();throw error;}
     if(profiler)decodeDuration=clock()-decodeStarted;
     if(!active||run!==generation||record.key!==key||
        record.sceneKey!==sceneKey||record.level!==level){
      for(const im of images)im.close?.();return;
     }
-    const pixels=images.reduce((n,im)=>n+(im.width||0)*(im.height||0),0);
-    decoded.set(key,{record,images,pixels});decodedPixels+=pixels;
-    loads++;keepWithinBudget();
+    const pixels=images.reduce((sum,im)=>
+     sum+(im.width||0)*(im.height||0),0);
+    decoded.set(id,{record,images,pixels,variant});
+    decodedPixels+=pixels;loads++;
+    keepWithinBudget();
     if(profiler)profiler.tileRead({
-     source:record.derivedFormat==='2x-png-v1'?'derived2x':'original',
+     source:record.derivedFormat==='1x-png-v1'?'derived1x':
+      record.derivedFormat==='2x-png-v1'?'derived2x':'original',
      storageMs:readFinished-readStarted,decodeMs:decodeDuration,
      totalMs:clock()-readStarted,layers:images.length,
-     blobBytes:record.layers.reduce((n,l)=>n+(l.png?.size||0),0),
+     blobBytes:record.layers.reduce((sum,l)=>sum+(l.png?.size||0),0),
      pixels
     });
    }).catch(()=>{
     if(run===generation)failures++;
     if(profiler)profiler.tileRead({
-     error:true,storageMs:readFinished?readFinished-readStarted:clock()-readStarted,
+     error:true,storageMs:readFinished?
+      readFinished-readStarted:clock()-readStarted,
      decodeMs:decodeDuration,totalMs:clock()-readStarted
     });
    }).finally(()=>{
-    if(run===generation){loading.delete(key);repaint();}
+    if(run===generation){loading.delete(id);repaint();}
    });
-   return null;
+   return fallback||null;
   }
   function getPose(){return pose?{...pose}:null;}
   function isHexReady(c){
@@ -197,7 +230,9 @@ window.VedrasFrozenMap=(()=>{
    for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
     for(let iy=Math.floor((c.y-c.radius+.01)/512);
      iy<=Math.floor((c.y+c.radius-.01)/512);iy++)
-     if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
+     if(!decodedEntry(makeKey(sceneKey,level,ix+','+iy),activeVariant)&&
+         !decodedEntry(makeKey(sceneKey,level,ix+','+iy),
+          activeVariant==='1x'?'2x':'1x'))return false;
    return true;
   }
   function frontierEdges(){
@@ -303,7 +338,8 @@ window.VedrasFrozenMap=(()=>{
     const tail=key.slice((sceneKey+'|'+level+'|').length);
     const [ix,iy]=tail.split(',').map(Number);
     if(Number.isSafeInteger(ix)&&Number.isSafeInteger(iy)&&
-       viewportPolicy.visibleTile(ix,iy,bounds)&&!decoded.has(key))return true;
+       viewportPolicy.visibleTile(ix,iy,bounds)&&
+       !decodedEntry(key,activeVariant))return true;
    }
    return false;
   }
@@ -467,10 +503,17 @@ window.VedrasFrozenMap=(()=>{
    const bufferedBounds=viewportPolicy.screenBounds(anchorView,{
     marginWorld:Math.max((pad+48)/view.zoom,
      SCENERY_OVERHANG_WORLD+32)});
-   const bufferKeys=[...decoded.entries()].filter(([,entry])=>
-    viewportPolicy.visibleTile(
-     Math.round(entry.record.tile.x/512),Math.round(entry.record.tile.y/512),
-     bufferedBounds)).map(([key])=>key).sort();
+   // Multiple image densities may coexist in the decoder RAM. Rasterize
+   // exactly ONE variant per world tile: the requested LOD or its fallback.
+   const chosen=new Map();
+   for(const [key,entry] of decoded){
+    const t=entry.record.tile;
+    if(!viewportPolicy.visibleTile(
+      Math.round(t.x/512),Math.round(t.y/512),bufferedBounds))continue;
+    const logical=entry.record.key,previous=chosen.get(logical);
+    if(!previous||entry.variant===activeVariant)chosen.set(logical,key);
+   }
+   const bufferKeys=[...chosen.values()].sort();
    // Map iteration order is LRU order and changes on every tile read.
    // Sort to prevent a false raster rebuild during a simple camera pan.
    const signature=bufferKeys.join(';');
@@ -554,7 +597,15 @@ window.VedrasFrozenMap=(()=>{
     }
     visible.push({key,left,top,right,bottom});
    }
-   protectedKeys=new Set([...visible,...prefetch].map(t=>t.key));
+   const previousVariant=activeVariant,variant=desiredVariant();
+   if(previousVariant!==variant){lodSwitches++;overviewRaster=null;}
+   protectedKeys=new Set(visible.flatMap(t=>{
+    const result=[cacheKey(t.key,variant)];
+    const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
+    if(!decoded.has(cacheKey(t.key,variant))&&decoded.has(other))
+     result.push(other);
+    return result;
+   }));
    keepWithinBudget();
    // Decode the middle of the viewport first when the map opens; always
    // keep already decoded tiles, even when 30M pixels cannot hold all of them.
@@ -565,8 +616,11 @@ window.VedrasFrozenMap=(()=>{
    });
    const tiles=[];
    for(const t of visible){
-    const entry=read(t.key);
-    if(entry)tiles.push({...t,entry});
+    const entry=read(t.key,variant);
+    if(entry){
+     if(entry.variant!==variant)variantFallbackFrames++;
+     tiles.push({...t,entry});
+    }
     else misses++;
    }
    // Demand is ordered after on-screen keys; a new visible packet can
@@ -577,7 +631,7 @@ window.VedrasFrozenMap=(()=>{
      ex=b.left+b.right-width,ey=b.top+b.bottom-height;
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
-   for(const t of prefetch)read(t.key);
+   for(const t of prefetch)read(t.key,variant);
    if(profileFrame)profileFrame.selectMs=clock()-now;
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
@@ -670,6 +724,7 @@ window.VedrasFrozenMap=(()=>{
      canvasPixels:dw*dh,visibleTiles:visible.length,
      visibleReadyTiles:tiles.length,
      decodedTiles:decoded.size,pendingTiles:loading.size,
+     activeVariant,decodedPixels,evictions,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
     });
