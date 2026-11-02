@@ -166,24 +166,97 @@ window.VedrasFrozenMap=(()=>{
    return null;
   }
   function getPose(){return pose?{...pose}:null;}
-  function beginZoomPreview(){
-   if(zoomPreview||!active||!pose||typeof document==='undefined'||
-      !canvas.width||!canvas.height)return !!zoomPreview;
-   // The snapshot contains ONLY pixels already shown by the authorized
-   // viewer, including its existing fog. Never fetch hidden terrain here.
-   const maxPixels=4000000,
-    scale=Math.min(1,Math.sqrt(maxPixels/(canvas.width*canvas.height)));
-   const image=document.createElement('canvas');
-   image.width=Math.max(1,Math.round(canvas.width*scale));
-   image.height=Math.max(1,Math.round(canvas.height*scale));
-   const g=image.getContext('2d',{alpha:true});
-   if(!g)return false;
-   g.drawImage(canvas,0,0,image.width,image.height);
+  function isHexReady(c){
+   if(c.visibility!=='visible')return false;
+   const half=c.radius*Math.sqrt(3)/2-.01;
+   for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
+    for(let iy=Math.floor((c.y-c.radius+.01)/512);
+     iy<=Math.floor((c.y+c.radius-.01)/512);iy++)
+     if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
+   return true;
+  }
+  function frontierEdges(){
+   if(authoredEdges)return authoredEdges;
+   const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
+    .map(c=>c.q+','+c.r));
+   const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+   authoredEdges=[];
+   for(const c of cells)if(c.visibility==='visible')
+    for(let direction=0;direction<6;direction++){
+     const d=dirs[direction];
+     if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
+      authoredEdges.push({q:c.q,r:c.r,direction});
+    }
+   return authoredEdges;
+  }
+  function zoomSnapshotOpacity(c,isReady){
+   if(!isReady)return 1;
+   const id=c.q+','+c.r;
+   if(!unreadyObserved.has(id))return 0;
+   const at=revealedAt.get(id);
+   if(at==null)return 1;
+   const t=Math.max(0,Math.min(1,
+    ((typeof performance!=='undefined'?performance.now():Date.now())-at)/DISSOLVE_MS));
+   return 1-t*t*(3-2*t);
+  }
+  function beginZoomPreview({zoomOut=false}={}){
+   if(!active||!pose||typeof document==='undefined'||
+      !canvas.width||!canvas.height)return false;
+   if(zoomPreview){
+    // Rebase only after multiple zoom-out ticks would outrun the enlarged
+    // captured world. Never show a sharp rectangular screenshot boundary.
+    if(!zoomOut||pose.zoom/zoomPreview.pose.zoom>=.40)
+     return true;
+    zoomPreview=null;
+   }
    const bounds=canvas.getBoundingClientRect?.()||{
     width:canvas.width/(pose.dpr||1),height:canvas.height/(pose.dpr||1)};
-   zoomPreview={image,pose:{...pose},
-    width:Math.max(1,Math.floor(bounds.width)),
-    height:Math.max(1,Math.floor(bounds.height))};
+   const width=Math.max(1,Math.floor(bounds.width)),
+    height=Math.max(1,Math.floor(bounds.height));
+   // A screen-only screenshot becomes a visible square on zoom-out because
+   // it covers LESS than the destination viewport. Capture more *world*
+   // around it, with fog and authorization clipping already applied.
+   const padX=zoomOut?Math.ceil(width*1.45):0,
+    padY=zoomOut?Math.ceil(height*1.45):0;
+   const extendedWidth=width+2*padX,extendedHeight=height+2*padY,
+    maxPixels=4000000;
+   const backingDpr=Math.min(pose.dpr||1,1,
+    Math.sqrt(maxPixels/(extendedWidth*extendedHeight)));
+   const image=document.createElement('canvas');
+   image.width=Math.max(1,Math.round(extendedWidth*backingDpr));
+   image.height=Math.max(1,Math.round(extendedHeight*backingDpr));
+   const g=image.getContext('2d',{alpha:true});
+   if(!g)return false;
+   const extendedView={...pose,width:extendedWidth,height:extendedHeight};
+   if(zoomOut){
+    g.setTransform(backingDpr,0,0,backingDpr,0,0);
+    if(clouds){
+     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+      c.visibility==='visible'||c.visibility==='explored')
+      .map(c=>c.q+','+c.r));
+     clouds.drawBase(g,extendedView,authoredFogSet);
+    }else{
+     g.fillStyle='#bdced7';g.fillRect(0,0,extendedWidth,extendedHeight);
+    }
+    const region=viewportPolicy?.screenBounds(extendedView,{
+     marginWorld:viewportPolicy.MARGIN_WORLD});
+    const shown=[...decoded.values()].filter(entry=>{
+     const t=entry.record.tile;
+     return !region||viewportPolicy.visibleTile(
+      Math.floor(t.x/512),Math.floor(t.y/512),region);
+    }).map(entry=>({entry}));
+    paintWorld(g,extendedView,shown,backingDpr);
+    if(clouds){
+     g.setTransform(backingDpr,0,0,backingDpr,0,0);
+     clouds.drawUnready(g,extendedView,cells,isHexReady,zoomSnapshotOpacity);
+     clouds.drawTransitions(g,extendedView,frontierEdges());
+    }
+   }else{
+    // Zoom-in never exposes pixels beyond the original viewport.
+    g.drawImage(canvas,0,0,image.width,image.height);
+   }
+   zoomPreview={image,pose:{...pose},width,height,padX,padY,
+    extendedWidth,extendedHeight};
    zoomPreviewStarted=typeof performance!=='undefined'?performance.now():Date.now();
    return true;
   }
@@ -418,16 +491,23 @@ window.VedrasFrozenMap=(()=>{
     // While previewing, tile reads above still warm the destination area.
     const from=zoomPreview.pose,
      ratio=view.zoom/(from.zoom||1),
-     ox=width/2+view.panX-ratio*(width/2+from.panX),
-     oy=height/2+view.panY-ratio*(height/2+from.panY);
-    ctx.globalAlpha=1;
-    ctx.fillStyle='#bdced7';ctx.fillRect(0,0,width,height);
-    ctx.drawImage(zoomPreview.image,ox,oy,width*ratio,height*ratio);
-    zoomPreviewFrames++;
-    frame++;paintMs=(typeof performance!=='undefined'?
-     performance.now():Date.now())-now;
-    onStatus(report());
-    return report();
+     ox=width/2+view.panX-ratio*(width/2+from.panX)-
+      zoomPreview.padX*ratio,
+     oy=height/2+view.panY-ratio*(height/2+from.panY)-
+      zoomPreview.padY*ratio,
+     destW=zoomPreview.extendedWidth*ratio,
+     destH=zoomPreview.extendedHeight*ratio;
+    // If a single extreme zoom step outruns the captured overscan, render
+    // the real scene rather than exposing a rectangular screenshot.
+    if(ox<=0&&oy<=0&&ox+destW>=width&&oy+destH>=height){
+     ctx.globalAlpha=1;
+     ctx.drawImage(zoomPreview.image,ox,oy,destW,destH);
+     zoomPreviewFrames++;
+     frame++;paintMs=(typeof performance!=='undefined'?
+      performance.now():Date.now())-now;
+     onStatus(report());
+     return report();
+    }
    }
    if(clouds){
     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
@@ -441,30 +521,10 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(ctx,view,tiles,dpr);
    }
    if(clouds){
-    if(!authoredEdges){
-     const visibleCells=new Set(cells.filter(c=>c.visibility==='visible')
-      .map(c=>c.q+','+c.r));
-     const dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-     authoredEdges=[];
-     for(const c of cells)if(c.visibility==='visible')
-      for(let direction=0;direction<6;direction++){
-       const d=dirs[direction];
-       if(!visibleCells.has((c.q+d[0])+','+(c.r+d[1])))
-        authoredEdges.push({q:c.q,r:c.r,direction});
-      }
-    }
+    frontierEdges();
     // Do not reveal a partially loaded hex: both completed PNG layers of
     // every intersecting tile must be decoded before fog retreats.
-    const ready=c=>{
-     if(c.visibility!=='visible')return false;
-     const half=c.radius*Math.sqrt(3)/2-.01;
-     for(let ix=Math.floor((c.x-half)/512);ix<=Math.floor((c.x+half)/512);ix++)
-      for(let iy=Math.floor((c.y-c.radius+.01)/512);
-       iy<=Math.floor((c.y+c.radius-.01)/512);iy++){
-       if(!decoded.has(makeKey(sceneKey,level,ix+','+iy)))return false;
-      }
-     return true;
-    };
+    const ready=isHexReady;
     dissolveActive=false;
     const nowFade=typeof performance!=='undefined'?performance.now():Date.now();
     const fadeOpacity=(cell,isReady)=>{
