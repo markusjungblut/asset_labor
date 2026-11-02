@@ -125,7 +125,8 @@ test('step 20 applies 2x standard without altering 4x baked PNG manifest',()=>{
  assert.match(gameSrc,/twoXStore\.setEnabled\(lod==='near'/);
  assert.match(page,/frozen-map-derived-2x\.js/);
  assert.match(runtime,/return \{create,memoryStore,indexedStore,valid,makeKey\}/);
- assert.match(appSrc,/groundInfoCache\.graph!==graph/);
+ assert.match(appSrc,/groundInfoSemanticKey!==infoSemanticKey/);
+ assert.match(appSrc,/state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex/);
  assert.match(appSrc,/End cached DOM-only diagnostics/);
  assert.doesNotMatch(derivedSrc,/source\.put\(/);
  assert.doesNotMatch(derivedSrc,/bakeWorldTile\(/);
