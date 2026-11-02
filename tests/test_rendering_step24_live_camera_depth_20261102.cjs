@@ -97,14 +97,22 @@ test('tree and shadow layers preserve same stable tile depth after zoom or reord
 });
 test('a tile whose scenery overhang crosses the screen is rendered before its core',async()=>{
  const f=fixture({width:400,height:240});
- await warm(f,{zoom:.8,panX:-440,panY:0,dpr:1.25,projectY:.85});
- // The adjacent world tile core lies outside the right edge,
- // but a tree crown extends 128 world units beyond its core.
- // Assert that its scenery gets painted by the actual renderer.
+ await f.player.load('v1-0374527a','near',
+  {zoom:.8,panX:-200,panY:0,dpr:1.25,projectY:.85},
+  [{q:0,r:0,x:0,y:0,radius:148,visibility:'visible'}]);
+ // The 1,0 tile core starts at x = 200 - 200 + 512*0.8 = 409.6,
+ // outside the 400px frame. Its 128-unit tree crowns and shadows still
+ // extend 102.4 screen pixels into that frame.
+ for(let n=0;n<30;n++){
+  f.player.draw();
+  await new Promise(resolve=>setImmediate(resolve));
+  if(f.player.report().pending===0&&f.draws.includes('S:1,0'))break;
+ }
  f.draws.length=0;f.player.draw();
- assert.ok(f.draws.some(x=>x.startsWith('S:')));
- assert.match(runtime,/SCENERY_OVERHANG_WORLD\*view\.zoom/);
- assert.match(runtime,/marginWorld:Math\.max\(\(pad\+48\)\/view\.zoom/);
+ assert.ok(f.draws.includes('S:1,0'),
+  'sprite overhang visible even though owning tile core is outside view');
+ assert.ok(runtime.includes('SCENERY_OVERHANG_WORLD*view.zoom'));
+ assert.ok(runtime.includes('marginWorld:Math.max((pad+48)/view.zoom'));
  f.player.stop();
 });
 test('decoded tile streaming and alpha state update on live pan, not on release',async()=>{
