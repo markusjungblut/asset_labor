@@ -64,13 +64,26 @@ async function settle(f,{zoom=.9}={}){
  }
  player.draw();
 }
-async function awaitReads(f){
- for(let i=0;i<50;i++){
+async function awaitReads(f,{expected1x=0}={}){
+ // requestAnimationFrame is intentionally disabled in this fixture, so
+ // completing the current batch of 3 decodes does NOT schedule the next
+ // batch until draw() is called again. pending===0 is only a temporary
+ // batch boundary, NOT evidence that all 9 requested 1x tiles are ready.
+ for(let i=0;i<70;i++){
   f.player.draw();
   await new Promise(resolve=>setImmediate(resolve));
-  if(f.player.report().pending===0)break;
+  const status=f.player.report();
+  if(status.pending===0&&status.decoded1x>=expected1x){
+   // Do one more draw: it may enqueue more demanded visible tile variants.
+   f.player.draw();
+   const stable=f.player.report();
+   if(stable.pending===0&&stable.decoded1x>=expected1x)return;
+  }
  }
- f.player.draw();
+ const status=f.player.report();
+ assert.fail('Requested 1x variants did not settle: '+
+  JSON.stringify({expected1x,decoded1x:status.decoded1x,
+   pending:status.pending,loads:status.loads,failures:status.failures}));
 }
 test('1x overview starts at 60 percent, returns to 2x at 72 percent',async()=>{
  const f=fixture();await settle(f);
@@ -80,7 +93,7 @@ test('1x overview starts at 60 percent, returns to 2x at 72 percent',async()=>{
  f.player.setPose({zoom:.50});f.player.draw();
  assert.equal(f.player.report().activeVariant,'1x');
  assert.ok(f.calls.length>before,'no blank frame during LOD change');
- await awaitReads(f);
+ await awaitReads(f,{expected1x:9});
  assert.equal(f.player.report().decoded1x,9);
  assert.ok(f.fetches.some(x=>x.variant==='1x'));
  const count1=f.fetches.filter(x=>x.variant==='1x').length;
