@@ -209,6 +209,11 @@ window.VedrasFrozenMap=(()=>{
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    if(waitForVisible&&now-zoomPreviewStarted<maxHoldMs&&previewNeedsData())
     return false;
+   // The intermediate snapshot is static. Preserve the remaining dissolve
+   // interval rather than letting it expire invisibly during a zoom gesture
+   // and then abruptly swapping a cloudy preview for a clear landscape.
+   const pausedMs=Math.max(0,now-zoomPreviewStarted);
+   for(const [id,at] of revealedAt)revealedAt.set(id,at+pausedMs);
    zoomPreview=null;repaint();return true;
   }
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
