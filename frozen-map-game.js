@@ -134,17 +134,31 @@
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
  canvas.addEventListener('pointerdown',e=>{
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,
+   startX:e.clientX,startY:e.clientY,active:false};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
   if(!drag||drag.id!==e.pointerId)return;
+  if(!drag.active&&Math.hypot(
+   e.clientX-drag.startX,e.clientY-drag.startY)<3)return;
   const p=player.getPose(),dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
-  setPose({panX:p.panX+dx,panY:p.panY+dy});
+  if(!p)return;
+  // While dragging, move an already authorized buffered image. New tiles
+  // are still prefetched without recompositing scenery and clouds per move.
+  player.beginZoomPreview({zoomOut:true});
+  drag={...drag,x:e.clientX,y:e.clientY,active:true};
+  setPose({panX:p.panX+dx,panY:p.panY+dy},{deferDpr:true});
  });
+ const finishPan=()=>{
+  const moved=drag?.active;
+  drag=null;
+  if(!moved)return;
+  if(zoomSettler!==null)clearTimeout(zoomSettler);
+  zoomSettler=setTimeout(settleZoom,90);
+ };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
-  canvas.addEventListener(evt,()=>{drag=null;});
+  canvas.addEventListener(evt,finishPan);
  // Layout-driven statistics never trigger a resize. Genuine viewport size
  // changes preserve the current world pose and all decoded image tiles;
  // repaint at most once per animation frame.
