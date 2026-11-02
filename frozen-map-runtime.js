@@ -79,7 +79,7 @@ window.VedrasFrozenMap=(()=>{
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
-    maxDecodedPixels=30000000,useLayerCache=true}={}){
+    maxDecodedPixels=30000000,useLayerCache=true,profiler=null}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -96,7 +96,9 @@ window.VedrasFrozenMap=(()=>{
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
-  let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0;
+  let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0,
+   evictions=0,profileFrame=null;
+  const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
   const clouds=window.VedrasCloudArtwork?.create({
    onReady:()=>{cloudBackdropRaster=null;repaint();}
   })||null;
@@ -110,7 +112,7 @@ window.VedrasFrozenMap=(()=>{
    });
   });
   function report(){return {active,sceneKey,level,saved:available.size,
-   decoded:decoded.size,decodedPixels,hits,loads,misses,failures,
+   decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
@@ -141,7 +143,7 @@ window.VedrasFrozenMap=(()=>{
     const candidate=[...decoded.keys()].find(key=>!protectedKeys.has(key));
     if(!candidate)break;
     const entry=decoded.get(candidate);decoded.delete(candidate);
-    decodedPixels-=entry.pixels;
+    decodedPixels-=entry.pixels;evictions++;
     for(const img of entry.images)img.close?.();
    }
   }
@@ -153,13 +155,16 @@ window.VedrasFrozenMap=(()=>{
    if(!available.has(key)||loading.has(key))return null;
    // Bound simultaneous disk reads/decodes – rendering is always nonblocking.
    if(loading.size>=3)return null;
-   loading.add(key);const run=generation;
+   loading.add(key);const run=generation,readStarted=profiler?clock():0;
+   let readFinished=0,decodeDuration=0;
    storage.get(key).then(async record=>{
+    readFinished=profiler?clock():0;
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
-    const images=[];
+    const images=[],decodeStarted=profiler?clock():0;
     try{
      for(const l of record.layers)images.push(await decodePNG(l.png));
     }catch(e){for(const im of images)im.close?.();throw e;}
+    if(profiler)decodeDuration=clock()-decodeStarted;
     if(!active||run!==generation||record.key!==key||
        record.sceneKey!==sceneKey||record.level!==level){
      for(const im of images)im.close?.();return;
@@ -167,7 +172,20 @@ window.VedrasFrozenMap=(()=>{
     const pixels=images.reduce((n,im)=>n+(im.width||0)*(im.height||0),0);
     decoded.set(key,{record,images,pixels});decodedPixels+=pixels;
     loads++;keepWithinBudget();
-   }).catch(()=>{if(run===generation)failures++;}).finally(()=>{
+    if(profiler)profiler.tileRead({
+     source:record.derivedFormat==='2x-png-v1'?'derived2x':'original',
+     storageMs:readFinished-readStarted,decodeMs:decodeDuration,
+     totalMs:clock()-readStarted,layers:images.length,
+     blobBytes:record.layers.reduce((n,l)=>n+(l.png?.size||0),0),
+     pixels
+    });
+   }).catch(()=>{
+    if(run===generation)failures++;
+    if(profiler)profiler.tileRead({
+     error:true,storageMs:readFinished?readFinished-readStarted:clock()-readStarted,
+     decodeMs:decodeDuration,totalMs:clock()-readStarted
+    });
+   }).finally(()=>{
     if(run===generation){loading.delete(key);repaint();}
    });
    return null;
@@ -347,6 +365,7 @@ window.VedrasFrozenMap=(()=>{
    return true;
   }
   function paintWorld(g,view,list,dpr){
+   const worldStart=profileFrame?clock():0;
    const width=view.width,height=view.height,proj=view.projectY||.85;
    // Painted sprite layers must be ordered by WORLD depth, not distance
    // from the cursor/camera, decode arrival, or last-used tile cache order.
@@ -389,7 +408,10 @@ window.VedrasFrozenMap=(()=>{
    // Ground uses exclusive device-snapped borders with an infinitesimal
    // source-gutter overdraw. It covers fractional-DPR seams without changing
    // the baked terrain content, and never samples outside the original PNG.
+   const groundClipStart=profileFrame?clock():0;
    g.save();clipCells(0);
+   if(profileFrame)profileFrame.maskMs+=clock()-groundClipStart;
+   const groundStarted=profileFrame?clock():0;
    for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
     const layer=t.entry.record.layers[i];
     if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
@@ -406,8 +428,12 @@ window.VedrasFrozenMap=(()=>{
     }else g.drawImage(image,x,y,w,h);
    }
    g.restore();
+   if(profileFrame)profileFrame.groundMs+=clock()-groundStarted;
    // Tree crowns and cast shadows extend beyond the owning 512-unit core.
+   const sceneryClipStart=profileFrame?clock():0;
    g.save();clipCells(45);
+   if(profileFrame)profileFrame.maskMs+=clock()-sceneryClipStart;
+   const sceneryStarted=profileFrame?clock():0;
    for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
     const layer=t.entry.record.layers[i];
     if(layer.layer!=='scenery'&&layer.layer!=='structures')continue;
@@ -422,6 +448,10 @@ window.VedrasFrozenMap=(()=>{
     else g.drawImage(image,fx,fy,fw,fh);
    }
    g.restore();
+   if(profileFrame){
+    profileFrame.sceneryMs+=clock()-sceneryStarted;
+    profileFrame.worldPainterMs+=clock()-worldStart;
+   }
   }
   function paintOverview(target,view,list,dpr){
    const pad=viewportPolicy.cameraCacheMargin(view.zoom),
@@ -480,6 +510,8 @@ window.VedrasFrozenMap=(()=>{
   function draw(){
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
+   profileFrame=profiler?{selectMs:0,worldMs:0,groundMs:0,sceneryMs:0,
+    maskMs:0,worldPainterMs:0,cloudMs:0,fogMs:0,statusMs:0}:null;
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
    const dpr=Math.max(1,Math.min(4,pose.dpr||1));
@@ -546,6 +578,7 @@ window.VedrasFrozenMap=(()=>{
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
    for(const t of prefetch)read(t.key);
+   if(profileFrame)profileFrame.selectMs=clock()-now;
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
     // instead of recomputing every Ground/Scenery and cloud stamp per tick.
@@ -570,6 +603,7 @@ window.VedrasFrozenMap=(()=>{
      return report();
     }
    }
+   const cloudStart=profileFrame?clock():0;
    if(clouds){
     if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
      if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
@@ -578,11 +612,15 @@ window.VedrasFrozenMap=(()=>{
      clouds.drawBase(ctx,view,authoredFogSet);
     }
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
+   if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
+   const worldCompositeStart=profileFrame?clock():0;
    if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
     // Normal zoom: draw the two baked world-image layers directly.
     overviewRaster=null;
     paintWorld(ctx,view,tiles,dpr);
    }
+   if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
+   const fogStart=profileFrame?clock():0;
    if(clouds){
     frontierEdges();
     // Do not reveal a partially loaded hex: both completed PNG layers of
@@ -620,10 +658,25 @@ window.VedrasFrozenMap=(()=>{
     clouds.drawUnready(ctx,view,cells,ready,fadeOpacity);
     clouds.drawTransitions(ctx,view,authoredEdges);
    }
-   frame++;paintMs=(typeof performance!=='undefined'?performance.now():Date.now())-now;
-   onStatus(report());
+   if(profileFrame)profileFrame.fogMs+=clock()-fogStart;
+   frame++;paintMs=clock()-now;
+   const currentReport=report(),statusStart=profileFrame?clock():0;
+   onStatus(currentReport);
+   if(profileFrame){
+    profileFrame.statusMs=clock()-statusStart;
+    profiler.frame({
+     time:clock(),drawMs:clock()-now,...profileFrame,
+     renderMode:currentReport.renderMode,zoom:view.zoom,dpr,
+     canvasPixels:dw*dh,visibleTiles:visible.length,
+     visibleReadyTiles:tiles.length,
+     decodedTiles:decoded.size,pendingTiles:loading.size,
+     worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
+     cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
+    });
+   }
+   profileFrame=null;
    if(dissolveActive)repaint();
-   return report();
+   return currentReport;
   }
   async function load(scene,selectedLevel,initialPose,knownCells){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');

@@ -15,13 +15,21 @@
   metrics.textContent='Kein Terrain-Worker aktiv';
  }
  if(!/^v1-[0-9a-f]{8}$/.test(scene||'')){fail('Ungültige Kartenkennung');return;}
+ // Profiling is opt-in and does nothing in the normal game playback.
+ const profileRequested=params.get('perf')==='1';
+ const profiler=profileRequested?
+  window.VedrasFrozenProfiler?.create():null;
+ if(profileRequested&&!profiler){
+  fail('Performance-Modul konnte nicht geladen werden. Browser-Cache aktualisieren');
+  return;
+ }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,storage:twoXStore,useLayerCache:!directRenderer,
+  canvas,storage:twoXStore,useLayerCache:!directRenderer,profiler,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -45,14 +53,17 @@
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
-     (optimized.failures?' · Speicherwarnungen '+optimized.failures:''):'');
+     (optimized.failures?' · Speicherwarnungen '+optimized.failures:''):'')+
+    (profiler?' · Profilframes: '+profiler.stats().frames:'');
    metrics.title=metrics.textContent;
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
- let startPose=null,drag=null;
+ let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null;
  try{
+  const manifestReadStarted=performance.now();
   const manifest=await player.loadManifest(scene);
+  manifestReadMs=performance.now()-manifestReadStarted;
   const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
    manifest.levels[0];
   // Derive 2× images ONLY for legacy full 4× near PNG sources.
@@ -73,7 +84,9 @@
      baseDpr:2}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
+  const registerStarted=performance.now();
   const status=await player.load(scene,lod,startPose,manifest.cells);
+  sceneRegisterMs=performance.now()-registerStarted;
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
@@ -114,6 +127,7 @@
  };
  const onZoom=(factor,x=canvas.clientWidth/2,y=canvas.clientHeight/2)=>{
   const p=player.getPose();if(!p)return;
+  if(profiler)profiler.input('zoom');
   const zoom=Math.min(4,Math.max(.15,p.zoom*factor));
   const wx=(x-canvas.clientWidth/2-p.panX)/p.zoom,
    wy=(y-canvas.clientHeight/2-p.panY)/(p.zoom*(p.projectY||.85));
@@ -148,6 +162,7 @@
   const p=player.getPose();if(!p)return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(!dx&&!dy)return;
+  if(profiler)profiler.input('pan');
   drag.x=e.clientX;drag.y=e.clientY;
   // Do not scale a 4-MP low-res snapshot across 2x scenery. Instead move
   // the real camera and let the padded world/cloud raster caches repaint.
@@ -177,8 +192,55 @@
   new ResizeObserver(handleViewportResize).observe(canvas);
  else window.addEventListener('resize',handleViewportResize);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)player.draw();});
+ const profileStatus=()=>({
+  enabled:!!profiler,
+  requested:profileRequested,
+  frames:profiler?.stats().frames??0,
+  message:profiler?
+   'Performance-Aufzeichnung aktiv. profileReset() setzt die Messwerte zurück.':
+   'Performance-Aufzeichnung ist ausgeschaltet. URL mit &perf=1 öffnen.'
+ });
+ const profileReset=()=>{
+  if(!profiler)return {
+   ok:false,...profileStatus(),
+   message:'Keine Aufzeichnung aktiv. Bitte &perf=1 in der URL ergänzen.'
+  };
+  profiler.reset();
+  return {ok:true,...profileStatus(),
+   message:'Messwerte zurückgesetzt. Jetzt Karte bewegen und Performance-JSON exportieren.'};
+ };
+ const profileReport=()=>profiler?
+  profiler.report({
+   scene,level:requestedLevel||'near',
+   renderMode:directRenderer?'direct':'cached',
+   browser:navigator.userAgent,
+   viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
+   canvasBacking:{width:canvas.width,height:canvas.height},
+   startup:{manifestReadMs,sceneRegisterMs},
+   runtime:player.report(),derived2x:twoXStore.stats()
+  }):{
+   enabled:false,
+   message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
+   currentUrl:location.href
+  };
+ if(profiler){
+  const button=$('downloadProfile');
+  if(button){
+   button.hidden=false;
+   button.addEventListener('click',()=>{
+    const body=JSON.stringify(profileReport(),null,2);
+    const url=URL.createObjectURL(new Blob([body],{type:'application/json'}));
+    const link=document.createElement('a');
+    link.href=url;link.download='vedras_profile_'+scene+
+     '_'+(directRenderer?'direct':'cached')+'.json';
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+   });
+  }
+ }
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
+  profileReport,profileReset,profileStatus,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats()
  };

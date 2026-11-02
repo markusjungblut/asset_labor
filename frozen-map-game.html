@@ -7,7 +7,8 @@
 body{display:flex;flex-direction:column}
 header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#14272c;border-bottom:1px solid #48615b}
 h1{font-size:1rem;margin:0}small{color:#a4bfb5}
-.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;max-width:100%;overflow-x:auto}
+button[hidden]{display:none}
 /* Reserve room for variable status labels without moving the toolbar. */
 #zoom{display:inline-block;min-width:5ch;text-align:center;font-variant-numeric:tabular-nums}
 #rasterQuality{display:inline-block;min-width:10ch;text-align:center;white-space:nowrap}
@@ -34,13 +35,15 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <div class="controls"><button id="zoomOut">−</button><span id="zoom">100 %</span>
 <button id="zoomIn">+</button><span id="rasterQuality" title="Physikalische Canvas-Renderauflösung">Raster ?×</span><button id="resetView">Ansicht zurücksetzen</button>
 <a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
+<button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
 <a href="index.html">Asset-Labor öffnen</a></div></header>
 <main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas></main>
 <footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
 <span id="metrics">Keine Renderaufträge</span></footer>
 <script src="cloud-artwork.js?v=20261102-step22-true-alpha"></script>
 <script src="frozen-map-view-policy.js?v=20261102-step21"></script>
-<script src="frozen-map-runtime.js?v=20261102-step24-stable-layer-order"></script>
+<script src="frozen-map-profiler.js?v=20261102-step25a-telemetry"></script>
+<script src="frozen-map-runtime.js?v=20261102-step25a-measured"></script>
 <script src="frozen-map-derived-2x.js?v=20261102-step20-2x"></script>
-<script src="frozen-map-game.js?v=20261102-step24-sharp-live-camera"></script>
+<script src="frozen-map-game.js?v=20261102-step25a-reset-feedback2"></script>
 </body></html>
