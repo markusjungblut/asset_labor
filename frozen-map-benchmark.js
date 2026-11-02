@@ -293,9 +293,9 @@
     rms:round(Math.sqrt(sum/(total*4)))};
   }finally{a.close?.();b.close?.();}
  }
- async function renderVariant(variant,memory,manifest,refScreenshot){
+ async function renderVariant(variant,memory,manifest,referenceImages){
   const allPaint=[],allGaps=[],cold=[],shots=[];
-  let comparison=null,benchmarkTime=0,decodeCount=0,redecodes=0;
+  let decodeCount=0,redecodes=0;
   const intervals=[.28,.65,1,1.5];
   for(let i=0;i<pairs.length;i++){
    stopIfNeeded();
@@ -335,21 +335,17 @@
      for(const frame of frames)allPaint.push({zoom,pair:i,value:frame.paintMs});
      for(let k=1;k<frames.length;k++)
       allGaps.push({zoom,pair:i,value:frames[k].t-frames[k-1].t});
-     if(zoom===1&&i===0){
-      player.setPose(pose);
-      await tick();
-      const shot=await screenshot();
-      comparison=await compareScreenshot(refScreenshot,shot);
-      shots.push(shot);
-     }
+
     }
     const stats=player.report();
     decodeCount+=stats.loads;
     redecodes+=Math.max(0,stats.loads-touched.size);
    }finally{sampleActive=false;player.stop();}
+   const preview=await compositePair(memory,pair,manifest.cells);
+   const comparison=await compareScreenshot(referenceImages?.[i],preview);
+   shots.push({pair:pair.ids,blob:preview,comparison});
    await idle();
   }
-  const shotsOut=shots[0]||null;
   return {cold,decodeCount,redecodes,
    drawP50:round(core.quantile(allPaint.map(x=>x.value),.5)),
    drawP95:round(core.quantile(allPaint.map(x=>x.value),.95)),
@@ -358,9 +354,9 @@
     const v=allPaint.filter(x=>x.zoom===z).map(x=>x.value);
     return {zoom:z,paintP50:round(core.quantile(v,.5)),
      paintP95:round(core.quantile(v,.95)),frames:v.length};
-   }),comparison,screenshot:shotsOut};
+   }),shots};
  }
- let originalShot=null,shotUrls=[];
+ let referenceShots=null,shotUrls=[];
  async function runBenchmark(){
   if(running)return;
   running=true;stopped=false;runButton.disabled=true;downloadButton.disabled=true;
@@ -383,7 +379,7 @@
     try{
      prep=await prepareVariant(variant);
      rendered=await renderVariant(variant,prep.memory,
-      sourceMetadata.manifest,originalShot);
+      sourceMetadata.manifest,referenceShots);
     }catch(error){
      if(variant.id==='E'&&!stopped){
       report.variants.push({variant:variant.id,name:variant.name,
@@ -392,15 +388,17 @@
      }
      throw error;
     }
-    if(variant.id==='A')originalShot=rendered.screenshot;
-    const {screenshot,comparison,...metric}=rendered;
-    if(screenshot){
-     const url=URL.createObjectURL(screenshot);
+    if(variant.id==='A')referenceShots=rendered.shots.map(s=>s.blob);
+    const {shots,...metric}=rendered;
+    for(const shot of shots){
+     const url=URL.createObjectURL(shot.blob);
      shotUrls.push(url);
      const link=document.createElement('a'),img=document.createElement('img'),
       label=document.createElement('span');
-     img.src=url;img.alt='Vergleichsbild Variante '+variant.id;
-     label.textContent=variant.id+' – '+variant.name+' (PNG öffnen)';
+     img.src=url;img.alt='Vollständiger Kachelausschnitt '+shot.pair.join(' / ');
+     label.textContent=variant.id+' · '+shot.pair.join(' / ')+
+      (shot.comparison?.changedPct!=null?
+       ' · '+shot.comparison.changedPct+' % Pixelabweichung':'');
      link.href=url;link.target='_blank';link.rel='noopener';
      link.append(img,label);$('gallery').append(link);
     }
@@ -409,7 +407,9 @@
      savingsPct:round(100*(1-prep.outputBytes/prep.inputBytes)),
      decodedMiB:mb(prep.decodedPixels*4),
      prepareMs:prep.prepareMs,details:prep.details,
-     ...metric,visualComparison:comparison});
+     ...metric,visualComparisons:shots.map(shot=>({
+      pair:shot.pair,...shot.comparison
+     })),visualComparison:shots[0]?.comparison||null});
     results.textContent=JSON.stringify(report.variants.map(v=>({
      group:v.variant,sizeMiB:v.outputMiB,savingsPct:v.savingsPct,
      decodedMiB:v.decodedMiB,drawP95:v.drawP95,
