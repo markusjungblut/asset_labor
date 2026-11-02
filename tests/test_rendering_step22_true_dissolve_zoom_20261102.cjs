@@ -118,5 +118,5 @@ test('current game uses live layers while keeping final 2x DPR after zoom',()=>{
  assert.ok(gameSource.includes('const gestureDpr=Math.min(p.dpr||2,1.25)'));
  assert.ok(gameSource.includes('{deferDpr:true}'));
  assert.ok(gameSource.includes('if(!deferDpr&&Math.abs(outDpr'));
- assert.match(gameHtml,/step24/);
+ assert.match(gameHtml,/<script src="frozen-map-game\\.js\\?v=/);
 });
