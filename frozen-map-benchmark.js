@@ -62,9 +62,13 @@
       rec.layers.some(l=>!(l.png instanceof Blob)))
     throw Error('Fehlendes oder unvollständiges Originalpaket: '+key);
    records.push(rec);
+   const fingerprints=[];
+   for(const l of rec.layers){
+    fingerprints.push({layer:l.layer,bytes:l.png.size,pad:l.pad||0,
+     crop:l.crop||null,sha256:await hashBlob(l.png)});
+   }
    origin.push({id:rec.tile.id,readMs:round(start()-t),
-    files:rec.layers.map(l=>({layer:l.layer,bytes:l.png.size,pad:l.pad||0,
-     crop:l.crop||null}))});
+    files:fingerprints});
   }
   samples.textContent=pairs.map((p,i)=>
    (i+1)+'. Nachbarpaar '+p.ids.join(' ↔ ')).join(' · ');
@@ -137,6 +141,22 @@
     stats:{inBytes:input.size,outBytes:input.size,inPixels:originalPixels,
      outPixels:originalPixels,decodeMs:round(decodeMs),encodeMs:0,transformed:false}};
   }finally{im.close?.();}
+ }
+ async function checkOriginalIntegrity(){
+  // Independent fresh reads, not references to the previously cached packet.
+  for(let ri=0;ri<records.length;ri++){
+   const original=records[ri],again=await source.get(original.key);
+   if(!again||again.layers.length!==original.layers.length)
+    throw Error('Originalarchiv verändert oder nicht lesbar: '+original.key);
+   for(let li=0;li<again.layers.length;li++){
+    if(again.layers[li].png.size!==sourceMetadata.origin[ri].files[li].bytes)
+     throw Error('Originalgröße verändert: '+original.key);
+    const fingerprint=sourceMetadata.origin[ri].files[li].sha256;
+    if(fingerprint&&await hashBlob(again.layers[li].png)!==fingerprint)
+     throw Error('Original-Hash stimmt nicht mehr: '+original.key);
+   }
+  }
+  return true;
  }
  async function prepareVariant(variant){
   const memory=Frozen.memoryStore(),details=[],t0=start();
@@ -294,14 +314,30 @@
   try{
    for(const variant of core.VARIANTS){
     stopIfNeeded();
-    const prep=await prepareVariant(variant);
-    const rendered=await renderVariant(variant,prep.memory,
-     sourceMetadata.manifest,originalShot);
+    let prep,rendered;
+    try{
+     prep=await prepareVariant(variant);
+     rendered=await renderVariant(variant,prep.memory,
+      sourceMetadata.manifest,originalShot);
+    }catch(error){
+     if(variant.id==='E'&&!stopped){
+      report.variants.push({variant:variant.id,name:variant.name,
+       skipped:true,reason:String(error?.message||error)});
+      await idle();continue;
+     }
+     throw error;
+    }
     if(variant.id==='A')originalShot=rendered.screenshot;
     const {screenshot,comparison,...metric}=rendered;
     if(screenshot){
      const url=URL.createObjectURL(screenshot);
      shotUrls.push(url);
+     const link=document.createElement('a'),img=document.createElement('img'),
+      label=document.createElement('span');
+     img.src=url;img.alt='Vergleichsbild Variante '+variant.id;
+     label.textContent=variant.id+' – '+variant.name+' (PNG öffnen)';
+     link.href=url;link.target='_blank';link.rel='noopener';
+     link.append(img,label);$('gallery').append(link);
     }
     report.variants.push({variant:variant.id,name:variant.name,
      inputMiB:mb(prep.inputBytes),outputMiB:mb(prep.outputBytes),
@@ -316,8 +352,10 @@
     })),null,2);
     await idle();
    }
-   msg('Benchmark beendet: 5 Varianten mit '+records.length+
-    ' Weltkacheln verglichen. JSON-Report herunterladen.');
+   msg('Vergleiche die ursprünglichen Kachel-Dateien per SHA-256 …');
+   report.sourceUnchanged=await checkOriginalIntegrity();
+   msg('Benchmark abgeschlossen: '+report.variants.length+' Varianten mit '+
+    records.length+' Weltkacheln überprüft. Original-Hashes unverändert.');
    downloadButton.disabled=false;
   }catch(error){
    fail(error);
