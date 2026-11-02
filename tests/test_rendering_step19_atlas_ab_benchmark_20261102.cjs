@@ -83,3 +83,25 @@ test('benchmark uses saved frozen atlas read-only and transforms only temporary 
  assert.match(page,/frozen-map-benchmark\.js/);
  assert.doesNotThrow(()=>new Function(benchSource));
 });
+
+test('sampler prefers both tiles containing authored hexes over empty perimeter',()=>{
+ const ids=['0,0','1,0','4,4','5,4'];
+ const keys=ids.map(id=>'v1-0374527a|near|'+id);
+ const cells=[
+  {x:100,y:100},{x:180,y:120},{x:220,y:180},{x:290,y:240},
+  {x:612,y:100},{x:650,y:160},{x:690,y:225},{x:720,y:300}
+ ];
+ const pairs=C.choosePairs(keys,1,cells);
+ assert.equal(pairs.length,1);
+ assert.deepEqual(plain(pairs[0].ids),['0,0','1,0']);
+ assert.ok(pairs[0].coverage>=2);
+});
+test('visual image uses baked ground gutter and scenery crop, not a partial viewport screenshot',()=>{
+ assert.match(benchSource,/async function compositePair\(memory,pair,cells\)/);
+ assert.match(benchSource,/sourceLeft=im\.width\*fraction/);
+ assert.match(benchSource,/fw\*c\.x\/c\.fullWidth/);
+ assert.match(benchSource,/const preview=await compositePair\(memory,pair,manifest\.cells\)/);
+ assert.match(benchSource,/visualComparisons:shots\.map/);
+ assert.doesNotMatch(benchSource,/await screenshot\(\)/);
+ assert.match(benchSource,/core\.choosePairs\(keys,5,m\.cells\)/);
+});
