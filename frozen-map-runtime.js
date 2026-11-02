@@ -503,10 +503,17 @@ window.VedrasFrozenMap=(()=>{
    const bufferedBounds=viewportPolicy.screenBounds(anchorView,{
     marginWorld:Math.max((pad+48)/view.zoom,
      SCENERY_OVERHANG_WORLD+32)});
-   const bufferKeys=[...decoded.entries()].filter(([,entry])=>
-    viewportPolicy.visibleTile(
-     Math.round(entry.record.tile.x/512),Math.round(entry.record.tile.y/512),
-     bufferedBounds)).map(([key])=>key).sort();
+   // Multiple image densities may coexist in the decoder RAM. Rasterize
+   // exactly ONE variant per world tile: the requested LOD or its fallback.
+   const chosen=new Map();
+   for(const [key,entry] of decoded){
+    const t=entry.record.tile;
+    if(!viewportPolicy.visibleTile(
+      Math.round(t.x/512),Math.round(t.y/512),bufferedBounds))continue;
+    const logical=entry.record.key,previous=chosen.get(logical);
+    if(!previous||entry.variant===activeVariant)chosen.set(logical,key);
+   }
+   const bufferKeys=[...chosen.values()].sort();
    // Map iteration order is LRU order and changes on every tile read.
    // Sort to prevent a false raster rebuild during a simple camera pan.
    const signature=bufferKeys.join(';');
@@ -595,7 +602,8 @@ window.VedrasFrozenMap=(()=>{
    protectedKeys=new Set(visible.flatMap(t=>{
     const result=[cacheKey(t.key,variant)];
     const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
-    if(decoded.has(other))result.push(other);
+    if(!decoded.has(cacheKey(t.key,variant))&&decoded.has(other))
+     result.push(other);
     return result;
    }));
    keepWithinBudget();
