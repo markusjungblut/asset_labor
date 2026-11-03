@@ -49,6 +49,7 @@ function makePlayer(){
  vm.runInNewContext(runtime,{window,document,
   requestAnimationFrame:()=>{},performance:{now:()=>now},console});
  const p=window.VedrasFrozenMap.create({canvas,
+  autoCloudStrategy:false, // This test isolates buffered reuse, not automatic policy.
   storage:{keys:async prefix=>[...records.keys()].filter(k=>k.startsWith(prefix)),
    get:async key=>records.get(key)},
   decode:async image=>({width:image.width,height:image.height,close(){}})});
