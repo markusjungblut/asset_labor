@@ -127,6 +127,17 @@ window.VedrasCloudArtwork=(()=>{
     if(loading===0){
      bases=incoming.sort((a,b)=>a.path.localeCompare(b.path));
      backdrop=bases.find(x=>x.tone)?.tone||'#bdced7';
+     // Bake each loading-cloud HEX into ONE premultiplied image. Fading
+     // backing/hard/soft layers separately causes non-linear opacity,
+     // while leaving the hard/soft stamps at alpha=1 causes a sudden POP.
+     for(const asset of bases){
+      const c=make(),g=c?.getContext('2d',{alpha:true});
+      if(!g)continue;
+      g.fillStyle=backdrop;polygon(g);g.fill();
+      g.drawImage(asset.hard,0,0,S,S);
+      g.drawImage(asset.soft,0,0,S,S);
+      asset.unready=c;
+     }
      onReady();
     }
    }
@@ -174,13 +185,18 @@ window.VedrasCloudArtwork=(()=>{
    g.drawImage(asset[part],-HALF,-HALF,S,S);
    g.restore();return true;
   }
-  function drawBase(g,view){
+  function drawBase(g,view,skipAuthored=null){
    // No viewport-sized gray texture or squares: even outside the generated
    // map this is precisely the same deterministic hex field.
    g.save();g.globalAlpha=1;g.fillStyle=backdrop;
    g.fillRect(0,0,view.width,view.height);
    if(!bases.length){g.restore();return 0;}
-   const hexes=visibleHexes(view);
+   const all=visibleHexes(view);
+   // Every fully authorized hex gets the already baked landscape painted
+   // over this field. Cloud details beneath it are redundant, especially
+   // when a wide overview displays several hundred authored hexes.
+   const hexes=skipAuthored instanceof Set?
+    all.filter(c=>!skipAuthored.has(c.q+','+c.r)):all;
    if(hexes.length>1400){g.restore();return 0;}
    g.imageSmoothingEnabled=true;
    // Opaque tessellated cores first, then precomputed feathered overlaps
@@ -225,15 +241,20 @@ window.VedrasCloudArtwork=(()=>{
    for(const {q,r} of targets)stamp(g,view,q,r,'soft');
    g.restore();return count;
   }
-  function drawUnready(g,view,cells,ready){
+  function drawUnready(g,view,cells,ready,opacityFor=null){
    if(!bases.length||!Array.isArray(cells))return 0;
    let count=0;
-   for(const c of cells)if(c.visibility==='visible'&&!ready(c)){
+   for(const c of cells){
+    if(c.visibility!=='visible')continue;
+    const isReady=ready(c);
+    const alpha=opacityFor?clamp(Number(opacityFor(c,isReady))||0,0,1):
+     (isReady?0:1);
+    if(alpha<=.003)continue;
     // The authored cloud PNG may have transparent highlights/edges. Cover
     // the exact unfinished HEX with an opaque backing BEFORE drawing the
     // decorative cloud artwork; never expose incomplete coast/sprites through
     // holes in a cloud texture at any zoom/LOD.
-    g.save();g.globalAlpha=1;g.beginPath();
+    g.save();g.globalAlpha=alpha;g.beginPath();
     if(window.VedrasFogAtmosphere?.hexPath)
      window.VedrasFogAtmosphere.hexPath(g,c,view);
     else{
@@ -247,9 +268,18 @@ window.VedrasCloudArtwork=(()=>{
      }
      g.closePath();
     }
-    g.fillStyle=backdrop;g.fill();g.restore();
-    if(stamp(g,view,c.q,c.r,'hard'))count++;
-    stamp(g,view,c.q,c.r,'soft');
+    // The whole precomposed cloud – opaque backing + hard artwork +
+    // feathered highlights – is blended with ONE shared alpha value.
+    // In particular the two artwork stamps must never bypass the fade.
+    g.fillStyle=backdrop;
+    if(bases.some(a=>!a.unready)){
+     // Rare fallback if a browser did not provide a compositing canvas:
+     // keep alpha applied across every pass.
+     g.fill();
+     if(stamp(g,view,c.q,c.r,'hard'))count++;
+     stamp(g,view,c.q,c.r,'soft');
+    }else if(stamp(g,view,c.q,c.r,'unready'))count++;
+    g.restore();
    }
    return count;
   }

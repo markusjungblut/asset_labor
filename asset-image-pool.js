@@ -32,9 +32,10 @@ window.VedrasImagePool=(()=>{
   }
   let active=0,activeUpgrades=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,
-   peakBytes:0,promoted:0,promotionFailures:0,deferredUpgrades:0};
+   peakBytes:0,promoted:0,promotionFailures:0,deferredUpgrades:0,
+   identicalRedecodes:0,sourceChanges:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
-  function prune(force=false,headroom=0){
+  function prune(force=false,headroom=0,ignoreAge=false){
    if(stats.decodedBytes+headroom<=maxBytes&&!force)return;
    // Never evict an asset which has just been decoded or requested.
    // Repeated frame requests previously reloaded an evicted PNG immediately:
@@ -44,7 +45,7 @@ window.VedrasImagePool=(()=>{
    const protectAge=Math.min(2500,Math.max(0,protectMs));
    const time=now();
    const candidates=[...resources.values()].filter(r=>r.ready&&!r.loading&&
-    !protectedPaths.has(r.asset.path)&&time-r.lastUsed>=protectAge)
+    !protectedPaths.has(r.asset.path)&&(ignoreAge||time-r.lastUsed>=protectAge))
     .sort((a,b)=>{
      // Small shared terrain materials are preferred over transient sprites.
      const priority=e=>['terrain','terrain_base','shorelines'].includes(e.asset.category)?1:0;
@@ -52,6 +53,10 @@ window.VedrasImagePool=(()=>{
     });
    for(const entry of candidates){
     if(stats.decodedBytes+headroom<=maxBytes&&!force)break;
+    window.VedrasStep15Trace?.record('asset.pool-evict',{
+     path:entry.asset.path,category:entry.asset.category,bytes:entry.bytes,
+     decodedBytes:stats.decodedBytes,limitBytes:maxBytes,
+     ageMs:Math.round(time-entry.lastUsed),protected:false});
     resources.delete(entry.asset.path);
     window.VedrasBenchmarkProfiler?.count('images.evicted');
     stats.decodedBytes-=entry.bytes;entry.asset.img=null;
@@ -93,11 +98,37 @@ window.VedrasImagePool=(()=>{
       const source=prepare(r.asset,img);
       r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
       r.ready=true;r.failed=false;
-      r.asset.imageRevision=(r.asset.imageRevision||0)+1;
+      // A decoded-image eviction is not a material edit. Keep the semantic
+      // revision stable when the same versioned URL produces the same raster
+      // dimensions. Missing -> ready and preview -> larger raster still change it.
+      // In-place file changes must supply a new URL/mtime (as loadLibrary does).
+      const sourceWidth=img.naturalWidth,sourceHeight=img.naturalHeight;
+      const decodedWidth=source.naturalWidth||source.width;
+      const decodedHeight=source.naturalHeight||source.height;
+      const contentKey=JSON.stringify([r.asset.url,r.asset.mtime??null,
+       sourceWidth,sourceHeight,decodedWidth,decodedHeight]);
+      const priorKey=r.asset.imageContentKey;
+      const firstDecode=priorKey===undefined;
+      const contentChanged=firstDecode||priorKey!==contentKey;
+      const previousRevision=r.asset.imageRevision||0;
+      if(contentChanged){
+       r.asset.imageRevision=previousRevision+1;
+       r.asset.imageContentKey=contentKey;
+       if(!firstDecode&&!upgrading)stats.sourceChanges++;
+      }else stats.identicalRedecodes++;
+      const kind=firstDecode?'first-decode':!contentChanged?'repeat-decode':
+       upgrading?'quality-upgrade':'source-change';
       stats.decodedBytes+=r.bytes-previousBytes;
       stats.peakBytes=Math.max(stats.peakBytes,stats.decodedBytes);
       if(upgrading)stats.promoted++;else{stats.ready++;r.resolve(source);}
-      onReady(r.asset);prune();
+      const detail={kind,contentChanged,firstDecode,
+       previousRevision,revision:r.asset.imageRevision,
+       path:r.asset.path,category:r.asset.category,
+       sourceWidth,sourceHeight,decodedWidth,decodedHeight,
+       assetBytes:r.bytes,previousBytes,decodedBytes:stats.decodedBytes,
+       limitBytes:maxBytes,protected:protectedPaths.has(r.asset.path)};
+      window.VedrasStep15Trace?.record('asset.pool-ready',detail);
+      onReady(r.asset,detail);prune();
      }else if(upgrading){
       // Keep the old small image usable. A broken original is never a blank
       // frame or a reason to rebuild unrelated terrain chunks.
@@ -159,6 +190,18 @@ window.VedrasImagePool=(()=>{
    resources.set(asset.path,r);queue.push(r);pump();return r.promise;
   }
   function protect(paths){protectedPaths=new Set(paths||[]);prune();}
+  // The audit invokes this outside frame sampling, after the entire camera
+  // gesture footprint has been protected. Unlike force=true, only remove
+  // unprotected images while bytes actually exceed the existing budget.
+  function pruneIdle(){
+   const before=stats.evicted;
+   prune(false,0,true);
+   const result={evicted:stats.evicted-before,
+    decodedBytes:stats.decodedBytes,limitBytes:maxBytes,
+    overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes)};
+   window.VedrasStep15Trace?.record('asset.pool-idle-prune',result);
+   return result;
+  }
   function setBudgetBytes(bytes){
    if(!Number.isFinite(bytes)||bytes<64*1048576||bytes>768*1048576)
     throw Error('Invalid decoded preview memory budget');
@@ -217,7 +260,7 @@ window.VedrasImagePool=(()=>{
     overLimitBytes:Math.max(0,stats.decodedBytes-maxBytes),
     previewTerrainPx,previewSpritePx,limitBytes:maxBytes};
   }
-  return {ensure,clear,prune,report,originals,protect,setPreviewLimits,setBudgetBytes};
+  return {ensure,clear,prune,pruneIdle,report,originals,protect,setPreviewLimits,setBudgetBytes};
  }
  return {create};
 })();

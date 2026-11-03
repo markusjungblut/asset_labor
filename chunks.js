@@ -6,6 +6,25 @@
 window.VedrasChunks=(()=>{
  const SIZE=512,HALO=128;
  const key=(x,y)=>x+','+y;
+ // A rebuilt raster receives a NEW construction version, even when its
+ // source content has not changed. World-Tile source identity must instead
+ // be stable across cache eviction/rebuild and change with either the
+ // global render configuration or the tile-local content stamp.
+ // Four independent 32-bit streams keep the retained token bounded even
+ // for large river-network signatures; the length is included as a guard.
+ function sourceContentRevision(configuration,stamp){
+  const input=String(configuration)+'\u0000'+String(stamp);
+  let a=2166136261,b=2246822519,c=3266489917,d=668265263;
+  for(let i=0;i<input.length;i++){
+   const n=input.charCodeAt(i);
+   a=Math.imul(a^n,16777619);
+   b=Math.imul(b^n,2246822519);
+   c=Math.imul(c^n,3266489917);
+   d=Math.imul(d^n,668265263);
+  }
+  const hex=n=>(n>>>0).toString(16).padStart(8,'0');
+  return 'src-'+input.length.toString(36)+'-'+hex(a)+hex(b)+hex(c)+hex(d);
+ }
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  function worldPos(c){return {x:256*(c.q+c.r/2),y:1.5*(256/Math.sqrt(3))*c.r};}
  function tile(x,y,size=SIZE){return {x:x*size,y:y*size,size,id:key(x,y)};}
@@ -73,7 +92,7 @@ window.VedrasChunks=(()=>{
   const MAX_VISIBLE_WAIT_MS=2500,MAX_WARM_STREAK=6;
   let warmStreak=0,lastAgedPriority=null;
   let signature='',family='',epoch=0,scheduled=false,urgentScheduled=false,
-   backgroundPaused=false,
+   backgroundPaused=false,playbackPaused=false,
    inFlightInteractive=false,inFlightBackground=false,protectedIds=new Set(),
    viewportWanted=new Set(),prefetchWanted=new Set(),prefetchRejected=new Set(),
    lastDrawnVersions=new Map(),rasterVersion=0,lastFocus=null,
@@ -82,7 +101,8 @@ window.VedrasChunks=(()=>{
     prefetchQueued:0,prefetched:0,prefetchDiscarded:0,obsolete:0,
     visibleRevision:0,prefetchPending:0,manualPending:0,
     priorityReorders:0,agedPromotions:0,backgroundFairTurns:0,
-    duplicateBuildSkips:0,obsoleteVisibleDiscarded:0};
+    duplicateBuildSkips:0,obsoleteVisibleDiscarded:0,
+    visibleAssistStarted:0};
   let cells=[],build=()=>null,requestDraw=()=>{},stampForTile=()=>signature,onWarmProgress=()=>{};
   // Only the terrain layer requires a drawable raster; empty roads/banks are valid.
   let requireArtwork=false,taskTimeoutMs=60000;
@@ -300,49 +320,61 @@ window.VedrasChunks=(()=>{
   // A foreground slot is independent of the speculative/explicit warm slot:
   // prefetch never blocks an urgent on-screen request waiting for a worker.
   function schedule(){
+   if(playbackPaused)return;
    const foreground=queue.size>0&&!inFlightInteractive;
+   // Once the first visible build is running, the second, otherwise idle
+   // asynchronous lane may help with MORE visible tiles while the camera is
+   // stationary. Active pan/drag retains the original one-lane behavior.
+   const assistVisible=queue.size>0&&inFlightInteractive&&
+    !backgroundPaused&&!inFlightBackground;
    const background=!backgroundPaused&&!inFlightBackground&&
-    (backgroundQueue.size||prefetchQueue.size);
+    (backgroundQueue.size||prefetchQueue.size||assistVisible);
    if(!foreground&&!background)return;
-   // Two scheduled callbacks allow a fresh visible request to bypass an
-   // already pending requestIdleCallback for speculative background work.
-   const urgent=foreground;
+   // Never make a visible build wait for idle time, even if it is using
+   // the spare background slot; speculative requests remain idle-only.
+   const urgent=foreground||assistVisible;
    if(urgent?urgentScheduled:scheduled)return;
    if(urgent)urgentScheduled=true;else scheduled=true;
    const generation=epoch;
    const task=()=>{
     if(generation!==epoch)return;
     if(urgent)urgentScheduled=false;else scheduled=false;
+    if(playbackPaused)return;
     const interactive=urgent&&queue.size>0&&!inFlightInteractive;
-    const canBackground=!urgent&&!backgroundPaused&&!inFlightBackground;
-    const warm=canBackground&&backgroundQueue.size>0&&
+    const canBackground=!interactive&&!backgroundPaused&&!inFlightBackground;
+    // A second visible chunk outranks speculative work, but only while
+    // a foreground job already occupies the first lane.
+    const assisting=canBackground&&inFlightInteractive&&queue.size>0;
+    const visibleJob=interactive||assisting;
+    const warm=canBackground&&!assisting&&backgroundQueue.size>0&&
      (prefetchQueue.size===0||warmStreak<MAX_WARM_STREAK);
-    const predictive=canBackground&&!warm&&prefetchQueue.size>0;
-    if(!interactive&&!warm&&!predictive){schedule();return;}
-    const targetQueue=interactive?queue:warm?backgroundQueue:prefetchQueue;
+    const predictive=canBackground&&!assisting&&!warm&&prefetchQueue.size>0;
+    if(!visibleJob&&!warm&&!predictive){schedule();return;}
+    const targetQueue=visibleJob?queue:warm?backgroundQueue:prefetchQueue;
     const next=targetQueue.entries().next().value;
     if(!next)return;
     const [id,t]=next;targetQueue.delete(id);
-    if(interactive)visibleQueuedAt.delete(id);
+    if(visibleJob)visibleQueuedAt.delete(id);
     if(warm)warmStreak++;
     else if(predictive){
      if(backgroundQueue.size)stats.backgroundFairTurns++;
      warmStreak=0;
     }
     const isVisible=viewportWanted.has(id)||protectedIds.has(id);
-    if(interactive&&!viewportWanted.has(id)){
+    if(visibleJob&&!viewportWanted.has(id)){
      stats.obsoleteVisibleDiscarded++;schedule();return;
     }
-    if(!interactive&&!isVisible&&predictive&&!prefetchWanted.has(id)){
+    if(!visibleJob&&!isVisible&&predictive&&!prefetchWanted.has(id)){
      stats.prefetchDiscarded++;schedule();return;
     }
-    if(!interactive&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)&&
+    if(!visibleJob&&cache.has(id)&&cache.get(id)?.stamp===stampForTile(t)&&
       (!requireArtwork||drawable(cache.get(id)))){
      markWarm(id);schedule();return;
     }
     if(!eligible(id,t)){markWarm(id);schedule();return;}
     const expectedStamp=stampForTile(t);
     const lane=interactive?'foreground':'background';
+    if(assisting)stats.visibleAssistStarted++;
     const job={id,lane,epoch,startedAt:Date.now(),watchdog:null};
     activeJobs[lane]=job;
     let expired=false;
@@ -366,7 +398,7 @@ window.VedrasChunks=(()=>{
      // Old foreground work may finish after the camera leaves its region.
      // Never publish such a result unless it belongs to the new bounded
      // prefetch ring or an explicit manual warm job.
-     if(interactive&&!visibleNow&&!prefetchWanted.has(id)&&
+     if(visibleJob&&!visibleNow&&!prefetchWanted.has(id)&&
         !warmRemaining.has(id)){
       observe(id,'obsolete',{reason:'outside-viewport'});
       release(item);stats.obsolete++;schedule();return;
@@ -423,7 +455,7 @@ window.VedrasChunks=(()=>{
      if(requireArtwork)retryFailure(id,t,expectedStamp,'build-error',error);
      else observe(id,'failed',{error:String(error?.message||error)});
      if(typeof console!=='undefined')console.error('Chunk '+id+' failed:',error);
-     if(!requireArtwork&&(interactive||viewportWanted.has(id)))requestDraw();
+     if(!requireArtwork&&(visibleJob||viewportWanted.has(id)))requestDraw();
      markWarm(id);schedule();
     };
     if(interactive)inFlightInteractive=true;
@@ -454,7 +486,9 @@ window.VedrasChunks=(()=>{
      }else{finish();complete(output);}
     }catch(err){finish();fail(err);}
     // If another lane has work, it can run without waiting for this Promise.
-    if(queue.size&&!inFlightInteractive)schedule();
+    // The foreground promise may take hundreds of milliseconds; wake the
+    // spare lane immediately rather than waiting for it to settle.
+    if(queue.size)schedule();
    };
    // Foreground tiles must never wait for idle time under continuous input.
    if(urgent&&typeof setTimeout==='function')setTimeout(task,0);
@@ -547,7 +581,7 @@ window.VedrasChunks=(()=>{
   // camera compositor. No queue mutation, canvas copy or worker cost.
   // Consumers must finish painting synchronously: eviction still owns bitmaps.
   function paintedVersions(){return new Map(lastDrawnVersions);}
-  function readyTiles(bounds,{limit=100}={}){
+  function readyTiles(bounds,{limit=100,sourceKeys=false}={}){
    if(!signature||!cells?.length||!bounds)return [];
    const result=[];
    for(const t of visible(bounds,cells,size)){
@@ -555,6 +589,10 @@ window.VedrasChunks=(()=>{
     if(current&&current.stamp===stampForTile(t)&&
       (current.relief?.canvas||current.raster?.canvas||
        current.raster?.waterLayer?.canvas)){
+     // Only consumers of semantic road/river identity pay hashing cost.
+     // Terrain and shoreline still use the integer paint build counter.
+     if(sourceKeys&&current.sourceRevision===undefined)
+      current.sourceRevision=sourceContentRevision(signature,current.stamp);
      result.push({tile:t,artwork:current});
      if(result.length>=limit)break;
     }
@@ -584,44 +622,63 @@ window.VedrasChunks=(()=>{
    ctx.beginPath();ctx.rect(t.x,t.y,t.size,t.size);ctx.clip();
    return {space:'world'};
   }
-  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null}={}){
+  function draw(ctx,bounds,{water=true,drawRaster,margin=80,prefetch=null,
+    // A nested offscreen WorldTile bake paints ALREADY PREPARED imagery.
+    // It must NOT change this chunk streamer's camera viewport, queue,
+    // protected cache IDs or the editor-snapshot paintedVersions contract.
+    renderOnly=false}={}){
    const viewport={x:bounds.x-margin,y:bounds.y-margin,width:bounds.width+2*margin,
     height:bounds.height+2*margin};
    const tiles=visible(viewport,cells,size);
-   diagnosticTiles=tiles;
-   stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
-   updateStreaming(viewport,tiles,prefetch);
-   trim();
+   let painted=0,stalePainted=0;
+   if(!renderOnly){
+    diagnosticTiles=tiles;
+    stats.visible=tiles.length;stats.painted=0;stats.stalePainted=0;
+    updateStreaming(viewport,tiles,prefetch);
+    trim();
+   }
    const paintedVersions=new Map();
    for(const t of tiles){
-    let result=use(t.id);
+    // Nested drawing should read what the camera already requested. It
+    // must not refresh LRU order, evict or repurpose the foreground queue.
+    let result=renderOnly?cache.get(t.id):use(t.id);
     if(result&&(result.stamp!==stampForTile(t)||
       (requireArtwork&&!drawable(result)))){
-     cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);result=null;
+     if(!renderOnly){
+      cache.delete(t.id);stats.pixels-=result.pixels||0;release(result);
+     }
+     result=null;
     }
-    if(!result&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
-     backgroundQueue.delete(t.id);enqueueVisible(t);
-    }else if(!result&&building(t.id))stats.duplicateBuildSkips++;
+    if(!renderOnly){
+     if(!result&&!queue.has(t.id)&&!building(t.id)&&eligible(t.id,t)){
+      backgroundQueue.delete(t.id);enqueueVisible(t);
+     }else if(!result&&building(t.id))stats.duplicateBuildSkips++;
+    }
     const fallback=!result?[...retired.values()].reverse().map(m=>m.get(t.id)).
       find(v=>v&&(v.relief||v.raster?.canvas||v.raster?.waterLayer)):null;
     const artwork=result||fallback;
     if(!artwork||!ctx||!drawRaster)continue;
-    paintedVersions.set(t.id,artwork.version);
-    // The source halo is still present. Its destination is clipped to one
-    // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
+    if(!renderOnly)paintedVersions.set(t.id,artwork.version);
+    // Keep identical pixel clipping for the offscreen core and editor.
     ctx.save();clipCore(ctx,t);
     if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer,t);
     if(artwork.relief)drawRaster(ctx,artwork.relief,t);
     else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
-    ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
+    ctx.restore();painted++;if(fallback)stalePainted++;
    }
-   lastDrawnVersions=paintedVersions;
-   prioritizeVisible();
-   stats.pending=queue.size+(inFlightInteractive?1:0);
-   stats.prefetchPending=prefetchQueue.size;
-   stats.manualPending=backgroundQueue.size;
-   schedule();
-   return {...stats,cached:cache.size,variants:retired.size};
+   if(!renderOnly){
+    stats.painted=painted;stats.stalePainted=stalePainted;
+    lastDrawnVersions=paintedVersions;
+    prioritizeVisible();
+    stats.pending=queue.size+(inFlightInteractive?1:0);
+    stats.prefetchPending=prefetchQueue.size;
+    stats.manualPending=backgroundQueue.size;
+    schedule();
+   }
+   return {...stats,visible:renderOnly?tiles.length:stats.visible,
+    painted:renderOnly?painted:stats.painted,
+    stalePainted:renderOnly?stalePainted:stats.stalePainted,
+    cached:cache.size,variants:retired.size};
   }
   function warm(tiles,{progress=()=>{}}={}){
    backgroundQueue.clear();warmRemaining.clear();onWarmProgress=progress;
@@ -645,13 +702,17 @@ window.VedrasChunks=(()=>{
    backgroundPaused=!!active;
    if(!backgroundPaused)schedule();
   }
-  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,diagnostics,
+  function setPlaybackPaused(yes){
+   playbackPaused=!!yes;
+   if(!playbackPaused)schedule();
+  }
+  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,setPlaybackPaused,diagnostics,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
     inFlight:(inFlightInteractive?1:0)+(inFlightBackground?1:0),
     retryWaiting:retryTimers.size,retryExhausted:[...failures.values()].filter(f=>f.terminal).length,
-    backgroundPaused,
+    backgroundPaused,playbackPaused,
     bytes:stats.pixels*4,budgetBytes:maxPixels*4}),
    has:id=>cache.has(id),pending:()=>queue.size};
  }

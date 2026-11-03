@@ -10,18 +10,40 @@ window.VedrasStaticObjects=(()=>{
   let lastBuildMs=0,lastCompositeMs=0;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
   function clear(){entry=null;}
-  function compatible(e,v){
-   return !!e&&e.signature===v.signature&&e.width===v.width&&
-    e.height===v.height&&e.dpr===v.dpr&&e.zoom===v.zoom&&
-    Math.abs(v.panX-e.panX)<=e.pad*.86&&
-    Math.abs(v.panY-e.panY)<=e.pad*.86;
+  function projected(e,v){
+   // Scene raster X = pad + oldWidth/2 + oldPanX + worldX*oldZoom.
+   // Reproject it to current screen X = width/2 + panX + worldX*zoom.
+   const scale=v.zoom/e.zoom;
+   return {scale,
+    dx:v.width/2+v.panX-(e.pad+e.width/2+e.panX)*scale,
+    dy:v.height/2+v.panY-(e.pad+e.height/2+e.panY)*scale,
+    width:e.canvas.width/e.dpr*scale,
+    height:e.canvas.height/e.dpr*scale};
   }
-  function paint({ctx,view,signature,drawScene,gpu=null,preferGpu=false}){
+  function compatible(e,v,allowZoomReprojection=false){
+   if(!e||e.signature!==v.signature||e.width!==v.width||
+    e.height!==v.height||e.dpr!==v.dpr||!Number.isFinite(v.zoom)||
+    v.zoom<=0)return false;
+   if(e.zoom===v.zoom)return Math.abs(v.panX-e.panX)<=e.pad*.86&&
+    Math.abs(v.panY-e.panY)<=e.pad*.86;
+   // Zoom reprojection is transient and bounded to preserve visual fidelity.
+   // Never apply to editor's exact snapshot or final PNG export path.
+   if(!allowZoomReprojection)return false;
+   const p=projected(e,v);
+   if(p.scale<.85||p.scale>1.18)return false;
+   // Reject any projection that would expose an empty raster strip.
+   const tolerance=1;
+   return p.dx<=tolerance&&p.dy<=tolerance&&
+    p.dx+p.width>=v.width-tolerance&&
+    p.dy+p.height>=v.height-tolerance;
+  }
+  function paint({ctx,view,signature,drawScene,gpu=null,preferGpu=false,
+   allowZoomReprojection=false}){
    const v={...view,signature};
    if(!Number.isFinite(v.width)||!Number.isFinite(v.height)||!Number.isFinite(v.dpr)||
     v.width<=0||v.height<=0||v.dpr<=0)throw Error('Invalid scenery viewport');
    let rebuilt=false,buildMs=0;
-   if(!compatible(entry,v)){
+   if(!compatible(entry,v,allowZoomReprojection)){
     misses++;
     // First fit the actual viewport, then reserve as much overscan as the
     // physical pixel budget permits. v0.16.0 disabled the entire cache on
@@ -78,7 +100,7 @@ window.VedrasStaticObjects=(()=>{
      buildMs,objectProfile:typeof window!=='undefined'?window.__vedrasObjectProfile:null};
     rebuilt=true;builds++;
    }else hits++;
-   const dx=v.panX-entry.panX-entry.pad,dy=v.panY-entry.panY-entry.pad;
+   const projection=projected(entry,v),{dx,dy}=projection;
    const compositeStart=clock();
    let mode='canvas';
    // GPU path is optional. It uploads only on scene rebuild, then moves
@@ -90,11 +112,11 @@ window.VedrasStaticObjects=(()=>{
    })===true)mode='webgl';
    else{
     gpu?.hide?.();
-    ctx.drawImage(entry.canvas,dx,dy,
-     entry.canvas.width/v.dpr,entry.canvas.height/v.dpr);
+    ctx.drawImage(entry.canvas,dx,dy,projection.width,projection.height);
    }
    lastCompositeMs=clock()-compositeStart;
-   return {cached:!rebuilt,enabled:true,rebuilt,buildMs,
+   return {cached:!rebuilt,enabled:true,rebuilt,
+    zoomReprojected:!rebuilt&&entry.zoom!==v.zoom,buildMs,
     compositeMs:lastCompositeMs,mode,builds,hits,misses,
     bytes:entry.canvas.width*entry.canvas.height*4,
     pad:entry.pad,requestedPixels:entry.canvas.width*entry.canvas.height,

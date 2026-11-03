@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "startedAt": "2026-11-01T22:40:56.290Z",
+  "finishedAt": "2026-11-01T22:40:57.385Z",
+  "sceneAuditReference": "397-hex / 2631-nature / three valid 2026-10-31 warm audits",
+  "platform": "win32",
+  "nodeVersion": "v24.19.0",
+  "branch": "feat/step18-frozen-map-stability-20261101",
+  "sha": "c89d3398722c697db1e8af7ff0ea3fa3bf6c7af8",
+  "worktreeDirty": true,
+  "changedPaths": [
+    "?? artifacts/rendering-step16b-native-2026-11-01T21-16-48-780Z-pid22500/"
+  ],
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "--test-reporter=tap",
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs",
+    "tests/test_rendering_step16b_global_image_refresh_20261101.cjs",
+    "tests/test_rendering_step16b_live_near_readiness_20261101.cjs",
+    "tests/test_rendering_step16b_idle_visible_chunk_parallelism_20261101.cjs",
+    "tests/test_rendering_step16b_offscreen_does_not_steal_streamer_20261101.cjs",
+    "tests/test_rendering_step16b_stable_terrain_shore_revisions_20261101.cjs",
+    "tests/test_rendering_step16b_quick_terrain_preview_20261101.cjs",
+    "tests/test_rendering_step17_frozen_game_map_20261101.cjs"
+  ],
+  "testFiles": [
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs",
+    "tests/test_rendering_step16b_global_image_refresh_20261101.cjs",
+    "tests/test_rendering_step16b_live_near_readiness_20261101.cjs",
+    "tests/test_rendering_step16b_idle_visible_chunk_parallelism_20261101.cjs",
+    "tests/test_rendering_step16b_offscreen_does_not_steal_streamer_20261101.cjs",
+    "tests/test_rendering_step16b_stable_terrain_shore_revisions_20261101.cjs",
+    "tests/test_rendering_step16b_quick_terrain_preview_20261101.cjs",
+    "tests/test_rendering_step17_frozen_game_map_20261101.cjs"
+  ],
+  "counts": {
+    "tests": 142,
+    "pass": 140,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "exitCode": 1,
+  "spawnError": null,
+  "passed": false,
+  "warnings": [
+    "Native regression evidence not accepted; inspect node-tests.tap"
+  ],
+  "logFile": "node-tests.tap"
+}

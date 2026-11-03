@@ -1,0 +1,117 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.join(__dirname,'..');
+const source=name=>fs.readFileSync(path.join(root,name),'utf8');
+const cloudSource=source('cloud-artwork.js'),
+ runtimeSource=source('frozen-map-runtime.js'),
+ policySource=source('frozen-map-view-policy.js'),
+ gameSource=source('frozen-map-game.js'),
+ gameHtml=source('frozen-map-game.html');
+function graphicContext(log=[],w=384,h=384){
+ let alpha=1,stack=[];
+ const g={
+  get globalAlpha(){return alpha},
+  set globalAlpha(v){alpha=v},
+  save(){stack.push(alpha)},
+  restore(){alpha=stack.pop()??1},
+  translate(){},scale(){},setTransform(){},beginPath(){},moveTo(){},
+  lineTo(){},closePath(){},clip(){},fill(){},
+  fillRect(){},putImageData(){},clearRect(){},
+  drawImage(image){log.push({image,alpha})},
+  getImageData(){return {data:new Uint8ClampedArray(w*h*4)}},
+  imageSmoothingEnabled:true,
+ };
+ return g;
+}
+test('all cloud layers actually blend with the same opacity, not just background hex',async()=>{
+ let generated=0;
+ const window={};
+ const document={createElement:()=>({
+  kind:'offscreen-'+(++generated),width:384,height:384,
+  getContext(){return graphicContext();}
+ })};
+ class FakeImage{
+  set src(v){queueMicrotask(()=>this.onload?.());}
+ }
+ vm.runInNewContext(cloudSource,{window,document,Image:FakeImage,console});
+ const clouds=window.VedrasCloudArtwork.create();
+ clouds.setAssets([{path:'assets/clouds/opaque_test.png'}]);
+ for(let i=0;i<4;i++)await Promise.resolve();
+ assert.equal(clouds.stats().bases,1,'one real artwork texture loaded');
+ const log=[],g=graphicContext(log);
+ const cells=[{q:0,r:0,x:0,y:0,radius:148,visibility:'visible'}],
+  view={zoom:1,width:800,height:600,panX:0,panY:0,projectY:.85};
+ assert.equal(clouds.drawUnready(g,view,cells,()=>true,()=>.50),1);
+ assert.equal(log.length,1,'cloud base, hard art and fringe must be precomposited');
+ assert.equal(log[0].alpha,.5,'actual cloud artwork is 50 % transparent');
+ assert.equal(clouds.drawUnready(g,view,cells,()=>true,()=>0),0);
+ assert.equal(log.length,1,'fully dissolved cloud draws no graphic');
+ assert.equal(clouds.drawUnready(g,view,cells,()=>false,()=>1),1);
+ assert.equal(log.at(-1).alpha,1,'unfinished fog is still fully opaque');
+});
+function setup(){
+ const window={};
+ vm.runInNewContext(policySource,{window});
+ const displayLog=[];
+ const fakeContext=()=>graphicContext(displayLog,1,1);
+ const canvas={width:0,height:0,
+  getContext:()=>fakeContext(),
+  getBoundingClientRect:()=>({width:400,height:240})};
+ // Canvas backing copies a previously authorized frame. The test has no
+ // editor or authoring image sources.
+ const document={createElement:()=>({
+  kind:'preview-canvas',width:0,height:0,
+  getContext:()=>fakeContext()})};
+ const tiles=new Map();
+ for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++){
+  const key='v1-0374527a|near|'+x+','+y;
+  tiles.set(key,{key,sceneKey:'v1-0374527a',level:'near',
+   revision:'r1',tile:{id:x+','+y,x:x*512,y:y*512,size:512},
+   layers:[{layer:'ground',pad:3,png:{width:200,height:200}},
+    {layer:'scenery',pad:128,crop:{x:0,y:0,fullWidth:200,
+     fullHeight:200},png:{width:200,height:200}}]});
+ }
+ const store={async get(key){return tiles.get(key)},
+  async keys(prefix){return [...tiles.keys()].filter(k=>k.startsWith(prefix))}};
+ let now=100;
+ vm.runInNewContext(runtimeSource,{window,document,console,
+  performance:{now:()=>now},requestAnimationFrame:()=>{}});
+ const player=window.VedrasFrozenMap.create({canvas,storage:store,
+  decode:async png=>({width:png.width,height:png.height,close(){}})});
+ return {player,displayLog,advance:ms=>{now+=ms}};
+}
+test('wheel zoom draws authorized real camera images without a frozen screenshot',async()=>{
+ const {player,displayLog}=setup();
+ await player.load('v1-0374527a','near',
+  {zoom:.7,panX:0,panY:0,dpr:2,projectY:.85},
+  [{q:0,r:0,x:0,y:0,radius:148,visibility:'visible'}]);
+ for(let i=0;i<25;i++){
+  player.draw();
+  await new Promise(resolve=>setImmediate(resolve));
+  if(player.report().decoded===9&&player.report().pending===0)break;
+ }
+ player.draw();
+ assert.ok(player.report().decoded>=1);
+ assert.equal(player.report().zoomPreviewActive,false);
+ const start=displayLog.length;
+ for(let i=1;i<=4;i++){
+  const before=displayLog.length;
+  player.setPose({zoom:.7/(1+i*.15),panX:i*8,panY:i*5});
+  player.draw();
+  assert.ok(displayLog.length>before,'each zoom redraws real image layers');
+  assert.equal(player.report().zoomPreviewActive,false);
+ }
+ assert.ok(displayLog.length>start);
+ assert.equal(player.report().zoomPreviewFrames,0);
+ player.stop();
+});
+test('current game uses live layers while keeping final 2x DPR after zoom',()=>{
+ assert.doesNotMatch(gameSource,/player\.beginZoomPreview\(/);
+ assert.doesNotMatch(gameSource,/player\.endZoomPreview\(/);
+ assert.ok(gameSource.includes('const gestureDpr=Math.min(p.dpr||2,1.25)'));
+ assert.ok(gameSource.includes('{deferDpr:true}'));
+ assert.ok(gameSource.includes('if(!deferDpr&&Math.abs(outDpr'));
+ assert.match(gameHtml,/frozen-map-game\.js\?v=/);
+});

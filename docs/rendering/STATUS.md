@@ -1,5 +1,33 @@
 # Rendering-Status
 
+> **01.11.2026 – Architekturtest für eine echte, statische Spielkarte implementiert (Schritt 17, experimentell):** Im Spiel sind Terrain, Materialübergänge, Küsten, feste Vegetation, Straßen und ihre statischen Schatten in der Regel unveränderlich. Statt sie beim Pannen neu zu backen, speichert das Asset-Labor jetzt **nur wirklich fertige Ground-/Scenery-WorldTiles als PNG-Blobs in IndexedDB**. Eine abbrechbare Ganzkarten-Vorbereitung besucht die Welt einmalig, protokolliert fehlende Kacheln und erlaubt Wiederaufnahme. Ein **separater Spielkarten-Viewer** (`frozen-map-game.html`) lädt ausschließlich diese Bilddateien samt Hex-Geometrie, **keinerlei Editor-, Worker- oder WorldTile-Quellcode**, und erlaubt Pan/Zoom. Zusätzlich ZIP-Ausgabe mit Rasterlayern und Kartenmanifest. **16/16 gezielte isolierte Tests PASS**, native **142/142** sowie echte Firefox-Qualitäts-/Performance-Abnahme **noch offen**. Dieser Modus überspringt die *erneute* Terrainberechnung im eigentlichen Spiel, **beschleunigt das einmalige Offline-Prebaking nicht automatisch** und behebt weiße Pixelnähte nicht zwangsläufig. [Anleitung und Architektur](STEP17_FROZEN_MAP_TEST_20261101.md). **Draft, kein Merge; 16B-Gesamtabnahme, #90 und #92 bleiben offen.**
+
+> **01.11.2026 – entscheidende Produkt-Rückmeldung zu PR #98:** Der Benutzer meldet **kein Wolkenblinken mehr**, aber weiterhin **weiße horizontale/vertikale Chunk-/Kachelnähte über Land und Wasser** sowie völlig ungenügende 4×-Cold-Ladeleistung (Tile-für-Tile-Aufbau). Der vom Benutzer hochgeladene native Testbericht bestätigt **118/118 PASS** auf exakt `de8465d23687681224b6c111bbaf08c76e8693c3` (Windows/Node 24.19.0); `worktreeDirty` nur durch zwei unversionierte, unveränderte Auditordner. **Neue getrennte Architekturmaßnahme im Draft:** Nur bereits dekodierte, autorisierte Materialtexturen unmittelbar pro sichtbarem Hex als **provisorische Sofortvorschau** zeichnen, solange echte WorldTiles fehlen; die Original-4×-Pipeline ersetzt sie später. Keine unautorisierten Fog-Hexe, keine falsche Exact-Freigabe, keine neue 850k-Pixel-Arbeit im Kamera-rAF. **8/8 neue isolierte Tests PASS**, volle native **126/126** für diesen SHA offen. **Die geforderte mindestens 50× schnellere Vollqualitäts-Pipeline ist NICHT nachgewiesen**; dafür benötigt es eine separate CPU/GPU-Material-Kompositionsentwicklung und reale Cold-Zeitvergleiche. [Architektur/Nachtest](STEP16B_IMMEDIATE_AUTHORIZED_TERRAIN_PREVIEW_20261101.md); [Performance #92](https://github.com/markusjungblut/asset_labor/issues/92), [weiße Ground-Nähte #90](https://github.com/markusjungblut/asset_labor/issues/90) weiter offen. Alle PRs Draft, kein Merge, 16C/17 nicht freigegeben.
+
+> **01.11.2026 – weiterer echter WorldTile-Churn-Auslöser identifiziert:** Nach #97 bleibt ein in den Quellen sichtbarer Revisionseffekt: Bei Terrain und Küste wurde ein **flüchtiger Chunk-Bauzähler** als Bodeninhaltsversion verwendet. Jeder unveränderte Neubau nach Cache-Verdrängung konnte daher `worldTiles.reconcileGroundRevisions()` unnötig auf `dirty` setzen und erneut backen. Neuer gestapelter Draft verwendet für Terrain und Shoreline die bereits für Road/River etablierte **stabile Inhaltskennung aus Konfiguration + lokalem Stamp**, ohne den Painter-`version`-Gate oder Fog/Quellbereitschaft zu lockern. **5/5 neue isolierte Produktionscode-Tests PASS**, native Windows-Gesamtsuite jetzt **118/118 ausstehend**. [Analyse/Nachtest](STEP16B_STABLE_TERRAIN_SHORE_REVISIONS_20261101.md). **Kein Nachweis einer realen Firefox-Performanceverbesserung; Issues #92/#90 bleiben offen, alles Draft, kein Merge, 16C/17 gesperrt.**
+
+> **01.11.2026 – neuer konkreter Cold-Kamera-Schedulerfehler im Offscreen-WorldTile-Bake gefunden:** Realer Firefox-PR-#96-Betrieb lädt zwar mit zwei sichtbaren Chunk-Lanes, **blinkt aber weiter**: live Cache-Daten zuerst 57 wartende, 12 Assist-Starts, 25 Builds, 1 gecachtes Tile, 30 % Budget; später 16 wartende, 23 Assist-Starts, 52 Builds, 22 gecachte Tiles, 92 % Budget, 11 LRU-Verdrängungen. Produktionspfad `bakeWorldTile()→drawGround()/drawRoads()→chunks.draw()` hat bei jedem Offscreen-Bake den **globalen Kamera-Viewport, die sichtbare Warteschlange, Protected-IDs und den Editor-Paint-Status** auf den WorldTile-Ausschnitt geändert. Ein neuer Draft verwendet für Terrain, Küste, Flüsse und Wege das **nur lesende `renderOnly`** mit unveränderten Pixeln/Fog/Budgets. 4/4 neue deterministische isolierte Tests bestanden, volle native **113/113** noch offen, echte Firefox-Bild- und Cold-Performance-Abnahme weiterhin offen. [Ursache, Änderung und Nachprüfung](STEP16B_OFFSCREEN_CAMERA_CHUNK_ISOLATION_20261101.md); [#92](https://github.com/markusjungblut/asset_labor/issues/92), [weiße horizontale/vertikale Übergänge #90](https://github.com/markusjungblut/asset_labor/issues/90). **Kein Merge, Draft, 16C/17 weiter blockiert.**
+
+> **01.11.2026 – Echte Firefox-Cold-Performance weiterhin nicht abgenommen:** Stationäre Kamera: 47→38 wartende sichtbare Terrain-Chunks in acht Sekunden, Epoch 9 unverändert, keine gemeldeten Fehler, neun verschiedene neue Bauanfänge. Später erneut 49 wartende Tiles bei aktivem Foreground-Job, idle Background-Lane. **Neu im gestapelten Draft:** Die zweite asynchrone Lane verarbeitet bei *ruhender* Kamera weitere sichtbare Tiles, während aktives Pannen weiterhin nur eine sichtbare Lane nutzt; `streamingStats()` liefert im Fast-Modus nun **live** Terrain-/Shore-/River-/Road-Cachezahlen statt eventuell veralteter Werte aus dem letzten Editor-`draw()`. Produktionsscheduler isoliert mit 2/1 sichtbaren Jobs geprüft, vier neue Regressionstests, nativer 109/109-Nachweis und echter Firefox-Livetest offen. **Keine doppelte Durchsatzgarantie**, da Terrain und Shoreline weiterhin denselben Worker benutzen. [Belege/Prüfanleitung](STEP16B_LIVE_COLD_CHUNK_ASSIST_20261101.md), [Performance-Issue #92](https://github.com/markusjungblut/asset_labor/issues/92), [transiente Ground-Nähte auf Land/Wasser #90](https://github.com/markusjungblut/asset_labor/issues/90). Kein Merge, 16B-/16C-/17-Freigabe weiter gesperrt.
+
+> **01.11.2026 – Firefox-Live bei 122 % und 4× weiter unbrauchbar:** Nach #94 berichtet der Benutzer unverändertes Lag und ausschließlich `terrain-not-painted` aus `tileDiagnostics().artwork`. **Wichtige Präzisierung:** Dieses Feld prüft für Snapshot-Seeding den bereits *gezeichneten* Terrain-Chunk; `canStartSource` und die direkte WorldTile-Fallbackquelle dürfen jedoch vorbereitete *ungezeichnete* Chunks verarbeiten. Neuer Diagnosewert `bakeReady/bakeReason` trennt die Verträge. Gleichzeitig war Alpha-Scenery-Pack bislang nur für `mid` aktiv; bei 122 % verwendet das Projekt `near` und pro unbeschnittenem Tile etwa **3.234.955 Pixel** (nur ~8 passen in 26M). Die gleiche pixelgenaue Verdichtung wurde auf fertige Near-Scenery erweitert, ohne DPR, LOD, Fog oder Budget zu verändern. 14 relevante isolierte Tests bestanden; **native 105/105 und realer Firefox-Nachtest ausstehend**, vollständige Cold-/Live-Performance nicht abgenommen. [Analyse](STEP16B_NEAR_LIVE_DIAGNOSTICS.md), [Issue #92](https://github.com/markusjungblut/asset_labor/issues/92). Draft, kein Merge, 16C/17 gesperrt.
+
+> **01.11.2026 – Normaler 4×-Editor, globale Bildnachladung / Wolkenblinken:** Verifiziert: Im normalen Codepfad konnte `imagePool.onReady` nach 120/900 ms eine globale `worldTiles.invalidate('image-ready-ground')` auslösen, die abgeschlossene Tile-Pakete **und die unveränderte Fog-Freigabemaske** zerstörte. Separater Draft-Fix hält ausschließlich zuvor vollständig gerenderte, autorisierte sichtbare Pakete als `dirty`-Fallback, bis eine gültige aktuelle Quelle sie ersetzt; andere globale/Editor-Invalidierungen bleiben destruktiv. **7 isolierte Regressionen bestanden**, Windows-Launcher nun 101 Tests; native Firefox-Live-Abnahme weiterhin offen. [Analyse und Nachprüfung](STEP16B_GLOBAL_IMAGE_READY_FLICKER.md), [Produktfehler #92](https://github.com/markusjungblut/asset_labor/issues/92). Die vorherigen 3/3 Warm-Messungen und 94/94 Windows-Tests bleiben nur Referenz des vorherigen SHAs. Kein Merge, Cold-Performance noch offen.
+
+> **01.11.2026 – Priorität: normales Asset-Labor blinkt bei 4×:** Trotz 3/3 bestandener *vorgewärmter* Windows-Kameramessungen und 94/94 nativer Node-Tests berichtet der Benutzer über ca. 1 s sichtbare Landschaft, die erneut hinter Wolken verschwindet, und extrem langsames Pannen mit nur 4–8 Kacheln. **Dieses reale Cold-/Live-Verhalten ist nicht von den Warm-Audits abgedeckt.** Der Produktfehler steht in [Issue #92](https://github.com/markusjungblut/asset_labor/issues/92), vor der weniger dringlichen Ozeannaht #90. Ein separater Draft präzisiert die 16B-Build-Identität im Browser per neuen Skript-Cachekennungen und UI-Label; [Live-Reproduktion](STEP16B_LIVE_EDITOR_REPRODUCTION.md) dokumentiert normalbetriebliches Source-/WorldTile-/ImagePool-Triage. **Kein Nachweis einer Cold-Performanceverbesserung, kein Merge und keine Freigabe des Gesamtprodukts.**
+
+> **01.11.2026 – 16B Warm-Performance nach drei nativen Windows-Audits bestätigt:** Die Läufe vom 31.10. um 13:25, 14:07 und 15:00 nutzen die identische 397-Hex-Szene und liefern je gültigen Warm-Pan/Zoom mit rAF-p95 16,8 ms, **16/16 aktuellen World-Tiles**, 0 Bakes/Decodes/Evictions/Cache-Misses während der Gesten sowie exakt 15.888.470/26.000.000 Rasterpixel. **Nicht vollständig abgenommen:** Der native 94-Test-Node-Bericht fehlt; der reproduzierbare sichtbare Ocean/Ground-Kachelübergang ist separat [Issue #90](https://github.com/markusjungblut/asset_labor/issues/90). Neuer, nichtdestruktiver [Windows-Testlauncher](STEP16B_NATIVE_ACCEPTANCE.md) speichert das native TAP-Protokoll in einem eigenen Zeitstempelordner und ZIP. Die drei Warm-Audits **nicht** unnötig wiederholen. Alle PRs Draft, nicht mergen, 16C/17 gesperrt.
+
+> **Schritt 16B – verlustfreie Mid-Scenery-Verdichtung (Draft auf #88, 2026-10-31):** Der feste Warm-Cache überzieht das 26-Millionen-Pixelbudget in der Qualität-4-Referenzszene um 250.048 Pixel. Neuer Scenery-Crop nach erfolgreichem Tile-Bake entfernt ausschließlich transparent nachgewiesene Rasterränder, bewahrt Alpha > 0 plus zwei Schutzpixel und stellt die unveränderte Weltposition über validierte Crop-Offsets wieder her. Keine Änderung an 128-Welt-Einheiten-Überhang, Bildqualität, Fog- oder Warm-Gates; 10 gezielte isolierte Regressionen erfolgreich, **native Windows-/Chromium-Abnahme offen**. [STEP16B_LOSSLESS_SCENERY_CROP.md](STEP16B_LOSSLESS_SCENERY_CROP.md). Küstenlinien separat offen. Kein Merge, 16C/17 gesperrt.
+
+> **Schritt 16B – Raster-Footprint-Diagnose (Draft auf #87, 2026-10-31):** Das letzte Windows-Audit hält 16/16 vollständige World-Tiles ohne Bewegungschurn, liegt aber 250.048 Pixel über dem 26-Mio.-Budget. Aus den Mid-Rastermaßen ergeben sich 8.205.120 Ground- und 18.044.928 Scenery-Pixel (insgesamt 26.250.048). Neuer schreibgeschützter `warmTileStatus().rasterDetails`-Nachweis mit echten Layer-Abmessungen und Offroute-Cacheanteil; keine Budget-, Fog-, Qualitäts- oder Rasteränderung. [STEP16B_RASTER_FOOTPRINT_DIAGNOSTICS.md](STEP16B_RASTER_FOOTPRINT_DIAGNOSTICS.md). Neuer nativer Windows-Nachtest offen; kein Merge, 16C/17 gesperrt.
+
+> **Schritt 16B – vollständige Kamera-Union und Quellenrevisionen (neuer Draft auf #86, 2026-10-31):** Realer 22:25-Audit: Kamera-Stationsvorbereitung erfolgreich, aber Pan 10 identische ungeschützte Nature-Redecodes und 3 Tile-Bakes, Zoom 1 Tile-Bake; **beide Warm-Tests ungültig**. Neue begrenzte World-Tile-Reservierung ohne Budgetänderung, Überhang-Quellenauswahl, Road-/River-Primer und Abschlussprüfung gegen aktuelle Source-Revisionen. Neuer Test mit 10 Fällen und aktualisierter 11er-Suite, **native Windows-Abnahme offen**. [STEP16B_CAMERA_UNION_RETENTION.md](STEP16B_CAMERA_UNION_RETENTION.md). Kein Merge, 16C/17 gesperrt.
+
+> **Schritt 16B – Warm-Kamerastrecke (neuer Draft auf #85, 2026-10-30):** Bildpool-Schutz für die tatsächlichen Pan-/Zoom-Extrema, vorgezogene Upgrades und Idle-Entlastung unter unverändertem Budget; Audit-Warm-Gates unverändert, nicht vorgewärmte Phasen bleiben ungültig. Vorhandene Windows-Audit-Artefakte werden nicht mehr gelöscht, jeder Lauf erhält einen neuen Zeitstempelordner. Die 58 Regressionstests des vorherigen PR #85 wurden nativ unter Windows bestätigt; neue 11 Tests und realer Warm-/Visuell-Nachtest **noch offen**. [STEP16B_WARM_TRAJECTORY_PREPARATION.md](STEP16B_WARM_TRAJECTORY_PREPARATION.md). **Kein Merge, 16C/17 gesperrt.**
+
+> **Schritt 16B – Bildpool-Lebenszyklen (Draft auf #84, 2026-10-30):** Identische Bild-Neudekodierungen nach Eviction behalten ihre semantische Revision; selektive Ground-Reuse-Invalidierung und neue Audit-Attribution implementiert. **Windows-Node: alle 58/58 Regressionstests nach den Harness-/Cross-Realm-Fixes nativ erfolgreich (Commit bb10fc51).** Keine Warm-/FPS-/Visuell-Abnahme. Siehe [STEP16B_STABLE_IMAGE_CONTENT_REUSE.md](STEP16B_STABLE_IMAGE_CONTENT_REUSE.md). Schritt 16C/17 gesperrt.
+
 > **Schritt 15:** Reale 397-Hex-Windows-Diagnose wurde ausgewertet (4×-Pan: 12 Terrain-Fallbacks, 1128 ms; Auto-Pan: 25, 3014 ms; 4×-Zoom: 0 bei bereits bereiten Tiles). [Messanleitung](STEP15_TILE_CAMERA_DIAGNOSTICS.md). **Schritt 16:** [Ground-Reuse/Revisionstrennung](STEP16_GROUND_REUSE.md) implementiert, **Performance-/Bildabnahme auf Windows offen**. Schritt 17 noch nicht freigegeben.
 
 > **Nächste Entwicklungsreihenfolge:** [Verbindlicher Rendering-Fahrplan nach Schritt 14 – Schritte 15–20](RENDERING_ROADMAP_AFTER_STEP14.md). **Nächster offener Schritt ist 15**, keine GPU-Migration vor den Ursachen-/Cachetests. Ergebnisse und Abnahmen in diesem Statusdokument nachtragen.
@@ -448,3 +476,557 @@ grundlegenden GPU-Renderer treffen.
 **Konkrete Ursache in PR #68:** `sourceGroundVersion` wurde innerhalb des `try`-Blocks von `bakeWorldTile` mit `const` deklariert, aber im zugehörigen `finally`-Block für das Step-15-Tracing verwendet. Das bewirkt `ReferenceError` bei der Abschlussprotokollierung jeder Bake-Ausführung, einschließlich vorzeitig abgebrochener Aufträge, und löst fehlgeschlagene Quellaufträge samt Retry-Stürmen aus. **Fix:** `let sourceGroundVersion=null` vor dem `try`; Zuweisung innerhalb und unveränderte Fehlerweitergabe an den World-Tile-Runner. Ein neues Testcase ruft die tatsächliche `bakeWorldTile`-Funktion mit frühem Abbruch auf; alle 10/10 Tests bestehen im V8-Mock. Fehler werden im Trace künftig mit Typ/gekürzter Nachricht erfasst.
 
 **Abnahmestatus:** Fix implementiert; **erneuter realer Browser-/Screenshotlauf auf Windows erforderlich**. Die zusätzliche Cache-/LOD-Optimierung aus Schritt 16 kann erst nach erfolgreichem Retest bewertet werden. **Schritt 17 weiterhin nicht freigegeben.**
+
+## 2026-10-29 – Schritt 16A: auditierbare Architekturentscheidung statt Hotfix-Schleife
+
+Die vierte Windows-Step15-Diagnose aus der 397-Hex-/2.631-Nature-Szene
+zeigte **0 Tile-Bake-JavaScript-Exceptions**, aber nur **2/8 Readiness-
+Prüfungen**. Ende Auto-Pan READY, andere Phasen teils unvollständig.
+Die geografische Referenz an Hex (-4,5) meldet nun `ocean` und zeigt
+visuell Wasser. Die Performance ist wegen fehlender Warm-Gates nicht
+abgenommen. Im Lauf wurden 202 `tile.cache-miss`-Ereignisse erfasst;
+separat davon meldet die Ground-Raster-Reuse-Messung **2 Hits und
+29 Misses** (nicht 2 Hits von 202 Ground-Zugriffen).
+Die Auto-Pan-Bildpoolgrenze war 288 MiB, tatsächlich dekodiert waren
+501,3 MiB und geschützt ca. 395,3 MiB. Pauschales Evicten oder
+Cachevergrößern wäre ohne Ursachennachweis riskant.
+
+**Schritt 16A implementiert** auf dem isolierten Branch mit
+`START_STEP16A_WINDOWS.cmd`: Ein eigener HTML-Kontrolllauf nutzt
+den unveränderten World-Tile-Compositor und 16 bereits vorbereitete
+synthetische Layer-Tiles ohne Editor und Asset-Loader. Die echte Szene
+wird daneben nur nach vollem Ready-/Quiet-Gate als Warm-Test gewertet.
+Aufbereitung, Tile-/Asset-Invalidierungen und geschützter Bildspeicher
+werden separat dokumentiert. V8-Quellsyntax und der isolierte
+Compositor-Kontrollpfad wurden mit 16/16 retained Tiles, 100 % Coverage,
+0 Evictions und 0 neuen Tile-Akzeptanzen geprüft; echte Browser-
+Rasterzeit und GPU-Relevanz bleiben ausdrücklich offen.
+
+**Nächster Gate:** Ein echter Step16A-Windows-Auditlauf. 16B erst
+nach Attribution des dominanten Engpasses; 16C erst nach validen
+Warm-/Cold-Messungen, visueller Freigabe und drei Hardwarewiederholungen.
+Schritt 17 bleibt offen/gesperrt.
+
+## 2026-10-30 – Ergebnis von Schritt 16A und erster zielgerichteter Schritt-16B-PR
+
+Audit: `step16a-audit.zip`, Referenzszenen-SHA
+`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`.
+Beide frischen Browser-Imports brachten 397 Hex / 2631 Vegetationsinstanzen
+ohne fehlende Instanzen und ohne Skriptfehler.
+
+- Isolierter Production-WorldTile-Compositor: beide Kontrollen valide,
+  16/16 vorbereitete Tiles, 0 Evictions, 0 neue Source-Tiles, Coverage 100 %.
+  Compositor-Zeichnen p95 **0,40 ms Pan / 0,20 ms Zoom**;
+  rAF-p95 **60,04 / 33,50 ms**. Diese Zahlen sind nicht austauschbar.
+- Reales Auto-Pan: 89 Intervalle, rAF-p95 **16,80 ms**, aber 2
+  neue Tile-Bakes/Cache-Misses, daher warm **nicht abgenommen**.
+- Reales Auto-Zoom: 13 Intervalle, rAF-p95 **817,34 ms** (nicht valide),
+  0 Tile-Bakes/Invalidierungen/Asset-Dekodes, jedoch **13 neue
+  StaticScenery-Builds**. `static-object-layer.js` erforderte exakte
+  Zoom-Gleichheit und baute die gesamte Vegetations-/Schattenebene
+  bei jedem Zoom-Inkrement wieder auf. Das ist ein belegter Hotspot.
+- Reales 4×-Pan: 27 zusätzliche Tile-Bakes, 13 Terrain-Builds,
+  Tile/Asset-Revisionsänderungen und rAF-p95 133,40 ms; nicht warm.
+- Reales 4×-Zoom: 5 Sampleintervalle und p95 3803,04 ms,
+  Tile-/Terrain-Fallbacks plus 5 Scenery-Builds; nicht warm.
+- In diesem Test: Bildpool Auto 288/288 MiB, geschützt 177 MiB.
+  4× etwa 626 MiB dekodiert gegenüber 576 MiB Limit;
+  geschützte Assets ~380 MiB. Keine Aussage, dass der
+  Auto-Bildpool grundsätzlich gelöst wäre; Speicherprofil
+  unterscheidet sich zwischen den Benchmarkläufen.
+
+**Schritt 16B – ein Ursache-Patch als Draft #73:**
+Nur Fast-Scenery-Zoom kann statische Layer aus identischer Source
+innerhalb Skalierungs-/Viewport-Grenzen geometrisch re-projizieren.
+Nach Zoomstillstand folgt einmal ein exakter Pixel-Rasteraufbau.
+Alle anderen Renderpfade behalten ihre vorherigen Regeln.
+Geometrie und Code im isolierten V8 geprüft; Windows-Test, Native-
+Node-Suite und visueller Vergleich ausstehend. Kein nachgewiesener
+Performancegewinn, kein Merge, keine Schritt-16C-Freigabe.
+4×-Ground/World-Tile-Revisionen sind ein separater noch offener Fall.
+Schritt 17 weiterhin gesperrt.
+
+## 2026-10-30 – Nachweis der Auto-Zoom-Korrektur und 4×-Quellenattribution
+
+Hardware-Retest `step16a-audit(1).zip` bestätigte **Auto-Zoom
+16,80 ms rAF-p95 über 89 Intervalle** statt 817,34 ms p95
+über nur 13 Intervalle in der vorherigen Diagnose. Die
+statischen Scenery-Neuaufbauten sanken von **13 auf 0**
+innerhalb der Kameramessung. Bei gleicher Szenen-SHA und
+gleichzeitig 0 Tile-/Asset-Invalidierungen, 0 Terrain-Builds.
+Die Phase blieb formal **nicht vollständig warm** wegen eines
+zusätzlichen Reuse-Ground-Tile-Bakes. Auto-Pan erreichte
+16,92 ms p95 über 89 Intervalle (zuvor 16,80 ms),
+ebenfalls mit zwei kleinen Kachel-Nachfüllvorgängen.
+Keine belastbare Faktor-48-Beschleunigungsbehauptung aus
+der vorherigen unzureichenden 13-Frame-Probe.
+
+Zoom-Fix #73 bleibt ein Draft, bis Bilder von Bäumen,
+Schatten, Meer/Küste und Fog vor/während/nach Zoom überprüft
+sind. Ein optionaler, ausschließlich Kartenviewport-
+bezogener 5-PNG-Test kann auf dem gestapelten Branch mit
+`--visual` erstellt werden.
+
+4× ist davon unabhängig offen: 13 Terrain-Revision-
+Invalidierungen und neue Kachel-/Terrain-Arbeit. Der
+vorherige Trace reichte nicht für die Attribution
+der Versionsteile (Terrain, Shore, Road, River).
+Der neue Draft #74 zeichnet diese Versionen je Tile
+nur bei aktivierter Trace auf; die Cached-Tile-
+Entscheidungen bleiben unverändert. Vier Regressionen
+im isolierten V8 mit echter Tile-Streamer-Quelle: 4/4.
+
+**Nächster Schritt:** Ein kombinierter lokaler
+`START_STEP16A_WINDOWS.cmd --qualities 4,auto --frames 90 --settle-ms 12000 --visual`
+zur Ursachenbestimmung plus Bildabnahme; nicht weitere
+ungenannte Performance-Patches auf Verdacht. Schritt 16C
+nicht abgenommen, Schritt 17 gesperrt.
+
+## 30.10.2026 – 4×-Ground-Revisionsquelle nach Hardwarelauf geklärt
+
+Aus `step16a-audit(2).zip`: 397 Hex, 2.631 Naturinstanzen,
+Szene unverändert. 4×-Pan: 89 Intervalle, 133,40 ms p95,
+14 Invalidierungs-Events, 16 einzelne Ground-Version-Details;
+8 Road-only, 6 Road+River, 2 Terrain-only. Bei den
+14 Road-/River-Ereignissen bleibt der Terrainwert gleich;
+Road-/River-Varianten springen zwischen fertig und `pending`.
+Von 16 konkreten Details sind **acht** exakt
+fertige Road/River → vorübergehend `pending`
+und damit Kandidaten für das gezielte Defer im Draft #75.
+Die übrigen acht sind z.B. `pending → neu fertig`
+oder echte Terrainänderungen und bleiben invalidierend.
+
+4×-Zoom: 89 Intervalle, 16,8 ms p95, aber nach Warm-Gate
+weiter ungültig wegen nicht vollständig ruhigem Zustand.
+Auto-Pan und Auto-Zoom ebenfalls 89 Intervalle, 16,8 ms p95;
+beide neue Tile-Nachladungen, daher keine reine Warm-Abnahme.
+Alle Visuals vorhanden: Scenery-Builds 8 vor/8 während/
+9 nach Zoom, Ozean-Hex (-4,5) effektiv `ocean`, Fog-Screenshot
+hat sichtbare Wolkenabdeckung. Wasser-Kachelgrenzen müssen
+bei der visuellen 16C-Abnahme separat auf Artefakte geprüft werden.
+
+**Neuer isolierter Draft #75:** Behalte fertige World-Tiles bei
+fertige Road-/River-Version → `pending`; erst bei einer anderen
+fertigen Version oder echtem Edit invalidieren. Gezielte
+10/10 Tests mit echter World-Tile-Streamer-Quelle im isolierten
+V8 bestanden. Native Windows-Tests und Hardwarevergleich fehlen;
+keine Performanceverbesserung für 4× behauptet. Nur ein
+gezielter 4×-Windowslauf erforderlich, danach erst über
+16C entscheiden. Schritt 17 weiter gesperrt.
+
+## 30.10.2026 – Schritt 16B: 4×-Nachtest ZIP3 zeigt Kameramodus-Abbruch
+
+Neuer Windows-Audit `step16a-audit(3).zip` auf Draft #75,
+gleiche Referenz-SHA wie ZIP2, Import 397 Hex/2631 Nature,
+0 JavaScript-Ausführungsfehler:
+
+- 4×-Preparation: 151 Bake-Versuche (ZIP2: 155),
+  101× Terrain-Core-not-ready, 43× Sprite-not-ready;
+  39 MiB über dem 576-MiB-Decodingbudget.
+- 4×-Pan: 0 Frameintervalle (ZIP2: 89),
+  WorldTile-Modus inaktiv, Coverage 75 %.
+- 4×-Zoom: 51 Frameintervalle, rAF-p95 1651,35 ms
+  (ZIP2: 89 und 16,80 ms), 22 Tile-Bakes,
+  15 Cache-Misses, 2 Invalidierungen;
+  am Ende Modus inaktiv und Coverage 25 %.
+- Kein `tile.ground-revision-deferred`,
+  keine `tile.ground-revision-detail`; Draft #75
+  wird durch diesen Test nicht beurteilt.
+- Während 4×-Zoom 30 `asset.invalidate`-Events.
+
+Quellcode bestätigt: Der spät laufende `imagePool.onReady`-Batch
+ruft `invalidateSpriteLayout()` auf, was bislang immer
+`tileModeActive=false` setzt. Dadurch fällt der nächste
+`requestDraw()` potenziell in den direkten Editorpfad.
+Das stimmt mit dem beobachteten Modusabbruch überein;
+kausale Bestätigung braucht den Hardwaretest mit neuem Trace.
+
+**Draft #76** isoliert diesen Fehler: Nur beim
+späten Asset-Batch darf ein bereits aktiver und
+weiter zulässiger Tile-Kameramodus erhalten werden,
+inklusive sofortigem `tileFog()`-Neubau. Edit- und
+Strategie-Moduswechsel bleiben unverändert.
+5/5 gezielte isolierte V8-Tests bestanden, native
+Windows-/Chrome-Messung ausstehend.
+Die alte Road/River-Pending-Regel in #75 bleibt unabhängig
+und unbewiesen. Schritt 16C/17 weiterhin gesperrt.
+
+## 30.10.2026 – Nachtest von PR #77, `step16a-audit(5).zip`
+
+Referenz-SHA unverändert. 4×-Vorbereitung: Terrain-not-ready
+95 → 2, Bake-Versuche 132 → 36; 33 geblockte
+Source-Anfragen per Trace. 4×-Pan: Terrain-not-ready
+29 → 11, Bake-Versuche 34 → 25, 18 geblockte
+Source-Anfragen. Aktiver Tile-Kameramodus und 89 rAF-
+Intervalle in beiden Phasen; keine JS-Ausführungsfehler.
+4×-Pan rAF-p95 123,42 ms (zuvor 60,06), 4×-Zoom
+126,46 ms (zuvor 126,76), **beide formal kein Warm-Lauf**.
+Bei Pan eine globale `image-ready-ground`-Invalidierung
+von 15 fertigen Kacheln; am Ende nur 11 Cache-Tiles
+und 2 Pending. Bildpool ~51,5 MiB über Budget,
+23 neue Evictions während Pan; Zoom 50.
+4×-Vorbereitung READY=false; Pan und Zoom
+nach dem vorgeschalteten Readiness-Gate READY,
+aber beide während Geste durch Asset-/Tile-Arbeit invalid.
+
+PR #77 um zweite Terrain-Startprüfung beim tatsächlichen
+Dequeuing erweitert (Race im wartenden Source-Queue).
+5/5 gezielte Tests im isolierten V8 bestanden, native
+Node-/Windows-Abnahme steht aus. Audit legt beim
+nächsten Lauf konkrete Pfade der späten Ground-Bilddateien
+offen, damit eine **selektive** Invalidierung nur nach
+nachgewiesenen Abhängigkeiten implementiert wird.
+Schritt 16C/17 gesperrt.
+
+## 30.10.2026 – 4×-Nachtest ZIP6: zweite Source-Gate-Prüfung
+
+Referenzszene weiter identisch: 397 Hex, 2631 Nature, SHA
+`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`.
+Keine JavaScript-Ausführungsfehler oder Terminal-Retries.
+
+Vergleich ZIP5 → ZIP6:
+
+- Vorbereitung: 36 → 39 WorldTile-Bakes; 33 → 37
+  zurückgestellte Source-Anfragen, 14,391 → 14,084 Sekunden;
+  beide Vorbereitungssnapshots nicht READY.
+- 4×-Pan: 25 → 4 Bakes, 4,41 → 0,78 Sekunden
+  CPU-Taskdauer und 123,42 → 43,34 ms rAF-p95.
+  **Nicht vergleichbar als gültige Warm-FPS-Messung:**
+  ZIP6 hat vor Pan GateReady=false/Quiet=false,
+  obwohl 16 Cache-Tiles und 100 % Coverage zum
+  Start der eigentlichen Messung vorhanden sind.
+  Während Pan zwei tatsächliche Road-/River-Revisionen,
+  vier temporäre Pending-Übergänge ohne Invalidierung.
+- 4×-Zoom: 13 → 17 Bakes, rAF-p95 126,46 →
+  133,40 ms; 3,86 Sekunden CPU-Taskdauer.
+  Eine globale image-ready-ground-Invalidierung
+  und eine lokalisierte Scenery-Invalidierung;
+  Ende 14 Cache-Tiles, ein Pending-Tile;
+  Coverage bleibt 100 %. **Kein Warm-Gate.**
+
+Die neu erfassten **sieben** Ground-Bilddateien
+während Zoom: grassland_03, grassland_04,
+halbwueste_03 und cosatal_water_01 bis _04
+(sämtlich `assets/terrain/*.png`).
+Daneben 26 Scenery-Image-Ready-Ereignisse,
+16 zusätzliche Terrain-Builds und 17 Tile-Bakes.
+Der Asset-Callback bündelt die Ground-Änderungen
+zu einem globalen Cache-Reset. Da die Texturen
+tatsächlich sichtbar sein können, ist blindes
+Entfernen dieser Invalidierung **nicht zulässig**.
+Eine Änderung erfordert eine belastbare
+Tile-/Material-Abhängigkeitsabbildung und darf
+weder Terrainqualität noch Fog/Exporte verfälschen.
+
+Der Asset-Pool befindet sich nach Pan bei
+603,46 MiB vs. 603,98 MiB Limit (unter Budget);
+nach Zoom bei 612,63 MiB (8,25 MiB über Budget).
+Der vorangehende größere Überlauf ist nicht
+gleichbedeutend mit einem dauerhaften Speicherleck.
+
+Die Step16A-README hatte bisher durch einen
+30-Event-Sample-Cap in der `groundAssetEvents`-
+Liste für die Vorbereitung eine irreführende
+Zählung. Der Trace-Reporter nutzt nun
+`groundAssetEventCount` für die **volle Anzahl**.
+
+**Keine neue Produktionsoptimierung nach ZIP6,**
+PR #77 bleibt Draft. Erst eine semantisch
+abgesicherte, selektive Ground-Abhängigkeit
+oder ein belegter Async-Load-Plan ist sinnvoll.
+Step16C noch nicht valide, Schritt 17 gesperrt.
+
+## 30.10.2026 – Schritt 16B: Nachweisbare Landmaterial-Abhängigkeiten
+
+ZIP6 belegte während des 4×-Zooms 7 verspätete
+Terrain-PNGs und einen globalen Ground-Reset.
+Der echte Quellvergleich zeigt, dass die
+Terrain-Variantenauswahl von neu dekodierten
+Materialien abhängen kann und auch Zellen anderer
+Variantendateien betrifft.
+
+**Neuer gestapelter Draft #78:**
+`selectedGroundAssetChanges` vergleicht die vor der
+Bildbereitstellung benutzte Ground-Materialauswahl
+mit der neuen, und invalidiert für reine Landmaterialien
+nur World-Tiles, deren `VedrasChunks.neighbors`
+Quellzellen berühren. Ein Bild-Upgrade bei gleichem
+Pfad bleibt invalidierend. Der Vergleich nutzt einen
+seiteneffektfreien `imageForBiome(cell,false)`-Zugriff
+(einschließlich `typeOfCell`/`baseBiomeOf`)
+ohne neue `imagePool.ensure`-Anforderungen.
+
+Wasser, Waldboden-Overlay, Relief, Shore und
+unbekannte Eingänge behalten den globalen Reset.
+Der gemischte 4×-Zoom-Batch mit 4 Wasser-PNGs
+wird daher weiterhin **global** behandelt;
+noch kein 4×-FPS-Gewinn behauptet.
+
+10/10 Regressionstests im isolierten V8 bestanden.
+Audit protokolliert selektiv/global-Entscheidungen
+über `ground.asset-dependency` und listet die
+berührten Hexfelder/Kacheln. Native Node-/Chrome-
+Messung und visuelle 16C-Abnahme ausstehend.
+Schritt 17 weiter gesperrt.
+
+## 30.10.2026 – Schritt 16B: Wassertextur-/Flussquellen-Abhängigkeiten
+
+Erweiterung auf Draft #79 (base #78): Selektive Wasser-
+Material-Invalidierung nur bei unveränderter
+Land-/Wasserklassifikation aller 397 Hexfelder.
+Die Pixelrevision der Mündungsquelltextur betrifft
+den **gesamten** zugehörigen Flusslauf, dessen
+Quell- und Nachbar-Kacheln einbezogen werden.
+`riverRasterCache` bezieht neu `water.imageRevision`
+in seine Signatur ein; gleich große neu dekodierte
+Bilder können nicht mehr den alten Flussraster
+weiterverwenden.
+
+Sicherheitsregeln: Ein Klassifikationswechsel,
+unbekannter oder fehlerhafter Flussverlauf, fehlende
+Material-/Klassen-Basis, Relief, Wald-Overlays
+oder separate Uferkanten-PNGs verbleiben auf dem
+bisherigen globalen Invalidation-Pfad. Die vorhandenen
+Fog-/Export- und Kachel-Readiness-Gates bleiben.
+
+20/20 gezielte Dependency-Tests bestehen im
+isolierten V8. Native Windows-/Chromium-Messung,
+4×-Warm-Gate und visuelle Küsten-/Flussabnahme
+stehen noch aus. **Keine 4×-FPS-Verbesserung
+behauptet.** Schritt 16C/17 weiter gesperrt.
+
+
+Der optionale Step16A-Audit `--visual --qualities 4` speichert
+fünf 4×-Prüfbilder (Zoom und Ocean/Fog) mit Qualitätspräfix.
+Damit kann die spätere 16C-Sichtprüfung auf derselben Qualitätsstufe
+wie der Hardwaretest erfolgen. Native Tests und 4×-Visuals ausstehend.
+
+## 30.10.2026 – ZIP7: selektive Ground-Invalidierung bei geografischem Relief blockiert
+
+Die reale 397-Hex-Referenzszene aktiviert
+`relief.enabled=true`, `relief.mode='geography'`.
+PR #78/#79 hatten bisher jeden Ground-Bild-Decode
+bei **jeglichem** Relief global verworfen, selbst
+wenn Materialpfad und Wet-Status aller Hexes
+vollständig bekannt waren. ZIP7 belegt 2 globale
+Resets während 4×-Pan, zuerst 15 fertige Tiles
+verworfen; 4×-Pan p95 250,24 ms und End-Coverage
+50 %. Zoom p95 200,22 ms, 0 neue globale
+Ground-Resets, jedoch 5 echte Terrain-Revisionen
+und 12 Bakes. Beide Phasen ungültig für Warm-FPS.
+
+Neuer gestapelter Draft #80: Der reine geografische
+Reliefmodus ist nach **stabiler** Land-/Wasserklassifikation
+für selektive Terrainmaterial-Updates zugelassen;
+Legacy-Relief und unbekannte nichtlokale
+Abhängigkeiten bleiben global. Statische Terrain-
+Disk-Cache-Keys enthalten zusätzlich `imageRevision`.
+25/25 gezielte Ground-Dependency-Tests im
+isolierten V8 bestanden. Native Node/Chrome
+und visueller 4×-Vergleich noch offen.
+
+Fünf ZIP7-Bilder bestätigen richtige Ozeanhex-
+Zuordnung und Fog-Maskierung, zeigen aber
+vertikale dünne Wasserlinien im Abstand
+einer 512er World-Tile-Spalte. Dies bleibt
+ein visueller 16C-Abnahmeblocker, bis
+die Quelle dieser Kanten nachgewiesen und
+gegebenenfalls behoben ist.
+
+**Nicht mergen. Schritt 17 bleibt gesperrt.**
+
+
+## 30.10.2026 – ZIP8: Geography-Relief-Selektivpfad wirkt, globale Ufer-Resets bleiben
+
+Der reale 4×-Windows-Nachtest von #80 belegt für vier
+Terrain-PNGs den **selektiven** Pfad (78 Hexfelder, 76 WorldTiles).
+Pan rAF-p95 16,86 ms und End-Coverage 100 % (ZIP7: 250,24 ms,
+50 %), aber Pan Quiet=false und zwei Tile-Bakes, daher
+**kein valider Warm-FPS-Wert**. Zoom p95 327,76 ms (ZIP7:
+200,22 ms), 82 Frameintervalle und Ende **25 % Coverage**.
+Zwei separate globale `image-ready-ground`-Batches enthalten
+je zwei Ufer-PNGs; drei WorldTile-Bakes scheitern an
+`shoreline-chunk-not-ready`, ein Bake dauert ~3.039 ms.
+Zoom war zu Beginn READY/quiet, während der Messung
+mutierend und somit **ungültig**. Null JS-Fehler und Warnungen;
+Compositor-only-Pan und -Zoom valide.
+
+Neuer gestapelter Draft #81: `SHORE_EDGE_PATHS` wird pro
+Uferseite auf tatsächliche Segmente zurückgeführt;
+`shorelineChunks` erhält geometriebasierte globale
+Signaturen und seitenweise Bildrevisions-Stempel. Nur
+betroffene WorldTiles werden aktualisiert; unbekannte
+Küstenbezüge, fehlende Segmentbasis oder Wet-Änderungen
+bleiben global. WorldTile-Source-Start erfordert zusätzlich
+einen vorbereiteten Ufer-Chunk.
+
+**34/34 isolierte Ground-/Shoreline-Regressionen bestanden**,
+noch keine native Windows/Chrome-Abnahme des Fixes.
+Küstenfoto ist bei ZIP8 `READY=false` (`missing:2`);
+visuelle Uferlinie/Tileseams bleiben offen.
+Schritt 16C und 17 weiterhin gesperrt, Draft nicht mergen.
+
+
+## 30.10.2026 – ZIP9: Ufer-Reset entlastet, Sprite-Start weiter verfrüht
+
+Der Windows-Test des Ufer-Seitenstempel-Patches (#81)
+hat in den realen **Pan- und Zoomphasen jeweils null**
+`image-ready-ground`-Invalidierungen und null
+Tile-Invalidierungen. Pan 1 Bake, p95 16,80 ms und
+End-Coverage **24,4 %**; Zoom 3 Bakes,
+p95 33,36 ms, End-Coverage 100 %.
+**Beide nicht warm-valide** (Pan initial
+0 % Coverage und 16 unbereite Terrain-Cores,
+Zoom nicht quiet und drei Bakes).
+Nachfolgende 4×-Visual-Settled-Aufnahme
+hat erneut nur 25 % Coverage, Ozean-Aufnahme
+ebenfalls nicht READY; Fog-Bild zeigt
+weiterhin vollständige Verdeckung unbekannter Bereiche.
+
+Während der Vorbereitung: 93 Ground- und
+264 Scenery-Image-Ready-Events, zwei globale
+Ground-Invalidierungen, **24 vergebliche**
+`tile.bake`-Versuche mit
+`sprite-source-not-ready` sowie
+zwei `fallback-ground-changed`.
+Ein ImagePool-Überlauf und mehrere Evictions
+bleiben beobachtbar; kein belegter FPS-Gewinn.
+
+Neuer gestapelter Draft #82 lässt den Source-Gate
+das bereits vorhandene vollständige
+`tileArtworkStatus(tile,null,true)` nutzen:
+Terrain, erforderliche Küste **und** authored
+Sprite-Bilder. Fehlende Bilder werden mit
+`imagePool.ensure(asset,11)` priorisiert,
+bevor Source-Queue/Bake/Retry verbraucht werden.
+**50/50 isolierte V8-Tests bestanden**,
+native Node-/Chrome-Abnahme ausstehend.
+
+Nächste Messung bei `--settle-ms 30000`,
+um die verlängerte Initialvorbereitung zu
+unterscheiden von echter Tile-Source-Starvation.
+Die Wasser-Tile-Linien und 16C-Sichtprüfung
+bleiben offen. **Nicht mergen; Schritt 17 gesperrt.**
+
+
+## 30.10.2026 – ZIP10: selektiver Asset-Refresh löscht alle sichtbaren Tiles
+
+Referenzszene weiterhin 397 Hex / 2631 Nature.
+Nach PR #82 sind 24 Sprite-Source-Fehlversuche auf
+0 gesunken; Vorbereitung erstmals READY (~29,8 s).
+Pan: 24 spätere Terrain-PNG-Bereitstellungen führen
+zu einer **selektiven 114-WorldTile-Invalidierung**,
+die sämtliche vier sichtbaren Tiles sofort löscht.
+End-Coverage 0 % und rAF-p95 173,6 ms
+(ungültiger Warm-Test). Zoom zeigt später
+100 % Coverage; die Bild-/Fog-Sichtprüfung
+ist teilweise READY, dünne Wasserlinien bleiben.
+
+Neuer gestapelter Draft #83:
+`world-tile-streamer.invalidateTiles` erhält
+bei reinen Asset-/Ground-Source-Revisionswechseln
+eine **vollständige alte Bitmap pro betroffenem
+sichtbarem Tile** bis zum fertigen Austausch
+(`dirty` / `stale`), statt sofort eine
+Wolkenlücke zu erzeugen. Außerhalb des Sichtbereichs,
+bei Preview-Paketen, globalen Invalidierungen und
+expliziten Szenenänderungen bleibt das harte
+Freigeben erhalten. Neue Source-Bakes werden
+trotz altem Paket normal angefordert;
+Bitmap-Ressourcen werden nach dem Austausch
+freigegeben. Kein Edit-/Fog-Freigabeverhalten
+aufgeweicht.
+
+Readiness und Bench messen `stale` getrennt;
+weder die Warm-Gates noch READY-Screenshots
+dürfen durch die Übergangsdarstellung
+fälschlich bestehen. **63/63 isolierte V8-
+Regressionen bestanden.**
+Windows-/Chromium-Nachtest weiterhin offen;
+keine FPS-/16C-Abnahme, kein Merge.
+
+
+## 30.10.2026 – PR #83 Hardware-Nachtest (Audit 17:50)
+
+Windows-Audit `step16a-audit(20261030-175043).zip`:
+**Referenz-SHA unverändert** (`1eddd0048e3a7ceeb4dc05086326ed8ff71e0d82b86f3f005da4b7ffc1ba810f`),
+397 Hexfelder, 2.631 Nature, null JS-Fehler/Warnungen.
+Präparation erstmals nach **22.394 ms READY**, 4/4 aktuelle
+sichtbare Tiles, `progress.stale=0`, 100 % Coverage.
+Der Source-Gate verhindert weiter vergebliche Sprite-Bakes;
+Bake-Ausgänge Vorbereitung: 17 `fallback-complete`,
+2 `snapshot-hit`, 1 `fallback-ground-changed`.
+
+**Pan:** 25 Ground-PNG-Bereitstellungen, zwei selektive
+Abhängigkeitspakete (3 Dateien/75 Tiles und 22 Dateien/89 Tiles),
+**keine globalen** Ground-Invalidierungen während der Geste.
+20 `tile.stale-retained`-Events. End-Coverage **100 %** statt
+0 % in ZIP10, aber **1 exact + 3 stale**, 0 missing,
+0 pending. 8 Bake-Events/7 accept; p95 **116,8 ms**
+(ZIP10: 173,6 ms), CPU-Taskzeit 2,93 s.
+Die Pixelabdeckung wurde erfolgreich stabilisiert;
+vollständige Aktualität während des Pans nicht.
+Der Pan ist **nicht warm-valide** (quiet=false/mutating=true).
+
+**Zoom:** 0 Asset-Ready-Events, 4 durch vorbereitete
+Road-/River-Revisionen ausgelöste Tile-Invalidierungen
+(6 Revisions-Details), 6 temporäre Revisionen deferred,
+9 vollständige Bakes. End-Coverage **100 %**, 4 exact/0 stale,
+p95 **83,4 ms**, CPU-Taskzeit 1,84 s.
+Start `pending=1`, quiet=false; ebenfalls **kein**
+gültiger Warm-Test. Drei echte Testbilder
+`zoom-before`, `zoom-settled`, `ocean-shore`
+melden READY, 100 % Coverage und `stale=0`.
+`zoom-during` und Fog-Prüfbild sind diagnostisch,
+nicht automatisch READY-zertifiziert.
+
+**Weiter offene Punkte:** Nach Pan brauchen drei sichtbare
+Stale-Tiles noch ihre vollständige Ersatzfassung.
+Beim Zoom entsteht verbleibende Arbeit insbesondere durch
+spät fertiggestellte Road-/River-Quellen; nicht durch
+neue Terrain-PNGs. Die Küstenaufnahme zeigt weiterhin
+schmale vertikale Wasserlinien im Abstand von ungefähr
+358 Bildschirmpixeln, passend zu **512 World Units × Zoom 0,70**.
+Diese Korrelation deutet auf eine Tile-Grenze hin, beweist
+aber weder die genaue Resampling-Ursache noch einen fixbaren
+Compositor-Bug. Der definitive visuelle 16C-Seam-Nachweis
+und eine gültige reale 4×-Warm-Messung stehen weiter aus.
+
+**PR #83 bleibt Draft und ungemergt; Schritt 16C/17 gesperrt.**
+
+
+## 30.10.2026 – Windows-Audit 17:50:43: unnötige Straßen-/Fluss-Revisionswechsel
+
+Im 4×-Audit nach #83 entstehen bei den echten Kameragesten
+**vier Pan- und sechs Zoom-Revisionswechsel** allein in
+Road-/River-Quellen, bei jeweils unverändertem Terrain-
+und Shore-Kern. Vergleich z. B. Tile `-1,0`:
+Road `50→127`, River `35→112`, Terrain `31→31`.
+Die Chunkverwaltung vergibt den bisherigen
+`rasterVersion`-Zähler bei jedem Render-Neubau,
+selbst wenn der visuelle Inhalt unverändert ist.
+Diesen monotonen Zähler hatte die WorldTile-Quelle
+als Inhaltsrevision verwendet.
+
+Gestapelter Draft #84: `chunks.readyTiles(...,
+{sourceKeys:true})` stellt eine stabile, begrenzt
+gehashte `sourceRevision` aus Chunk-
+Konfigurationssignatur und lokalem Tile-Stempel
+bereit. Nur Road-/River-WorldTile-Quellen nutzen
+diesen neuen Token. Terrain, Shore, Paint-Versionen,
+Load-Gates, vorübergehendes `pending`-Deferral
+und sämtliche Fog-Regeln bleiben unverändert.
+Die Berechnung erfolgt nur bei tatsächlicher
+Road-/River-Abfrage, **nicht** auf jedem Terrain-
+Chunk-Build.
+
+**72/72 isolierte V8-Regressionsprüfungen
+bestanden**, einschließlich identischer Neuaufbau,
+echter Road-/River-Edit, geänderte Auflösung,
+Route, WorldTile-Reconcile und lazy-Fingerprint.
+Native Windows-Node/Chrome-Abnahme des Patches
+ausstehend. Die sichtbare 4×-Kontinuität von #83
+ist verbessert, aber kein gültiger Real-Warm-FPS-
+Nachweis und keine 16C-Sichtfreigabe.
+Vertikale Wasserlinien weiterhin offen.
+**Kein Merge; Schritt 17 gesperrt.**

@@ -14,12 +14,15 @@ window.VedrasWorldTiles=(()=>{
   {far:.85,mid:1.5,near:2.5};
  function create({canvas,source=null,maxTiles=180,maxPixels=26000000,
    concurrency=1,onReady=()=>{},maxAttempts=5,sourceTimeoutMs=45000,
+    sourceRevision=null,canStartSource=null,
    requireScenery=false,lodSelector=null}={}){
   if(!canvas?.getContext)throw Error('WorldTiles requires canvas');
   const g=canvas.getContext('2d',{alpha:true});
   if(!g)throw Error('WorldTiles requires Canvas2D');
   const cache=new Map(),queue=new Map(),running=new Map(),history=new Map();
   const retries=new Map(),retryTimers=new Map();
+  // Diagnostic deduplication; blocked sources are reconsidered per request.
+  const blockedSourceTrace=new Set();
   const attemptsCap=clamp(Math.floor(maxAttempts)||5,1,10);
   const parallelLimit=clamp(Math.floor(concurrency)||1,1,2);
   // Editor supplies its terrain controller. Standalone usage creates a
@@ -34,12 +37,13 @@ window.VedrasWorldTiles=(()=>{
    if(timer!==undefined&&typeof clearTimeout==='function')clearTimeout(timer);
    retryTimers.delete(k);
   }
-  function retryFailure(item,reason,error=null){
+  function retryFailure(item,reason,error=null,attemptRevision=null){
    const k=item.key,old=retries.get(k),attempts=(old?.attempts||0)+1;
    const terminal=attempts>=attemptsCap;
    const delay=Math.min(8000,400*2**(attempts-1));
    const nextRetryAt=terminal?null:Date.now()+delay;
-   retries.set(k,{attempts,terminal,reason,error:error?String(error?.message||error):null,nextRetryAt});
+   retries.set(k,{attempts,terminal,reason,error:error?String(error?.message||error):null,
+    attemptRevision,nextRetryAt});
    observe(k,terminal?'retry-exhausted':reason,
     {level:item.level,attempts,reason,error:error?String(error?.message||error):null});
    cancelRetry(k);
@@ -49,7 +53,7 @@ window.VedrasWorldTiles=(()=>{
    const timer=setTimeout(()=>{
     retryTimers.delete(k);
     if(generation!==epoch||!wantedTiles.has(k)||
-     (cache.has(k)&&!cache.get(k).packet.preview))return;
+     (cache.has(k)&&!cache.get(k).packet.preview&&!cache.get(k).dirty))return;
     const state=retries.get(k);
     if(!state||state.terminal)return;
     state.nextRetryAt=0;
@@ -78,15 +82,18 @@ window.VedrasWorldTiles=(()=>{
    const tiles=visibleTiles.slice(0,max).map(t=>{
     const k=key(t,lod),q=queue.get(k),r=running.get(k),
      c=cache.get(k),old=lookup(t),last=history.get(k),retry=retries.get(k);
-    const provisional=!!c?.packet?.preview;
+    const provisional=!!c?.packet?.preview,stale=!!c?.dirty;
     return {key:k,id:t.id,lod,epoch,
      state:r?(provisional?'upgrading':'running'):
-      q?(provisional?'upgrade-queued':'queued'):c?
-      (provisional?(retry?.terminal?'preview-upgrade-failed':'preview-needs-upgrade'):
+      q?(stale?'stale-refresh-queued':provisional?'upgrade-queued':'queued'):c?
+      (stale?(retry?.terminal?'stale-refresh-failed':'stale-needs-refresh'):
+       provisional?(retry?.terminal?'preview-upgrade-failed':'preview-needs-upgrade'):
        c.packet.complete?'ready':'cached-partial'):old?'fallback-lod':
       last?.epoch===epoch?last.status:'unrequested',
      startedAt:r?.startedAt??null,revision:c?.revision??null,
-     preview:provisional,sourceDensity:c?.packet?.sourceDensity??null,
+     preview:provisional,stale,staleReason:c?.dirtyReason??null,
+     staleAgeMs:stale?Math.max(0,now-(c?.dirtyAt??now)):null,
+     sourceDensity:c?.packet?.sourceDensity??null,
      requiredDensity:density[lod],
      displayedLod:old?.tileLod??null,
      displayedPreview:old?.packet?.preview??null,
@@ -154,15 +161,24 @@ window.VedrasWorldTiles=(()=>{
    failed=0,lastMs=0,lastCoverage=0,lastLod='mid',painted=0,
    fogCells=[],fogConfigured=false,visibleTiles=[],wantedTiles=new Set(),
    lod='mid',lastView=null,frame=0,
-   lastProgress={exact:0,fallback:0,provisional:0,missing:0};
+   lastProgress={exact:0,fallback:0,provisional:0,stale:0,missing:0};
   const key=(t,l)=>t.id+'@'+l;
   function release(packet){
    for(const layer of packet?.layers||[])
     if(layer.owned&&typeof layer.image?.close==='function')layer.image.close();
   }
   function invalidate(reason='unknown'){
+   // A newly decoded terrain image is not an authored map edit. Invalidating
+   // every finished visible tile and clearing the unchanged Fog policy made
+   // an already-painted viewport turn back into clouds on the 900ms image
+   // readiness debounce. Keep complete *authorized* pixels as stale fallbacks
+   // until the newly prepared source replaces them atomically. An actual
+   // editor/scene/fog mutation still hard-clears the cache.
+   const imageRefresh=reason==='image-ready-ground';
+   const visibleIds=imageRefresh?
+    new Set(visibleTiles.filter(t=>t.visibility!=='unknown').map(t=>t.id)):null;
    trace('tile.invalidate',{scope:'all',reason,epoch,cacheCount:cache.size,
-    pending:queue.size+running.size,lod});
+    pending:queue.size+running.size,lod,retained:imageRefresh});
    lastAgedPriority=null;
    for(const k of retryTimers.keys())cancelRetry(k);
    retries.clear();
@@ -172,22 +188,86 @@ window.VedrasWorldTiles=(()=>{
    for(const k of running.keys())observe(k,'aborted',{reason:'invalidate'});
    epoch++;for(const task of running.values())task.controller?.abort?.();
    running.clear();queue.clear();
-   for(const item of cache.values())release(item.packet);
-   cache.clear();pixels=0;visibleTiles=[];fogCells=[];wantedTiles.clear();
+   if(imageRefresh){
+    for(const [k,item] of cache){
+     if(visibleIds.has(item.tile.id)&&drawable(item)&&!item.packet.preview){
+      item.dirty=true;item.dirtyReason=reason;
+      item.dirtyAt=item.dirtyAt??Date.now();
+      trace('tile.stale-retained',{key:k,id:item.tile.id,
+       level:item.tileLod,reason,epoch});
+     }else{
+      cache.delete(k);pixels-=item.pixels;release(item.packet);
+     }
+    }
+    // Do not erase fogCells or visibleTiles. Only setFogCells may change
+    // authorization. Rendering still clips every retained raster to the
+    // existing authorized Hex mask. Readiness continues to reject dirty.
+   }else{
+    for(const item of cache.values())release(item.packet);
+    cache.clear();pixels=0;visibleTiles=[];fogCells=[];
+   }
+   wantedTiles.clear();
+   deferredRevisionTrace.clear();blockedSourceTrace.clear();
   }
+  // Diagnostic-only deduplication of transient pending source changes:
+  // one event per tile/revision rather than one event per camera frame.
+  const deferredRevisionTrace=new Map();
   // A refreshed terrain core may replace only its own World-Tile packets.
   // The editor supplies the *prepared* authoritative terrain revision per
   // visible tile. A changed background snapshot or camera pose is not itself
   // an invalidation of every cached world tile.
   function reconcileGroundRevisions(versions){
    if(!versions||typeof versions.get!=='function')return 0;
-   const stale=new Set();
+   const stale=new Set(),diagnose=window.VedrasStep15Trace?.enabled()===true;
+   const fields=['terrain','shore','road','river'];
+   const parts=revision=>{
+    try{const parsed=JSON.parse(revision);
+     return Array.isArray(parsed)?parsed.map(String):[String(revision)];
+    }catch{return [String(revision)];}
+   };
    for(const [k,item] of cache){
-    // LOD variants remain independently reusable across camera zooms.
+    // A retained image-revision packet is intentionally awaiting replacement.
+    // Do not hard-evict it again when the prepared ground version advances.
+    if(item.dirty)continue;
+    // Preserve LOD variants: only compare the current level.
     if(item.tileLod!==lod||!versions.has(item.tile.id))continue;
     const expected=versions.get(item.tile.id);
     if(expected==null||item.revision==null)continue;
-    if(item.revision!==expected)stale.add(item.tile.id);
+    if(item.revision!==expected){
+     const old=parts(item.revision),next=parts(expected);
+     const changed=fields.filter((field,i)=>old[i]!==next[i]);
+     // A previously completed road/river raster does NOT become stale just
+     // because the corresponding chunk temporarily leaves readyTiles()
+     // during camera streaming. An actual new prepared revision must be
+     // compared against the retained completed packet. Explicit edits still
+     // invalidate their affected tiles via invalidateTiles()/invalidate().
+     const temporaryMissing=old.length===4&&next.length===4&&
+      old[0]===next[0]&&old[1]===next[1]&&
+      changed.length>0&&changed.every(field=>{
+       const i=fields.indexOf(field);
+       return i>=2&&old[i]!=='pending'&&old[i]!=='off'&&
+        next[i]==='pending';
+      });
+     if(temporaryMissing){
+      if(diagnose&&deferredRevisionTrace.get(k)!==expected){
+       if(deferredRevisionTrace.size>=384)deferredRevisionTrace.clear();blockedSourceTrace.clear();
+       deferredRevisionTrace.set(k,expected);
+       trace('tile.ground-revision-deferred',{
+        id:item.tile.id,level:item.tileLod,changed:changed.join(','),
+        reason:'previously-ready-road-or-river-temporarily-unavailable'});
+      }
+      continue;
+     }
+     deferredRevisionTrace.delete(k);
+     stale.add(item.tile.id);
+     if(diagnose){
+      trace('tile.ground-revision-detail',{id:item.tile.id,level:item.tileLod,
+       changed:changed.join(','),fromTerrain:old[0]??null,toTerrain:next[0]??null,
+       fromShore:old[1]??null,toShore:next[1]??null,
+       fromRoad:old[2]??null,toRoad:next[2]??null,
+       fromRiver:old[3]??null,toRiver:next[3]??null});
+     }
+    }
    }
    if(!stale.size)return 0;
    trace('tile.ground-revision-changed',{count:stale.size,epoch,lod});
@@ -197,16 +277,36 @@ window.VedrasWorldTiles=(()=>{
   // Detached asynchronous packets are rejected by existing job-token fencing.
   let selectiveInvalidations=0,selectiveTiles=0;
   function invalidateTiles(tileIds,reason='scene-change',levels=Object.keys(density)){
-   const ids=new Set(Array.isArray(tileIds)?tileIds:tileIds instanceof Set?
-    [...tileIds]:[]);
+   // IDs may originate from another JS realm (Node vm, embedded editor).
+   // A foreign Set fails instanceof Set; accept iterable collections while
+   // rejecting scalar/string inputs. Individual IDs remain strictly checked.
+   const iterable=tileIds!=null&&typeof tileIds!=='string'&&
+    typeof tileIds[Symbol.iterator]==='function';
+   const ids=new Set(iterable?tileIds:[]);
    for(const id of [...ids])if(typeof id!=='string'||!id)ids.delete(id);
    if(!ids.size)return 0;
-   trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod});
+   // Only visual image-revision updates may retain an already complete
+   // packet. Authored editor changes still evict immediately.
+   const retainPrevious=reason==='image-ready-ground-selective'||
+    reason==='terrain-core-revision-changed';
+   const visibleIds=new Set(visibleTiles.map(t=>t.id));
+   trace('tile.invalidate',{scope:'selective',reason,epoch,tiles:ids.size,lod,
+    retained:retainPrevious});
    let changed=0;
    for(const level of levels)for(const id of ids){
     const k=id+'@'+level,old=cache.get(k);
+    deferredRevisionTrace.delete(k);blockedSourceTrace.delete(k);
     if(old){
-     cache.delete(k);pixels-=old.pixels;release(old.packet);
+     // Keep only currently visible completed pixels as a temporary fallback.
+     // The dirty flag makes them ineligible for a fresh source cache hit,
+     // readiness diagnostics and exact-frame accounting until replaced.
+     if(retainPrevious&&visibleIds.has(id)&&drawable(old)&&!old.packet.preview){
+      old.dirty=true;old.dirtyReason=reason;
+      old.dirtyAt=old.dirtyAt??Date.now();
+      trace('tile.stale-retained',{key:k,id,level,reason,epoch});
+     }else{
+      cache.delete(k);pixels-=old.pixels;release(old.packet);
+     }
      changed++;
     }
     if(queue.delete(k))changed++;
@@ -226,15 +326,18 @@ window.VedrasWorldTiles=(()=>{
   }
   // A newly finished terrain core can unblock an exhausted source-null tile.
   // Only the named tile is rearmed, never a global retry storm.
-  function terrainReady(tileId){
+  function terrainReady(tileId,revision=null){
    if(typeof tileId!=='string'||!tileId)return 0;
    let resumed=0;
    for(const level of Object.keys(density)){
     const k=tileId+'@'+level,prior=retries.get(k);
     if(!prior||!wantedTiles.has(k)||
-     (cache.has(k)&&!cache.get(k).packet.preview)||running.has(k))continue;
+     (cache.has(k)&&!cache.get(k).packet.preview&&!cache.get(k).dirty)||running.has(k))continue;
     // A new exact raster cannot fix an unrelated permanent loader exception.
     if(!['source-null','incomplete-source','invalid-packet'].includes(prior.reason))continue;
+    // Only a genuinely newer source can re-arm a failed bake. Repeated
+    // readiness signals for one unchanged revision must not retry forever.
+    if(revision==null||revision===prior.attemptRevision)continue;
     const tile=visibleTiles.find(t=>t.id===tileId);
     if(!tile)continue;
     cancelRetry(k);retries.delete(k);
@@ -280,11 +383,85 @@ window.VedrasWorldTiles=(()=>{
    }
    return lastLod;
   }
+  // Explicit audit-only reservation of the full motion envelope. The
+  // ordinary renderer never reserves anything. Reservation does NOT raise
+  // maxPixels or maxTiles; budget overflow remains a failed warm test.
+  let warmReserved=new Set();
+  function reserveWarmTiles(keys=null){
+   if(keys===null){warmReserved.clear();trim(visibleSourceKeys());
+    return {active:false,keys:0};}
+   const iterable=Array.isArray(keys)||keys instanceof Set;
+   if(!iterable||keys.length>80||keys.size>80)
+    throw Error('Invalid bounded World-Tile warm reservation');
+   const collected=new Set(keys);
+   if(collected.size>80||[...collected].some(k=>
+    typeof k!=='string'||!/^[-]?\d+,[-]?\d+@(far|mid|near)$/.test(k)))
+    throw Error('Invalid bounded World-Tile reservation key');
+   warmReserved=collected;
+   trim(visibleSourceKeys());
+   return {active:true,keys:warmReserved.size};
+  }
+  function warmTileStatus(){
+   let ready=0,stale=0,preview=0,missing=0,revisionMismatch=0;
+   const incomplete=[],changedRevisions=[];
+   // Read-only footprint telemetry: distinguish pixels actually retained
+   // by the complete warm route from unrelated cached LODs. Never infer a
+   // byte saving, alter ownership or relax either budget/readiness gate.
+   const rasterDetails=[],layerPixels={},reservedLayerPixels={};
+   let reservedPixels=0,rasterAccountingMismatch=0;
+   for(const [key,item] of cache){
+    const reserved=warmReserved.has(key);
+    if(reserved)reservedPixels+=item.pixels;
+    const layers=(item.packet?.layers||[]).map(layer=>{
+     const width=layer.image?.width||0,height=layer.image?.height||0,
+      pixels=width*height,name=layer.layer;
+     layerPixels[name]=(layerPixels[name]||0)+pixels;
+     if(reserved)reservedLayerPixels[name]=(reservedLayerPixels[name]||0)+pixels;
+     return {layer:name,width,height,pad:layer.pad||0,
+      crop:layer.crop||null,owned:layer.owned===true,pixels};
+    });
+    const accountedPixels=layers.reduce((sum,layer)=>sum+layer.pixels,0);
+    if(accountedPixels!==item.pixels)rasterAccountingMismatch++;
+    if(reserved)rasterDetails.push({key,totalPixels:item.pixels,
+     accountedPixels,preview:item.packet?.preview===true,dirty:!!item.dirty,
+     layers});
+   }
+   for(const k of warmReserved){
+    const item=cache.get(k);
+    if(!item||!drawable(item)){missing++;incomplete.push(k);continue;}
+    if(item.dirty){stale++;incomplete.push(k);}
+    else if(item.packet.preview){preview++;incomplete.push(k);}
+    else {
+     // An exact-looking cached tile can still have been baked while road
+     // or river was "pending". Read prepared source identity without
+     // queuing new work; do not pass such a tile as a fully warm result.
+     const expected=typeof sourceRevision==='function'?
+      sourceRevision(item.tile,item.tileLod):item.revision;
+     if(expected==null||expected!==item.revision){
+      revisionMismatch++;incomplete.push(k);
+      changedRevisions.push({key:k,from:item.revision,to:expected});
+     }else ready++;
+    }
+   }
+   return {active:warmReserved.size>0,keys:warmReserved.size,
+    ready,missing,stale,preview,revisionMismatch,
+    changedRevisions:changedRevisions.slice(0,12),
+    firstIncomplete:incomplete.slice(0,20),
+    // Ground/scenery numbers are actual retained raster dimensions, not
+    // estimated from LOD. Capture full reserved keys (bounded to 80).
+    rasterDetails,layerPixels,reservedLayerPixels,
+    reservedPixels,unreservedPixels:Math.max(0,pixels-reservedPixels),
+    rasterAccountingMismatch,
+    cached:cache.size,pixels,budgetPixels:maxPixels,
+    overBudgetPixels:Math.max(0,pixels-maxPixels),
+    overTileLimit:Math.max(0,cache.size-maxTiles)};
+  }
   function trim(protect=new Set()){
    while((cache.size>maxTiles||pixels>maxPixels)&&cache.size){
     let candidate=null;
     for(const [k,item] of cache)
-     if(!protect.has(k)&&(!candidate||item.used<candidate[1].used))
+     if(!protect.has(k)&&!warmReserved.has(k)&&
+       (!candidate||item.used<candidate[1].used))
       candidate=[k,item];
     if(!candidate)break;
     const [k,item]=candidate;cache.delete(k);pixels-=item.pixels;
@@ -299,8 +476,20 @@ window.VedrasWorldTiles=(()=>{
    for(const layer of packet.layers){
     if(!layer?.image?.width||!layer.image.height||
       !ORDER.includes(layer.layer))continue;
+    // A packed scenery image is a pixel-exact subrectangle of its
+    // originally rendered canvas. Validate offsets before storing; an
+    // invalid crop must never be interpreted as an already-ready layer.
+    let crop=null;
+    if(layer.crop!=null){
+     const c=layer.crop,w=layer.image.width,h=layer.image.height;
+     if(!['scenery','structures'].includes(layer.layer)||
+       ![c.x,c.y,c.fullWidth,c.fullHeight].every(Number.isSafeInteger)||
+       c.x<0||c.y<0||c.fullWidth<w||c.fullHeight<h||
+       c.x+w>c.fullWidth||c.y+h>c.fullHeight)continue;
+     crop={x:c.x,y:c.y,fullWidth:c.fullWidth,fullHeight:c.fullHeight};
+    }
     normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned,
-      pad:finite(layer.pad)?clamp(layer.pad,0,512):0});
+      pad:finite(layer.pad)?clamp(layer.pad,0,512):0,crop});
    }
    // An unpainted shoreline, an absent terrain core, or an incomplete
    // scenery layer may NEVER be stored as a visually ready preview.
@@ -319,7 +508,8 @@ window.VedrasWorldTiles=(()=>{
     complete:packet.complete!==false,preview:provisional,
     sourceDensity:finite(packet.sourceDensity)?packet.sourceDensity:null},
     pixels:count,used:++used,born:old?.packet.preview&&!provisional?
-     clock()-240:clock(),revision:packet.revision??null});
+     clock()-240:clock(),revision:packet.revision??null,
+    dirty:false,dirtyReason:null,dirtyAt:null});
    pixels+=count;completed++;
    trace('tile.accept',{key:k,id:tile.id,level,revision:packet.revision??null,
      preview:provisional,pixels:count,epoch});
@@ -349,14 +539,33 @@ window.VedrasWorldTiles=(()=>{
       (layer.layer==='scenery'||layer.layer==='structures')&&layer.image?.width>0)))return false;
    return accept(tile,level,packet);
   }
+  let playbackPaused=false;
+  function setPlaybackPaused(yes){
+   playbackPaused=!!yes;
+   if(!playbackPaused)pump();
+  }
   function pump(){
-   if(typeof source!=='function')return;
+   if(playbackPaused||typeof source!=='function')return;
    while(running.size<parallelLimit&&queue.size){
     const item=queue.values().next().value;
     queue.delete(item.key);
     if(item.epoch!==epoch)continue;
+    // Terrain workers can replace a queued source while another tile bakes.
+    // Avoid a known-null bake and retain fog until a later request retries.
+    if(typeof canStartSource==='function'&&
+       canStartSource(item.tile,item.level)===false){
+     if(!blockedSourceTrace.has(item.key)){
+      blockedSourceTrace.add(item.key);
+      trace('tile.source-deferred',{key:item.key,id:item.tile.id,
+       level:item.level,epoch,reason:'source-became-unprepared-in-queue'});
+     }
+     continue;
+    }
+    blockedSourceTrace.delete(item.key);
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
     const token=++serial,job={controller,epoch:item.epoch,token,
+     sourceVersion:typeof sourceRevision==='function'?
+      sourceRevision(item.tile,item.level):null,
      startedAt:Date.now(),timeout:null};
     running.set(item.key,job);
     trace('tile.source-start',{key:item.key,id:item.tile.id,
@@ -370,7 +579,7 @@ window.VedrasWorldTiles=(()=>{
       controller?.abort?.();
       running.delete(item.key);
       failed++;
-      retryFailure(item,'source-timeout',new Error('Tile source exceeded '+sourceTimeoutMs+' ms'));
+      retryFailure(item,'source-timeout',new Error('Tile source exceeded '+sourceTimeoutMs+' ms'),job.sourceVersion);
       pump();
      },sourceTimeoutMs);
     // Keep original asynchronous initiation and release late/stale packets.
@@ -390,12 +599,12 @@ window.VedrasWorldTiles=(()=>{
       if(packet&&complete&&accept(item.tile,item.level,packet))return;
       release(packet);
       retryFailure(item,packet&&!complete?'incomplete-source':
-       packet?'invalid-packet':'source-null');
+       packet?'invalid-packet':'source-null',null,job.sourceVersion);
     }).catch(err=>{
       if(item.epoch!==epoch||running.get(item.key)?.token!==token||
        controller?.signal?.aborted||err?.name==='AbortError')return;
       failed++;
-      retryFailure(item,'failed',err);
+      retryFailure(item,'failed',err,job.sourceVersion);
       if(typeof console!=='undefined')console.warn('World tile:',err);
     }).finally(()=>{
       trace('tile.source-end',{key:item.key,id:item.tile.id,level:item.level,
@@ -405,7 +614,11 @@ window.VedrasWorldTiles=(()=>{
       if(job.timeout!==null&&typeof clearTimeout==='function')
        clearTimeout(job.timeout);
       const active=running.get(item.key);
-      if(active?.token===token)running.delete(item.key);
+      if(active?.token===token){
+       running.delete(item.key);
+       if(typeof sourceRevision==='function')
+        terrainReady(item.tile.id,sourceRevision(item.tile,item.level));
+      }
       pump();
     });
    }
@@ -431,6 +644,8 @@ window.VedrasWorldTiles=(()=>{
     observe(k,'discarded',{reason:'outside-viewport'});discardedObsolete++;
    }
    queue.clear();
+   for(const k of blockedSourceTrace)if(!wanted.has(k))
+    blockedSourceTrace.delete(k);
    for(const [k,task] of running)if(!wanted.has(k)){
     observe(k,'aborted',{reason:'outside-viewport'});discardedObsolete++;
     task.controller?.abort?.();
@@ -456,9 +671,20 @@ window.VedrasWorldTiles=(()=>{
    });
    for(const t of sorted){
     const k=key(t,lod),existing=cache.get(k);
-    if((existing&&!existing.packet.preview)||running.has(k))continue;
+    if((existing&&!existing.packet.preview&&!existing.dirty)||running.has(k))continue;
     const retry=retries.get(k);
     if(retry&&(retry.terminal||(retry.nextRetryAt&&retry.nextRetryAt>now)))continue;
+    // Keep an unprepared source cloudy; don't spend a slot/retry on a null.
+    // Terrain worker callbacks request another compositor frame when ready.
+    if(typeof canStartSource==='function'&&canStartSource(t,lod)===false){
+     if(!blockedSourceTrace.has(k)){
+      blockedSourceTrace.add(k);
+      trace('tile.source-deferred',{key:k,id:t.id,level:lod,epoch,
+       reason:'source-not-prepared'});
+     }
+     continue;
+    }
+    blockedSourceTrace.delete(k);
     queue.set(k,{key:k,tile:t,level:lod,epoch,
      queuedAt:prior.get(k)?.queuedAt??now});
     if(!prior.has(k)){
@@ -498,12 +724,13 @@ window.VedrasWorldTiles=(()=>{
   // do not replace it with a blurrier low-density target preview.
   function lookup(t){
    const target=cache.get(key(t,lod));
-   if(drawable(target)&&!target.packet.preview)return target;
+   if(drawable(target)&&!target.packet.preview&&!target.dirty)return target;
    const candidates=['near','mid','far'].map(level=>cache.get(key(t,level)))
     .filter(drawable);
    const resolution=item=>item.packet.preview?
     (item.packet.sourceDensity??0):density[item.tileLod]??0;
-   candidates.sort((a,b)=>resolution(b)-resolution(a)||
+   candidates.sort((a,b)=>Number(a.dirty)-Number(b.dirty)||
+    resolution(b)-resolution(a)||
     Number(a.packet.preview)-Number(b.packet.preview)||
     Number(b.tileLod===lod)-Number(a.tileLod===lod));
    return candidates[0]||null;
@@ -575,7 +802,8 @@ window.VedrasWorldTiles=(()=>{
    }
    context.restore();return count;
   }
-  function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,fog=fogCells}={}){
+  function render(view,{tiles=visibleTiles,drawDynamic=null,drawStatic=null,
+    drawPreview=null,fog=fogCells}={}){
    if(!view||!(view.width>0)||!(view.height>0)||!(view.zoom>0)||
     !(view.dpr>0)||!finite(view.panX)||!finite(view.panY))return false;
    const start=clock(),cw=Math.max(1,Math.round(view.width*view.dpr)),
@@ -589,7 +817,7 @@ window.VedrasWorldTiles=(()=>{
    // Draw terrain only inside known world HEX geometry, never a rectangular
    // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
-   let exact=0,fallback=0,provisional=0,missing=0;
+   let exact=0,fallback=0,provisional=0,stale=0,missing=0;
    visiblePreviews=0;
    // Legacy standalone hosts without a fog policy remain compatible.
    // Explicit empty fog arrays MUST clip all ground, scenery and units.
@@ -633,13 +861,48 @@ window.VedrasWorldTiles=(()=>{
     if(dx>=view.width||dy>=view.height||dx+dw<=0||dy+dh<=0)continue;
     const item=lookup(t);
     if(!item){missing++;continue;}
-    if(item.tileLod!==lod)fallback++;
+    if(item.dirty)stale++;
+    else if(item.tileLod!==lod)fallback++;
     else if(item.packet.preview)provisional++;
     else exact++;
     item.used=++used;items.push({t,item,dx,dy,dw,dh});
     if(item.packet.preview||item.tileLod!==lod)visiblePreviews++;
    }
    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
+   const byCore=new Map(items.map(o=>[o.t.id,o.item]));
+   // Exact quality still requires BOTH completed ground and scenery in
+   // EVERY world core touching a hex. Preview does not change exact stats.
+   const exactReady=c=>{
+    const R=c.radius,halfWidth=R*Math.sqrt(3)/2-0.01;
+    const xmin=Math.floor((c.x-halfWidth)/512),
+     xmax=Math.floor((c.x+halfWidth)/512),
+     ymin=Math.floor((c.y-R+0.01)/512),
+     ymax=Math.floor((c.y+R-0.01)/512);
+    for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
+     const item=byCore.get(tx+','+ty);
+     if(!item||item.packet.complete===false)return false;
+     const layers=item.packet.layers;
+     if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
+      !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;
+    }
+    return true;
+   };
+   let previewHexes=new Set(),previewMs=0;
+   // A native-texture per-hex preview can appear before the expensive
+   // 850k-pixel blend raster exists. Clip through the SAME authorized hex
+   // mask as exact imagery. It is provisional quality, never cached/ready.
+   if(missing>0&&hasMask&&Array.isArray(fog)&&typeof drawPreview==='function'){
+    const previewStart=clock();
+    g.save();drawKnownPath(0);
+    try{
+     const painted=drawPreview(g,view,fog,exactReady);
+     // The callback may originate from a different VM realm in native
+     // integration tests. Accept any iterable returned by our painter;
+     // never trust IDs to grant Fog rights unless the cell is visible.
+     if(painted&&typeof painted[Symbol.iterator]==='function')
+      previewHexes=new Set(painted);
+    }finally{g.restore();previewMs=clock()-previewStart;}
+   }
    let covered=0,draws=0;
    function layerPass(layers,halo){
     g.save();drawKnownPath(halo);
@@ -659,11 +922,26 @@ window.VedrasWorldTiles=(()=>{
       const source=core&&pad?{x:asset.image.width*ratio,
        y:asset.image.height*ratio,w:asset.image.width*(1-2*ratio),
        h:asset.image.height*(1-2*ratio)}:null;
-      const area=core?
-       drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,view,source):
-       drawImage(asset.image,obj.dx-pad*view.zoom,
-        obj.dy-pad*view.zoom*proj,obj.dw+pad*2*view.zoom,
-        obj.dh+pad*2*view.zoom*proj,view);
+      let area;
+      if(core)area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,
+       view,source);
+      else{
+       const fullX=obj.dx-pad*view.zoom,
+        fullY=obj.dy-pad*view.zoom*proj,
+        fullW=obj.dw+pad*2*view.zoom,
+        fullH=obj.dh+pad*2*view.zoom*proj;
+       if(asset.crop){
+        const c=asset.crop;
+        // Keep the SAME world-space scale and canvas source pixels.
+        // Only the known-transparent strips are omitted. The two-pixel
+        // preserved alpha border protects fractional zoom interpolation.
+        area=drawImage(asset.image,
+         fullX+fullW*c.x/c.fullWidth,
+         fullY+fullH*c.y/c.fullHeight,
+         fullW*asset.image.width/c.fullWidth,
+         fullH*asset.image.height/c.fullHeight,view);
+       }else area=drawImage(asset.image,fullX,fullY,fullW,fullH,view);
+      }
       if(area){draws++;if(layer==='ground'||layer==='terrain')
        covered+=area;}
      }
@@ -690,22 +968,10 @@ window.VedrasWorldTiles=(()=>{
     // The cloud is ONLY removed once every image tile touching a visible
     // hex contains BOTH finished terrain and finished scenery. Testing only
     // the center tile leaked unfinished quarters of a hex during streaming.
-    const byCore=new Map(items.map(o=>[o.t.id,o.item]));
-    const ready=c=>{
-     const R=c.radius,halfWidth=R*Math.sqrt(3)/2-0.01;
-     const xmin=Math.floor((c.x-halfWidth)/512),
-      xmax=Math.floor((c.x+halfWidth)/512),
-      ymin=Math.floor((c.y-R+0.01)/512),
-      ymax=Math.floor((c.y+R-0.01)/512);
-     for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
-      const item=byCore.get(tx+','+ty);
-      if(!item||item.packet.complete===false)return false;
-      const layers=item.packet.layers;
-      if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
-       !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;
-     }
-     return true;
-    };
+    // A known-texture preview is visible, but NOT exact WorldTile readiness.
+    // Unknown/explored Fog cells never gain this temporary authorization.
+    const ready=c=>exactReady(c)||
+     (c.visibility==='visible'&&previewHexes.has(c.q+','+c.r));
     if(clouds?.stats().bases){
      // Foreground ONLY AFTER terrain, scenery and dynamic units. These
      // SAME four cloud textures mask any sprite parts in hidden terrain.
@@ -721,12 +987,32 @@ window.VedrasWorldTiles=(()=>{
     }
    }
    painted=draws;frame++;lastMs=clock()-start;
-   lastProgress={exact,fallback,provisional,missing};
+   lastProgress={exact,fallback,provisional,stale,missing,
+    previewHexes:previewHexes.size,previewMs};
    lastCoverage=clamp(covered/(view.width*view.height),0,1);
    
    return {renderMs:lastMs,coverage:lastCoverage,drawn:draws,lod,
-    loaded:items.length,exact,fallback,provisional,missing,
-    pending:queue.size+running.size};
+    loaded:items.length,exact,fallback,provisional,stale,missing,
+    previewHexes:previewHexes.size,previewMs,pending:queue.size+running.size};
+  }
+  // Read-only exact packet export for the separate shipped-map experiment.
+  // Source images are BORROWED for immediate PNG serialization by the
+  // caller; this never transfers/evicts ownership or broadens Fog rights.
+  function exportExactPackets({limit=96}={}){
+   const result=[],n=Math.max(1,Math.min(192,Math.floor(limit)||96));
+   for(const tile of visibleTiles){
+    if(result.length>=n)break;
+    const item=cache.get(key(tile,lod));
+    if(!item||item.dirty||item.packet.preview||
+       item.packet.complete===false||item.tileLod!==lod||
+       !item.packet.layers?.some(x=>x.layer==='ground'||x.layer==='terrain')||
+       !item.packet.layers?.some(x=>x.layer==='scenery'||x.layer==='structures'))
+      continue;
+    result.push({tile:{...tile},level:item.tileLod,dirty:false,
+     preview:false,complete:true,revision:item.revision,
+     layers:item.packet.layers.map(layer=>({...layer}))});
+   }
+   return result;
   }
   function stats(){return {version:'0.22.3',epoch,clouds:clouds?.stats()||null,
     fogFrontier:fogCells.filter(c=>c.frontier).length,tiles:cache.size,pixels,bytes:pixels*4,
@@ -735,11 +1021,14 @@ window.VedrasWorldTiles=(()=>{
    scope:{far:'world',mid:'region',near:'local'}[lod],
    lodDensity:density[lod],
    selectiveInvalidations,selectiveTiles,
+   staleTiles:[...cache.values()].filter(item=>item.dirty).length,
    priorityReorders,agedPromotions,discardedObsolete,parallelLimit,
    visiblePreviews,previews,upgraded,progress:{...lastProgress},
    retryWaiting:retryTimers.size,retryExhausted:[...retries.values()].filter(v=>v.terminal).length,
-   renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame};}
-  return {request,render,seed,setSource,setFogCells,setCloudAssets,
+   renderMs:lastMs,coverage:lastCoverage,drawn:painted,frames:frame,
+   playbackPaused};}
+  return {request,render,seed,exportExactPackets,setPlaybackPaused,setSource,setFogCells,setCloudAssets,
+    reserveWarmTiles,warmTileStatus,
     setCloudSeed,drawCloudBackground,drawCloudFrontier,
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
     needsSeed,stats,diagnostics,terrainReady};

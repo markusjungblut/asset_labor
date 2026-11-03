@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "startedAt": "2026-11-01T14:29:13.837Z",
+  "finishedAt": "2026-11-01T14:29:14.547Z",
+  "sceneAuditReference": "397-hex / 2631-nature / three valid 2026-10-31 warm audits",
+  "platform": "win32",
+  "nodeVersion": "v24.19.0",
+  "branch": "test/step16b-native-acceptance-evidence-20261101",
+  "sha": "aee8e87a149cc8b79651331f0cdd797ada9fc771",
+  "worktreeDirty": false,
+  "changedPaths": [],
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "--test-reporter=tap",
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs"
+  ],
+  "testFiles": [
+    "tests/test_rendering_step16b_ground_asset_dependencies_20261030.cjs",
+    "tests/test_rendering_step16b_retained_stale_ground_20261030.cjs",
+    "tests/test_rendering_step16b_stable_road_river_revisions_20261030.cjs",
+    "tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs",
+    "tests/test_rendering_step16b_warm_trajectory_20261030.cjs",
+    "tests/test_rendering_step16b_camera_union_20261031.cjs",
+    "tests/test_rendering_step16b_raster_footprint_20261031.cjs",
+    "tests/test_rendering_step16b_lossless_scenery_crop_20261031.cjs"
+  ],
+  "counts": {
+    "tests": 94,
+    "pass": 94,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "exitCode": 0,
+  "spawnError": null,
+  "passed": true,
+  "warnings": [],
+  "logFile": "node-tests.tap"
+}

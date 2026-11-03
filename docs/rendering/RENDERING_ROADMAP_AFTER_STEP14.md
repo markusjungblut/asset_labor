@@ -8,6 +8,37 @@
 
 > **Arbeitsauftrag für spätere Entwicklungsrunden:** Dieses Dokument **vor jeder neuen Rendering-Optimierung lesen**, die *erste noch offene Phase* bearbeiten, keine Phase ohne belegte Abnahme als abgeschlossen markieren. Neue Befunde dürfen die Reihenfolge nur mit begründeter, hier dokumentierter Entscheidung verändern. Eine einzelne Änderung pro PR, getrennte Vorher-/Nachher-Messung; keine willkürlichen Atlas-, Cache- und GPU-Eingriffe gleichzeitig.
 
+## Architekturentscheidung vom 01.11.2026 – getrennte Editor- und Spielkarten-Pipeline
+
+**Begründete Erweiterung, keine vorzeitige Phase-17-Abnahme:** Die reale
+397-Hex-4×-Karte baut bisher Terrainmaterial und Hex-Übergänge beim
+Erkunden neu. Das ist für eine veränderbare Asset-Labor-Szene nötig,
+für eine **fertig gestaltete Spielkarte** jedoch nicht. Der Nutzer fordert
+einen Performance-Test mit bereits feststehender Welt.
+
+**Neuer paralleler Experimentzweig:**
+[Spielkarten-Test mit persistenten, vollständig gerenderten Bildkacheln]
+(STEP17_FROZEN_MAP_TEST_20261101.md).
+Die einmaligen teuren Terrain-/Küsten-/Scenery-Raster werden beim
+**Offline-Prebaking im Asset-Labor** vorbereitet und als PNG-Layer mit
+Hex-Geometrie gespeichert. Ein **eigenständiger Kartenviewer ohne
+Editor, Worker oder WorldTile-Baker** komponiert anschließend nur die
+fertigen Bilder beim Pan und Zoom. Einheiten, Fog, bewegliche und
+spielmechanisch veränderliche Objekte werden später als getrennte
+Runtime-Layer ergänzt. Eine aktive Kartenänderung muss künftig nur
+die semantisch abhängigen Bildkacheln neu vorbacken.
+
+**Wichtig:** Dies testet die Produktarchitektur **Editor einmal /
+Spiel viele Male**. Es ersetzt die geforderte Fehlerbehebung für die
+weißen Land-/Wasser-Nähte nicht, und eine 50-fach schnellere *komplette
+Neuberechnung* der Editorwelt ist hierdurch nicht bewiesen.
+Schritt 16B/16C bleibt offen, Schritt 17 noch nicht vollständig
+abgenommen; Schritte 18–20 bleiben gemäß Kriterien gesperrt.
+Diese experimentelle Abzweigung liefert Entscheidungsdaten, ob
+ein großer GPU-Terrain-Generator **für die Spiel-Runtime** überhaupt
+notwendig ist. Offline-Baking kann weiterhin GPU-/Atlas-Unterstützung
+brauchen.
+
 ## 0. Gesicherter Ausgangspunkt und Unsicherheiten
 
 - Referenzszene: **397 Hexfelder, 2.631 Vegetationsinstanzen, 0 fehlende Asset-Pfade**; Szenendatei `artifacts/rendering-step13/vedras_scene.json`.
@@ -153,3 +184,19 @@ Bei neuen technischen Beweisen dürfen Zielwerte nach begründeter Dokumentation
 > `finally` außerhalb seines `try`-Scopes. Der gezielte Fix und ein
 > ausführender Regressionstest sind implementiert. **Schritt 16 bleibt
 > offen, bis der erneute Windows-/GPU-Test erfolgreich ist.**
+
+## 29.10.2026 – Schritt 16A vor weiteren Schritt-16-Optimierungen
+
+**Die frühere Checkliste oben ist hinsichtlich Schritt 15 inzwischen historisch:**
+Schritt 15 ist als Diagnoseinstrument implementiert und mehrfach auf Windows
+ausgeführt. Schritt 16 enthält funktionale Fixes aus PR #70 und #71,
+ist jedoch wegen instabiler Readiness, Cache-Misses und Speicherlast nicht
+abgenommen. Daher werden vor Schritt 16B neue unabhängige Kontrollen
+eingeführt: [STEP16A_ARCHITECTURE_AUDIT.md](STEP16A_ARCHITECTURE_AUDIT.md).
+
+- [x] Schritt 16A – isoliertes Compositor-Control, reale Cold-/Warm-Messung,
+  Invalidierungs-/Speicherdiagnose und Entscheidungsgates als Code implementiert.
+- [ ] Schritt 16A – **ein echter Windows-Auditlauf mit validem Kontrollpfad**.
+- [ ] Schritt 16B – nur den nachweisbaren dominanten Engpass korrigieren.
+- [ ] Schritt 16C – drei gültige Hardware-Wiederholungen und visuelle Abnahme.
+- [ ] Schritt 17 – weiterhin gesperrt.
