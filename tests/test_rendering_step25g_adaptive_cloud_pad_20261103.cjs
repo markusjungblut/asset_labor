@@ -33,7 +33,7 @@ function fixture(adaptiveCloudCache){
  vm.runInNewContext(runtime,{window,document,console,
   performance:{now:()=>++now},requestAnimationFrame:()=>{}});
  const player=window.VedrasFrozenMap.create({
-  canvas,storage,adaptiveCloudCache,
+  canvas,storage,adaptiveCloudCache,autoCloudStrategy:false,
   decode:async blob=>({...blob,close(){}}),maxDecodedPixels:5000000
  });
  return {player,buffers,drawCloud};
@@ -75,6 +75,8 @@ test('cloudPad=0 reproduces old direct cloud fallback at same zoom and resolutio
 });
 test('smaller cloud overscan never modifies world 2x resolution or Fog geometry',()=>{
  assert.match(game,/params\.get\('cloudPad'\)!=='0'/);
+ assert.match(game,/params\.get\('cloudAuto'\)!=='0'/);
+ assert.match(runtime,/function drawCloudBackground/);
  assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.match(runtime,/const cacheDpr=largeViewportCache\?Math\.min\(1\.25,dpr\):dpr/);
  assert.match(runtime,/cloudRasterLimit\/\(cacheDpr\*cacheDpr\)/);
