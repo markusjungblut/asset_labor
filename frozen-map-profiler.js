@@ -72,6 +72,16 @@ window.VedrasFrozenProfiler=(()=>{
     activeVariant:data.activeVariant||'2x',
     decodedPixels:data.decodedPixels||0,
     evictions:data.evictions||0,
+    visibleReadStarts:data.visibleReadStarts||0,
+    prefetchReadStarts:data.prefetchReadStarts||0,
+    decodeRepeats:data.decodeRepeats||0,
+    visibleDecodeRepeats:data.visibleDecodeRepeats||0,
+    prefetchDecodeRepeats:data.prefetchDecodeRepeats||0,
+    evictedSpeculative:data.evictedSpeculative||0,
+    prefetchSkippedBudget:data.prefetchSkippedBudget||0,
+    prefetchSkippedVisible:data.prefetchSkippedVisible||0,
+    prefetchSkippedSlots:data.prefetchSkippedSlots||0,
+    visibleWaitingOnPrefetch:data.visibleWaitingOnPrefetch||0,
     pendingTiles:data.pendingTiles||0,
     worldCacheBuilds:data.worldCacheBuilds||0,
     worldCacheHits:data.worldCacheHits||0,
@@ -93,6 +103,11 @@ window.VedrasFrozenProfiler=(()=>{
      data.source==='derived2x'?'derived2x':data.source==='original'?
      'original':'unknown',
     kind:data.error?'failed':'loaded',
+    tileId:data.tileId||null,
+    variant:data.variant||null,
+    purpose:data.purpose==='prefetch'?'prefetch':'visible',
+    redecoded:!!data.redecoded,
+    decodedCount:data.decodedCount||0,
     storageMs:round(data.storageMs||0),
     decodeMs:round(data.decodeMs||0),
     totalMs:round(data.totalMs||0),
@@ -154,8 +169,29 @@ window.VedrasFrozenProfiler=(()=>{
      derived2x:tileReads.filter(t=>t.source==='derived2x').length,
      derived1x:tileReads.filter(t=>t.source==='derived1x').length,
      original:tileReads.filter(t=>t.source==='original').length,
-     unknown:tileReads.filter(t=>t.source==='unknown').length
-    },timingMs:readPhases,
+     unknown:tileReads.filter(t=>t.source==='unknown').length,
+     visible:tileReads.filter(t=>t.purpose==='visible').length,
+     prefetch:tileReads.filter(t=>t.purpose==='prefetch').length,
+     repeated:tileReads.filter(t=>t.redecoded).length,
+     repeatedVisible:tileReads.filter(t=>t.redecoded&&t.purpose==='visible').length,
+     repeatedPrefetch:tileReads.filter(t=>t.redecoded&&t.purpose==='prefetch').length
+    },
+    byPurpose:Object.fromEntries(['visible','prefetch'].map(purpose=>[
+     purpose,{
+      readMs:metric(tileReads.filter(t=>t.purpose===purpose),'storageMs'),
+      decodeMs:metric(tileReads.filter(t=>t.purpose===purpose),'decodeMs')
+     }
+    ])),
+    topRepeated:(([...groups])=>groups.sort((a,b)=>b[1]-a[1]).slice(0,12)
+     .map(([tile,count])=>({tile,count})))(
+      tileReads.reduce((map,t)=>{
+       if(t.tileId&&t.variant&&t.kind==='loaded'){
+        const id=t.variant+':'+t.tileId;
+        map.set(id,(map.get(id)||0)+1);
+       }
+       return map;
+      },new Map())),
+    timingMs:readPhases,
      totalBlobBytes:tileReads.reduce((n,t)=>n+t.blobBytes,0),
      totalDecodedPixels:tileReads.reduce((n,t)=>n+t.pixels,0)},
     slowFrames:thresholds,
