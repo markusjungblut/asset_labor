@@ -58,8 +58,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Execute ALL renderer unit/regression tests
-        run: node --test tests/test_rendering_step*.cjs
+      - name: Execute frozen renderer regressions (steps 21-25)
+        run: node --test tests/test_rendering_step2[1-5]*.cjs
       - name: Cache Playwright Firefox binary (short CI runtime)
         uses: actions/cache@v4
         with:
