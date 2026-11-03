@@ -154,7 +154,8 @@ const run=async()=>{
    const url=origin+'/frozen-map-game.html?scene='+SCENE+
     '&lod=near&perf=1'+
     (mode==='legacy'?'&prefetchGuard=0':'')+
-    (mode==='noStream'?'&streamCache=0':'');
+    (mode==='noStream'?'&streamCache=0':'')+
+    (mode==='noCloudPad'?'&cloudPad=0':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -190,7 +191,11 @@ const run=async()=>{
     streamingBuilds:coldReport.environment.runtime.overviewStreamingBuilds||0,
     streamingHits:coldReport.environment.runtime.overviewStreamingHits||0,
     patchBuilds:coldReport.environment.runtime.overviewPatchBuilds||0,
-    patchedTiles:coldReport.environment.runtime.overviewPatchedTiles||0
+    patchedTiles:coldReport.environment.runtime.overviewPatchedTiles||0,
+    cloudBuilds:coldReport.environment.runtime.cloudBackdropBuilds,
+    cloudHits:coldReport.environment.runtime.cloudBackdropHits,
+    cloudFallbacks:coldReport.environment.runtime.cloudCacheFallbackFrames,
+    cloudPad:coldReport.environment.runtime.cloudEffectivePad
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -248,6 +253,7 @@ const run=async()=>{
   const guarded=await loadMode('guarded');
   const legacy=await loadMode('legacy');
   const noStream=await loadMode('noStream');
+  const noCloudPad=await loadMode('noCloudPad');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -274,6 +280,17 @@ const run=async()=>{
    'regression: browser pan frame cadence much slower than direct painter');
   assert.ok(fast.cold.p95DrawMs<=Math.max(130,control.cold.p95DrawMs*1.45),
    'regression: huge full-world spikes during initial PNG streaming');
+  const cloudControl=collected.results.noCloudPad;
+  assert.equal(cloudControl.cold.cloudBuilds,0,
+   'cloudPad=0 must reproduce failed cloud buffer allocation');
+  assert.ok(cloudControl.cold.cloudFallbacks>0);
+  assert.ok(fast.cold.cloudBuilds>0&&fast.cold.cloudHits>0,
+   'adaptive cloud pad must make a real 1.25x backdrop on ultrawide Firefox');
+  assert.ok(fast.cold.cloudPad>0&&fast.cold.cloudPad<272,
+   'only offscreen overscan is reduced, not rendered cloud density');
+  assert.ok(fast.p95DrawMs<=Math.max(75,cloudControl.p95DrawMs*1.55),
+   'adaptive cloud backdrop causes unacceptable pan-frame regression');
+  await noCloudPad.close();
   await noStream.close();
   await legacy.close();
 
