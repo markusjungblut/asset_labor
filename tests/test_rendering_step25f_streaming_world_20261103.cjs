@@ -63,7 +63,7 @@ async function tick(f,n=1){
 }
 async function prepare(f){
  await f.player.load('v1-0374527a','near',
-  {zoom:.8,panX:-25,panY:0,dpr:1.25,projectY:.85},
+  {zoom:.8,panX:-250,panY:0,dpr:1.25,projectY:.85},
   [{q:0,r:0,x:256,y:256,radius:80,visibility:'visible'},
    {q:1,r:0,x:620,y:256,radius:80,visibility:'visible'}]);
  await tick(f,3);
