@@ -39,6 +39,32 @@ Bestehende GitHub-Actions `.github/workflows/frozen-map-ci.yml` führt die **ges
 
 Die Playwright-E2E-Tests wurden erweitert: Der vorherige CI-Pfad hat den kompletten **Cold-Start vor der Vollsichtbarkeit weggeworfen**. Jetzt archiviert er für Default, alte Prefetch-Policy und neue `streamCache=0`-Kontrollgruppe zusätzlich jeweils `firefox-<mode>-cold.json`, beginnend beim allerersten ImageBitmap-Laden bis zum ersten vollständigen Viewport. Der Browser fährt weiterhin die festgelegte Mausroute und die 1×-/2×-Zoomsequenz; pro Szenario gibt es Warm- und Cold-Metriken, Raster-Fallbacks, Streaming-Builds und Streaming-Hits. Die Assertions stellen sicher, dass die neue Funktion **wirklich benutzt** wird, und dass die alte Option deaktivierbar ist.
 
+## Zweite Iteration — inkrementelle Tile-Schmutzrechtecke statt Voll-Cache-Neubau
+
+Die erste 25F-Version hat das Raster für **jedes** neu fertig dekodierte WorldTile neu angelegt. Das reduzierte die Direct-Fallbacks, war aber unter realem Headless Firefox **langsamer** als der alte Direct-Renderer: [automatischer Lauf #41689154776](https://github.com/markusjungblut/asset_labor/actions/runs/41689154776) zeigte Cold-Draw p95 **168 statt 100ms** und Pan-Draw p95 **179 statt 93ms**. Diese schlechte Version wurde **nicht** nach `main` gemergt.
+
+Neue `shownOverview()`- und `patchOverview()`-Logik behält das Canvas-Panorama im RAM und führt für höchstens fünf gleichzeitig geänderte Tile-Varianten ein **Gerätpixel-genaues Dirty-Rect-Update** durch. Das Gebiet umfasst den 512-WorldTile-Kern und alle `layer.pad`-Überhänge (mindestens 128 Welteinheiten für Baumkronen/Schatten), plus zwei physikalische Schutzpixel zur Vermeidung von Nahtfehlern. Der lokal gelöschte Ausschnitt wird mit **sämtlichen räumlich überlappenden Nachbartiles** neu gemalt und dabei in derselben globalen Welt-Y-Sortierung sowie Ground- und Scenery-Reihenfolge wie beim kompletten Zeichnen komponiert. Beschränkt sich der veränderte Ausschnitt nicht auf maximal 65 % der Canvas-Fläche, wird einmalig der gewöhnliche vollständige Welt-Renderer verwendet. Die Bild-/Fog-Freigabereihenfolge bleibt unverändert: Eine neue PNG-Ebene wird vor der Wolken-Entsiegelung innerhalb des aktualisierten Rasters dargestellt.
+
+Neue Diagnosewerte: `overviewPatchBuilds`, `overviewPatchedTiles`, zusätzlich `worldCachePatchBuilds` und `worldCachePatchedTiles` im `&perf=1`-Frameverlauf. Node-Tests sichern die schmutzrechteckgenaue Teilausgabe, das Ausbleiben einer vollständigen Canvas-Neuallokation sowie unveränderten Fog-Schutz.
+
+Die **zweite echte Browser-Iteration** im automatischen [CI-Lauf #41690304560](https://github.com/markusjungblut/asset_labor/actions/runs/41690304560) hat mit denselben synthetischen 120 vorbereiteten WorldTiles und drei Varianten bestanden:
+
+| Messgröße | Alter Direct-Renderer (`streamCache=0`) | Neuer Tile-Dirt-Rect-Cache (`streamCache=1`) |
+| --- | ---: | ---: |
+| Cold-Draw p95 | 100ms | **99ms** |
+| Cold-Draw-Mittelwert | 86,44ms | **64,30ms** |
+| Kalte Welt-Direct-Fallbacks | 69 | **0** |
+| Voll-Raster-Builds im Kaltstart | 2 | **1** |
+| Begrenzte Tile-Patches im Kaltstart | 0 | **24** |
+| Initiale vollständige Sichtbarkeit | 6549ms | **4853ms** |
+| Pan-Draw p95 | 98ms | **43ms** |
+| Pan-FrameGap p95 | 103ms | **52ms** |
+| Weltphase beim Pan p95 | 85ms | **28ms** |
+
+Dies sind **reale Firefox-Headless-Canvas-Zeiten auf einem Linux-GitHub-Runner mit synthetischen Bildern**, kein reproduzierter Windows-159-FPS-Wert auf der originalen 600MB-Karte. Gegenüber der ersten 25F-Iteration ist der wichtigste Erfolg, dass statt 32 teurer voller Panoramabauten nur noch **ein** voller Panorama-Aufbau und begrenzte lokale Kachelupdates stattfinden.
+
+Die CI wurde anschließend verschärft: Node-Test und Firefox-`guarded`-vs-`noStream`-A/B müssen nun **echte** Pixel-Patches, ein begrenztes Voll-Build-Konto und p95-Zeichnungs-/Frameabstände innerhalb fester relativer Grenzen nachweisen. Eine Wiederholung der nachweislich langsamen ersten 25F-Iteration soll damit **nicht** mehr grün durchlaufen.
+
 ## Akzeptanz
 
 Die neue automatische CI muss **Node + Firefox grün** abschließen. Der echte Firefox-CI-Vergleich von `guarded` und `noStream` muss zeigen, dass während der unvollständig geladenen Welt **nicht mehr jeder Frame direkt** alle Weltlayer zeichnet. Absolute 30/60-FPS-Werte auf der Windows-Maschine werden daraus nicht versprochen; Testdaten und CPU/GPU unterscheiden sich von den lokal gespeicherten 600MB. Falls die Zahl der Cache-Builds pro PNG-Ankunft zu hoch ist, wäre der folgende Schritt **inkrementelles Schmutzrechteck-Rendering** statt erneuter Vollkomposition. Sollte Fog weiterhin ca. 40–70ms pro Frame kosten, braucht es einen getrennten, dynamischen Fog-Kompositor / schmalen Masken-Update-Pfad.
