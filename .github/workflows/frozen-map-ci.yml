@@ -1,0 +1,92 @@
+name: Frozen Map – Automated Browser Regression
+
+# The >1 GB authoring repository contains many large assets. Check out only
+# the read-only game modules and tests, never the original 4x raster archive.
+on:
+  pull_request:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'test/**'
+    paths:
+      - 'frozen-map-*.js'
+      - 'frozen-map-game.html'
+      - 'cloud-artwork.js'
+      - 'tests/test_rendering_step*.cjs'
+      - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/fixtures/frozen-ci-seed.html'
+      - '.github/workflows/frozen-map-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frozen-map-*.js'
+      - 'frozen-map-game.html'
+      - 'cloud-artwork.js'
+      - 'tests/test_rendering_step*.cjs'
+      - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/fixtures/frozen-ci-seed.html'
+      - '.github/workflows/frozen-map-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frozen-map-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Sparse checkout (no large baked assets)
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/frozen-map-ci.yml
+            /tests/test_rendering_step*.cjs
+            /tests/automated_browser_frozen_map.cjs
+            /tests/fixtures/frozen-ci-seed.html
+            /frozen-map-*.js
+            /frozen-map-game.html
+            /cloud-artwork.js
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute ALL renderer unit/regression tests
+        run: node --test tests/test_rendering_step*.cjs
+      - name: Cache Playwright Firefox binary (short CI runtime)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: vedras-playwright-firefox-${{ runner.os }}-1.57.0
+      - name: Install pinned browser test runner
+        run: |
+          mkdir -p .ci-tools
+          npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
+          .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Synthetic 120-WorldTile real Firefox test (pan, 1x/2x, fog, caches)
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_frozen_map.cjs
+      - name: Attach profile and screenshots, including when failing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-map-firefox-${{ github.run_number }}
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 5
+      - name: Summarize automated Firefox measurements
+        if: always()
+        run: |
+          if [ -f test-artifacts/firefox-summary.json ]; then
+            node -e 'const s=require("./test-artifacts/firefox-summary.json"); console.log("### Firefox map regression"); console.log("Synthetic fixture:",s.seed?.tiles,"WorldTiles"); console.log("Passed:",!!s.passed); for (const [k,v] of Object.entries(s.results)) console.log("- "+k+": "+JSON.stringify(v)); if (s.errors.length) console.log("Errors:",s.errors.join("; "));' >> "$GITHUB_STEP_SUMMARY"
+          fi
