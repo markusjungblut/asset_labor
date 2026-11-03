@@ -118,6 +118,7 @@ window.VedrasFrozenMap=(()=>{
   let fogFrontierCandidates=0,fogFrontierSubmitted=0;
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
+  let authoredVisibleById=new Map();
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
@@ -201,6 +202,7 @@ window.VedrasFrozenMap=(()=>{
    visibleWaitingOnPrefetch=0;visibleRequested=0;prefetchRequested=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
+   authoredVisibleById.clear();
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
@@ -1013,6 +1015,18 @@ window.VedrasFrozenMap=(()=>{
      // edges make this look like dispersing mist instead of a hard cut.
      return 1-t*t*(3-2*t);
     };
+    // Preserve Step22's fade lifecycle for hexes we previously showed
+    // as unready: if a tile becomes ready offscreen, its 850ms dissolve
+    // must finish there, not blink back into existence on return.
+    // Only previously observed IDs need offscreen readiness checks.
+    if(fogViewportCull&&fogViewport&&unreadyObserved.size){
+     const painted=new Set(fogCells.map(c=>c.q+','+c.r));
+     for(const id of [...unreadyObserved]){
+      if(painted.has(id))continue;
+      const cell=authoredVisibleById.get(id);
+      if(cell)fadeOpacity(cell,ready(cell));
+     }
+    }
     const fogUnreadyStart=profileFrame?clock():0;
     clouds.drawUnready(ctx,view,fogCells,ready,fadeOpacity);
     if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
@@ -1060,6 +1074,8 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+   authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
+    .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
    active=true;repaint();onStatus(report());return report();
   }
