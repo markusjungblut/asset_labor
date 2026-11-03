@@ -209,13 +209,20 @@ window.VedrasFrozenMap=(()=>{
     alternate=cacheKey(key,variant==='1x'?'2x':'1x');
    const hit=decoded.get(id);
    if(hit){
-    decoded.delete(id);decoded.set(id,hit);
+    // Offscreen cache probes MUST NOT refresh a tile's LRU timestamp:
+    // refreshing 10+ background tiles every frame evicts the actual warm
+    // viewport despite none of those background tiles being drawn.
+    if(!speculative||!prefetchGuard){
+     decoded.delete(id);decoded.set(id,hit);
+    }
     if(!speculative)hit.origin='visible';
     hits++;return hit;
    }
-   const fallback=decoded.get(alternate);
+   const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
    if(fallback){
-    decoded.delete(alternate);decoded.set(alternate,fallback);
+    if(!speculative||!prefetchGuard){
+     decoded.delete(alternate);decoded.set(alternate,fallback);
+    }
     if(!speculative)fallback.origin='visible';
    }
    if(!available.has(key))return fallback||null;
