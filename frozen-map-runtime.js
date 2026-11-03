@@ -80,7 +80,8 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
+    adaptiveCloudCache=true,autoCloudStrategy=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -118,6 +119,19 @@ window.VedrasFrozenMap=(()=>{
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
+  let cloudEffectivePad=0,cloudPadClamps=0;
+  // The canvas cloud cache only helps when its large drawImage blit is
+  // cheaper than drawing individual cloud hexes on the current GPU.
+  const CLOUD_PROBES=4;
+  let cloudAutoKey='',cloudAutoMode='calibrating',
+   cloudAutoDirect=[],cloudAutoCached=[],cloudAutoDecisions=0,
+   cloudAutoDirectFrames=0,cloudAutoCachedFrames=0;
+  const cloudAutoMean=values=>values.length?
+   Math.round(values.reduce((sum,value)=>sum+value,0)/values.length*10)/10:null;
+  function resetCloudAuto(){
+   cloudAutoKey='';cloudAutoMode='calibrating';
+   cloudAutoDirect=[];cloudAutoCached=[];
+  }
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
   const cloudRasterLimit=largeViewportCache?8500000:6500000;
@@ -126,7 +140,7 @@ window.VedrasFrozenMap=(()=>{
    evictions=0,profileFrame=null;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
   const clouds=window.VedrasCloudArtwork?.create({
-   onReady:()=>{cloudBackdropRaster=null;repaint();}
+   onReady:()=>{cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
@@ -155,7 +169,12 @@ window.VedrasFrozenMap=(()=>{
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    overviewPatchBuilds,overviewPatchedTiles,
-   cloudBackdropHits,cloudBackdropBuilds,
+   cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
+   cloudEffectivePad,cloudPadClamps,autoCloudStrategy,
+   cloudAutoMode,cloudAutoDecisions,
+   cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
+   cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
+   cloudAutoDirectFrames,cloudAutoCachedFrames,
    worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
    worldRasterLimit,cloudRasterLimit,
    cloudBackdropMiB:cloudBackdropRaster?
@@ -180,7 +199,7 @@ window.VedrasFrozenMap=(()=>{
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
-   cloudBackdropRaster=null;
+   cloudBackdropRaster=null;resetCloudAuto();
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -457,7 +476,7 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
-   cloudBackdropRaster=null;
+   cloudBackdropRaster=null;cloudEffectivePad=0;resetCloudAuto();
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
@@ -466,11 +485,29 @@ window.VedrasFrozenMap=(()=>{
    if(!clouds)return false;
    // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
    // stamps every time a warm 2x game scene pans a few screen pixels.
-   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
-   // Backdrop clouds are soft artwork; 1.25x is enough even when
-   // the fully detailed world layers require more than 1.25x.
-   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr,
-    cw=Math.ceil((view.width+pad*2)*cacheDpr),
+   const preferredPad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
+   // The soft authored clouds retain their original cached 1.25x quality.
+   // An ultrawide viewport may fit the 8.5-MP budget only with LESS padding.
+   // This is better than discarding the entire backdrop and stamping every
+   // cloud on every camera frame. Preserve the old fallback for CI A/B.
+   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr;
+   let pad=preferredPad;
+   if(adaptiveCloudCache){
+    const capacity=cloudRasterLimit/(cacheDpr*cacheDpr);
+    const delta=view.width-view.height;
+    const bound=Math.floor((Math.sqrt(delta*delta+4*capacity)-
+     view.width-view.height)/4);
+    pad=Math.max(0,Math.min(pad,bound));
+    const fits=p=>{
+     const w=Math.ceil((view.width+p*2)*cacheDpr),
+      h=Math.ceil((view.height+p*2)*cacheDpr);
+     return w*h<=cloudRasterLimit&&w<=8192&&h<=8192;
+    };
+    while(pad>0&&!fits(pad))pad--;
+    if(pad<preferredPad)cloudPadClamps++;
+   }
+   cloudEffectivePad=pad;
+   const cw=Math.ceil((view.width+pad*2)*cacheDpr),
     ch=Math.ceil((view.height+pad*2)*cacheDpr);
    if(cw*ch>cloudRasterLimit||cw>8192||ch>8192||
       typeof document==='undefined')return false;
@@ -479,7 +516,8 @@ window.VedrasFrozenMap=(()=>{
     .map(c=>c.q+','+c.r));
    const previous=cloudBackdropRaster;
    const usable=previous&&previous.zoom===view.zoom&&
-    previous.dpr===cacheDpr&&previous.width===view.width&&
+    previous.dpr===cacheDpr&&previous.pad===pad&&
+    previous.width===view.width&&
     previous.height===view.height&&
     Math.abs(previous.panX-view.panX)<pad-8&&
     Math.abs(previous.panY-view.panY)<pad-8;
@@ -502,6 +540,67 @@ window.VedrasFrozenMap=(()=>{
    target.drawImage(current.canvas,sx,sy,
     view.width*cacheDpr,view.height*cacheDpr,0,0,view.width,view.height);
    return true;
+  }
+  // Direct and cached paths cover precisely the same authorized cloud
+  // field. Dynamic Fog/transition layers are drawn afterward in draw().
+  // At ultra-wide resolution a 6MP cached blit can be *slower* than the
+  // original small stamps. Tune for real browser/GPU, not tile counts.
+  function drawCloudBackground(target,view,dpr){
+   const direct=()=>{
+    cloudCacheFallbackFrames++;cloudAutoDirectFrames++;
+    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored')
+     .map(c=>c.q+','+c.r));
+    clouds.drawBase(target,view,authoredFogSet);
+   };
+   const cached=()=>{
+    if(!paintCloudBackdrop(target,view,dpr))return false;
+    cloudAutoCachedFrames++;
+    return true;
+   };
+   if(!useLayerCache){direct();return;}
+   if(!adaptiveCloudCache||!autoCloudStrategy){
+    if(!cached())direct();
+    return;
+   }
+   const stats=clouds.stats();
+   // An initial 0-stamp background is not a representative measurement:
+   // postpone selection until the four authored cloud assets are ready.
+   if(!stats?.bases||stats.pending){
+    if(!cached())direct();
+    return;
+   }
+   const signature=[view.width,view.height,view.zoom,dpr,stats.version].join('|');
+   if(cloudAutoKey!==signature){
+    resetCloudAuto();cloudAutoKey=signature;
+   }
+   if(cloudAutoMode==='direct'){direct();return;}
+   if(cloudAutoMode==='cached'){
+    if(!cached())direct();return;
+   }
+   if(cloudAutoDirect.length<CLOUD_PROBES){
+    const before=clock();direct();
+    cloudAutoDirect.push(Math.max(0,clock()-before));
+    return;
+   }
+   const beforeHits=cloudBackdropHits,start=clock(),
+    complete=cached(),cost=Math.max(0,clock()-start);
+   if(!complete){
+    // At extreme canvas dimensions not even pad=0 fits the budget.
+    // Never bypass the hard 8.5-MP raster allocation guard.
+    cloudAutoMode='direct';cloudAutoDecisions++;
+    direct();return;
+   }
+   if(cloudBackdropHits>beforeHits)cloudAutoCached.push(cost);
+   // Exclude the one-off cloud raster allocation from hit timings.
+   if(cloudAutoCached.length>=CLOUD_PROBES){
+    const directCost=cloudAutoMean(cloudAutoDirect),
+     cachedCost=cloudAutoMean(cloudAutoCached);
+    // Avoid switching on measurement noise; require a 15% advantage.
+    cloudAutoMode=cachedCost<directCost*.85?'cached':'direct';
+    cloudAutoDecisions++;
+    if(cloudAutoMode==='direct')cloudBackdropRaster=null;
+   }
   }
   function paintWorld(g,view,list,dpr){
    const worldStart=profileFrame?clock():0;
@@ -843,15 +942,8 @@ window.VedrasFrozenMap=(()=>{
     }
    }
    const cloudStart=profileFrame?clock():0;
-   if(clouds){
-    if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
-     cloudCacheFallbackFrames++;
-     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
-      c.visibility==='visible'||c.visibility==='explored')
-      .map(c=>c.q+','+c.r));
-     clouds.drawBase(ctx,view,authoredFogSet);
-    }
-   }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
+   if(clouds)drawCloudBackground(ctx,view,dpr);
+   else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
    const worldCompositeStart=profileFrame?clock():0;
    if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
@@ -923,6 +1015,9 @@ window.VedrasFrozenMap=(()=>{
      worldCachePatchBuilds:overviewPatchBuilds,
      worldCachePatchedTiles:overviewPatchedTiles,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
+     cloudCachePad:cloudEffectivePad,cloudPadClamps,
+     cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
+     cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
      cloudRasterMiB:currentReport.cloudBackdropMiB
