@@ -42,7 +42,7 @@ window.VedrasManualShadows=(()=>{
   return Number.isFinite(n)&&n>0?(n>=1e15?n/1e6:n):0;
  }
  function sort(assets,profiles={},order='recent',unprofiled=false){
-  const arr=(assets||[]).filter(a=>a?.img?.naturalWidth&&
+  const arr=(assets||[]).filter(a=>a&&
    ['nature','buildings','units'].includes(a.category)&&
    (!unprofiled||!Object.prototype.hasOwnProperty.call(profiles,a.path)));
   const alpha=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true});

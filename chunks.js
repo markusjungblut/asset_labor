@@ -211,9 +211,9 @@ window.VedrasChunks=(()=>{
     // The source halo is still present. Its destination is clipped to one
     // exclusive pixel-aligned core: adjacent pieces meet, never overlap.
     ctx.save();clipCore(ctx,t);
-    if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer);
-    if(artwork.relief)drawRaster(ctx,artwork.relief);
-    else if(artwork.raster)drawRaster(ctx,artwork.raster);
+    if(water&&artwork.raster?.waterLayer)drawRaster(ctx,artwork.raster.waterLayer,t);
+    if(artwork.relief)drawRaster(ctx,artwork.relief,t);
+    else if(artwork.raster)drawRaster(ctx,artwork.raster,t);
     ctx.restore();stats.painted++;if(fallback)stats.stalePainted++;
    }
    stats.pending=queue.size+(inFlight?1:0);

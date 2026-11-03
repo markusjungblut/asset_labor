@@ -4159,6 +4159,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 126,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4178,15 +4179,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4207,8 +4210,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_small"
-      ],
-      "targetHeight": 126
+      ]
     },
     "nature/palme_02.png": {
       "id": "existing_palme_02",
@@ -4218,6 +4220,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 126,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4237,15 +4240,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4266,8 +4271,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_small"
-      ],
-      "targetHeight": 126
+      ]
     },
     "nature/palme_03.png": {
       "id": "existing_palme_03",
@@ -4277,6 +4281,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 126,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4296,15 +4301,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4325,8 +4332,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_small"
-      ],
-      "targetHeight": 126
+      ]
     },
     "nature/palme_04.png": {
       "id": "existing_palme_04",
@@ -4336,6 +4342,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 126,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4355,15 +4362,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4384,8 +4393,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_small"
-      ],
-      "targetHeight": 126
+      ]
     },
     "nature/palme_05.png": {
       "id": "existing_palme_05",
@@ -4395,6 +4403,7 @@
       "kind": "tree",
       "sizeClass": "medium",
       "sizeMode": "class",
+      "targetHeight": 126,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4414,15 +4423,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4443,8 +4454,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_small"
-      ],
-      "targetHeight": 126
+      ]
     },
     "nature/palme_06.png": {
       "id": "existing_palme_06",
@@ -4454,6 +4464,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4473,15 +4484,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4502,8 +4515,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/palme_07.png": {
       "id": "existing_palme_07",
@@ -4513,6 +4525,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4532,15 +4545,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4561,8 +4576,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/palme_08.png": {
       "id": "existing_palme_08",
@@ -4572,6 +4586,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4591,15 +4606,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4620,8 +4637,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/palme_09.png": {
       "id": "existing_palme_09",
@@ -4631,6 +4647,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4650,15 +4667,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4679,8 +4698,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/palme_10.png": {
       "id": "existing_palme_10",
@@ -4690,6 +4708,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4709,15 +4728,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4738,8 +4759,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/palme_11.png": {
       "id": "existing_palme_11",
@@ -4749,6 +4769,7 @@
       "kind": "tree",
       "sizeClass": "large",
       "sizeMode": "class",
+      "targetHeight": 174,
       "logicalWidth": 110,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
@@ -4768,15 +4789,17 @@
       "allowedTerrainCategories": [
         "warm_regions"
       ],
-      "allowedTerrainTypes": [],
+      "allowedTerrainTypes": [
+        "semi_desert"
+      ],
       "excludedTerrainTypes": [
-        "moor",
-        "swamp",
-        "marshland",
-        "highland",
-        "snowfields",
         "frozen_tundra",
-        "tundra"
+        "tundra",
+        "snowfields",
+        "moor",
+        "marshland",
+        "swamp",
+        "highland"
       ],
       "placement": {
         "weight": 1,
@@ -4797,8 +4820,7 @@
         "needs_art_review",
         "needs_species_review",
         "palm_large"
-      ],
-      "targetHeight": 174
+      ]
     },
     "nature/schirmakazie1.png": {
       "id": "existing_schirmakazie1",
@@ -18602,6 +18624,466 @@
         "existing",
         "needs_art_review"
       ]
+    },
+    "nature/snow_patch_01.png": {
+      "id": "snow_patch_01_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_02.png": {
+      "id": "snow_patch_02_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_03.png": {
+      "id": "snow_patch_03_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_04.png": {
+      "id": "snow_patch_04_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_05.png": {
+      "id": "snow_patch_05_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_06.png": {
+      "id": "snow_patch_06_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_07.png": {
+      "id": "snow_patch_07_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_08.png": {
+      "id": "snow_patch_08_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_09.png": {
+      "id": "snow_patch_09_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
+    },
+    "nature/snow_patch_10.png": {
+      "id": "snow_patch_10_01",
+      "description": "",
+      "sourceReference": "",
+      "family": "snow",
+      "kind": "rock",
+      "sizeClass": "small",
+      "sizeMode": "manual",
+      "targetHeight": 35,
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 0,
+        "density": 0.1,
+        "minSpacing": 28,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": []
     }
   }
 }
