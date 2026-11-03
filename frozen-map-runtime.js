@@ -80,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -91,6 +91,15 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const SCENERY_OVERHANG_WORLD=128; // Existing world-tile scene pad
   const decoded=new Map(),loading=new Set();
+  const loadingPurpose=new Map(),seenDecoded=new Map();
+  const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
+  const typicalPixels={'1x':0,'2x':0};
+  let visibleMissing=false;
+  let visibleReadStarts=0,prefetchReadStarts=0,decodeRepeats=0,
+   visibleDecodeRepeats=0,prefetchDecodeRepeats=0,
+   prefetchSkippedVisible=0,prefetchSkippedBudget=0,
+   prefetchSkippedSlots=0,evictedSpeculative=0,
+   visibleWaitingOnPrefetch=0,visibleRequested=0,prefetchRequested=0;
   // Each variant keeps a private RAM identity; persisted storage keys do
   // not change. Keep previous 2x visible until a matching 1x tile is READY.
   let activeVariant='2x',lodSwitches=0,variantFallbackFrames=0;
@@ -107,6 +116,9 @@ window.VedrasFrozenMap=(()=>{
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
+  let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
+  const worldRasterLimit=largeViewportCache?16500000:8500000;
+  const cloudRasterLimit=largeViewportCache?8500000:6500000;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0,
    evictions=0,profileFrame=null;
@@ -128,6 +140,11 @@ window.VedrasFrozenMap=(()=>{
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
    activeVariant,lodSwitches,variantFallbackFrames,maxDecodedPixels,
+   prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
+   visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
+   prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
+   visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
+   activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
@@ -135,12 +152,25 @@ window.VedrasFrozenMap=(()=>{
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    cloudBackdropHits,cloudBackdropBuilds,
+   worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
+   worldRasterLimit,cloudRasterLimit,
+   cloudBackdropMiB:cloudBackdropRaster?
+    Math.round(cloudBackdropRaster.canvas.width*
+     cloudBackdropRaster.canvas.height*4/1048576):0,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
-   decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
+   decoded.clear();loading.clear();loadingPurpose.clear();
+   protectedKeys=new Set();decodedPixels=0;
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
+   seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
+   visibleMissing=false;
+   visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
+   visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
+   prefetchSkippedVisible=0;prefetchSkippedBudget=0;
+   prefetchSkippedSlots=0;evictedSpeculative=0;
+   visibleWaitingOnPrefetch=0;visibleRequested=0;prefetchRequested=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
@@ -152,12 +182,15 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
-   // 30M pixels was smaller than the visible bitmaps of a wide-screen
-   // 2x viewport. 95M (~362 MiB RGBA) retains recently visited regions.
-   // Never evict currently painted tiles, including fallback at LOD switch.
    while(decodedPixels>maxDecodedPixels&&decoded.size>1){
     let victim=null;
-    for(const [key,entry] of decoded)
+    // Speculatively decoded but NEVER displayed images must yield
+    // before recently visited terrain and before the inactive zoom LOD.
+    if(prefetchGuard)for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&entry.origin==='prefetch'){
+      victim=key;break;
+     }
+    if(!victim)for(const [key,entry] of decoded)
      if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
       victim=key;break;
      }
@@ -166,27 +199,69 @@ window.VedrasFrozenMap=(()=>{
     if(!victim)break;
     const entry=decoded.get(victim);
     decoded.delete(victim);decodedPixels-=entry.pixels;evictions++;
+    if(entry.origin==='prefetch')evictedSpeculative++;
     for(const im of entry.images)im.close?.();
    }
   }
-  function read(key,variant=desiredVariant()){
-   const id=cacheKey(key,variant),
+  function read(key,variant=desiredVariant(),purpose='visible'){
+   const speculative=purpose==='prefetch',
+    id=cacheKey(key,variant),
     alternate=cacheKey(key,variant==='1x'?'2x':'1x');
    const hit=decoded.get(id);
    if(hit){
-    decoded.delete(id);decoded.set(id,hit);
+    // Offscreen cache probes MUST NOT refresh a tile's LRU timestamp:
+    // refreshing 10+ background tiles every frame evicts the actual warm
+    // viewport despite none of those background tiles being drawn.
+    if(!speculative||!prefetchGuard){
+     decoded.delete(id);decoded.set(id,hit);
+    }
+    if(!speculative)hit.origin='visible';
     hits++;return hit;
    }
-   const fallback=decoded.get(alternate);
-   if(fallback){decoded.delete(alternate);decoded.set(alternate,fallback);}
-   if(!available.has(key)||loading.has(id))return fallback||null;
-   if(loading.size>=3)return fallback||null;
+   const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
+   if(fallback){
+    if(!speculative||!prefetchGuard){
+     decoded.delete(alternate);decoded.set(alternate,fallback);
+    }
+    if(!speculative)fallback.origin='visible';
+   }
+   if(!available.has(key))return fallback||null;
+   if(loading.has(id)){
+    if(!speculative&&loadingPurpose.get(id)==='prefetch')
+     loadingPurpose.set(id,'visible');
+    return fallback||null;
+   }
+   if(speculative&&prefetchGuard){
+    if(visibleMissing){
+     prefetchSkippedVisible++;return fallback||null;
+    }
+    const activeSpec=[...loadingPurpose.values()]
+     .filter(x=>x==='prefetch').length;
+    if(activeSpec>=MAX_SPECULATIVE||
+       loading.size>=MAX_INFLIGHT-1){
+     prefetchSkippedSlots++;return fallback||null;
+    }
+    // A spare region of decoded RAM is mandatory for speculative work.
+    // Estimate the bitmap pixels from completed variants, never PNG bytes.
+    const reserve=Math.max(maxDecodedPixels*.12,
+     2*(typicalPixels[variant]||2000000));
+    if(decodedPixels+reserve>=maxDecodedPixels){
+     prefetchSkippedBudget++;return fallback||null;
+    }
+   }
+   if(loading.size>=MAX_INFLIGHT){
+    if(!speculative&&[...loadingPurpose.values()]
+     .some(x=>x==='prefetch'))visibleWaitingOnPrefetch++;
+    return fallback||null;
+   }
    loading.add(id);
+   loadingPurpose.set(id,speculative?'prefetch':'visible');
+   if(speculative)prefetchReadStarts++;else visibleReadStarts++;
    const run=generation,readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
-   const operation=storage.getVariant?
-    storage.getVariant(key,variant):storage.get(key);
-   Promise.resolve(operation).then(async record=>{
+   // A rejected getVariant() request must not leave loading slots stuck.
+   Promise.resolve().then(()=>storage.getVariant?
+    storage.getVariant(key,variant):storage.get(key)).then(async record=>{
     readFinished=profiler?clock():0;
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
     const images=[],decodeStarted=profiler?clock():0;
@@ -200,10 +275,24 @@ window.VedrasFrozenMap=(()=>{
     }
     const pixels=images.reduce((sum,im)=>
      sum+(im.width||0)*(im.height||0),0);
-    decoded.set(id,{record,images,pixels,variant});
+    const actualPurpose=loadingPurpose.get(id)||'visible';
+    const count=seenDecoded.get(id)||0;
+    if(count){
+     decodeRepeats++;
+     if(actualPurpose==='prefetch')prefetchDecodeRepeats++;
+     else visibleDecodeRepeats++;
+    }
+    if(seenDecoded.has(id))seenDecoded.delete(id);
+    seenDecoded.set(id,count+1);
+    if(seenDecoded.size>MAX_SEEN)
+     seenDecoded.delete(seenDecoded.keys().next().value);
+    typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
+    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose});
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
     if(profiler)profiler.tileRead({
+     tileId:record.tile?.id||null,variant,purpose:actualPurpose,
+     redecoded:count>0,decodedCount:count+1,
      source:record.derivedFormat==='1x-png-v1'?'derived1x':
       record.derivedFormat==='2x-png-v1'?'derived2x':'original',
      storageMs:readFinished-readStarted,decodeMs:decodeDuration,
@@ -214,12 +303,16 @@ window.VedrasFrozenMap=(()=>{
    }).catch(()=>{
     if(run===generation)failures++;
     if(profiler)profiler.tileRead({
-     error:true,storageMs:readFinished?
+     error:true,tileId:key.split('|').at(-1),variant,
+     purpose:loadingPurpose.get(id)||purpose,
+     storageMs:readFinished?
       readFinished-readStarted:clock()-readStarted,
      decodeMs:decodeDuration,totalMs:clock()-readStarted
     });
    }).finally(()=>{
-    if(run===generation){loading.delete(id);repaint();}
+    if(run===generation){
+     loading.delete(id);loadingPurpose.delete(id);repaint();
+    }
    });
    return fallback||null;
   }
@@ -367,16 +460,20 @@ window.VedrasFrozenMap=(()=>{
    if(!clouds)return false;
    // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
    // stamps every time a warm 2x game scene pans a few screen pixels.
-   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160,
-    cw=Math.ceil((view.width+pad*2)*dpr),
-    ch=Math.ceil((view.height+pad*2)*dpr);
-   if(cw*ch>6500000||typeof document==='undefined')return false;
+   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
+   // Backdrop clouds are soft artwork; 1.25x is enough even when
+   // the fully detailed world layers require more than 1.25x.
+   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr,
+    cw=Math.ceil((view.width+pad*2)*cacheDpr),
+    ch=Math.ceil((view.height+pad*2)*cacheDpr);
+   if(cw*ch>cloudRasterLimit||cw>8192||ch>8192||
+      typeof document==='undefined')return false;
    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
     c.visibility==='visible'||c.visibility==='explored')
     .map(c=>c.q+','+c.r));
    const previous=cloudBackdropRaster;
    const usable=previous&&previous.zoom===view.zoom&&
-    previous.dpr===dpr&&previous.width===view.width&&
+    previous.dpr===cacheDpr&&previous.width===view.width&&
     previous.height===view.height&&
     Math.abs(previous.panX-view.panX)<pad-8&&
     Math.abs(previous.panY-view.panY)<pad-8;
@@ -385,19 +482,19 @@ window.VedrasFrozenMap=(()=>{
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
     if(!g)return false;
-    g.setTransform(dpr,0,0,dpr,0,0);
+    g.setTransform(cacheDpr,0,0,cacheDpr,0,0);
     clouds.drawBase(g,{...view,width:view.width+pad*2,
      height:view.height+pad*2},authoredFogSet);
     cloudBackdropRaster={canvas:buffer,width:view.width,
-     height:view.height,zoom:view.zoom,dpr,panX:view.panX,
+     height:view.height,zoom:view.zoom,dpr:cacheDpr,panX:view.panX,
      panY:view.panY,pad};
     cloudBackdropBuilds++;
    }else cloudBackdropHits++;
    const current=cloudBackdropRaster;
-   const sx=(current.pad+current.panX-view.panX)*dpr,
-    sy=(current.pad+current.panY-view.panY)*dpr;
+   const sx=(current.pad+current.panX-view.panX)*cacheDpr,
+    sy=(current.pad+current.panY-view.panY)*cacheDpr;
    target.drawImage(current.canvas,sx,sy,
-    view.width*dpr,view.height*dpr,0,0,view.width,view.height);
+    view.width*cacheDpr,view.height*cacheDpr,0,0,view.width,view.height);
    return true;
   }
   function paintWorld(g,view,list,dpr){
@@ -489,11 +586,12 @@ window.VedrasFrozenMap=(()=>{
     profileFrame.worldPainterMs+=clock()-worldStart;
    }
   }
-  function paintOverview(target,view,list,dpr){
+  function paintOverview(target,view,list,dpr,visibleComplete=false){
    const pad=viewportPolicy.cameraCacheMargin(view.zoom),
     cw=Math.ceil((view.width+2*pad)*dpr),
     ch=Math.ceil((view.height+2*pad)*dpr);
-   if(cw*ch>8500000||typeof document==='undefined')return false;
+   if(cw*ch>worldRasterLimit||cw>8192||ch>8192||
+      typeof document==='undefined')return false;
    const anchorView=overviewRaster&&overviewRaster.zoom===view.zoom&&
     overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
     overviewRaster.height===view.height&&
@@ -528,7 +626,9 @@ window.VedrasFrozenMap=(()=>{
     // During cold streaming the exact bitmap contents change for every
     // completed image; avoid building a multi-megapixel overview atlas on
     // each step. Build it once when the visible request queue settles.
-    if(loading.size)return false;
+    // Pending OFFSCREEN prefetch must not disable the world raster after
+    // every currently visible tile is already decoded.
+    if(loading.size&&!visibleComplete)return false;
     const buffer=document.createElement('canvas');
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
@@ -599,6 +699,7 @@ window.VedrasFrozenMap=(()=>{
    }
    const previousVariant=activeVariant,variant=desiredVariant();
    if(previousVariant!==variant){lodSwitches++;overviewRaster=null;}
+   visibleMissing=visible.some(t=>!decodedEntry(t.key,variant));
    protectedKeys=new Set(visible.flatMap(t=>{
     const result=[cacheKey(t.key,variant)];
     const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
@@ -616,7 +717,8 @@ window.VedrasFrozenMap=(()=>{
    });
    const tiles=[];
    for(const t of visible){
-    const entry=read(t.key,variant);
+    visibleRequested++;
+    const entry=read(t.key,variant,'visible');
     if(entry){
      if(entry.variant!==variant)variantFallbackFrames++;
      tiles.push({...t,entry});
@@ -631,7 +733,10 @@ window.VedrasFrozenMap=(()=>{
      ex=b.left+b.right-width,ey=b.top+b.bottom-height;
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
-   for(const t of prefetch)read(t.key,variant);
+   for(const t of prefetch){
+    prefetchRequested++;
+    read(t.key,variant,'prefetch');
+   }
    if(profileFrame)profileFrame.selectMs=clock()-now;
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
@@ -660,6 +765,7 @@ window.VedrasFrozenMap=(()=>{
    const cloudStart=profileFrame?clock():0;
    if(clouds){
     if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
+     cloudCacheFallbackFrames++;
      if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
       c.visibility==='visible'||c.visibility==='explored')
       .map(c=>c.q+','+c.r));
@@ -668,8 +774,10 @@ window.VedrasFrozenMap=(()=>{
    }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
    const worldCompositeStart=profileFrame?clock():0;
-   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr)){
-    // Normal zoom: draw the two baked world-image layers directly.
+   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
+    // Cold streaming paints the real terrain; the completed viewport is
+    // then cached at full resolution without a blurred snapshot.
+    worldCacheFallbackFrames++;
     overviewRaster=null;
     paintWorld(ctx,view,tiles,dpr);
    }
@@ -725,8 +833,15 @@ window.VedrasFrozenMap=(()=>{
      visibleReadyTiles:tiles.length,
      decodedTiles:decoded.size,pendingTiles:loading.size,
      activeVariant,decodedPixels,evictions,
+     visibleReadStarts,prefetchReadStarts,decodeRepeats,
+     visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
+     prefetchSkippedBudget,prefetchSkippedVisible,
+     prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
-     cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits
+     cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
+     worldCacheFallbackFrames,cloudCacheFallbackFrames,
+     worldRasterMiB:currentReport.overviewRasterMiB,
+     cloudRasterMiB:currentReport.cloudBackdropMiB
     });
    }
    profileFrame=null;
