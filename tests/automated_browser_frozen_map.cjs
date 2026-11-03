@@ -152,7 +152,9 @@ const run=async()=>{
    page.on('response',res=>{if(res.status()>=400)
     errors.push('HTTP '+res.status()+' '+res.url());});
    const url=origin+'/frozen-map-game.html?scene='+SCENE+
-    '&lod=near&perf=1'+(mode==='legacy'?'&prefetchGuard=0':'');
+    '&lod=near&perf=1'+
+    (mode==='legacy'?'&prefetchGuard=0':'')+
+    (mode==='noStream'?'&streamCache=0':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -173,6 +175,23 @@ const run=async()=>{
     window.__vedrasFrozenGameTest.stats().clouds);
    assert.ok(layerStats&&layerStats.bases===4,
     'Four authored synthetic cloud layers must load in real browser');
+   const coldReport=await page.evaluate(()=>
+    window.__vedrasFrozenGameTest.profileReport());
+   // Previous CI dropped initial load and world compositor regressions.
+   fs.writeFileSync(path.join(OUTPUT,BROWSER+'-'+mode+'-cold.json'),
+    JSON.stringify(coldReport,null,2));
+   const cold={
+    firstFullyVisibleMs:coldReport.firstFullyVisibleMs,
+    frames:coldReport.frameCounts.stored,
+    p95DrawMs:coldReport.phasesMs.drawMs.p95,
+    worldFallbacks:coldReport.environment.runtime.worldCacheFallbackFrames,
+    worldBuilds:coldReport.environment.runtime.overviewRasterBuilds,
+    worldHits:coldReport.environment.runtime.overviewRasterHits,
+    streamingBuilds:coldReport.environment.runtime.overviewStreamingBuilds||0,
+    streamingHits:coldReport.environment.runtime.overviewStreamingHits||0,
+    patchBuilds:coldReport.environment.runtime.overviewPatchBuilds||0,
+    patchedTiles:coldReport.environment.runtime.overviewPatchedTiles||0
+   };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
    assert.ok(rect&&rect.width>500&&rect.height>500);
@@ -213,6 +232,7 @@ const run=async()=>{
     path:path.join(OUTPUT,BROWSER+'-'+mode+'.png'),timeout:20000
    });
    collected.results[mode]={
+    cold,
     p95DrawMs:report.phasesMs.drawMs.p95,
     p95FrameGapMs:report.phasesMs.frameGapMs.p95,
     activeFrames:report.frameCounts.active,
@@ -227,6 +247,7 @@ const run=async()=>{
   }
   const guarded=await loadMode('guarded');
   const legacy=await loadMode('legacy');
+  const noStream=await loadMode('noStream');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -235,6 +256,25 @@ const run=async()=>{
    'New policy causes catastrophic render-time regression');
   assert.ok(fast.decodeRepeats<=ref.decodeRepeats+COUNT,
    'New policy causes excessive repeated image decodes');
+  const control=collected.results.noStream;
+  assert.equal(control.cold.streamingBuilds,0,
+   'streamCache=0 must disable partial streaming world composites');
+  assert.equal(control.cold.streamingHits,0);
+  assert.ok(fast.cold.streamingBuilds>0||fast.cold.streamingHits>0,
+   'new default must cache the partial world while visible PNGs stream');
+  assert.ok(fast.cold.worldFallbacks<control.cold.worldFallbacks,
+   'partial cache must eliminate direct per-frame painting while loading');
+  assert.ok(fast.cold.patchBuilds>0&&fast.cold.patchedTiles>0,
+   'the actual Firefox canvas must update tile-sized dirty rectangles');
+  assert.ok(fast.cold.worldBuilds<=Math.max(5,control.cold.worldBuilds+8),
+   'regression: full-world raster built once for every arriving PNG');
+  assert.ok(fast.p95DrawMs<=Math.max(70,control.p95DrawMs*1.35),
+   'regression: partial world cache slower than streaming direct painter');
+  assert.ok(fast.p95FrameGapMs<=Math.max(85,control.p95FrameGapMs*1.45),
+   'regression: browser pan frame cadence much slower than direct painter');
+  assert.ok(fast.cold.p95DrawMs<=Math.max(130,control.cold.p95DrawMs*1.45),
+   'regression: huge full-world spikes during initial PNG streaming');
+  await noStream.close();
   await legacy.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.

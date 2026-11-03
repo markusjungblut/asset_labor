@@ -80,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true,prefetchGuard=true}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -115,6 +115,8 @@ window.VedrasFrozenMap=(()=>{
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let overviewStreamingBuilds=0,overviewStreamingHits=0;
+  let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
@@ -151,6 +153,8 @@ window.VedrasFrozenMap=(()=>{
    renderMode:useLayerCache?'cached':'direct',
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
+   overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
+   overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,
    worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
    worldRasterLimit,cloudRasterLimit,
@@ -174,6 +178,8 @@ window.VedrasFrozenMap=(()=>{
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
+   overviewStreamingBuilds=0;overviewStreamingHits=0;
+   overviewPatchBuilds=0;overviewPatchedTiles=0;
    cloudBackdropRaster=null;
   }
   const repaint=()=>{
@@ -586,6 +592,74 @@ window.VedrasFrozenMap=(()=>{
     profileFrame.worldPainterMs+=clock()-worldStart;
    }
   }
+  // A decoded tile changes at most its own full 512-unit footprint plus
+  // padded scenery/shadows. Repaint just that region inside the warm atlas.
+  function shownOverview(chosen){
+   return new Map([...chosen].map(([logical,key])=>{
+    const entry=decoded.get(key);
+    return [logical,{key,tile:entry.record.tile,
+     pad:Math.max(SCENERY_OVERHANG_WORLD,
+      ...entry.record.layers.map(l=>Math.max(0,l.pad||0)))}];
+   }));
+  }
+  function patchOverview(view,dpr,pad,chosen,signature){
+   const old=overviewRaster;
+   if(!streamingWorldCache||!old?.shown||old.zoom!==view.zoom||
+      old.dpr!==dpr||old.pad!==pad||old.width!==view.width||
+      old.height!==view.height||
+      Math.abs(old.panX-view.panX)>=pad-8||
+      Math.abs(old.panY-view.panY)>=pad-8)return false;
+   const next=shownOverview(chosen),changed=[];
+   for(const logical of new Set([...old.shown.keys(),...next.keys()]))
+    if(old.shown.get(logical)?.key!==next.get(logical)?.key)
+     changed.push(logical);
+   if(!changed.length||changed.length>5)return false;
+   const buffer=old.canvas,g=buffer.getContext('2d',{alpha:true});
+   if(typeof g?.rect!=='function'||typeof g?.clearRect!=='function')
+    return false;
+   const bw=view.width+pad*2,bh=view.height+pad*2,
+    z=view.zoom,py=view.projectY||.85,
+    bufferView={...view,width:bw,height:bh,panX:old.panX,panY:old.panY};
+   const boxFor=meta=>{
+    const {tile}=meta,halo=(meta.pad+2)*z,
+     x=bw/2+old.panX+tile.x*z,y=bh/2+old.panY+tile.y*z*py,
+     w=tile.size*z,h=tile.size*z*py;
+    return {x0:x-halo,y0:y-halo*py,x1:x+w+halo,y1:y+h+halo*py};
+   };
+   const intersects=(a,b)=>a.x0<b.x1&&a.x1>b.x0&&
+    a.y0<b.y1&&a.y1>b.y0;
+   const dirty=[];
+   for(const id of changed){
+    const parts=[old.shown.get(id),next.get(id)].filter(Boolean)
+     .map(boxFor);
+    const x0=Math.max(0,Math.floor(Math.min(...parts.map(p=>p.x0))*dpr)-2),
+     y0=Math.max(0,Math.floor(Math.min(...parts.map(p=>p.y0))*dpr)-2),
+     x1=Math.min(buffer.width,Math.ceil(Math.max(...parts.map(p=>p.x1))*dpr)+2),
+     y1=Math.min(buffer.height,Math.ceil(Math.max(...parts.map(p=>p.y1))*dpr)+2);
+    if(x1>x0&&y1>y0)dirty.push({
+     x0:x0/dpr,y0:y0/dpr,x1:x1/dpr,y1:y1/dpr,
+     pixels:(x1-x0)*(y1-y0)});
+   }
+   if(dirty.reduce((n,r)=>n+r.pixels,0)>
+      buffer.width*buffer.height*.65)return false;
+   const bufferKeys=[...chosen.values()].sort();
+   for(const r of dirty){
+    // Draw ALL nearby neighbors in the same global world-Y layer ordering.
+    // Clearing before recomposition preserves correct translucent overlaps.
+    const affected=bufferKeys.filter(key=>{
+     const entry=decoded.get(key),meta=entry?next.get(entry.record.key):null;
+     return meta&&intersects(boxFor(meta),r);
+    }).map(key=>({entry:decoded.get(key)}));
+    g.setTransform(dpr,0,0,dpr,0,0);
+    g.save();g.beginPath();g.rect(r.x0,r.y0,r.x1-r.x0,r.y1-r.y0);
+    g.clip();g.clearRect(r.x0,r.y0,r.x1-r.x0,r.y1-r.y0);
+    paintWorld(g,bufferView,affected,dpr);
+    g.restore();
+   }
+   old.shown=next;old.signature=signature;
+   overviewPatchBuilds++;overviewPatchedTiles+=changed.length;
+   return true;
+  }
   function paintOverview(target,view,list,dpr,visibleComplete=false){
    const pad=viewportPolicy.cameraCacheMargin(view.zoom),
     cw=Math.ceil((view.width+2*pad)*dpr),
@@ -622,13 +696,17 @@ window.VedrasFrozenMap=(()=>{
     Math.abs(overviewRaster.panY-view.panY)<pad-8;
    if(usable){
     overviewHits++;
+    if(loading.size&&!visibleComplete)overviewStreamingHits++;
    }else{
-    // During cold streaming the exact bitmap contents change for every
-    // completed image; avoid building a multi-megapixel overview atlas on
-    // each step. Build it once when the visible request queue settles.
-    // Pending OFFSCREEN prefetch must not disable the world raster after
-    // every currently visible tile is already decoded.
-    if(loading.size&&!visibleComplete)return false;
+    // Cache the completed portion of the map even while more PNGs decode.
+    // Its signature includes exact decoded tiles and their 1x/2x variant,
+    // so arrivals trigger a rebuild BEFORE Fog can reveal that landscape.
+    // 25D forced a full direct world paint on every frame while loading;
+    // this opt-out keeps that legacy behavior available for CI A/B.
+    if(!streamingWorldCache&&loading.size&&!visibleComplete)return false;
+    if(patchOverview(view,dpr,pad,chosen,signature)){
+     if(loading.size&&!visibleComplete)overviewStreamingBuilds++;
+    }else{
     const buffer=document.createElement('canvas');
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
@@ -640,8 +718,10 @@ window.VedrasFrozenMap=(()=>{
     })),dpr);
     overviewRaster={canvas:buffer,width:view.width,height:view.height,
      zoom:view.zoom,dpr,panX:view.panX,panY:view.panY,
-     signature,pad};
+     signature,pad,shown:shownOverview(chosen)};
     overviewBuilds++;
+    if(loading.size&&!visibleComplete)overviewStreamingBuilds++;
+    }
    }
    const m=overviewRaster;
    const sx=(m.pad+m.panX-view.panX)*dpr,
@@ -838,6 +918,10 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedBudget,prefetchSkippedVisible,
      prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
+     worldCacheStreamingBuilds:overviewStreamingBuilds,
+     worldCacheStreamingHits:overviewStreamingHits,
+     worldCachePatchBuilds:overviewPatchBuilds,
+     worldCachePatchedTiles:overviewPatchedTiles,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,

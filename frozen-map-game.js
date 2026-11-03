@@ -29,13 +29,15 @@
  const largeViewportCache=params.get('cacheLarge')!=='0';
  // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
  const prefetchGuard=params.get('prefetchGuard')!=='0';
+ // A/B: simulate the former full repaint until every visible tile is ready.
+ const streamingWorldCache=params.get('streamCache')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
-  overview1x,largeViewportCache,prefetchGuard,
+  overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -237,7 +239,7 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
-   prefetchGuard
+   prefetchGuard,streamingWorldCache
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
