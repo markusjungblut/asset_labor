@@ -71,7 +71,7 @@ async function runRoute(prefetchGuard){
  return stats;
 }
 test('on-screen bitmaps start before any speculative work',async()=>{
- const f=fixture();await mount(f);
+ const f=fixture({maxDecodedPixels:12000000});await mount(f);
  f.player.draw();
  const first=f.player.report();
  assert.ok(first.visibleReadStarts>0,'visible requests must start immediately');
