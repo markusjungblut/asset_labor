@@ -188,7 +188,9 @@ const run=async()=>{
     worldBuilds:coldReport.environment.runtime.overviewRasterBuilds,
     worldHits:coldReport.environment.runtime.overviewRasterHits,
     streamingBuilds:coldReport.environment.runtime.overviewStreamingBuilds||0,
-    streamingHits:coldReport.environment.runtime.overviewStreamingHits||0
+    streamingHits:coldReport.environment.runtime.overviewStreamingHits||0,
+    patchBuilds:coldReport.environment.runtime.overviewPatchBuilds||0,
+    patchedTiles:coldReport.environment.runtime.overviewPatchedTiles||0
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -260,9 +262,18 @@ const run=async()=>{
   assert.equal(control.cold.streamingHits,0);
   assert.ok(fast.cold.streamingBuilds>0||fast.cold.streamingHits>0,
    'new default must cache the partial world while visible PNGs stream');
-  assert.ok(fast.cold.worldFallbacks<=control.cold.worldFallbacks+
-   Math.max(3,Math.floor(control.cold.frames*.10)),
-   'partial world caching must not substantially increase direct paints');
+  assert.ok(fast.cold.worldFallbacks<control.cold.worldFallbacks,
+   'partial cache must eliminate direct per-frame painting while loading');
+  assert.ok(fast.cold.patchBuilds>0&&fast.cold.patchedTiles>0,
+   'the actual Firefox canvas must update tile-sized dirty rectangles');
+  assert.ok(fast.cold.worldBuilds<=Math.max(5,control.cold.worldBuilds+8),
+   'regression: full-world raster built once for every arriving PNG');
+  assert.ok(fast.p95DrawMs<=Math.max(70,control.p95DrawMs*1.35),
+   'regression: partial world cache slower than streaming direct painter');
+  assert.ok(fast.p95FrameGapMs<=Math.max(85,control.p95FrameGapMs*1.45),
+   'regression: browser pan frame cadence much slower than direct painter');
+  assert.ok(fast.cold.p95DrawMs<=Math.max(130,control.cold.p95DrawMs*1.45),
+   'regression: huge full-world spikes during initial PNG streaming');
   await noStream.close();
   await legacy.close();
 
