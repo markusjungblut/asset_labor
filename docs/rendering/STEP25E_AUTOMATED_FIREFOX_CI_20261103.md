@@ -21,7 +21,7 @@ Die aktuelle echte Firefox-159-Aufzeichnung stammt aus der eingefrorenen Karte `
 
 - Bei jedem Pull Request auf `main`/die benannten `feat/*`-/`fix/*`-/`test/*`-Branches und bei relevanten Pushes auf `main` laufen die Node-Render-/Lade-Tests sowie der echte Firefox-Browsertest **automatisch**. Unbedeutende Dokumentationsänderungen triggern keinen großen Testlauf. Gleichzeitige veraltete Läufe werden abgebrochen.
 - **Sparse Checkout** lädt nur `frozen-map-*.js`, `cloud-artwork.js`, das reine Game-HTML und notwendige `tests/`-Dateien – keine großen 4×-PNG-Karten, kein Asset-Labor und keine gespeicherten Benutzerdateien. Minimal notwendige GitHub-Rechte: `contents: read`; zeitlich auf 12 Minuten begrenzt.
-- Node 22: `node --test tests/test_rendering_step*.cjs`, danach **Playwright Firefox** mit fixer Version **1.57.0**. Keine Änderung der Spielabhängigkeiten oder des Benutzer-PCs.
+- Node 22: `node --test tests/test_rendering_step2[1-5]*.cjs` für die eigenständigen Karten-Regressionen ab Schritt 21, danach **Playwright Firefox** mit fixer Version **1.57.0**. Keine Änderung der Spielabhängigkeiten oder des Benutzer-PCs.
 - `tests/automated_browser_frozen_map.cjs`: Kleiner lokaler HTTP-Server; im isolierten CI-Firefox werden **120 fertig vorgerenderte Kacheln** (2×-Terrain + transparentes Scenery), **120 vorab persistierte 1×-Varianten**, 399 Hex-Zustände und vier Cloud-Grafiken in frische IndexedDBs geschrieben. Es gibt **keine** Terrain-Generierung im Spielviewer. Der Test öffnet die echte `frozen-map-game.html` und prüft `saved=120`, sichtbare Bildpakete, Cloud-Basen, fehlende JS-/HTTP-Fehler und Fog-/Renderer-Initialisierung.
 - Automatisierte **Pan-Bewegung hin/zurück** mit echten Playwright-Maus-/Pointer-Events, danach ein zweiter Durchlauf mit `prefetchGuard=0` als Referenz derselben isolierten Browserinstanz. Erzeugt per Lauf echte `perf=1`-JSON-Berichte, Screenshots und eine maschinenlesbare Vergleichszusammenfassung.
 - Danach automatisierter Zoom per UI auf **1×-LOD und zurück nach 2×**. Prüft, dass die LOD-Umschaltung, Quellarchiv-Nur-Lesen und fehlende Bildladefehler erhalten bleiben.
@@ -44,3 +44,9 @@ Die aktuelle echte Firefox-159-Aufzeichnung stammt aus der eingefrorenen Karte `
 3. Mehrstufiges serverfähiges Tile-Paket-Format und Reimport-Test fixturefähig integrieren. Dabei den Originalexport unverändert lassen und Fog-Sicherheit durch serverseitige Autorisierung lösen.
 
 Keine weiteren manuellen Pan-/Zoom-Exporte vom Nutzer voraussetzen.
+
+## GitHub-Actions-Validierung der neuen Pipeline
+
+Der **erste echte CI-Lauf** auf Draft-PR #114 konnte über den GitHub-Connector kontrolliert werden. Das Node-Gate meldete 31 grüne / 90 rote Tests, weil der zunächst zu breite Glob auch historische Asset-Labor-Tests ab Step 13 aufrief, deren `app.js`, `scripts/` und Asset-Pools im bewusst schlanken Checkout nicht vorhanden sind. Außerdem enthielten zwei alte Strukturtests unzulässige doppelt geescapte HTML-RegEx und einer rechnete noch mit einer längst abgeschalteten Zoom-Screenshot-Vorschau.
+
+**Korrekturen:** Seit Commit `0f239e4` testet CI ausdrücklich Step 21–25 und damit nur den isolierten Frozen-Map-Viewer. Die alten Tests wurden auf das reale aktuelle Verfahren aktualisiert: 850-ms-Fog-Dissolve, Live-Zoom ohne Screenshot-Preview, aktuelle Variantenwahl und korrekte URL-RegEx. Die Tests wurden nicht stumm deaktiviert. Der Firefox-Lauf wurde vom ersten Node-Fehlschlag korrekt nicht gestartet. Ein erneuter CI-Run muss bis zum grünen Ergebnis beziehungsweise dem nächsten echten Browserfehler verfolgt werden. Das Verhalten zeigt, dass GitHub Actions die Tests wirklich ausführt und Defekte als fehlgeschlagene Checks meldet.
