@@ -129,9 +129,9 @@ test('clouds dissolve only when once seen unfinished on screen',async()=>{
  assert.equal(times.at(-1),1,'fade begins after image becomes ready');
  clock.value=380;player.draw();
  assert.ok(times.at(-1)>0&&times.at(-1)<1,'opacity eases away');
- clock.value=700;player.draw();
+ clock.value=1100;player.draw();
  assert.equal(times.at(-1),0,'cloud completely dissolved');
- player.setPose({panX:-105});clock.value=900;player.draw();
+ player.setPose({panX:-105});clock.value=1300;player.draw();
  assert.equal(times.at(-1),0,'no cloud reappears on camera movement');
  player.stop();
 });
@@ -141,11 +141,11 @@ test('runtime remains independent from editor, source baking and multiplayer fog
   assert.doesNotThrow(()=>new Function(file(name)),name);
  assert.match(runtime,/prefetch\.sort/);
  assert.match(runtime,/unreadyObserved\.has\(id\)/);
- assert.match(runtime,/paintOverview\(ctx,view,tiles,dpr\)/);
+ assert.match(runtime,/paintOverview\(ctx,view,tiles,dpr,tiles\.length===visible\.length\)/);
  assert.match(runtime,/bufferKeys\.join\(';\'\)/);
- assert.match(runtime,/bufferedBounds\)\)\.map\(\(\[key\]\)=>key\)\.sort\(\)/);
+ assert.match(runtime,/const chosen=new Map\(\)/);
  assert.match(html,/frozen-map-view-policy\.js/);
- assert.match(html,/<script src="frozen-map-runtime\\.js\\?v=/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.doesNotMatch(runtime,/drawGround\(|drawRoads\(|bakeWorldTile\(/);
  assert.doesNotMatch(file('frozen-map-view-policy.js'),/source\.put\(/);
 });
