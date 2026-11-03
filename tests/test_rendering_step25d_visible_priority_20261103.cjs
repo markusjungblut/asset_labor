@@ -136,7 +136,7 @@ test('profile data identifies tile, variant, request purpose and repeat decode',
 });
 test('25D never touches stored assets or global Sprite/Fog geometry',()=>{
  assert.match(game,/params\.get\('prefetchGuard'\)!=='0'/);
- assert.match(html,/step25d-priority/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.match(runtime,/MAX_SPECULATIVE=1/);
  assert.match(runtime,/visibleMissing=visible\.some/);
  assert.match(runtime,/if\(prefetchGuard\)for\(const \[key,entry\] of decoded\)/);
