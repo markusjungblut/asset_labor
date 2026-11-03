@@ -82,7 +82,7 @@ function setup(){
   decode:async png=>({width:png.width,height:png.height,close(){}})});
  return {player,displayLog,advance:ms=>{now+=ms}};
 }
-test('wheel-zoom preview reprojects an authorized snapshot and avoids full world redraw per event',async()=>{
+test('wheel zoom draws authorized real camera images without a frozen screenshot',async()=>{
  const {player,displayLog}=setup();
  await player.load('v1-0374527a','near',
   {zoom:.7,panX:0,panY:0,dpr:2,projectY:.85},
@@ -94,22 +94,17 @@ test('wheel-zoom preview reprojects an authorized snapshot and avoids full world
  }
  player.draw();
  assert.ok(player.report().decoded>=1);
+ assert.equal(player.report().zoomPreviewActive,false);
  const start=displayLog.length;
- assert.ok(player.beginZoomPreview(),'snapshot of authorized canvas created');
  for(let i=1;i<=4;i++){
+  const before=displayLog.length;
   player.setPose({zoom:.7/(1+i*.15),panX:i*8,panY:i*5});
   player.draw();
+  assert.ok(displayLog.length>before,'each zoom redraws real image layers');
+  assert.equal(player.report().zoomPreviewActive,false);
  }
- const during=displayLog.slice(start);
- assert.equal(player.report().zoomPreviewFrames,4);
- // One snapshot copy, four transformed draws, no tile-layer paint passes.
- assert.equal(during.length,5,'zoom gestures must not recompose 2 world layers');
- assert.ok(during.slice(1).every(e=>e.image.kind==='preview-canvas'));
- assert.equal(player.endZoomPreview({waitForVisible:true}),true);
- assert.equal(player.report().zoomPreviewActive,false);
- const before=displayLog.length;
- player.draw();
- assert.ok(displayLog.length>before,'full quality after gesture');
+ assert.ok(displayLog.length>start);
+ assert.equal(player.report().zoomPreviewFrames,0);
  player.stop();
 });
 test('current game uses live layers while keeping final 2x DPR after zoom',()=>{
@@ -118,5 +113,5 @@ test('current game uses live layers while keeping final 2x DPR after zoom',()=>{
  assert.ok(gameSource.includes('const gestureDpr=Math.min(p.dpr||2,1.25)'));
  assert.ok(gameSource.includes('{deferDpr:true}'));
  assert.ok(gameSource.includes('if(!deferDpr&&Math.abs(outDpr'));
- assert.match(gameHtml,/<script src="frozen-map-game\\.js\\?v=/);
+ assert.match(gameHtml,/frozen-map-game\.js\?v=/);
 });

@@ -100,8 +100,8 @@ test('large caches do not change LOD, world layer ordering or original data writ
  assert.match(runtime,/cacheDpr=largeViewportCache\?Math\.min\(1\.25,dpr\):dpr/);
  assert.match(runtime,/target\.drawImage\(current\.canvas,sx,sy,/);
  assert.match(runtime,/list=\[\.\.\.list\]\.sort/);
- assert.match(page,/<script src="frozen-map-runtime\\.js\\?v=/);
- assert.match(page,/<script src="frozen-map-game\\.js\\?v=/);
+ assert.match(page,/frozen-map-runtime\.js\?v=/);
+ assert.match(page,/frozen-map-game\.js\?v=/);
  assert.doesNotMatch(runtime,/bakeWorldTile\(/);
  for(const source of [runtime,policy,game])assert.doesNotThrow(()=>new Function(source));
 });
