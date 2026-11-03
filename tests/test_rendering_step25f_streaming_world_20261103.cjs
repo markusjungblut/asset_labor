@@ -122,7 +122,7 @@ test('streamCache=0 preserves legacy per-frame live painter for automated A/B',a
 });
 test('streaming partial cache uses read-only archived data, same Fog mask and LOD',()=>{
  assert.match(game,/params\.get\('streamCache'\)!=='0'/);
- assert.match(html,/step25f-stream-cache/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.match(runtime,/if\(!streamingWorldCache&&loading\.size&&!visibleComplete\)return false/);
  assert.match(runtime,/signature=bufferKeys\.join\(';'\)/);
  assert.match(runtime,/clipCells\(45\)/);
