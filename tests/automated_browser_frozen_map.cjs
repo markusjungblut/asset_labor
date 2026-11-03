@@ -17,7 +17,8 @@ const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
  'frozen-map-game.js','frozen-map-runtime.js','frozen-map-profiler.js',
- 'frozen-map-view-policy.js','frozen-map-derived-1x.js',
+ 'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
+ 'frozen-map-derived-1x.js',
  'frozen-map-derived-2x.js','cloud-artwork.js'
 ]);
 const run=async()=>{
@@ -156,7 +157,8 @@ const run=async()=>{
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
     (mode==='noCloudPad'?'&cloudPad=0':'')+
-    (mode==='forceCloud'?'&cloudAuto=0':'');
+    (mode==='forceCloud'?'&cloudAuto=0':'')+
+    (mode==='noFogCull'?'&fogCull=0':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -199,7 +201,12 @@ const run=async()=>{
     cloudPad:coldReport.environment.runtime.cloudEffectivePad,
     cloudAutoMode:coldReport.environment.runtime.cloudAutoMode,
     cloudDirectMs:coldReport.environment.runtime.cloudAutoDirectMs,
-    cloudCachedMs:coldReport.environment.runtime.cloudAutoCachedMs
+    cloudCachedMs:coldReport.environment.runtime.cloudAutoCachedMs,
+    fogCull:coldReport.environment.runtime.fogViewportCull,
+    fogCells:coldReport.environment.runtime.fogUnreadySubmitted,
+    fogCandidates:coldReport.environment.runtime.fogUnreadyCandidates,
+    fogEdges:coldReport.environment.runtime.fogFrontierSubmitted,
+    fogEdgeCandidates:coldReport.environment.runtime.fogFrontierCandidates
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -244,6 +251,10 @@ const run=async()=>{
     cold,
     p95DrawMs:report.phasesMs.drawMs.p95,
     p95FrameGapMs:report.phasesMs.frameGapMs.p95,
+    p95FogMs:report.phasesMs.fogMs.p95,
+    p95FogCullMs:report.phasesMs.fogCullMs.p95,
+    p95FogUnreadyMs:report.phasesMs.fogUnreadyMs.p95,
+    p95FogTransitionsMs:report.phasesMs.fogTransitionsMs.p95,
     activeFrames:report.frameCounts.active,
     tileReads:report.tiles.counts.loaded,
     decodeRepeats:report.tiles.counts.repeated,
@@ -259,6 +270,7 @@ const run=async()=>{
   const noStream=await loadMode('noStream');
   const noCloudPad=await loadMode('noCloudPad');
   const forceCloud=await loadMode('forceCloud');
+  const noFogCull=await loadMode('noFogCull');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -304,6 +316,23 @@ const run=async()=>{
    'automatic cloud selection must not regress real Firefox pan p95');
   assert.ok(fast.p95FrameGapMs<=Math.max(85,cloudControl.p95FrameGapMs*1.32),
    'automatic cloud selection must not worsen real Firefox pan cadence');
+  const fogControl=collected.results.noFogCull;
+  assert.equal(fogControl.cold.fogCull,false,
+   'fogCull=0 must pass the same complete authored Fog scene to the painter');
+  assert.equal(fogControl.cold.fogCells,fogControl.cold.fogCandidates);
+  assert.equal(fogControl.cold.fogEdges,fogControl.cold.fogEdgeCandidates);
+  assert.equal(fast.cold.fogCull,true);
+  assert.ok(fast.cold.fogCells<fogControl.cold.fogCells,
+   'the actual 399-hex viewport must skip offscreen unready checks');
+  assert.ok(fast.cold.fogEdges<=fogControl.cold.fogEdges,
+   'frontier culling must never create additional cloud stamps');
+  assert.ok(fast.p95DrawMs<=Math.max(90,fogControl.p95DrawMs*1.4),
+   'regression: viewport-culling increases actual browser draw p95');
+  assert.ok(fast.p95FrameGapMs<=Math.max(100,fogControl.p95FrameGapMs*1.45),
+   'regression: Fog viewport pruning worsens active pan frame cadence');
+  assert.ok(fast.p95FogCullMs!=null&&fast.p95FogUnreadyMs!=null&&
+   fast.p95FogTransitionsMs!=null,'real Firefox Fog stage timings required');
+  await noFogCull.close();
   await forceCloud.close();
   await noCloudPad.close();
   await noStream.close();
