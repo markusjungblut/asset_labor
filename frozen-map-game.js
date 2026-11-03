@@ -27,13 +27,15 @@
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
  const overview1x=params.get('overview1x')!=='0';
  const largeViewportCache=params.get('cacheLarge')!=='0';
+ // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
+ const prefetchGuard=params.get('prefetchGuard')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
-  overview1x,largeViewportCache,
+  overview1x,largeViewportCache,prefetchGuard,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -63,6 +65,9 @@
      ' · 1×-LOD deaktiviert')+
     ' · 1×/2× im RAM '+stats.decoded1x+'/'+stats.decoded2x+
     ' · Evictions '+stats.evictions+
+    ' · Re-Decodes '+stats.decodeRepeats+
+    ' · Hintergrund '+stats.prefetchReadStarts+
+    ' · Vorladen gebremst '+stats.prefetchSkippedBudget+
     ' · Raster '+(largeViewportCache?'groß':'alt')+
     ' · Direkt-Welt/Wolken '+stats.worldCacheFallbackFrames+'/'+
      stats.cloudCacheFallbackFrames+
@@ -231,7 +236,8 @@
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
-   derived1x:oneXStore.stats(),overview1x,largeViewportCache
+   derived1x:oneXStore.stats(),overview1x,largeViewportCache,
+   prefetchGuard
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
