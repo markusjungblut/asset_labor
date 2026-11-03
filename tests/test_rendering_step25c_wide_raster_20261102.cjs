@@ -40,7 +40,7 @@ function fixture({largeViewportCache=true,dpr=1.735}={}){
  vm.runInNewContext(runtime,{window:w,document,console,
   performance:{now:()=>++tick},requestAnimationFrame:()=>{}});
  const viewer=w.VedrasFrozenMap.create({canvas,storage:store,
-  largeViewportCache,overview1x:false,
+  largeViewportCache,overview1x:false,autoCloudStrategy:false,
   decode:async img=>({...img,close(){}})});
  return {viewer,calls,buffers,cloudPaints,dpr};
 }
