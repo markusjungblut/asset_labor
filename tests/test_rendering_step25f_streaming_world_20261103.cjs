@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'frozen-map-game.html'),'utf8');
 const key=id=>'v1-0374527a|near|'+id;
 
 function createFixture({streamingWorldCache=true}={}){
- const w={},calls=[],fogReadiness=[],recordCalls=[];
+ const w={},calls=[],fogReadiness=[],recordCalls=[],dirtyOps=[];
  vm.runInNewContext(policy,{window:w});
  w.VedrasCloudArtwork={create(){return {
   setSeed(){},setAssets(){},stats(){return {bases:0}},
@@ -21,6 +21,7 @@ function createFixture({streamingWorldCache=true}={}){
  const ctx=()=>({
   setTransform(){},save(){},restore(){},beginPath(){},moveTo(){},
   lineTo(){},closePath(){},clip(){},translate(){},scale(){},
+  rect(){},clearRect(x,y,width,height){dirtyOps.push({x,y,width,height})},
   fillRect(){},drawImage(im){calls.push(im?.id||'raster')}
  });
  const canvas={width:0,height:0,getContext:ctx,
@@ -53,7 +54,7 @@ function createFixture({streamingWorldCache=true}={}){
   streamingWorldCache,prefetchGuard:true,overview1x:false,
   maxDecodedPixels:10000000,profiler:null,
   decode:async blob=>({...blob,close(){}})});
- return {player,calls,fogReadiness,recordCalls,releaseSecond};
+ return {player,calls,fogReadiness,recordCalls,releaseSecond,dirtyOps};
 }
 async function tick(f,n=1){
  for(let i=0;i<n;i++){
@@ -95,8 +96,13 @@ test('streaming cached panorama is built ONCE and reused while one visible PNG i
  const loaded=f.player.report();
  assert.equal(loaded.decoded,2);
  assert.equal(loaded.pending,0);
- assert.ok(loaded.overviewRasterBuilds>before.builds,
-  'new exact layer signature must rebuild before Fog reveals the second tile');
+ assert.ok(loaded.overviewPatchBuilds>0,
+  'the incoming tile must update a bounded dirty rectangle, not a full atlas');
+ assert.equal(loaded.overviewRasterBuilds,before.builds,
+  'new PNG arrival should preserve the existing world raster allocation');
+ assert.ok(f.dirtyOps.length>0);
+ assert.ok(f.dirtyOps.every(op=>op.width>0&&op.height>0&&
+  op.width<1012&&op.height<832),'patch must not repaint whole viewport');
  assert.ok(f.calls.includes('G:1,0')&&f.calls.includes('S:1,0'));
  f.player.stop();
 });
@@ -121,6 +127,8 @@ test('streaming partial cache uses read-only archived data, same Fog mask and LO
  assert.match(runtime,/signature=bufferKeys\.join\(';'\)/);
  assert.match(runtime,/clipCells\(45\)/);
  assert.match(runtime,/function isHexReady/);
+ assert.match(runtime,/function patchOverview/);
+ assert.match(runtime,/old.shown=next;old.signature=signature/);
  assert.match(runtime,/clouds\.drawUnready\(ctx,view,cells,ready,fadeOpacity\)/);
  assert.doesNotMatch(runtime,/deleteDatabase\(|source\.put\(|bakeWorldTile\(/);
  for(const s of [runtime,policy,game])assert.doesNotThrow(()=>new Function(s));
