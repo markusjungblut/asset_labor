@@ -155,7 +155,8 @@ const run=async()=>{
     '&lod=near&perf=1'+
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
-    (mode==='noCloudPad'?'&cloudPad=0':'');
+    (mode==='noCloudPad'?'&cloudPad=0':'')+
+    (mode==='forceCloud'?'&cloudAuto=0':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -195,7 +196,10 @@ const run=async()=>{
     cloudBuilds:coldReport.environment.runtime.cloudBackdropBuilds,
     cloudHits:coldReport.environment.runtime.cloudBackdropHits,
     cloudFallbacks:coldReport.environment.runtime.cloudCacheFallbackFrames,
-    cloudPad:coldReport.environment.runtime.cloudEffectivePad
+    cloudPad:coldReport.environment.runtime.cloudEffectivePad,
+    cloudAutoMode:coldReport.environment.runtime.cloudAutoMode,
+    cloudDirectMs:coldReport.environment.runtime.cloudAutoDirectMs,
+    cloudCachedMs:coldReport.environment.runtime.cloudAutoCachedMs
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -254,6 +258,7 @@ const run=async()=>{
   const legacy=await loadMode('legacy');
   const noStream=await loadMode('noStream');
   const noCloudPad=await loadMode('noCloudPad');
+  const forceCloud=await loadMode('forceCloud');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -285,11 +290,21 @@ const run=async()=>{
    'cloudPad=0 must reproduce failed cloud buffer allocation');
   assert.ok(cloudControl.cold.cloudFallbacks>0);
   assert.ok(fast.cold.cloudBuilds>0&&fast.cold.cloudHits>0,
-   'adaptive cloud pad must make a real 1.25x backdrop on ultrawide Firefox');
+   'adaptive cloud pad must be sampled as a real 1.25x backdrop');
   assert.ok(fast.cold.cloudPad>0&&fast.cold.cloudPad<272,
    'only offscreen overscan is reduced, not rendered cloud density');
-  assert.ok(fast.p95DrawMs<=Math.max(75,cloudControl.p95DrawMs*1.55),
-   'adaptive cloud backdrop causes unacceptable pan-frame regression');
+  assert.ok(fast.cold.cloudAutoMode==='direct'||
+   fast.cold.cloudAutoMode==='cached',
+   'cold startup must finish cloud compositing A/B calibration');
+  assert.ok(collected.results.forceCloud.cold.cloudBuilds>0,
+   'force-cloud control proves cached cloud path still available');
+  // A cached ~6MP blit cost 29ms p95 in the original CI vs just 7ms
+  // direct; auto-calibration must prevent this measured regression.
+  assert.ok(fast.p95DrawMs<=Math.max(70,cloudControl.p95DrawMs*1.28),
+   'automatic cloud selection must not regress real Firefox pan p95');
+  assert.ok(fast.p95FrameGapMs<=Math.max(85,cloudControl.p95FrameGapMs*1.32),
+   'automatic cloud selection must not worsen real Firefox pan cadence');
+  await forceCloud.close();
   await noCloudPad.close();
   await noStream.close();
   await legacy.close();
