@@ -81,7 +81,7 @@ window.VedrasFrozenMap=(()=>{
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
-    adaptiveCloudCache=true}={}){
+    adaptiveCloudCache=true,autoCloudStrategy=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -120,6 +120,18 @@ window.VedrasFrozenMap=(()=>{
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let cloudEffectivePad=0,cloudPadClamps=0;
+  // The canvas cloud cache only helps when its large drawImage blit is
+  // cheaper than drawing individual cloud hexes on the current GPU.
+  const CLOUD_PROBES=4;
+  let cloudAutoKey='',cloudAutoMode='calibrating',
+   cloudAutoDirect=[],cloudAutoCached=[],cloudAutoDecisions=0,
+   cloudAutoDirectFrames=0,cloudAutoCachedFrames=0;
+  const cloudAutoMean=values=>values.length?
+   Math.round(values.reduce((sum,value)=>sum+value,0)/values.length*10)/10:null;
+  function resetCloudAuto(){
+   cloudAutoKey='';cloudAutoMode='calibrating';
+   cloudAutoDirect=[];cloudAutoCached=[];
+  }
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
   const cloudRasterLimit=largeViewportCache?8500000:6500000;
@@ -128,7 +140,7 @@ window.VedrasFrozenMap=(()=>{
    evictions=0,profileFrame=null;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
   const clouds=window.VedrasCloudArtwork?.create({
-   onReady:()=>{cloudBackdropRaster=null;repaint();}
+   onReady:()=>{cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
@@ -158,7 +170,11 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
-   cloudEffectivePad,cloudPadClamps,
+   cloudEffectivePad,cloudPadClamps,autoCloudStrategy,
+   cloudAutoMode,cloudAutoDecisions,
+   cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
+   cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
+   cloudAutoDirectFrames,cloudAutoCachedFrames,
    worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
    worldRasterLimit,cloudRasterLimit,
    cloudBackdropMiB:cloudBackdropRaster?
@@ -183,7 +199,7 @@ window.VedrasFrozenMap=(()=>{
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
-   cloudBackdropRaster=null;
+   cloudBackdropRaster=null;resetCloudAuto();
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -460,7 +476,7 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
-   cloudBackdropRaster=null;cloudEffectivePad=0;
+   cloudBackdropRaster=null;cloudEffectivePad=0;resetCloudAuto();
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
