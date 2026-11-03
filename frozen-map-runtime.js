@@ -541,6 +541,67 @@ window.VedrasFrozenMap=(()=>{
     view.width*cacheDpr,view.height*cacheDpr,0,0,view.width,view.height);
    return true;
   }
+  // Direct and cached paths cover precisely the same authorized cloud
+  // field. Dynamic Fog/transition layers are drawn afterward in draw().
+  // At ultra-wide resolution a 6MP cached blit can be *slower* than the
+  // original small stamps. Tune for real browser/GPU, not tile counts.
+  function drawCloudBackground(target,view,dpr){
+   const direct=()=>{
+    cloudCacheFallbackFrames++;cloudAutoDirectFrames++;
+    if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored')
+     .map(c=>c.q+','+c.r));
+    clouds.drawBase(target,view,authoredFogSet);
+   };
+   const cached=()=>{
+    if(!paintCloudBackdrop(target,view,dpr))return false;
+    cloudAutoCachedFrames++;
+    return true;
+   };
+   if(!useLayerCache){direct();return;}
+   if(!adaptiveCloudCache||!autoCloudStrategy){
+    if(!cached())direct();
+    return;
+   }
+   const stats=clouds.stats();
+   // An initial 0-stamp background is not a representative measurement:
+   // postpone selection until the four authored cloud assets are ready.
+   if(!stats?.bases||stats.pending){
+    if(!cached())direct();
+    return;
+   }
+   const signature=[view.width,view.height,view.zoom,dpr,stats.version].join('|');
+   if(cloudAutoKey!==signature){
+    resetCloudAuto();cloudAutoKey=signature;
+   }
+   if(cloudAutoMode==='direct'){direct();return;}
+   if(cloudAutoMode==='cached'){
+    if(!cached())direct();return;
+   }
+   if(cloudAutoDirect.length<CLOUD_PROBES){
+    const before=clock();direct();
+    cloudAutoDirect.push(Math.max(0,clock()-before));
+    return;
+   }
+   const beforeHits=cloudBackdropHits,start=clock(),
+    complete=cached(),cost=Math.max(0,clock()-start);
+   if(!complete){
+    // At extreme canvas dimensions not even pad=0 fits the budget.
+    // Never bypass the hard 8.5-MP raster allocation guard.
+    cloudAutoMode='direct';cloudAutoDecisions++;
+    direct();return;
+   }
+   if(cloudBackdropHits>beforeHits)cloudAutoCached.push(cost);
+   // Exclude the one-off cloud raster allocation from hit timings.
+   if(cloudAutoCached.length>=CLOUD_PROBES){
+    const directCost=cloudAutoMean(cloudAutoDirect),
+     cachedCost=cloudAutoMean(cloudAutoCached);
+    // Avoid switching on measurement noise; require a 15% advantage.
+    cloudAutoMode=cachedCost<directCost*.85?'cached':'direct';
+    cloudAutoDecisions++;
+    if(cloudAutoMode==='direct')cloudBackdropRaster=null;
+   }
+  }
   function paintWorld(g,view,list,dpr){
    const worldStart=profileFrame?clock():0;
    const width=view.width,height=view.height,proj=view.projectY||.85;
@@ -881,15 +942,8 @@ window.VedrasFrozenMap=(()=>{
     }
    }
    const cloudStart=profileFrame?clock():0;
-   if(clouds){
-    if(!useLayerCache||!paintCloudBackdrop(ctx,view,dpr)){
-     cloudCacheFallbackFrames++;
-     if(!authoredFogSet)authoredFogSet=new Set(cells.filter(c=>
-      c.visibility==='visible'||c.visibility==='explored')
-      .map(c=>c.q+','+c.r));
-     clouds.drawBase(ctx,view,authoredFogSet);
-    }
-   }else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
+   if(clouds)drawCloudBackground(ctx,view,dpr);
+   else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
    const worldCompositeStart=profileFrame?clock():0;
    if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
@@ -962,6 +1016,8 @@ window.VedrasFrozenMap=(()=>{
      worldCachePatchedTiles:overviewPatchedTiles,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
+     cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
+     cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
      cloudRasterMiB:currentReport.cloudBackdropMiB
