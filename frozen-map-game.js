@@ -35,6 +35,8 @@
  const adaptiveCloudCache=params.get('cloudPad')!=='0';
  // Force always-cached for A/B. Default measures direct vs. cached blits.
  const autoCloudStrategy=params.get('cloudAuto')!=='0';
+ // Compare the same Fog artwork with and without conservative culling.
+ const fogViewportCull=params.get('fogCull')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
@@ -42,7 +44,7 @@
  const player=window.VedrasFrozenMap.create({
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
-  adaptiveCloudCache,autoCloudStrategy,
+  adaptiveCloudCache,autoCloudStrategy,fogViewportCull,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -244,7 +246,8 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
-   prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy
+   prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
+   fogViewportCull
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
