@@ -75,7 +75,7 @@ test('cloudPad=0 reproduces old direct cloud fallback at same zoom and resolutio
 });
 test('smaller cloud overscan never modifies world 2x resolution or Fog geometry',()=>{
  assert.match(game,/params\.get\('cloudPad'\)!=='0'/);
- assert.match(html,/step25g-cloud-pad/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.match(runtime,/const cacheDpr=largeViewportCache\?Math\.min\(1\.25,dpr\):dpr/);
  assert.match(runtime,/cloudRasterLimit\/\(cacheDpr\*cacheDpr\)/);
  assert.match(runtime,/pad=Math\.max\(0,Math\.min\(pad,bound\)\)/);
