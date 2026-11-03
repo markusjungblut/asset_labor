@@ -80,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -91,6 +91,15 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const SCENERY_OVERHANG_WORLD=128; // Existing world-tile scene pad
   const decoded=new Map(),loading=new Set();
+  const loadingPurpose=new Map(),seenDecoded=new Map();
+  const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
+  const typicalPixels={'1x':0,'2x':0};
+  let visibleMissing=false;
+  let visibleReadStarts=0,prefetchReadStarts=0,decodeRepeats=0,
+   visibleDecodeRepeats=0,prefetchDecodeRepeats=0,
+   prefetchSkippedVisible=0,prefetchSkippedBudget=0,
+   prefetchSkippedSlots=0,evictedSpeculative=0,
+   visibleWaitingOnPrefetch=0,visibleRequested=0,prefetchRequested=0;
   // Each variant keeps a private RAM identity; persisted storage keys do
   // not change. Keep previous 2x visible until a matching 1x tile is READY.
   let activeVariant='2x',lodSwitches=0,variantFallbackFrames=0;
@@ -131,6 +140,11 @@ window.VedrasFrozenMap=(()=>{
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
    activeVariant,lodSwitches,variantFallbackFrames,maxDecodedPixels,
+   prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
+   visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
+   prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
+   visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
+   activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
@@ -147,8 +161,16 @@ window.VedrasFrozenMap=(()=>{
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
-   decoded.clear();loading.clear();protectedKeys=new Set();decodedPixels=0;
+   decoded.clear();loading.clear();loadingPurpose.clear();
+   protectedKeys=new Set();decodedPixels=0;
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
+   seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
+   visibleMissing=false;
+   visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
+   visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
+   prefetchSkippedVisible=0;prefetchSkippedBudget=0;
+   prefetchSkippedSlots=0;evictedSpeculative=0;
+   visibleWaitingOnPrefetch=0;visibleRequested=0;prefetchRequested=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
@@ -160,12 +182,15 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
-   // 30M pixels was smaller than the visible bitmaps of a wide-screen
-   // 2x viewport. 95M (~362 MiB RGBA) retains recently visited regions.
-   // Never evict currently painted tiles, including fallback at LOD switch.
    while(decodedPixels>maxDecodedPixels&&decoded.size>1){
     let victim=null;
-    for(const [key,entry] of decoded)
+    // Speculatively decoded but NEVER displayed images must yield
+    // before recently visited terrain and before the inactive zoom LOD.
+    if(prefetchGuard)for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&entry.origin==='prefetch'){
+      victim=key;break;
+     }
+    if(!victim)for(const [key,entry] of decoded)
      if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
       victim=key;break;
      }
@@ -174,27 +199,62 @@ window.VedrasFrozenMap=(()=>{
     if(!victim)break;
     const entry=decoded.get(victim);
     decoded.delete(victim);decodedPixels-=entry.pixels;evictions++;
+    if(entry.origin==='prefetch')evictedSpeculative++;
     for(const im of entry.images)im.close?.();
    }
   }
-  function read(key,variant=desiredVariant()){
-   const id=cacheKey(key,variant),
+  function read(key,variant=desiredVariant(),purpose='visible'){
+   const speculative=purpose==='prefetch',
+    id=cacheKey(key,variant),
     alternate=cacheKey(key,variant==='1x'?'2x':'1x');
    const hit=decoded.get(id);
    if(hit){
     decoded.delete(id);decoded.set(id,hit);
+    if(!speculative)hit.origin='visible';
     hits++;return hit;
    }
    const fallback=decoded.get(alternate);
-   if(fallback){decoded.delete(alternate);decoded.set(alternate,fallback);}
-   if(!available.has(key)||loading.has(id))return fallback||null;
-   if(loading.size>=3)return fallback||null;
+   if(fallback){
+    decoded.delete(alternate);decoded.set(alternate,fallback);
+    if(!speculative)fallback.origin='visible';
+   }
+   if(!available.has(key))return fallback||null;
+   if(loading.has(id)){
+    if(!speculative&&loadingPurpose.get(id)==='prefetch')
+     loadingPurpose.set(id,'visible');
+    return fallback||null;
+   }
+   if(speculative&&prefetchGuard){
+    if(visibleMissing){
+     prefetchSkippedVisible++;return fallback||null;
+    }
+    const activeSpec=[...loadingPurpose.values()]
+     .filter(x=>x==='prefetch').length;
+    if(activeSpec>=MAX_SPECULATIVE||
+       loading.size>=MAX_INFLIGHT-1){
+     prefetchSkippedSlots++;return fallback||null;
+    }
+    // A spare region of decoded RAM is mandatory for speculative work.
+    // Estimate the bitmap pixels from completed variants, never PNG bytes.
+    const reserve=Math.max(maxDecodedPixels*.12,
+     2*(typicalPixels[variant]||2000000));
+    if(decodedPixels+reserve>=maxDecodedPixels){
+     prefetchSkippedBudget++;return fallback||null;
+    }
+   }
+   if(loading.size>=MAX_INFLIGHT){
+    if(!speculative&&[...loadingPurpose.values()]
+     .some(x=>x==='prefetch'))visibleWaitingOnPrefetch++;
+    return fallback||null;
+   }
    loading.add(id);
+   loadingPurpose.set(id,speculative?'prefetch':'visible');
+   if(speculative)prefetchReadStarts++;else visibleReadStarts++;
    const run=generation,readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
-   const operation=storage.getVariant?
-    storage.getVariant(key,variant):storage.get(key);
-   Promise.resolve(operation).then(async record=>{
+   // A rejected getVariant() request must not leave loading slots stuck.
+   Promise.resolve().then(()=>storage.getVariant?
+    storage.getVariant(key,variant):storage.get(key)).then(async record=>{
     readFinished=profiler?clock():0;
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
     const images=[],decodeStarted=profiler?clock():0;
@@ -208,10 +268,24 @@ window.VedrasFrozenMap=(()=>{
     }
     const pixels=images.reduce((sum,im)=>
      sum+(im.width||0)*(im.height||0),0);
-    decoded.set(id,{record,images,pixels,variant});
+    const actualPurpose=loadingPurpose.get(id)||'visible';
+    const count=seenDecoded.get(id)||0;
+    if(count){
+     decodeRepeats++;
+     if(actualPurpose==='prefetch')prefetchDecodeRepeats++;
+     else visibleDecodeRepeats++;
+    }
+    if(seenDecoded.has(id))seenDecoded.delete(id);
+    seenDecoded.set(id,count+1);
+    if(seenDecoded.size>MAX_SEEN)
+     seenDecoded.delete(seenDecoded.keys().next().value);
+    typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
+    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose});
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
     if(profiler)profiler.tileRead({
+     tileId:record.tile?.id||null,variant,purpose:actualPurpose,
+     redecoded:count>0,decodedCount:count+1,
      source:record.derivedFormat==='1x-png-v1'?'derived1x':
       record.derivedFormat==='2x-png-v1'?'derived2x':'original',
      storageMs:readFinished-readStarted,decodeMs:decodeDuration,
@@ -222,12 +296,16 @@ window.VedrasFrozenMap=(()=>{
    }).catch(()=>{
     if(run===generation)failures++;
     if(profiler)profiler.tileRead({
-     error:true,storageMs:readFinished?
+     error:true,tileId:key.split('|').at(-1),variant,
+     purpose:loadingPurpose.get(id)||purpose,
+     storageMs:readFinished?
       readFinished-readStarted:clock()-readStarted,
      decodeMs:decodeDuration,totalMs:clock()-readStarted
     });
    }).finally(()=>{
-    if(run===generation){loading.delete(id);repaint();}
+    if(run===generation){
+     loading.delete(id);loadingPurpose.delete(id);repaint();
+    }
    });
    return fallback||null;
   }
@@ -614,6 +692,7 @@ window.VedrasFrozenMap=(()=>{
    }
    const previousVariant=activeVariant,variant=desiredVariant();
    if(previousVariant!==variant){lodSwitches++;overviewRaster=null;}
+   visibleMissing=visible.some(t=>!decodedEntry(t.key,variant));
    protectedKeys=new Set(visible.flatMap(t=>{
     const result=[cacheKey(t.key,variant)];
     const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
@@ -631,7 +710,8 @@ window.VedrasFrozenMap=(()=>{
    });
    const tiles=[];
    for(const t of visible){
-    const entry=read(t.key,variant);
+    visibleRequested++;
+    const entry=read(t.key,variant,'visible');
     if(entry){
      if(entry.variant!==variant)variantFallbackFrames++;
      tiles.push({...t,entry});
@@ -646,7 +726,10 @@ window.VedrasFrozenMap=(()=>{
      ex=b.left+b.right-width,ey=b.top+b.bottom-height;
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
-   for(const t of prefetch)read(t.key,variant);
+   for(const t of prefetch){
+    prefetchRequested++;
+    read(t.key,variant,'prefetch');
+   }
    if(profileFrame)profileFrame.selectMs=clock()-now;
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
@@ -743,6 +826,10 @@ window.VedrasFrozenMap=(()=>{
      visibleReadyTiles:tiles.length,
      decodedTiles:decoded.size,pendingTiles:loading.size,
      activeVariant,decodedPixels,evictions,
+     visibleReadStarts,prefetchReadStarts,decodeRepeats,
+     visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
+     prefetchSkippedBudget,prefetchSkippedVisible,
+     prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
