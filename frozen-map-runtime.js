@@ -80,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true,prefetchGuard=true}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -115,6 +115,7 @@ window.VedrasFrozenMap=(()=>{
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
@@ -151,6 +152,7 @@ window.VedrasFrozenMap=(()=>{
    renderMode:useLayerCache?'cached':'direct',
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
+   overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    cloudBackdropHits,cloudBackdropBuilds,
    worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
    worldRasterLimit,cloudRasterLimit,
@@ -174,6 +176,7 @@ window.VedrasFrozenMap=(()=>{
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
+   overviewStreamingBuilds=0;overviewStreamingHits=0;
    cloudBackdropRaster=null;
   }
   const repaint=()=>{
@@ -622,13 +625,14 @@ window.VedrasFrozenMap=(()=>{
     Math.abs(overviewRaster.panY-view.panY)<pad-8;
    if(usable){
     overviewHits++;
+    if(loading.size&&!visibleComplete)overviewStreamingHits++;
    }else{
-    // During cold streaming the exact bitmap contents change for every
-    // completed image; avoid building a multi-megapixel overview atlas on
-    // each step. Build it once when the visible request queue settles.
-    // Pending OFFSCREEN prefetch must not disable the world raster after
-    // every currently visible tile is already decoded.
-    if(loading.size&&!visibleComplete)return false;
+    // Cache the completed portion of the map even while more PNGs decode.
+    // Its signature includes exact decoded tiles and their 1x/2x variant,
+    // so arrivals trigger a rebuild BEFORE Fog can reveal that landscape.
+    // 25D forced a full direct world paint on every frame while loading;
+    // this opt-out keeps that legacy behavior available for CI A/B.
+    if(!streamingWorldCache&&loading.size&&!visibleComplete)return false;
     const buffer=document.createElement('canvas');
     buffer.width=cw;buffer.height=ch;
     const g=buffer.getContext('2d',{alpha:true});
@@ -642,6 +646,7 @@ window.VedrasFrozenMap=(()=>{
      zoom:view.zoom,dpr,panX:view.panX,panY:view.panY,
      signature,pad};
     overviewBuilds++;
+    if(loading.size&&!visibleComplete)overviewStreamingBuilds++;
    }
    const m=overviewRaster;
    const sx=(m.pad+m.panX-view.panX)*dpr,
@@ -838,6 +843,8 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedBudget,prefetchSkippedVisible,
      prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
+     worldCacheStreamingBuilds:overviewStreamingBuilds,
+     worldCacheStreamingHits:overviewStreamingHits,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
