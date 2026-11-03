@@ -80,7 +80,8 @@ window.VedrasFrozenMap=(()=>{
  }
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true}={}){
+    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
+    adaptiveCloudCache=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -118,6 +119,7 @@ window.VedrasFrozenMap=(()=>{
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
+  let cloudEffectivePad=0,cloudPadClamps=0;
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
   const cloudRasterLimit=largeViewportCache?8500000:6500000;
@@ -155,7 +157,8 @@ window.VedrasFrozenMap=(()=>{
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    overviewPatchBuilds,overviewPatchedTiles,
-   cloudBackdropHits,cloudBackdropBuilds,
+   cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
+   cloudEffectivePad,cloudPadClamps,
    worldCacheFallbackFrames,cloudCacheFallbackFrames,largeViewportCache,
    worldRasterLimit,cloudRasterLimit,
    cloudBackdropMiB:cloudBackdropRaster?
@@ -457,7 +460,7 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
-   cloudBackdropRaster=null;
+   cloudBackdropRaster=null;cloudEffectivePad=0;
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
    repaint();return true;
@@ -466,11 +469,29 @@ window.VedrasFrozenMap=(()=>{
    if(!clouds)return false;
    // A bounded scene-aligned cloud backdrop avoids hundreds of artwork
    // stamps every time a warm 2x game scene pans a few screen pixels.
-   const pad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
-   // Backdrop clouds are soft artwork; 1.25x is enough even when
-   // the fully detailed world layers require more than 1.25x.
-   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr,
-    cw=Math.ceil((view.width+pad*2)*cacheDpr),
+   const preferredPad=viewportPolicy?.cameraCacheMargin(view.zoom)||160;
+   // The soft authored clouds retain their original cached 1.25x quality.
+   // An ultrawide viewport may fit the 8.5-MP budget only with LESS padding.
+   // This is better than discarding the entire backdrop and stamping every
+   // cloud on every camera frame. Preserve the old fallback for CI A/B.
+   const cacheDpr=largeViewportCache?Math.min(1.25,dpr):dpr;
+   let pad=preferredPad;
+   if(adaptiveCloudCache){
+    const capacity=cloudRasterLimit/(cacheDpr*cacheDpr);
+    const delta=view.width-view.height;
+    const bound=Math.floor((Math.sqrt(delta*delta+4*capacity)-
+     view.width-view.height)/4);
+    pad=Math.max(0,Math.min(pad,bound));
+    const fits=p=>{
+     const w=Math.ceil((view.width+p*2)*cacheDpr),
+      h=Math.ceil((view.height+p*2)*cacheDpr);
+     return w*h<=cloudRasterLimit&&w<=8192&&h<=8192;
+    };
+    while(pad>0&&!fits(pad))pad--;
+    if(pad<preferredPad)cloudPadClamps++;
+   }
+   cloudEffectivePad=pad;
+   const cw=Math.ceil((view.width+pad*2)*cacheDpr),
     ch=Math.ceil((view.height+pad*2)*cacheDpr);
    if(cw*ch>cloudRasterLimit||cw>8192||ch>8192||
       typeof document==='undefined')return false;
@@ -479,7 +500,8 @@ window.VedrasFrozenMap=(()=>{
     .map(c=>c.q+','+c.r));
    const previous=cloudBackdropRaster;
    const usable=previous&&previous.zoom===view.zoom&&
-    previous.dpr===cacheDpr&&previous.width===view.width&&
+    previous.dpr===cacheDpr&&previous.pad===pad&&
+    previous.width===view.width&&
     previous.height===view.height&&
     Math.abs(previous.panX-view.panX)<pad-8&&
     Math.abs(previous.panY-view.panY)<pad-8;
@@ -923,6 +945,7 @@ window.VedrasFrozenMap=(()=>{
      worldCachePatchBuilds:overviewPatchBuilds,
      worldCachePatchedTiles:overviewPatchedTiles,
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
+     cloudCachePad:cloudEffectivePad,cloudPadClamps,
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
      cloudRasterMiB:currentReport.cloudBackdropMiB
