@@ -1,6 +1,6 @@
 # Schritt 25H – Viewport-Culling für dynamische Fog-/Frontier-Komposition
 
-Stand: 03.11.2026. Separater Draft auf `main`, nach gemergtem Schritt 25G (#117).
+Stand: 07.11.2026. Schritt 25H mit [PR #118](https://github.com/markusjungblut/asset_labor/pull/118) nach `main` integriert (Merge `28dee799dcbfab0660ecc24744c36d7a2b60585c`), auf Grundlage der grünen automatisierten Firefox-Abnahme #41701703189.
 
 ## Messgrundlage und Hypothese
 
@@ -63,8 +63,8 @@ entsteht.
   p95, JSON und reale PNG-Screenshots; ein großzügiges Performance-
   Regression-Gate verhindert offensichtliche Verschlechterungen.
 - CI ist erst nach **tatsächlich erfolgreich durchgelaufener** Node-
-  und Firefox-Aktion als grün zu bezeichnen. Die Änderung bleibt bis zur
-  gemessenen funktionalen Abnahme Draft und wird nicht automatisch gemergt.
+  und Firefox-Aktion als grün zu bezeichnen. Die Änderung blieb bis zur
+  gemessenen funktionalen Abnahme Draft; die CI-Abnahme ist inzwischen erfolgreich und der PR gemergt.
 
 ## Abschlussmessung der automatisierten CI (03.11.2026, geprüft 07.11.)
 
