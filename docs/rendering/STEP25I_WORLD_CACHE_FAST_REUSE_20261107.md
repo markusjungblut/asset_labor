@@ -1,6 +1,6 @@
 # Schritt 25I – Schnelle Wiederverwendung unveränderter World-Raster und World-Phasenprofiling
 
-Stand: 07.11.2026 · **PR-Abnahme ausstehend**. Ausgangspunkt ist der in `main` gemergte Schritt 25H (#118).
+Stand: 07.11.2026 · **automatische Node-/Firefox-Abnahme grün; PR #119 für Merge bereit**. Ausgangspunkt ist der in `main` gemergte Schritt 25H (#118).
 
 ## Messhypothese
 
@@ -66,3 +66,46 @@ sicher und verhindert große Regressionen.
 **Kein 60-FPS-Versprechen** auf dem privaten Windows-/600MB-Originalatlas,
 keine manuelle Pan-/Zoom-Messung durch den Nutzer und keine Eingriffe in
 Archiv-, Manifest-, LOD-, Render-DPR- oder Fog-Autorisierungsregeln.
+
+## Tatsächliche CI-Abnahme (07.11.2026)
+
+[Workflow #42397319828](https://github.com/markusjungblut/asset_labor/actions/runs/42397319828)
+auf Code-Commit `28c302748bb2f14578de8eba916f39691077c199`:
+**51/51 Node-Tests und Headless-Firefox vollständig grün**, `passed:true`,
+keine Browserfehler. Es wurden sieben identische A/B-Kameraläufe getestet;
+zusätzlich lief ein separater 1×/2×-LOD-Kontinuitätstest erfolgreich durch.
+Die Firefox-Artefakte mit JSON/PNGs sind als `frozen-map-firefox-38`
+(ID `13583787874`) archiviert.
+
+| Warm-Pan-p95, gleiche synthetische Firefox-Map | `worldFast=0` | Step-25I-Standard |
+| --- | ---: | ---: |
+| `worldPrepareMs` | 16 ms | **13 ms** |
+| `worldBlitMs` | 27 ms | **25 ms** |
+| `worldMs` inklusive Vorbereitung und Blit | 43 ms | **34 ms** |
+| `drawMs` | 62 ms | **60 ms** |
+| `frameGapMs` | 70 ms | **67 ms** |
+| Aktive Messframes | 30 | 30 |
+| World-Fast-Hits beim Kaltstart | 0 | **53** |
+| Volle World-Rechecks beim Kaltstart | 81 | **22** |
+| World-Raster-Neuaufbauten beim Kaltstart | 1 | **1** |
+
+Die p95-Einzelphasen sind unterschiedliche Frames und daher nicht additiv.
+Dies sind unpaarige Browserläufe auf dem **synthetischen Linux-CI-Runner**;
+kleine Unterschiede bei `drawMs`/`frameGapMs` sind kein hochsignifikanter
+Performance-Nachweis für alle GPUs. Gegenüber dem vorherigen 25H-Run
+schwanken absolute p95-Werte mit Runner/Kaltstart/Browserzustand; der
+**innerhalb dieses CI-Laufs** kontrollierte Vergleich ist maßgeblich.
+Die große `worldBlitMs`-Phase bleibt trotz des Fast-Hits bestehen; ein
+GPU-Upload ist durch Canvas-Wallclock alleine **nicht** direkt gemessen.
+
+Die beiden Firefox-PNGs `guarded` und `noWorldFast` zeigen denselben
+Weltaufbau; sie sind jedoch **nicht pixelidentisch** (2,47% der Pixel
+weichen in mindestens einem RGB-Kanal um mehr als 2 ab, überwiegend
+im unteren dynamischen Fog-Bereich). Ohne synchronisierte Fade-Zeitpunkte
+ist dies keine deterministische Pixelgleichheitsprüfung.
+
+**Entscheidung:** begrenzte, archivschonende CPU-Fast-Hit-Optimierung mit
+positivem Firefox-A/B und vollständigen funktionalen Tests, für `main`
+freigabefähig. Als nächster Schritt ist der World-Canvas-Blit separat
+zu untersuchen, mit Qualitätsschutz und realem Browservergleich statt
+blindem Cache-Aufbau oder Erhöhung des Canvas-/RAM-Budgets.
