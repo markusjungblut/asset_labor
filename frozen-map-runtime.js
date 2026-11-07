@@ -728,7 +728,8 @@ window.VedrasFrozenMap=(()=>{
   function patchOverview(view,dpr,pad,chosen,signature){
    const old=overviewRaster;
    if(!streamingWorldCache||!old?.shown||old.zoom!==view.zoom||
-      old.dpr!==dpr||old.pad!==pad||old.width!==view.width||
+      old.dpr!==dpr||old.pad!==pad||
+      old.projectY!==(view.projectY||.85)||old.width!==view.width||
       old.height!==view.height||
       Math.abs(old.panX-view.panX)>=pad-8||
       Math.abs(old.panY-view.panY)>=pad-8)return false;
