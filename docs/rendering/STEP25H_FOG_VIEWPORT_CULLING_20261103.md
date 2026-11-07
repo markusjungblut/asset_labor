@@ -66,6 +66,55 @@ entsteht.
   und Firefox-Aktion als grün zu bezeichnen. Die Änderung bleibt bis zur
   gemessenen funktionalen Abnahme Draft und wird nicht automatisch gemergt.
 
+## Abschlussmessung der automatisierten CI (03.11.2026, geprüft 07.11.)
+
+**[GitHub Actions #41701703189](https://github.com/markusjungblut/asset_labor/actions/runs/41701703189): GRÜN** für den exakten Renderer-Head `98f462d009f39e2373fad6cd60a8b349a970a237`.
+46/46 Node-Tests erfolgreich; der echte Headless-Firefox-Test mit **sechs**
+Varianten und den separaten 120-WorldTile-/399-Hex-/4-Cloud-PNG-CI-Fixtures
+ist ebenfalls vollständig durchgelaufen. Der erste Run wurde nach dem
+zusätzlichen Offscreen-Fade-Lebenszyklusfix ersetzt und automatisch abgebrochen;
+**nur der zweite erfolgreiche Run gilt als Abnahme**.
+
+Artefakt `frozen-map-firefox-33` (ID `13262794612`), inklusive
+`firefox-summary.json`, sechs Warm-Pan-Berichten, sechs Cold-Berichten
+und Screenshots; Zusammenfassung `passed:true`, `errors:[]`.
+
+| Gleiche synthetische Firefox-Szene | `fogCull=0` | Standard 25H |
+| --- | ---: | ---: |
+| Fog-Hexkandidaten im letzten Frame | 399 | **135** |
+| Frontier-Kandidaten | 126 | **12** |
+| `fogMs` Warm-Pan p95 | 9 ms | **8 ms** |
+| `fogUnreadyMs` Warm-Pan p95 | 7 ms | **5 ms** |
+| `fogTransitionsMs` Warm-Pan p95 | 3 ms | **3 ms** |
+| `drawMs` Warm-Pan p95 | 32 ms | **30 ms** |
+| `frameGapMs` Warm-Pan p95 | 42 ms | **35 ms** |
+| `fogCullMs` p95 | 0 ms | **0 ms** (Auflösung auf ganze ms) |
+| Aktive Messframes | 30 | 30 |
+| Fehler / Repeat-Decodes | 0 / 0 | **0 / 0** |
+
+Die p95-Messwerte basieren auf 30 aktiven Frames je Modus, sind daher
+**nicht** mit hoher statistischer Sicherheit auf andere GPUs/Viewportgrößen
+übertragbar. Beispielsweise hatte `guarded` Cold `firstFullyVisibleMs=3396`
+gegenüber `noFogCull=3623`; dies ist keine isolierte Kausalitätsmessung des
+Fog-Pfades, da Start-/Decode-/Cachingzeiten variieren.
+
+Screenshot-Gegenprüfung `firefox-guarded.png` vs.
+`firefox-noFogCull.png`: dieselbe Geometrie, Terrain-/Baumstruktur und
+Wolken-Frontier ohne offensichtliche neue Löcher im verkleinerten Vergleich.
+Die PNGs sind **nicht pixelidentisch** (ca. 4,1% Pixel mit mindestens einem
+RGB-Kanalunterschied >2), unter anderem im dynamischen unteren Wolkenbereich.
+Das ist **keine** streng deterministische Gleichheitsabnahme; für eine
+pixelgenaue Invariante müsste man die Kamera- und Fade-Zeitpunkte
+synchronisieren. Weder unveränderte Darstellung auf jeder Windows-GPU
+noch die 60-FPS-Zielgröße werden daraus behauptet.
+
+**Entscheidung:** Der begrenzte, read-only 25H-Renderpfad hat einen
+reproduzierbaren positiven A/B-Effekt und keine funktionalen CI-Regressionen.
+Die 25H-Implementierung kann in `main` integriert werden, wenn das
+Merge-Target keine gegenteiligen Renderänderungen enthält.
+Die nächste Optimierung muss sich erneut anhand eines neuen,
+automatisch messbaren Engpasses begründen.
+
 ## Grenzen und nächste Entscheidung
 
 Viewport-Culling ist vor allem für große Welt-/Fog-Mengen sinnvoll. Ob
