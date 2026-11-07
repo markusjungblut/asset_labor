@@ -81,7 +81,8 @@ window.VedrasFrozenMap=(()=>{
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
-    adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true}={}){
+    adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
+    worldCacheFastReuse=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -120,6 +121,7 @@ window.VedrasFrozenMap=(()=>{
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let authoredVisibleById=new Map();
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let decodedRevision=0,overviewFastHits=0,overviewRechecks=0;
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
@@ -172,6 +174,7 @@ window.VedrasFrozenMap=(()=>{
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
+   worldCacheFastReuse,overviewFastHits,overviewRechecks,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
    fogViewportCull,fogUnreadyCandidates,fogUnreadySubmitted,
@@ -190,7 +193,7 @@ window.VedrasFrozenMap=(()=>{
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
-   decoded.clear();loading.clear();loadingPurpose.clear();
+   decoded.clear();decodedRevision++;loading.clear();loadingPurpose.clear();
    protectedKeys=new Set();decodedPixels=0;
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
    seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
@@ -232,7 +235,8 @@ window.VedrasFrozenMap=(()=>{
      if(!protectedKeys.has(key)){victim=key;break;}
     if(!victim)break;
     const entry=decoded.get(victim);
-    decoded.delete(victim);decodedPixels-=entry.pixels;evictions++;
+    decoded.delete(victim);decodedRevision++;
+    decodedPixels-=entry.pixels;evictions++;
     if(entry.origin==='prefetch')evictedSpeculative++;
     for(const im of entry.images)im.close?.();
    }
@@ -322,6 +326,7 @@ window.VedrasFrozenMap=(()=>{
      seenDecoded.delete(seenDecoded.keys().next().value);
     typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
     decoded.set(id,{record,images,pixels,variant,origin:actualPurpose});
+    decodedRevision++;
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
     if(profiler)profiler.tileRead({
@@ -723,7 +728,8 @@ window.VedrasFrozenMap=(()=>{
   function patchOverview(view,dpr,pad,chosen,signature){
    const old=overviewRaster;
    if(!streamingWorldCache||!old?.shown||old.zoom!==view.zoom||
-      old.dpr!==dpr||old.pad!==pad||old.width!==view.width||
+      old.dpr!==dpr||old.pad!==pad||
+      old.projectY!==(view.projectY||.85)||old.width!==view.width||
       old.height!==view.height||
       Math.abs(old.panX-view.panX)>=pad-8||
       Math.abs(old.panY-view.panY)>=pad-8)return false;
@@ -775,6 +781,7 @@ window.VedrasFrozenMap=(()=>{
     g.restore();
    }
    old.shown=next;old.signature=signature;
+   old.decodedRevision=decodedRevision;old.variant=activeVariant;
    overviewPatchBuilds++;overviewPatchedTiles+=changed.length;
    return true;
   }
@@ -784,6 +791,24 @@ window.VedrasFrozenMap=(()=>{
     ch=Math.ceil((view.height+2*pad)*dpr);
    if(cw*ch>worldRasterLimit||cw>8192||ch>8192||
       typeof document==='undefined')return false;
+   const prepareStart=profileFrame?clock():0;
+   // When the displayed raster and the decoded tile CONTENT are unchanged,
+   // another full decoded-Map scan and sorted signature cannot affect pixels.
+   // LRU reorders never change decodedRevision; insertions/evictions always do.
+   const reusable=worldCacheFastReuse&&overviewRaster&&
+    overviewRaster.decodedRevision===decodedRevision&&
+    overviewRaster.variant===activeVariant&&
+    overviewRaster.zoom===view.zoom&&overviewRaster.dpr===dpr&&
+    overviewRaster.width===view.width&&overviewRaster.height===view.height&&
+    overviewRaster.pad===pad&&
+    overviewRaster.projectY===(view.projectY||.85)&&
+    Math.abs(overviewRaster.panX-view.panX)<pad-8&&
+    Math.abs(overviewRaster.panY-view.panY)<pad-8;
+   if(reusable){
+    overviewHits++;overviewFastHits++;
+    if(loading.size&&!visibleComplete)overviewStreamingHits++;
+   }else{
+   overviewRechecks++;
    const anchorView=overviewRaster&&overviewRaster.zoom===view.zoom&&
     overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
     overviewRaster.height===view.height&&
@@ -809,12 +834,16 @@ window.VedrasFrozenMap=(()=>{
    const signature=bufferKeys.join(';');
    const usable=overviewRaster&&overviewRaster.zoom===view.zoom&&
     overviewRaster.dpr===dpr&&overviewRaster.width===view.width&&
-    overviewRaster.height===view.height&&overviewRaster.signature===signature&&
+    overviewRaster.height===view.height&&overviewRaster.pad===pad&&
+    overviewRaster.projectY===(view.projectY||.85)&&
+    overviewRaster.signature===signature&&
     Math.abs(overviewRaster.panX-view.panX)<pad-8&&
     Math.abs(overviewRaster.panY-view.panY)<pad-8;
    if(usable){
     overviewHits++;
     if(loading.size&&!visibleComplete)overviewStreamingHits++;
+    overviewRaster.decodedRevision=decodedRevision;
+    overviewRaster.variant=activeVariant;
    }else{
     // Cache the completed portion of the map even while more PNGs decode.
     // Its signature includes exact decoded tiles and their 1x/2x variant,
@@ -836,23 +865,28 @@ window.VedrasFrozenMap=(()=>{
     })),dpr);
     overviewRaster={canvas:buffer,width:view.width,height:view.height,
      zoom:view.zoom,dpr,panX:view.panX,panY:view.panY,
+     projectY:view.projectY||.85,decodedRevision,variant:activeVariant,
      signature,pad,shown:shownOverview(chosen)};
     overviewBuilds++;
     if(loading.size&&!visibleComplete)overviewStreamingBuilds++;
     }
    }
-   const m=overviewRaster;
+   }
+   if(profileFrame)profileFrame.worldPrepareMs+=clock()-prepareStart;
+   const m=overviewRaster,blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
     sy=(m.pad+m.panY-view.panY)*dpr;
    target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
     0,0,view.width,view.height);
+   if(profileFrame)profileFrame.worldBlitMs+=clock()-blitStart;
    return true;
   }
   function draw(){
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    profileFrame=profiler?{selectMs:0,worldMs:0,groundMs:0,sceneryMs:0,
-    maskMs:0,worldPainterMs:0,cloudMs:0,fogMs:0,
+    maskMs:0,worldPainterMs:0,worldPrepareMs:0,worldBlitMs:0,
+    cloudMs:0,fogMs:0,
     fogUnreadyMs:0,fogTransitionsMs:0,fogCullMs:0,statusMs:0}:null;
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
@@ -1052,6 +1086,7 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedBudget,prefetchSkippedVisible,
      prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
+     worldCacheFastHits:overviewFastHits,worldCacheRechecks:overviewRechecks,
      worldCacheStreamingBuilds:overviewStreamingBuilds,
      worldCacheStreamingHits:overviewStreamingHits,
      worldCachePatchBuilds:overviewPatchBuilds,
