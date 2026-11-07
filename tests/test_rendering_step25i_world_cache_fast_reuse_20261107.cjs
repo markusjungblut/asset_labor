@@ -150,7 +150,8 @@ test('standalone read-only A/B toggle and independent world phases remain instru
  assert.match(runtime,/overviewRaster\.decodedRevision===decodedRevision/);
  assert.match(runtime,/profileFrame\.worldBlitMs\+=clock\(\)-blitStart/);
  assert.match(runtime,/old\.decodedRevision=decodedRevision/);
- assert.doesNotMatch(runtime,/deleteDatabase\(|bakeWorldTile\(|storage\.put\(/);
+ assert.doesNotMatch(runtime,/deleteDatabase\(|bakeWorldTile\(/);
+ assert.match(runtime,/const reusable=worldCacheFastReuse&&overviewRaster/);
  for(const code of [runtime,policy,game,profilerSource])
   assert.doesNotThrow(()=>new Function(code));
 });
