@@ -1,6 +1,6 @@
 # Schritt 25I – Schnelle Wiederverwendung unveränderter World-Raster und World-Phasenprofiling
 
-Stand: 07.11.2026 · **automatische Node-/Firefox-Abnahme grün; PR #119 für Merge bereit**. Ausgangspunkt ist der in `main` gemergte Schritt 25H (#118).
+Stand: 07.11.2026 · **Schritt 25I mit PR #119 nach `main` integriert** (Merge `d4f195d3199dcaa49a4c42bcd4dde57abe75d543`). Automatische PR-CI #42397319828 und erneute Main-CI #42397677335 vollständig grün. Ausgangspunkt ist der in `main` gemergte Schritt 25H (#118).
 
 ## Messhypothese
 
@@ -105,7 +105,9 @@ im unteren dynamischen Fog-Bereich). Ohne synchronisierte Fade-Zeitpunkte
 ist dies keine deterministische Pixelgleichheitsprüfung.
 
 **Entscheidung:** begrenzte, archivschonende CPU-Fast-Hit-Optimierung mit
-positivem Firefox-A/B und vollständigen funktionalen Tests, für `main`
-freigabefähig. Als nächster Schritt ist der World-Canvas-Blit separat
+positivem Firefox-A/B und vollständigen funktionalen Tests in `main`
+integriert. Auch der anschließende Main-Workflow
+[#42397677335](https://github.com/markusjungblut/asset_labor/actions/runs/42397677335)
+hat alle Node-/Firefox-Tests bestanden. Als nächster Schritt ist der World-Canvas-Blit separat
 zu untersuchen, mit Qualitätsschutz und realem Browservergleich statt
 blindem Cache-Aufbau oder Erhöhung des Canvas-/RAM-Budgets.
