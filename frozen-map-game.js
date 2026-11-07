@@ -37,6 +37,8 @@
  const autoCloudStrategy=params.get('cloudAuto')!=='0';
  // Compare the same Fog artwork with and without conservative culling.
  const fogViewportCull=params.get('fogCull')!=='0';
+ // A/B: skip unchanged cached-world tile scans while the camera stays inside pad.
+ const worldCacheFastReuse=params.get('worldFast')!=='0';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
@@ -44,7 +46,7 @@
  const player=window.VedrasFrozenMap.create({
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
-  adaptiveCloudCache,autoCloudStrategy,fogViewportCull,
+  adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
