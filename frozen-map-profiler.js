@@ -61,6 +61,9 @@ window.VedrasFrozenProfiler=(()=>{
     maskMs:round(data.maskMs||0),
     cloudMs:round(data.cloudMs||0),
     fogMs:round(data.fogMs||0),
+    fogCullMs:round(data.fogCullMs||0),
+    fogUnreadyMs:round(data.fogUnreadyMs||0),
+    fogTransitionsMs:round(data.fogTransitionsMs||0),
     statusMs:round(data.statusMs||0),
     renderMode:data.renderMode||'cached',
     zoom:round(data.zoom||1),
@@ -135,7 +138,8 @@ window.VedrasFrozenProfiler=(()=>{
     };
    const selected=active.length>=5?active:frames;
    const phaseNames=['drawMs','frameGapMs','inputToDrawEndMs','selectMs',
-    'worldMs','groundMs','sceneryMs','maskMs','cloudMs','fogMs','statusMs'];
+    'worldMs','groundMs','sceneryMs','maskMs','cloudMs','fogMs',
+    'fogCullMs','fogUnreadyMs','fogTransitionsMs','statusMs'];
    const phases=Object.fromEntries(phaseNames.map(key=>[key,metric(selected,key)]));
    const readPhases=Object.fromEntries(['storageMs','decodeMs','totalMs'].map(
     key=>[key,metric(tileReads.filter(t=>t.kind==='loaded'),key)]));

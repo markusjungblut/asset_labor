@@ -81,7 +81,7 @@ window.VedrasFrozenMap=(()=>{
  function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
-    adaptiveCloudCache=true,autoCloudStrategy=true}={}){
+    adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -113,8 +113,12 @@ window.VedrasFrozenMap=(()=>{
    return activeVariant;
   };
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;
+  const fogViewport=window.VedrasFrozenFogViewport||null;
+  let fogUnreadyCandidates=0,fogUnreadySubmitted=0;
+  let fogFrontierCandidates=0,fogFrontierSubmitted=0;
   const revealedAt=new Map(),unreadyObserved=new Set(),DISSOLVE_MS=850;
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
+  let authoredVisibleById=new Map();
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
@@ -170,6 +174,8 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
+   fogViewportCull,fogUnreadyCandidates,fogUnreadySubmitted,
+   fogFrontierCandidates,fogFrontierSubmitted,
    cloudEffectivePad,cloudPadClamps,autoCloudStrategy,
    cloudAutoMode,cloudAutoDecisions,
    cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
@@ -196,10 +202,13 @@ window.VedrasFrozenMap=(()=>{
    visibleWaitingOnPrefetch=0;visibleRequested=0;prefetchRequested=0;
    revealedAt.clear();unreadyObserved.clear();
    dissolveActive=false;authoredFogSet=null;
+   authoredVisibleById.clear();
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
    cloudBackdropRaster=null;resetCloudAuto();
+   fogUnreadyCandidates=0;fogUnreadySubmitted=0;
+   fogFrontierCandidates=0;fogFrontierSubmitted=0;
   }
   const repaint=()=>{
    if(!active||paintScheduled||typeof requestAnimationFrame!=='function')return;
@@ -367,6 +376,15 @@ window.VedrasFrozenMap=(()=>{
     }
    return authoredEdges;
   }
+  function fogCellsFor(view){
+   return fogViewportCull&&fogViewport?
+    fogViewport.visibleCells(cells,view):cells;
+  }
+  function fogEdgesFor(view){
+   const edges=frontierEdges();
+   return fogViewportCull&&fogViewport?
+    fogViewport.visibleEdges(edges,view):edges;
+  }
   function zoomSnapshotOpacity(c,isReady){
    if(!isReady)return 1;
    const id=c.q+','+c.r;
@@ -431,8 +449,9 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(g,extendedView,shown,backingDpr);
     if(clouds){
      g.setTransform(backingDpr,0,0,backingDpr,0,0);
-     clouds.drawUnready(g,extendedView,cells,isHexReady,zoomSnapshotOpacity);
-     clouds.drawTransitions(g,extendedView,frontierEdges());
+     clouds.drawUnready(g,extendedView,fogCellsFor(extendedView),
+      isHexReady,zoomSnapshotOpacity);
+     clouds.drawTransitions(g,extendedView,fogEdgesFor(extendedView));
     }
    }else{
     // Zoom-in never exposes pixels beyond the original viewport.
@@ -833,7 +852,8 @@ window.VedrasFrozenMap=(()=>{
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    profileFrame=profiler?{selectMs:0,worldMs:0,groundMs:0,sceneryMs:0,
-    maskMs:0,worldPainterMs:0,cloudMs:0,fogMs:0,statusMs:0}:null;
+    maskMs:0,worldPainterMs:0,cloudMs:0,fogMs:0,
+    fogUnreadyMs:0,fogTransitionsMs:0,fogCullMs:0,statusMs:0}:null;
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
    const dpr=Math.max(1,Math.min(4,pose.dpr||1));
@@ -956,7 +976,13 @@ window.VedrasFrozenMap=(()=>{
    if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
    const fogStart=profileFrame?clock():0;
    if(clouds){
-    frontierEdges();
+    const fogCullStart=profileFrame?clock():0;
+    const fogCells=fogCellsFor(view),fogEdges=fogEdgesFor(view);
+    fogUnreadyCandidates=cells.length;
+    fogUnreadySubmitted=fogCells.length;
+    fogFrontierCandidates=frontierEdges().length;
+    fogFrontierSubmitted=fogEdges.length;
+    if(profileFrame)profileFrame.fogCullMs=clock()-fogCullStart;
     // Do not reveal a partially loaded hex: both completed PNG layers of
     // every intersecting tile must be decoded before fog retreats.
     const ready=isHexReady;
@@ -989,8 +1015,24 @@ window.VedrasFrozenMap=(()=>{
      // edges make this look like dispersing mist instead of a hard cut.
      return 1-t*t*(3-2*t);
     };
-    clouds.drawUnready(ctx,view,cells,ready,fadeOpacity);
-    clouds.drawTransitions(ctx,view,authoredEdges);
+    // Preserve Step22's fade lifecycle for hexes we previously showed
+    // as unready: if a tile becomes ready offscreen, its 850ms dissolve
+    // must finish there, not blink back into existence on return.
+    // Only previously observed IDs need offscreen readiness checks.
+    if(fogViewportCull&&fogViewport&&unreadyObserved.size){
+     const painted=new Set(fogCells.map(c=>c.q+','+c.r));
+     for(const id of [...unreadyObserved]){
+      if(painted.has(id))continue;
+      const cell=authoredVisibleById.get(id);
+      if(cell)fadeOpacity(cell,ready(cell));
+     }
+    }
+    const fogUnreadyStart=profileFrame?clock():0;
+    clouds.drawUnready(ctx,view,fogCells,ready,fadeOpacity);
+    if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
+    const fogTransitionsStart=profileFrame?clock():0;
+    clouds.drawTransitions(ctx,view,fogEdges);
+    if(profileFrame)profileFrame.fogTransitionsMs=clock()-fogTransitionsStart;
    }
    if(profileFrame)profileFrame.fogMs+=clock()-fogStart;
    frame++;paintMs=clock()-now;
@@ -1032,6 +1074,8 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+   authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
+    .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
    active=true;repaint();onStatus(report());return report();
   }
