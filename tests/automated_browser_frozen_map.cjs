@@ -158,7 +158,8 @@ const run=async()=>{
     (mode==='noStream'?'&streamCache=0':'')+
     (mode==='noCloudPad'?'&cloudPad=0':'')+
     (mode==='forceCloud'?'&cloudAuto=0':'')+
-    (mode==='noFogCull'?'&fogCull=0':'');
+    (mode==='noFogCull'?'&fogCull=0':'')+
+    (mode==='noWorldFast'?'&worldFast=0':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -206,7 +207,10 @@ const run=async()=>{
     fogCells:coldReport.environment.runtime.fogUnreadySubmitted,
     fogCandidates:coldReport.environment.runtime.fogUnreadyCandidates,
     fogEdges:coldReport.environment.runtime.fogFrontierSubmitted,
-    fogEdgeCandidates:coldReport.environment.runtime.fogFrontierCandidates
+    fogEdgeCandidates:coldReport.environment.runtime.fogFrontierCandidates,
+    worldFastEnabled:coldReport.environment.runtime.worldCacheFastReuse,
+    worldFastHits:coldReport.environment.runtime.overviewFastHits,
+    worldRechecks:coldReport.environment.runtime.overviewRechecks
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -255,6 +259,9 @@ const run=async()=>{
     p95FogCullMs:report.phasesMs.fogCullMs.p95,
     p95FogUnreadyMs:report.phasesMs.fogUnreadyMs.p95,
     p95FogTransitionsMs:report.phasesMs.fogTransitionsMs.p95,
+    p95WorldMs:report.phasesMs.worldMs.p95,
+    p95WorldPrepareMs:report.phasesMs.worldPrepareMs.p95,
+    p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
     activeFrames:report.frameCounts.active,
     tileReads:report.tiles.counts.loaded,
     decodeRepeats:report.tiles.counts.repeated,
@@ -271,6 +278,7 @@ const run=async()=>{
   const noCloudPad=await loadMode('noCloudPad');
   const forceCloud=await loadMode('forceCloud');
   const noFogCull=await loadMode('noFogCull');
+  const noWorldFast=await loadMode('noWorldFast');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -332,6 +340,21 @@ const run=async()=>{
    'regression: Fog viewport pruning worsens active pan frame cadence');
   assert.ok(fast.p95FogCullMs!=null&&fast.p95FogUnreadyMs!=null&&
    fast.p95FogTransitionsMs!=null,'real Firefox Fog stage timings required');
+  const worldControl=collected.results.noWorldFast;
+  assert.equal(worldControl.cold.worldFastEnabled,false,
+   'worldFast=0 must retain the original per-frame cache signature scan');
+  assert.equal(worldControl.cold.worldFastHits,0,
+   'the legacy control must not use the fast cache reuse path');
+  assert.equal(fast.cold.worldFastEnabled,true);
+  assert.ok(fast.cold.worldFastHits>0,
+   'actual Firefox must exercise world cache reuse without a tile scan');
+  assert.ok(fast.p95WorldPrepareMs!=null&&fast.p95WorldBlitMs!=null,
+   'real Firefox must report measured world preparation and blit costs');
+  assert.ok(fast.p95DrawMs<=Math.max(90,worldControl.p95DrawMs*1.4),
+   'regression: world-cache fast reuse increases browser draw p95');
+  assert.ok(fast.p95FrameGapMs<=Math.max(100,worldControl.p95FrameGapMs*1.45),
+   'regression: world-cache fast reuse worsens active pan frame cadence');
+  await noWorldFast.close();
   await noFogCull.close();
   await forceCloud.close();
   await noCloudPad.close();
