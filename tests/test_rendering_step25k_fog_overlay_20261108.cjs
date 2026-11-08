@@ -93,6 +93,31 @@ test('pan, projection, zoom/dpr and cloud assets immediately invalidate static b
  assert.equal(f.mainOps.filter(x=>x==='fill'||Array.isArray(x)).length,stableMainPaints);
  f.player.stop();
 });
+test('moving camera temporarily hides Fog overlay and paints Fog on the original canvas',async()=>{
+ const f=fixture(true);await f.start();
+ const initial=f.player.report().baseFrames;
+ assert.equal(f.player.report().fogLayerActive,true);
+ f.player.setPose({panX:17});
+ f.player.draw();
+ let state=f.player.report();
+ assert.equal(state.fogLayerActive,false);
+ assert.equal(f.fogCanvas.hidden,true);
+ assert.equal(state.baseFrames,initial+1);
+ assert.equal(f.calls.unready.at(-1).g,f.canvas.getContext(),
+  'moving view must not pay for a second Fog composition layer');
+ assert.equal(f.calls.frontier.at(-1).g,f.canvas.getContext());
+ f.player.draw();
+ state=f.player.report();
+ assert.equal(state.fogLayerActive,true);
+ assert.equal(f.fogCanvas.hidden,false);
+ assert.equal(state.baseFrames,initial+2,
+  'switch back to overlay must remove baked Fog from underlying world once');
+ assert.equal(f.calls.unready.at(-1).g,f.fogCanvas.getContext());
+ f.player.draw();
+ assert.equal(f.player.report().baseFrames,state.baseFrames);
+ assert.ok(f.player.report().fogOnlyFrames>0);
+ f.player.stop();
+});
 test('without overlay the original world+fog canvas remains the only paint target',async()=>{
  const f=fixture(false);await f.start();f.player.draw();
  const status=f.player.report();
