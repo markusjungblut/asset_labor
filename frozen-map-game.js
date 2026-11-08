@@ -8,7 +8,7 @@
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
  const benchmark=$('atlasBenchmark');
  if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
- const canvas=$('game');
+ const canvas=$('game'),fogOverlay=$('fogOverlay');
  function fail(error){
   output.textContent=String(error?.message||error)+
    ' · Im Asset-Labor zuerst „Gesamte Karte einmalig vorbereiten“ verwenden.';
@@ -39,12 +39,16 @@
  const fogViewportCull=params.get('fogCull')!=='0';
  // A/B: skip unchanged cached-world tile scans while the camera stays inside pad.
  const worldCacheFastReuse=params.get('worldFast')!=='0';
+ // Diagnostic only until the Firefox pan/animation A/B is accepted.
+ const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
+ if(fogOverlay)fogOverlay.hidden=!layeredFog;
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
+  canvas,fogCanvas:layeredFog?fogOverlay:null,
+  storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   onStatus:stats=>{
@@ -249,7 +253,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
-   fogViewportCull
+   fogViewportCull,layeredFog
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
@@ -273,6 +277,8 @@
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
   profileReport,profileReset,profileStatus,
+  // Explicit opt-in diagnostic repaint: never mutates atlas or Fog rights.
+  forceRedraw:()=>player.draw(),
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
   derived1x:()=>oneXStore.stats()
