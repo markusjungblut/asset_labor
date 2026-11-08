@@ -19,6 +19,9 @@ main{position:relative;flex:1;min-height:0;overflow:hidden;background:#bccbd1}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 canvas:active{cursor:grabbing}
 /* Opt-in overlay: world stays beneath the independently refreshed Fog. */
+#worldLayer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#worldLayer canvas{position:absolute;left:0;top:0;max-width:none;max-height:none;pointer-events:none;transform-origin:0 0}
+#worldLayer[hidden]{display:none}
 #fogOverlay{position:absolute;inset:0;pointer-events:none;cursor:default}
 #fogOverlay[hidden]{display:none}
 /* Status is an OVERLAY-FREE, fixed-height strip: changing statistics must
@@ -40,15 +43,15 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
 <button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
 <a href="index.html">Asset-Labor öffnen</a></div></header>
-<main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
+<main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><div id="worldLayer" aria-hidden="true" hidden></div><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
 <footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
 <span id="metrics">Keine Renderaufträge</span></footer>
 <script src="cloud-artwork.js?v=20261102-step22-true-alpha"></script>
 <script src="frozen-map-view-policy.js?v=20261102-step21"></script>
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
-<script src="frozen-map-runtime.js?v=20261108-step25k-fog-overlay"></script>
+<script src="frozen-map-runtime.js?v=20261108-step25l-world-dom"></script>
 <script src="frozen-map-derived-2x.js?v=20261102-step20-2x"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
-<script src="frozen-map-game.js?v=20261108-step25k-fog-overlay"></script>
+<script src="frozen-map-game.js?v=20261108-step25l-world-dom"></script>
 </body></html>
