@@ -78,13 +78,17 @@ window.VedrasFrozenMap=(()=>{
   return new Promise((resolve,reject)=>cv.toBlob(blob=>
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
- function create({canvas,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
+ function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
+  // Optional transparent viewport-size overlay; world stays on #game.
+  const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
+  let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
+  let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
   let generation=0,paintScheduled=false;
   // Decoded image packets are immutable and committed only after ALL layers
@@ -146,7 +150,7 @@ window.VedrasFrozenMap=(()=>{
    evictions=0,profileFrame=null;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
   const clouds=window.VedrasCloudArtwork?.create({
-   onReady:()=>{cloudBackdropRaster=null;resetCloudAuto();repaint();}
+   onReady:()=>{cloudRevision++;cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
   const decodePNG=decode||(async blob=>{
    if(typeof createImageBitmap==='function')return createImageBitmap(blob);
@@ -171,6 +175,8 @@ window.VedrasFrozenMap=(()=>{
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
+   layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+   fogOverlayMiB:fogCtx?Math.round(fogCanvas.width*fogCanvas.height*4/1048576):0,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
@@ -193,7 +199,8 @@ window.VedrasFrozenMap=(()=>{
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
-   decoded.clear();decodedRevision++;loading.clear();loadingPurpose.clear();
+   decoded.clear();decodedRevision++;baseStamp=null;
+   loading.clear();loadingPurpose.clear();
    protectedKeys=new Set();decodedPixels=0;
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
    seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
@@ -461,6 +468,7 @@ window.VedrasFrozenMap=(()=>{
    }else{
     // Zoom-in never exposes pixels beyond the original viewport.
     g.drawImage(canvas,0,0,image.width,image.height);
+    if(fogLayerActive)g.drawImage(fogCanvas,0,0,image.width,image.height);
    }
    zoomPreview={image,pose:{...pose},width,height,padX,padY,
     extendedWidth,extendedHeight};
@@ -500,6 +508,7 @@ window.VedrasFrozenMap=(()=>{
   function setPose(next){if(!pose)return;pose={...pose,...next};repaint();}
   function setClouds({seed='vedras-local-preview',assets=[]}={}){
    if(!clouds)return false;
+   cloudRevision++;baseStamp=null;
    cloudBackdropRaster=null;cloudEffectivePad=0;resetCloudAuto();
    clouds.setSeed(seed);
    clouds.setAssets(Array.isArray(assets)?assets:[]);
@@ -892,7 +901,9 @@ window.VedrasFrozenMap=(()=>{
    const width=Math.max(1,Math.floor(b.width)),height=Math.max(1,Math.floor(b.height));
    const dpr=Math.max(1,Math.min(4,pose.dpr||1));
    const dw=Math.round(width*dpr),dh=Math.round(height*dpr);
-   if(canvas.width!==dw||canvas.height!==dh){canvas.width=dw;canvas.height=dh;}
+   if(canvas.width!==dw||canvas.height!==dh){
+    canvas.width=dw;canvas.height=dh;baseStamp=null;
+   }
    ctx.setTransform(dpr,0,0,dpr,0,0);
    ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
    ctx.imageSmoothingQuality='high';
@@ -971,6 +982,29 @@ window.VedrasFrozenMap=(()=>{
     read(t.key,variant,'prefetch');
    }
    if(profileFrame)profileFrame.selectMs=clock()-now;
+   // A second large displayed Canvas can slow active panning. Switch back
+   // to the original single-canvas compositor whenever the CAMERA MOVES.
+   // A stationary Fog/dissolve frame may switch to the overlay; on entry
+   // the clean world is recomposited once, then held without repeated blits.
+   const cameraStill=!!baseStamp&&baseStamp.width===width&&
+    baseStamp.height===height&&baseStamp.dpr===dpr&&
+    baseStamp.zoom===view.zoom&&baseStamp.panX===view.panX&&
+    baseStamp.panY===view.panY&&baseStamp.projectY===proj;
+   const wantsFogLayer=!!fogCtx&&(!baseStamp||cameraStill)&&!zoomPreview;
+   if(fogCtx&&fogLayerActive!==wantsFogLayer){
+    fogLayerActive=wantsFogLayer;
+    fogCanvas.hidden=!wantsFogLayer;
+   }
+   if(wantsFogLayer){
+    if(fogCanvas.width!==dw||fogCanvas.height!==dh){
+     fogCanvas.width=dw;fogCanvas.height=dh;
+    }
+    fogCtx.setTransform(1,0,0,1,0,0);
+    fogCtx.clearRect(0,0,dw,dh);
+    fogCtx.setTransform(dpr,0,0,dpr,0,0);
+    fogCtx.globalAlpha=1;fogCtx.imageSmoothingEnabled=true;
+    fogCtx.imageSmoothingQuality='high';
+   }
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
     // instead of recomputing every Ground/Scenery and cloud stamp per tick.
@@ -988,6 +1022,8 @@ window.VedrasFrozenMap=(()=>{
     if(ox<=0&&oy<=0&&ox+destW>=width&&oy+destH>=height){
      ctx.globalAlpha=1;
      ctx.drawImage(zoomPreview.image,ox,oy,destW,destH);
+     // Preview includes Fog already: do not draw it twice above #game.
+     baseStamp=null;
      zoomPreviewFrames++;
      frame++;paintMs=(typeof performance!=='undefined'?
       performance.now():Date.now())-now;
@@ -995,19 +1031,33 @@ window.VedrasFrozenMap=(()=>{
      return report();
     }
    }
-   const cloudStart=profileFrame?clock():0;
-   if(clouds)drawCloudBackground(ctx,view,dpr);
-   else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
-   if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
-   const worldCompositeStart=profileFrame?clock():0;
-   if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
-    // Cold streaming paints the real terrain; the completed viewport is
-    // then cached at full resolution without a blurred snapshot.
-    worldCacheFallbackFrames++;
-    overviewRaster=null;
-    paintWorld(ctx,view,tiles,dpr);
+   // Only true no-camera-change Fog frames reuse the unchanged world.
+   // Every changed decoded PNG, cloud asset, canvas size, or pose repaints
+   // the entire base BEFORE Fog can expose any new terrain pixels.
+   const baseReusable=fogLayerActive&&basePaintWasLayered&&baseStamp&&
+    baseStamp.decodedRevision===decodedRevision&&
+    baseStamp.cloudRevision===cloudRevision&&
+    baseStamp.width===width&&baseStamp.height===height&&
+    baseStamp.dpr===dpr&&baseStamp.zoom===view.zoom&&
+    baseStamp.panX===view.panX&&baseStamp.panY===view.panY&&
+    baseStamp.projectY===proj;
+   if(baseReusable){fogOnlyFrames++;}
+   else{
+    const cloudStart=profileFrame?clock():0;
+    if(clouds)drawCloudBackground(ctx,view,dpr);
+    else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
+    if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
+    const worldCompositeStart=profileFrame?clock():0;
+    if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
+     // Unready landscape stays under the existing fog, never exposed.
+     worldCacheFallbackFrames++;overviewRaster=null;
+     paintWorld(ctx,view,tiles,dpr);
+    }
+    if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
+    baseFrames++;basePaintWasLayered=fogLayerActive;
+    baseStamp={width,height,dpr,zoom:view.zoom,panX:view.panX,
+     panY:view.panY,projectY:proj,decodedRevision,cloudRevision};
    }
-   if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
    const fogStart=profileFrame?clock():0;
    if(clouds){
     const fogCullStart=profileFrame?clock():0;
@@ -1062,10 +1112,10 @@ window.VedrasFrozenMap=(()=>{
      }
     }
     const fogUnreadyStart=profileFrame?clock():0;
-    clouds.drawUnready(ctx,view,fogCells,ready,fadeOpacity);
+    clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
     if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
     const fogTransitionsStart=profileFrame?clock():0;
-    clouds.drawTransitions(ctx,view,fogEdges);
+    clouds.drawTransitions(fogLayerActive?fogCtx:ctx,view,fogEdges);
     if(profileFrame)profileFrame.fogTransitionsMs=clock()-fogTransitionsStart;
    }
    if(profileFrame)profileFrame.fogMs+=clock()-fogStart;
@@ -1094,6 +1144,7 @@ window.VedrasFrozenMap=(()=>{
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
+     layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,

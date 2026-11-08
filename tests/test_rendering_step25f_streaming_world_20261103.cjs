@@ -129,7 +129,7 @@ test('streaming partial cache uses read-only archived data, same Fog mask and LO
  assert.match(runtime,/function isHexReady/);
  assert.match(runtime,/function patchOverview/);
  assert.match(runtime,/old.shown=next;old.signature=signature/);
- assert.match(runtime,/clouds\.drawUnready\(ctx,view,fogCells,ready,fadeOpacity\)/);
+ assert.match(runtime,/clouds\.drawUnready\(fogLayerActive\?fogCtx:ctx,view,fogCells,ready,fadeOpacity\)/);
  assert.doesNotMatch(runtime,/deleteDatabase\(|source\.put\(|bakeWorldTile\(/);
  for(const s of [runtime,policy,game])assert.doesNotThrow(()=>new Function(s));
 });

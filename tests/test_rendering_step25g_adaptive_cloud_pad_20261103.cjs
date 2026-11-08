@@ -81,7 +81,7 @@ test('smaller cloud overscan never modifies world 2x resolution or Fog geometry'
  assert.match(runtime,/const cacheDpr=largeViewportCache\?Math\.min\(1\.25,dpr\):dpr/);
  assert.match(runtime,/cloudRasterLimit\/\(cacheDpr\*cacheDpr\)/);
  assert.match(runtime,/pad=Math\.max\(0,Math\.min\(pad,bound\)\)/);
- assert.match(runtime,/clouds\.drawUnready\(ctx,view,fogCells,ready,fadeOpacity\)/);
+ assert.match(runtime,/clouds\.drawUnready\(fogLayerActive\?fogCtx:ctx,view,fogCells,ready,fadeOpacity\)/);
  assert.match(runtime,/worldRasterLimit=largeViewportCache\?16500000:8500000/);
  assert.doesNotMatch(runtime,/bakeWorldTile\(|deleteDatabase\(/);
  for(const file of [runtime,policy,game])assert.doesNotThrow(()=>new Function(file));
