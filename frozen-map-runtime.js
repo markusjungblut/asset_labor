@@ -906,7 +906,7 @@ window.VedrasFrozenMap=(()=>{
    const m=overviewRaster,blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
     sy=(m.pad+m.panY-view.panY)*dpr;
-   if(worldLayer&&fogCtx&&m.canvas?.style&&
+   if(worldLayer&&!zoomPreview&&fogCtx&&m.canvas?.style&&
       typeof worldLayer.replaceChildren==='function'){
     // Move the SAME existing world buffer into a clipped DOM layer.
     // A compositor-only CSS translation replaces the per-pan pixel blit.
@@ -1183,7 +1183,8 @@ window.VedrasFrozenMap=(()=>{
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
-     layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+     layeredFog:!!fogCtx,fogLayerActive,domWorldActive,
+     baseFrames,fogOnlyFrames,
    domWorldEnabled:!!worldLayer,domWorldActive,domWorldFrames,domWorldFallbacks,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
