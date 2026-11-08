@@ -146,7 +146,7 @@ test('HTML keeps pointer input on original canvas; new overlay requires explicit
  assert.match(html,/id="fogOverlay" aria-hidden="true" hidden/);
  assert.match(html,/#fogOverlay\{[^}]+pointer-events:none/);
  assert.match(game,/params\.get\('fogLayer'\)==='1'/);
- assert.match(game,/fogOverlay\.hidden=!layeredFog/);
+ assert.match(game,/fogOverlay\.hidden=!\(layeredFog\|\|domWorldCompositor\)/);
  assert.match(runtime,/fogCtx\.clearRect\(0,0,dw,dh\)/);
  assert.match(runtime,/baseStamp\.decodedRevision===decodedRevision/);
  assert.match(runtime,/baseStamp\.cloudRevision===cloudRevision/);
