@@ -77,3 +77,59 @@ Pakete, Fog-Authentifizierung, Welt-Zoom- und Cloud-DPR,
 Rasterpixel-Hardlimits und Autoren-Bake-Worker bleiben unverändert.
 Nutzer muss **keine manuellen Pan- oder Profiltests** durchführen.
 Keine Zusage von 60 FPS.
+
+## Erste echte Firefox-Abnahme und A/B-Messung (08.11.2026)
+
+[GitHub Actions #42531211737](https://github.com/markusjungblut/asset_labor/actions/runs/42531211737),
+getesteter Code-Head `c9e5a08d2f77c397792a2d43e3c70d71c9bbb40f`:
+**61/61 Node-Tests**, Headless-Firefox über alle neun Modi **grün**,
+`passed:true`, `errors:[]`.
+Das Artefakt `frozen-map-firefox-59` (ID `13637363272`) enthält
+die zehn früheren/aktuellen Kategorien inklusive der neun A/B-Modi,
+die synthetischen Weltbilder, JSON-Warm-/Cold-Profile und Screenshots.
+Die Messung bildet **nicht** das private Windows-/600-MB-Original ab.
+
+| Je 30 aktive Warm-Pan-Frames | alter Rand | `worldPad=1` |
+| --- | ---: | ---: |
+| Gewählter symmetrischer Cache-Rand | 272 px | **434 px** |
+| World-Raster-Neuaufbauten *nach* Kaltprofil | **2** | **0** |
+| `worldPrepareMs` p95 | 10 ms | **5 ms** |
+| `worldBlitMs` p95 | 16 ms | 16 ms |
+| `worldMs` p95 | 22 ms | **19 ms** |
+| `drawMs` p95 | 33 ms | **30 ms** |
+| `frameGapMs` p95 | 41 ms | **36 ms** |
+| Mittleres `drawMs` | 33,47 ms | **26,00 ms** |
+| Wiederholungsdecodes / Evictions | 0 / 0 | 0 / 0 |
+| Tatsächlich belegter World-Canvas | **49 MiB** | **63 MiB** |
+| Dekodierte Tile-RAM-Pixel | 41 746 432 | 41 746 432 |
+| Präventive PNG-Reads | 7 | 7 |
+| Cold `firstFullyVisibleMs` | 3480 ms | 3181 ms |
+
+Das ist eine reproduzierbar automatisierte **einzelne** A/B-
+Firefox-Testserie. 14 MiB zusätzliche World-Raster-Belegung sind ein
+echter Memory-Aufpreis, obwohl das bestehende 16,5-MP-Limit nicht
+erhöht wird. Kein erhöhter Bitmap-Decoding-RAM-Footprint oder erneutes
+PNG-Decode in diesem synthetischen Lauf. Die Cold-Start-Differenz
+kann durch Runner-/Cache-Varianz bedingt sein.
+
+Das Ausbleiben beider Vollrasters ist eine **strukturelle** Verbesserung;
+die um 5ms bessere `frameGapMs`-p95 ist bei nur 30 aktiven Frames
+noch kein hardwareübergreifender Beleg. Der World-Viewport-Blit
+selbst bleibt mit ~16ms p95 weiterhin der verbleibende
+synchrone Hauptfaktor.
+
+PNG-Gegenprobe `firefox-guarded.png` vs. `firefox-budgetedPad.png`:
+Welt-/Baum-/Maskengeometrie im verkleinerten Sichtvergleich gleich.
+Nicht streng pixelidentisch: 8,31% aller Pixel mit RGB-Abweichung >2,
+6,70% in der oberen Bildhälfte (mittlere maximale Kanalabweichung
+dort nur ~0,59), 9,92% in der unteren, zeitabhängigen Fog-Hälfte.
+Weder ungeprüftes Leakage noch deterministische Pixelgleichheit
+werden daraus behauptet; bei identischer Kameraposition und
+Fade-Zeit wäre ein schärferer visueller Gate möglich.
+
+**Entscheidung vor einer finalen Integration:** Die erste CI-Serie
+stützt die optionale Lösung. Eine weitere erfolgreiche CI nach dem
+Dokumentationscommit soll die Abnahme bestätigen. Angesichts
+des ~14-MiB-RAM-Aufpreises und ohne echte Windows-Atlas-Hardware-
+Messung bleibt der **Standardrand unverändert**.
+`&worldPad=1` ist die vorsichtige opt-in-Variante.
