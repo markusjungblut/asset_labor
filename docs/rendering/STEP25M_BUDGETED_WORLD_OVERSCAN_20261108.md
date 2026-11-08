@@ -1,6 +1,6 @@
 # Schritt 25M – Mehr Pan-Overscan innerhalb des bestehenden World-Rasterlimits
 
-Stand: 08.11.2026 · Experimenteller Draft. **Die Produktivvoreinstellung bleibt unverändert.**
+Stand: 08.11.2026 · **Schritt 25M als opt-in in `main` integriert** via [PR #123](https://github.com/markusjungblut/asset_labor/pull/123), Merge `dd0b81dd23bf687e9a2cd8c06ac838bc2e9707d0`. **Die Produktivvoreinstellung bleibt unverändert.**
 
 ## Messgrundlage und Hypothese
 
@@ -171,3 +171,13 @@ Der nächste Performance-Schritt muss die verbliebenen
 Cache-Rebuild-Spitzen, mit besseren hardwaregleichen A/B-Profilen
 untersuchen. Der DOM-Compositor-Versuch aus 25L ist hierfür
 **keine** Lösung und bleibt verworfen.
+
+## Status der Integration
+
+Nach dem Merge von [PR #123](https://github.com/markusjungblut/asset_labor/pull/123)
+auf `main` bestand auch [GitHub Actions #42532128591](https://github.com/markusjungblut/asset_labor/actions/runs/42532128591)
+mit demselben Renderer-Code vollständig (Node und echter Firefox).
+Der einzige neue regulär erreichbare Pfad wird durch den ausdrücklichen
+URL-Schalter `&worldPad=1` aktiviert; ohne diesen Schalter bleiben
+272px-Weltcache-Vorlauf und die bisherige Canvas-Komposition erhalten.
+Das ist **keine** Freigabe von 60 FPS auf der originalen Windows-Karte.
