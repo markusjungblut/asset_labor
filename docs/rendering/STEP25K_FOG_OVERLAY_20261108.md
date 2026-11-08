@@ -1,6 +1,6 @@
 # Schritt 25K – Trennbare Fog-Ebene, unveränderte Welt bei Fog-only-Frames
 
-Stand: 08.11.2026 · **experimenteller A/B-Branch, noch nicht als Produktionsstandard akzeptiert**.
+Stand: 08.11.2026 · **PR #121 nach `main` gemergt** (Merge `10b0dca411125e62ac03093997bc2be76f1dc7fa`). Die Funktion bleibt **ausdrücklich opt-in** via `&fogLayer=1`; Standard ist weiterhin der bisherige einlagige Renderer.
 
 ## Warum keine weitere drawImage-Mikrooptimierung
 
@@ -165,3 +165,50 @@ der Branch im Draft. Auch bei Erfolg bleibt `fogLayer=1` zunächst
 ausdrücklich **opt-in**; der vorhandene einlagige Renderer bleibt
 Default, bis hardwareübergreifende Vorteile und das RAM-Budget
 ausreichend abgesichert sind.
+
+## Finale automatische Abnahme und Merge (08.11.2026)
+
+[GitHub Actions #42510464245](https://github.com/markusjungblut/asset_labor/actions/runs/42510464245)
+bestand sämtliche **57 Node-Tests** und den echten Firefox mit
+`passed:true` und ohne Browserfehler.
+Der getestete PR-Head war `6f188d6e3582ce34481ac5224b95ef1f0cdf2cd6`.
+Das Artefakt `frozen-map-firefox-54` (ID `13629635707`) enthält
+24 statische und 30 aktive Pan-Frames je Vergleichsvariante:
+
+| Kennzahl | Standard, ein Canvas | adaptives `fogLayer=1` |
+| --- | ---: | ---: |
+| Pan-`drawMs` p95 | 40 ms | 46 ms |
+| Pan-`frameGapMs` p95 | 47 ms | 49 ms |
+| Mittlere Pan-`drawMs` | 39,87 ms | 41,47 ms |
+| Pan-Frames mit sichtbarer zweiter Ebene | entfällt | **0 von 30** |
+| Static-`drawMs` p95 (24 Redraws) | 33 ms | **8 ms** |
+| Static-`worldMs` p95 | 19 ms | **0 ms** |
+| Static-Base-Neuaufbauten | 24 | **0** |
+| Zusätzlicher Fog-Viewport-Speicher | 0 | **29 MiB** |
+
+Die CSS-Flächen des eigentlichen und separaten Canvas waren im echten
+Browser deckungsgleich; ein Alpha-Readback der 4096×1844-Overlay-Pixel
+fand 1694 opake, 76154 transparente und 19 teiltransparente Pixel in
+einer Stichprobe. Keine Repeat-Decodes oder ImageBitmap-Evictions.
+
+Die oberen Bildhälften der vergleichbaren Pan-Screenshots stimmen nahezu
+pixelgenau überein (ca. **0,0005 %** der Pixel mit RGB-Abweichung >2);
+über das gesamte Bild gibt es ca. **3,57 %** Abweichung, hauptsächlich
+im zeitabhängigen unteren Fog. Dies ist keine streng synchronisierte
+Pixelgleichheitsabnahme des gesamten Fog-Lebenszyklus.
+
+**Abschluss:** Die technische Implementierung und die automatische
+Sicherheits-/Funktionsabnahme sind als **optionale Diagnosefunktion**
+[#121](https://github.com/markusjungblut/asset_labor/pull/121)
+in `main` integriert. Wegen zusätzlichem GPU-/RAM-Footprint und
+weiterhin ungesichertem Pan-p95-Vorteil **keine automatische Aktivierung**
+im Standalone-Spielviewer.
+
+**Nächste Priorität (Schritt 25L):** ausschließlich Pan-Frames mit
+~20–30ms synchronem World-Canvas-Blit untersuchen; unterscheide dabei
+Canvas-Aufruf, Software-Komposition und tatsächliche GPU-Präsentation.
+Eine begrenzte Alternative (z. B. DOM-/Compositor-geführte Darstellung
+eines unveränderten Welt-Rasters) braucht echte Browser-A/B,
+DPR-/LOD-/Fog-Sicherheit, GPU-/RAM-Budget und reproduzierbare
+Viewport-/Kamera-Szenen. Keine manuelle Windows-Nutzerabnahme und kein
+blindes Erhöhen von Raster-/Dekoderbudgets.
