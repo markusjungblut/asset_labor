@@ -82,7 +82,7 @@ window.VedrasFrozenMap=(()=>{
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
-    worldCacheFastReuse=true}={}){
+    worldCacheFastReuse=true,wholeWorldBlit=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -175,6 +175,7 @@ window.VedrasFrozenMap=(()=>{
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
+   wholeWorldBlit,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
    fogViewportCull,fogUnreadyCandidates,fogUnreadySubmitted,
@@ -876,8 +877,16 @@ window.VedrasFrozenMap=(()=>{
    const m=overviewRaster,blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
     sy=(m.pad+m.panY-view.panY)*dpr;
-   target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
-    0,0,view.width,view.height);
+   if(wholeWorldBlit){
+    // Diagnostic A/B: draw the full scene-aligned raster at exactly 1:1
+    // device-pixel density. The existing display-canvas clip constrains it
+    // to the viewport. No image rescale, PNG or opacity policy change.
+    target.drawImage(m.canvas,-sx/dpr,-sy/dpr,
+     m.canvas.width/dpr,m.canvas.height/dpr);
+   }else{
+    target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
+     0,0,view.width,view.height);
+   }
    if(profileFrame)profileFrame.worldBlitMs+=clock()-blitStart;
    return true;
   }
