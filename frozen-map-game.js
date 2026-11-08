@@ -39,6 +39,9 @@
  const fogViewportCull=params.get('fogCull')!=='0';
  // A/B: skip unchanged cached-world tile scans while the camera stays inside pad.
  const worldCacheFastReuse=params.get('worldFast')!=='0';
+ // Experimental only: compare a one-to-one full-raster draw against the
+ // existing cropped source-rectangle blit; default remains unchanged.
+ const wholeWorldBlit=params.get('worldBlit')==='whole';
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
@@ -47,6 +50,7 @@
   canvas,storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
+  wholeWorldBlit,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
