@@ -160,7 +160,8 @@ const run=async()=>{
     (mode==='forceCloud'?'&cloudAuto=0':'')+
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
-    (mode==='layeredFog'?'&fogLayer=1':'');
+    (mode==='layeredFog'?'&fogLayer=1':'')+
+    (mode==='domWorld'?'&worldDOM=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -215,7 +216,10 @@ const run=async()=>{
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
     fogOnlyFrames:coldReport.environment.runtime.fogOnlyFrames,
-    fogOverlayMiB:coldReport.environment.runtime.fogOverlayMiB
+    fogOverlayMiB:coldReport.environment.runtime.fogOverlayMiB,
+    domWorldEnabled:coldReport.environment.runtime.domWorldEnabled,
+    domWorldFrames:coldReport.environment.runtime.domWorldFrames,
+    domWorldFallbacks:coldReport.environment.runtime.domWorldFallbacks
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -267,6 +271,8 @@ const run=async()=>{
     meanPanDrawMs:report.byGesture.pan.draws.mean,
     panFrames:report.frames.filter(f=>f.kind==='pan').length,
     overlayPanFrames:report.frames.filter(f=>f.kind==='pan'&&f.fogLayerActive).length,
+    domPanFrames:report.frames.filter(f=>f.kind==='pan'&&f.domWorldActive).length,
+    domWorldFrames:report.environment.runtime.domWorldFrames,
     p95WorldMs:report.phasesMs.worldMs.p95,
     p95WorldPrepareMs:report.phasesMs.worldPrepareMs.p95,
     p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
@@ -288,6 +294,7 @@ const run=async()=>{
   const noFogCull=await loadMode('noFogCull');
   const noWorldFast=await loadMode('noWorldFast');
   const layeredFog=await loadMode('layeredFog');
+  const domWorld=await loadMode('domWorld');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -449,6 +456,50 @@ const run=async()=>{
    'real browser must paint nontransparent frontier Fog and transparent authorized hexes');
   assert.ok(visual.partial>0,
    'authored soft Cloud sprite edges must preserve transparency gradients');
+  const candidate=collected.results.domWorld;
+  assert.equal(fast.cold.domWorldEnabled,false,
+   'original 9-arg Canvas world blit must remain the default');
+  assert.equal(candidate.cold.domWorldEnabled,true,
+   'opt-in worldDOM=1 must enable existing-raster CSS composition');
+  assert.ok(candidate.cold.domWorldFrames>5,
+   'actual Firefox must attach and transform the masked panorama');
+  assert.ok(candidate.panFrames>=20&&candidate.domPanFrames>=20,
+   'CSS compositor must replace the Canvas blit on actual pan frames');
+  assert.ok(candidate.overlayPanFrames>=20,
+   'authorized Fog must remain visibly above the CSS World layer');
+  assert.ok(candidate.p95WorldBlitMs!=null&&candidate.p95WorldMs!=null,
+   'browser must time compositor style updates and world preparation');
+  assert.ok(candidate.p95DrawMs<=Math.max(180,fast.p95DrawMs*2.8),
+   'DOM compositor causes catastrophic pan draw regression');
+  assert.ok(candidate.p95FrameGapMs<=Math.max(200,fast.p95FrameGapMs*3.0),
+   'DOM compositor causes catastrophic pan frame cadence regression');
+  const domGeometry=await domWorld.evaluate(()=>{
+   const main=document.querySelector('main'),host=document.querySelector('#worldLayer'),
+    world=host?.firstElementChild,
+    fog=document.querySelector('#fogOverlay'),
+    mainRect=main.getBoundingClientRect(),
+    hostRect=host?.getBoundingClientRect(),
+    fogRect=fog?.getBoundingClientRect(),
+    wr=world?.getBoundingClientRect();
+   return {hasWorld:!!world,hasTransform:!!world?.style.transform,
+    layerVisible:host?.hidden===false,
+    fogVisible:fog?.hidden===false,
+    positioned:!!hostRect&&!!fogRect&&
+     Math.abs(hostRect.left-mainRect.left)<.1&&
+     Math.abs(hostRect.top-mainRect.top)<.1&&
+     Math.abs(hostRect.width-fogRect.width)<.1&&
+     Math.abs(hostRect.height-fogRect.height)<.1,
+    worldSize:wr?[wr.width,wr.height]:null,
+    domRaster:world?[world.width,world.height]:null};
+  });
+  collected.domWorldGeometry=domGeometry;
+  assert.ok(domGeometry.hasWorld&&domGeometry.hasTransform&&
+   domGeometry.layerVisible&&domGeometry.fogVisible&&domGeometry.positioned,
+   'real masked world raster must remain aligned under transparent Fog');
+  assert.ok(domGeometry.domRaster[0]>1000 &&
+   domGeometry.worldSize[0]>0,
+   'the real browser must position a nonzero world-raster canvas');
+  await domWorld.close();
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
