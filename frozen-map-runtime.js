@@ -78,7 +78,7 @@ window.VedrasFrozenMap=(()=>{
   return new Promise((resolve,reject)=>cv.toBlob(blob=>
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
- function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
+ function create({canvas,fogCanvas=null,worldLayer=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
@@ -89,6 +89,16 @@ window.VedrasFrozenMap=(()=>{
   const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
   let fogLayerActive=false,basePaintWasLayered=false;
+  let domWorldActive=false,domWorldFrames=0,domWorldFallbacks=0;
+  // The already-budgeted overviewRaster.canvas becomes an HTML layer.
+  // It is never duplicated into another raster or stored in IndexedDB.
+  function hideWorldLayer(clear=false){
+   domWorldActive=false;
+   if(worldLayer){
+    worldLayer.hidden=true;
+    if(clear)worldLayer.replaceChildren?.();
+   }
+  }
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
   let generation=0,paintScheduled=false;
   // Decoded image packets are immutable and committed only after ALL layers
@@ -176,6 +186,7 @@ window.VedrasFrozenMap=(()=>{
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
    layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+   domWorldEnabled:!!worldLayer,domWorldActive,domWorldFrames,domWorldFallbacks,
    fogOverlayMiB:fogCtx?Math.round(fogCanvas.width*fogCanvas.height*4/1048576):0,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
@@ -200,6 +211,7 @@ window.VedrasFrozenMap=(()=>{
   function clearDecoded(){generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();decodedRevision++;baseStamp=null;
+   hideWorldLayer(true);
    loading.clear();loadingPurpose.clear();
    protectedKeys=new Set();decodedPixels=0;
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
@@ -468,6 +480,15 @@ window.VedrasFrozenMap=(()=>{
    }else{
     // Zoom-in never exposes pixels beyond the original viewport.
     g.drawImage(canvas,0,0,image.width,image.height);
+    if(domWorldActive&&overviewRaster){
+     // CSS-composited terrain is not inside #game. Explicitly include it
+     // between the cloud backdrop and Fog when capturing zoom previews.
+     const m=overviewRaster,dpr=pose.dpr||1,
+      sx=(m.pad+m.panX-pose.panX)*dpr,
+      sy=(m.pad+m.panY-pose.panY)*dpr;
+     g.drawImage(m.canvas,sx,sy,width*dpr,height*dpr,
+      0,0,image.width,image.height);
+    }
     if(fogLayerActive)g.drawImage(fogCanvas,0,0,image.width,image.height);
    }
    zoomPreview={image,pose:{...pose},width,height,padX,padY,
@@ -885,8 +906,24 @@ window.VedrasFrozenMap=(()=>{
    const m=overviewRaster,blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
     sy=(m.pad+m.panY-view.panY)*dpr;
-   target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
-    0,0,view.width,view.height);
+   if(worldLayer&&fogCtx&&m.canvas?.style&&
+      typeof worldLayer.replaceChildren==='function'){
+    // Move the SAME existing world buffer into a clipped DOM layer.
+    // A compositor-only CSS translation replaces the per-pan pixel blit.
+    // Keep exact raster DPR, world anchor, and the immutable 25F mask.
+    if(worldLayer.firstChild!==m.canvas)
+     worldLayer.replaceChildren(m.canvas);
+    const style=m.canvas.style;
+    style.width=m.canvas.width/dpr+'px';
+    style.height=m.canvas.height/dpr+'px';
+    style.transform='translate3d('+(-sx/dpr)+'px,'+(-sy/dpr)+'px,0)';
+    worldLayer.hidden=false;
+    domWorldActive=true;domWorldFrames++;
+   }else{
+    hideWorldLayer();
+    target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
+     0,0,view.width,view.height);
+   }
    if(profileFrame)profileFrame.worldBlitMs+=clock()-blitStart;
    return true;
   }
@@ -990,7 +1027,8 @@ window.VedrasFrozenMap=(()=>{
     baseStamp.height===height&&baseStamp.dpr===dpr&&
     baseStamp.zoom===view.zoom&&baseStamp.panX===view.panX&&
     baseStamp.panY===view.panY&&baseStamp.projectY===proj;
-   const wantsFogLayer=!!fogCtx&&(!baseStamp||cameraStill)&&!zoomPreview;
+   const wantsFogLayer=!!fogCtx&&
+    (!!worldLayer||!baseStamp||cameraStill)&&!zoomPreview;
    if(fogCtx&&fogLayerActive!==wantsFogLayer){
     fogLayerActive=wantsFogLayer;
     fogCanvas.hidden=!wantsFogLayer;
@@ -1022,8 +1060,8 @@ window.VedrasFrozenMap=(()=>{
     if(ox<=0&&oy<=0&&ox+destW>=width&&oy+destH>=height){
      ctx.globalAlpha=1;
      ctx.drawImage(zoomPreview.image,ox,oy,destW,destH);
-     // Preview includes Fog already: do not draw it twice above #game.
-     baseStamp=null;
+     // Preview includes world and Fog already: hide their extra DOM layers.
+     hideWorldLayer();baseStamp=null;
      zoomPreviewFrames++;
      frame++;paintMs=(typeof performance!=='undefined'?
       performance.now():Date.now())-now;
@@ -1051,6 +1089,7 @@ window.VedrasFrozenMap=(()=>{
     if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){
      // Unready landscape stays under the existing fog, never exposed.
      worldCacheFallbackFrames++;overviewRaster=null;
+     hideWorldLayer();domWorldFallbacks+=!!worldLayer;
      paintWorld(ctx,view,tiles,dpr);
     }
     if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
@@ -1145,6 +1184,7 @@ window.VedrasFrozenMap=(()=>{
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
      layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+   domWorldEnabled:!!worldLayer,domWorldActive,domWorldFrames,domWorldFallbacks,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
