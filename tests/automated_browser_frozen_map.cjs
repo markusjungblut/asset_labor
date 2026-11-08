@@ -159,7 +159,8 @@ const run=async()=>{
     (mode==='noCloudPad'?'&cloudPad=0':'')+
     (mode==='forceCloud'?'&cloudAuto=0':'')+
     (mode==='noFogCull'?'&fogCull=0':'')+
-    (mode==='noWorldFast'?'&worldFast=0':'');
+    (mode==='noWorldFast'?'&worldFast=0':'')+
+    (mode==='wholeWorldBlit'?'&worldBlit=whole':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -210,7 +211,8 @@ const run=async()=>{
     fogEdgeCandidates:coldReport.environment.runtime.fogFrontierCandidates,
     worldFastEnabled:coldReport.environment.runtime.worldCacheFastReuse,
     worldFastHits:coldReport.environment.runtime.overviewFastHits,
-    worldRechecks:coldReport.environment.runtime.overviewRechecks
+    worldRechecks:coldReport.environment.runtime.overviewRechecks,
+    wholeWorldBlit:coldReport.environment.runtime.wholeWorldBlit
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -279,6 +281,7 @@ const run=async()=>{
   const forceCloud=await loadMode('forceCloud');
   const noFogCull=await loadMode('noFogCull');
   const noWorldFast=await loadMode('noWorldFast');
+  const wholeWorldBlit=await loadMode('wholeWorldBlit');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -354,6 +357,16 @@ const run=async()=>{
    'regression: world-cache fast reuse increases browser draw p95');
   assert.ok(fast.p95FrameGapMs<=Math.max(100,worldControl.p95FrameGapMs*1.45),
    'regression: world-cache fast reuse worsens active pan frame cadence');
+  const alternative=collected.results.wholeWorldBlit;
+  assert.equal(fast.cold.wholeWorldBlit,false,
+   'the quality-preserving cropped world blit remains default');
+  assert.equal(alternative.cold.wholeWorldBlit,true,
+   'the browser must actually exercise the alternate 1:1 world blit');
+  assert.ok(alternative.activeFrames>=15&&alternative.p95WorldBlitMs!=null,
+   'the alternate path must measure real warm-pan blit timing');
+  // This is an EXPERIMENT. Do not gate the baseline on its speed:
+  // if full-canvas uploads are slower, leave the original path enabled.
+  await wholeWorldBlit.close();
   await noWorldFast.close();
   await noFogCull.close();
   await forceCloud.close();
