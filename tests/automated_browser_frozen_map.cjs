@@ -264,6 +264,9 @@ const run=async()=>{
     p95FogCullMs:report.phasesMs.fogCullMs.p95,
     p95FogUnreadyMs:report.phasesMs.fogUnreadyMs.p95,
     p95FogTransitionsMs:report.phasesMs.fogTransitionsMs.p95,
+    meanPanDrawMs:report.byGesture.pan.draws.mean,
+    panFrames:report.frames.filter(f=>f.kind==='pan').length,
+    overlayPanFrames:report.frames.filter(f=>f.kind==='pan'&&f.fogLayerActive).length,
     p95WorldMs:report.phasesMs.worldMs.p95,
     p95WorldPrepareMs:report.phasesMs.worldPrepareMs.p95,
     p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
@@ -371,6 +374,11 @@ const run=async()=>{
    'separate Fog layer drastically worsens actual Firefox pan drawing');
   assert.ok(layered.p95FrameGapMs<=Math.max(110,fast.p95FrameGapMs*1.55),
    'separate Fog layer drastically worsens pan cadence');
+  assert.ok(layered.panFrames>=20,'browser must record actual panning frames');
+  assert.equal(layered.overlayPanFrames,0,
+   'the expensive second Fog canvas must remain hidden on EVERY pan frame');
+  assert.ok(layered.meanPanDrawMs<=Math.max(45,fast.meanPanDrawMs*1.35),
+   'adaptive Fog layering increases mean pan draw time excessively');
 
   // Synthetic overlay-only redraw: reproducible real Canvas operations
   // with NO camera movement or archive mutation. Mirrors the 850ms Fog
