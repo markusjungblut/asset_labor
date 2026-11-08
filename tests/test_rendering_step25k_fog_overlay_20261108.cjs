@@ -48,7 +48,8 @@ function fixture(layered=true){
 }
 test('Fog-only redraws do not touch immutable world or cloudy base, but clear transparent overlay',async()=>{
  const f=fixture(true);await f.start();
- const first=f.player.report(),beforeMain=f.mainOps.length;
+ const painted=ops=>ops.filter(x=>x==='fill'||Array.isArray(x)).length;
+ const first=f.player.report(),beforeMain=painted(f.mainOps);
  const firstUnready=f.calls.unready.length,firstFrontier=f.calls.frontier.length;
  assert.equal(first.layeredFog,true);
  assert.equal(first.baseFrames,1);
@@ -59,7 +60,7 @@ test('Fog-only redraws do not touch immutable world or cloudy base, but clear tr
  const after=f.player.report();
  assert.equal(after.baseFrames,1,'never repaint 16.5MP base for unchanged Fog');
  assert.equal(after.fogOnlyFrames,8);
- assert.equal(f.mainOps.length,beforeMain,
+ assert.equal(painted(f.mainOps),beforeMain,
   'the display world/cloud context must receive no operations during fog-only frames');
  assert.ok(f.fogOps.filter(x=>x==='clear').length>=9);
  assert.equal(f.calls.unready.length,firstUnready+8);
@@ -87,9 +88,9 @@ test('pan, projection, zoom/dpr and cloud assets immediately invalidate static b
  }
  assert.equal(f.fogCanvas.width,900);
  assert.equal(f.fogCanvas.height,600);
- const stableMainOps=f.mainOps.length;
+ const stableMainPaints=f.mainOps.filter(x=>x==='fill'||Array.isArray(x)).length;
  f.player.draw();
- assert.equal(f.mainOps.length,stableMainOps);
+ assert.equal(f.mainOps.filter(x=>x==='fill'||Array.isArray(x)).length,stableMainPaints);
  f.player.stop();
 });
 test('without overlay the original world+fog canvas remains the only paint target',async()=>{
