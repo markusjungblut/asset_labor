@@ -133,3 +133,41 @@ Dokumentationscommit soll die Abnahme bestätigen. Angesichts
 des ~14-MiB-RAM-Aufpreises und ohne echte Windows-Atlas-Hardware-
 Messung bleibt der **Standardrand unverändert**.
 `&worldPad=1` ist die vorsichtige opt-in-Variante.
+
+## Zweiter unabhängiger Firefox-Lauf (08.11.2026)
+
+Der Dokumentations-Commit löste die automatische Abnahme erneut aus:
+[GitHub Actions #42531656118](https://github.com/markusjungblut/asset_labor/actions/runs/42531656118),
+Code funktional unverändert, alle Node-/Firefox-Schritte **grün**,
+`passed:true`, `errors:[]`; Archiv
+`frozen-map-firefox-60` (ID `13637935942`).
+
+| Je 30 Warm-Pan-Frames, zweiter CI-Runner | `worldPad=0` | `worldPad=1` |
+| --- | ---: | ---: |
+| Kamera-Overscan | 272 px | **434 px** |
+| Vollständige World-Rebuilds beim Pan | **2** | **0** |
+| `worldPrepareMs` p95 | **12 ms** | 15 ms |
+| `worldBlitMs` p95 | 25 ms | 25 ms |
+| `worldMs` p95 | **31 ms** | 33 ms |
+| `drawMs` p95 | 49 ms | **47 ms** |
+| `frameGapMs` p95 | **59 ms** | 62 ms |
+| Durchschnittliches `drawMs` | 48,37 ms | **38,03 ms** |
+| Repeat-Decodes / Evictions | 0 / 0 | 0 / 0 |
+
+Damit ist die **strukturelle Rebuild-Vermeidung in zwei unabhängigen
+Firefox-Läufen bestätigt**. Die durchschnittliche Zeichenzeit sinkt
+in beiden Vergleichen (33,47→26,00ms bzw. 48,37→38,03ms),
+die `frameGapMs`-p95 ist aber **nicht konsistent besser**
+(41→36ms, anschließend 59→62ms). Selbst ein positiver
+Durchschnitt ist keine 60-FPS-Abnahme. Speicherkosten von
+~14 MiB mehr World-Raster bleiben bestehen.
+
+**Entscheidung:** Die geprüfte Implementierung kann als
+**streng opt-in** `&worldPad=1` nach `main` integriert werden,
+um den etablierten Standardpfad für die private Windows-Karte
+nicht zu ändern. Keine voreilige standardmäßige Aktivierung.
+Der nächste Performance-Schritt muss die verbliebenen
+~16–25ms Canvas-Kopierzeit, sowie verbleibende Streaming-/
+Cache-Rebuild-Spitzen, mit besseren hardwaregleichen A/B-Profilen
+untersuchen. Der DOM-Compositor-Versuch aus 25L ist hierfür
+**keine** Lösung und bleibt verworfen.
