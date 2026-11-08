@@ -160,7 +160,8 @@ const run=async()=>{
     (mode==='forceCloud'?'&cloudAuto=0':'')+
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
-    (mode==='layeredFog'?'&fogLayer=1':'');
+    (mode==='layeredFog'?'&fogLayer=1':'')+
+    (mode==='budgetedPad'?'&worldPad=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -212,6 +213,10 @@ const run=async()=>{
     worldFastEnabled:coldReport.environment.runtime.worldCacheFastReuse,
     worldFastHits:coldReport.environment.runtime.overviewFastHits,
     worldRechecks:coldReport.environment.runtime.overviewRechecks,
+    worldPadAdaptive:coldReport.environment.runtime.adaptiveWorldPad,
+    worldEffectivePad:coldReport.environment.runtime.worldEffectivePad,
+    worldPadBoostFrames:coldReport.environment.runtime.worldPadBoostFrames,
+    worldPadClampFrames:coldReport.environment.runtime.worldPadClampFrames,
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
     fogOnlyFrames:coldReport.environment.runtime.fogOnlyFrames,
@@ -270,6 +275,9 @@ const run=async()=>{
     p95WorldMs:report.phasesMs.worldMs.p95,
     p95WorldPrepareMs:report.phasesMs.worldPrepareMs.p95,
     p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
+    fullWorldBuilds:report.environment.runtime.overviewRasterBuilds,
+    worldEffectivePad:report.environment.runtime.worldEffectivePad,
+    worldPadAdaptive:report.environment.runtime.adaptiveWorldPad,
     activeFrames:report.frameCounts.active,
     tileReads:report.tiles.counts.loaded,
     decodeRepeats:report.tiles.counts.repeated,
@@ -288,6 +296,7 @@ const run=async()=>{
   const noFogCull=await loadMode('noFogCull');
   const noWorldFast=await loadMode('noWorldFast');
   const layeredFog=await loadMode('layeredFog');
+  const budgetedPad=await loadMode('budgetedPad');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -449,6 +458,31 @@ const run=async()=>{
    'real browser must paint nontransparent frontier Fog and transparent authorized hexes');
   assert.ok(visual.partial>0,
    'authored soft Cloud sprite edges must preserve transparency gradients');
+  const padTrial=collected.results.budgetedPad;
+  assert.equal(fast.cold.worldPadAdaptive,false,
+   'the 25M larger camera margin must remain explicitly opt-in');
+  assert.equal(padTrial.cold.worldPadAdaptive,true);
+  assert.ok(padTrial.cold.worldEffectivePad>fast.cold.worldEffectivePad+50,
+   'budgeted pad must exploit current 16.5MP headroom without lowering DPR');
+  assert.ok(padTrial.cold.worldPadBoostFrames>0);
+  assert.ok(padTrial.activeFrames>=20&&padTrial.p95WorldMs!=null,
+   'the additional pad must be measured in actual Firefox pan frames');
+  const oldPanRebuilds=fast.fullWorldBuilds-fast.cold.worldBuilds,
+   newPanRebuilds=padTrial.fullWorldBuilds-padTrial.cold.worldBuilds;
+  collected.worldPadAB={oldPanRebuilds,newPanRebuilds,
+   oldPad:fast.cold.worldEffectivePad,
+   newPad:padTrial.cold.worldEffectivePad};
+  assert.ok(oldPanRebuilds>=2,
+   'same browser path should demonstrate actual overscan-triggered rebuilds');
+  assert.ok(newPanRebuilds<oldPanRebuilds,
+   'adaptive bounded overscan should prevent full pan raster rebuilds');
+  assert.ok(padTrial.decodeRepeats<=fast.decodeRepeats+COUNT,
+   'larger overscan must not cause major decode churn');
+  assert.ok(padTrial.p95DrawMs<=Math.max(140,fast.p95DrawMs*2.2),
+   'budgeted world overscan causes catastrophic pan draw regression');
+  assert.ok(padTrial.p95FrameGapMs<=Math.max(150,fast.p95FrameGapMs*2.2),
+   'budgeted world overscan causes catastrophic pan cadence regression');
+  await budgetedPad.close();
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
