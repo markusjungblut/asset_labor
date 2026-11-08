@@ -411,6 +411,31 @@ const run=async()=>{
    'layered Fog should not blit the world on unchanged-camera frames');
   assert.ok(slowStatic.p95WorldMs>0,
    'legacy mode must still composite World when Fog-only redraw happens');
+  // Native real-browser readback proves that the separate display canvas
+  // actually contains opaque frontier cloud cores AND transparent holes.
+  // This must run AFTER timed measurements: getImageData synchronizes GPU.
+  const visual=await layeredFog.evaluate(()=>{
+   const base=document.querySelector('#game'),
+    overlay=document.querySelector('#fogOverlay'),
+    a=base.getBoundingClientRect(),b=overlay.getBoundingClientRect(),
+    rgba=overlay.getContext('2d').getImageData(
+     0,0,overlay.width,overlay.height).data;
+   let opaque=0,clear=0,partial=0;
+   for(let i=3;i<rgba.length;i+=4*97){
+    if(rgba[i]===255)opaque++;
+    else if(rgba[i]===0)clear++;
+    else partial++;
+   }
+   return {aligned:Math.abs(a.x-b.x)<.1&&Math.abs(a.y-b.y)<.1&&
+    Math.abs(a.width-b.width)<.1&&Math.abs(a.height-b.height)<.1,
+    opaque,clear,partial,width:overlay.width,height:overlay.height};
+  });
+  collected.layeredFogVisual=visual;
+  assert.ok(visual.aligned,'Fog overlay must pixel-align with the world viewport');
+  assert.ok(visual.opaque>20&&visual.clear>20,
+   'real browser must paint nontransparent frontier Fog and transparent authorized hexes');
+  assert.ok(visual.partial>0,
+   'authored soft Cloud sprite edges must preserve transparency gradients');
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
