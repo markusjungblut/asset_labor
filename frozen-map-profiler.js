@@ -68,6 +68,8 @@ window.VedrasFrozenProfiler=(()=>{
     fogTransitionsMs:round(data.fogTransitionsMs||0),
     statusMs:round(data.statusMs||0),
     renderMode:data.renderMode||'cached',
+    layeredFog:!!data.layeredFog,
+    fogLayerActive:!!data.fogLayerActive,
     zoom:round(data.zoom||1),
     dpr:round(data.dpr||1),
     canvasPixels:data.canvasPixels||0,
