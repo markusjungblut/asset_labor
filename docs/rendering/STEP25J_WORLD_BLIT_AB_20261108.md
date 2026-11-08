@@ -54,3 +54,36 @@ zum Standard gemacht.
 
 Kein manueller Nutzertest, keine geänderten IndexedDB-Keys/Original-PNGs,
 kein neues Bake, kein größerer Cache oder garantierte 60 FPS auf Windows.
+
+## Abschlussmessung: Alternative verworfen (08.11.2026)
+
+Automatischer [GitHub-Actions-Lauf #42507855991](https://github.com/markusjungblut/asset_labor/actions/runs/42507855991):
+**alle Node-Tests und Headless-Firefox bestanden**,
+`firefox-summary.json`: `passed:true`, `errors:[]`.
+Artefakt `frozen-map-firefox-41` (ID `13627668417`).
+
+| Derselbe Firefox-/120-Tile-Warm-Pan (je 30 aktive Frames) | 9-Argument-Standard | `worldBlit=whole` |
+| --- | ---: | ---: |
+| `worldBlitMs` p95 | **23 ms** | 23 ms |
+| `worldPrepareMs` p95 | **8 ms** | 13 ms |
+| `worldMs` p95 | **26 ms** | 31 ms |
+| `drawMs` p95 | **41 ms** | 47 ms |
+| `frameGapMs` p95 | **48 ms** | 55 ms |
+| Wiederholungsdecodes / Evictions | 0 / 0 | 0 / 0 |
+
+Auf dem großen synthetischen Linux-Firefox-Viewport ist die Vollraster-
+Zeichenvariante **nicht schneller**, obwohl sie dieselbe World-Abbildung
+nutzt. Die Standardstrategie bleibt unverändert. Die beiden vollständigen
+Screenshots haben eine pixelidentische obere Bildhälfte; über die gesamte
+Ansicht unterscheiden sich ca. **3,73 %** der Pixel in mindestens einem
+Kanal um mehr als 2 Werte, vor allem im unteren zeitabhängigen Fog-Bereich.
+Dies ist kein deterministischer Pixelbeweis des gesamten Spiels.
+
+**Entscheidung:** Dieser rein opt-in Versuch wird **nicht gemergt** und nicht
+als Produktionsoptimierung eingeschaltet. Der nachgewiesene Flaschenhals
+lässt sich durch das bloße Wechseln der `drawImage`-Signatur nicht
+beseitigen. Als nächster kontrollierter Versuch bieten sich getrennte
+World-/Fog-Kompositionslayer an, damit statische World-Pixel beim
+laufenden 850-ms-Fog-Dissolve nicht erneut über die gesamte Anzeigefläche
+kopiert werden müssen. Pan-Performance und zusätzlicher Canvas-Speicher
+müssen dabei eigens im echten Firefox geprüft werden.
