@@ -88,6 +88,7 @@ window.VedrasFrozenMap=(()=>{
   // Optional transparent viewport-size overlay; world stays on #game.
   const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
+  let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
   let generation=0,paintScheduled=false;
   // Decoded image packets are immutable and committed only after ALL layers
@@ -174,7 +175,7 @@ window.VedrasFrozenMap=(()=>{
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
-   layeredFog:!!fogCtx,baseFrames,fogOnlyFrames,
+   layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
    fogOverlayMiB:fogCtx?Math.round(fogCanvas.width*fogCanvas.height*4/1048576):0,
    cloudBufferHexes:viewportPolicy?1:0,
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
@@ -467,7 +468,7 @@ window.VedrasFrozenMap=(()=>{
    }else{
     // Zoom-in never exposes pixels beyond the original viewport.
     g.drawImage(canvas,0,0,image.width,image.height);
-    if(fogCtx)g.drawImage(fogCanvas,0,0,image.width,image.height);
+    if(fogLayerActive)g.drawImage(fogCanvas,0,0,image.width,image.height);
    }
    zoomPreview={image,pose:{...pose},width,height,padX,padY,
     extendedWidth,extendedHeight};
@@ -903,17 +904,6 @@ window.VedrasFrozenMap=(()=>{
    if(canvas.width!==dw||canvas.height!==dh){
     canvas.width=dw;canvas.height=dh;baseStamp=null;
    }
-   if(fogCtx){
-    if(fogCanvas.width!==dw||fogCanvas.height!==dh){
-     fogCanvas.width=dw;fogCanvas.height=dh;
-    }
-    // Remove last frame's Fog before drawing the next opacity/sprite state.
-    fogCtx.setTransform(1,0,0,1,0,0);
-    fogCtx.clearRect(0,0,dw,dh);
-    fogCtx.setTransform(dpr,0,0,dpr,0,0);
-    fogCtx.globalAlpha=1;fogCtx.imageSmoothingEnabled=true;
-    fogCtx.imageSmoothingQuality='high';
-   }
    ctx.setTransform(dpr,0,0,dpr,0,0);
    ctx.globalAlpha=1;ctx.imageSmoothingEnabled=true;
    ctx.imageSmoothingQuality='high';
@@ -992,6 +982,29 @@ window.VedrasFrozenMap=(()=>{
     read(t.key,variant,'prefetch');
    }
    if(profileFrame)profileFrame.selectMs=clock()-now;
+   // A second large displayed Canvas can slow active panning. Switch back
+   // to the original single-canvas compositor whenever the CAMERA MOVES.
+   // A stationary Fog/dissolve frame may switch to the overlay; on entry
+   // the clean world is recomposited once, then held without repeated blits.
+   const cameraStill=!!baseStamp&&baseStamp.width===width&&
+    baseStamp.height===height&&baseStamp.dpr===dpr&&
+    baseStamp.zoom===view.zoom&&baseStamp.panX===view.panX&&
+    baseStamp.panY===view.panY&&baseStamp.projectY===proj;
+   const wantsFogLayer=!!fogCtx&&(!baseStamp||cameraStill)&&!zoomPreview;
+   if(fogCtx&&fogLayerActive!==wantsFogLayer){
+    fogLayerActive=wantsFogLayer;
+    fogCanvas.hidden=!wantsFogLayer;
+   }
+   if(wantsFogLayer){
+    if(fogCanvas.width!==dw||fogCanvas.height!==dh){
+     fogCanvas.width=dw;fogCanvas.height=dh;
+    }
+    fogCtx.setTransform(1,0,0,1,0,0);
+    fogCtx.clearRect(0,0,dw,dh);
+    fogCtx.setTransform(dpr,0,0,dpr,0,0);
+    fogCtx.globalAlpha=1;fogCtx.imageSmoothingEnabled=true;
+    fogCtx.imageSmoothingQuality='high';
+   }
    if(zoomPreview&&zoomPreview.width===width&&zoomPreview.height===height){
     // Continuous wheel gesture: transform one authorized canvas snapshot
     // instead of recomputing every Ground/Scenery and cloud stamp per tick.
@@ -1021,7 +1034,7 @@ window.VedrasFrozenMap=(()=>{
    // Only true no-camera-change Fog frames reuse the unchanged world.
    // Every changed decoded PNG, cloud asset, canvas size, or pose repaints
    // the entire base BEFORE Fog can expose any new terrain pixels.
-   const baseReusable=!!fogCtx&&baseStamp&&
+   const baseReusable=fogLayerActive&&basePaintWasLayered&&baseStamp&&
     baseStamp.decodedRevision===decodedRevision&&
     baseStamp.cloudRevision===cloudRevision&&
     baseStamp.width===width&&baseStamp.height===height&&
@@ -1041,7 +1054,7 @@ window.VedrasFrozenMap=(()=>{
      paintWorld(ctx,view,tiles,dpr);
     }
     if(profileFrame)profileFrame.worldMs+=clock()-worldCompositeStart;
-    baseFrames++;
+    baseFrames++;basePaintWasLayered=fogLayerActive;
     baseStamp={width,height,dpr,zoom:view.zoom,panX:view.panX,
      panY:view.panY,projectY:proj,decodedRevision,cloudRevision};
    }
@@ -1099,10 +1112,10 @@ window.VedrasFrozenMap=(()=>{
      }
     }
     const fogUnreadyStart=profileFrame?clock():0;
-    clouds.drawUnready(fogCtx||ctx,view,fogCells,ready,fadeOpacity);
+    clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
     if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
     const fogTransitionsStart=profileFrame?clock():0;
-    clouds.drawTransitions(fogCtx||ctx,view,fogEdges);
+    clouds.drawTransitions(fogLayerActive?fogCtx:ctx,view,fogEdges);
     if(profileFrame)profileFrame.fogTransitionsMs=clock()-fogTransitionsStart;
    }
    if(profileFrame)profileFrame.fogMs+=clock()-fogStart;
@@ -1131,7 +1144,7 @@ window.VedrasFrozenMap=(()=>{
      cloudCacheBuilds:cloudBackdropBuilds,cloudCacheHits:cloudBackdropHits,
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
-     layeredFog:!!fogCtx,baseFrames,fogOnlyFrames,
+     layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
