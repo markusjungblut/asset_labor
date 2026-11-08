@@ -377,6 +377,9 @@ const run=async()=>{
   // dissolve's repeated paints after a tile has become ready.
   async function staticRedraw(page){
    await page.waitForTimeout(1000); // previous 850ms fade must settle
+   // One unmeasured frame lets a camera just released after panning
+   // switch from single-canvas back to a clean, stationary Fog layer.
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.forceRedraw());
    const before=await page.evaluate(()=>window.__vedrasFrozenGameTest.stats());
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    await page.evaluate(async()=>{
@@ -432,6 +435,8 @@ const run=async()=>{
   });
   collected.layeredFogVisual=visual;
   assert.ok(visual.aligned,'Fog overlay must pixel-align with the world viewport');
+  assert.equal((await layeredFog.evaluate(()=>window.__vedrasFrozenGameTest.stats())).fogLayerActive,true,
+   'camera-stationary frames must restore the transparent Fog overlay');
   assert.ok(visual.opaque>20&&visual.clear>20,
    'real browser must paint nontransparent frontier Fog and transparent authorized hexes');
   assert.ok(visual.partial>0,
