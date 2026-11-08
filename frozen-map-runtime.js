@@ -82,7 +82,7 @@ window.VedrasFrozenMap=(()=>{
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
-    worldCacheFastReuse=true}={}){
+    worldCacheFastReuse=true,adaptiveWorldPad=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -125,6 +125,7 @@ window.VedrasFrozenMap=(()=>{
   let dissolveActive=false,authoredFogSet=null,authoredEdges=null;
   let authoredVisibleById=new Map();
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
+  let worldEffectivePad=0,worldPadBoostFrames=0,worldPadClampFrames=0;
   let decodedRevision=0,overviewFastHits=0,overviewRechecks=0;
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
@@ -144,6 +145,23 @@ window.VedrasFrozenMap=(()=>{
   }
   let worldCacheFallbackFrames=0,cloudCacheFallbackFrames=0;
   const worldRasterLimit=largeViewportCache?16500000:8500000;
+  function worldCachePad(view,dpr){
+   const base=viewportPolicy.cameraCacheMargin(view.zoom);
+   if(!adaptiveWorldPad||!largeViewportCache)return base;
+   const w=view.width,h=view.height,maxPixels=worldRasterLimit/(dpr*dpr),
+    limitPixels=(Math.sqrt((w-h)*(w-h)+4*maxPixels)-(w+h))/4,
+    limitWidth=(8192/dpr-w)/2,limitHeight=(8192/dpr-h)/2,
+    desired=Math.ceil(base*1.8);
+   let pad=Math.min(desired,Math.floor(Math.min(limitPixels,limitWidth,limitHeight)));
+   // Math.ceil() can exceed the continuous-area estimate by a few pixels.
+   // Never exceed the original hard world raster pixel/edge budgets.
+   while(pad>base){
+    const cw=Math.ceil((w+2*pad)*dpr),ch=Math.ceil((h+2*pad)*dpr);
+    if(cw*ch<=worldRasterLimit&&cw<=8192&&ch<=8192)break;
+    pad--;
+   }
+   return Math.max(base,pad);
+  }
   const cloudRasterLimit=largeViewportCache?8500000:6500000;
   let zoomPreview=null,zoomPreviewFrames=0,zoomPreviewStarted=0;
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0,
@@ -181,6 +199,7 @@ window.VedrasFrozenMap=(()=>{
    overviewRasterHits:overviewHits,overviewRasterBuilds:overviewBuilds,
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
+   adaptiveWorldPad,worldEffectivePad,worldPadBoostFrames,worldPadClampFrames,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
    fogViewportCull,fogUnreadyCandidates,fogUnreadySubmitted,
@@ -216,6 +235,7 @@ window.VedrasFrozenMap=(()=>{
    authoredEdges=null;overviewRaster=null;zoomPreview=null;
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
+   worldEffectivePad=0;worldPadBoostFrames=0;worldPadClampFrames=0;
    cloudBackdropRaster=null;resetCloudAuto();
    fogUnreadyCandidates=0;fogUnreadySubmitted=0;
    fogFrontierCandidates=0;fogFrontierSubmitted=0;
@@ -795,7 +815,7 @@ window.VedrasFrozenMap=(()=>{
    return true;
   }
   function paintOverview(target,view,list,dpr,visibleComplete=false){
-   const pad=viewportPolicy.cameraCacheMargin(view.zoom),
+   const pad=worldCachePad(view,dpr),
     cw=Math.ceil((view.width+2*pad)*dpr),
     ch=Math.ceil((view.height+2*pad)*dpr);
    if(cw*ch>worldRasterLimit||cw>8192||ch>8192||
@@ -915,8 +935,13 @@ window.VedrasFrozenMap=(()=>{
    // fog overlay then needs to change on animation frames.
    // Warm panning at ordinary zoom should reuse the same padded world
    // raster as overview zoom. paintOverview enforces an 8.5 MP memory cap.
-   const rasterPad=viewportPolicy?
-    viewportPolicy.cameraCacheMargin(view.zoom):0;
+   const rasterPad=viewportPolicy?worldCachePad(view,dpr):0;
+   worldEffectivePad=rasterPad;
+   if(adaptiveWorldPad&&viewportPolicy){
+    const preferred=viewportPolicy.cameraCacheMargin(view.zoom);
+    if(rasterPad>preferred)worldPadBoostFrames++;
+    if(rasterPad<Math.ceil(preferred*1.8))worldPadClampFrames++;
+   }
    const worldMargin=Math.max(viewportPolicy?.MARGIN_WORLD||0,
     rasterPad?(rasterPad+45)/view.zoom:0);
    const extra=viewportPolicy?.screenBounds(view,{marginWorld:worldMargin})||null;
