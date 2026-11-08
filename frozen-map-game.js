@@ -8,7 +8,7 @@
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
  const benchmark=$('atlasBenchmark');
  if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
- const canvas=$('game'),fogOverlay=$('fogOverlay');
+ const canvas=$('game'),fogOverlay=$('fogOverlay'),worldLayer=$('worldLayer');
  function fail(error){
   output.textContent=String(error?.message||error)+
    ' · Im Asset-Labor zuerst „Gesamte Karte einmalig vorbereiten“ verwenden.';
@@ -40,14 +40,16 @@
  // A/B: skip unchanged cached-world tile scans while the camera stays inside pad.
  const worldCacheFastReuse=params.get('worldFast')!=='0';
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
+ const domWorldCompositor=params.get('worldDOM')==='1'&&!!worldLayer&&!!fogOverlay;
  const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
- if(fogOverlay)fogOverlay.hidden=!layeredFog;
+ if(fogOverlay)fogOverlay.hidden=!(layeredFog||domWorldCompositor);
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
-  canvas,fogCanvas:layeredFog?fogOverlay:null,
+  canvas,fogCanvas:(layeredFog||domWorldCompositor)?fogOverlay:null,
+  worldLayer:domWorldCompositor?worldLayer:null,
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -253,7 +255,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
-   fogViewportCull,layeredFog
+   fogViewportCull,layeredFog,domWorldCompositor
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
