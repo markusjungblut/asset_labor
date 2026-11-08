@@ -159,7 +159,8 @@ const run=async()=>{
     (mode==='noCloudPad'?'&cloudPad=0':'')+
     (mode==='forceCloud'?'&cloudAuto=0':'')+
     (mode==='noFogCull'?'&fogCull=0':'')+
-    (mode==='noWorldFast'?'&worldFast=0':'');
+    (mode==='noWorldFast'?'&worldFast=0':'')+
+    (mode==='layeredFog'?'&fogLayer=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -210,7 +211,11 @@ const run=async()=>{
     fogEdgeCandidates:coldReport.environment.runtime.fogFrontierCandidates,
     worldFastEnabled:coldReport.environment.runtime.worldCacheFastReuse,
     worldFastHits:coldReport.environment.runtime.overviewFastHits,
-    worldRechecks:coldReport.environment.runtime.overviewRechecks
+    worldRechecks:coldReport.environment.runtime.overviewRechecks,
+    layeredFog:coldReport.environment.runtime.layeredFog,
+    baseFrames:coldReport.environment.runtime.baseFrames,
+    fogOnlyFrames:coldReport.environment.runtime.fogOnlyFrames,
+    fogOverlayMiB:coldReport.environment.runtime.fogOverlayMiB
    };
    await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
    const rect=await page.locator('#game').boundingBox();
@@ -248,7 +253,7 @@ const run=async()=>{
     'Browser JS/network errors during automated camera path');
    const file=path.join(OUTPUT,BROWSER+'-'+mode+'.json');
    fs.writeFileSync(file,JSON.stringify(report,null,2));
-   await page.locator('#game').screenshot({
+   await page.locator('main').screenshot({
     path:path.join(OUTPUT,BROWSER+'-'+mode+'.png'),timeout:20000
    });
    collected.results[mode]={
@@ -279,6 +284,7 @@ const run=async()=>{
   const forceCloud=await loadMode('forceCloud');
   const noFogCull=await loadMode('noFogCull');
   const noWorldFast=await loadMode('noWorldFast');
+  const layeredFog=await loadMode('layeredFog');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -354,6 +360,58 @@ const run=async()=>{
    'regression: world-cache fast reuse increases browser draw p95');
   assert.ok(fast.p95FrameGapMs<=Math.max(100,worldControl.p95FrameGapMs*1.45),
    'regression: world-cache fast reuse worsens active pan frame cadence');
+  const layered=collected.results.layeredFog;
+  assert.equal(fast.cold.layeredFog,false);
+  assert.equal(layered.cold.layeredFog,true);
+  assert.ok(layered.cold.fogOverlayMiB>0,
+   'transparent Fog canvas must have a real browser backing surface');
+  assert.ok(layered.cold.baseFrames>0,
+   'the full world was initially painted behind the Fog overlay');
+  assert.ok(layered.p95DrawMs<=Math.max(100,fast.p95DrawMs*1.5),
+   'separate Fog layer drastically worsens actual Firefox pan drawing');
+  assert.ok(layered.p95FrameGapMs<=Math.max(110,fast.p95FrameGapMs*1.55),
+   'separate Fog layer drastically worsens pan cadence');
+
+  // Synthetic overlay-only redraw: reproducible real Canvas operations
+  // with NO camera movement or archive mutation. Mirrors the 850ms Fog
+  // dissolve's repeated paints after a tile has become ready.
+  async function staticRedraw(page){
+   await page.waitForTimeout(1000); // previous 850ms fade must settle
+   const before=await page.evaluate(()=>window.__vedrasFrozenGameTest.stats());
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
+   await page.evaluate(async()=>{
+    for(let i=0;i<24;i++){
+     await new Promise(resolve=>requestAnimationFrame(resolve));
+     window.__vedrasFrozenGameTest.forceRedraw();
+    }
+   });
+   const after=await page.evaluate(()=>window.__vedrasFrozenGameTest.stats());
+   const profile=await page.evaluate(()=>
+    window.__vedrasFrozenGameTest.profileReport());
+   return {frames:profile.frameCounts.stored,
+    p95DrawMs:profile.phasesMs.drawMs.p95,
+    p95WorldMs:profile.phasesMs.worldMs.p95,
+    p95FogMs:profile.phasesMs.fogMs.p95,
+    beforeBase:before.baseFrames,afterBase:after.baseFrames,
+    beforeFogOnly:before.fogOnlyFrames,afterFogOnly:after.fogOnlyFrames};
+  }
+  collected.staticRedraw={
+   guarded:await staticRedraw(guarded),
+   layeredFog:await staticRedraw(layeredFog)
+  };
+  const slowStatic=collected.staticRedraw.guarded,
+   fastStatic=collected.staticRedraw.layeredFog;
+  assert.ok(slowStatic.frames>=20&&fastStatic.frames>=20,
+   'both browser modes must record real static repaint frames');
+  assert.equal(fastStatic.afterBase,fastStatic.beforeBase,
+   'Fog-only refresh cannot invoke world-cloud base drawing');
+  assert.ok(fastStatic.afterFogOnly>=fastStatic.beforeFogOnly+24,
+   'Fog-only reuse must be exercised on every synthetic repaint');
+  assert.equal(fastStatic.p95WorldMs,0,
+   'layered Fog should not blit the world on unchanged-camera frames');
+  assert.ok(slowStatic.p95WorldMs>0,
+   'legacy mode must still composite World when Fog-only redraw happens');
+  await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
   await forceCloud.close();
