@@ -119,3 +119,49 @@ integriert werden, ohne die bestehende Standard-Performance zu verändern.
 Nicht automatisch aktivieren. Eine automatische Wahl benötigt zuerst
 ein eigenes Last-/Speicherbudget und eine belegte Verbesserung beim
 konkreten Nutzungsfall.
+
+## Adaptive 25K-Revision: kein separater Overlay-Canvas beim Schwenken
+
+Eine weitere kontrollierte Firefox-Wiederholung
+[#42509457214](https://github.com/markusjungblut/asset_labor/actions/runs/42509457214)
+bestätigte den statischen Vorteil (Draw-p95 48→9ms),
+zeigte aber im **ständig aktiven Zwei-Canvas-Modus** eine
+nicht akzeptabel starke Pan-Schwankung (Draw-p95 **42→66ms**,
+FrameGap-p95 **52→71ms**). Die erste positive Messung allein
+war deshalb **kein** ausreichender Grund für die Aktivierung.
+
+Die Implementierung wurde daraufhin geändert:
+Die zusätzliche Fog-Ebene wird **während jeder Kamerabewegung ausgeblendet**.
+Dann werden Cloud, World und Fog wie zuvor gemeinsam auf dem alten
+Spielcanvas gezeichnet. Bei der nächsten unveränderten Kameraansicht
+wird die saubere Untergrundkomposition genau **einmal** neu erzeugt,
+um zuvor direkt gebackenen Fog nicht doppelt darzustellen; erst dann
+darf die separate transparente Ebene wiederholt aktualisiert werden.
+Ein Frame-Flag `fogLayerActive` und Node-Tests überprüfen diese
+Umschalt-Invariante. Der Overlay-Canvas bleibt zwar im RAM, belastet aber
+während Pan nicht den sichtbaren CSS-Compositor.
+
+Die erste echte Firefox-Abnahme dieser adaptiven Variante,
+[Run #42510064655](https://github.com/markusjungblut/asset_labor/actions/runs/42510064655),
+ergab für 30 Pan-Frames:
+
+| Warm-Pan p95 | Standard | adaptives `fogLayer=1` |
+| --- | ---: | ---: |
+| `drawMs` | 33 ms | 43 ms |
+| `frameGapMs` | **44 ms** | **44 ms** |
+| `worldMs` | 22 ms | 22 ms |
+
+Bei 24 Frame-Redraws **ohne** Kamerabewegung sank
+`drawMs` p95 von **22 auf 6 ms**, `worldMs` von 16 auf 0 ms.
+Die mittlere Pan-Draw-Zeit war **32,63 gegenüber 34,47 ms**,
+die Pan-p95-Differenz beruht bei nur 30 Frames zum Teil auf
+wenigen langsamen Einzelbildern. Der Preis bleibt der zusätzliche
+~29-MiB-Viewport-Canvas.
+
+Der anschließende CI-Lauf verifiziert zusätzlich explizit, dass
+**kein einziger aktiver Pan-Frame** die zweite Fog-Ebene nutzt.
+Bis zur erfolgreichen Abnahme der finalen Instrumentierung bleibt
+der Branch im Draft. Auch bei Erfolg bleibt `fogLayer=1` zunächst
+ausdrücklich **opt-in**; der vorhandene einlagige Renderer bleibt
+Default, bis hardwareübergreifende Vorteile und das RAM-Budget
+ausreichend abgesichert sind.
