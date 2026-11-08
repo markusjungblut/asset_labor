@@ -70,6 +70,7 @@ window.VedrasFrozenProfiler=(()=>{
     renderMode:data.renderMode||'cached',
     layeredFog:!!data.layeredFog,
     fogLayerActive:!!data.fogLayerActive,
+    domWorldActive:!!data.domWorldActive,
     zoom:round(data.zoom||1),
     dpr:round(data.dpr||1),
     canvasPixels:data.canvasPixels||0,
