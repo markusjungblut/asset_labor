@@ -82,7 +82,8 @@ window.VedrasFrozenMap=(()=>{
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
-    worldCacheFastReuse=true,adaptiveWorldPad=false}={}){
+    worldCacheFastReuse=true,adaptiveWorldPad=false,
+    sparseWorldBlit=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -127,6 +128,10 @@ window.VedrasFrozenMap=(()=>{
   let overviewRaster=null,overviewHits=0,overviewBuilds=0;
   let worldEffectivePad=0,worldPadBoostFrames=0,worldPadClampFrames=0;
   let decodedRevision=0,overviewFastHits=0,overviewRechecks=0;
+  const worldBlitPlanner=window.VedrasFrozenWorldBlit?.plan||null;
+  let sparseWorldBlitFrames=0,sparseWorldBlitFallbacks=0,
+   worldBlitDevicePixels=0,worldBlitFullDevicePixels=0,
+   worldBlitLastRectCount=0,worldBlitLastFraction=1;
   let overviewStreamingBuilds=0,overviewStreamingHits=0;
   let overviewPatchBuilds=0,overviewPatchedTiles=0;
   let cloudBackdropRaster=null,cloudBackdropHits=0,cloudBackdropBuilds=0;
@@ -200,6 +205,9 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
    adaptiveWorldPad,worldEffectivePad,worldPadBoostFrames,worldPadClampFrames,
+   sparseWorldBlit,sparseWorldBlitFrames,sparseWorldBlitFallbacks,
+   worldBlitDevicePixels,worldBlitFullDevicePixels,
+   worldBlitLastRectCount,worldBlitLastFraction,
    overviewPatchBuilds,overviewPatchedTiles,
    cloudBackdropHits,cloudBackdropBuilds,adaptiveCloudCache,
    fogViewportCull,fogUnreadyCandidates,fogUnreadySubmitted,
@@ -236,6 +244,9 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
    worldEffectivePad=0;worldPadBoostFrames=0;worldPadClampFrames=0;
+   sparseWorldBlitFrames=0;sparseWorldBlitFallbacks=0;
+   worldBlitDevicePixels=0;worldBlitFullDevicePixels=0;
+   worldBlitLastRectCount=0;worldBlitLastFraction=1;
    cloudBackdropRaster=null;resetCloudAuto();
    fogUnreadyCandidates=0;fogUnreadySubmitted=0;
    fogFrontierCandidates=0;fogFrontierSubmitted=0;
@@ -902,11 +913,34 @@ window.VedrasFrozenMap=(()=>{
    }
    }
    if(profileFrame)profileFrame.worldPrepareMs+=clock()-prepareStart;
-   const m=overviewRaster,blitStart=profileFrame?clock():0;
+   const m=overviewRaster,planStart=profileFrame?clock():0,
+    plan=sparseWorldBlit&&worldBlitPlanner?
+     worldBlitPlanner(view,cells,dpr):null;
+   if(profileFrame)profileFrame.worldPrepareMs+=clock()-planStart;
+   const blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
-    sy=(m.pad+m.panY-view.panY)*dpr;
-   target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
-    0,0,view.width,view.height);
+    sy=(m.pad+m.panY-view.panY)*dpr,
+    fullPixels=Math.round(view.width*dpr)*Math.round(view.height*dpr);
+   worldBlitFullDevicePixels+=fullPixels;
+   if(plan){
+    sparseWorldBlitFrames++;
+    worldBlitLastRectCount=plan.rects.length;
+    worldBlitLastFraction=plan.fraction;
+    worldBlitDevicePixels+=plan.pixels;
+    // Rectangles are device-aligned. Reuse the SAME 9-argument sampling,
+    // simply exclude already-transparent world pixels outside every
+    // visible/explored authored Fog hex (including Scenery's +45 halo).
+    for(const r of plan.rects){
+     target.drawImage(m.canvas,sx+r.x,sy+r.y,r.w,r.h,
+      r.x/dpr,r.y/dpr,r.w/dpr,r.h/dpr);
+    }
+   }else{
+    if(sparseWorldBlit)sparseWorldBlitFallbacks++;
+    worldBlitLastRectCount=1;worldBlitLastFraction=1;
+    worldBlitDevicePixels+=fullPixels;
+    target.drawImage(m.canvas,sx,sy,view.width*dpr,view.height*dpr,
+     0,0,view.width,view.height);
+   }
    if(profileFrame)profileFrame.worldBlitMs+=clock()-blitStart;
    return true;
   }
@@ -1162,6 +1196,8 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedSlots,visibleWaitingOnPrefetch,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      worldCacheFastHits:overviewFastHits,worldCacheRechecks:overviewRechecks,
+     sparseWorldBlit,worldBlitLastRectCount,worldBlitLastFraction,
+     worldBlitDevicePixels,worldBlitFullDevicePixels,
      worldCacheStreamingBuilds:overviewStreamingBuilds,
      worldCacheStreamingHits:overviewStreamingHits,
      worldCachePatchBuilds:overviewPatchBuilds,
