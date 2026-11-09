@@ -161,7 +161,8 @@ const run=async()=>{
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
     (mode==='layeredFog'?'&fogLayer=1':'')+
-    (mode==='budgetedPad'?'&worldPad=1':'');
+    (mode==='budgetedPad'?'&worldPad=1':'')+
+    (mode==='opaqueDisplay'?'&canvasOpaque=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -217,6 +218,8 @@ const run=async()=>{
     worldEffectivePad:coldReport.environment.runtime.worldEffectivePad,
     worldPadBoostFrames:coldReport.environment.runtime.worldPadBoostFrames,
     worldPadClampFrames:coldReport.environment.runtime.worldPadClampFrames,
+    opaqueDisplayRequested:coldReport.environment.runtime.opaqueDisplayRequested,
+    displayContextAlpha:coldReport.environment.runtime.displayContextAlpha,
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
     fogOnlyFrames:coldReport.environment.runtime.fogOnlyFrames,
@@ -278,6 +281,8 @@ const run=async()=>{
     fullWorldBuilds:report.environment.runtime.overviewRasterBuilds,
     worldEffectivePad:report.environment.runtime.worldEffectivePad,
     worldPadAdaptive:report.environment.runtime.adaptiveWorldPad,
+    opaqueDisplayRequested:report.environment.runtime.opaqueDisplayRequested,
+    displayContextAlpha:report.environment.runtime.displayContextAlpha,
     activeFrames:report.frameCounts.active,
     tileReads:report.tiles.counts.loaded,
     decodeRepeats:report.tiles.counts.repeated,
@@ -297,6 +302,7 @@ const run=async()=>{
   const noWorldFast=await loadMode('noWorldFast');
   const layeredFog=await loadMode('layeredFog');
   const budgetedPad=await loadMode('budgetedPad');
+  const opaqueDisplay=await loadMode('opaqueDisplay');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -482,6 +488,84 @@ const run=async()=>{
    'budgeted world overscan causes catastrophic pan draw regression');
   assert.ok(padTrial.p95FrameGapMs<=Math.max(150,fast.p95FrameGapMs*2.2),
    'budgeted world overscan causes catastrophic pan cadence regression');
+  const opaque=collected.results.opaqueDisplay;
+  assert.equal(fast.cold.opaqueDisplayRequested,false);
+  assert.equal(opaque.cold.opaqueDisplayRequested,true);
+  assert.equal(fast.cold.displayContextAlpha,true,
+   'the legacy final game Canvas must retain alpha:true');
+  assert.equal(opaque.cold.displayContextAlpha,false,
+   'actual Firefox must allocate the requested opaque display surface');
+  assert.equal(opaque.displayContextAlpha,false,
+   'opaque 2D context must persist throughout the real pan');
+  assert.ok(opaque.activeFrames>=20&&opaque.panFrames>=20,
+   'real browser must profile at least 20 active opaque pan frames');
+  assert.ok(opaque.p95WorldBlitMs!=null&&opaque.p95FrameGapMs!=null);
+  assert.equal(opaque.overlayPanFrames,0,
+   'opaque output must not silently enable the extra 25K Fog layer');
+  assert.ok(opaque.p95DrawMs<=Math.max(140,fast.p95DrawMs*2.3),
+   'opaque display causes catastrophic draw regression');
+  assert.ok(opaque.p95FrameGapMs<=Math.max(150,fast.p95FrameGapMs*2.3),
+   'opaque display causes catastrophic frame cadence regression');
+
+  // Deterministic, non-timed readback AFTER pan benchmarks. Reset both
+  // cameras to the same stored pose, wait for the 850ms Fog fade and
+  // compare the composited RGB pixels. Read back once per browser to avoid
+  // contaminating performance samples with GPU/CPU readback sync.
+  async function readStableCanvas(page){
+   await page.locator('#resetView').click();
+   await page.waitForFunction(()=>{
+    const t=window.__vedrasFrozenGameTest;
+    const last=t?.profileReport()?.frames.at(-1);
+    return last&&last.visibleTiles>0&&
+     last.visibleReadyTiles===last.visibleTiles;
+   },null,{timeout:30000,polling:250});
+   await page.waitForTimeout(1100);
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.forceRedraw());
+   return page.evaluate(()=>{
+    const canvas=document.querySelector('#game');
+    const ctx=canvas.getContext('2d');
+    const rgba=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    const values=[],nx=45,ny=30;
+    for(let y=0;y<ny;y++)for(let x=0;x<nx;x++){
+     const px=Math.floor((x+.5)*canvas.width/nx),
+      py=Math.floor((y+.5)*canvas.height/ny),offset=(py*canvas.width+px)*4;
+     values.push(...rgba.slice(offset,offset+4));
+    }
+    return {width:canvas.width,height:canvas.height,nx,ny,
+     alpha:ctx.getContextAttributes?.().alpha??null,
+     data:values,pose:window.__vedrasFrozenGameTest.pose(),
+     cloudDissolveActive:window.__vedrasFrozenGameTest.stats().cloudDissolveActive};
+   });
+  }
+  const normalPixels=await readStableCanvas(guarded),
+   opaquePixels=await readStableCanvas(opaqueDisplay);
+  assert.equal(normalPixels.width,opaquePixels.width);
+  assert.equal(normalPixels.height,opaquePixels.height);
+  assert.equal(normalPixels.nx,opaquePixels.nx);
+  assert.equal(normalPixels.ny,opaquePixels.ny);
+  for(const dim of ['zoom','panX','panY','dpr','projectY'])
+   assert.ok(Math.abs(normalPixels.pose[dim]-opaquePixels.pose[dim])<.001,
+    'RGB comparison must use exactly the same '+dim);
+  assert.equal(normalPixels.cloudDissolveActive,false);
+  assert.equal(opaquePixels.cloudDissolveActive,false);
+  let bad=0,alphaMismatch=0,maxDelta=0;
+  for(let i=0;i<normalPixels.data.length;i+=4){
+   const rgbDelta=Math.max(...[0,1,2].map(j=>
+    Math.abs(normalPixels.data[i+j]-opaquePixels.data[i+j])));
+   maxDelta=Math.max(maxDelta,rgbDelta);
+   if(rgbDelta>2)bad++;
+   if(normalPixels.data[i+3]!==255||opaquePixels.data[i+3]!==255)
+    alphaMismatch++;
+  }
+  const samples=normalPixels.data.length/4;
+  collected.opaqueDisplayVisual={
+   samples,rgbBadSamples:bad,maxChannelDelta:maxDelta,
+   alphaMismatch,percentBad:Math.round(bad/samples*10000)/100};
+  assert.equal(alphaMismatch,0,
+   'both versions must show the fully opaque cloud/ground composition');
+  assert.ok(bad<=Math.ceil(samples*.01),
+   'non-timed same-pose opaque display changes actual World/Fog RGB colors');
+  await opaqueDisplay.close();
   await budgetedPad.close();
   await layeredFog.close();
   await noWorldFast.close();
