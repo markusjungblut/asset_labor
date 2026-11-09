@@ -767,6 +767,43 @@ const run=async()=>{
    'real Firefox 15k-key index must paint identical final source pixels');
   await stressPage.close();
 
+  // The user-visible opt-out controls must really navigate and switch
+  // the corresponding read-only renderer policy, not merely look checked.
+  const settingsPage=await ctx.newPage();
+  await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  await settingsPage.locator('#performanceOptions > summary').click();
+  for(const id of ['optWorldPad','optWorldBands','optTileIndex'])
+   assert.equal(await settingsPage.locator('#'+id).isChecked(),true,
+    'all generally beneficial controls should visibly default to checked');
+  assert.equal(await settingsPage.locator('#optFogLayer').isChecked(),false);
+  const toggled=[];
+  for(const [id,param,field,value] of [
+   ['optWorldBands','worldBands','sparseWorldBlit',false],
+   ['optWorldPad','worldPad','adaptiveWorldPad',false],
+   ['optTileIndex','tileIndex','indexedTileSelection',false],
+   ['optFogLayer','fogLayer','layeredFog',true],
+   ['optWorldBands','worldBands','sparseWorldBlit',true]
+  ]){
+   await settingsPage.locator('#performanceOptions > summary').click().catch(async()=>{
+    // First navigation starts collapsed; if already expanded, do nothing.
+   });
+   const checkbox=settingsPage.locator('#'+id);
+   if((await checkbox.isChecked())!==value){
+    await checkbox.setChecked(value);
+    await settingsPage.waitForURL(url=>
+     url.searchParams.get(param)===(value?'1':'0'),{timeout:20000});
+   }
+   await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
+    null,{timeout:25000});
+   assert.equal(await settingsPage.evaluate(name=>
+    window.__vedrasFrozenGameTest.stats()[name],field),value);
+   toggled.push({param,value});
+  }
+  collected.visibleToggleAB=toggled;
+  assert.equal(toggled.length,5);
+  await settingsPage.close();
+
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();
   await guarded.waitForFunction(()=>
