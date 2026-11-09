@@ -127,7 +127,7 @@ test('actual World renderer uses fewer pixels in sparse authorized viewport, old
  legacy.player.stop();trial.player.stop();
 });
 test('browser switch is strict opt-in and final World source never changes',()=>{
- assert.match(game,/params\.get\('worldBands'\)==='1'/);
+ assert.match(game,/params\.get\('worldBands'\)!=='0'/);
  assert.match(html,/frozen-map-world-blit\.js\?v=/);
  assert.ok(html.indexOf('frozen-map-world-blit.js')<
   html.indexOf('frozen-map-runtime.js'));

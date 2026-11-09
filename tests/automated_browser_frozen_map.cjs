@@ -153,8 +153,14 @@ const run=async()=>{
    page.on('pageerror',err=>errors.push(String(err.message||err)));
    page.on('response',res=>{if(res.status()>=400)
     errors.push('HTTP '+res.status()+' '+res.url());});
+   // Legacy controls stay pinned to the original policies for meaningful
+   // historical A/B; modernDefault exercises the real user defaults.
+   const original=(mode!=='modernDefault');
+   const worldPad=mode==='budgetedPad'?'1':'0';
+   const worldBands=(mode==='sparseWorld'||mode==='fixedCloudSparse')?'1':'0';
    const url=origin+'/frozen-map-game.html?scene='+SCENE+
     '&lod=near&perf=1'+
+    (original?'&worldPad='+worldPad+'&worldBands='+worldBands:'')+
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
     (mode==='noCloudPad'?'&cloudPad=0':'')+
@@ -162,8 +168,7 @@ const run=async()=>{
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
     (mode==='layeredFog'?'&fogLayer=1':'')+
-    (mode==='budgetedPad'?'&worldPad=1':'')+
-    (mode==='sparseWorld'||mode==='fixedCloudSparse'?'&worldBands=1':'');
+    '';
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -220,6 +225,9 @@ const run=async()=>{
     worldPadBoostFrames:coldReport.environment.runtime.worldPadBoostFrames,
     worldPadClampFrames:coldReport.environment.runtime.worldPadClampFrames,
     sparseWorldBlit:coldReport.environment.runtime.sparseWorldBlit,
+    indexedTileSelection:coldReport.environment.runtime.indexedTileSelection,
+    indexedTileSelectionActive:coldReport.environment.runtime.indexedTileSelectionActive,
+    tileIndexEntries:coldReport.environment.runtime.tileIndexEntries,
     sparseWorldBlitFrames:coldReport.environment.runtime.sparseWorldBlitFrames,
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
@@ -283,6 +291,9 @@ const run=async()=>{
     worldEffectivePad:report.environment.runtime.worldEffectivePad,
     worldPadAdaptive:report.environment.runtime.adaptiveWorldPad,
     sparseWorldBlit:report.environment.runtime.sparseWorldBlit,
+    indexedTileSelection:report.environment.runtime.indexedTileSelection,
+    tileIndexCandidateChecks:report.environment.runtime.tileIndexCandidateChecks,
+    tileLegacyCandidateChecks:report.environment.runtime.tileLegacyCandidateChecks,
     worldBlitLastFraction:report.environment.runtime.worldBlitLastFraction,
     worldBlitLastRectCount:report.environment.runtime.worldBlitLastRectCount,
     activeFrames:report.frameCounts.active,
@@ -296,6 +307,7 @@ const run=async()=>{
    return page;
   }
   const guarded=await loadMode('guarded');
+  const modernDefault=await loadMode('modernDefault');
   const legacy=await loadMode('legacy');
   const noStream=await loadMode('noStream');
   const noCloudPad=await loadMode('noCloudPad');
@@ -310,7 +322,19 @@ const run=async()=>{
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
-  const fast=collected.results.guarded,ref=collected.results.legacy;
+  const fast=collected.results.guarded,ref=collected.results.legacy,
+   modern=collected.results.modernDefault;
+  assert.equal(fast.cold.worldPadAdaptive,false);
+  assert.equal(fast.cold.sparseWorldBlit,false);
+  assert.equal(modern.cold.worldPadAdaptive,true,
+   '25M extra overscan should be enabled without URL switches');
+  assert.equal(modern.cold.sparseWorldBlit,true,
+   '25O safe authorized bands should be enabled without URL switches');
+  assert.equal(modern.cold.indexedTileSelection,true);
+  assert.equal(modern.cold.indexedTileSelectionActive,false,
+   'small 120-tile CI world must retain the original cheap Set scan');
+  assert.ok(modern.p95FrameGapMs<=Math.max(160,fast.p95FrameGapMs*2.3),
+   'default-on optimizations catastrophically worsen the frame cadence');
   assert.ok(fast.p95DrawMs<=Math.max(350,ref.p95DrawMs*2.5),
    'New policy causes catastrophic render-time regression');
   assert.ok(fast.decodeRepeats<=ref.decodeRepeats+COUNT,
@@ -618,6 +642,7 @@ const run=async()=>{
   await fixedCloudBase.close();
   await sparseWorld.close();
   await budgetedPad.close();
+  await modernDefault.close();
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
@@ -625,6 +650,158 @@ const run=async()=>{
   await noCloudPad.close();
   await noStream.close();
   await legacy.close();
+
+  // A separate real Firefox stress fixture with 15,000 METADATA keys.
+  // It never writes the user's database and decodes only the tiny tile
+  // images in the visible area. Its purpose is spatial selection, not
+  // claiming the synthetic small tiles reproduce the private atlas GPU.
+  const stressPage=await ctx.newPage();
+  await stressPage.goto(origin+'/tests/fixtures/frozen-ci-seed.html');
+  await stressPage.addScriptTag({url:origin+'/frozen-map-view-policy.js'});
+  await stressPage.addScriptTag({url:origin+'/frozen-map-runtime.js'});
+  collected.tileIndexStress=await stressPage.evaluate(async scene=>{
+   const makeKeys=[];
+   for(let iy=-50;iy<50;iy++)for(let ix=-75;ix<75;ix++)
+    makeKeys.push(scene+'|near|'+ix+','+iy);
+   const png=document.createElement('canvas');
+   png.width=24;png.height=24;
+   const color=png.getContext('2d');
+   color.fillStyle='#718b5b';color.fillRect(0,0,24,24);
+   const storage={
+    keys:async()=>makeKeys,
+    get:async key=>{
+     const [ix,iy]=key.slice((scene+'|near|').length).split(',').map(Number);
+     return {key,sceneKey:scene,level:'near',
+      tile:{id:ix+','+iy,x:ix*512,y:iy*512,size:512},layers:[
+       {layer:'ground',pad:0,png},
+       {layer:'scenery',pad:0,png}]};
+    }
+   };
+   const originalRAF=window.requestAnimationFrame;
+   window.requestAnimationFrame=()=>0; // exactly one manual draw per camera
+   const make=(indexedTileSelection)=>{
+    const canvas=document.createElement('canvas');
+    canvas.getBoundingClientRect=()=>({width:1200,height:800});
+    const viewer=window.VedrasFrozenMap.create({canvas,storage,
+     indexedTileSelection,adaptiveWorldPad:false,
+     sparseWorldBlit:false,overview1x:false,
+     decode:async x=>x,maxDecodedPixels:25000000});
+    return {canvas,viewer};
+   };
+   const legacy=make(false),indexed=make(true),pose={
+    zoom:.85,panX:0,panY:0,dpr:1.25,projectY:.85};
+   const cells=[{q:0,r:0,x:0,y:0,radius:160,visibility:'visible'},
+    {q:1,r:0,x:256,y:0,radius:160,visibility:'explored'}];
+   try{
+    await legacy.viewer.load(scene,'near',pose,cells);
+    await indexed.viewer.load(scene,'near',pose,cells);
+    const moves=[[0,0],[-480,140],[700,-300],[1200,220],
+     [-3200,-500],[3800,1200],[0,0]];
+    let indexedMs=0,legacyMs=0;
+    const tick=async(item,x,y)=>{
+     item.viewer.setPose({panX:x,panY:y});
+     const start=performance.now();
+     for(let i=0;i<5;i++){
+      item.viewer.draw();
+      await Promise.resolve();
+     }
+     const end=performance.now();
+     return end-start;
+    };
+    for(const [x,y] of moves){
+     indexedMs+=await tick(indexed,x,y);
+     legacyMs+=await tick(legacy,x,y);
+    }
+    // Let both asynchronous PNG decode chains settle, then repaint at
+    // exactly the same final pose before visually comparing the sources.
+    for(let i=0;i<12;i++){
+     indexed.viewer.draw();legacy.viewer.draw();
+     await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    const a=indexed.viewer.report(),b=legacy.viewer.report();
+    const sample=c=>{
+     const ctx=c.getContext('2d'),raw=ctx.getImageData(
+      0,0,c.width,c.height).data,colors=[];
+     for(let y=0;y<20;y++)for(let x=0;x<36;x++){
+      const px=Math.floor((x+.5)*c.width/36),
+       py=Math.floor((y+.5)*c.height/20),
+       k=(py*c.width+px)*4;
+      colors.push(...raw.slice(k,k+4));
+     }
+     return colors;
+    };
+    const aa=sample(indexed.canvas),bb=sample(legacy.canvas);
+    let differentChannels=0;
+    for(let i=0;i<aa.length;i++)if(aa[i]!==bb[i])differentChannels++;
+    return {total:makeKeys.length,indexed:a.indexedTileSelectionActive,
+     entries:a.tileIndexEntries,queries:a.tileIndexQueries,
+     indexedChecks:a.tileIndexCandidateChecks,
+     legacyChecks:b.tileLegacyCandidateChecks,
+     indexedDecoded:a.decoded,legacyDecoded:b.decoded,
+     indexedVisibleReads:a.visibleReadStarts,
+     legacyVisibleReads:b.visibleReadStarts,
+     indexedPrefetchReads:a.prefetchReadStarts,
+     legacyPrefetchReads:b.prefetchReadStarts,
+     indexedFailures:a.failures,legacyFailures:b.failures,
+     pixelSamples:aa.length/4,differentChannels,
+     measuredIndexerMs:Math.round(indexedMs*100)/100,
+     measuredLegacyMs:Math.round(legacyMs*100)/100};
+   }finally{
+    indexed.viewer.stop();legacy.viewer.stop();
+    window.requestAnimationFrame=originalRAF;
+   }
+  },SCENE);
+  const ti=collected.tileIndexStress;
+  assert.equal(ti.total,15000);
+  assert.equal(ti.indexed,true);
+  assert.equal(ti.entries,15000);
+  assert.ok(ti.queries>20);
+  assert.ok(ti.indexedChecks<ti.legacyChecks*.1,
+   'browser index must visit 90% fewer tile keys for the same camera path');
+  assert.equal(ti.indexedDecoded,ti.legacyDecoded);
+  assert.equal(ti.indexedVisibleReads,ti.legacyVisibleReads);
+  assert.equal(ti.indexedPrefetchReads,ti.legacyPrefetchReads);
+  assert.equal(ti.indexedFailures,0);
+  assert.equal(ti.legacyFailures,0);
+  assert.equal(ti.differentChannels,0,
+   'real Firefox 15k-key index must paint identical final source pixels');
+  await stressPage.close();
+
+  // The user-visible opt-out controls must really navigate and switch
+  // the corresponding read-only renderer policy, not merely look checked.
+  const settingsPage=await ctx.newPage();
+  await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  await settingsPage.locator('#performanceOptions > summary').click();
+  for(const id of ['optWorldPad','optWorldBands','optTileIndex'])
+   assert.equal(await settingsPage.locator('#'+id).isChecked(),true,
+    'all generally beneficial controls should visibly default to checked');
+  assert.equal(await settingsPage.locator('#optFogLayer').isChecked(),false);
+  const toggled=[];
+  for(const [id,param,field,value] of [
+   ['optWorldBands','worldBands','sparseWorldBlit',false],
+   ['optWorldPad','worldPad','adaptiveWorldPad',false],
+   ['optTileIndex','tileIndex','indexedTileSelection',false],
+   ['optFogLayer','fogLayer','layeredFog',true],
+   ['optWorldBands','worldBands','sparseWorldBlit',true]
+  ]){
+   if(!(await settingsPage.locator('#performanceOptions').evaluate(el=>el.open)))
+    await settingsPage.locator('#performanceOptions > summary').click();
+   const checkbox=settingsPage.locator('#'+id);
+   if((await checkbox.isChecked())!==value){
+    await checkbox.setChecked(value);
+    await settingsPage.waitForURL(url=>
+     url.searchParams.get(param)===(value?'1':'0'),{timeout:20000});
+   }
+   await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
+    null,{timeout:25000});
+   assert.equal(await settingsPage.evaluate(name=>
+    window.__vedrasFrozenGameTest.stats()[name],field),value);
+   toggled.push({param,value});
+  }
+  collected.visibleToggleAB=toggled;
+  assert.equal(toggled.length,5);
+  await settingsPage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();

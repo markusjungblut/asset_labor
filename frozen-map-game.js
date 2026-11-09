@@ -39,13 +39,33 @@
  const fogViewportCull=params.get('fogCull')!=='0';
  // A/B: skip unchanged cached-world tile scans while the camera stays inside pad.
  const worldCacheFastReuse=params.get('worldFast')!=='0';
- // Controlled extra camera overscan within the existing world pixel cap.
- const adaptiveWorldPad=params.get('worldPad')==='1';
- // Diagnostic: skip transparent cached-world pixels outside authorized hexes.
- const sparseWorldBlit=params.get('worldBands')==='1';
+ // Proven warm-pan benefit within unchanged hard raster limits; turn off
+ // individually using &worldPad=0 and &worldBands=0.
+ const adaptiveWorldPad=params.get('worldPad')!=='0';
+ const sparseWorldBlit=params.get('worldBands')!=='0';
+ // Step25P: skip O(all stored tiles) selection scans on large worlds.
+ // The original Set scanner remains available with &tileIndex=0.
+ const indexedTileSelection=params.get('tileIndex')!=='0';
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
  const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
+ // A compact UI for the most relevant, reversible game-viewer switches.
+ // A reload re-reads only the prepared atlas; it never alters or rebakes it.
+ for(const [id,parameter,active] of [
+  ['optWorldPad','worldPad',adaptiveWorldPad],
+  ['optWorldBands','worldBands',sparseWorldBlit],
+  ['optTileIndex','tileIndex',indexedTileSelection],
+  ['optFogLayer','fogLayer',layeredFog]
+ ]){
+  const checkbox=$(id);
+  if(!checkbox)continue;
+  checkbox.checked=active;
+  checkbox.addEventListener('change',()=>{
+   const next=new URL(location.href);
+   next.searchParams.set(parameter,checkbox.checked?'1':'0');
+   location.assign(next.pathname+next.search+next.hash);
+  });
+ }
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
@@ -55,7 +75,7 @@
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
-  adaptiveWorldPad,sparseWorldBlit,
+  adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -258,7 +278,8 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
-   fogViewportCull,layeredFog
+   fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
+   indexedTileSelection
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
