@@ -82,9 +82,14 @@ window.VedrasFrozenMap=(()=>{
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
-    worldCacheFastReuse=true,adaptiveWorldPad=false}={}){
+    worldCacheFastReuse=true,adaptiveWorldPad=false,
+    opaqueDisplay=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
-  const ctx=canvas.getContext('2d',{alpha:true});
+  // Only the final DISPLAY canvas is opaque in this diagnostic A/B.
+  // Ground/scenery masks, buffered world and the optional Fog overlay
+  // MUST retain alpha:true or unready/unauthorized pixels could leak.
+  const ctx=canvas.getContext('2d',{alpha:!opaqueDisplay});
+  if(!ctx)throw Error('2D-Kontext für Spielkartentest fehlt');
   // Optional transparent viewport-size overlay; world stays on #game.
   const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
@@ -193,6 +198,8 @@ window.VedrasFrozenMap=(()=>{
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
+   opaqueDisplayRequested:opaqueDisplay,
+   displayContextAlpha:ctx.getContextAttributes?.()?.alpha??null,
    layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
    fogOverlayMiB:fogCtx?Math.round(fogCanvas.width*fogCanvas.height*4/1048576):0,
    cloudBufferHexes:viewportPolicy?1:0,
