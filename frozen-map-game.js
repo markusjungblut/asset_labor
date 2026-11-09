@@ -284,6 +284,10 @@
   profileReport,profileReset,profileStatus,
   // Explicit opt-in diagnostic repaint: never mutates atlas or Fog rights.
   forceRedraw:()=>player.draw(),
+  // CI only (perf=1): deterministic camera motion, never modify atlas data.
+  testPan:profileRequested?(patch)=>{
+   profiler.input('pan');player.setPose(patch);return true;
+  }:null,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
   derived1x:()=>oneXStore.stats()
