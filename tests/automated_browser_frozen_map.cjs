@@ -153,8 +153,14 @@ const run=async()=>{
    page.on('pageerror',err=>errors.push(String(err.message||err)));
    page.on('response',res=>{if(res.status()>=400)
     errors.push('HTTP '+res.status()+' '+res.url());});
+   // Legacy controls stay pinned to the original policies for meaningful
+   // historical A/B; modernDefault exercises the real user defaults.
+   const original=(mode!=='modernDefault');
+   const worldPad=mode==='budgetedPad'?'1':'0';
+   const worldBands=(mode==='sparseWorld'||mode==='fixedCloudSparse')?'1':'0';
    const url=origin+'/frozen-map-game.html?scene='+SCENE+
     '&lod=near&perf=1'+
+    (original?'&worldPad='+worldPad+'&worldBands='+worldBands:'')+
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
     (mode==='noCloudPad'?'&cloudPad=0':'')+
@@ -162,8 +168,7 @@ const run=async()=>{
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
     (mode==='layeredFog'?'&fogLayer=1':'')+
-    (mode==='budgetedPad'?'&worldPad=1':'')+
-    (mode==='sparseWorld'||mode==='fixedCloudSparse'?'&worldBands=1':'');
+    '';
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -220,6 +225,9 @@ const run=async()=>{
     worldPadBoostFrames:coldReport.environment.runtime.worldPadBoostFrames,
     worldPadClampFrames:coldReport.environment.runtime.worldPadClampFrames,
     sparseWorldBlit:coldReport.environment.runtime.sparseWorldBlit,
+    indexedTileSelection:coldReport.environment.runtime.indexedTileSelection,
+    indexedTileSelectionActive:coldReport.environment.runtime.indexedTileSelectionActive,
+    tileIndexEntries:coldReport.environment.runtime.tileIndexEntries,
     sparseWorldBlitFrames:coldReport.environment.runtime.sparseWorldBlitFrames,
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
@@ -283,6 +291,9 @@ const run=async()=>{
     worldEffectivePad:report.environment.runtime.worldEffectivePad,
     worldPadAdaptive:report.environment.runtime.adaptiveWorldPad,
     sparseWorldBlit:report.environment.runtime.sparseWorldBlit,
+    indexedTileSelection:report.environment.runtime.indexedTileSelection,
+    tileIndexCandidateChecks:report.environment.runtime.tileIndexCandidateChecks,
+    tileLegacyCandidateChecks:report.environment.runtime.tileLegacyCandidateChecks,
     worldBlitLastFraction:report.environment.runtime.worldBlitLastFraction,
     worldBlitLastRectCount:report.environment.runtime.worldBlitLastRectCount,
     activeFrames:report.frameCounts.active,
@@ -296,6 +307,7 @@ const run=async()=>{
    return page;
   }
   const guarded=await loadMode('guarded');
+  const modernDefault=await loadMode('modernDefault');
   const legacy=await loadMode('legacy');
   const noStream=await loadMode('noStream');
   const noCloudPad=await loadMode('noCloudPad');
@@ -310,7 +322,19 @@ const run=async()=>{
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
-  const fast=collected.results.guarded,ref=collected.results.legacy;
+  const fast=collected.results.guarded,ref=collected.results.legacy,
+   modern=collected.results.modernDefault;
+  assert.equal(fast.cold.worldPadAdaptive,false);
+  assert.equal(fast.cold.sparseWorldBlit,false);
+  assert.equal(modern.cold.worldPadAdaptive,true,
+   '25M extra overscan should be enabled without URL switches');
+  assert.equal(modern.cold.sparseWorldBlit,true,
+   '25O safe authorized bands should be enabled without URL switches');
+  assert.equal(modern.cold.indexedTileSelection,true);
+  assert.equal(modern.cold.indexedTileSelectionActive,false,
+   'small 120-tile CI world must retain the original cheap Set scan');
+  assert.ok(modern.p95FrameGapMs<=Math.max(160,fast.p95FrameGapMs*2.3),
+   'default-on optimizations catastrophically worsen the frame cadence');
   assert.ok(fast.p95DrawMs<=Math.max(350,ref.p95DrawMs*2.5),
    'New policy causes catastrophic render-time regression');
   assert.ok(fast.decodeRepeats<=ref.decodeRepeats+COUNT,
@@ -618,6 +642,7 @@ const run=async()=>{
   await fixedCloudBase.close();
   await sparseWorld.close();
   await budgetedPad.close();
+  await modernDefault.close();
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
