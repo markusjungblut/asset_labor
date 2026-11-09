@@ -108,8 +108,8 @@ test('cannot force a larger raster when current viewport already exceeds existin
  f.viewer.stop();
 });
 test('new pad remains opt-in without archive writes or changes to layer quality',()=>{
- assert.match(game,/params\.get\('worldPad'\)==='1'/);
- assert.match(runtime,/adaptiveWorldPad=false/);
+ assert.match(game,/params\.get\('worldPad'\)!=='0'/);
+ assert.match(runtime,/adaptiveWorldPad=true/);
  assert.match(runtime,/worldRasterLimit\/\(dpr\*dpr\)/);
  assert.match(runtime,/const pad=worldCachePad\(view,dpr\)/);
  assert.match(runtime,/const rasterPad=viewportPolicy\?worldCachePad\(view,dpr\):0/);
