@@ -785,9 +785,8 @@ const run=async()=>{
    ['optFogLayer','fogLayer','layeredFog',true],
    ['optWorldBands','worldBands','sparseWorldBlit',true]
   ]){
-   await settingsPage.locator('#performanceOptions > summary').click().catch(async()=>{
-    // First navigation starts collapsed; if already expanded, do nothing.
-   });
+   if(!(await settingsPage.locator('#performanceOptions').evaluate(el=>el.open)))
+    await settingsPage.locator('#performanceOptions > summary').click();
    const checkbox=settingsPage.locator('#'+id);
    if((await checkbox.isChecked())!==value){
     await checkbox.setChecked(value);
