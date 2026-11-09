@@ -83,7 +83,7 @@ window.VedrasFrozenMap=(()=>{
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
-    sparseWorldBlit=true,indexedTileSelection=true}={}){
+    sparseWorldBlit=true,indexedTileSelection=true,indexedWorldBands=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -180,6 +180,9 @@ window.VedrasFrozenMap=(()=>{
   let worldEffectivePad=0,worldPadBoostFrames=0,worldPadClampFrames=0;
   let decodedRevision=0,overviewFastHits=0,overviewRechecks=0;
   const worldBlitPlanner=window.VedrasFrozenWorldBlit?.plan||null;
+  const worldBandIndexer=window.VedrasFrozenWorldBlit?.createIndex||null;
+  let worldBandIndex=null,worldBandIndexQueries=0,
+   worldBandIndexCandidateCells=0,worldBandLegacyCandidateCells=0;
   let sparseWorldBlitFrames=0,sparseWorldBlitFallbacks=0,
    worldBlitDevicePixels=0,worldBlitFullDevicePixels=0,
    worldBlitLastRectCount=0,worldBlitLastFraction=1;
@@ -259,7 +262,12 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
    adaptiveWorldPad,worldEffectivePad,worldPadBoostFrames,worldPadClampFrames,
-   sparseWorldBlit,sparseWorldBlitFrames,sparseWorldBlitFallbacks,
+   sparseWorldBlit,indexedWorldBands,
+   worldBandIndexActive:!!worldBandIndex,
+   worldBandIndexEntries:worldBandIndex?.entries||0,
+   worldBandIndexQueries,worldBandIndexCandidateCells,
+   worldBandLegacyCandidateCells,
+   sparseWorldBlitFrames,sparseWorldBlitFallbacks,
    worldBlitDevicePixels,worldBlitFullDevicePixels,
    worldBlitLastRectCount,worldBlitLastFraction,
    overviewPatchBuilds,overviewPatchedTiles,
@@ -298,6 +306,8 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds=0;overviewStreamingHits=0;
    overviewPatchBuilds=0;overviewPatchedTiles=0;
    worldEffectivePad=0;worldPadBoostFrames=0;worldPadClampFrames=0;
+   worldBandIndex=null;worldBandIndexQueries=0;
+   worldBandIndexCandidateCells=0;worldBandLegacyCandidateCells=0;
    sparseWorldBlitFrames=0;sparseWorldBlitFallbacks=0;
    worldBlitDevicePixels=0;worldBlitFullDevicePixels=0;
    worldBlitLastRectCount=0;worldBlitLastFraction=1;
@@ -969,9 +979,16 @@ window.VedrasFrozenMap=(()=>{
    }
    }
    if(profileFrame)profileFrame.worldPrepareMs+=clock()-prepareStart;
-   const m=overviewRaster,planStart=profileFrame?clock():0,
-    plan=sparseWorldBlit&&worldBlitPlanner?
-     worldBlitPlanner(view,cells,dpr):null;
+   const m=overviewRaster,planStart=profileFrame?clock():0;
+   let plan=null;
+   if(sparseWorldBlit&&worldBlitPlanner){
+    const indexed=worldBandIndex?worldBandIndex.query(view,dpr):null;
+    if(indexed!==null){
+     worldBandIndexQueries++;
+     worldBandIndexCandidateCells+=indexed.length;
+    }else worldBandLegacyCandidateCells+=cells.length;
+    plan=worldBlitPlanner(view,indexed===null?cells:indexed,dpr);
+   }
    if(profileFrame)profileFrame.worldPrepareMs+=clock()-planStart;
    const blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
@@ -1284,6 +1301,8 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+   worldBandIndex=indexedWorldBands&&sparseWorldBlit&&worldBandIndexer?
+    worldBandIndexer(cells):null;
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));

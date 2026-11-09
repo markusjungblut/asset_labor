@@ -51,6 +51,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <a href="index.html">Asset-Labor öffnen</a></div><details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
 <label><input type="checkbox" id="optWorldPad"> Größere Pan-Reserve (bis 14 MiB mehr Raster)</label>
 <label><input type="checkbox" id="optWorldBands"> Nur benötigte Weltbereiche kopieren</label>
+<label><input type="checkbox" id="optWorldBandIndex"> Hex-Index für World-Blit (ab 400 Hexfeldern)</label>
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (ca. 29 MiB zusätzlich)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
@@ -62,9 +63,9 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-view-policy.js?v=20261102-step21"></script>
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
-<script src="frozen-map-world-blit.js?v=20261109-step25o"></script>
- <script src="frozen-map-runtime.js?v=20261109-step25p-defaults-tile-index"></script>
+<script src="frozen-map-world-blit.js?v=20261109-step25q-world-band-index"></script>
+ <script src="frozen-map-runtime.js?v=20261109-step25q-world-band-index"></script>
 <script src="frozen-map-derived-2x.js?v=20261102-step20-2x"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
-<script src="frozen-map-game.js?v=20261109-step25p-defaults-tile-index"></script>
+<script src="frozen-map-game.js?v=20261109-step25q-world-band-index"></script>
 </body></html>

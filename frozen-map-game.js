@@ -43,6 +43,8 @@
  // individually using &worldPad=0 and &worldBands=0.
  const adaptiveWorldPad=params.get('worldPad')!=='0';
  const sparseWorldBlit=params.get('worldBands')!=='0';
+ // Step25Q: indexed authorized hex coverage, independent reversible opt-out.
+ const indexedWorldBands=params.get('bandIndex')!=='0';
  // Step25P: skip O(all stored tiles) selection scans on large worlds.
  // The original Set scanner remains available with &tileIndex=0.
  const indexedTileSelection=params.get('tileIndex')!=='0';
@@ -54,6 +56,7 @@
  for(const [id,parameter,active] of [
   ['optWorldPad','worldPad',adaptiveWorldPad],
   ['optWorldBands','worldBands',sparseWorldBlit],
+  ['optWorldBandIndex','bandIndex',indexedWorldBands],
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog]
  ]){
@@ -75,7 +78,7 @@
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
-  adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
+  adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,indexedWorldBands,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -279,7 +282,7 @@
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
-   indexedTileSelection
+   indexedTileSelection,indexedWorldBands
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',

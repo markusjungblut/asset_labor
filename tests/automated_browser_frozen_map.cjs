@@ -765,6 +765,37 @@ const run=async()=>{
   assert.equal(ti.legacyFailures,0);
   assert.equal(ti.differentChannels,0,
    'real Firefox 15k-key index must paint identical final source pixels');
+
+  // Step 25Q: test 15,000 real browser hex metadata items without
+  // loading any original images or changing IndexedDB.
+  await stressPage.addScriptTag({url:origin+'/frozen-map-world-blit.js'});
+  collected.worldBandIndexStress=await stressPage.evaluate(()=>{
+   const api=window.VedrasFrozenWorldBlit,cells=[];
+   for(let r=-50;r<50;r++)for(let q=-75;q<75;q++)
+    cells.push({q,r,x:q*360,y:r*320,radius:140+(q+75)%7,
+     visibility:(q+r)%11===0?'hidden':(q+r)%5===0?'explored':'visible'});
+   const index=api.createIndex(cells),dpr=1.37;
+   let legacyCandidates=0,indexedCandidates=0,mismatches=0;
+   const poses=[[0,0],[-320,110],[820,-440],[2400,780],
+    [-6500,-2100],[28000,14000],[0,0]];
+   for(const [panX,panY] of poses){
+    const view={width:1600,height:920,zoom:.85,panX,panY,projectY:.85};
+    const subset=index.query(view,dpr);
+    legacyCandidates+=cells.length;
+    indexedCandidates+=subset.length;
+    const old=api.plan(view,cells,dpr),next=api.plan(view,subset,dpr);
+    if(JSON.stringify(old)!==JSON.stringify(next))mismatches++;
+   }
+   return {total:cells.length,entries:index.entries,queries:poses.length,
+    legacyCandidates,indexedCandidates,mismatches};
+  });
+  const wb=collected.worldBandIndexStress;
+  assert.equal(wb.total,15000);
+  assert.ok(wb.entries>13000);
+  assert.ok(wb.indexedCandidates<wb.legacyCandidates*.1,
+   'Firefox: world blit must inspect at least 90% fewer authorized cells');
+  assert.equal(wb.mismatches,0,
+   'Firefox: indexed coverage must match the full authorized world rectangles');
   await stressPage.close();
 
   // The user-visible opt-out controls must really navigate and switch
@@ -773,17 +804,19 @@ const run=async()=>{
   await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
   await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120);
   await settingsPage.locator('#performanceOptions > summary').click();
-  for(const id of ['optWorldPad','optWorldBands','optTileIndex'])
+  for(const id of ['optWorldPad','optWorldBands','optWorldBandIndex','optTileIndex'])
    assert.equal(await settingsPage.locator('#'+id).isChecked(),true,
     'all generally beneficial controls should visibly default to checked');
   assert.equal(await settingsPage.locator('#optFogLayer').isChecked(),false);
   const toggled=[];
   for(const [id,param,field,value] of [
    ['optWorldBands','worldBands','sparseWorldBlit',false],
+   ['optWorldBandIndex','bandIndex','indexedWorldBands',false],
    ['optWorldPad','worldPad','adaptiveWorldPad',false],
    ['optTileIndex','tileIndex','indexedTileSelection',false],
    ['optFogLayer','fogLayer','layeredFog',true],
-   ['optWorldBands','worldBands','sparseWorldBlit',true]
+   ['optWorldBands','worldBands','sparseWorldBlit',true],
+   ['optWorldBandIndex','bandIndex','indexedWorldBands',true]
   ]){
    if(!(await settingsPage.locator('#performanceOptions').evaluate(el=>el.open)))
     await settingsPage.locator('#performanceOptions > summary').click();
@@ -800,7 +833,7 @@ const run=async()=>{
    toggled.push({param,value});
   }
   collected.visibleToggleAB=toggled;
-  assert.equal(toggled.length,5);
+  assert.equal(toggled.length,7);
   await settingsPage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
