@@ -132,7 +132,8 @@ window.VedrasFrozenMap=(()=>{
    let order=0;
    for(const key of available){
     const tail=key.slice(prefix.length),parts=tail.split(',');
-    if(parts.length!==2){order++;continue;}
+    // Match the historic destructuring parser even if legacy key tails
+    // contain extra comma segments; do not silently drop old map cells.
     const ix=Number(parts[0]),iy=Number(parts[1]);
     if(!Number.isSafeInteger(ix)||!Number.isSafeInteger(iy)){
      order++;continue;
