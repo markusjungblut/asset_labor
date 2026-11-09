@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),
  fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..'),read=n=>fs.readFileSync(path.join(root,n),'utf8'),
  runtime=read('frozen-map-runtime.js'),policy=read('frozen-map-view-policy.js'),
- game=read('frozen-map-game.js');
+ game=read('frozen-map-game.js'),html=read('frozen-map-game.html');
 const SCENE='v1-0374527a';
 const createFixture=(count=15000,indexedTileSelection=true)=>{
  const window={};vm.runInNewContext(policy,{window});
@@ -92,6 +92,14 @@ test('default-on optimizations preserve explicit opt-outs, no archive rewriting'
  assert.match(game,/params\.get\('worldPad'\)!=='0'/);
  assert.match(game,/params\.get\('worldBands'\)!=='0'/);
  assert.match(game,/params\.get\('tileIndex'\)!=='0'/);
+ for(const [id,parameter] of [
+  ['optWorldPad','worldPad'],['optWorldBands','worldBands'],
+  ['optTileIndex','tileIndex'],['optFogLayer','fogLayer']]){
+  assert.ok(html.includes('id="'+id+'"'));
+  assert.ok(game.includes("'"+id+"','"+parameter+"'"));
+ }
+ assert.match(game,/location\.assign\(next\.pathname\+next\.search\+next\.hash\)/);
+ assert.match(html,/id="performanceOptions"/);
  assert.match(runtime,/adaptiveWorldPad=true/);
  assert.match(runtime,/sparseWorldBlit=true,indexedTileSelection=true/);
  assert.match(runtime,/MIN_INDEX_TILES=400/);
