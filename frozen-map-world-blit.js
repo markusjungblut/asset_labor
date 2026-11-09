@@ -21,7 +21,8 @@ window.VedrasFrozenWorldBlit=(()=>{
   if(count>64)return null;
   const left=new Float64Array(count),right=new Float64Array(count);
   left.fill(pw);right.fill(0);
-  let included=0;
+  let included=0,fullyCoveredPixels=0;
+  const fullPixels=pw*ph,minimumUnavoidable=fullPixels*(1-minSaved);
   for(const cell of cells){
    if(cell?.visibility!=='visible'&&cell?.visibility!=='explored')continue;
    if(![cell.x,cell.y,cell.radius].every(Number.isFinite)||
@@ -42,9 +43,15 @@ window.VedrasFrozenWorldBlit=(()=>{
    const first=Math.floor(y0/stripe),
     last=Math.floor((y1-1)/stripe);
    for(let k=first;k<=last;k++){
+    const wasFull=left[k]===0&&right[k]===pw;
     if(x0<left[k])left[k]=x0;
     if(x1>right[k])right[k]=x1;
+    if(!wasFull&&left[k]===0&&right[k]===pw)
+     fullyCoveredPixels+=pw*Math.min(stripe,ph-k*stripe);
    }
+   // Once full-width stripes alone defeat the saving threshold, scanning
+   // the rest of a 15k-cell world cannot improve the answer. Safe fallback.
+   if(fullyCoveredPixels>minimumUnavoidable)return null;
   }
   const rects=[];
   let used=0;
@@ -61,7 +68,7 @@ window.VedrasFrozenWorldBlit=(()=>{
   // No authorized hex => no world pixels. No extra texture/copy budget.
   if(included===0||rects.length===0)return {rects:[],pixels:0,total:pw*ph,
    fraction:0};
-  if(rects.length>maxRects||used>pw*ph*(1-minSaved))return null;
+  if(rects.length>maxRects||used>minimumUnavoidable)return null;
   return {rects,pixels:used,total:pw*ph,fraction:used/(pw*ph)};
  }
  return {plan};
