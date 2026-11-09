@@ -162,3 +162,39 @@ weil eine sparse Kartenrand-Messung noch nicht die
 hardwareübergreifende 60-FPS-Anforderung belegt und die
 zusätzlichen Hex-/Streifenberechnungen bei anderen
 Szenen/GPUs nachteilig sein können.
+
+## Zweite Firefox-Abnahme und Kontrolle der Cloud-Strategie
+
+Die zweite vollständig grüne CI
+[#42634049673](https://github.com/markusjungblut/asset_labor/actions/runs/42634049673)
+([Artefakt](https://github.com/markusjungblut/asset_labor/actions/runs/42634049673))
+bestand ebenfalls **66/66 Node-Tests** und Firefox ohne Fehler.
+Die 15.000-Hex-Node-Probe des konservativen Frühabbruchs bestand.
+
+**Gepaarter Kartenrand:** Erneut exakt
+181 272 576→85 321 880 World-Pixel (−52,93 %),
+`worldBlitMs` p95 12→7ms,
+`drawMs` p95 59→30ms,
+`frameGapMs` p95 72→42ms; 11.200 RGBA-Proben mit
+**0 abweichenden Kanälen**.
+
+**Achtung: Normal-Pan nicht konsistent besser.** Im gleichen
+zweiten CI-Lauf lag die Mitte bei Draw-p95 **34→54ms**,
+FrameGap-p95 **43→56ms**. Die World-Blit-Zeit war zwar
+15→14ms, aber der **automatisch gewählte Cloud-Pfad**
+benötigte im Standard im Mittel 2,8ms und in der
+Streifenvariante **16,2ms** (`cloudMs`-p95 3→21ms).
+Daher darf die Verschlechterung **nicht isoliert dem
+Streifen-Code zugeschrieben** oder die gesamte
+Rand-Beschleunigung ausschließlich als World-Gewinn behauptet werden.
+
+Als zusätzliche Kontrolle führt die nächste automatische
+Firefox-CI den Kartenrand nun in zwei weiteren Modi aus:
+`fixedCloudBase` und `fixedCloudSparse`. Beide erzwingen
+`cloudAuto=0` und damit dieselbe vorher ausgewählte
+Cache-Kompositionsstrategie. Die gemessenen Cloud-Phasen
+werden zusammen mit World-Blit-/Draw-/FrameGap-p95
+explizit archiviert. Bei nicht eindeutigem Vorteil bleibt
+der Code ausschließlich **opt-in** oder wird verworfen.
+Eine generelle Aktivierung auf dem privaten Windows-Atlas
+ist nicht vorgesehen.
