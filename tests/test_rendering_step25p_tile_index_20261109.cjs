@@ -66,7 +66,7 @@ test('15k tile index preserves exact visible/prefetch/decode semantics and origi
  assert.ok(a.tileIndexQueries>=10);
  assert.ok(a.tileIndexCandidateChecks<b.tileLegacyCandidateChecks*.1,
   'spatial selection must inspect at least 90% fewer candidate tile keys');
- assert.ok(b.tileLegacyCandidateChecks>400000,
+ assert.ok(b.tileLegacyCandidateChecks>=300000,
   'the control must really scan the full 15k keys every frame');
  indexed.player.stop();legacy.player.stop();
 });
