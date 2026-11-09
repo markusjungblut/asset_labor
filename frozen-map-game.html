@@ -45,16 +45,16 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <small>Eigenständiger Lesemodus – keine Editor-, Terrain-Worker- oder Bake-Skripte</small></div>
 <div class="controls"><button id="zoomOut">−</button><span id="zoom">100 %</span>
 <button id="zoomIn">+</button><span id="rasterQuality" title="Physikalische Canvas-Renderauflösung">Raster ?×</span><button id="resetView">Ansicht zurücksetzen</button>
-<details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
+
+<a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
+<button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
+<a href="index.html">Asset-Labor öffnen</a></div><details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
 <label><input type="checkbox" id="optWorldPad"> Größere Pan-Reserve (bis 14 MiB mehr Raster)</label>
 <label><input type="checkbox" id="optWorldBands"> Nur benötigte Weltbereiche kopieren</label>
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (ca. 29 MiB zusätzlich)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
-</div></details>
-<a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
-<button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
-<a href="index.html">Asset-Labor öffnen</a></div></header>
+</div></details></header>
 <main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
 <footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
 <span id="metrics">Keine Renderaufträge</span></footer>
