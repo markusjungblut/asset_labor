@@ -41,6 +41,9 @@
  const worldCacheFastReuse=params.get('worldFast')!=='0';
  // Controlled extra camera overscan within the existing world pixel cap.
  const adaptiveWorldPad=params.get('worldPad')==='1';
+ // A/B: only the final, always covered display canvas may be opaque.
+ // World and Fog buffers remain alpha:true for authorization masks.
+ const opaqueDisplay=params.get('canvasOpaque')==='1';
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
  const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
@@ -53,7 +56,7 @@
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
-  adaptiveWorldPad,
+  adaptiveWorldPad,opaqueDisplay,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -256,7 +259,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
-   fogViewportCull,layeredFog
+   fogViewportCull,layeredFog,opaqueDisplay
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
