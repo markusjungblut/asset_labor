@@ -1,6 +1,6 @@
 # Schritt 25O – Autorisierungsgetriebene World-Blit-Streifen (experimentelles A/B)
 
-Stand: 09.11.2026 · **Draft / kein Produktivstandard**.
+Stand: 09.11.2026 · **PR #125 als ausschließlich opt-in aktivierbarer World-Blit-Modus in `main` integriert** (Merge `1765f24fdf5b3d4eeb71ee1c29b11241ad37780a`). Der bisherige Vollbild-Blit bleibt Produktivstandard.
 
 ## Ausgangspunkt
 
@@ -249,3 +249,19 @@ akzeptiert. Der Standard bleibt der sichere durchgehende
 bei lückenhafter autorisierter Karte; 15.000-Hex-Sparse-
 Karten und die private Windows-GPU sind nicht unter
 realer Last geprüft. Keine 60-FPS-Behauptung.
+
+## Main-CI nach dem Merge
+
+Der Merge von [PR #125](https://github.com/markusjungblut/asset_labor/pull/125)
+in `main` löste [GitHub Actions #42635973889](https://github.com/markusjungblut/asset_labor/actions/runs/42635973889) aus.
+**Alle Node- und realen Firefox-Schritte bestanden auch nach dem Merge.**
+Die letzten rein dokumentarischen Änderungen verändern keine World-,
+Fog- oder Cache-Zeichenfunktionen. Der Browser-Default bleibt
+`worldBands=0` und der in 25O getestete, autorisierte, konservative
+Streifenpfad ist ausschließlich per `&worldBands=1` einschaltbar.
+
+Für zukünftige Arbeit bleibt **die dichte normale Kartenmitte**
+der Engpass: dort müssen alle World-Gerätepixel kopiert werden,
+sofern nicht eine qualitativ sichere, an das tatsächliche
+Rendering gebundene andere Strategie nachgewiesen wird.
+Keine 60-FPS-Abnahme auf dem privaten Windows-/600-MB-Atlas.
