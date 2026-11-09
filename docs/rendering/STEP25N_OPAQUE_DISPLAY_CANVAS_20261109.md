@@ -70,3 +70,53 @@ dass ein Browser dadurch Blending-/Upload-Overhead einspart.
 Keine manuellen Tests vom Nutzer, keine persistenten Änderungen
 oder Terrain-Worker, kein Ändern von Sichtrechten beziehungsweise
 ursprünglichen Kartenbildern.
+
+## Automatische Abnahme, Ergebnis und Entscheidung (09.11.2026)
+
+[GitHub Actions #42588849549](https://github.com/markusjungblut/asset_labor/actions/runs/42588849549),
+geprüfter Code-Head `2b73b872dcb162c1f90000af9c4418139e5b54b1`:
+**65/65 Node-Tests** und alle **10 realen Firefox-Modi** grün,
+`firefox-summary.json` mit `passed:true`, `errors:[]`.
+Das archivierte Firefox-Artefakt `frozen-map-firefox-63`
+(ID `13660566860`) enthält JSON und Screenshots der
+synthetischen 120-WorldTile-/399-Fog-Hex-Szene.
+
+| 30 aktive Warm-Pan-Frames, Headless-Firefox | Standard `alpha:true` | `canvasOpaque=1` |
+| --- | ---: | ---: |
+| Tatsächlicher 2D-Kontext `getContextAttributes().alpha` | `true` | `false` |
+| `worldBlitMs` p95 | **20 ms** | **20 ms** |
+| `worldMs` p95 | 28 ms | 27 ms |
+| `worldPrepareMs` p95 | 11 ms | 10 ms |
+| `drawMs` p95 | **47 ms** | **47 ms** |
+| `frameGapMs` p95 | **53 ms** | **55 ms** |
+| Mittlere Pan-`drawMs` | **45,13 ms** | **45,47 ms** |
+| Cold `firstFullyVisibleMs` | **4577 ms** | 4684 ms |
+| Zusätzliche World-Neuaufbauten nach Cold | 2 | 2 |
+| Wiederholungsdecodes / Evictions | 0 / 0 | 0 / 0 |
+
+Die **nach dem Timing** gelesenen 45×30 RGB-/Alpha-Proben
+bei identischer Kamera zeigten **0 unterschiedliche RGB-Proben**
+(Schwelle >2), **0 Alphaabweichungen** und
+`maxChannelDelta=0`. Die beiden Fog-Dissolve-Zustände waren
+abgeschlossen. Das bestätigt die gewählte Bildstichprobe;
+es ersetzt keine vollständige deterministische Prüfung sämtlicher
+Bildschirm-Pixel oder anderer Browser-/Windows-Treiber.
+
+**Entscheidung: keine Integration des opaken Ausgabe-Canvas.**
+Auf dem untersuchten Linux-Firefox ergab sich weder bei
+`worldBlitMs` noch beim tatsächlichen p95-Zeichen-/Frame-
+Abstand eine relevante Verbesserung. `canvasOpaque=1` bleibt
+ausschließlich im geschlossenen [PR #124](https://github.com/markusjungblut/asset_labor/pull/124)
+nachvollziehbar. Der Hauptbranch behält seine bislang sichere
+`alpha:true`-Voreinstellung und den unveränderten Renderer.
+
+**Nächster fachlich begründeter Schwerpunkt:** Eine neue
+Copy-Mikrovariante ohne nachweisbaren Vorteil wäre nicht
+zielführend. Nötig sind besser gepaarte,
+browser-/hardwareübergreifende Messungen der World-Blit-Pipeline
+oder eine **architektonisch** andere Reduktion der zu
+übertragenden sichtbaren Pixel, ohne Fog-Maskierung oder
+Quellqualität zu gefährden. Die alte 25L-DOM-Variante
+(verschlechterter p95-Frame-Abstand) ist keine sichere Lösung.
+Das Originalarchiv und seine IndexedDB-Derivate wurden bei
+25N nicht verändert.
