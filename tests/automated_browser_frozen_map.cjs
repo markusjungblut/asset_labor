@@ -158,12 +158,12 @@ const run=async()=>{
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
     (mode==='noCloudPad'?'&cloudPad=0':'')+
-    (mode==='forceCloud'?'&cloudAuto=0':'')+
+    (mode==='forceCloud'||mode==='fixedCloudBase'||mode==='fixedCloudSparse'?'&cloudAuto=0':'')+
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
     (mode==='layeredFog'?'&fogLayer=1':'')+
     (mode==='budgetedPad'?'&worldPad=1':'')+
-    (mode==='sparseWorld'?'&worldBands=1':'');
+    (mode==='sparseWorld'||mode==='fixedCloudSparse'?'&worldBands=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -305,6 +305,8 @@ const run=async()=>{
   const layeredFog=await loadMode('layeredFog');
   const budgetedPad=await loadMode('budgetedPad');
   const sparseWorld=await loadMode('sparseWorld');
+  const fixedCloudBase=await loadMode('fixedCloudBase');
+  const fixedCloudSparse=await loadMode('fixedCloudSparse');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -528,6 +530,9 @@ const run=async()=>{
     p95DrawMs:report.phasesMs.drawMs.p95,
     p95WorldMs:report.phasesMs.worldMs.p95,
     p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
+    p95CloudMs:report.phasesMs.cloudMs.p95,
+    meanCloudMs:report.phasesMs.cloudMs.mean,
+    p95FogMs:report.phasesMs.fogMs.p95,
     p95FrameGapMs:report.phasesMs.frameGapMs.p95,
     meanPanDrawMs:report.byGesture.pan.draws.mean,
     physicalCopyPixels:after.worldBlitDevicePixels-before.worldBlitDevicePixels,
@@ -541,7 +546,9 @@ const run=async()=>{
   }
   collected.sparseEdgePan={
    guarded:await edgePan(guarded),
-   sparseWorld:await edgePan(sparseWorld)
+   sparseWorld:await edgePan(sparseWorld),
+   fixedCloudBase:await edgePan(fixedCloudBase),
+   fixedCloudSparse:await edgePan(fixedCloudSparse)
   };
   const oldEdge=collected.sparseEdgePan.guarded,
    clippedEdge=collected.sparseEdgePan.sparseWorld;
@@ -554,6 +561,18 @@ const run=async()=>{
    'sparse World must copy at least 25% fewer device pixels at edge');
   assert.ok(clippedEdge.lastRectCount>=1&&clippedEdge.lastRectCount<=8);
   assert.equal(clippedEdge.failures,0);
+  const stableBase=collected.sparseEdgePan.fixedCloudBase,
+   stableSparse=collected.sparseEdgePan.fixedCloudSparse;
+  assert.ok(stableBase.panFrames>=20&&stableSparse.panFrames>=20,
+   'fixed-cloud control must exercise real edge pan in both modes');
+  assert.equal(stableBase.sparseFrames,0);
+  assert.ok(stableSparse.sparseFrames>=20);
+  assert.ok(stableSparse.physicalCopyPixels<stableSparse.fullCopyPixels*.75,
+   'pixel-volume saving must survive identical forced-cloud strategy');
+  assert.ok(stableSparse.p95WorldBlitMs<=stableBase.p95WorldBlitMs*1.25+3,
+   'reduced World copy must not become slower under fixed cloud policy');
+  assert.equal(stableBase.failures,0);
+  assert.equal(stableSparse.failures,0);
   assert.ok(clippedEdge.p95DrawMs<=Math.max(160,oldEdge.p95DrawMs*2.8),
    'strip-based canvas drawing catastrophically increases edge pan cost');
 
@@ -595,6 +614,8 @@ const run=async()=>{
    samples:oldPixels.data.length/4,badChannels:bad,maxDelta};
   assert.equal(bad,0,
    'sparse World blit must preserve authorized World and Fog pixels exactly');
+  await fixedCloudSparse.close();
+  await fixedCloudBase.close();
   await sparseWorld.close();
   await budgetedPad.close();
   await layeredFog.close();
