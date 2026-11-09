@@ -49,6 +49,23 @@
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
  const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
+ // A compact UI for the most relevant, reversible game-viewer switches.
+ // A reload re-reads only the prepared atlas; it never alters or rebakes it.
+ for(const [id,parameter,active] of [
+  ['optWorldPad','worldPad',adaptiveWorldPad],
+  ['optWorldBands','worldBands',sparseWorldBlit],
+  ['optTileIndex','tileIndex',indexedTileSelection],
+  ['optFogLayer','fogLayer',layeredFog]
+ ]){
+  const checkbox=$(id);
+  if(!checkbox)continue;
+  checkbox.checked=active;
+  checkbox.addEventListener('change',()=>{
+   const next=new URL(location.href);
+   next.searchParams.set(parameter,checkbox.checked?'1':'0');
+   location.assign(next.pathname+next.search+next.hash);
+  });
+ }
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
