@@ -1,6 +1,6 @@
 # Schritt 25P – Sinnvolle Optimierungen standardmäßig an, räumliche Tile-Auswahl
 
-Stand: 09.11.2026 · konservativer Implementierungs-/CI-Branch.
+Stand: 09.11.2026 · **Schritt 25P in `main` integriert** via [PR #126](https://github.com/markusjungblut/asset_labor/pull/126), Merge `985ef9d10a84e859eab0d607d695b75166ad81d5`. Die Standardoptimierungen sind einzeln abschaltbar; `fogLayer` bleibt aus.
 
 ## Vorgabe und Entscheidung
 
@@ -211,3 +211,22 @@ bemerkt, kann `worldBands=0` und/oder
 die Fog-Layer-Sondervariante bleibt aus.
 Spätere automatische Entscheidungen müssen
 auf wiederholten gepaarten GPU-/Pan-Daten beruhen.
+
+## Abschluss und Post-Merge-Abnahme
+
+Nach der Integration von [PR #126](https://github.com/markusjungblut/asset_labor/pull/126)
+hat auch [GitHub Actions #42665434505](https://github.com/markusjungblut/asset_labor/actions/runs/42665434505)
+auf dem Merge-Commit sämtliche **70 Node-Tests** und die
+vollständige Headless-Firefox-Regression erfolgreich bestanden.
+Der 15.000-Tile-Vergleich, die sichtbaren UI-Checkboxen
+mit URL-Navigation und die Legacy-A/B-Renderpfade waren Bestandteil
+der Abnahme.
+
+**Integration abgeschlossen.** Aktiviert: `worldPad`,
+`worldBands`, `tileIndex` (letzterer erst ab 400 Keys).
+Einzeln abschaltbar über das Menü oder `=0`-Parameter.
+`fogLayer` bleibt wegen GPU-/RAM-/Pan-Kosten standardmäßig aus.
+Die vorhandenen Bildqualitäts-, Fog-Autorisierungs-,
+1×-/2×-LOD- und Rasterbudget-Grenzen wurden beibehalten.
+Dies ist ausdrücklich keine 60-FPS-Garantie für das
+private Windows-Originalarchiv.
