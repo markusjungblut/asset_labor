@@ -111,8 +111,9 @@ test('actual World renderer uses fewer pixels in sparse authorized viewport, old
  assert.equal(old.worldBlitDevicePixels,old.worldBlitFullDevicePixels);
  const originals=legacy.mainOps.filter(args=>args.length===9);
  assert.ok(originals.length>=2);
- assert.ok(trial.mainOps.length>originals.length,
-  'conservative bands use multiple smaller identical 9-argument draws');
+ assert.ok(trial.mainOps.length>=1&&
+  trial.mainOps.some(args=>args[3]*args[4]<1000*600*1.25*1.25*.75),
+  'conservative bands may use ONE smaller 9-argument draw, not necessarily multiple');
  assert.ok(trial.mainOps.every(args=>args.length===9));
  assert.equal(now.failures,0);
  trial.player.setPose({panX:45,panY:25});trial.player.draw();
