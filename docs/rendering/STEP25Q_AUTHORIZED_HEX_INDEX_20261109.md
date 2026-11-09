@@ -1,6 +1,6 @@
 # Schritt 25Q – Räumlicher Vorfilter für autorisierte World-Blit-Hexe
 
-Stand: 09.11.2026 · **Experimenteller Branch / PR-Abnahme offen**.
+Stand: 09.11.2026 · **Draft-PR #127, Node-/Firefox-CI erfolgreich; lokale Windows-Abnahme offen**.
 
 ## Ausgangslage
 
@@ -52,3 +52,12 @@ Original-/Derivat-Atlasbilder und IndexedDB.
 
 Kein Browser-Performance-Ergebnis und keine vollständige Pixelidentität
 der privaten Karte sind mit diesem Implementierungscommit behauptet.
+
+## Abnahmebericht: GitHub Actions (09.11.2026)
+
+- Commit: [`c45ecc5`](https://github.com/markusjungblut/asset_labor/commit/c45ecc5e4aab87f2bff48ab36d34b7fe4a05ccf0).
+- Vollständige CI: [Actions-Lauf #42676610398](https://github.com/markusjungblut/asset_labor/actions/runs/42676610398) **erfolgreich**.
+- **75/75 Node-Tests bestanden, 0 fehlgeschlagen**. Darin enthalten sind fünf neue 25Q-Prüfungen.
+- Echter Headless-Firefox-Test (120 synthetische World-Tiles) vollständig erfolgreich. Der zusätzliche 15.000-Hex-Browsertest hat für sieben gleiche Kameraposen **identische 25O-Gerätepixel-Blit-Rechtecke** geprüft und den Kandidatenscan auf **weniger als 10 %** des alten Vollscans reduziert (CI-Akzeptanzgate). Die sichtbaren Schalter inklusive `bandIndex=0` wurden mit echten URL-Neuladungen getestet.
+- Browserartefakt: [`frozen-map-firefox-85`](https://github.com/markusjungblut/asset_labor/actions/runs/42676610398/artifacts/13700033581) mit Profil- und Screenshot-Dateien; Aufbewahrung der CI-Artefakte ist zeitlich begrenzt.
+- **Abnahmegrenze:** Die synthetischen Korrektheits- und Auswahltests beweisen keine reale p95-/GPU-/60-FPS-Beschleunigung der privaten Windows-Karte. Im Schritt-25Q-Test wurden keine belastbaren gepaarten World-Blit-Zeiten für 15.000 echte Hexes auf der Zielhardware erhoben. **Draft bleibt offen**, bis ein gültiger Benchmark und die Risikoabwägung vorliegen. `main` bleibt unverändert.
