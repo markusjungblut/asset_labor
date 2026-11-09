@@ -161,7 +161,8 @@ const run=async()=>{
     (mode==='noFogCull'?'&fogCull=0':'')+
     (mode==='noWorldFast'?'&worldFast=0':'')+
     (mode==='layeredFog'?'&fogLayer=1':'')+
-    (mode==='budgetedPad'?'&worldPad=1':'');
+    (mode==='budgetedPad'?'&worldPad=1':'')+
+    (mode==='sparseWorld'?'&worldBands=1':'');
    await page.goto(url,{waitUntil:'load'});
    await page.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120,
     null,{timeout:20000});
@@ -217,6 +218,8 @@ const run=async()=>{
     worldEffectivePad:coldReport.environment.runtime.worldEffectivePad,
     worldPadBoostFrames:coldReport.environment.runtime.worldPadBoostFrames,
     worldPadClampFrames:coldReport.environment.runtime.worldPadClampFrames,
+    sparseWorldBlit:coldReport.environment.runtime.sparseWorldBlit,
+    sparseWorldBlitFrames:coldReport.environment.runtime.sparseWorldBlitFrames,
     layeredFog:coldReport.environment.runtime.layeredFog,
     baseFrames:coldReport.environment.runtime.baseFrames,
     fogOnlyFrames:coldReport.environment.runtime.fogOnlyFrames,
@@ -278,6 +281,9 @@ const run=async()=>{
     fullWorldBuilds:report.environment.runtime.overviewRasterBuilds,
     worldEffectivePad:report.environment.runtime.worldEffectivePad,
     worldPadAdaptive:report.environment.runtime.adaptiveWorldPad,
+    sparseWorldBlit:report.environment.runtime.sparseWorldBlit,
+    worldBlitLastFraction:report.environment.runtime.worldBlitLastFraction,
+    worldBlitLastRectCount:report.environment.runtime.worldBlitLastRectCount,
     activeFrames:report.frameCounts.active,
     tileReads:report.tiles.counts.loaded,
     decodeRepeats:report.tiles.counts.repeated,
@@ -297,6 +303,7 @@ const run=async()=>{
   const noWorldFast=await loadMode('noWorldFast');
   const layeredFog=await loadMode('layeredFog');
   const budgetedPad=await loadMode('budgetedPad');
+  const sparseWorld=await loadMode('sparseWorld');
   // Compare the same real browser and a deterministic camera trace;
   // these limits are deliberately conservative to avoid falsely flagging
   // runner resource contention as a rendering failure. Report exact data.
@@ -482,6 +489,112 @@ const run=async()=>{
    'budgeted world overscan causes catastrophic pan draw regression');
   assert.ok(padTrial.p95FrameGapMs<=Math.max(150,fast.p95FrameGapMs*2.2),
    'budgeted world overscan causes catastrophic pan cadence regression');
+  const sparse=collected.results.sparseWorld;
+  assert.equal(fast.cold.sparseWorldBlit,false);
+  assert.equal(sparse.cold.sparseWorldBlit,true);
+  assert.ok(sparse.activeFrames>=20&&sparse.p95WorldBlitMs!=null);
+  assert.ok(sparse.p95DrawMs<=Math.max(140,fast.p95DrawMs*2.5),
+   'sparse clipping causes catastrophic normal pan draw regression');
+  assert.ok(sparse.p95FrameGapMs<=Math.max(150,fast.p95FrameGapMs*2.5),
+   'sparse clipping causes catastrophic normal pan cadence regression');
+
+  // Paired, deterministic sparse-edge pan. The center camera intentionally
+  // contains world everywhere; a valid conservative plan must fall back
+  // there. Near a map boundary most World bytes would otherwise be empty.
+  async function edgePan(page){
+   const setPan=(x,y)=>page.evaluate(([panX,panY])=>
+    window.__vedrasFrozenGameTest.testPan({panX,panY}),[x,y]);
+   await setPan(-2230,0);
+   await page.waitForFunction(()=>{
+    const t=window.__vedrasFrozenGameTest,last=
+     t?.profileReport()?.frames.at(-1);
+    return last&&last.visibleTiles>0&&
+     last.visibleReadyTiles===last.visibleTiles&&
+     t.stats().pending===0;
+   },null,{timeout:50000,polling:250});
+   await page.waitForTimeout(1000);
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.forceRedraw());
+   const before=await page.evaluate(()=>window.__vedrasFrozenGameTest.stats());
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReset());
+   for(let i=0;i<24;i++){
+    await setPan(-2230+i*2,0);
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+   }
+   await page.waitForTimeout(100);
+   const report=await page.evaluate(()=>window.__vedrasFrozenGameTest.profileReport());
+   const after=await page.evaluate(()=>window.__vedrasFrozenGameTest.stats());
+   return {panFrames:report.frames.filter(f=>f.kind==='pan').length,
+    p95DrawMs:report.phasesMs.drawMs.p95,
+    p95WorldMs:report.phasesMs.worldMs.p95,
+    p95WorldBlitMs:report.phasesMs.worldBlitMs.p95,
+    p95FrameGapMs:report.phasesMs.frameGapMs.p95,
+    meanPanDrawMs:report.byGesture.pan.draws.mean,
+    physicalCopyPixels:after.worldBlitDevicePixels-before.worldBlitDevicePixels,
+    fullCopyPixels:after.worldBlitFullDevicePixels-before.worldBlitFullDevicePixels,
+    sparseFrames:after.sparseWorldBlitFrames-before.sparseWorldBlitFrames,
+    fallbackFrames:after.sparseWorldBlitFallbacks-before.sparseWorldBlitFallbacks,
+    lastRectCount:after.worldBlitLastRectCount,
+    lastFraction:after.worldBlitLastFraction,
+    failures:after.failures,decodeRepeats:after.decodeRepeats,
+    evictions:after.evictions};
+  }
+  collected.sparseEdgePan={
+   guarded:await edgePan(guarded),
+   sparseWorld:await edgePan(sparseWorld)
+  };
+  const oldEdge=collected.sparseEdgePan.guarded,
+   clippedEdge=collected.sparseEdgePan.sparseWorld;
+  assert.ok(oldEdge.panFrames>=20&&clippedEdge.panFrames>=20,
+   'both modes must measure real panning at the map edge');
+  assert.ok(clippedEdge.sparseFrames>=20,
+   'actual browser must exercise conservative transparent pixel omission');
+  assert.ok(clippedEdge.physicalCopyPixels<
+   clippedEdge.fullCopyPixels*.75,
+   'sparse World must copy at least 25% fewer device pixels at edge');
+  assert.ok(clippedEdge.lastRectCount>=1&&clippedEdge.lastRectCount<=8);
+  assert.equal(clippedEdge.failures,0);
+  assert.ok(clippedEdge.p95DrawMs<=Math.max(160,oldEdge.p95DrawMs*2.8),
+   'strip-based canvas drawing catastrophically increases edge pan cost');
+
+  // Identical camera and finished Fog fades before the RGB comparison.
+  // A mask mistake is a security bug, NOT an acceptable perf tradeoff.
+  async function readEdgePixels(page){
+   await page.waitForTimeout(1100);
+   await page.evaluate(()=>window.__vedrasFrozenGameTest.forceRedraw());
+   return page.evaluate(()=>{
+    const t=window.__vedrasFrozenGameTest,c=document.querySelector('#game'),
+     pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data,
+     out=[],w=140,h=80;
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+     const x=Math.floor((i+.5)*c.width/w),
+      y=Math.floor((j+.5)*c.height/h),
+      k=(y*c.width+x)*4;
+     out.push(pixels[k],pixels[k+1],pixels[k+2],pixels[k+3]);
+    }
+    return {data:out,pose:t.pose(),fade:t.stats().cloudDissolveActive,
+     canvasWidth:c.width,canvasHeight:c.height};
+   });
+  }
+  const oldPixels=await readEdgePixels(guarded),
+   clippedPixels=await readEdgePixels(sparseWorld);
+  assert.equal(oldPixels.canvasWidth,clippedPixels.canvasWidth);
+  assert.equal(oldPixels.canvasHeight,clippedPixels.canvasHeight);
+  for(const key of ['zoom','panX','panY','dpr','projectY'])
+   assert.ok(Math.abs(oldPixels.pose[key]-clippedPixels.pose[key])<.001,
+    'pixel comparison camera must match on '+key);
+  assert.equal(oldPixels.fade,false);
+  assert.equal(clippedPixels.fade,false);
+  let bad=0,maxDelta=0;
+  for(let i=0;i<oldPixels.data.length;i++){
+   const difference=Math.abs(oldPixels.data[i]-clippedPixels.data[i]);
+   maxDelta=Math.max(maxDelta,difference);
+   if(difference>2)bad++;
+  }
+  collected.sparseEdgeVisual={
+   samples:oldPixels.data.length/4,badChannels:bad,maxDelta};
+  assert.equal(bad,0,
+   'sparse World blit must preserve authorized World and Fog pixels exactly');
+  await sparseWorld.close();
   await budgetedPad.close();
   await layeredFog.close();
   await noWorldFast.close();
