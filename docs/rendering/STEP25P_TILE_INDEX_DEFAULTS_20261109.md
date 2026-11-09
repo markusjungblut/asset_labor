@@ -162,3 +162,52 @@ verändert **keine** gespeicherten Tiles oder Sichtrechte.
 Ein zusätzlicher realer Firefox-Test prüft nun auch
 jede Checkbox, ihre tatsächliche URL-Navigation
 und die anschließend aktiven Runtime-Optionen.
+
+## Finale UI-, Index- und Pan-Abnahme
+
+[GitHub Actions #42664009369](https://github.com/markusjungblut/asset_labor/actions/runs/42664009369)
+bestand **70/70 Node-Tests** und das vollständige Headless-Firefox-
+Programm einschließlich aller sichtbaren Checkbox-Navigationen.
+`firefox-summary.json`: `passed:true`, `errors:[]`,
+Artefakt `frozen-map-firefox-82` (ID `13696340578`).
+
+Das UI hat die URL-Parameter `worldBands=0`, `worldPad=0`,
+`tileIndex=0`, `fogLayer=1` und wieder `worldBands=1`
+**tatsächlich gesetzt**; nach jeder Navigation wurde
+der wirksame Renderer-Status im Browser überprüft.
+
+Die zweite 15.000-Key-Browserprobe bestätigte:
+**705.000→1.153** geprüfte Keys (−99,84 %),
+exakt **31/31** fertig decodierte Tiles, **26/26**
+sichtbare Reads, **5/5** Prefetch-Reads, keine Fehler und
+**0 unterschiedliche Kanäle in 720 RGBA-Pixelproben**.
+Ihre synthetische summierte Draw-Wallclock betrug
+**163 ms** ohne Index und **92 ms** mit Index.
+Nicht repräsentativ für GPU-Uploads des echten Atlas.
+
+Wichtig: Die *kombinierten neuen Standardeinstellungen*
+`worldPad=1`+`worldBands=1` haben bei demselben
+30-Frame-Firefox-Test zwar erneut
+**zwei vollständige World-Raster-Neuaufbauten verhindert**
+und die *mittlere* Zeichenzeit von **31,23→27,27ms**
+gesenkt, aber das `drawMs`-p95
+lag **28→45ms** und der
+`frameGapMs`-p95 **36→53ms**.
+Die einzeln geprüfte größere Randreserve
+(`worldPad=1`, `worldBands=0`)
+lag dagegen bei **27ms Draw-p95/36ms FrameGap-p95**.
+Bei nur 30 sequenziellen Frames und nicht
+gepaart synchronisierten Firefox-Cloud-/GPU-Takten ist
+die erhöhte p95-Spitze nicht eindeutig
+der konservativen World-Band-Planung zuzuordnen.
+Ein allgemeiner 60-FPS-Vorteil wird
+**ausdrücklich nicht behauptet**.
+
+Gemäß der Nutzer-Vorgabe bleiben
+die **einzeln abschaltbaren Verbesserungen zunächst
+standardmäßig aktiv**. Wer eine schwankende Frame-Kadenz
+bemerkt, kann `worldBands=0` und/oder
+`worldPad=0` direkt im Optimierungen-Menü wählen;
+die Fog-Layer-Sondervariante bleibt aus.
+Spätere automatische Entscheidungen müssen
+auf wiederholten gepaarten GPU-/Pan-Daten beruhen.
