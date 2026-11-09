@@ -198,3 +198,54 @@ explizit archiviert. Bei nicht eindeutigem Vorteil bleibt
 der Code ausschließlich **opt-in** oder wird verworfen.
 Eine generelle Aktivierung auf dem privaten Windows-Atlas
 ist nicht vorgesehen.
+
+## Finale CI und entscheidender Cloud-kontrollierter Vergleich (09.11.2026)
+
+Der unveränderte Runtime-Code nach der dichten 15k-Hex-Frühabbruch-
+Optimierung bestand [GitHub Actions #42634783368](https://github.com/markusjungblut/asset_labor/actions/runs/42634783368):
+**66/66 Node-Tests**, alle zwölf Firefox-A/B-Modi sowie die
+LOD-Probe erfolgreich, `passed:true`, `errors:[]`.
+Geprüfter Head `fa6cdfbf971adc7c37e014fba73675a6f39023c5`,
+Artefakt `frozen-map-firefox-72` (ID `13681279614`).
+
+Die **entscheidende Kontrollmessung** fixierte für beide Varianten
+`cloudAuto=0` und damit dieselbe erzwungene Cloud-Cache-
+Strategie, während jeweils 24 aktive Frames **denselben sparsamen
+Kartenrand** entlang geschwenkt wurden:
+
+| Kontrolliertes Warm-Pan p95 | Vollständiger World-Blit | `worldBands=1` |
+| --- | ---: | ---: |
+| `worldBlitMs` | 13 ms | **7 ms** |
+| `worldMs` | 13 ms | **7 ms** |
+| `cloudMs` | **16 ms** | 17 ms |
+| `fogMs` | 7 ms | **6 ms** |
+| Gesamtes `drawMs` | 35 ms | **30 ms** |
+| `frameGapMs` | 50 ms | **41 ms** |
+| Mittleres Pan-`drawMs` | 32,54 ms | **27,67 ms** |
+| Kopierte World-Pixel | 181 272 576 | **85 321 880** |
+| Repeat-Decodes / Evictions | 0 / 0 | 0 / 0 |
+
+Der ebenfalls getestete gewöhnliche Cloud-Auto-Betrieb
+zeigte am Rand `worldBlitMs` p95 12→7ms,
+`drawMs` 59→52ms und `frameGapMs` 73→68ms.
+In der normalen dichten Mitte lagen
+`drawMs` 33→32ms, `frameGapMs` 42→42ms und
+`worldBlitLastFraction=1`: normaler Vollblit ohne
+Streifenmehrfachkopie. Die feste Cloud-Paarung isoliert damit
+den tatsächlichen World-Blit-Vorteil sauberer als
+unsynchronisierte Autoschalter-Abgleiche.
+
+Die separate identische-Kamera-/abgeschlossene-Fog-Probe
+hatte erneut **11.200 RGBA-Pixel ohne eine Kanalabweichung**.
+Das ist eine starke qualitative CI-Gegenprobe, aber
+kein Beweis für absolut pixelgenaue Komposition auf der
+unverfügbaren Original-Windows-GPU.
+
+**Entscheidung:** Schritt 25O wird als
+**ausschließlich opt-in aktivierbarer** read-only
+Diagnose-/Performance-Modus `&worldBands=1`
+akzeptiert. Der Standard bleibt der sichere durchgehende
+9-Argument-Viewport-Blit. Grund: messbarer Nutzen nur
+bei lückenhafter autorisierter Karte; 15.000-Hex-Sparse-
+Karten und die private Windows-GPU sind nicht unter
+realer Last geprüft. Keine 60-FPS-Behauptung.
