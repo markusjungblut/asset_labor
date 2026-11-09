@@ -36,6 +36,11 @@ test('conservative authorized-hex bounds cover all +45-world-unit polygon vertic
 test('full-frame fallback when mask is dense or metadata malformed',()=>{
  const plan=makePlan();
  assert.equal(plan(view,[{x:0,y:0,radius:10000,visibility:'visible'}],1.25),null);
+ let inspected=0;
+ const many=Array.from({length:15000},()=>({x:0,y:0,radius:10000,
+  get visibility(){inspected++;return 'visible';}}));
+ assert.equal(plan(view,many,1.25),null);
+ assert.ok(inspected<10,'fully covered world must short-circuit 15k authored hexes');
  assert.equal(plan(view,[{x:0,y:0,radius:NaN,visibility:'visible'}],1.25),null);
  assert.equal(plan(view,[{x:0,y:0,radius:-1,visibility:'visible'}],1.25),null);
  assert.equal(plan({...view,zoom:0},[],1.25),null);
