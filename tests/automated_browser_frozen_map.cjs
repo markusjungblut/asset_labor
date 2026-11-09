@@ -18,6 +18,7 @@ const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
  'frozen-map-game.js','frozen-map-runtime.js','frozen-map-profiler.js',
  'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
+ 'frozen-map-world-blit.js',
  'frozen-map-derived-1x.js',
  'frozen-map-derived-2x.js','cloud-artwork.js'
 ]);
