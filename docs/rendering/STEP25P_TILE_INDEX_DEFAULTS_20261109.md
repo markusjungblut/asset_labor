@@ -105,3 +105,60 @@ Zähler im `report()`:
 16,5-/8,5-MP-Hardlimits, 8192-Devicepixelgrenze,
 Decoded-Pixel-LRU, Cachepersistenz oder
 Terrain-/Authoring-Worker. Kein 60-FPS-Versprechen.
+
+## Erste automatisierte CI und tatsächliche 15.000-Tile-Ergebnisse
+
+[GitHub Actions #42661915005](https://github.com/markusjungblut/asset_labor/actions/runs/42661915005):
+**70/70 Node-Tests und echter Headless-Firefox vollständig bestanden**.
+Alle historischen A/B-Modi werden mit expliziten
+`worldPad=0&worldBands=0`-Kontrollen verglichen; der neue
+`modernDefault`-Modus verwendet keine dieser beiden URL-Flags.
+
+| Dieselbe synthetische 120-Tile-Firefox-Kamera, 30 aktive Pan-Frames | Historische Voreinstellung | Neue Voreinstellung |
+| --- | ---: | ---: |
+| `worldPad` / `worldBands` | aus / aus | **an / an** |
+| `drawMs` p95 | 45 ms | **41 ms** |
+| `frameGapMs` p95 | 54 ms | **49 ms** |
+| Durchschnittliches `drawMs` | 45,90 ms | **36,03 ms** |
+| World-Raster-Overscan | 272 CSS-px | **434 CSS-px** |
+
+Ein **echter zweiter Firefox-Browsertest mit 15.000
+In-Memory-Schlüsselmetadaten** (nicht 15.000
+privaten PNGs) ergab:
+
+| Zähler nach identischer synthetischer Kamerafahrt | Vorher: Set-Scan | Neuer räumlicher Index |
+| --- | ---: | ---: |
+| Geprüfte vorhandene Tile-Schlüssel | 705.000 | **1.153** |
+| Reduktion | – | **99,84 %** |
+| Fertig dekodierte Tiles | 31 | **31** |
+| Sichtbare Tile-Reads | 26 | **26** |
+| Prefetch-Reads | 5 | **5** |
+| Fehler | 0 | **0** |
+| Abweichende RGBA-Kanäle in 720 echten Browser-Proben | – | **0** |
+| Summierte Test-Draw-Wallclock (sieben Kamerapositionen) | 297 ms | **139 ms** |
+
+Die Wallclock-Werte stammen aus einem einzigen, sehr kleinen
+synthetischen Tile-Canvas-Firefox-Lauf; sie sind **kein**
+separater Windows-GPU- oder 600-MB-Atlas-Benchmark.
+Die **99,84 % weniger Kandidatenprüfungen** sind dagegen
+eine direkt instrumentierte, reproduzierbare strukturelle
+Reduktion. Node testet zusätzlich die richtige Auswahl-
+und Rückgabereihenfolge über weitere Pan-Pfade.
+
+## Sichtbare Leistungsschalter
+
+In der eigenständigen Kartenansicht befindet sich ein
+zugeklappter Menüpunkt **„Optimierungen“**. Dort lassen
+sich die drei neuen Standardmodi und die freiwillige
+Fog-Ebene mit Checkboxen ändern. Die Umschaltung setzt
+nur den entsprechenden bestehenden URL-Parameter
+(`worldPad`, `worldBands`, `tileIndex`, `fogLayer`);
+die Kartenseite wird dafür **neu geladen**.
+Alle sonstigen URL-Parameter, einschließlich Szene,
+LOD und Profiling, bleiben erhalten.
+Das Reload setzt die Kameraposition zurück; es
+verändert **keine** gespeicherten Tiles oder Sichtrechte.
+
+Ein zusätzlicher realer Firefox-Test prüft nun auch
+jede Checkbox, ihre tatsächliche URL-Navigation
+und die anschließend aktiven Runtime-Optionen.
