@@ -47,8 +47,14 @@ und das World-Raster-Verfahren bleiben unverändert.
    CSS-/Backing-Viewport, alle anderen Renderer-Flags,
    ruhige Aufwärmphase, Mindestanzahl echter Pan-Frames/
    zusammenhängender Frame-Gaps, aktive Indexoption und
-   Renderfehler. Er zeigt p50/p95 für `drawMs`,
-   `frameGapMs`, `worldPrepareMs` und `worldBlitMs`
+   Renderfehler. Ab Version `vedras-step25q-local-ab-v2` gilt ein
+   Paar **nur** dann als gültig, wenn der Index im On-Modus
+   tatsächlich abgefragt, im Off-Modus wirklich der alte
+   Vollscan verwendet und in beiden Modi gecachte World-Blits
+   ausgeführt wurden. Die Karte muss dieselbe Anzahl
+   gesamter/autorisierter Hexe enthalten.
+   Der Prüfer zeigt p50/p95 für `drawMs`, `frameGapMs`,
+   `worldPrepareMs`, `worldPlanMs` und `worldBlitMs`
    sowie absolute und prozentuale Unterschiede.
 6. Mindestens **drei Messpaare** mit gewechselter
    A/B-Reihenfolge erheben (z. B. OFF-ON, ON-OFF, OFF-ON).
@@ -191,3 +197,70 @@ vermessen. Der Produktiv-Default bleibt **400**,
 die 256er Option bleibt ausschließlich für
 `?perf=1`-Diagnosen verfügbar. **Kein Merge von
 PR #127 ohne echte Windows-Originalkartenabnahme.**
+
+## Abnahmeprotokoll v2 und getrennter Planner-Zeitanteil
+
+Der erste A/B-Export (`vedras-step25q-local-ab-v1`)
+verifizierte nur, **dass** ein Index angelegt wurde.
+Für einen echten Leistungsvergleich reicht das nicht:
+Im direkten Renderpfad oder bei vollständig ausgelassenen
+World-Composite-Aufrufen kann ein Index existieren,
+ohne jemals während der Messfahrt verwendet zu werden.
+Um einen fälschlich gültigen Vergleich auszuschließen,
+ist das JSON-Abnahmeprotokoll jetzt **v2** und verlangt:
+
+- `indexQueriesAfter > indexQueriesBefore` nur für
+  `bandIndex=1`; im Legacy-Modus muss dieser
+  Zähler unverändert bleiben.
+- Im alten Modus muss der Vollscan-Kandidatenzähler,
+  im Index-Modus der indizierte Kandidatenzähler steigen.
+- Beide Modi müssen `renderMode=cached`,
+  `worldBands=1`, echte World-Blit-Frames und positive
+  vollständige Devicepixel-Zähler aufweisen.
+- Gesamtzahl und autorisierte Anzahl der Manifest-Hexe
+  müssen übereinstimmen. Dadurch kann lokal geprüft
+  werden, ob die frühere 397-Hex-Editorszene auch
+  tatsächlich die Größe des vorbereiteten Spielmanifests
+  besitzt. Das reine Fehlen von `worldBandIndexEntries`
+  im Legacy-Modus ist erwartetes Verhalten.
+- Zusätzlich bleiben die bisherigen Kamerapose-,
+  DPR-/Viewport-, LOD-, Options-, Ruhephase-,
+  FrameGap- und Fehlerbedingungen verbindlich.
+
+**Alte v1-Profile gelten nicht als v2-Abnahme.**
+Sie müssen bei Rückkehr an den Windows-Rechner mit
+dem aktualisierten Draft-Branch neu aufgezeichnet werden.
+
+Im Frame-Profiler misst `worldPlanMs` separat die
+räumliche Indexabfrage **und** die ursprüngliche
+25O-Rechteckplanung. `worldPlanMs` ist bereits
+in `worldPrepareMs` enthalten; beide Werte dürfen
+**nicht addiert** werden. `worldBlitMs` erfasst die
+synchronen `drawImage`-Aufrufe, nicht die unabhängige
+GPU-Present-/Monitorlatenz. Auch ein besserer
+`worldPlanMs`-p95 beweist daher noch keine
+bessere Frame-Kadenz.
+
+### Letzte vollautomatische Regression
+
+[GitHub Actions #42871706124](https://github.com/markusjungblut/asset_labor/actions/runs/42871706124)
+auf dem Code-Commit
+[`9d09e0f`](https://github.com/markusjungblut/asset_labor/commit/9d09e0ff684f720de15f4378443e476de220ad86)
+hat **84/84 Node-Tests und die vollständige echte
+Headless-Firefox-Regression erfolgreich abgeschlossen**.
+Vier neue Unit-Tests verwerfen ausdrücklich
+scheinbar aktive, aber unbenutzte Indizes,
+einen reinen Direkt-Renderpfad, Messfahrten ohne
+World-Blit sowie inkonsistente autorisierte
+Kartenmetadaten. Die 399-Hex-Browserfixture bestätigt
+wirkliche `indexQueries` und Kandidatenscans für
+beide A/B-Modi. Die bestehende Pixel-/Fog- und
+15k-/397-Hex-Geometrieabnahme bleibt grün.
+
+Die zusätzliche synthetische 397-Hex-Mikromessung
+schwankt zwischen CI-Läufen im Mikrosekundenbereich
+und ist **nicht** für eine produktive Schwellenwert-
+entscheidung oder reale Windows-/GPU-FPS-Aussage
+geeignet. Keine Änderung der 400er-Standardgrenze,
+keine Änderung von Terrain, Atlas- oder Fog-Berechtigungen.
+**Draft-PR #127 nicht ohne gültige Windows-Abnahme mergen.**
