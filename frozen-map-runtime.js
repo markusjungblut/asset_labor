@@ -88,7 +88,8 @@ window.VedrasFrozenMap=(()=>{
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
-    sparseWorldBlit=true,indexedTileSelection=true}={}){
+    sparseWorldBlit=true,indexedTileSelection=true,
+     directionalPrefetch=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -113,6 +114,9 @@ window.VedrasFrozenMap=(()=>{
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
   const typicalPixels={'1x':0,'2x':0};
   let visibleMissing=false;
+   let prefetchPose=null,prefetchMotionX=0,prefetchMotionY=0,
+    prefetchCoastFrames=0,directionalPrefetchFrames=0,
+    prefetchTrailingSkipped=0,prefetchLeadingStarts=0;
   let visibleReadStarts=0,prefetchReadStarts=0,decodeRepeats=0,
    visibleDecodeRepeats=0,prefetchDecodeRepeats=0,
    prefetchSkippedVisible=0,prefetchSkippedBudget=0,
@@ -253,7 +257,9 @@ window.VedrasFrozenMap=(()=>{
    prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
    visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
-   visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
+   directionalPrefetch,directionalPrefetchFrames,prefetchTrailingSkipped,
+   prefetchLeadingStarts,visibleWaitingOnPrefetch,
+   visibleRequested,prefetchRequested,
    activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
@@ -296,6 +302,9 @@ window.VedrasFrozenMap=(()=>{
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
    seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
    visibleMissing=false;
+   prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
+   prefetchCoastFrames=0;directionalPrefetchFrames=0;
+   prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
    visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
    visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
    prefetchSkippedVisible=0;prefetchSkippedBudget=0;
@@ -1097,9 +1106,39 @@ window.VedrasFrozenMap=(()=>{
      ex=b.left+b.right-width,ey=b.top+b.bottom-height;
     return dx*dx+dy*dy-ex*ex-ey*ey;
    });
+   // A camera moving left exposes the new world on screen-right. Do not
+   // occupy the only speculative loading slot with trailing/off-route tiles.
+   // Coast for six stationary frames after a drag, then resume normal
+   // distance-based prefetch. Zoom or density changes clear the direction.
+   if(prefetchPose){
+    const compatible=prefetchPose.zoom===view.zoom&&
+     prefetchPose.dpr===dpr&&prefetchPose.projectY===proj;
+    if(!compatible){
+     prefetchMotionX=0;prefetchMotionY=0;prefetchCoastFrames=0;
+    }else{
+     const mx=prefetchPose.panX-view.panX,
+      my=prefetchPose.panY-view.panY;
+     if(mx*mx+my*my>=36){
+      prefetchMotionX=mx;prefetchMotionY=my;prefetchCoastFrames=6;
+     }else if(prefetchCoastFrames>0)prefetchCoastFrames--;
+    }
+   }
+   prefetchPose={zoom:view.zoom,panX:view.panX,panY:view.panY,
+    dpr,projectY:proj};
+   const leading=directionalPrefetch&&prefetchGuard&&
+    !zoomPreview&&prefetchCoastFrames>0;
+   if(leading)directionalPrefetchFrames++;
    for(const t of prefetch){
     prefetchRequested++;
+    if(leading){
+     const dx=t.left+t.right-width,dy=t.top+t.bottom-height;
+     if(dx*prefetchMotionX+dy*prefetchMotionY<=0){
+      prefetchTrailingSkipped++;continue;
+     }
+    }
+    const before=prefetchReadStarts;
     read(t.key,variant,'prefetch');
+    if(leading&&prefetchReadStarts>before)prefetchLeadingStarts++;
    }
    if(profileFrame)profileFrame.selectMs=clock()-now;
    // A second large displayed Canvas can slow active panning. Switch back

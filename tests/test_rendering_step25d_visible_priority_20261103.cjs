@@ -6,7 +6,7 @@ const runtime=read('frozen-map-runtime.js'),policy=read('frozen-map-view-policy.
  profilerSource=read('frozen-map-profiler.js'),
  game=read('frozen-map-game.js'),html=read('frozen-map-game.html');
 function fixture({prefetchGuard=true,maxDecodedPixels=4500000,profiler=null,
- overview1x=false}={}){
+ overview1x=false,directionalPrefetch=true}={}){
  const window={},sourceGets=[],drawn=[],closed=[];
  vm.runInNewContext(policy,{window});
  let ticks=0;
@@ -42,7 +42,8 @@ function fixture({prefetchGuard=true,maxDecodedPixels=4500000,profiler=null,
  vm.runInNewContext(runtime,{window,document,performance:{now:()=>++ticks},
   requestAnimationFrame:()=>{},console});
  const player=window.VedrasFrozenMap.create({
-  canvas,storage,prefetchGuard,maxDecodedPixels,profiler,overview1x,
+  canvas,storage,prefetchGuard,directionalPrefetch,
+  maxDecodedPixels,profiler,overview1x,
   useLayerCache:false,
   decode:async blob=>({...blob,close(){closed.push(blob.id)}})
  });
@@ -145,4 +146,40 @@ test('25D never touches stored assets or global Sprite/Fog geometry',()=>{
  assert.doesNotMatch(runtime,/deleteDatabase\(|\.clearPrefix\(/);
  for(const source of [runtime,policy,profilerSource,game])
   assert.doesNotThrow(()=>new Function(source));
+});
+
+test('25S directional background prefetch ignores trailing side while camera pans',async()=>{
+ const on=fixture({maxDecodedPixels:16000000,directionalPrefetch:true});
+ const off=fixture({maxDecodedPixels:16000000,directionalPrefetch:false});
+ await mount(on);await mount(off);
+ await settle(on,7);await settle(off,7);
+ for(const x of [-80,-160,-240,-320,-400]){
+  on.player.setPose({panX:x});off.player.setPose({panX:x});
+  await settle(on,1);await settle(off,1);
+ }
+ const a=on.player.report(),b=off.player.report();
+ assert.ok(a.directionalPrefetchFrames>=3);
+ assert.ok(a.prefetchTrailingSkipped>0,
+  'moving camera must reject offscreen tiles behind its direction');
+ assert.equal(b.prefetchTrailingSkipped,0);
+ assert.equal(b.directionalPrefetchFrames,0);
+ assert.equal(a.failures,0);assert.equal(b.failures,0);
+ assert.equal(a.saved,b.saved);
+ assert.equal(a.activeVariant,b.activeVariant);
+ assert.equal(a.maxDecodedPixels,b.maxDecodedPixels);
+ assert.ok(a.pending<=3&&b.pending<=3);
+ on.player.stop();off.player.stop();
+});
+test('25S zoom transition resets motion direction, stop clears counters',async()=>{
+ const f=fixture({maxDecodedPixels:12000000});await mount(f);
+ await settle(f,9);
+ f.player.setPose({panX:-85});await settle(f,1);
+ assert.ok(f.player.report().directionalPrefetchFrames>0);
+ const prior=f.player.report().directionalPrefetchFrames;
+ f.player.setPose({zoom:1.1});await settle(f,1);
+ assert.equal(f.player.report().directionalPrefetchFrames,prior,
+  'zoom cannot extrapolate stale pan motion');
+ f.player.stop();
+ assert.equal(f.player.report().prefetchTrailingSkipped,0);
+ assert.equal(f.player.report().directionalPrefetchFrames,0);
 });
