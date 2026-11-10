@@ -881,6 +881,34 @@ const run=async()=>{
   assert.equal(toggled.length,7);
   await settingsPage.close();
 
+  // The real UI exposes an opt-in read-only A/B capture for original atlas
+  // machines. CI only smoke-checks protocol/metrics on the 399-cell fixture.
+  const capturePage=await ctx.newPage();
+  await capturePage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0');
+  await capturePage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await capturePage.locator('#runBandIndexAB').isVisible(),true);
+  const captured=await capturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.runPanAB({
+    steps:24,warmupSteps:12,download:false
+   }));
+  assert.equal(captured.abCapture.schema,'vedras-step25q-local-ab-v1');
+  assert.equal(captured.abCapture.bandIndexRequested,false);
+  assert.equal(captured.abCapture.framesPlanned,24);
+  assert.equal(captured.abCapture.warmupFrames,12);
+  assert.equal(captured.abCapture.trace,'pan-lissajous-20261110-v1');
+  assert.ok(captured.frameCounts.active>=15,
+   'Capture must record actual active pan frames in Firefox');
+  assert.equal(captured.abCapture.failuresAfter,0);
+  collected.step25qLocalCapture={
+   active:capturePage?captured.frameCounts.active:0,
+   gapSamples:captured.phasesMs.frameGapMs.count,
+   settled:captured.abCapture.settled,
+   indexRequested:captured.abCapture.bandIndexRequested
+  };
+  await capturePage.close();
+
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();
   await guarded.waitForFunction(()=>

@@ -303,9 +303,115 @@
    });
   }
  }
+
+ // Step 25Q: optional, reproducible browser A/B capture on the real atlas.
+ // Only available under ?perf=1. Never changes stored atlas or Fog rights.
+ let panABRunning=false;
+ const frameTick=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+ const downloadJson=(body,name)=>{
+  const url=URL.createObjectURL(new Blob([JSON.stringify(body,null,2)],
+   {type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download=name;
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ const runPanAB=async({steps=96,warmupSteps=96,download=false}={})=>{
+  if(!profiler)throw Error('Messfahrt erfordert ?perf=1');
+  if(panABRunning)throw Error('Eine Messfahrt läuft bereits');
+  if(!startPose||!player.report().active)throw Error('Karte noch nicht geladen');
+  if(document.hidden)throw Error('Messfahrt nur im sichtbaren Tab starten');
+  steps=Math.max(24,Math.min(180,Math.trunc(Number(steps))||96));
+  warmupSteps=Math.max(0,Math.min(180,Math.trunc(Number(warmupSteps))||0));
+  const viewW=canvas.clientWidth,viewH=canvas.clientHeight;
+  if(viewW<1||viewH<1)throw Error('Keine gültige Canvas-Größe');
+  const base={...startPose};
+  const amplitudeX=Math.min(viewW*.9,960),
+   amplitudeY=Math.min(viewH*.35,420);
+  const pass=async count=>{
+   for(let i=0;i<count;i++){
+    if(document.hidden)throw Error('Messung abgebrochen: Tab nicht sichtbar');
+    await frameTick();
+    const t=(i+1)/count;
+    profiler.input('pan');
+    player.setPose({zoom:base.zoom,dpr:base.dpr,
+     panX:base.panX+amplitudeX*Math.sin(2*Math.PI*t),
+     panY:base.panY+amplitudeY*Math.sin(4*Math.PI*t)});
+   }
+   // Last scheduled paint must finish before sampling.
+   await frameTick();await frameTick();
+  };
+  panABRunning=true;
+  try{
+   player.setPose(base);
+   await frameTick();await frameTick();
+   if(warmupSteps)await pass(warmupSteps);
+   player.setPose(base);
+   // Allow visible async reads and 850ms fades to settle; bound wait.
+   let quiet=0;
+   for(let i=0;i<240&&quiet<60;i++){
+    await frameTick();
+    quiet=player.report().pending===0?quiet+1:0;
+   }
+   const before=player.report(),startedAt=new Date().toISOString();
+   profiler.reset();
+   const wallStart=performance.now();
+   await pass(steps);
+   const elapsedMs=performance.now()-wallStart;
+   const after=player.report();
+   const result=profileReport();
+   result.abCapture={
+    schema:'vedras-step25q-local-ab-v1',
+    trace:'pan-lissajous-20261110-v1',
+    startedAt,finishedAt:new Date().toISOString(),
+    scene,level:after.level,bandIndexRequested:indexedWorldBands,
+    bandIndexActive:!!before.worldBandIndexActive,
+    indexEntries:before.worldBandIndexEntries,
+    framesPlanned:steps,warmupFrames:warmupSteps,
+    quietFrames:quiet,settled:quiet>=60,
+    elapsedMs:Math.round(elapsedMs*100)/100,
+    viewportCss:{width:viewW,height:viewH},
+    basePose:{zoom:base.zoom,panX:base.panX,panY:base.panY,
+     dpr:base.dpr,projectY:base.projectY},
+    candidateBefore:{
+     indexed:before.worldBandIndexCandidateCells,
+     legacy:before.worldBandLegacyCandidateCells},
+    candidateAfter:{
+     indexed:after.worldBandIndexCandidateCells,
+     legacy:after.worldBandLegacyCandidateCells},
+    pendingBefore:before.pending,pendingAfter:after.pending,
+    failuresBefore:before.failures,failuresAfter:after.failures
+   };
+   if(download)downloadJson(result,'vedras_step25q_'+
+    (indexedWorldBands?'indexed':'legacy')+'_'+scene+'_'
+    +new Date().toISOString().replace(/[:.]/g,'-')+'.json');
+   return result;
+  }finally{
+   panABRunning=false;
+   player.setPose(base);
+  }
+ };
+ if(profiler){
+  const captureButton=$('runBandIndexAB');
+  if(captureButton){
+   captureButton.hidden=false;
+   captureButton.addEventListener('click',async()=>{
+    captureButton.disabled=true;
+    const originalText=captureButton.textContent;
+    captureButton.textContent='Messfahrt läuft …';
+    try{
+     const result=await runPanAB({download:true});
+     output.textContent='Messfahrt abgeschlossen: '+
+      result.abCapture.framesPlanned+' Pan-Schritte · '+
+      (indexedWorldBands?'Hex-Index an':'Hex-Index aus')+
+      '. JSON gespeichert. Gegenseite über Optimierungen messen.';
+    }catch(error){output.textContent='Messfahrt: '+String(error.message||error);}
+    finally{captureButton.disabled=false;captureButton.textContent=originalText;}
+   });
+  }
+ }
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
-  profileReport,profileReset,profileStatus,
+  profileReport,profileReset,profileStatus,runPanAB:profiler?runPanAB:null,
   // Explicit opt-in diagnostic repaint: never mutates atlas or Fog rights.
   forceRedraw:()=>player.draw(),
   // CI only (perf=1): deterministic camera motion, never modify atlas data.
