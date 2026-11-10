@@ -347,10 +347,14 @@
    if(warmupSteps)await pass(warmupSteps);
    player.setPose(base);
    // Allow visible async reads and 850ms fades to settle; bound wait.
-   let quiet=0;
-   for(let i=0;i<240&&quiet<60;i++){
+   let quiet=0,settleElapsedMs=0;
+   const settleStarted=performance.now();
+   for(let i=0;i<320;i++){
     await frameTick();
     quiet=player.report().pending===0?quiet+1:0;
+    settleElapsedMs=performance.now()-settleStarted;
+    // At 120/144 Hz, 60 frames are shorter than the 850ms Fog fade.
+    if(quiet>=60&&settleElapsedMs>=1100)break;
    }
    const before=player.report(),startedAt=new Date().toISOString();
    profiler.reset();
@@ -367,7 +371,8 @@
     bandIndexActive:!!before.worldBandIndexActive,
     indexEntries:before.worldBandIndexEntries,
     framesPlanned:steps,warmupFrames:warmupSteps,
-    quietFrames:quiet,settled:quiet>=60,
+    quietFrames:quiet,settleElapsedMs:Math.round(settleElapsedMs),
+    settled:quiet>=60&&settleElapsedMs>=1100,
     elapsedMs:Math.round(elapsedMs*100)/100,
     viewportCss:{width:viewW,height:viewH},
     basePose:{zoom:base.zoom,panX:base.panX,panY:base.panY,

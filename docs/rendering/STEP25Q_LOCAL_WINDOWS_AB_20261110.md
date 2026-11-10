@@ -28,7 +28,8 @@ und das World-Raster-Verfahren bleiben unverändert.
    Die Szene muss fertig vorbereitet und vollständig verfügbar sein.
 3. **Messfahrt A/B** drücken. Das Werkzeug führt 96 identische
    Pan-Punkte **ohne Profilierung der Aufwärmphase** aus, wartet
-   auf maximal 240 Animationframes für Ruhe/850-ms-Fades und misst
+   auf maximal 320 Animationframes und mindestens 1,1 s
+   Ruhezeit für den 850-ms-Fog-Fade und misst
    dann 96 Pan-Punkte im selben Pfad. Die App exportiert automatisch
    `vedras_step25q_legacy_*.json`. Tab sichtbar lassen.
 4. Unter **Optimierungen** nur **Hex-Index für World-Blit**

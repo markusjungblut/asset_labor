@@ -897,6 +897,9 @@ const run=async()=>{
   assert.equal(captured.abCapture.bandIndexRequested,false);
   assert.equal(captured.abCapture.framesPlanned,24);
   assert.equal(captured.abCapture.warmupFrames,12);
+  assert.ok(Number.isFinite(captured.abCapture.settleElapsedMs));
+  if(captured.abCapture.settled)
+   assert.ok(captured.abCapture.settleElapsedMs>=1100);
   assert.equal(captured.abCapture.trace,'pan-lissajous-20261110-v1');
   assert.ok(captured.frameCounts.active>=15,
    'Capture must record actual active pan frames in Firefox');
