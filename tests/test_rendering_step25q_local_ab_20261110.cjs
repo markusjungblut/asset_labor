@@ -2,12 +2,20 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {compare}=require('./compare_rendering_step25q_profiles.cjs');
 function report(enabled){
- const entry={schema:'vedras-step25q-local-ab-v1',
+ const entry={schema:'vedras-step25q-local-ab-v2',
   trace:'pan-lissajous-20261110-v1',bandIndexRequested:enabled,
   bandIndexActive:enabled,scene:'v1-12345678',level:'near',
   viewportCss:{width:1200,height:800},
   basePose:{zoom:.8,panX:0,panY:0,dpr:2,projectY:.85},
   framesPlanned:96,warmupFrames:96,indexMinimumCells:400,settled:true,
+  cellCount:397,authorizedCells:360,
+  indexQueriesBefore:0,indexQueriesAfter:enabled?96:0,
+  sparseFramesBefore:0,sparseFramesAfter:96,
+  sparseFallbacksBefore:0,sparseFallbacksAfter:0,
+  worldBlitPixelsBefore:0,worldBlitPixelsAfter:15000000,
+  worldBlitFullPixelsBefore:0,worldBlitFullPixelsAfter:25000000,
+  candidateBefore:{indexed:0,legacy:0},
+  candidateAfter:{indexed:enabled?360:0,legacy:enabled?0:39700},
   pendingBefore:0,pendingAfter:0,failuresBefore:0,failuresAfter:0};
  const phase=(v)=>({count:95,p50:v,p95:v+1,p99:v+1,mean:v});
  const environment={canvasBacking:{width:2400,height:1600},
@@ -19,7 +27,8 @@ function report(enabled){
  return {abCapture:entry,environment,frameCounts:{active:96},
   sampleLimit:{droppedFrames:0},phasesMs:{
    drawMs:phase(enabled?12:14),frameGapMs:phase(enabled?17:19),
-   worldPrepareMs:phase(enabled?.1:.5),worldBlitMs:phase(8)}};
+   worldPrepareMs:phase(enabled?.1:.5),worldPlanMs:phase(enabled?.02:.1),
+   worldBlitMs:phase(8)}};
 }
 test('25Q capture comparison accepts correctly paired validated inputs',()=>{
  const result=compare(report(true),report(false));
@@ -63,4 +72,27 @@ test('25Q A/B rejects unequal diagnostic index thresholds',()=>{
  const c=compare(a,b);
  assert.equal(c.valid,false);
  assert.ok(c.errors.some(x=>x.includes('Mindestwert')));
+});
+
+test('25Q rejects an existing but never queried index',()=>{
+ const a=report(false),b=report(true);b.abCapture.indexQueriesAfter=0;
+ const r=compare(a,b);assert.equal(r.valid,false);
+ assert.ok(r.errors.some(e=>e.includes('Indexabfragen')));
+});
+test('25Q rejects direct-only renderer even with an allocated index',()=>{
+ const a=report(false),b=report(true);
+ a.environment.renderMode='direct';b.environment.renderMode='direct';
+ const r=compare(a,b);assert.equal(r.valid,false);
+ assert.ok(r.errors.some(e=>e.includes('gecachten Render-Modus')));
+});
+test('25Q rejects missing cached world blit activity',()=>{
+ const a=report(false),b=report(true);
+ for(const c of [a.abCapture,b.abCapture]){c.sparseFramesAfter=0;c.worldBlitFullPixelsAfter=0;}
+ const r=compare(a,b);assert.equal(r.valid,false);
+ assert.ok(r.errors.some(e=>e.includes('kein gemessener')));
+});
+test('25Q rejects mismatched authorized map metadata',()=>{
+ const a=report(false),b=report(true);b.abCapture.authorizedCells--;
+ const r=compare(a,b);assert.equal(r.valid,false);
+ assert.ok(r.errors.some(e=>e.includes('Autorisierungsmetadaten')));
 });

@@ -367,13 +367,15 @@
    const after=player.report();
    const result=profileReport();
    result.abCapture={
-    schema:'vedras-step25q-local-ab-v1',
+    schema:'vedras-step25q-local-ab-v2',
     trace:'pan-lissajous-20261110-v1',
     startedAt,finishedAt:new Date().toISOString(),
     scene,level:after.level,bandIndexRequested:indexedWorldBands,
     bandIndexActive:!!before.worldBandIndexActive,
     indexEntries:before.worldBandIndexEntries,
     indexMinimumCells:worldBandIndexMinCells,
+    cellCount:before.worldBandTotalCells,
+    authorizedCells:before.worldBandAuthorizedCells,
     framesPlanned:steps,warmupFrames:warmupSteps,
     quietFrames:quiet,settleElapsedMs:Math.round(settleElapsedMs),
     settled:quiet>=60&&settleElapsedMs>=1100,
@@ -387,6 +389,16 @@
     candidateAfter:{
      indexed:after.worldBandIndexCandidateCells,
      legacy:after.worldBandLegacyCandidateCells},
+    indexQueriesBefore:before.worldBandIndexQueries,
+    indexQueriesAfter:after.worldBandIndexQueries,
+    sparseFramesBefore:before.sparseWorldBlitFrames,
+    sparseFramesAfter:after.sparseWorldBlitFrames,
+    sparseFallbacksBefore:before.sparseWorldBlitFallbacks,
+    sparseFallbacksAfter:after.sparseWorldBlitFallbacks,
+    worldBlitPixelsBefore:before.worldBlitDevicePixels,
+    worldBlitPixelsAfter:after.worldBlitDevicePixels,
+    worldBlitFullPixelsBefore:before.worldBlitFullDevicePixels,
+    worldBlitFullPixelsAfter:after.worldBlitFullDevicePixels,
     pendingBefore:before.pending,pendingAfter:after.pending,
     failuresBefore:before.failures,failuresAfter:after.failures
    };

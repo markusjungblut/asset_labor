@@ -183,7 +183,8 @@ window.VedrasFrozenMap=(()=>{
   const worldBlitPlanner=window.VedrasFrozenWorldBlit?.plan||null;
   const worldBandIndexer=window.VedrasFrozenWorldBlit?.createIndex||null;
   let worldBandIndex=null,worldBandIndexQueries=0,
-   worldBandIndexCandidateCells=0,worldBandLegacyCandidateCells=0;
+   worldBandIndexCandidateCells=0,worldBandLegacyCandidateCells=0,
+   worldBandAuthorizedCells=0;
   let sparseWorldBlitFrames=0,sparseWorldBlitFallbacks=0,
    worldBlitDevicePixels=0,worldBlitFullDevicePixels=0,
    worldBlitLastRectCount=0,worldBlitLastFraction=1;
@@ -264,6 +265,7 @@ window.VedrasFrozenMap=(()=>{
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
    adaptiveWorldPad,worldEffectivePad,worldPadBoostFrames,worldPadClampFrames,
    sparseWorldBlit,indexedWorldBands,worldBandIndexMinCells,
+   worldBandTotalCells:cells.length,worldBandAuthorizedCells,
    worldBandIndexActive:!!worldBandIndex,
    worldBandIndexEntries:worldBandIndex?.entries||0,
    worldBandIndexQueries,worldBandIndexCandidateCells,
@@ -309,6 +311,7 @@ window.VedrasFrozenMap=(()=>{
    worldEffectivePad=0;worldPadBoostFrames=0;worldPadClampFrames=0;
    worldBandIndex=null;worldBandIndexQueries=0;
    worldBandIndexCandidateCells=0;worldBandLegacyCandidateCells=0;
+   worldBandAuthorizedCells=0;
    sparseWorldBlitFrames=0;sparseWorldBlitFallbacks=0;
    worldBlitDevicePixels=0;worldBlitFullDevicePixels=0;
    worldBlitLastRectCount=0;worldBlitLastFraction=1;
@@ -990,7 +993,11 @@ window.VedrasFrozenMap=(()=>{
     }else worldBandLegacyCandidateCells+=cells.length;
     plan=worldBlitPlanner(view,indexed===null?cells:indexed,dpr);
    }
-   if(profileFrame)profileFrame.worldPrepareMs+=clock()-planStart;
+   if(profileFrame){
+    const elapsed=clock()-planStart;
+    profileFrame.worldPlanMs+=elapsed;
+    profileFrame.worldPrepareMs+=elapsed;
+   }
    const blitStart=profileFrame?clock():0;
    const sx=(m.pad+m.panX-view.panX)*dpr,
     sy=(m.pad+m.panY-view.panY)*dpr,
@@ -1022,7 +1029,7 @@ window.VedrasFrozenMap=(()=>{
    if(!active||!pose)return null;
    const now=typeof performance!=='undefined'?performance.now():Date.now();
    profileFrame=profiler?{selectMs:0,worldMs:0,groundMs:0,sceneryMs:0,
-    maskMs:0,worldPainterMs:0,worldPrepareMs:0,worldBlitMs:0,
+    maskMs:0,worldPainterMs:0,worldPrepareMs:0,worldPlanMs:0,worldBlitMs:0,
     cloudMs:0,fogMs:0,
     fogUnreadyMs:0,fogTransitionsMs:0,fogCullMs:0,statusMs:0}:null;
    const b=canvas.getBoundingClientRect?.()||{width:canvas.width,height:canvas.height};
@@ -1302,6 +1309,8 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+   worldBandAuthorizedCells=cells.reduce((n,c)=>n+Number(
+    c.visibility==='visible'||c.visibility==='explored'),0);
    worldBandIndex=indexedWorldBands&&sparseWorldBlit&&worldBandIndexer?
     worldBandIndexer(cells,{minimumCells:worldBandIndexMinCells===256?256:400}):null;
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')

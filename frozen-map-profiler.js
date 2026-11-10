@@ -57,6 +57,7 @@ window.VedrasFrozenProfiler=(()=>{
     selectMs:round(data.selectMs||0),
     worldMs:round(data.worldMs||0),
     worldPrepareMs:round(data.worldPrepareMs||0),
+    worldPlanMs:round(data.worldPlanMs||0),
     worldBlitMs:round(data.worldBlitMs||0),
     groundMs:round(data.groundMs||0),
     sceneryMs:round(data.sceneryMs||0),
@@ -144,7 +145,7 @@ window.VedrasFrozenProfiler=(()=>{
     };
    const selected=active.length>=5?active:frames;
    const phaseNames=['drawMs','frameGapMs','inputToDrawEndMs','selectMs',
-    'worldMs','worldPrepareMs','worldBlitMs',
+    'worldMs','worldPrepareMs','worldPlanMs','worldBlitMs',
     'groundMs','sceneryMs','maskMs','cloudMs','fogMs',
     'fogCullMs','fogUnreadyMs','fogTransitionsMs','statusMs'];
    const phases=Object.fromEntries(phaseNames.map(key=>[key,metric(selected,key)]));

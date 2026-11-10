@@ -9,6 +9,9 @@ const STABLE_FLAGS=['renderMode','overview1x','largeViewportCache',
  'sparseWorldBlit','indexedTileSelection','worldBandIndexMinCells'];
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const metric=(p,phase,k)=>p?.phasesMs?.[phase]?.[k];
+const delta=(cap,after,before)=>
+ finite(cap?.[after])&&finite(cap?.[before])?
+ cap[after]-cap[before]:null;
 function compare(first,second){
  const errors=[],warnings=[];
  const byFlag=[first,second].sort((a,b)=>Number(
@@ -16,8 +19,8 @@ function compare(first,second){
   Number(!!b?.abCapture?.bandIndexRequested));
  const [legacy,indexed]=byFlag;
  const a=legacy?.abCapture,b=indexed?.abCapture;
- if(a?.schema!=='vedras-step25q-local-ab-v1'||
-    b?.schema!=='vedras-step25q-local-ab-v1')
+ if(a?.schema!=='vedras-step25q-local-ab-v2'||
+    b?.schema!=='vedras-step25q-local-ab-v2')
   errors.push('Beide Dateien müssen aus der Step-25Q-Messfahrt stammen.');
  if(a?.bandIndexRequested!==false||b?.bandIndexRequested!==true)
   errors.push('Benötigt eine Messung mit bandIndex=0 und eine mit bandIndex=1.');
@@ -29,6 +32,9 @@ function compare(first,second){
   errors.push('Index-Mindestwert unterscheidet sich; bandIndexMin muss gleich sein.');
  if(a?.scene!==b?.scene||a?.level!==b?.level)
   errors.push('Szene oder LOD unterscheiden sich.');
+ if(a?.cellCount!==b?.cellCount||a?.authorizedCells!==b?.authorizedCells||
+    !finite(a?.cellCount)||!finite(a?.authorizedCells))
+  errors.push('Unterschiedliche oder ungültige Karten-/Autorisierungsmetadaten.');
  if(a?.trace!==b?.trace||a?.framesPlanned!==b?.framesPlanned||
     a?.warmupFrames!==b?.warmupFrames)
   errors.push('Unterschiedliche Kamerafahrt oder Schrittzahl.');
@@ -42,6 +48,35 @@ function compare(first,second){
  for(const flag of STABLE_FLAGS)
   if(legacy?.environment?.[flag]!==indexed?.environment?.[flag])
    errors.push('Andere Render-Option außer bandIndex: '+flag);
+ if(legacy?.environment?.renderMode!=='cached'||
+    indexed?.environment?.renderMode!=='cached')
+  errors.push('25Q World-Blit-A/B erfordert den gecachten Render-Modus.');
+ if(legacy?.environment?.sparseWorldBlit!==true||
+    indexed?.environment?.sparseWorldBlit!==true)
+  errors.push('25Q A/B erfordert auf beiden Seiten worldBands=1.');
+ const queriesOff=delta(a,'indexQueriesAfter','indexQueriesBefore');
+ const queriesOn=delta(b,'indexQueriesAfter','indexQueriesBefore');
+ const scansOff=finite(a?.candidateAfter?.legacy)&&
+  finite(a?.candidateBefore?.legacy)?
+   a.candidateAfter.legacy-a.candidateBefore.legacy:null;
+ const candidatesOn=finite(b?.candidateAfter?.indexed)&&
+  finite(b?.candidateBefore?.indexed)?
+   b.candidateAfter.indexed-b.candidateBefore.indexed:null;
+ if(queriesOff!==0||!(queriesOn>0))
+  errors.push('Indexabfragen fehlen oder laufen im Legacy-Modus.');
+ if(!(scansOff>0)||!(candidatesOn>0))
+  errors.push('World-Band-Kandidatenscans wurden nicht in beiden Modi ausgeführt.');
+ for(const [name,cap] of [['Legacy',a],['Index',b]]){
+  const frameCount=(delta(cap,'sparseFramesAfter','sparseFramesBefore')||0)+
+   (delta(cap,'sparseFallbacksAfter','sparseFallbacksBefore')||0);
+  if(!(frameCount>0)||!(delta(cap,'worldBlitFullPixelsAfter',
+     'worldBlitFullPixelsBefore')>0))
+   errors.push(name+': kein gemessener gecachter World-Blit-Aufruf.');
+ }
+ const onPixels=delta(b,'worldBlitPixelsAfter','worldBlitPixelsBefore');
+ const offPixels=delta(a,'worldBlitPixelsAfter','worldBlitPixelsBefore');
+ if(!(onPixels>=0)||!(offPixels>=0))
+  errors.push('World-Blit-Pixelzähler fehlen oder sind ungültig.');
  for(const [name,p] of [['Legacy',legacy],['Index',indexed]]){
   const c=p?.abCapture;
   if(c?.settled!==true||c?.pendingBefore!==0)
@@ -58,7 +93,7 @@ function compare(first,second){
   if(p?.sampleLimit?.droppedFrames>0)
    errors.push(name+': Profilframes wurden abgeschnitten.');
  }
- const phases=['drawMs','frameGapMs','worldPrepareMs','worldBlitMs'];
+ const phases=['drawMs','frameGapMs','worldPrepareMs','worldPlanMs','worldBlitMs'];
  const timings={};
  for(const phase of phases){
   timings[phase]={};
@@ -84,6 +119,7 @@ function compare(first,second){
   valid:errors.length===0,
   decision:'Keine automatische Merge-Freigabe; mindestens drei A/B-Paare und reale Bild-/Fog-Kontrolle erforderlich.',
   trace:a?.trace||null,scene:a?.scene||null,level:a?.level||null,
+  work:{queriesOff,queriesOn,scansOff,candidatesOn,offPixels,onPixels},
   timings,errors,warnings};
 }
 if(require.main===module){

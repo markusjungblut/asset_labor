@@ -933,7 +933,9 @@ const run=async()=>{
    window.__vedrasFrozenGameTest.runPanAB({
     steps:24,warmupSteps:12,download:false
    }));
-  assert.equal(captured.abCapture.schema,'vedras-step25q-local-ab-v1');
+  assert.equal(captured.abCapture.schema,'vedras-step25q-local-ab-v2');
+  assert.equal(captured.abCapture.cellCount,399);
+  assert.ok(captured.abCapture.authorizedCells>0);
   assert.equal(captured.abCapture.bandIndexRequested,false);
   assert.equal(captured.abCapture.framesPlanned,24);
   assert.equal(captured.abCapture.warmupFrames,12);
@@ -965,6 +967,13 @@ const run=async()=>{
    }));
   assert.equal(capturedIndex.abCapture.indexMinimumCells,256);
   assert.equal(capturedIndex.abCapture.bandIndexActive,true);
+  assert.ok(capturedIndex.abCapture.indexQueriesAfter>
+   capturedIndex.abCapture.indexQueriesBefore);
+  assert.ok(captured.abCapture.candidateAfter.legacy>
+   captured.abCapture.candidateBefore.legacy);
+  assert.ok(capturedIndex.abCapture.candidateAfter.indexed>
+   capturedIndex.abCapture.candidateBefore.indexed);
+  assert.ok(captured.phasesMs.worldPlanMs.count>0);
   const compared=compareStep25Q(captured,capturedIndex);
   assert.equal(compared.valid,true,
    'real Firefox paired 399-cell captures: '+compared.errors.join('; '));
