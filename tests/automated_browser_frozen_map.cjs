@@ -786,8 +786,45 @@ const run=async()=>{
     const old=api.plan(view,cells,dpr),next=api.plan(view,subset,dpr);
     if(JSON.stringify(old)!==JSON.stringify(next))mismatches++;
    }
+   // Run matched browser-JS planner timings without Canvas, PNG, network,
+   // profiler or rAF. Alternating A/B order limits warmup/order bias.
+   // These numbers are NOT whole-frame, compositing or Windows GPU timings.
+   const measure=(input,points)=>{
+    const spatial=api.createIndex(input);
+    const views=points.map(([px,py])=>({
+     width:1600,height:920,zoom:.85,panX:px,panY:py,projectY:.85
+    }));
+    const before=()=>{for(const v of views)api.plan(v,input,dpr);};
+    const after=()=>{for(const v of views)
+     api.plan(v,spatial.query(v,dpr),dpr);};
+    for(let k=0;k<12;k++){before();after();}
+    const original=[],indexed=[];
+    const time=(fn)=>{
+     const t=performance.now();
+     for(let j=0;j<20;j++)fn();
+     return (performance.now()-t)/(20*views.length);
+    };
+    for(let k=0;k<17;k++){
+     if(k%2){indexed.push(time(after));original.push(time(before));}
+     else{original.push(time(before));indexed.push(time(after));}
+    }
+    const summary=a=>{
+     const sorted=[...a].sort((a,b)=>a-b);
+     return {p50Ms:Math.round(sorted[8]*1e4)/1e4,
+      p95Ms:Math.round(sorted[16]*1e4)/1e4,
+      meanMs:Math.round(sorted.reduce((a,b)=>a+b,0)/a.length*1e4)/1e4};
+    };
+    return {samples:17,loopsPerSample:20,poses:views.length,
+     legacy:summary(original),indexed:summary(indexed)};
+   };
+   const spatialTimings=measure(cells,poses);
+   // Pathological overlapping input is not a typical game geography,
+   // but explicitly tests an adverse dense/fallback scenario.
+   const stacked=cells.map((c,i)=>({...c,x:0,y:0,radius:5000}));
+   const denseTimings=measure(stacked,[[0,0],[100,100]]);
    return {total:cells.length,entries:index.entries,queries:poses.length,
-    legacyCandidates,indexedCandidates,mismatches};
+    legacyCandidates,indexedCandidates,mismatches,
+    spatialTimings,denseTimings};
   });
   const wb=collected.worldBandIndexStress;
   assert.equal(wb.total,15000);
@@ -796,6 +833,14 @@ const run=async()=>{
    'Firefox: world blit must inspect at least 90% fewer authorized cells');
   assert.equal(wb.mismatches,0,
    'Firefox: indexed coverage must match the full authorized world rectangles');
+  assert.ok(wb.spatialTimings.legacy.p50Ms>=0&&
+   wb.spatialTimings.indexed.p50Ms>=0);
+  assert.ok(wb.denseTimings.legacy.p50Ms>=0&&
+   wb.denseTimings.indexed.p50Ms>=0);
+  console.log('Step25Q paired Firefox planner ms/call: '+
+   JSON.stringify({spatial:wb.spatialTimings,dense:wb.denseTimings,
+    indexedCandidates:wb.indexedCandidates,
+    legacyCandidates:wb.legacyCandidates}));
   await stressPage.close();
 
   // The user-visible opt-out controls must really navigate and switch
