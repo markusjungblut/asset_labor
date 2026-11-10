@@ -109,3 +109,38 @@ test('default-on optimizations preserve explicit opt-outs, no archive rewriting'
  for(const code of [runtime,game,policy])
   assert.doesNotThrow(()=>new Function(code));
 });
+
+test('25R retains original index vs legacy ordering with suffix and malformed keys',async()=>{
+ const indexed=createFixture(401,true),legacy=createFixture(401,false);
+ const extra=[SCENE+'|near|0,0,extra',SCENE+'|near|invalid,0',
+  SCENE+'|near|,0'];
+ indexed.keys.push(...extra);legacy.keys.push(...extra);
+ await indexed.load();await legacy.load();
+ const a=indexed.player.report(),b=legacy.player.report();
+ assert.equal(a.saved,404);
+ assert.equal(a.tileParsedRecords,403);
+ assert.equal(b.tileParsedRecords,403);
+ assert.equal(a.tileIndexEntries,403);
+ assert.equal(b.tileIndexEntries,0);
+ for(const [x,y] of [[0,0],[400,-100],[-900,200],[0,0]]){
+  await indexed.pan(x,y);await legacy.pan(x,y);
+  const m=indexed.player.report(),n=legacy.player.report();
+  for(const key of ['decoded','visibleRequested','prefetchRequested',
+   'visibleReadStarts','prefetchReadStarts','failures'])
+   assert.equal(m[key],n[key],key+' at '+x+','+y);
+ }
+ indexed.player.stop();legacy.player.stop();
+ assert.equal(indexed.player.report().tileParsedRecords,0);
+ assert.equal(legacy.player.report().tileParsedRecords,0);
+});
+test('25R precaches metadata for 397-tile scenes with no index activation',async()=>{
+ const f=createFixture(397,true);await f.load();
+ const report=f.player.report();
+ assert.equal(report.saved,397);
+ assert.equal(report.indexedTileSelectionActive,false);
+ assert.equal(report.tileParsedRecords,397);
+ for(let i=0;i<5;i++)await f.pan(i*140,-i*110);
+ assert.ok(f.player.report().tileLegacyCandidateChecks>=397*15);
+ assert.equal(f.player.report().tileIndexQueries,0);
+ f.player.stop();
+});
