@@ -7,9 +7,8 @@
 Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.png`. Die **Themenordner sind Kategorien**, keine Stufen `1–4`. Die tatsächlichen Dateipfade in Git sind die maßgebliche technische Quelle; für eine filterbare Vollübersicht siehe [ICON_KATALOG.csv](ICON_KATALOG.csv) (Semikolon-getrennt, UTF-8-BOM, Excel-kompatibel).
 
 - **Gesamtbestand:** 721 PNG-Dateien in `assets/icons/`.
-- **Themenordner:** 36.
+- **Themenordner:** 35.
 - **Sonderablage `nicht benötigt`:** 26 PNGs; Dateien bleiben erhalten, gehören aber nicht in die aktive Auswahl.
-- **Sonderablage `vorläufig inaktiv`:** 1 PNG; weitere Nutzungseinstufungen können in separaten Metadaten erfasst sein. Der Ablageordner allein begründet **keine** Gesamtzahl aktiver Icons.
 - **Bilder nicht umbenennen, konvertieren, löschen oder grafisch überarbeiten**, um Kategorien zu korrigieren; Kategorisierung erfolgt über den Pfad. Alte interne IDs nicht aus Dateinamen erraten.
 
 ## Verbindliche Einordnung: Medaille und Pokal
@@ -40,7 +39,7 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Geld & Wertgegenstände | 15 |
 | Getränke | 12 |
 | Holz & Forstwirtschaft | 35 |
-| Industrie | 18 |
+| Industrie | 19 |
 | Kleidung & Accessoires | 15 |
 | Lebensmittel | 99 |
 | Menschen | 14 |
@@ -58,10 +57,15 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Tiere | 11 |
 | Tierische Rohstoffe | 19 |
 | UI Icons | 7 |
-| vorläufig inaktiv | 1 |
 | Waffen & Munition | 68 |
 | Werkzeuge & Handwerk | 20 |
 | **Gesamt** | **721** |
+
+## Präzisierungen vom 10.11.2026
+
+- `Eisennägel.png` wird im Katalog **Sechs Eisennägel** genannt.
+- `Nägel.png` wird im Katalog **Sechzehn Eisennägel** genannt.
+- `Papierrolle.png` gehört zu **Industrie** (wie `Elektromotor.png`). Die frühere Kategorie `vorläufig inaktiv` beruhte auf einem Missverständnis und existiert nicht mehr. Original-PNGs bleiben unverändert, und Dateinamen müssen für diese Benennungen nicht geändert werden.
 
 ## Pflege- und Abgleichregeln
 
