@@ -1108,7 +1108,7 @@ window.VedrasFrozenMap=(()=>{
    });
    // A camera moving left exposes the new world on screen-right. Do not
    // occupy the only speculative loading slot with trailing/off-route tiles.
-   // Coast for six stationary frames after a drag, then resume normal
+   // Coast for up to five stationary frames after a drag, then resume normal
    // distance-based prefetch. Zoom or density changes clear the direction.
    if(prefetchPose){
     const compatible=prefetchPose.zoom===view.zoom&&
