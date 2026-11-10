@@ -315,11 +315,21 @@ JSON-Profile liegen nur im **`sessionStorage` des aktuellen
 Browser-Tabs**, nicht in der persistenten Karten-IndexedDB
 und nicht auf GitHub. Original-PNGs, Fog-Autorisierung
 und die Terrain-/Bake-Pipeline werden nicht verändert.
-Die Zwischenergebnisse werden beim Auslösen des Downloads
-aus dem Tab entfernt; deshalb den erfolgreichen Browser-Download
-anschließend kontrollieren. „Abbrechen“, das Schließen des Tabs,
-Inaktivität über 45 Minuten, ein unsichtbarer Tab,
-eine nicht ruhige Aufwärmphase oder fehlende Index-Aktivierung
+**Download-Sicherung:** Das Auslösen eines Downloads ist
+keine Bestätigung, dass der Browser die Datei gespeichert
+hat. Deshalb bleiben **alle sechs Profile im aktuellen Tab**
+erhalten, bis ausdrücklich **„Seriendaten löschen“**
+gedrückt wird. **„A/B-Serie erneut herunterladen“**
+ermöglicht bei blockiertem oder verlorenem Download einen
+zweiten Versuch, ohne die Karte erneut zu vermessen.
+Erst nach der Prüfung der tatsächlich gespeicherten Datei
+die temporären Messdaten löschen.
+„Abbrechen“ stoppt die laufende Messfahrt beim nächsten
+Animationsframe, bevor weitere Kameraposen gesetzt werden.
+Das Schließen des Tabs löscht den Tab-Speicher;
+laufende Serien verfallen nach 45 Minuten, abgeschlossene
+Serien nach 24 Stunden. Ein unsichtbarer Tab, eine nicht
+ruhige Aufwärmphase oder fehlende Index-Aktivierung
 stoppen die Serie. Bei erneutem Laden desselben Tabs
 kann eine noch gültige Serie fortgesetzt werden.
 Vorübergehende Profile enthalten dennoch Szene- und
@@ -368,3 +378,26 @@ sein, auch wenn zuvor `bandIndex=0` gewählt
 war; bei Bedarf wieder über **Optimierungen**
 umschalten. `main` bleibt unverändert, PR #127
 bleibt **Draft** bis zur nativen Abnahme.
+
+### Prüfpunkte für Download-Wiederholung und Abbruch
+
+Die ursprünglich implementierte Serie löschte ihren
+`sessionStorage` unmittelbar nach dem Auslösen des
+Download-Klicks. Da Browserdownloads fehlschlagen,
+gesperrt oder vom Nutzer abgebrochen werden können,
+war das ein **Datenverlustrisiko**. Die Revision
+[`1f1363c`](https://github.com/markusjungblut/asset_labor/commit/1f1363cb7f88e6741408778b4b4f06bb5c54c256)
+trennt deshalb das Herunterladen vom **expliziten**
+Löschen der sechs Profile. Nach einem ersten Download
+bleibt der Einzeldatei-Export wiederholbar; nach
+manuellem Löschen werden die Browserdaten entfernt.
+Ein zweiter Befund betraf den Abbruch einer laufenden
+Kamerafahrt: Der Abbruchstatus wird nun vor und nach
+dem `requestAnimationFrame` geprüft, statt erst
+nach der vollständigen Pan-Sequenz.
+
+Beide Maßnahmen bleiben im `?perf=1`-Diagnosemodus,
+ohne Änderung der Originalbilder oder der gespeicherten
+Fog-Rechte. Der zugehörige Browser-Test kontrolliert
+ersten Download, erneuten Download, explizite
+Löschung und den Abbruch eines aktiven Laufs.
