@@ -932,14 +932,14 @@ const run=async()=>{
   assert.equal(await capturePage.locator('#runBandIndexAB').isVisible(),true);
   const captured=await capturePage.evaluate(()=>
    window.__vedrasFrozenGameTest.runPanAB({
-    steps:24,warmupSteps:12,download:false
+    steps:24,warmupSteps:24,download:false
    }));
   assert.equal(captured.abCapture.schema,'vedras-step25q-local-ab-v2');
   assert.equal(captured.abCapture.cellCount,399);
   assert.ok(captured.abCapture.authorizedCells>0);
   assert.equal(captured.abCapture.bandIndexRequested,false);
   assert.equal(captured.abCapture.framesPlanned,24);
-  assert.equal(captured.abCapture.warmupFrames,12);
+  assert.equal(captured.abCapture.warmupFrames,24);
   assert.ok(Number.isFinite(captured.abCapture.settleElapsedMs));
   if(captured.abCapture.settled)
    assert.ok(captured.abCapture.settleElapsedMs>=1100);
@@ -966,7 +966,7 @@ const run=async()=>{
    window.__vedrasFrozenGameTest.stats().worldBandIndexActive),true);
   const capturedIndex=await indexCapturePage.evaluate(()=>
    window.__vedrasFrozenGameTest.runPanAB({
-    steps:24,warmupSteps:12,download:false
+    steps:24,warmupSteps:24,download:false
    }));
   assert.equal(capturedIndex.abCapture.indexMinimumCells,256);
   assert.equal(capturedIndex.abCapture.bandIndexActive,true);
@@ -985,6 +985,7 @@ const run=async()=>{
   await indexCapturePage.close();
 
 
+  // Exactly matching warmup and sample pan points prevent cold reads.
   // One-click 3-pair protocol on SAME isolated origin: six reloads, both
   // actual modes, one user-gesture download. No original user Atlas/DB.
   const seriesPage=await ctx.newPage();
@@ -996,7 +997,7 @@ const run=async()=>{
   // Shorter CI trace uses same production runPanAB implementation.
   await seriesPage.evaluate(()=>
    window.__vedrasFrozenGameTest.startABSeries({
-    steps:24,warmupSteps:12
+    steps:24,warmupSteps:24
    }));
   let seriesFinished=false;
   for(let attempt=0;attempt<700;attempt++){
