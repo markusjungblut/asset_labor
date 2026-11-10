@@ -181,3 +181,11 @@ test('25Q rejects changing render resolution or LOD within one run',()=>{
  assert.equal(result.valid,false);
  assert.ok(result.errors.some(e=>e.includes('Canvas-Auflösung oder LOD')));
 });
+
+test('25Q series reports cold-sample warning before export, without discarding captures',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const game=fs.readFileSync(path.join(__dirname,'..','frozen-map-game.js'),'utf8');
+ assert.match(game,/Kein gültiger Warm-Cache-Vergleich/);
+ assert.match(game,/const contaminated=state\.captures\.some/);
+ assert.match(game,/JSON zur Diagnose herunterladen/);
+});

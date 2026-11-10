@@ -535,8 +535,19 @@
    if(state.step===AB_SERIES_ORDER.length){
     if(seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
     if(clearSeriesButton)clearSeriesButton.hidden=false;
-    output.textContent='Drei A/B-Paare aufgezeichnet. A/B-Serie herunterladen '+
-     'und mit dem Offline-Prüfer auswerten.';
+    const contaminated=state.captures.some(p=>{
+     const c=p.abCapture;
+     return c.pendingAfter!==0||p.tileReads?.length>0||
+      ['loads','visibleReadStarts','prefetchReadStarts',
+       'decodeRepeats','evictions'].some(k=>
+        c.warmCountersAfter?.[k]!==c.warmCountersBefore?.[k]);
+    });
+    output.textContent=contaminated?
+     'Drei A/B-Paare aufgezeichnet, aber zusätzliche Tile-Reads oder '+
+      'Cache-Verdrängungen wurden während der Messung erkannt. '+
+      'Kein gültiger Warm-Cache-Vergleich; JSON zur Diagnose herunterladen.':
+     'Drei A/B-Paare aufgezeichnet. A/B-Serie herunterladen '+
+      'und mit dem Offline-Prüfer auswerten.';
    }else{
     location.assign(indexUrl(AB_SERIES_ORDER[state.step]));
    }
