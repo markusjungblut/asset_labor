@@ -23,8 +23,11 @@ und das World-Raster-Verfahren bleiben unverändert.
    Eine separate Worktree oder die spätere Abgleichung der
    lokalen Änderungen ist nötig, bevor die Originalkarte getestet wird.
 2. Kartenseite im **gleichen Browser, gleichen Fenster und LOD**
-   mit `&perf=1&bandIndex=0` öffnen. Alle anderen
-   Optimierungen und die Browserzoomstufe unverändert lassen.
+   mit `&perf=1&bandIndex=0` öffnen. Für die dokumentierte
+   **397-Hex-Windows-Szene** auf **beiden** Messseiten zusätzlich
+   `&bandIndexMin=256` setzen; damit wird **nur im Diagnosemodus**
+   die Schwelle auf 256 gesenkt. Ohne `perf=1` bleibt sie 400.
+   Alle anderen Optimierungen und die Browserzoomstufe unverändert lassen.
    Die Szene muss fertig vorbereitet und vollständig verfügbar sein.
 3. **Messfahrt A/B** drücken. Das Werkzeug führt 96 identische
    Pan-Punkte **ohne Profilierung der Aufwärmphase** aus, wartet
@@ -33,7 +36,8 @@ und das World-Raster-Verfahren bleiben unverändert.
    dann 96 Pan-Punkte im selben Pfad. Die App exportiert automatisch
    `vedras_step25q_legacy_*.json`. Tab sichtbar lassen.
 4. Unter **Optimierungen** nur **Hex-Index für World-Blit**
-   einschalten (URL: `bandIndex=1`). Nach Reload wieder
+   einschalten (URL: `bandIndex=1`; `bandIndexMin=256`
+   für kleine Diagnosekarten beibehalten). Nach Reload wieder
    **Messfahrt A/B** starten und `vedras_step25q_indexed_*.json`
    speichern. Die Messfahrt verwendet dieselbe Startkamera,
    relative Bildschirmamplitude, Zoom und DPR.
@@ -82,11 +86,13 @@ und das World-Raster-Verfahren bleiben unverändert.
 Die vorhandenen 75 Node-Tests und Headless-Firefox-Regressionen
 werden um die CLI-Validierung und einen echten
 Firefox-Smoke-Test des UI-basierten Messprotokolls ergänzt.
-Die CI-Fixture umfasst **399** Hexmetadaten und kann daher
-den produktiven Index-Schwellenwert von **400** nicht aktivieren;
-der CLI-Prüfer weist einen solchen `bandIndex=1`-Vergleich
-auf der lokalen Karte ausdrücklich als `invalid` zurück.
-Dies ist ein **Protokolltest**, keine reale Windows-Performance.
+Die CI-Fixture umfasst **399** Hexmetadaten und bleibt unter
+  dem **unveränderten Produktiv-Schwellenwert 400**. Mit
+  `?perf=1&bandIndexMin=256` kann der CI-Browser beide Pfade
+  real aktivieren und die zwei JSONs mit dem CLI-Prüfer vergleichen.
+  Ein zweiter synthetischer Test prüft **397** Hexmetadaten
+  auf identische World-Blit-Rechtecke und gepaarte Planungszeiten.
+  Dies ist **keine** Originalatlas-/GPU-Performanceabnahme.
 
 ## Abnahmestand GitHub Actions vom 10.11.2026
 
@@ -115,3 +121,30 @@ Dies ist ein **Protokolltest**, keine reale Windows-Performance.
 - **Draft-PR #127 bleibt offen.** Diese automatischen Tests
   validieren den Messmechanismus, ersetzen aber keine
   echten Windows-/600-MB-Atlas-/Fog-/GPU-Messdaten.
+
+## 397-Hex-Diagnose und unveränderter Standard
+
+Die Repository-Historie dokumentiert eine **397-Hex-Testszene**
+(`docs/rendering/STATUS.md`). Das sind historische **Editor-**
+Messungen; die exakte Zahl der `manifest.cells` im eigenständigen
+Spielviewer muss beim späteren Windows-Test separat geprüft werden.
+
+Die normale 25Q-Optimierung benötigt **mindestens 400**
+Manifest-Hexe. Bei 397 bleibt `bandIndex=1` ohne zusätzlichen
+Diagnoseparameter wirkungslos. Auf dem PR-Branch aktiviert
+`?perf=1&bandIndexMin=256&bandIndex=1` den Index bereits ab
+256 Zellen; `bandIndex=0` bleibt für den Vollscan. Die
+gleichen Parameter `perf=1&bandIndexMin=256` müssen in
+beiden A/B-URLs stehen; der Offline-Prüfer vergleicht diesen
+Mindestwert und verwirft inkonsistente Paare. Der Index
+nimmt nur `visible`/`explored`-Hexe auf, sodass
+`worldBandIndexEntries` kleiner als `manifest.cells.length`
+sein darf.
+
+Ohne `perf=1` ignoriert die Spielseite `bandIndexMin`:
+Die **400er-Produktivgrenze bleibt bestehen**. Eine dauerhafte
+Senkung auf 256 setzt mehrere reale gepaarte Frame-/Fog-
+Messungen voraus; die reine JS-Mikrobenchmark-Ersparnis ist
+dafür nicht ausreichend. Der Index verändert keine
+Karten- oder Fog-Berechtigungen, keine Atlasbilder und
+keinen IndexedDB-Datensatz.
