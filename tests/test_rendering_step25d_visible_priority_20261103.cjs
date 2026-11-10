@@ -183,3 +183,27 @@ test('25S zoom transition resets motion direction, stop clears counters',async()
  assert.equal(f.player.report().prefetchTrailingSkipped,0);
  assert.equal(f.player.report().directionalPrefetchFrames,0);
 });
+
+test('25S settles back to distance-based speculative admission after idle frames',async()=>{
+ const f=fixture({maxDecodedPixels:16000000});
+ await mount(f);await settle(f,6);
+ f.player.setPose({panX:-100});await settle(f,1);
+ assert.ok(f.player.report().directionalPrefetchFrames>0);
+ await settle(f,10);
+ const before=f.player.report().directionalPrefetchFrames;
+ const skipped=f.player.report().prefetchTrailingSkipped;
+ await settle(f,3);
+ assert.equal(f.player.report().directionalPrefetchFrames,before,
+  'coasting must expire without any new camera movement');
+ assert.equal(f.player.report().prefetchTrailingSkipped,skipped);
+ assert.equal(f.player.report().failures,0);
+ f.player.stop();
+});
+test('25S is reversible and never writes or rebakes archived map packets',()=>{
+ assert.match(game,/params\.get\('leadPrefetch'\)!=='0'/);
+ assert.match(runtime,/directionalPrefetch=true/);
+ assert.match(runtime,/prefetchCoastFrames=6/);
+ assert.match(runtime,/prefetchCoastFrames>0/);
+ assert.doesNotMatch(runtime,/bakeWorldTile\(|deleteDatabase\(/);
+ assert.doesNotThrow(()=>new Function(runtime));
+});
