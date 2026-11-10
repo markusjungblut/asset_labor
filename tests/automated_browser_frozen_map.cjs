@@ -1016,14 +1016,41 @@ const run=async()=>{
   const seriesResult=compareStep25QSeries(pack);
   assert.equal(seriesResult.valid,true,
    'all three actual Firefox pairs valid: '+seriesResult.errors.join('; '));
+  const saved=await seriesPage.evaluate(()=>
+   JSON.parse(sessionStorage.getItem('vedras-step25q-ab-series-v1')));
+  assert.equal(saved.step,6,'completed captures must remain for retry');
+  assert.equal(saved.captures.length,6);
+  assert.equal(await seriesPage.locator('#clearBandIndexSeries').isVisible(),true);
+  const repeat=seriesPage.waitForEvent('download',{timeout:20000});
+  await seriesPage.locator('#runBandIndexSeries').click();
+  const repeated=JSON.parse(fs.readFileSync(await (await repeat).path(),'utf8'));
+  assert.equal(repeated.captures.length,6,'retry must retain every profile');
+  await seriesPage.locator('#clearBandIndexSeries').click();
   assert.equal(await seriesPage.evaluate(()=>
    sessionStorage.getItem('vedras-step25q-ab-series-v1')),null);
+  assert.equal(await seriesPage.locator('#clearBandIndexSeries').isVisible(),false);
   collected.step25qLocalSeries={
    captureCount:pack.captures.length,orders:seriesResult.mode,
    valid:seriesResult.valid,
    pairMedianDrawP95Delta:seriesResult.summary.drawMs.p95.medianDeltaMs
   };
   await seriesPage.close();
+
+  // Canceling an active series must stop its camera movement promptly.
+  const cancelPage=await ctx.newPage();
+  await cancelPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
+  await cancelPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  await cancelPage.locator('#runBandIndexSeries').click();
+  await cancelPage.waitForFunction(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')!==null);
+  await cancelPage.locator('#runBandIndexSeries').click();
+  await cancelPage.waitForFunction(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')===null);
+  assert.equal(await cancelPage.locator('#runBandIndexSeries').textContent(),
+   'Dreifach-A/B starten');
+  await cancelPage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();

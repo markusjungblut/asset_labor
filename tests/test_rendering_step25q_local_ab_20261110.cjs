@@ -134,3 +134,13 @@ test('25Q three-pair series fails if any single pair skips the real index path',
  assert.equal(result.valid,false);
  assert.ok(result.errors.some(e=>e.includes('Paar 3')));
 });
+
+test('25Q series keeps captures for retry and checks abort between pan frames',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const game=fs.readFileSync(path.join(__dirname,'..','frozen-map-game.js'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'..','frozen-map-game.html'),'utf8');
+ assert.match(game,/seriesButton\.textContent='A\/B-Serie erneut herunterladen'/);
+ assert.match(game,/clearSeriesButton\.addEventListener\('click'/);
+ assert.match(game,/shouldAbort:\(\)=>!sessionStorage\.getItem\(AB_SERIES_KEY\)/);
+ assert.match(html,/id="clearBandIndexSeries" hidden/);
+});

@@ -318,7 +318,8 @@
   document.body.appendChild(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
- const runPanAB=async({steps=96,warmupSteps=96,download=false}={})=>{
+ const runPanAB=async({steps=96,warmupSteps=96,download=false,
+   shouldAbort=null}={})=>{
   if(!profiler)throw Error('Messfahrt erfordert ?perf=1');
   if(panABRunning)throw Error('Eine Messfahrt läuft bereits');
   if(!startPose||!player.report().active)throw Error('Karte noch nicht geladen');
@@ -330,10 +331,16 @@
   const base={...startPose};
   const amplitudeX=Math.min(viewW*.9,960),
    amplitudeY=Math.min(viewH*.35,420);
+  const ensureActive=()=>{
+   if(document.hidden)throw Error('Messung abgebrochen: Tab nicht sichtbar');
+   if(typeof shouldAbort==='function'&&shouldAbort())
+    throw Error('Messung abgebrochen: A/B-Serie angehalten');
+  };
   const pass=async count=>{
    for(let i=0;i<count;i++){
-    if(document.hidden)throw Error('Messung abgebrochen: Tab nicht sichtbar');
+    ensureActive();
     await frameTick();
+    ensureActive();
     const t=(i+1)/count;
     profiler.input('pan');
     player.setPose({zoom:base.zoom,dpr:base.dpr,
@@ -341,7 +348,8 @@
      panY:base.panY+amplitudeY*Math.sin(4*Math.PI*t)});
    }
    // Last scheduled paint must finish before sampling.
-   await frameTick();await frameTick();
+   await frameTick();ensureActive();
+   await frameTick();ensureActive();
   };
   panABRunning=true;
   try{
@@ -353,7 +361,9 @@
    let quiet=0,settleElapsedMs=0;
    const settleStarted=performance.now();
    for(let i=0;i<320;i++){
+    ensureActive();
     await frameTick();
+    ensureActive();
     quiet=player.report().pending===0?quiet+1:0;
     settleElapsedMs=performance.now()-settleStarted;
     // At 120/144 Hz, 60 frames are shorter than the 850ms Fog fade.
@@ -438,6 +448,7 @@
  const AB_SERIES_KEY='vedras-step25q-ab-series-v1';
  const AB_SERIES_ORDER=[false,true,true,false,false,true];
  const seriesButton=$('runBandIndexSeries');
+ const clearSeriesButton=$('clearBandIndexSeries');
  const stableSeriesUrl=()=>{
   const url=new URL(location.href);
   url.searchParams.delete('bandIndex');
@@ -449,7 +460,8 @@
   const data=JSON.parse(raw);
   if(data.schema!=='vedras-step25q-local-series-v1'||
      data.scene!==scene||data.pageKey!==stableSeriesUrl()||
-     !Number.isFinite(data.startedMs)||Date.now()-data.startedMs>2700000||
+     !Number.isFinite(data.startedMs)||Date.now()-data.startedMs>
+       (data.step===AB_SERIES_ORDER.length?86400000:2700000)||
      !Number.isInteger(data.step)||data.step<0||
      data.step>AB_SERIES_ORDER.length||
      !Array.isArray(data.captures)||data.captures.length!==data.step)
@@ -461,6 +473,7 @@
   sessionStorage.removeItem(AB_SERIES_KEY);
   if(seriesButton){seriesButton.disabled=false;
    seriesButton.textContent='Dreifach-A/B starten';}
+  if(clearSeriesButton)clearSeriesButton.hidden=true;
  };
  const indexUrl=enabled=>{
   const url=new URL(location.href);
@@ -476,6 +489,7 @@
   }
   if(!state||state.step===AB_SERIES_ORDER.length){
    if(state&&seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+   if(state&&clearSeriesButton)clearSeriesButton.hidden=false;
    return;
   }
   if(!profiler||document.hidden){
@@ -496,7 +510,8 @@
   if(oldSingle)oldSingle.disabled=true;
   try{
    const sample=await runPanAB({
-    steps:state.steps,warmupSteps:state.warmupSteps,download:false});
+    steps:state.steps,warmupSteps:state.warmupSteps,download:false,
+    shouldAbort:()=>!sessionStorage.getItem(AB_SERIES_KEY)});
    const stillRunning=readSeries();
    if(!stillRunning||stillRunning.step!==state.step)
     throw Error('Serie während der Messfahrt abgebrochen');
@@ -511,6 +526,7 @@
    saveSeries(state);
    if(state.step===AB_SERIES_ORDER.length){
     if(seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+    if(clearSeriesButton)clearSeriesButton.hidden=false;
     output.textContent='Drei A/B-Paare aufgezeichnet. A/B-Serie herunterladen '+
      'und mit dem Offline-Prüfer auswerten.';
    }else{
@@ -551,8 +567,12 @@
      downloadJson({...state,finishedAt:new Date().toISOString()},
       'vedras_step25q_series_'+scene+'_'
       +new Date().toISOString().replace(/[:.]/g,'-')+'.json');
-     cancelSeries();
-     output.textContent='A/B-Serie gespeichert. Auswertung mit: '+
+     // Download activation cannot certify successful saving on disk.
+     // Keep the only copy until explicit user-side cleanup.
+     seriesButton.textContent='A/B-Serie erneut herunterladen';
+     if(clearSeriesButton)clearSeriesButton.hidden=false;
+     output.textContent='Download ausgelöst. Datei prüfen; bei Bedarf erneut herunterladen. '+
+      'Anschließend Seriendaten löschen. Auswertung: '+
       'node tests/compare_rendering_step25q_profiles.cjs SERIE.json';
     }else if(state){
      cancelSeries();output.textContent='A/B-Serie abgebrochen.';
@@ -565,11 +585,22 @@
     cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
    }
   });
+  if(clearSeriesButton)clearSeriesButton.addEventListener('click',()=>{
+   try{
+    if(readSeries()?.step!==AB_SERIES_ORDER.length)return;
+    cancelSeries();
+    output.textContent='A/B-Seriendaten im Tab gelöscht.';
+   }catch(error){
+    cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+   }
+  });
   try{
    const stored=readSeries();
    if(stored){
-    if(stored.step===AB_SERIES_ORDER.length)
+    if(stored.step===AB_SERIES_ORDER.length){
      seriesButton.textContent='A/B-Serie herunterladen';
+     if(clearSeriesButton)clearSeriesButton.hidden=false;
+    }
     else Promise.resolve().then(runSeriesStep);
    }else seriesButton.textContent='Dreifach-A/B starten';
   }catch(error){
