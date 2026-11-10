@@ -7,6 +7,11 @@
  */
 'use strict';
 window.VedrasFrozenMap=(()=>{
+ // Static authored hex angles, identical to the old per-frame geometry.
+ const HEX_CORNERS=Array.from({length:6},(_,i)=>{
+  const theta=-Math.PI/2+i*Math.PI/3;
+  return {cos:Math.cos(theta),sin:Math.sin(theta)};
+ });
  const SCHEMA=1,DB='vedras-frozen-world-v1',STORE='tiles';
  const integer=v=>Number.isSafeInteger(v);
  function memoryStore(){
@@ -91,6 +96,7 @@ window.VedrasFrozenMap=(()=>{
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
   let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
+  let tileRecords=[],authorizedClipCells=[];
   // Read-only metadata index; PNG blobs remain exclusively in IndexedDB.
   // Small scenes keep the original Set scan (no extra allocations/sorts).
   const MIN_INDEX_TILES=400;
@@ -127,22 +133,26 @@ window.VedrasFrozenMap=(()=>{
   function buildTileIndex(){
    tileColumns=null;tileIndexEntries=0;tileIndexQueries=0;
    tileIndexCandidateChecks=0;tileLegacyCandidateChecks=0;
-   if(!indexedTileSelection||available.size<MIN_INDEX_TILES)return;
-   const columns=new Map(),prefix=sceneKey+'|'+level+'|';
+   tileRecords=[];
+   const prefix=sceneKey+'|'+level+'|';
    let order=0;
    for(const key of available){
     const tail=key.slice(prefix.length),parts=tail.split(',');
-    // Match the historic destructuring parser even if legacy key tails
-    // contain extra comma segments; do not silently drop old map cells.
+    // Preserve Number() parsing, historic comma suffixes and Set order.
     const ix=Number(parts[0]),iy=Number(parts[1]);
-    if(!Number.isSafeInteger(ix)||!Number.isSafeInteger(iy)){
-     order++;continue;
-    }
-    if(!columns.has(ix))columns.set(ix,[]);
-    columns.get(ix).push({key,ix,iy,order});
-    tileIndexEntries++;order++;
+    if(Number.isSafeInteger(ix)&&Number.isSafeInteger(iy))
+     tileRecords.push({key,ix,iy,order});
+    order++;
    }
-   for(const rows of columns.values())rows.sort((a,b)=>a.iy-b.iy||a.order-b.order);
+   if(!indexedTileSelection||available.size<MIN_INDEX_TILES)return;
+   const columns=new Map();
+   for(const tile of tileRecords){
+    if(!columns.has(tile.ix))columns.set(tile.ix,[]);
+    columns.get(tile.ix).push(tile);
+    tileIndexEntries++;
+   }
+   for(const rows of columns.values())
+    rows.sort((a,b)=>a.iy-b.iy||a.order-b.order);
    tileColumns=columns;
   }
   function tileCandidates(bounds){
@@ -251,7 +261,7 @@ window.VedrasFrozenMap=(()=>{
    renderMode:useLayerCache?'cached':'direct',
    indexedTileSelection,indexedTileSelectionActive:!!tileColumns,
    tileIndexEntries,tileIndexQueries,tileIndexCandidateChecks,
-   tileLegacyCandidateChecks,
+   tileLegacyCandidateChecks,tileParsedRecords:tileRecords.length,
    layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
    fogOverlayMiB:fogCtx?Math.round(fogCanvas.width*fogCanvas.height*4/1048576):0,
    cloudBufferHexes:viewportPolicy?1:0,
@@ -302,7 +312,8 @@ window.VedrasFrozenMap=(()=>{
    worldBlitDevicePixels=0;worldBlitFullDevicePixels=0;
    worldBlitLastRectCount=0;worldBlitLastFraction=1;
    cloudBackdropRaster=null;resetCloudAuto();
-   tileColumns=null;tileIndexEntries=0;tileIndexQueries=0;
+   tileColumns=null;tileRecords=[];authorizedClipCells=[];
+    tileIndexEntries=0;tileIndexQueries=0;
    tileIndexCandidateChecks=0;tileLegacyCandidateChecks=0;
    fogUnreadyCandidates=0;fogUnreadySubmitted=0;
    fogFrontierCandidates=0;fogFrontierSubmitted=0;
@@ -571,14 +582,10 @@ window.VedrasFrozenMap=(()=>{
     height:Math.max(1,Math.floor(b.height))
    },{marginWorld:0});
    if(!bounds)return false;
-   for(const key of available){
-    const tail=key.slice((sceneKey+'|'+level+'|').length);
-    const [ix,iy]=tail.split(',').map(Number);
-    if(Number.isSafeInteger(ix)&&Number.isSafeInteger(iy)&&
-       viewportPolicy.visibleTile(ix,iy,bounds)&&
-       !decodedEntry(key,activeVariant))return true;
-   }
-   return false;
+   for(const {key,ix,iy} of tileRecords)
+     if(viewportPolicy.visibleTile(ix,iy,bounds)&&
+        !decodedEntry(key,activeVariant))return true;
+    return false;
   }
   function endZoomPreview({waitForVisible=false,maxHoldMs=950}={}){
    if(!zoomPreview)return true;
@@ -748,15 +755,14 @@ window.VedrasFrozenMap=(()=>{
    });
    function clipCells(halo=0){
     g.beginPath();
-    for(const c of cells){
-     if(c.visibility!=='visible'&&c.visibility!=='explored')continue;
+    for(const c of authorizedClipCells){
      const x=width/2+view.panX+c.x*view.zoom,
       y=height/2+view.panY+c.y*view.zoom*proj,
       rx=(c.radius+halo)*view.zoom,ry=rx*proj;
      if(x+rx<0||x-rx>width||y+ry<0||y-ry>height)continue;
      for(let i=0;i<6;i++){
-      const theta=-Math.PI/2+i*Math.PI/3,
-       px=x+rx*Math.cos(theta),py=y+ry*Math.sin(theta);
+      const corner=HEX_CORNERS[i],
+       px=x+rx*corner.cos,py=y+ry*corner.sin;
       if(i===0)g.moveTo(px,py);else g.lineTo(px,py);
      }
      g.closePath();
@@ -1037,16 +1043,8 @@ window.VedrasFrozenMap=(()=>{
    const extra=viewportPolicy?.screenBounds(view,{marginWorld:worldMargin})||null;
    const indexedCandidates=tileCandidates(extra);
    if(!indexedCandidates)tileLegacyCandidateChecks+=available.size;
-   for(const tile of indexedCandidates||available){
-    const key=indexedCandidates?tile.key:tile;
-    let ix,iy;
-    if(indexedCandidates){ix=tile.ix;iy=tile.iy;}
-    else{
-     const tail=key.slice((sceneKey+'|'+level+'|').length);
-     [ix,iy]=tail.split(',').map(Number);
-     if(!Number.isSafeInteger(ix)||!Number.isSafeInteger(iy))continue;
-    }
-    const x=ix*512,y=iy*512;
+   for(const {key,ix,iy} of indexedCandidates||tileRecords){
+     const x=ix*512,y=iy*512;
     const left=snap(width/2+view.panX+x*view.zoom),
      top=snap(height/2+view.panY+y*view.zoom*proj),
      right=snap(width/2+view.panX+(x+512)*view.zoom),
@@ -1284,6 +1282,8 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+    authorizedClipCells=cells.filter(c=>
+     c.visibility==='visible'||c.visibility==='explored');
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
