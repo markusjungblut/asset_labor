@@ -96,6 +96,9 @@ Die CI-Fixture umfasst **399** Hexmetadaten und bleibt unter
   dem **unveränderten Produktiv-Schwellenwert 400**. Mit
   `?perf=1&bandIndexMin=256` kann der CI-Browser beide Pfade
   real aktivieren und die zwei JSONs mit dem CLI-Prüfer vergleichen.
+  **Dieser synthetische Browser-Pan ist nach dem aktuellen
+  Warm-Cache-Gate nicht zwingend gültig**, weil währenddessen
+  weitere Tile-Reads/Decodes erfolgen können.
   Ein zweiter synthetischer Test prüft **397** Hexmetadaten
   auf identische World-Blit-Rechtecke und gepaarte Planungszeiten.
   Dies ist **keine** Originalatlas-/GPU-Performanceabnahme.
@@ -426,3 +429,104 @@ Originalatlas, Fog-Autorisierung, Produktivstandard
 mit 400-Hex-Grenze und `main` wurden bei dieser
 Korrektur nicht verändert. Der Draft-PR bleibt
 bis zu echten Windows-Messdaten offen.
+
+## Strenges Warm-Cache-Gate und synthetischer Cold-Pan-Befund (10.11.2026)
+
+Die bis zur Dreifachserie eingeführten Gültigkeitsprüfungen
+kontrollierten den Ruhepunkt unmittelbar **vor** der Messung
+und die erfolgreichen World-Blit-Abfragen. Sie erkannten
+jedoch nicht, wenn die tatsächlich gemessene Kamerafahrt
+anschließend neue Tile-Reads, Decode-Arbeit oder
+Cache-Verdrängungen auslöste.
+
+**Neue Abnahmeregel im Draft-Branch:** Für jeden einzelnen
+Warm-A/B-Lauf werden die folgenden **kumulativen** Zähler
+unmittelbar vor und nach dem Messintervall exportiert:
+
+- `loads` – neu fertig geladene/dedekodierte Tiles;
+- `visibleReadStarts` – sichtbarkeitsgetriebene Reads;
+- `prefetchReadStarts` – zusätzliche Prefetch-Reads;
+- `decodeRepeats` – wiederholte Bilddekodierungen;
+- `evictions` – Cache-Verdrängungen.
+
+Für eine **gültige Warm-Cache-Messung** muss jeder Zähler
+über den Messzeitraum unverändert bleiben. Außerdem dürfen
+weder offene Tile-Reads am Messende, noch
+`profile.tileReads`-Ereignisse oder abgeschnittene
+Tile-Profiler-Daten auftreten. Browseridentität
+und Renderauflösung/LOD sind ebenfalls auf Konsistenz
+geprüft. Der Offline-CLI gibt bei jeder Verletzung
+`valid:false` mit konkreter Ursache aus.
+
+**Wichtiger Erkenntnisgewinn:** Die isolierte
+399-Hex-/120-WorldTile-Firefoxkarte startet selbst bei
+24 identischen Aufwärm- und 24 Messposen noch
+neue sichtbare und spekulative Tile-Reads während
+des Messintervalls. Zuvor wurden solche Ergebnisse
+unter dem älteren, schwächeren A/B-Gate fälschlich
+als gültige **Warm-Cache-**Vergleiche geführt.
+Das ist keine belegte Schwäche der Hex-Indexfunktion,
+sondern eine **Cache-/Prefetch-Störgröße** im
+Messprotokoll. Auch der bereits bekannte
+397-Hex-Planer-Mikrobenchmark bleibt ausdrücklich
+eine isolierte JS-Messung und sagt nichts über
+volle GPU-/Frame-p95 aus.
+
+Zwei zwischenzeitliche CI-Läufe belegten diese
+Schwachstelle durch einen **gezielten Rot-Test**:
+
+- [#42880908943](https://github.com/markusjungblut/asset_labor/actions/runs/42880908943):
+  91 Node-Tests erfolgreich, Firefox verweigerte
+  die bislang als gültig behauptete A/B-Paarung
+  (u. a. `loads +8` und neue sichtbare/prefetch Reads).
+- [#42881836656](https://github.com/markusjungblut/asset_labor/actions/runs/42881836656):
+  91 Node-Tests erfolgreich; gleich lange
+  Aufwärm- und Messstrecken verhinderten den
+  zusätzlichen Tile-IO-Workload noch nicht.
+  Der strenge Prüfer blieb richtigerweise rot.
+
+Die **Browser-Regression** wurde daraufhin nicht
+durch Abschalten des Prüf-Gates „repariert“:
+Sie muss jetzt bei dem synthetischen Pan
+ausdrücklich `valid:false` mit belegter Tile-IO-
+Ursache erkennen, die tatsächlich sechs ausgeführten
+Messfahrten prüfen und den Download mitsamt
+Wiederholungsmöglichkeit weiterhin absichern.
+
+[GitHub Actions #42882861352](https://github.com/markusjungblut/asset_labor/actions/runs/42882861352)
+auf Code-Commit
+[`eb58806`](https://github.com/markusjungblut/asset_labor/commit/eb5880679ef4602f04cbb9418136a7fd53f514f3)
+ist **vollständig erfolgreich: 92/92 Node-Tests und echte
+Headless-Firefox-Regression**, inklusive korrekter
+Cold-/Mixed-Pan-Ablehnung, vollständig
+ausgeführter sechs A/B-Messfahrten,
+einem einzelnen JSON-Gesamtexport,
+Download-Wiederholung, expliziter
+sessionStorage-Löschung und Abbruchtest.
+
+### Konsequenz für die private Windows-Karte
+
+Der Ein-Klick-Lauf kann **auch dann abgeschlossen und
+als JSON exportiert werden**, wenn er keine gültige
+Warm-Cache-Leistungsabnahme liefert.
+Bei dieser Situation meldet die Oberfläche
+schon vor dem Download, dass neue Tile-Reads
+oder Evictions aufgetreten sind.
+Der Offline-Prüfer verweigert `valid:true`
+bei einem einzigen belasteten Paar.
+Die Profile bleiben als Fehlerdiagnose sinnvoll.
+
+**Keine automatische Wiederholung und kein
+unbegründeter RAM-/Preload-Eingriff.**
+Ob der originale 397-Hex-Spielviewer über
+seine tatsächlichen Cache- und Karteneigenschaften
+einen vollständig warmen Pan zulässt, ist
+ohne lokalen Windows-Atlas **nicht überprüfbar**.
+Ein belasteter Lauf ist deshalb kein
+Nachweis für eine Indexverbesserung,
+aber auch kein Beweis ihrer Wirkungslosigkeit.
+Erst nach tatsächlicher sauberer Messung,
+Originalpixel-/Fog-Parität und Prüfung der
+Frame-p95-Werte kann eine Merge-Entscheidung
+getroffen werden. `main` und die
+400-Hex-Produktivgrenze bleiben unverändert.
