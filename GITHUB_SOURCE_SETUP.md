@@ -24,3 +24,7 @@ Windows: `START_WINDOWS.bat`; Linux/macOS: `START_MAC_LINUX.sh`.
 ## Updates
 
 Änderungen ausschließlich an Programm, Tests und Planungskatalog einchecken. Vor Katalog-Migrationen den privaten `assets/`-Ordner sichern und Materialmetadaten nicht ungefragt normalisieren.
+
+## Icon-Inventar und Themenordner (10.11.2026)
+
+Der aktuelle Bestand von 721 PNG-Icons unter `assets/icons/`, die 36 Kategorien/Ordner, Sonderablagen und die eindeutige Einordnung von `Medallie.png` und `Goldene_Trophäe.png` in `UI Icons` sind in [`docs/ICON_INVENTAR.md`](docs/ICON_INVENTAR.md) dokumentiert. Ein zeilenweiser Abgleich steht in [`docs/ICON_KATALOG.csv`](docs/ICON_KATALOG.csv). Eine aktualisierte Excel-`.xlsx` ist noch nicht im GitHub-Repository hinterlegt.

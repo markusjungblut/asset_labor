@@ -1,3 +1,5 @@
+**Icon-Bestand und Ordnerkategorien (10.11.2026):** 721 PNG-Icons sind in Themenordnern unter `assets/icons/` abgelegt. **Medallie.png** und **Goldene_Trophäe.png** gehören beide zur Kategorie **UI Icons**. [Dokumentation und Verteilung](docs/ICON_INVENTAR.md) · [Vollständiger CSV-Katalog](docs/ICON_KATALOG.csv).
+
 > **Rendering Schritt 16:** Ground-Reuse und selektive World-Tile-Revisionsprüfung sind implementiert, echte Performance-/Grafikabnahme auf Windows steht aus. [Abnahmeanleitung](docs/rendering/STEP16_GROUND_REUSE.md) · [Fahrplan](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md).
 
 > **Aktueller Rendering-Arbeitsstand:** Schritt 15 (Tile-/Kamera-Diagnose) ist implementiert, Windows-Abnahme noch offen. [Messanleitung](docs/rendering/STEP15_TILE_CAMERA_DIAGNOSTICS.md) · [Schritte 15–20](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md).
