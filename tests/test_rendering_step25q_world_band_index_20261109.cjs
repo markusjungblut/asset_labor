@@ -57,7 +57,8 @@ test('malformed geometry and small scenes keep unchanged full-scan fallback',()=
  assert.equal(a.createIndex(small,{minimumCells:256}),null);
  const compact397=largeCells().slice(0,397);
  assert.equal(a.createIndex(compact397),null);
- assert.equal(a.createIndex(compact397,{minimumCells:256}).entries,397);
+ assert.equal(a.createIndex(compact397,{minimumCells:256}).entries,
+  compact397.filter(cell=>cell.visibility!=='hidden').length);
  const bad=[...largeCells(),{x:0,y:0,radius:NaN,visibility:'visible'}];
  assert.equal(a.createIndex(bad),null);
  const index=a.createIndex(largeCells());
