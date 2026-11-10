@@ -87,3 +87,31 @@ den produktiven Index-Schwellenwert von **400** nicht aktivieren;
 der CLI-Prüfer weist einen solchen `bandIndex=1`-Vergleich
 auf der lokalen Karte ausdrücklich als `invalid` zurück.
 Dies ist ein **Protokolltest**, keine reale Windows-Performance.
+
+## Abnahmestand GitHub Actions vom 10.11.2026
+
+- Der initiale UI-/CLI-Commit [`f974c11`](https://github.com/markusjungblut/asset_labor/commit/f974c11647457385732afa25f48e42b359d9ca1b)
+  benötigte eine Korrektur der Sparse-Checkout-Liste:
+  `tests/compare_rendering_step25q_profiles.cjs` muss
+  auch in CI eingecheckt werden ([`bf83d0e`](https://github.com/markusjungblut/asset_labor/commit/bf83d0eb03c878a310c5c64e5e8089584f587b6d)).
+  Der erste Lauf war nur deshalb rot; die bereits
+  vorhandenen 75 Tests hatten bestanden.
+- Nach der Korrektur bestand
+  [Actions #42861429378](https://github.com/markusjungblut/asset_labor/actions/runs/42861429378):
+  **79/79 Node-Tests**, vollständige Headless-Firefox-Regression
+  einschließlich realer Browser-Messfahrt und sichtbarem Schalter.
+- Abschließende Robustheit gegen 120/144-Hz-Bildschirme:
+  Ruhephase fordert jetzt mindestens **60 ununterbrochene
+  Animationsframes ohne ausstehende Reads UND 1,1 s Wandzeit**.
+  Das verhindert, dass der 850-ms-Fog-Fade bei schnellen
+  Displays in den Messblock ragt. Bei nicht erreichtem
+  Zustand vermerkt das JSON `settled:false` und der
+  lokale CLI-Prüfer verweigert die Freigabe.
+- Letzter Code-Commit [`46cb60c`](https://github.com/markusjungblut/asset_labor/commit/46cb60c595d9b56a964259ad3921af71a6fcd937)
+  erfolgreich in [Actions #42862413239](https://github.com/markusjungblut/asset_labor/actions/runs/42862413239)
+  abgenommen: erneut **79/79 Node-Tests und Headless-Firefox erfolgreich**.
+  Die ursprünglichen World-Blit-Planungsvergleiche und
+  reversiblen Schalter bleiben Teil der Regression.
+- **Draft-PR #127 bleibt offen.** Diese automatischen Tests
+  validieren den Messmechanismus, ersetzen aber keine
+  echten Windows-/600-MB-Atlas-/Fog-/GPU-Messdaten.
