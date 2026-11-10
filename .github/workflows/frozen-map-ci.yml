@@ -15,6 +15,7 @@ on:
       - 'cloud-artwork.js'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/compare_rendering_step25q_profiles.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -25,6 +26,7 @@ on:
       - 'cloud-artwork.js'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/compare_rendering_step25q_profiles.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -50,6 +52,7 @@ jobs:
             /.github/workflows/frozen-map-ci.yml
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
+            /tests/compare_rendering_step25q_profiles.cjs
             /tests/fixtures/frozen-ci-seed.html
             /frozen-map-*.js
             /frozen-map-game.html
