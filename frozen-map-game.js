@@ -43,6 +43,11 @@
  // individually using &worldPad=0 and &worldBands=0.
  const adaptiveWorldPad=params.get('worldPad')!=='0';
  const sparseWorldBlit=params.get('worldBands')!=='0';
+ // Step25Q: indexed authorized hex coverage, independent reversible opt-out.
+ const indexedWorldBands=params.get('bandIndex')!=='0';
+ // Diagnostic override for historic 397-hex map, never production default.
+ const worldBandIndexMinCells=profileRequested&&params.get('bandIndexMin')==='256'?
+  256:400;
  // Step25P: skip O(all stored tiles) selection scans on large worlds.
  // The original Set scanner remains available with &tileIndex=0.
  const indexedTileSelection=params.get('tileIndex')!=='0';
@@ -54,6 +59,7 @@
  for(const [id,parameter,active] of [
   ['optWorldPad','worldPad',adaptiveWorldPad],
   ['optWorldBands','worldBands',sparseWorldBlit],
+  ['optWorldBandIndex','bandIndex',indexedWorldBands],
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog]
  ]){
@@ -75,8 +81,8 @@
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
-  adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
-  onStatus:stats=>{
+  adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,indexedWorldBands,
+  worldBandIndexMinCells,onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
    const now=performance.now();
@@ -279,7 +285,7 @@
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
-   indexedTileSelection
+   indexedTileSelection,indexedWorldBands,worldBandIndexMinCells
   }):{
    enabled:false,
    message:'Performance-Aufzeichnung ist ausgeschaltet. Öffne die Testkarte mit &perf=1.',
@@ -300,9 +306,331 @@
    });
   }
  }
+
+ // Step 25Q: optional, reproducible browser A/B capture on the real atlas.
+ // Only available under ?perf=1. Never changes stored atlas or Fog rights.
+ let panABRunning=false;
+ const frameTick=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+ const downloadJson=(body,name)=>{
+  const url=URL.createObjectURL(new Blob([JSON.stringify(body,null,2)],
+   {type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download=name;
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ const runPanAB=async({steps=96,warmupSteps=96,download=false,
+   shouldAbort=null}={})=>{
+  if(!profiler)throw Error('Messfahrt erfordert ?perf=1');
+  if(panABRunning)throw Error('Eine Messfahrt läuft bereits');
+  if(!startPose||!player.report().active)throw Error('Karte noch nicht geladen');
+  if(document.hidden)throw Error('Messfahrt nur im sichtbaren Tab starten');
+  steps=Math.max(24,Math.min(180,Math.trunc(Number(steps))||96));
+  warmupSteps=Math.max(0,Math.min(180,Math.trunc(Number(warmupSteps))||0));
+  const viewW=canvas.clientWidth,viewH=canvas.clientHeight;
+  if(viewW<1||viewH<1)throw Error('Keine gültige Canvas-Größe');
+  const base={...startPose};
+  const amplitudeX=Math.min(viewW*.9,960),
+   amplitudeY=Math.min(viewH*.35,420);
+  const ensureActive=()=>{
+   if(document.hidden)throw Error('Messung abgebrochen: Tab nicht sichtbar');
+   if(typeof shouldAbort==='function'&&shouldAbort())
+    throw Error('Messung abgebrochen: A/B-Serie angehalten');
+  };
+  const pass=async count=>{
+   for(let i=0;i<count;i++){
+    ensureActive();
+    await frameTick();
+    ensureActive();
+    const t=(i+1)/count;
+    profiler.input('pan');
+    player.setPose({zoom:base.zoom,dpr:base.dpr,
+     panX:base.panX+amplitudeX*Math.sin(2*Math.PI*t),
+     panY:base.panY+amplitudeY*Math.sin(4*Math.PI*t)});
+   }
+   // Last scheduled paint must finish before sampling.
+   await frameTick();ensureActive();
+   await frameTick();ensureActive();
+  };
+  panABRunning=true;
+  try{
+   player.setPose(base);
+   await frameTick();await frameTick();
+   if(warmupSteps)await pass(warmupSteps);
+   player.setPose(base);
+   // Allow visible async reads and 850ms fades to settle; bound wait.
+   let quiet=0,settleElapsedMs=0;
+   const settleStarted=performance.now();
+   for(let i=0;i<320;i++){
+    ensureActive();
+    await frameTick();
+    ensureActive();
+    quiet=player.report().pending===0?quiet+1:0;
+    settleElapsedMs=performance.now()-settleStarted;
+    // At 120/144 Hz, 60 frames are shorter than the 850ms Fog fade.
+    if(quiet>=60&&settleElapsedMs>=1100)break;
+   }
+   const before=player.report(),startedAt=new Date().toISOString();
+   profiler.reset();
+   const wallStart=performance.now();
+   await pass(steps);
+   const elapsedMs=performance.now()-wallStart;
+   const after=player.report();
+   const result=profileReport();
+   result.abCapture={
+    schema:'vedras-step25q-local-ab-v2',
+    trace:'pan-lissajous-20261110-v1',
+    startedAt,finishedAt:new Date().toISOString(),
+    scene,level:after.level,bandIndexRequested:indexedWorldBands,
+    bandIndexActive:!!before.worldBandIndexActive,
+    indexEntries:before.worldBandIndexEntries,
+    indexMinimumCells:worldBandIndexMinCells,
+    cellCount:before.worldBandTotalCells,
+    authorizedCells:before.worldBandAuthorizedCells,
+    framesPlanned:steps,warmupFrames:warmupSteps,
+    quietFrames:quiet,settleElapsedMs:Math.round(settleElapsedMs),
+    settled:quiet>=60&&settleElapsedMs>=1100,
+    elapsedMs:Math.round(elapsedMs*100)/100,
+    viewportCss:{width:viewW,height:viewH},
+    basePose:{zoom:base.zoom,panX:base.panX,panY:base.panY,
+     dpr:base.dpr,projectY:base.projectY},
+    candidateBefore:{
+     indexed:before.worldBandIndexCandidateCells,
+     legacy:before.worldBandLegacyCandidateCells},
+    candidateAfter:{
+     indexed:after.worldBandIndexCandidateCells,
+     legacy:after.worldBandLegacyCandidateCells},
+    indexQueriesBefore:before.worldBandIndexQueries,
+    indexQueriesAfter:after.worldBandIndexQueries,
+    sparseFramesBefore:before.sparseWorldBlitFrames,
+    sparseFramesAfter:after.sparseWorldBlitFrames,
+    sparseFallbacksBefore:before.sparseWorldBlitFallbacks,
+    sparseFallbacksAfter:after.sparseWorldBlitFallbacks,
+    worldBlitPixelsBefore:before.worldBlitDevicePixels,
+    worldBlitPixelsAfter:after.worldBlitDevicePixels,
+    worldBlitFullPixelsBefore:before.worldBlitFullDevicePixels,
+    worldBlitFullPixelsAfter:after.worldBlitFullDevicePixels,
+    pendingBefore:before.pending,pendingAfter:after.pending,
+    failuresBefore:before.failures,failuresAfter:after.failures,
+    warmCountersBefore:{
+     loads:before.loads,visibleReadStarts:before.visibleReadStarts,
+     prefetchReadStarts:before.prefetchReadStarts,
+     decodeRepeats:before.decodeRepeats,evictions:before.evictions},
+    warmCountersAfter:{
+     loads:after.loads,visibleReadStarts:after.visibleReadStarts,
+     prefetchReadStarts:after.prefetchReadStarts,
+     decodeRepeats:after.decodeRepeats,evictions:after.evictions}
+   };
+   if(download)downloadJson(result,'vedras_step25q_'+
+    (indexedWorldBands?'indexed':'legacy')+'_'+scene+'_'
+    +new Date().toISOString().replace(/[:.]/g,'-')+'.json');
+   return result;
+  }finally{
+   panABRunning=false;
+   player.setPose(base);
+  }
+ };
+ if(profiler){
+  const captureButton=$('runBandIndexAB');
+  if(captureButton){
+   captureButton.hidden=false;
+   captureButton.addEventListener('click',async()=>{
+    captureButton.disabled=true;
+    const originalText=captureButton.textContent;
+    captureButton.textContent='Messfahrt läuft …';
+    try{
+     const result=await runPanAB({download:true});
+     output.textContent='Messfahrt abgeschlossen: '+
+      result.abCapture.framesPlanned+' Pan-Schritte · '+
+      (indexedWorldBands?'Hex-Index an':'Hex-Index aus')+
+      '. JSON gespeichert. Gegenseite über Optimierungen messen.';
+    }catch(error){output.textContent='Messfahrt: '+String(error.message||error);}
+    finally{captureButton.disabled=false;captureButton.textContent=originalText;}
+   });
+  }
+ }
+
+ // An explicitly requested, tab-local six-run A/B series. A reload is
+ // essential: it reinstantiates the SAME renderer with/without its index.
+ // sessionStorage contains only bounded diagnostic JSON, never source PNGs,
+ // authoring data, Fog permissions, or persistent IndexedDB changes.
+ const AB_SERIES_KEY='vedras-step25q-ab-series-v1';
+ const AB_SERIES_ORDER=[false,true,true,false,false,true];
+ const seriesButton=$('runBandIndexSeries');
+ const clearSeriesButton=$('clearBandIndexSeries');
+ const stableSeriesUrl=()=>{
+  const url=new URL(location.href);
+  url.searchParams.delete('bandIndex');
+  return url.pathname+url.search+url.hash;
+ };
+ const readSeries=()=>{
+  const raw=sessionStorage.getItem(AB_SERIES_KEY);
+  if(!raw)return null;
+  const data=JSON.parse(raw);
+  if(data.schema!=='vedras-step25q-local-series-v1'||
+     data.scene!==scene||data.pageKey!==stableSeriesUrl()||
+     !Number.isFinite(data.startedMs)||Date.now()-data.startedMs>
+       (data.step===AB_SERIES_ORDER.length?86400000:2700000)||
+     !Number.isInteger(data.step)||data.step<0||
+     data.step>AB_SERIES_ORDER.length||
+     !Array.isArray(data.captures)||data.captures.length!==data.step)
+   throw Error('Ungültige oder abgelaufene A/B-Serie');
+  return data;
+ };
+ const saveSeries=s=>sessionStorage.setItem(AB_SERIES_KEY,JSON.stringify(s));
+ const cancelSeries=()=>{
+  sessionStorage.removeItem(AB_SERIES_KEY);
+  if(seriesButton){seriesButton.disabled=false;
+   seriesButton.textContent='Dreifach-A/B starten';}
+  if(clearSeriesButton)clearSeriesButton.hidden=true;
+ };
+ const indexUrl=enabled=>{
+  const url=new URL(location.href);
+  url.searchParams.set('bandIndex',enabled?'1':'0');
+  return url.pathname+url.search+url.hash;
+ };
+ let seriesBusy=false;
+ const runSeriesStep=async()=>{
+  if(seriesBusy)return;
+  let state;
+  try{state=readSeries();}catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);return;
+  }
+  if(!state||state.step===AB_SERIES_ORDER.length){
+   if(state&&seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+   if(state&&clearSeriesButton)clearSeriesButton.hidden=false;
+   return;
+  }
+  if(!profiler||document.hidden){
+   cancelSeries();
+   output.textContent='A/B-Serie abgebrochen: Profilmodus und sichtbarer Tab erforderlich.';
+   return;
+  }
+  if(indexedWorldBands!==AB_SERIES_ORDER[state.step]){
+   location.assign(indexUrl(AB_SERIES_ORDER[state.step]));
+   return;
+  }
+  seriesBusy=true;
+  if(seriesButton){
+   seriesButton.disabled=false;
+   seriesButton.textContent='Serie '+(state.step+1)+'/6 läuft – Abbrechen';
+  }
+  const oldSingle=$('runBandIndexAB');
+  if(oldSingle)oldSingle.disabled=true;
+  try{
+   const sample=await runPanAB({
+    steps:state.steps,warmupSteps:state.warmupSteps,download:false,
+    shouldAbort:()=>!sessionStorage.getItem(AB_SERIES_KEY)});
+   const stillRunning=readSeries();
+   if(!stillRunning||stillRunning.step!==state.step)
+    throw Error('Serie während der Messfahrt abgebrochen');
+   if(sample.abCapture.settled!==true)
+    throw Error('Aufwärmphase nicht stabil; Serie verworfen');
+   if(sample.abCapture.bandIndexRequested!==AB_SERIES_ORDER[state.step])
+    throw Error('Falscher Modus; Serie verworfen');
+   if(AB_SERIES_ORDER[state.step]&&!sample.abCapture.bandIndexActive)
+    throw Error('Index nicht aktiv; bei kleiner Karte &bandIndexMin=256 im Profilmodus ergänzen');
+   state.captures.push(sample);
+   state.step++;
+   saveSeries(state);
+   if(state.step===AB_SERIES_ORDER.length){
+    if(seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+    if(clearSeriesButton)clearSeriesButton.hidden=false;
+    const contaminated=state.captures.some(p=>{
+     const c=p.abCapture;
+     return c.pendingAfter!==0||p.tileReads?.length>0||
+      ['loads','visibleReadStarts','prefetchReadStarts',
+       'decodeRepeats','evictions'].some(k=>
+        c.warmCountersAfter?.[k]!==c.warmCountersBefore?.[k]);
+    });
+    output.textContent=contaminated?
+     'Drei A/B-Paare aufgezeichnet, aber zusätzliche Tile-Reads oder '+
+      'Cache-Verdrängungen wurden während der Messung erkannt. '+
+      'Kein gültiger Warm-Cache-Vergleich; JSON zur Diagnose herunterladen.':
+     'Drei A/B-Paare aufgezeichnet. A/B-Serie herunterladen '+
+      'und mit dem Offline-Prüfer auswerten.';
+   }else{
+    location.assign(indexUrl(AB_SERIES_ORDER[state.step]));
+   }
+  }catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+  }finally{
+   seriesBusy=false;
+   if(oldSingle)oldSingle.disabled=false;
+  }
+ };
+ const startABSeries=async({steps=96,warmupSteps=96}={})=>{
+  if(!profiler)throw Error('A/B-Serie benötigt ?perf=1');
+  if(seriesBusy)throw Error('A/B-Serie läuft bereits');
+  if(!startPose||!player.report().active)throw Error('Karte nicht geladen');
+  if(document.hidden)throw Error('A/B-Serie benötigt sichtbaren Tab');
+  if(!player.report().sparseWorldBlit||directRenderer)
+   throw Error('A/B-Serie erfordert gecachten World-Blit (worldBands=1)');
+  if(sessionStorage.getItem(AB_SERIES_KEY))
+   throw Error('Vorherige A/B-Serie abschließen oder abbrechen');
+  const state={schema:'vedras-step25q-local-series-v1',
+   scene,pageKey:stableSeriesUrl(),startedMs:Date.now(),
+   startedAt:new Date().toISOString(),step:0,captures:[],
+   steps:Math.max(24,Math.min(180,Math.trunc(Number(steps))||96)),
+   warmupSteps:Math.max(0,Math.min(180,Math.trunc(Number(warmupSteps))||96)),
+   order:AB_SERIES_ORDER};
+  saveSeries(state);
+  await runSeriesStep();
+  return true;
+ };
+ if(profiler&&seriesButton){
+  seriesButton.hidden=false;
+  seriesButton.addEventListener('click',()=>{
+   try{
+    const state=readSeries();
+    if(state?.step===AB_SERIES_ORDER.length){
+     downloadJson({...state,finishedAt:new Date().toISOString()},
+      'vedras_step25q_series_'+scene+'_'
+      +new Date().toISOString().replace(/[:.]/g,'-')+'.json');
+     // Download activation cannot certify successful saving on disk.
+     // Keep the only copy until explicit user-side cleanup.
+     seriesButton.textContent='A/B-Serie erneut herunterladen';
+     if(clearSeriesButton)clearSeriesButton.hidden=false;
+     output.textContent='Download ausgelöst. Datei prüfen; bei Bedarf erneut herunterladen. '+
+      'Anschließend Seriendaten löschen. Auswertung: '+
+      'node tests/compare_rendering_step25q_profiles.cjs SERIE.json';
+    }else if(state){
+     cancelSeries();output.textContent='A/B-Serie abgebrochen.';
+    }else{
+     startABSeries().catch(error=>{
+      cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+     });
+    }
+   }catch(error){
+    cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+   }
+  });
+  if(clearSeriesButton)clearSeriesButton.addEventListener('click',()=>{
+   try{
+    if(readSeries()?.step!==AB_SERIES_ORDER.length)return;
+    cancelSeries();
+    output.textContent='A/B-Seriendaten im Tab gelöscht.';
+   }catch(error){
+    cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+   }
+  });
+  try{
+   const stored=readSeries();
+   if(stored){
+    if(stored.step===AB_SERIES_ORDER.length){
+     seriesButton.textContent='A/B-Serie herunterladen';
+     if(clearSeriesButton)clearSeriesButton.hidden=false;
+    }
+    else Promise.resolve().then(runSeriesStep);
+   }else seriesButton.textContent='Dreifach-A/B starten';
+  }catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+  }
+ }
+
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
-  profileReport,profileReset,profileStatus,
+  profileReport,profileReset,profileStatus,runPanAB:profiler?runPanAB:null,
+  startABSeries:profiler?startABSeries:null,
   // Explicit opt-in diagnostic repaint: never mutates atlas or Fog rights.
   forceRedraw:()=>player.draw(),
   // CI only (perf=1): deterministic camera motion, never modify atlas data.

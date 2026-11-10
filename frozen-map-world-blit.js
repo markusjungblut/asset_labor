@@ -71,5 +71,48 @@ window.VedrasFrozenWorldBlit=(()=>{
   if(rects.length>maxRects||used>minimumUnavoidable)return null;
   return {rects,pixels:used,total:pw*ph,fraction:used/(pw*ph)};
  }
- return {plan};
+
+ // Step 25Q: immutable, read-only spatial prefilter for authorized Hex bands.
+ // Query bounds grow by the LARGEST stored radius plus the full +45 halo,
+ // and by six physical pixels. Hence no world pixel can be dropped.
+ function createIndex(cells,{minimumCells=400}={}){
+  if(!Array.isArray(cells)||cells.length<minimumCells)return null;
+  const entries=[];let largestRadius=0;
+  for(const cell of cells){
+   if(cell?.visibility!=='visible'&&cell?.visibility!=='explored')continue;
+   if(![cell.x,cell.y,cell.radius].every(Number.isFinite)||
+      cell.radius<=0)return null; // malformed metadata => legacy full scan
+   largestRadius=Math.max(largestRadius,cell.radius);
+   entries.push(cell);
+  }
+  entries.sort((a,b)=>a.x-b.x);
+  return {
+   entries:entries.length,
+   query(view,dpr){
+    if(!view||![view.width,view.height,view.zoom,view.panX,
+      view.panY,dpr].every(Number.isFinite)||
+      view.width<=0||view.height<=0||view.zoom<=0||dpr<=0)return null;
+    const proj=view.projectY||.85;
+    if(!Number.isFinite(proj)||proj<=0)return null;
+    const xReach=largestRadius+45+6/(view.zoom*dpr),
+     yReach=largestRadius+45+6/(view.zoom*dpr*proj),
+     x0=(-view.width/2-view.panX)/view.zoom-xReach,
+     x1=(view.width/2-view.panX)/view.zoom+xReach,
+     y0=(-view.height/2-view.panY)/(view.zoom*proj)-yReach,
+     y1=(view.height/2-view.panY)/(view.zoom*proj)+yReach;
+    if(![x0,x1,y0,y1].every(Number.isFinite))return null;
+    let lo=0,hi=entries.length;
+    while(lo<hi){
+     const middle=(lo+hi)>>1;
+     if(entries[middle].x<x0)lo=middle+1;
+     else hi=middle;
+    }
+    const chosen=[];
+    for(let i=lo;i<entries.length&&entries[i].x<=x1;i++)
+     if(entries[i].y>=y0&&entries[i].y<=y1)chosen.push(entries[i]);
+    return chosen;
+   }
+  };
+ }
+ return {plan,createIndex};
 })();

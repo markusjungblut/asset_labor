@@ -47,10 +47,14 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <button id="zoomIn">+</button><span id="rasterQuality" title="Physikalische Canvas-Renderauflösung">Raster ?×</span><button id="resetView">Ansicht zurücksetzen</button>
 
 <a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
+<button id="runBandIndexAB" hidden title="Reproduzierbare Pan-Fahrt mit ?perf=1, JSON-Export für BandIndex-A/B">Messfahrt A/B</button>
+<button id="runBandIndexSeries" hidden title="Drei gepaarte A/B-Messungen mit automatisch gewechseltem Index, eine lokale JSON-Datei">Dreifach-A/B starten</button>
+<button id="clearBandIndexSeries" hidden title="Nach erfolgreichem Download temporäre Profile in diesem Tab löschen">Seriendaten löschen</button>
 <button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
 <a href="index.html">Asset-Labor öffnen</a></div><details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
 <label><input type="checkbox" id="optWorldPad"> Größere Pan-Reserve (bis 14 MiB mehr Raster)</label>
 <label><input type="checkbox" id="optWorldBands"> Nur benötigte Weltbereiche kopieren</label>
+<label><input type="checkbox" id="optWorldBandIndex"> Hex-Index für World-Blit (ab 400 Hexfeldern)</label>
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (ca. 29 MiB zusätzlich)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
@@ -62,9 +66,9 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-view-policy.js?v=20261102-step21"></script>
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
-<script src="frozen-map-world-blit.js?v=20261109-step25o"></script>
- <script src="frozen-map-runtime.js?v=20261109-step25p-defaults-tile-index"></script>
+<script src="frozen-map-world-blit.js?v=20261109-step25q-world-band-index"></script>
+ <script src="frozen-map-runtime.js?v=20261109-step25q-world-band-index"></script>
 <script src="frozen-map-derived-2x.js?v=20261102-step20-2x"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
-<script src="frozen-map-game.js?v=20261109-step25p-defaults-tile-index"></script>
+<script src="frozen-map-game.js?v=20261110-step25q-triple-ab-retry"></script>
 </body></html>

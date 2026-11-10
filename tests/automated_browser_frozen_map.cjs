@@ -13,6 +13,8 @@ const root=path.resolve(__dirname,'..');
 const OUTPUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
 const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
 const SCENE='v1-25c1f00d',COUNT=120;
+const {compare:compareStep25Q,compareSeries:compareStep25QSeries}=
+ require('./compare_rendering_step25q_profiles.cjs');
 const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
@@ -55,7 +57,7 @@ const run=async()=>{
   browser=await engine.launch({headless:true});
   const ctx=await browser.newContext({
    viewport:collected.viewport,deviceScaleFactor:1,
-   reducedMotion:'reduce',acceptDownloads:false
+   reducedMotion:'reduce',acceptDownloads:true
   });
   const seed=await ctx.newPage();
   await seed.goto(origin+'/tests/fixtures/frozen-ci-seed.html');
@@ -765,6 +767,121 @@ const run=async()=>{
   assert.equal(ti.legacyFailures,0);
   assert.equal(ti.differentChannels,0,
    'real Firefox 15k-key index must paint identical final source pixels');
+
+  // Step 25Q: test 15,000 real browser hex metadata items without
+  // loading any original images or changing IndexedDB.
+  await stressPage.addScriptTag({url:origin+'/frozen-map-world-blit.js'});
+  collected.worldBandIndexStress=await stressPage.evaluate(()=>{
+   const api=window.VedrasFrozenWorldBlit,cells=[];
+   for(let r=-50;r<50;r++)for(let q=-75;q<75;q++)
+    cells.push({q,r,x:q*360,y:r*320,radius:140+(q+75)%7,
+     visibility:(q+r)%11===0?'hidden':(q+r)%5===0?'explored':'visible'});
+   const index=api.createIndex(cells),dpr=1.37;
+   let legacyCandidates=0,indexedCandidates=0,mismatches=0;
+   const poses=[[0,0],[-320,110],[820,-440],[2400,780],
+    [-6500,-2100],[28000,14000],[0,0]];
+   for(const [panX,panY] of poses){
+    const view={width:1600,height:920,zoom:.85,panX,panY,projectY:.85};
+    const subset=index.query(view,dpr);
+    legacyCandidates+=cells.length;
+    indexedCandidates+=subset.length;
+    const old=api.plan(view,cells,dpr),next=api.plan(view,subset,dpr);
+    if(JSON.stringify(old)!==JSON.stringify(next))mismatches++;
+   }
+   // Run matched browser-JS planner timings without Canvas, PNG, network,
+   // profiler or rAF. Alternating A/B order limits warmup/order bias.
+   // These numbers are NOT whole-frame, compositing or Windows GPU timings.
+   const measure=(input,points)=>{
+    const spatial=api.createIndex(input);
+    const views=points.map(([px,py])=>({
+     width:1600,height:920,zoom:.85,panX:px,panY:py,projectY:.85
+    }));
+    const before=()=>{for(const v of views)api.plan(v,input,dpr);};
+    const after=()=>{for(const v of views)
+     api.plan(v,spatial.query(v,dpr),dpr);};
+    for(let k=0;k<12;k++){before();after();}
+    const original=[],indexed=[];
+    const time=(fn)=>{
+     const t=performance.now();
+     for(let j=0;j<20;j++)fn();
+     return (performance.now()-t)/(20*views.length);
+    };
+    for(let k=0;k<17;k++){
+     if(k%2){indexed.push(time(after));original.push(time(before));}
+     else{original.push(time(before));indexed.push(time(after));}
+    }
+    const summary=a=>{
+     const sorted=[...a].sort((a,b)=>a-b);
+     return {p50Ms:Math.round(sorted[8]*1e4)/1e4,
+      p95Ms:Math.round(sorted[16]*1e4)/1e4,
+      meanMs:Math.round(sorted.reduce((a,b)=>a+b,0)/a.length*1e4)/1e4};
+    };
+    return {samples:17,loopsPerSample:20,poses:views.length,
+     legacy:summary(original),indexed:summary(indexed)};
+   };
+   const spatialTimings=measure(cells,poses);
+   // Historical real test scene: 397 hex metadata. Measure same planner
+   // geometry with the explicit 256 diagnostic threshold, not a default.
+   const compact=[];
+   for(let r=-10;r<=10;r++)for(let q=-9;q<=9;q++)
+    compact.push({q,r,x:q*256,y:r*235,radius:146,
+     visibility:(Math.abs(q)>8&&Math.abs(r)>8)?'hidden':
+      (Math.abs(q)>7||Math.abs(r)>8)?'explored':'visible'});
+   compact.splice(0,2);
+   const ci=api.createIndex(compact,{minimumCells:256});
+   const compactViews=[[0,0],[-350,180],[920,-200],[-1200,500],[1500,-600]]
+    .map(([panX,panY])=>({width:1600,height:920,zoom:.85,panX,panY,projectY:.85}));
+   let compactMismatches=0;
+   for(const view of compactViews)
+    if(JSON.stringify(api.plan(view,compact,dpr))!==
+       JSON.stringify(api.plan(view,ci.query(view,dpr),dpr)))
+     compactMismatches++;
+   const old=()=>{for(const view of compactViews)api.plan(view,compact,dpr);};
+   const newer=()=>{for(const view of compactViews)
+    api.plan(view,ci.query(view,dpr),dpr);};
+   for(let j=0;j<25;j++){old();newer();}
+   const legacyMs=[],indexedMs=[];
+   const bench=fn=>{
+    const start=performance.now();
+    for(let j=0;j<100;j++)fn();
+    return (performance.now()-start)/(100*compactViews.length);
+   };
+   for(let j=0;j<17;j++){
+    if(j%2){indexedMs.push(bench(newer));legacyMs.push(bench(old));}
+    else{legacyMs.push(bench(old));indexedMs.push(bench(newer));}
+   }
+   const p=(values,i)=>Number([...values].sort((a,b)=>a-b)[i].toFixed(5));
+   const compactTimings={samples:17,loopsPerSample:100,poses:5,
+    legacyP50Ms:p(legacyMs,8),indexedP50Ms:p(indexedMs,8),
+    legacyP95Ms:p(legacyMs,16),indexedP95Ms:p(indexedMs,16)};
+   // Pathological overlapping input is not a typical game geography,
+   // but explicitly tests an adverse dense/fallback scenario.
+   const stacked=cells.map((c,i)=>({...c,x:0,y:0,radius:5000}));
+   const denseTimings=measure(stacked,[[0,0],[100,100]]);
+   return {total:cells.length,entries:index.entries,queries:poses.length,
+    legacyCandidates,indexedCandidates,mismatches,
+    spatialTimings,denseTimings,compactTimings,compactMismatches,
+    compactTotal:compact.length};
+  });
+  const wb=collected.worldBandIndexStress;
+  assert.equal(wb.total,15000);
+  assert.ok(wb.entries>13000);
+  assert.ok(wb.indexedCandidates<wb.legacyCandidates*.1,
+   'Firefox: world blit must inspect at least 90% fewer authorized cells');
+  assert.equal(wb.mismatches,0,
+   'Firefox: indexed coverage must match the full authorized world rectangles');
+  assert.equal(wb.compactTotal,397);
+  assert.equal(wb.compactMismatches,0);
+  assert.ok(wb.compactTimings.indexedP50Ms>=0);
+  assert.ok(wb.spatialTimings.legacy.p50Ms>=0&&
+   wb.spatialTimings.indexed.p50Ms>=0);
+  assert.ok(wb.denseTimings.legacy.p50Ms>=0&&
+   wb.denseTimings.indexed.p50Ms>=0);
+  console.log('Step25Q paired Firefox planner ms/call: '+
+   JSON.stringify({spatial:wb.spatialTimings,dense:wb.denseTimings,
+    indexedCandidates:wb.indexedCandidates,
+    legacyCandidates:wb.legacyCandidates,
+    compact397:wb.compactTimings}));
   await stressPage.close();
 
   // The user-visible opt-out controls must really navigate and switch
@@ -773,17 +890,19 @@ const run=async()=>{
   await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
   await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120);
   await settingsPage.locator('#performanceOptions > summary').click();
-  for(const id of ['optWorldPad','optWorldBands','optTileIndex'])
+  for(const id of ['optWorldPad','optWorldBands','optWorldBandIndex','optTileIndex'])
    assert.equal(await settingsPage.locator('#'+id).isChecked(),true,
     'all generally beneficial controls should visibly default to checked');
   assert.equal(await settingsPage.locator('#optFogLayer').isChecked(),false);
   const toggled=[];
   for(const [id,param,field,value] of [
    ['optWorldBands','worldBands','sparseWorldBlit',false],
+   ['optWorldBandIndex','bandIndex','indexedWorldBands',false],
    ['optWorldPad','worldPad','adaptiveWorldPad',false],
    ['optTileIndex','tileIndex','indexedTileSelection',false],
    ['optFogLayer','fogLayer','layeredFog',true],
-   ['optWorldBands','worldBands','sparseWorldBlit',true]
+   ['optWorldBands','worldBands','sparseWorldBlit',true],
+   ['optWorldBandIndex','bandIndex','indexedWorldBands',true]
   ]){
    if(!(await settingsPage.locator('#performanceOptions').evaluate(el=>el.open)))
     await settingsPage.locator('#performanceOptions > summary').click();
@@ -800,8 +919,162 @@ const run=async()=>{
    toggled.push({param,value});
   }
   collected.visibleToggleAB=toggled;
-  assert.equal(toggled.length,5);
+  assert.equal(toggled.length,7);
   await settingsPage.close();
+
+  // The real UI exposes an opt-in read-only A/B capture for original atlas
+  // machines. CI only smoke-checks protocol/metrics on the 399-cell fixture.
+  const capturePage=await ctx.newPage();
+  await capturePage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
+  await capturePage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await capturePage.locator('#runBandIndexAB').isVisible(),true);
+  const captured=await capturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.runPanAB({
+    steps:24,warmupSteps:24,download:false
+   }));
+  assert.equal(captured.abCapture.schema,'vedras-step25q-local-ab-v2');
+  assert.equal(captured.abCapture.cellCount,399);
+  assert.ok(captured.abCapture.authorizedCells>0);
+  assert.equal(captured.abCapture.bandIndexRequested,false);
+  assert.equal(captured.abCapture.framesPlanned,24);
+  assert.equal(captured.abCapture.warmupFrames,24);
+  assert.ok(Number.isFinite(captured.abCapture.settleElapsedMs));
+  if(captured.abCapture.settled)
+   assert.ok(captured.abCapture.settleElapsedMs>=1100);
+  assert.equal(captured.abCapture.trace,'pan-lissajous-20261110-v1');
+  assert.ok(captured.frameCounts.active>=15,
+   'Capture must record actual active pan frames in Firefox');
+  assert.equal(captured.abCapture.failuresAfter,0);
+  assert.ok(Number.isFinite(captured.abCapture.warmCountersBefore.loads));
+  assert.ok(Number.isFinite(captured.abCapture.warmCountersAfter.visibleReadStarts));
+  collected.step25qLocalCapture={
+   active:capturePage?captured.frameCounts.active:0,
+   gapSamples:captured.phasesMs.frameGapMs.count,
+   settled:captured.abCapture.settled,
+   indexRequested:captured.abCapture.bandIndexRequested
+  };
+  await capturePage.close();
+  // 399 hexes on CI: indexed mode is available only under perf override.
+  const indexCapturePage=await ctx.newPage();
+  await indexCapturePage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=1&bandIndexMin=256');
+  await indexCapturePage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await indexCapturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats().worldBandIndexActive),true);
+  const capturedIndex=await indexCapturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.runPanAB({
+    steps:24,warmupSteps:24,download:false
+   }));
+  assert.equal(capturedIndex.abCapture.indexMinimumCells,256);
+  assert.equal(capturedIndex.abCapture.bandIndexActive,true);
+  assert.ok(capturedIndex.abCapture.indexQueriesAfter>
+   capturedIndex.abCapture.indexQueriesBefore);
+  assert.ok(captured.abCapture.candidateAfter.legacy>
+   captured.abCapture.candidateBefore.legacy);
+  assert.ok(capturedIndex.abCapture.candidateAfter.indexed>
+   capturedIndex.abCapture.candidateBefore.indexed);
+  assert.ok(captured.phasesMs.worldPlanMs.count>0);
+  const compared=compareStep25Q(captured,capturedIndex);
+  // This 120-tile CI map can trigger real prefetch/decode churn during
+  // the pan path despite a matching prewarm. We must verify that such
+  // mixed/cold traces are marked INVALID, not conceal their IO work.
+  const hasMeasuredIO=profile=>{
+   const c=profile.abCapture;
+   return c.pendingAfter!==0||profile.tileReads?.length>0||
+    ['loads','visibleReadStarts','prefetchReadStarts',
+     'decodeRepeats','evictions'].some(k=>
+      c.warmCountersAfter[k]!==c.warmCountersBefore[k]);
+  };
+  const pairCold=hasMeasuredIO(captured)||hasMeasuredIO(capturedIndex);
+  assert.equal(compared.valid,!pairCold,
+   'Firefox A/B validity must match actual measured IO: '+
+    compared.errors.join('; '));
+  if(pairCold)assert.ok(compared.errors.some(e=>
+   e.includes('kein warmer Lauf')||e.includes('Tile-Reads')),
+   'measured cold reads must be the stated invalidity reason');
+  collected.step25qLocalCapture.indexActive=true;
+  collected.step25qLocalCapture.compareValid=compared.valid;
+  await indexCapturePage.close();
+
+
+  // Matching pan points limit irrelevant loads, but the fixture may still
+  // produce prefetch/decoding; the validator must catch and reject them.
+  // One-click 3-pair protocol on SAME isolated origin: six reloads, both
+  // actual modes, one user-gesture download. No original user Atlas/DB.
+  const seriesPage=await ctx.newPage();
+  await seriesPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
+  await seriesPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await seriesPage.locator('#runBandIndexSeries').isVisible(),true);
+  // Shorter CI trace uses same production runPanAB implementation.
+  await seriesPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.startABSeries({
+    steps:24,warmupSteps:24
+   }));
+  let seriesFinished=false;
+  for(let attempt=0;attempt<700;attempt++){
+   let step=-1;
+   try{step=await seriesPage.evaluate(()=>{
+    const s=sessionStorage.getItem('vedras-step25q-ab-series-v1');
+    return s?JSON.parse(s).step:-1;
+   });}catch(_e){}
+   if(step===6){seriesFinished=true;break;}
+   await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  assert.equal(seriesFinished,true,'all six Firefox A/B captures must finish');
+  const downloaded=seriesPage.waitForEvent('download',{timeout:20000});
+  await seriesPage.locator('#runBandIndexSeries').click();
+  const exported=await downloaded;
+  const pack=JSON.parse(fs.readFileSync(await exported.path(),'utf8'));
+  assert.equal(pack.schema,'vedras-step25q-local-series-v1');
+  assert.equal(pack.captures.length,6);
+  const seriesResult=compareStep25QSeries(pack);
+  const coldSeries=pack.captures.some(hasMeasuredIO);
+  assert.equal(seriesResult.valid,!coldSeries,
+   'six-run comparison must reject measured IO instead of claiming warm: '+
+    seriesResult.errors.join('; '));
+  if(coldSeries)assert.ok(seriesResult.errors.some(e=>
+   e.includes('kein warmer Lauf')||e.includes('Tile-Reads')),
+   'cold six-run captures must explicitly report the invalid warm condition');
+  const saved=await seriesPage.evaluate(()=>
+   JSON.parse(sessionStorage.getItem('vedras-step25q-ab-series-v1')));
+  assert.equal(saved.step,6,'completed captures must remain for retry');
+  assert.equal(saved.captures.length,6);
+  assert.equal(await seriesPage.locator('#clearBandIndexSeries').isVisible(),true);
+  const repeat=seriesPage.waitForEvent('download',{timeout:20000});
+  await seriesPage.locator('#runBandIndexSeries').click();
+  const repeated=JSON.parse(fs.readFileSync(await (await repeat).path(),'utf8'));
+  assert.equal(repeated.captures.length,6,'retry must retain every profile');
+  await seriesPage.locator('#clearBandIndexSeries').click();
+  assert.equal(await seriesPage.evaluate(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')),null);
+  assert.equal(await seriesPage.locator('#clearBandIndexSeries').isVisible(),false);
+  collected.step25qLocalSeries={
+   captureCount:pack.captures.length,orders:seriesResult.mode,
+   valid:seriesResult.valid,
+   pairMedianDrawP95Delta:seriesResult.summary.drawMs.p95.medianDeltaMs
+  };
+  await seriesPage.close();
+
+  // Canceling an active series must stop its camera movement promptly.
+  const cancelPage=await ctx.newPage();
+  await cancelPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
+  await cancelPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  await cancelPage.locator('#runBandIndexSeries').click();
+  await cancelPage.waitForFunction(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')!==null);
+  await cancelPage.locator('#runBandIndexSeries').click();
+  await cancelPage.waitForFunction(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')===null);
+  assert.equal(await cancelPage.locator('#runBandIndexSeries').textContent(),
+   'Dreifach-A/B starten');
+  await cancelPage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();
