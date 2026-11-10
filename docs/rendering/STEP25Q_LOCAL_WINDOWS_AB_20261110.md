@@ -148,3 +148,46 @@ Messungen voraus; die reine JS-Mikrobenchmark-Ersparnis ist
 dafür nicht ausreichend. Der Index verändert keine
 Karten- oder Fog-Berechtigungen, keine Atlasbilder und
 keinen IndexedDB-Datensatz.
+
+## Ergebnis der 397-Hex-Diagnose (10.11.2026)
+
+- Letzter relevanter Code-Commit:
+  [`7067998`](https://github.com/markusjungblut/asset_labor/commit/70679982ebe927f2cc8d7ad222633addc8296f02).
+  [GitHub Actions #42866537259](https://github.com/markusjungblut/asset_labor/actions/runs/42866537259):
+  **80/80 Node-Tests und vollständige reale Headless-Firefox-Regression bestanden**.
+- Ein erster Node-Lauf scheiterte nur an einer falsch
+  formulierten Testannahme, 397 Metadatenzellen müssten 397
+  Indexeinträge ergeben: verborgene Hexe werden absichtlich
+  nicht indexiert. Die Prüfung vergleicht seitdem die tatsächliche
+  Anzahl `visible`-/`explored`-Zellen. Keine Rendererregel
+  wurde hierfür geändert.
+- **397 synthetische, räumlich kompakte Hexmetadaten, 5 Posen,
+  17 wechselnde A/B-Batches à 100 Wiederholungen:**
+
+| Nur JS-World-Blit-Planung, Firefox (ms pro Aufruf) | Vollscan | Index, `minimumCells=256` |
+| --- | ---: | ---: |
+| p50 | 0,008 | **0,002** |
+| p95 | 0,008 | **0,004** |
+
+Der Index ist bei 397 Zellen **geometrisch identisch**;
+das zusätzliche kompakte Browser-Paritätsgate fand
+**0 Abweichungen** in den 25O-Blit-Rechtecken.
+Der neue Browser-Protokolltest hat mit der 399-Hex-
+CI-Karte zusätzlich **beide aktiven Ausführungspfade**
+(`bandIndex=0/1` mit `bandIndexMin=256`) und einen
+vom Offline-Vergleichsprüfer als gültig bewerteten
+A/B-Datensatz nachgewiesen.
+
+**Interpretation:** Median ca. 0,006 ms weniger und
+p95 ca. 0,004 ms weniger **pro reinem Planeraufruf**.
+Das ist zwar eine deutliche *relative*, aber nur eine
+mikroskopische *absolute* Einsparung. Sie rechtfertigt
+keine Behauptung, dass die **gesamte Frame-Kadenz**
+der echten 397-Hex-Windows-Karte besser wird,
+und insbesondere keine 60-FPS-Zusage.
+Die weitaus teureren Canvas-/GPU- und Fog-Phasen
+wurden nicht durch den 397-Hex-Mikrobenchmark
+vermessen. Der Produktiv-Default bleibt **400**,
+die 256er Option bleibt ausschließlich für
+`?perf=1`-Diagnosen verfügbar. **Kein Merge von
+PR #127 ohne echte Windows-Originalkartenabnahme.**
