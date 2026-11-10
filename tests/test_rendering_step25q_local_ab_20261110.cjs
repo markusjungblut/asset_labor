@@ -16,10 +16,14 @@ function report(enabled){
   worldBlitFullPixelsBefore:0,worldBlitFullPixelsAfter:25000000,
   candidateBefore:{indexed:0,legacy:0},
   candidateAfter:{indexed:enabled?360:0,legacy:enabled?0:39700},
-  pendingBefore:0,pendingAfter:0,failuresBefore:0,failuresAfter:0};
+  pendingBefore:0,pendingAfter:0,failuresBefore:0,failuresAfter:0,
+  warmCountersBefore:{loads:30,visibleReadStarts:10,prefetchReadStarts:20,
+   decodeRepeats:0,evictions:0},
+  warmCountersAfter:{loads:30,visibleReadStarts:10,prefetchReadStarts:20,
+   decodeRepeats:0,evictions:0}};
  const phase=(v)=>({count:95,p50:v,p95:v+1,p99:v+1,mean:v});
  const environment={canvasBacking:{width:2400,height:1600},
-  renderMode:'cached',overview1x:true,largeViewportCache:true,
+  browser:'Firefox 99 Test Fixture',renderMode:'cached',overview1x:true,largeViewportCache:true,
   prefetchGuard:true,streamingWorldCache:true,adaptiveCloudCache:true,
   autoCloudStrategy:true,fogViewportCull:true,layeredFog:false,
   adaptiveWorldPad:true,sparseWorldBlit:true,indexedTileSelection:true,
@@ -143,4 +147,37 @@ test('25Q series keeps captures for retry and checks abort between pan frames',(
  assert.match(game,/clearSeriesButton\.addEventListener\('click'/);
  assert.match(game,/shouldAbort:\(\)=>!sessionStorage\.getItem\(AB_SERIES_KEY\)/);
  assert.match(html,/id="clearBandIndexSeries" hidden/);
+});
+
+// Warm A/B integrity is independent of successful index allocation.
+test('25Q rejects measured visible reads, prefetch reads and image decoding',()=>{
+ const off=report(false),on=report(true);
+ on.abCapture.warmCountersAfter.visibleReadStarts++;
+ on.abCapture.warmCountersAfter.prefetchReadStarts++;
+ on.abCapture.warmCountersAfter.loads++;
+ on.abCapture.warmCountersAfter.decodeRepeats++;
+ on.tileReads=[{source:'derived2x',kind:'loaded'}];
+ const result=compare(off,on);
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(e=>e.includes('kein warmer Lauf')));
+ assert.ok(result.errors.some(e=>e.includes('Profiler')));
+});
+test('25Q rejects pending end reads, cache eviction and mismatched browser',()=>{
+ const off=report(false),on=report(true);
+ off.abCapture.pendingAfter=1;
+ on.abCapture.warmCountersAfter.evictions++;
+ on.environment.browser='Different Browser';
+ const result=compare(off,on);
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(e=>e.includes('nach der Messfahrt')));
+ assert.ok(result.errors.some(e=>e.includes('evictions')));
+ assert.ok(result.errors.some(e=>e.includes('Browser/Version')));
+});
+test('25Q rejects changing render resolution or LOD within one run',()=>{
+ const off=report(false),on=report(true);
+ off.frames=[{canvasPixels:100,activeVariant:'2x'},
+  {canvasPixels:200,activeVariant:'1x'}];
+ const result=compare(off,on);
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(e=>e.includes('Canvas-Auflösung oder LOD')));
 });

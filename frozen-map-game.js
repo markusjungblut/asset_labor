@@ -410,7 +410,15 @@
     worldBlitFullPixelsBefore:before.worldBlitFullDevicePixels,
     worldBlitFullPixelsAfter:after.worldBlitFullDevicePixels,
     pendingBefore:before.pending,pendingAfter:after.pending,
-    failuresBefore:before.failures,failuresAfter:after.failures
+    failuresBefore:before.failures,failuresAfter:after.failures,
+    warmCountersBefore:{
+     loads:before.loads,visibleReadStarts:before.visibleReadStarts,
+     prefetchReadStarts:before.prefetchReadStarts,
+     decodeRepeats:before.decodeRepeats,evictions:before.evictions},
+    warmCountersAfter:{
+     loads:after.loads,visibleReadStarts:after.visibleReadStarts,
+     prefetchReadStarts:after.prefetchReadStarts,
+     decodeRepeats:after.decodeRepeats,evictions:after.evictions}
    };
    if(download)downloadJson(result,'vedras_step25q_'+
     (indexedWorldBands?'indexed':'legacy')+'_'+scene+'_'

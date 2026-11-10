@@ -947,6 +947,8 @@ const run=async()=>{
   assert.ok(captured.frameCounts.active>=15,
    'Capture must record actual active pan frames in Firefox');
   assert.equal(captured.abCapture.failuresAfter,0);
+  assert.ok(Number.isFinite(captured.abCapture.warmCountersBefore.loads));
+  assert.ok(Number.isFinite(captured.abCapture.warmCountersAfter.visibleReadStarts));
   collected.step25qLocalCapture={
    active:capturePage?captured.frameCounts.active:0,
    gapSamples:captured.phasesMs.frameGapMs.count,
@@ -1016,6 +1018,14 @@ const run=async()=>{
   const seriesResult=compareStep25QSeries(pack);
   assert.equal(seriesResult.valid,true,
    'all three actual Firefox pairs valid: '+seriesResult.errors.join('; '));
+  assert.ok(pack.captures.every(c=>
+   c.abCapture.warmCountersAfter.visibleReadStarts===
+   c.abCapture.warmCountersBefore.visibleReadStarts),
+   'warm A/B captures must not start visible Tile reads while measuring');
+  assert.ok(pack.captures.every(c=>
+   c.abCapture.warmCountersAfter.prefetchReadStarts===
+   c.abCapture.warmCountersBefore.prefetchReadStarts),
+   'warm A/B captures must not initiate speculative Tile reads');
   const saved=await seriesPage.evaluate(()=>
    JSON.parse(sessionStorage.getItem('vedras-step25q-ab-series-v1')));
   assert.equal(saved.step,6,'completed captures must remain for retry');

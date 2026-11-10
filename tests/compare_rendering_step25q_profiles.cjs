@@ -45,6 +45,10 @@ function compare(first,second){
  if(!same(legacy?.environment?.canvasBacking,
           indexed?.environment?.canvasBacking))
   errors.push('Canvas-Pixelmaße unterscheiden sich.');
+ if(typeof legacy?.environment?.browser!=='string'||
+    legacy.environment.browser.length<4||
+    legacy.environment.browser!==indexed?.environment?.browser)
+  errors.push('Browser/Version unterscheiden sich oder fehlen.');
  for(const flag of STABLE_FLAGS)
   if(legacy?.environment?.[flag]!==indexed?.environment?.[flag])
    errors.push('Andere Render-Option außer bandIndex: '+flag);
@@ -88,8 +92,30 @@ function compare(first,second){
    errors.push(name+': zu wenige aktive Pan-Frames.');
   if((p?.phasesMs?.frameGapMs?.count||0)<min-2)
    errors.push(name+': zu wenige zusammenhängende Frame-Gaps.');
-  if(c?.pendingAfter>0)
-   warnings.push(name+': während der Messfahrt liefen noch Tile-Reads.');
+  if(c?.pendingAfter!==0)
+   errors.push(name+': nach der Messfahrt sind Tile-Reads offen.');
+  // A warm cached A/B must not mix new tile IO, image decoding or eviction
+  // into the measured JS/Canvas frames. Do not call such a run valid.
+  const counters=['loads','visibleReadStarts','prefetchReadStarts',
+   'decodeRepeats','evictions'];
+  for(const key of counters){
+   const work=finite(c?.warmCountersBefore?.[key])&&
+    finite(c?.warmCountersAfter?.[key])?
+     c.warmCountersAfter[key]-c.warmCountersBefore[key]:null;
+   if(work===null||work<0)
+    errors.push(name+': unvollständiger Cache-/Tile-Zähler '+key+'.');
+   else if(work>0)
+    errors.push(name+': kein warmer Lauf – '+key+' +'+work+' während der Messfahrt.');
+  }
+  if((p?.tileReads?.length||0)>0)
+   errors.push(name+': Mess-Profiler enthält Tile-Lese-/Decode-Ereignisse.');
+  if((p?.sampleLimit?.droppedTiles||0)>0)
+   errors.push(name+': Tile-Profiler-Daten abgeschnitten.');
+  const samples=p?.frames||[];
+  const raster=samples[0]?.canvasPixels;
+  if(samples.length>0&&(samples.some(f=>f.canvasPixels!==raster)||
+     samples.some(f=>f.activeVariant!==samples[0].activeVariant)))
+   errors.push(name+': Canvas-Auflösung oder LOD wechselte während der Messfahrt.');
   if(p?.sampleLimit?.droppedFrames>0)
    errors.push(name+': Profilframes wurden abgeschnitten.');
  }
