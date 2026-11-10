@@ -315,8 +315,9 @@ JSON-Profile liegen nur im **`sessionStorage` des aktuellen
 Browser-Tabs**, nicht in der persistenten Karten-IndexedDB
 und nicht auf GitHub. Original-PNGs, Fog-Autorisierung
 und die Terrain-/Bake-Pipeline werden nicht verändert.
-Die Zwischenergebnisse werden nach erfolgreichem Download
-gelöscht. „Abbrechen“, das Schließen des Tabs,
+Die Zwischenergebnisse werden beim Auslösen des Downloads
+aus dem Tab entfernt; deshalb den erfolgreichen Browser-Download
+anschließend kontrollieren. „Abbrechen“, das Schließen des Tabs,
 Inaktivität über 45 Minuten, ein unsichtbarer Tab,
 eine nicht ruhige Aufwärmphase oder fehlende Index-Aktivierung
 stoppen die Serie. Bei erneutem Laden desselben Tabs
@@ -330,3 +331,40 @@ aber nicht alle Hardware-/Temperatur-/Cache-Störfaktoren.
 Für die echte Windows-Karte bleibt eine
 manuelle Prüfung des zeitlichen Verlaufs und
 der drei p95-Paare erforderlich. 
+
+### Automatisierte Abnahme der Dreifachserie
+
+[GitHub Actions #42874580516](https://github.com/markusjungblut/asset_labor/actions/runs/42874580516)
+auf Code-Commit
+[`2c5d31f`](https://github.com/markusjungblut/asset_labor/commit/2c5d31fc1cd1ecb1b3dab5dcf21e5f0f594ff845)
+bestand **87/87 Node-Tests** sowie die **vollständige
+Headless-Firefox-Regression**, einschließlich
+der neuen Sechs-Fahrten-Serie über tatsächliche
+Reloads, aktivem Index-/Legacy-Pfad, einem durch
+eine Nutzerinteraktion ausgelösten **einzelnen**
+JSON-Download, drei gültigen A/B-Paaren
+und der Leerung des temporären `sessionStorage`
+nach dem Download. Neue Node-Prüfungen verwerfen
+unvollständige Serien, eine falsche ON-/OFF-Reihenfolge,
+uneinheitliche Kameraposen/Viewport-Daten und
+ausgelassene Indexabfragen in einem einzelnen Paar.
+
+Die CI fährt dafür eine **synthetische 399-Hex-/
+120-WorldTile-Karte** mit verkürzten Pan-Sequenzen.
+Der Browsermechanismus ist damit technisch
+abgenommen. **Eine Übertragbarkeit der gemessenen
+Framezeiten auf die private Windows-Originalkarte
+wird nicht behauptet**. Der neue Serienvergleich
+ersetzt nur manuelle Einzelaufzeichnungen, nicht
+die Bild-/Fog-Parität oder die Bewertung von
+Draw-/FrameGap-p95 auf der Zielhardware.
+
+**Abnahmeende:** Die fertige Serien-JSON und die
+lokalen Vergleichsergebnisse bleiben auf dem PC.
+Weder Bericht noch Bilddaten werden vom Test nach
+GitHub hochgeladen. Die zuletzt gewählte
+Indexoption kann nach dem Serienlauf `bandIndex=1`
+sein, auch wenn zuvor `bandIndex=0` gewählt
+war; bei Bedarf wieder über **Optimierungen**
+umschalten. `main` bleibt unverändert, PR #127
+bleibt **Draft** bis zur nativen Abnahme.
