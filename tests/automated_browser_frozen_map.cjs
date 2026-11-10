@@ -13,7 +13,8 @@ const root=path.resolve(__dirname,'..');
 const OUTPUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
 const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
 const SCENE='v1-25c1f00d',COUNT=120;
-const {compare:compareStep25Q}=require('./compare_rendering_step25q_profiles.cjs');
+const {compare:compareStep25Q,compareSeries:compareStep25QSeries}=
+ require('./compare_rendering_step25q_profiles.cjs');
 const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
@@ -56,7 +57,7 @@ const run=async()=>{
   browser=await engine.launch({headless:true});
   const ctx=await browser.newContext({
    viewport:collected.viewport,deviceScaleFactor:1,
-   reducedMotion:'reduce',acceptDownloads:false
+   reducedMotion:'reduce',acceptDownloads:true
   });
   const seed=await ctx.newPage();
   await seed.goto(origin+'/tests/fixtures/frozen-ci-seed.html');
@@ -980,6 +981,49 @@ const run=async()=>{
   collected.step25qLocalCapture.indexActive=true;
   collected.step25qLocalCapture.compareValid=compared.valid;
   await indexCapturePage.close();
+
+
+  // One-click 3-pair protocol on SAME isolated origin: six reloads, both
+  // actual modes, one user-gesture download. No original user Atlas/DB.
+  const seriesPage=await ctx.newPage();
+  await seriesPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
+  await seriesPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await seriesPage.locator('#runBandIndexSeries').isVisible(),true);
+  // Shorter CI trace uses same production runPanAB implementation.
+  await seriesPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.startABSeries({
+    steps:24,warmupSteps:12
+   }));
+  let seriesFinished=false;
+  for(let attempt=0;attempt<700;attempt++){
+   let step=-1;
+   try{step=await seriesPage.evaluate(()=>{
+    const s=sessionStorage.getItem('vedras-step25q-ab-series-v1');
+    return s?JSON.parse(s).step:-1;
+   });}catch(_e){}
+   if(step===6){seriesFinished=true;break;}
+   await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  assert.equal(seriesFinished,true,'all six Firefox A/B captures must finish');
+  const downloaded=seriesPage.waitForEvent('download',{timeout:20000});
+  await seriesPage.locator('#runBandIndexSeries').click();
+  const exported=await downloaded;
+  const pack=JSON.parse(fs.readFileSync(await exported.path(),'utf8'));
+  assert.equal(pack.schema,'vedras-step25q-local-series-v1');
+  assert.equal(pack.captures.length,6);
+  const seriesResult=compareStep25QSeries(pack);
+  assert.equal(seriesResult.valid,true,
+   'all three actual Firefox pairs valid: '+seriesResult.errors.join('; '));
+  assert.equal(await seriesPage.evaluate(()=>
+   sessionStorage.getItem('vedras-step25q-ab-series-v1')),null);
+  collected.step25qLocalSeries={
+   captureCount:pack.captures.length,orders:seriesResult.mode,
+   valid:seriesResult.valid,
+   pairMedianDrawP95Delta:seriesResult.summary.drawMs.p95.medianDeltaMs
+  };
+  await seriesPage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();

@@ -430,9 +430,157 @@
    });
   }
  }
+
+ // An explicitly requested, tab-local six-run A/B series. A reload is
+ // essential: it reinstantiates the SAME renderer with/without its index.
+ // sessionStorage contains only bounded diagnostic JSON, never source PNGs,
+ // authoring data, Fog permissions, or persistent IndexedDB changes.
+ const AB_SERIES_KEY='vedras-step25q-ab-series-v1';
+ const AB_SERIES_ORDER=[false,true,true,false,false,true];
+ const seriesButton=$('runBandIndexSeries');
+ const stableSeriesUrl=()=>{
+  const url=new URL(location.href);
+  url.searchParams.delete('bandIndex');
+  return url.pathname+url.search+url.hash;
+ };
+ const readSeries=()=>{
+  const raw=sessionStorage.getItem(AB_SERIES_KEY);
+  if(!raw)return null;
+  const data=JSON.parse(raw);
+  if(data.schema!=='vedras-step25q-local-series-v1'||
+     data.scene!==scene||data.pageKey!==stableSeriesUrl()||
+     !Number.isFinite(data.startedMs)||Date.now()-data.startedMs>2700000||
+     !Number.isInteger(data.step)||data.step<0||
+     data.step>AB_SERIES_ORDER.length||
+     !Array.isArray(data.captures)||data.captures.length!==data.step)
+   throw Error('Ungültige oder abgelaufene A/B-Serie');
+  return data;
+ };
+ const saveSeries=s=>sessionStorage.setItem(AB_SERIES_KEY,JSON.stringify(s));
+ const cancelSeries=()=>{
+  sessionStorage.removeItem(AB_SERIES_KEY);
+  if(seriesButton){seriesButton.disabled=false;
+   seriesButton.textContent='Dreifach-A/B starten';}
+ };
+ const indexUrl=enabled=>{
+  const url=new URL(location.href);
+  url.searchParams.set('bandIndex',enabled?'1':'0');
+  return url.pathname+url.search+url.hash;
+ };
+ let seriesBusy=false;
+ const runSeriesStep=async()=>{
+  if(seriesBusy)return;
+  let state;
+  try{state=readSeries();}catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);return;
+  }
+  if(!state||state.step===AB_SERIES_ORDER.length){
+   if(state&&seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+   return;
+  }
+  if(!profiler||document.hidden){
+   cancelSeries();
+   output.textContent='A/B-Serie abgebrochen: Profilmodus und sichtbarer Tab erforderlich.';
+   return;
+  }
+  if(indexedWorldBands!==AB_SERIES_ORDER[state.step]){
+   location.assign(indexUrl(AB_SERIES_ORDER[state.step]));
+   return;
+  }
+  seriesBusy=true;
+  if(seriesButton){
+   seriesButton.disabled=false;
+   seriesButton.textContent='Serie '+(state.step+1)+'/6 läuft – Abbrechen';
+  }
+  const oldSingle=$('runBandIndexAB');
+  if(oldSingle)oldSingle.disabled=true;
+  try{
+   const sample=await runPanAB({
+    steps:state.steps,warmupSteps:state.warmupSteps,download:false});
+   const stillRunning=readSeries();
+   if(!stillRunning||stillRunning.step!==state.step)
+    throw Error('Serie während der Messfahrt abgebrochen');
+   if(sample.abCapture.settled!==true)
+    throw Error('Aufwärmphase nicht stabil; Serie verworfen');
+   if(sample.abCapture.bandIndexRequested!==AB_SERIES_ORDER[state.step])
+    throw Error('Falscher Modus; Serie verworfen');
+   if(AB_SERIES_ORDER[state.step]&&!sample.abCapture.bandIndexActive)
+    throw Error('Index nicht aktiv; bei kleiner Karte &bandIndexMin=256 im Profilmodus ergänzen');
+   state.captures.push(sample);
+   state.step++;
+   saveSeries(state);
+   if(state.step===AB_SERIES_ORDER.length){
+    if(seriesButton)seriesButton.textContent='A/B-Serie herunterladen';
+    output.textContent='Drei A/B-Paare aufgezeichnet. A/B-Serie herunterladen '+
+     'und mit dem Offline-Prüfer auswerten.';
+   }else{
+    location.assign(indexUrl(AB_SERIES_ORDER[state.step]));
+   }
+  }catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+  }finally{
+   seriesBusy=false;
+   if(oldSingle)oldSingle.disabled=false;
+  }
+ };
+ const startABSeries=async({steps=96,warmupSteps=96}={})=>{
+  if(!profiler)throw Error('A/B-Serie benötigt ?perf=1');
+  if(seriesBusy)throw Error('A/B-Serie läuft bereits');
+  if(!startPose||!player.report().active)throw Error('Karte nicht geladen');
+  if(document.hidden)throw Error('A/B-Serie benötigt sichtbaren Tab');
+  if(!player.report().sparseWorldBlit||directRenderer)
+   throw Error('A/B-Serie erfordert gecachten World-Blit (worldBands=1)');
+  if(sessionStorage.getItem(AB_SERIES_KEY))
+   throw Error('Vorherige A/B-Serie abschließen oder abbrechen');
+  const state={schema:'vedras-step25q-local-series-v1',
+   scene,pageKey:stableSeriesUrl(),startedMs:Date.now(),
+   startedAt:new Date().toISOString(),step:0,captures:[],
+   steps:Math.max(24,Math.min(180,Math.trunc(Number(steps))||96)),
+   warmupSteps:Math.max(0,Math.min(180,Math.trunc(Number(warmupSteps))||96)),
+   order:AB_SERIES_ORDER};
+  saveSeries(state);
+  await runSeriesStep();
+  return true;
+ };
+ if(profiler&&seriesButton){
+  seriesButton.hidden=false;
+  seriesButton.addEventListener('click',()=>{
+   try{
+    const state=readSeries();
+    if(state?.step===AB_SERIES_ORDER.length){
+     downloadJson({...state,finishedAt:new Date().toISOString()},
+      'vedras_step25q_series_'+scene+'_'
+      +new Date().toISOString().replace(/[:.]/g,'-')+'.json');
+     cancelSeries();
+     output.textContent='A/B-Serie gespeichert. Auswertung mit: '+
+      'node tests/compare_rendering_step25q_profiles.cjs SERIE.json';
+    }else if(state){
+     cancelSeries();output.textContent='A/B-Serie abgebrochen.';
+    }else{
+     startABSeries().catch(error=>{
+      cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+     });
+    }
+   }catch(error){
+    cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+   }
+  });
+  try{
+   const stored=readSeries();
+   if(stored){
+    if(stored.step===AB_SERIES_ORDER.length)
+     seriesButton.textContent='A/B-Serie herunterladen';
+    else Promise.resolve().then(runSeriesStep);
+   }else seriesButton.textContent='Dreifach-A/B starten';
+  }catch(error){
+   cancelSeries();output.textContent='A/B-Serie: '+String(error.message||error);
+  }
+ }
+
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
   profileReport,profileReset,profileStatus,runPanAB:profiler?runPanAB:null,
+  startABSeries:profiler?startABSeries:null,
   // Explicit opt-in diagnostic repaint: never mutates atlas or Fog rights.
   forceRedraw:()=>player.draw(),
   // CI only (perf=1): deterministic camera motion, never modify atlas data.

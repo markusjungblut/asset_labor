@@ -96,3 +96,41 @@ test('25Q rejects mismatched authorized map metadata',()=>{
  const r=compare(a,b);assert.equal(r.valid,false);
  assert.ok(r.errors.some(e=>e.includes('Autorisierungsmetadaten')));
 });
+
+test('25Q three-pair bundle validates alternating A/B order and computes median deltas',()=>{
+ const {compareSeries}=require('./compare_rendering_step25q_profiles.cjs');
+ const order=[false,true,true,false,false,true];
+ const captures=order.map(x=>report(x));
+ const bundle={schema:'vedras-step25q-local-series-v1',captures};
+ const result=compareSeries(bundle);
+ assert.equal(result.valid,true);
+ assert.equal(result.pairs.length,3);
+ assert.equal(result.summary.drawMs.p95.medianDeltaMs,-2);
+ assert.equal(result.summary.frameGapMs.p95.improvedPairs,3);
+ assert.match(result.decision,/Kein automatischer Merge/);
+});
+test('25Q rejects incomplete, wrong-order and changed-viewport series',()=>{
+ const {compareSeries}=require('./compare_rendering_step25q_profiles.cjs');
+ const order=[false,true,true,false,false,true];
+ const bundle={schema:'vedras-step25q-local-series-v1',
+  captures:order.map(x=>report(x))};
+ assert.equal(compareSeries({...bundle,captures:bundle.captures.slice(0,5)}).valid,false);
+ const wrong={...bundle,captures:order.map(x=>report(x))};
+ wrong.captures[1]=report(false);
+ assert.equal(compareSeries(wrong).valid,false);
+ const shifted={...bundle,captures:order.map(x=>report(x))};
+ shifted.captures[4].abCapture.basePose.zoom=.9;
+ const result=compareSeries(shifted);
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(e=>e.includes('Serienmessungen')));
+});
+test('25Q three-pair series fails if any single pair skips the real index path',()=>{
+ const {compareSeries}=require('./compare_rendering_step25q_profiles.cjs');
+ const order=[false,true,true,false,false,true];
+ const bundle={schema:'vedras-step25q-local-series-v1',
+  captures:order.map(x=>report(x))};
+ bundle.captures[5].abCapture.indexQueriesAfter=0;
+ const result=compareSeries(bundle);
+ assert.equal(result.valid,false);
+ assert.ok(result.errors.some(e=>e.includes('Paar 3')));
+});

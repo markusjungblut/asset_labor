@@ -122,18 +122,73 @@ function compare(first,second){
   work:{queriesOff,queriesOn,scansOff,candidatesOn,offPixels,onPixels},
   timings,errors,warnings};
 }
+
+const ORDER=[false,true,true,false,false,true];
+const median=values=>{
+ const v=[...values].sort((a,b)=>a-b);
+ return v[Math.floor(v.length/2)];
+};
+function compareSeries(bundle){
+ const errors=[],warnings=[],pairs=[];
+ const captures=bundle?.captures;
+ if(bundle?.schema!=='vedras-step25q-local-series-v1'||
+    !Array.isArray(captures)||captures.length!==6)
+  return {schema:'vedras-step25q-series-comparison-v1',
+   valid:false,errors:['Serie benötigt genau sechs v2-Profile.'],
+   warnings,pairs:[],summary:null};
+ const mode=captures.map(x=>x?.abCapture?.bandIndexRequested);
+ if(mode.some((x,i)=>x!==ORDER[i]))
+  errors.push('Serienreihenfolge muss OFF-ON, ON-OFF, OFF-ON sein.');
+ const fingerprint=p=>{
+  const env=p?.environment||{},ab=p?.abCapture||{};
+  return JSON.stringify({scene:ab.scene,level:ab.level,
+   trace:ab.trace,frames:ab.framesPlanned,warmup:ab.warmupFrames,
+   viewport:ab.viewportCss,pose:ab.basePose,
+   backing:env.canvasBacking,cellCount:ab.cellCount,
+   authorizedCells:ab.authorizedCells,
+   stable:Object.fromEntries(STABLE_FLAGS.map(k=>[k,env[k]]))});
+ };
+ if(captures.some(x=>fingerprint(x)!==fingerprint(captures[0])))
+  errors.push('Serienmessungen unterscheiden sich in Kamera, Raster, Karte oder Rendereroptionen.');
+ for(let i=0;i<3;i++){
+  const result=compare(captures[i*2],captures[i*2+1]);
+  pairs.push({number:i+1,order:ORDER[i*2]?'ON-OFF':'OFF-ON',
+   ...result});
+  if(!result.valid)errors.push('Paar '+(i+1)+': '+result.errors.join('; '));
+  for(const w of result.warnings)warnings.push('Paar '+(i+1)+': '+w);
+ }
+ const fields=['drawMs','frameGapMs','worldPrepareMs','worldPlanMs','worldBlitMs'];
+ const summary={};
+ for(const field of fields){
+  summary[field]={};
+  for(const stat of ['p50','p95']){
+   const nums=pairs.map(p=>p.timings?.[field]?.[stat]?.deltaMs);
+   summary[field][stat]=nums.every(finite)?{
+    deltasMs:nums,medianDeltaMs:Math.round(median(nums)*100)/100,
+    improvedPairs:nums.filter(n=>n<0).length,
+    regressedPairs:nums.filter(n=>n>0).length}:null;
+  }
+ }
+ if(!summary.frameGapMs?.p95||!summary.drawMs?.p95)
+  errors.push('Paarübergreifende p95-Zeiten fehlen.');
+ return {schema:'vedras-step25q-series-comparison-v1',
+  valid:errors.length===0,mode,scene:captures[0]?.abCapture?.scene,
+  pairs,summary,errors,warnings,
+  decision:'Drei vergleichbare A/B-Paare sind nur ein Performance-Nachweis. Kein automatischer Merge; Originalkarten-Pixel/Fog, reale Windows-/GPU-Wirkung und p95-Regressionsrisiko manuell beurteilen.'};
+}
+
 if(require.main===module){
  const names=process.argv.slice(2);
- if(names.length!==2){
-  console.error('Verwendung: node tests/compare_rendering_step25q_profiles.cjs LEGACY.json INDEX.json');
+ if(names.length!==1&&names.length!==2){
+  console.error('Verwendung: node tests/compare_rendering_step25q_profiles.cjs SERIE.json ODER LEGACY.json INDEX.json');
   process.exitCode=2;
  }else{
   try{
    const files=names.map(n=>JSON.parse(fs.readFileSync(n,'utf8')));
-   const result=compare(...files);
+   const result=names.length===1?compareSeries(files[0]):compare(...files);
    process.stdout.write(JSON.stringify(result,null,2)+'\n');
    if(!result.valid)process.exitCode=1;
   }catch(error){console.error(String(error));process.exitCode=2;}
  }
 }
-module.exports={compare};
+module.exports={compare,compareSeries};
