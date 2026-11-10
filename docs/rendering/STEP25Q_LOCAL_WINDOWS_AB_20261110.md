@@ -264,3 +264,69 @@ entscheidung oder reale Windows-/GPU-FPS-Aussage
 geeignet. Keine Änderung der 400er-Standardgrenze,
 keine Änderung von Terrain, Atlas- oder Fog-Berechtigungen.
 **Draft-PR #127 nicht ohne gültige Windows-Abnahme mergen.**
+
+## Ein-Klick-Dreifach-A/B-Serie (opt-in, ohne Editor-Zugriff)
+
+Unter `?perf=1` steht im Read-only-Spielviewer zusätzlich
+**„Dreifach-A/B starten“** bereit. Dieser Weg ist die bevorzugte
+Alternative zu sechs einzeln angelegten JSON-Dateien.
+Die bisherigen Einzelmessfahrten und der Zwei-Dateien-Vergleich
+bleiben als Diagnosewerkzeuge erhalten.
+
+1. Den Viewer im **25Q-Draft-Branch** auf demselben lokalen
+   Serverursprung wie die fertig gespeicherte Karte öffnen.
+   Ungeprüfte lokale/ungecommitete Änderungen vorher sichern
+   (kein `reset --hard`). Die URL muss `?perf=1`
+   enthalten; für die alte 397-Hex-Szene zusätzlich
+   `&bandIndexMin=256`. `worldBands=1`, gecachter
+   Renderer und vollständiges Manifest sind erforderlich.
+2. Browserfenster, Betriebssystemanzeige-Skalierung und
+   LOD nicht ändern; **Tab durchgehend sichtbar lassen**.
+   **Dreifach-A/B starten** einmal drücken. Der Browser
+   führt automatisch sechs 96-Schritt-Messfahrten nach
+   jeweils 96 Aufwärmschritten und Fog-/Tile-Ruhephase aus:
+   **OFF–ON / ON–OFF / OFF–ON**. Für jedes Flag
+   wird der Viewer tatsächlich neu geladen; keine
+   Hot-Umschaltung im bestehenden World-Canvas.
+3. Nach dem sechsten Lauf wird die Schaltfläche zu
+   **„A/B-Serie herunterladen“**. Diese bewusst zweite
+   Nutzerinteraktion erlaubt einen einzigen Blob-Download
+   ohne browserseitig gesperrte automatische Mehrfachdownloads.
+   Die sechs Messprofile werden zusammen in
+   `vedras_step25q_series_*.json` exportiert.
+4. Lokal auswerten:
+   `node tests/compare_rendering_step25q_profiles.cjs SERIE.json`.
+   Der CLI-Prüfer wendet **alle** Einzelpaar-
+   Gültigkeitsbedingungen an und kontrolliert
+   zusätzlich über alle sechs Läufe identische
+   Kartenmetadaten, Kamera, DPI, LOD und Rendereroptionen.
+   Er zeigt die p50-/p95-Deltas der drei Paare sowie den
+   Median dieser Deltas, einschließlich
+   `worldPlanMs`, `worldBlitMs`, `drawMs`
+   und `frameGapMs`.
+5. Erst nach der Datenabnahme die lokale
+   **Originalkarten-Pixel-/Fog-Parität** an denselben
+   Kamerastellungen visuell abgleichen. Auch eine gültige
+   Dreifachserie bedeutet **keine automatische Merge-Freigabe**.
+
+**Sicherheits- und Fehlerverhalten:** Die Serie ist
+ausschließlich per `?perf=1` aktiv. Ihre vorübergehenden
+JSON-Profile liegen nur im **`sessionStorage` des aktuellen
+Browser-Tabs**, nicht in der persistenten Karten-IndexedDB
+und nicht auf GitHub. Original-PNGs, Fog-Autorisierung
+und die Terrain-/Bake-Pipeline werden nicht verändert.
+Die Zwischenergebnisse werden nach erfolgreichem Download
+gelöscht. „Abbrechen“, das Schließen des Tabs,
+Inaktivität über 45 Minuten, ein unsichtbarer Tab,
+eine nicht ruhige Aufwärmphase oder fehlende Index-Aktivierung
+stoppen die Serie. Bei erneutem Laden desselben Tabs
+kann eine noch gültige Serie fortgesetzt werden.
+Vorübergehende Profile enthalten dennoch Szene- und
+Browsermetadaten; JSON-Dateien nur bewusst teilen.
+
+Die stabile Reihenfolge OFF–ON, ON–OFF, OFF–ON
+begrenzt einfache Reihenfolgeeffekte, beseitigt
+aber nicht alle Hardware-/Temperatur-/Cache-Störfaktoren.
+Für die echte Windows-Karte bleibt eine
+manuelle Prüfung des zeitlichen Verlaufs und
+der drei p95-Paare erforderlich. 
