@@ -7,14 +7,15 @@ function report(enabled){
   bandIndexActive:enabled,scene:'v1-12345678',level:'near',
   viewportCss:{width:1200,height:800},
   basePose:{zoom:.8,panX:0,panY:0,dpr:2,projectY:.85},
-  framesPlanned:96,warmupFrames:96,settled:true,
+  framesPlanned:96,warmupFrames:96,indexMinimumCells:400,settled:true,
   pendingBefore:0,pendingAfter:0,failuresBefore:0,failuresAfter:0};
  const phase=(v)=>({count:95,p50:v,p95:v+1,p99:v+1,mean:v});
  const environment={canvasBacking:{width:2400,height:1600},
   renderMode:'cached',overview1x:true,largeViewportCache:true,
   prefetchGuard:true,streamingWorldCache:true,adaptiveCloudCache:true,
   autoCloudStrategy:true,fogViewportCull:true,layeredFog:false,
-  adaptiveWorldPad:true,sparseWorldBlit:true,indexedTileSelection:true};
+  adaptiveWorldPad:true,sparseWorldBlit:true,indexedTileSelection:true,
+  worldBandIndexMinCells:400};
  return {abCapture:entry,environment,frameCounts:{active:96},
   sampleLimit:{droppedFrames:0},phasesMs:{
    drawMs:phase(enabled?12:14),frameGapMs:phase(enabled?17:19),
@@ -53,4 +54,13 @@ test('25Q warns if index increases full-frame p95',()=>{
  const result=compare(off,on);
  assert.equal(result.valid,true);
  assert.ok(result.warnings.some(x=>x.includes('drawMs')));
+});
+
+test('25Q A/B rejects unequal diagnostic index thresholds',()=>{
+ const a=report(false),b=report(true);
+ b.abCapture.indexMinimumCells=256;
+ b.environment.worldBandIndexMinCells=256;
+ const c=compare(a,b);
+ assert.equal(c.valid,false);
+ assert.ok(c.errors.some(x=>x.includes('Mindestwert')));
 });

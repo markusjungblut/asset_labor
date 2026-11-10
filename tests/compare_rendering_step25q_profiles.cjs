@@ -6,7 +6,7 @@ const fs=require('node:fs');
 const STABLE_FLAGS=['renderMode','overview1x','largeViewportCache',
  'prefetchGuard','streamingWorldCache','adaptiveCloudCache',
  'autoCloudStrategy','fogViewportCull','layeredFog','adaptiveWorldPad',
- 'sparseWorldBlit','indexedTileSelection'];
+ 'sparseWorldBlit','indexedTileSelection','worldBandIndexMinCells'];
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const metric=(p,phase,k)=>p?.phasesMs?.[phase]?.[k];
 function compare(first,second){
@@ -22,9 +22,11 @@ function compare(first,second){
  if(a?.bandIndexRequested!==false||b?.bandIndexRequested!==true)
   errors.push('Benötigt eine Messung mit bandIndex=0 und eine mit bandIndex=1.');
  if(b?.bandIndexActive!==true)
-  errors.push('Der Index war nicht aktiv (weniger als 400 Hexfelder oder Fallback).');
+  errors.push('Der Index war nicht aktiv (Hexzahl unter Mindestwert oder Fallback).');
  if(a?.bandIndexActive!==false)
   errors.push('Die Legacy-Messung hatte einen aktiven Index.');
+ if(a?.indexMinimumCells!==b?.indexMinimumCells)
+  errors.push('Index-Mindestwert unterscheidet sich; bandIndexMin muss gleich sein.');
  if(a?.scene!==b?.scene||a?.level!==b?.level)
   errors.push('Szene oder LOD unterscheiden sich.');
  if(a?.trace!==b?.trace||a?.framesPlanned!==b?.framesPlanned||

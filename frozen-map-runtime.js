@@ -83,7 +83,8 @@ window.VedrasFrozenMap=(()=>{
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
-    sparseWorldBlit=true,indexedTileSelection=true,indexedWorldBands=true}={}){
+    sparseWorldBlit=true,indexedTileSelection=true,indexedWorldBands=true,
+    worldBandIndexMinCells=400}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -262,7 +263,7 @@ window.VedrasFrozenMap=(()=>{
    overviewStreamingBuilds,overviewStreamingHits,streamingWorldCache,
    worldCacheFastReuse,overviewFastHits,overviewRechecks,
    adaptiveWorldPad,worldEffectivePad,worldPadBoostFrames,worldPadClampFrames,
-   sparseWorldBlit,indexedWorldBands,
+   sparseWorldBlit,indexedWorldBands,worldBandIndexMinCells,
    worldBandIndexActive:!!worldBandIndex,
    worldBandIndexEntries:worldBandIndex?.entries||0,
    worldBandIndexQueries,worldBandIndexCandidateCells,
@@ -1302,7 +1303,7 @@ window.VedrasFrozenMap=(()=>{
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
    worldBandIndex=indexedWorldBands&&sparseWorldBlit&&worldBandIndexer?
-    worldBandIndexer(cells):null;
+    worldBandIndexer(cells,{minimumCells:worldBandIndexMinCells===256?256:400}):null;
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));

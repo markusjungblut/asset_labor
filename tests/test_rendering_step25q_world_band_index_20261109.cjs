@@ -54,6 +54,10 @@ test('index retains oversized and fractional-radius clip coverage at edge',()=>{
 test('malformed geometry and small scenes keep unchanged full-scan fallback',()=>{
  const a=api(),small=largeCells().slice(0,120);
  assert.equal(a.createIndex(small),null);
+ assert.equal(a.createIndex(small,{minimumCells:256}),null);
+ const compact397=largeCells().slice(0,397);
+ assert.equal(a.createIndex(compact397),null);
+ assert.equal(a.createIndex(compact397,{minimumCells:256}).entries,397);
  const bad=[...largeCells(),{x:0,y:0,radius:NaN,visibility:'visible'}];
  assert.equal(a.createIndex(bad),null);
  const index=a.createIndex(largeCells());
@@ -104,6 +108,8 @@ test('runtime binds index to load/stop lifecycle and preserves opt-out',async()=
 });
 test('separate visible switch and original atlas are preserved',()=>{
  assert.match(game,/params\.get\('bandIndex'\)!=='0'/);
+ assert.match(game,/profileRequested&&params\.get\('bandIndexMin'\)==='256'/);
+ assert.match(runtime,/minimumCells:worldBandIndexMinCells===256\?256:400/);
  assert.ok(html.includes('id="optWorldBandIndex"'));
  assert.match(game,/'optWorldBandIndex','bandIndex',indexedWorldBands/);
  assert.match(runtime,/worldBandIndex\.query\(view,dpr\)/);

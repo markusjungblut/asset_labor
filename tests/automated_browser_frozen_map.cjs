@@ -13,6 +13,7 @@ const root=path.resolve(__dirname,'..');
 const OUTPUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
 const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
 const SCENE='v1-25c1f00d',COUNT=120;
+const {compare:compareStep25Q}=require('./compare_rendering_step25q_profiles.cjs');
 const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
@@ -818,13 +819,48 @@ const run=async()=>{
      legacy:summary(original),indexed:summary(indexed)};
    };
    const spatialTimings=measure(cells,poses);
+   // Historical real test scene: 397 hex metadata. Measure same planner
+   // geometry with the explicit 256 diagnostic threshold, not a default.
+   const compact=[];
+   for(let r=-10;r<=10;r++)for(let q=-9;q<=9;q++)
+    compact.push({q,r,x:q*256,y:r*235,radius:146,
+     visibility:(Math.abs(q)>8&&Math.abs(r)>8)?'hidden':
+      (Math.abs(q)>7||Math.abs(r)>8)?'explored':'visible'});
+   compact.splice(0,2);
+   const ci=api.createIndex(compact,{minimumCells:256});
+   const compactViews=[[0,0],[-350,180],[920,-200],[-1200,500],[1500,-600]]
+    .map(([panX,panY])=>({width:1600,height:920,zoom:.85,panX,panY,projectY:.85}));
+   let compactMismatches=0;
+   for(const view of compactViews)
+    if(JSON.stringify(api.plan(view,compact,dpr))!==
+       JSON.stringify(api.plan(view,ci.query(view,dpr),dpr)))
+     compactMismatches++;
+   const old=()=>{for(const view of compactViews)api.plan(view,compact,dpr);};
+   const newer=()=>{for(const view of compactViews)
+    api.plan(view,ci.query(view,dpr),dpr);};
+   for(let j=0;j<25;j++){old();newer();}
+   const legacyMs=[],indexedMs=[];
+   const bench=fn=>{
+    const start=performance.now();
+    for(let j=0;j<100;j++)fn();
+    return (performance.now()-start)/(100*compactViews.length);
+   };
+   for(let j=0;j<17;j++){
+    if(j%2){indexedMs.push(bench(newer));legacyMs.push(bench(old));}
+    else{legacyMs.push(bench(old));indexedMs.push(bench(newer));}
+   }
+   const p=(values,i)=>Number([...values].sort((a,b)=>a-b)[i].toFixed(5));
+   const compactTimings={samples:17,loopsPerSample:100,poses:5,
+    legacyP50Ms:p(legacyMs,8),indexedP50Ms:p(indexedMs,8),
+    legacyP95Ms:p(legacyMs,16),indexedP95Ms:p(indexedMs,16)};
    // Pathological overlapping input is not a typical game geography,
    // but explicitly tests an adverse dense/fallback scenario.
    const stacked=cells.map((c,i)=>({...c,x:0,y:0,radius:5000}));
    const denseTimings=measure(stacked,[[0,0],[100,100]]);
    return {total:cells.length,entries:index.entries,queries:poses.length,
     legacyCandidates,indexedCandidates,mismatches,
-    spatialTimings,denseTimings};
+    spatialTimings,denseTimings,compactTimings,compactMismatches,
+    compactTotal:compact.length};
   });
   const wb=collected.worldBandIndexStress;
   assert.equal(wb.total,15000);
@@ -833,6 +869,9 @@ const run=async()=>{
    'Firefox: world blit must inspect at least 90% fewer authorized cells');
   assert.equal(wb.mismatches,0,
    'Firefox: indexed coverage must match the full authorized world rectangles');
+  assert.equal(wb.compactTotal,397);
+  assert.equal(wb.compactMismatches,0);
+  assert.ok(wb.compactTimings.indexedP50Ms>=0);
   assert.ok(wb.spatialTimings.legacy.p50Ms>=0&&
    wb.spatialTimings.indexed.p50Ms>=0);
   assert.ok(wb.denseTimings.legacy.p50Ms>=0&&
@@ -840,7 +879,8 @@ const run=async()=>{
   console.log('Step25Q paired Firefox planner ms/call: '+
    JSON.stringify({spatial:wb.spatialTimings,dense:wb.denseTimings,
     indexedCandidates:wb.indexedCandidates,
-    legacyCandidates:wb.legacyCandidates}));
+    legacyCandidates:wb.legacyCandidates,
+    compact397:wb.compactTimings}));
   await stressPage.close();
 
   // The user-visible opt-out controls must really navigate and switch
@@ -885,7 +925,7 @@ const run=async()=>{
   // machines. CI only smoke-checks protocol/metrics on the 399-cell fixture.
   const capturePage=await ctx.newPage();
   await capturePage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
-   '&lod=near&perf=1&bandIndex=0');
+   '&lod=near&perf=1&bandIndex=0&bandIndexMin=256');
   await capturePage.waitForFunction(()=>
    window.__vedrasFrozenGameTest?.stats()?.saved===120);
   assert.equal(await capturePage.locator('#runBandIndexAB').isVisible(),true);
@@ -911,6 +951,26 @@ const run=async()=>{
    indexRequested:captured.abCapture.bandIndexRequested
   };
   await capturePage.close();
+  // 399 hexes on CI: indexed mode is available only under perf override.
+  const indexCapturePage=await ctx.newPage();
+  await indexCapturePage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&bandIndex=1&bandIndexMin=256');
+  await indexCapturePage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120);
+  assert.equal(await indexCapturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats().worldBandIndexActive),true);
+  const capturedIndex=await indexCapturePage.evaluate(()=>
+   window.__vedrasFrozenGameTest.runPanAB({
+    steps:24,warmupSteps:12,download:false
+   }));
+  assert.equal(capturedIndex.abCapture.indexMinimumCells,256);
+  assert.equal(capturedIndex.abCapture.bandIndexActive,true);
+  const compared=compareStep25Q(captured,capturedIndex);
+  assert.equal(compared.valid,true,
+   'real Firefox paired 399-cell captures: '+compared.errors.join('; '));
+  collected.step25qLocalCapture.indexActive=true;
+  collected.step25qLocalCapture.compareValid=compared.valid;
+  await indexCapturePage.close();
 
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();
