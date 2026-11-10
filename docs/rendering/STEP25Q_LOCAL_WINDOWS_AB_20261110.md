@@ -401,3 +401,28 @@ ohne Änderung der Originalbilder oder der gespeicherten
 Fog-Rechte. Der zugehörige Browser-Test kontrolliert
 ersten Download, erneuten Download, explizite
 Löschung und den Abbruch eines aktiven Laufs.
+
+### Verifizierte Download- und Abbruchsicherung
+
+[GitHub Actions #42877569194](https://github.com/markusjungblut/asset_labor/actions/runs/42877569194)
+auf dem Code-Commit
+[`1f1363c`](https://github.com/markusjungblut/asset_labor/commit/1f1363cb7f88e6741408778b4b4f06bb5c54c256)
+ist **erfolgreich abgeschlossen: 88/88 Node-Tests und
+die vollständige Headless-Firefox-Regression grün**.
+Der echte Browser-Test führt auf der isolierten
+Karten-Fixture sechs A/B-Reload-Messungen durch,
+lädt das abgeschlossene JSON **zweimal** herunter,
+prüft, dass dabei alle sechs Profile erhalten
+bleiben, und löscht sie anschließend ausdrücklich.
+Ein weiterer Browser-Test startet eine Serie,
+bricht sie während der Messfahrt ab und bestätigt,
+dass kein temporärer Serienauftrag zurückbleibt.
+Ein isolierter Node-Test kontrolliert zusätzlich
+die Abbruchprüfung und den separaten Löschen-Knopf.
+
+**Dies ist eine Abnahme der Diagnose-Bedienung,
+keine GPU- oder 60-FPS-Bestätigung.**
+Originalatlas, Fog-Autorisierung, Produktivstandard
+mit 400-Hex-Grenze und `main` wurden bei dieser
+Korrektur nicht verändert. Der Draft-PR bleibt
+bis zu echten Windows-Messdaten offen.
