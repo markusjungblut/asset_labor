@@ -88,7 +88,8 @@ async function run(){
    const trial=await page.evaluate(async(enabled)=>{
     const scene='v1-25c1f00d',db=window.__vedrasCiStep25wDB,
      canvas=document.getElementById('game'),
-     wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+     wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
+     median=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length/2)];
     const pixelsByBlob=new WeakMap(),tileByImage=new WeakMap();
     const reads=[],frameSamples=[],decodeLayers=[],paintedAt=new Map();
     const originalDraw=CanvasRenderingContext2D.prototype.drawImage;
