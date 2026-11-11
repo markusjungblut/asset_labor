@@ -89,7 +89,7 @@ window.VedrasFrozenMap=(()=>{
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
-     directionalPrefetch=true}={}){
+     directionalPrefetch=true,lodRecency=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -112,6 +112,7 @@ window.VedrasFrozenMap=(()=>{
   const decoded=new Map(),loading=new Set();
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
+  let lodRecencyEvictions=0;
   const typicalPixels={'1x':0,'2x':0};
   let visibleMissing=false;
    let prefetchPose=null,prefetchMotionX=0,prefetchMotionY=0,
@@ -258,8 +259,8 @@ window.VedrasFrozenMap=(()=>{
    visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
    directionalPrefetch,directionalPrefetchFrames,prefetchTrailingSkipped,
-   prefetchLeadingStarts,visibleWaitingOnPrefetch,
-   visibleRequested,prefetchRequested,
+   prefetchLeadingStarts,lodRecency,lodRecencyEvictions,
+   visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
    activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
    cloudDissolveActive:dissolveActive,
@@ -305,6 +306,7 @@ window.VedrasFrozenMap=(()=>{
    prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
+   lodRecencyEvictions=0;
    visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
    visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
    prefetchSkippedVisible=0;prefetchSkippedBudget=0;
@@ -341,6 +343,21 @@ window.VedrasFrozenMap=(()=>{
      if(!protectedKeys.has(key)&&entry.origin==='prefetch'){
       victim=key;break;
      }
+    // A just-visited inactive LOD can be more valuable on the next zoom
+    // reversal than an older offscreen bitmap of the active LOD.
+    // Keep the visible-set pinning and speculative-first eviction exactly
+    // as before; change only the order of remaining safe victims.
+    if(!victim&&lodRecency){
+     let oldest=Infinity,hasInactive=false;
+     for(const [key,entry] of decoded){
+      if(protectedKeys.has(key))continue;
+      if(entry.variant!==activeVariant)hasInactive=true;
+      const last=entry.lastVisibleFrame??-1;
+      if(last<oldest){oldest=last;victim=key;}
+     }
+     if(victim&&hasInactive&&decoded.get(victim).variant===activeVariant)
+      lodRecencyEvictions++;
+    }
     if(!victim)for(const [key,entry] of decoded)
      if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
       victim=key;break;
@@ -367,7 +384,7 @@ window.VedrasFrozenMap=(()=>{
     if(!speculative||!prefetchGuard){
      decoded.delete(id);decoded.set(id,hit);
     }
-    if(!speculative)hit.origin='visible';
+    if(!speculative){hit.origin='visible';hit.lastVisibleFrame=frame;}
     hits++;return hit;
    }
    const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
@@ -375,7 +392,7 @@ window.VedrasFrozenMap=(()=>{
     if(!speculative||!prefetchGuard){
      decoded.delete(alternate);decoded.set(alternate,fallback);
     }
-    if(!speculative)fallback.origin='visible';
+    if(!speculative){fallback.origin='visible';fallback.lastVisibleFrame=frame;}
    }
    if(!available.has(key))return fallback||null;
    if(loading.has(id)){
@@ -439,7 +456,8 @@ window.VedrasFrozenMap=(()=>{
     if(seenDecoded.size>MAX_SEEN)
      seenDecoded.delete(seenDecoded.keys().next().value);
     typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
-    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose});
+    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose,
+     lastVisibleFrame:actualPurpose==='visible'?frame:-1});
     decodedRevision++;
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
