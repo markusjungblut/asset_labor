@@ -31,6 +31,7 @@
  const prefetchGuard=params.get('prefetchGuard')!=='0';
   const directionalPrefetch=params.get('leadPrefetch')!=='0';
  const lodRecency=params.get('lodRecency')!=='0';
+ const visibleBorrow=params.get('visibleBorrow')!=='0';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -76,7 +77,7 @@
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
-   streamingWorldCache,
+  visibleBorrow,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
   onStatus:stats=>{
@@ -113,6 +114,7 @@
     ' · Vorladen gebremst '+stats.prefetchSkippedBudget+
      ' · Nachlauf vermieden '+stats.prefetchTrailingSkipped+
      ' · Zuletzt genutzte Zoomstufe gehalten '+stats.lodRecencyEvictions+
+    ' · Sofort gestartete sichtbare Reads '+stats.visibleBorrowStarts+
     ' · Raster '+(largeViewportCache?'groß':'alt')+
     ' · Direkt-Welt/Wolken '+stats.worldCacheFallbackFrames+'/'+
      stats.cloudCacheFallbackFrames+
@@ -282,7 +284,7 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
-   prefetchGuard,directionalPrefetch,lodRecency,streamingWorldCache,
+   prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
    indexedTileSelection
