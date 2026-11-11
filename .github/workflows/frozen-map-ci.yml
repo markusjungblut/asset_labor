@@ -15,6 +15,7 @@ on:
       - 'cloud-artwork.js'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_visible_borrow.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -25,6 +26,7 @@ on:
       - 'cloud-artwork.js'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_visible_borrow.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -50,6 +52,7 @@ jobs:
             /.github/workflows/frozen-map-ci.yml
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
+            /tests/automated_browser_visible_borrow.cjs
             /tests/fixtures/frozen-ci-seed.html
             /frozen-map-*.js
             /frozen-map-game.html
@@ -76,6 +79,12 @@ jobs:
           VEDRAS_CI_BROWSER: firefox
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_frozen_map.cjs
+      - name: Controlled real Firefox first-visible-paint A/B (25V)
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_visible_borrow.cjs
       - name: Attach profile and screenshots, including when failing
         if: always()
         uses: actions/upload-artifact@v4
