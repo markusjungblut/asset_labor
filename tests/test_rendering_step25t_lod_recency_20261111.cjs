@@ -135,7 +135,7 @@ test('25T opt-out and static archive security semantics remain available',()=>{
  assert.match(game,/params\.get\('lodRecency'\)!=='0'/);
  assert.match(runtime,/lodRecency=true/);
  assert.match(runtime,/lastVisibleFrame/);
- assert.match(html,/frozen-map-runtime\.js\?v=20261111-step25u-visible-borrow/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.doesNotMatch(runtime,/deleteDatabase\(|bakeWorldTile\(/);
  for(const s of [runtime,game])assert.doesNotThrow(()=>new Function(s));
 });

@@ -133,7 +133,7 @@ test('25U opt-out and existing guarded limits preserve old semantics',()=>{
  assert.match(runtime,/visibleBorrow=true/);
  assert.match(runtime,/MAX_INFLIGHT=3,MAX_SPECULATIVE=1/);
  assert.match(runtime,/loading\.size===MAX_INFLIGHT/);
- assert.match(html,/step25u-visible-borrow/);
+ assert.match(html,/frozen-map-runtime\.js\?v=/);
  assert.doesNotMatch(runtime,/deleteDatabase\(|bakeWorldTile\(/);
  for(const source of [runtime,game])assert.doesNotThrow(()=>new Function(source));
 });

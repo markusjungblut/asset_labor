@@ -84,8 +84,14 @@ async function run(){
   });
   assert.equal(seed.tileCount,99);
   const results=[];
-  for(const enabled of [false,true,true,false]){
-   const trial=await page.evaluate(async(enabled)=>{
+  const configs=[
+   {enabled:false,parallel:false},{enabled:true,parallel:false},
+   {enabled:true,parallel:false},{enabled:false,parallel:false},
+   {enabled:true,parallel:false},{enabled:true,parallel:true},
+   {enabled:true,parallel:true},{enabled:true,parallel:false}
+  ];
+  for(const config of configs){
+   const trial=await page.evaluate(async({enabled,parallel})=>{
     const scene='v1-25c1f00d',db=window.__vedrasCiStep25wDB,
      canvas=document.getElementById('game'),
      wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
@@ -128,7 +134,8 @@ async function run(){
      frame:record=>{frameSamples.push(record);}
     };
     const player=window.VedrasFrozenMap.create({
-     canvas,storage,profiler,visibleBorrow:enabled,prefetchGuard:true,
+     canvas,storage,profiler,visibleBorrow:enabled,
+     parallelLayerDecode:parallel,prefetchGuard:true,
      directionalPrefetch:true,lodRecency:true,overview1x:false,
      useLayerCache:false,maxDecodedPixels:18000000,
      decode:async blob=>{
@@ -191,7 +198,8 @@ async function run(){
       return Number.isFinite(t)&&t>=x.finishedAt?[t-x.finishedAt]:[];
      });
      return {
-      enabled,scene,readCount:loaded.length,visibleReads:visible.length,
+      enabled,parallel,parallelTileDecodes:final.parallelTileDecodes,
+      scene,readCount:loaded.length,visibleReads:visible.length,
       prefetchReads:loaded.length-visible.length,failures:final.failures,
       decodedPixels:final.decodedPixels,maxDecodedPixels:final.maxDecodedPixels,
       borrowed:final.visibleBorrowStarts,peakInFlight:final.peakInFlight,
@@ -216,10 +224,12 @@ async function run(){
      player.stop();
      CanvasRenderingContext2D.prototype.drawImage=originalDraw;
     }
-   },enabled);
+   },config);
    results.push(trial);
    process.stdout.write('Step25W actual IndexedDB sample '+
-    JSON.stringify({enabled:trial.enabled,readCount:trial.readCount,
+    JSON.stringify({enabled:trial.enabled,parallel:trial.parallel,
+     parallelTileDecodes:trial.parallelTileDecodes,
+     readCount:trial.readCount,
      storage:trial.stages.storageMs,decode:trial.stages.decodeMs,
      visibleReady:trial.stages.visibleReadyMs,
      peak:trial.peakInFlight,borrowed:trial.borrowed})+'\n');
@@ -242,11 +252,29 @@ async function run(){
   assert.equal(new Set(results.map(x=>x.pixelHash)).size,1,
    'Both scheduling modes must paint pixel-identical final view');
   const avg=r=>a=>a.reduce((s,x)=>s+x.stages[r].p50,0)/a.length;
-  const on=results.filter(x=>x.enabled),off=results.filter(x=>!x.enabled);
-  const output={schema:'vedras-step25w-real-idb-profile-v1',
+  const borrowResults=results.slice(0,4);
+  const on=borrowResults.filter(x=>x.enabled),
+   off=borrowResults.filter(x=>!x.enabled);
+  const decodeResults=results.slice(4);
+  const parallelOn=decodeResults.filter(x=>x.parallel),
+   parallelOff=decodeResults.filter(x=>!x.parallel);
+  assert.equal(parallelOn.length,2);
+  assert.equal(parallelOff.length,2);
+  assert.ok(parallelOn.every(x=>x.parallelTileDecodes>0),
+   'Real-browser parallel decoding must be exercised');
+  assert.ok(parallelOff.every(x=>x.parallelTileDecodes===0),
+   'Sequential path must remain a genuine A/B control');
+  const output={schema:'vedras-step25x-real-idb-decode-ab-v1',
    browser:BROWSER,fixture:'99 authored 512+768 PNG tile packets in real isolated IndexedDB',
-   seed,sequence:'ABBA, camera 0/-550/-1100/-1650/-1100/-550/0',
-   results,summary:{
+   seed,sequence:'two ABBA comparisons, camera 0/-550/-1100/-1650/-1100/-550/0',
+   results,parallelComparison:{
+    onDecodeP50Ms:+avg('decodeMs')(parallelOn).toFixed(3),
+    offDecodeP50Ms:+avg('decodeMs')(parallelOff).toFixed(3),
+    onVisibleReadyP50Ms:+avg('visibleReadyMs')(parallelOn).toFixed(3),
+    offVisibleReadyP50Ms:+avg('visibleReadyMs')(parallelOff).toFixed(3),
+    parallelTiles:parallelOn.reduce((sum,r)=>sum+r.parallelTileDecodes,0),
+    allFinalPixelsEqual:true,noAssumedWin:true
+   },summary:{
     realIDBReads:results.reduce((a,r)=>a+r.readCount,0),
     onBorrowStarts:on.reduce((a,r)=>a+r.borrowed,0),
     offBorrowStarts:off.reduce((a,r)=>a+r.borrowed,0),

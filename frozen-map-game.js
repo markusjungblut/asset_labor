@@ -32,6 +32,8 @@
   const directionalPrefetch=params.get('leadPrefetch')!=='0';
  const lodRecency=params.get('lodRecency')!=='0';
  const visibleBorrow=params.get('visibleBorrow')!=='0';
+ // Step25X: opt-in only pending real hardware A/B.
+ const parallelLayerDecode=params.get('parallelDecode')==='1';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -77,7 +79,7 @@
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
-  visibleBorrow,streamingWorldCache,
+  visibleBorrow,parallelLayerDecode,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
   onStatus:stats=>{
@@ -115,6 +117,7 @@
      ' · Nachlauf vermieden '+stats.prefetchTrailingSkipped+
      ' · Zuletzt genutzte Zoomstufe gehalten '+stats.lodRecencyEvictions+
     ' · Sofort gestartete sichtbare Reads '+stats.visibleBorrowStarts+
+    ' · Parallel dekodierte Tiles '+stats.parallelTileDecodes+
     ' · Raster '+(largeViewportCache?'groß':'alt')+
     ' · Direkt-Welt/Wolken '+stats.worldCacheFallbackFrames+'/'+
      stats.cloudCacheFallbackFrames+
@@ -284,7 +287,8 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
-   prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,streamingWorldCache,
+   prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
+   parallelLayerDecode,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
    indexedTileSelection
