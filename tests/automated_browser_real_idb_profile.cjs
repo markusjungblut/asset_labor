@@ -117,7 +117,7 @@ async function run(){
     const storage={
      keys:async prefix=>{
       const all=await transaction(os=>os.getAllKeys(
-       IDBKeyRange.bound(prefix,prefix+'\\uffff')));
+       IDBKeyRange.bound(prefix,prefix+String.fromCharCode(0xffff))));
       return all;
      },
      get:key=>transaction(os=>os.get(key))
