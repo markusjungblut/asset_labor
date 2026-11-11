@@ -89,7 +89,8 @@ window.VedrasFrozenMap=(()=>{
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
-     directionalPrefetch=true,lodRecency=true,visibleBorrow=true}={}){
+     directionalPrefetch=true,lodRecency=true,visibleBorrow=true,
+     parallelLayerDecode=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -113,6 +114,7 @@ window.VedrasFrozenMap=(()=>{
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
   let lodRecencyEvictions=0,visibleBorrowStarts=0,peakInFlight=0;
+  let parallelTileDecodes=0,parallelDecodeFailures=0;
   const typicalPixels={'1x':0,'2x':0};
   let visibleMissing=false;
    let prefetchPose=null,prefetchMotionX=0,prefetchMotionY=0,
@@ -261,6 +263,7 @@ window.VedrasFrozenMap=(()=>{
    directionalPrefetch,directionalPrefetchFrames,prefetchTrailingSkipped,
    prefetchLeadingStarts,lodRecency,lodRecencyEvictions,
    visibleBorrow,visibleBorrowStarts,peakInFlight,
+   parallelLayerDecode,parallelTileDecodes,parallelDecodeFailures,
    visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
    activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
@@ -308,6 +311,7 @@ window.VedrasFrozenMap=(()=>{
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
    lodRecencyEvictions=0;visibleBorrowStarts=0;peakInFlight=0;
+   parallelTileDecodes=0;parallelDecodeFailures=0;
    visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
    visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
    prefetchSkippedVisible=0;prefetchSkippedBudget=0;
@@ -446,7 +450,22 @@ window.VedrasFrozenMap=(()=>{
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
     const images=[],decodeStarted=profiler?clock():0;
     try{
-     for(const layer of record.layers)images.push(await decodePNG(layer.png));
+     if(parallelLayerDecode&&record.layers.length>1){
+      // Ground/Scenery PNGs are independent. allSettled preserves
+      // layer order and safely closes any success after a sibling fails.
+      const outcomes=await Promise.allSettled(
+       record.layers.map(layer=>decodePNG(layer.png)));
+      const failure=outcomes.find(x=>x.status==='rejected');
+      if(failure){
+       parallelDecodeFailures++;
+       for(const result of outcomes)if(result.status==='fulfilled')
+        result.value?.close?.();
+       throw failure.reason;
+      }
+      for(const result of outcomes)images.push(result.value);
+      parallelTileDecodes++;
+     }else for(const layer of record.layers)
+      images.push(await decodePNG(layer.png));
     }catch(error){for(const im of images)im.close?.();throw error;}
     if(profiler)decodeDuration=clock()-decodeStarted;
     if(!active||run!==generation||record.key!==key||
