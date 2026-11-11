@@ -89,7 +89,7 @@ window.VedrasFrozenMap=(()=>{
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
-     directionalPrefetch=true,lodRecency=true}={}){
+     directionalPrefetch=true,lodRecency=true,visibleBorrow=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -112,7 +112,7 @@ window.VedrasFrozenMap=(()=>{
   const decoded=new Map(),loading=new Set();
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
-  let lodRecencyEvictions=0;
+  let lodRecencyEvictions=0,visibleBorrowStarts=0,peakInFlight=0;
   const typicalPixels={'1x':0,'2x':0};
   let visibleMissing=false;
    let prefetchPose=null,prefetchMotionX=0,prefetchMotionY=0,
@@ -260,6 +260,7 @@ window.VedrasFrozenMap=(()=>{
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
    directionalPrefetch,directionalPrefetchFrames,prefetchTrailingSkipped,
    prefetchLeadingStarts,lodRecency,lodRecencyEvictions,
+   visibleBorrow,visibleBorrowStarts,peakInFlight,
    visibleWaitingOnPrefetch,visibleRequested,prefetchRequested,
    activePrefetch:[...loadingPurpose.values()].filter(v=>v==='prefetch').length,
    pending:loading.size,frames:frame,paintMs,clouds:clouds?.stats()||null,
@@ -306,7 +307,7 @@ window.VedrasFrozenMap=(()=>{
    prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
-   lodRecencyEvictions=0;
+   lodRecencyEvictions=0;visibleBorrowStarts=0;peakInFlight=0;
    visibleReadStarts=0;prefetchReadStarts=0;decodeRepeats=0;
    visibleDecodeRepeats=0;prefetchDecodeRepeats=0;
    prefetchSkippedVisible=0;prefetchSkippedBudget=0;
@@ -418,12 +419,22 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedBudget++;return fallback||null;
     }
    }
-   if(loading.size>=MAX_INFLIGHT){
+   // A stale speculative IndexedDB/decode request cannot be cancelled.
+   // When all three normal slots are used and ONE is speculative, lend
+   // that slot to an urgent visible tile. This admits at most three
+   // foreground reads plus one background read; never borrow for prefetch
+   // or without the existing guarded background-admission policy.
+   const borrowing=!speculative&&visibleBorrow&&prefetchGuard&&
+    loading.size===MAX_INFLIGHT&&
+    [...loadingPurpose.values()].includes('prefetch');
+   if(loading.size>=MAX_INFLIGHT&&!borrowing){
     if(!speculative&&[...loadingPurpose.values()]
      .some(x=>x==='prefetch'))visibleWaitingOnPrefetch++;
     return fallback||null;
    }
+   if(borrowing)visibleBorrowStarts++;
    loading.add(id);
+   peakInFlight=Math.max(peakInFlight,loading.size);
    loadingPurpose.set(id,speculative?'prefetch':'visible');
    if(speculative)prefetchReadStarts++;else visibleReadStarts++;
    const run=generation,readStarted=profiler?clock():0;
@@ -1312,6 +1323,7 @@ window.VedrasFrozenMap=(()=>{
      visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
      prefetchSkippedBudget,prefetchSkippedVisible,
      prefetchSkippedSlots,visibleWaitingOnPrefetch,
+     visibleBorrowStarts,peakInFlight,
      worldCacheBuilds:overviewBuilds,worldCacheHits:overviewHits,
      worldCacheFastHits:overviewFastHits,worldCacheRechecks:overviewRechecks,
      sparseWorldBlit,worldBlitLastRectCount,worldBlitLastFraction,
