@@ -1,6 +1,6 @@
 # Icon-Inventar und Themenordner — Vedras Reiche
 
-**Stand:** 10.11.2026 · **Quelle:** `markusjungblut/asset_labor`, Branch `main`, Basis-Commit `21e70acd14d7`.
+**Stand:** 12.11.2026 · **Quelle:** `markusjungblut/asset_labor`, Branch `main`, Bestand aus `main` vom 12.11.2026.
 
 ## Maßgebliche Ablage
 
@@ -8,7 +8,7 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 
 - **Gesamtbestand:** 721 PNG-Dateien in `assets/icons/`.
 - **Themenordner:** 35.
-- **Sonderablage `nicht benötigt`:** 26 PNGs; Dateien bleiben erhalten, gehören aber nicht in die aktive Auswahl.
+- **Sonderablage `nicht benötigt`:** 28 PNGs; Dateien bleiben erhalten, gehören aber nicht in die aktive Auswahl.
 - **Bilder nicht umbenennen, konvertieren, löschen oder grafisch überarbeiten**, um Kategorien zu korrigieren; Kategorisierung erfolgt über den Pfad. Alte interne IDs nicht aus Dateinamen erraten.
 
 ## Verbindliche Einordnung: Medaille und Pokal
@@ -25,28 +25,28 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Kategorie / Ordner | PNG-Dateien |
 | --- | ---: |
 | Ausrüstung & Alltag | 21 |
-| Baustoffe & Gesteine | 43 |
+| Baustoffe & Gesteine | 42 |
 | Chemikalien & Energie | 17 |
 | Dokumente & Karten | 16 |
 | Edelsteine | 34 |
-| Erze & Mineralien | 10 |
+| Erze & Mineralien | 9 |
 | Farbstoffe & Pigmente | 7 |
 | Feuer & Beleuchtung | 9 |
 | Flaggen | 8 |
 | Fortbewegungsmittel | 8 |
 | Freizeit & Symbole | 6 |
 | Gefäße & Behälter | 13 |
-| Geld & Wertgegenstände | 15 |
-| Getränke | 12 |
-| Holz & Forstwirtschaft | 35 |
+| Geld & Wertgegenstände | 11 |
+| Getränke | 11 |
+| Holz & Forstwirtschaft | 34 |
 | Industrie | 19 |
 | Kleidung & Accessoires | 15 |
-| Lebensmittel | 99 |
+| Lebensmittel | 98 |
 | Menschen | 14 |
 | Metalle & Werkstoffe | 16 |
 | moderne Rohstoffe | 21 |
 | moderne Waffen | 19 |
-| nicht benötigt | 26 |
+| nicht benötigt | 28 |
 | Papier & Schreibmaterial | 6 |
 | Pflanzen | 27 |
 | Pilze | 8 |
@@ -56,7 +56,7 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Textilien & Leder | 11 |
 | Tiere | 11 |
 | Tierische Rohstoffe | 19 |
-| UI Icons | 7 |
+| UI Icons | 14 |
 | Waffen & Munition | 68 |
 | Werkzeuge & Handwerk | 20 |
 | **Gesamt** | **721** |
@@ -66,6 +66,19 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 - `Eisennägel.png` wird im Katalog **Sechs Eisennägel** genannt.
 - `Nägel.png` wird im Katalog **Sechzehn Eisennägel** genannt.
 - `Papierrolle.png` gehört zu **Industrie** (wie `Elektromotor.png`). Die frühere Kategorie `vorläufig inaktiv` beruhte auf einem Missverständnis und existiert nicht mehr. Original-PNGs bleiben unverändert, und Dateinamen müssen für diese Benennungen nicht geändert werden.
+
+## UI und ausgeschlossene Motive (12.11.2026)
+
+**UI-Ressourcenanzeigen** (kein eigenständiger Gacha-Gegenstand allein aufgrund dieses Symbolbilds):
+- Nahrung: `UI Icons/Gemischte_Lebensmittel.png`
+- Holz: `UI Icons/Holzscheite.png`
+- Stein: `UI Icons/Steinblöcke.png`
+- Eisen: `UI Icons/Rötliches_Eisenerz.png`
+- Geld: `UI Icons/Kupfermuenzen.png`, `UI Icons/Silbermünzen.png`, `UI Icons/Goldmünzenstapel.png`
+
+**In `nicht benötigt` umsortiert:** `Wasser.png` und `Goldmünzen.png` (nicht mit anderen Münzen-Icons gleichsetzen).
+
+Alle neun Original-PNGs wurden ohne inhaltliche Änderung ausschließlich per Git-Baumpfad verschoben. M26s Item-/Anbieterkatalog benötigt nach dieser Sortierung ebenfalls eine Pfadkorrektur.
 
 ## Pflege- und Abgleichregeln
 
