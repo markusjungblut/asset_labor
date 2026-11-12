@@ -17,6 +17,7 @@ on:
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/automated_browser_visible_borrow.cjs'
       - 'tests/automated_browser_real_idb_profile.cjs'
+      - 'tests/automated_browser_png_workloads.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -29,6 +30,7 @@ on:
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/automated_browser_visible_borrow.cjs'
       - 'tests/automated_browser_real_idb_profile.cjs'
+      - 'tests/automated_browser_png_workloads.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -56,6 +58,7 @@ jobs:
             /tests/automated_browser_frozen_map.cjs
             /tests/automated_browser_visible_borrow.cjs
             /tests/automated_browser_real_idb_profile.cjs
+            /tests/automated_browser_png_workloads.cjs
             /tests/fixtures/frozen-ci-seed.html
             /frozen-map-*.js
             /frozen-map-game.html
@@ -94,6 +97,12 @@ jobs:
           VEDRAS_CI_BROWSER: firefox
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_real_idb_profile.cjs
+      - name: Real Firefox PNG workload/decode A-B (Step25Y)
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_png_workloads.cjs
       - name: Attach profile and screenshots, including when failing
         if: always()
         uses: actions/upload-artifact@v4
