@@ -7,7 +7,7 @@
  // Separate mountain tools from Nature generation. Editing and mountain tools are independent workflows.
  const mountain=$('mountainTools'),natureTools=$('natureLabTools');
  if(mountain&&natureTools)natureTools.after(mountain);
- const captions={natureLabTools:'Natur auf Karte verteilen',spriteShadowLab:'Schatten-Editor: alle Sprites',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',};
+ const captions={natureLabTools:'Natur auf Karte verteilen',spriteShadowLab:'Schatten-Editor: alle Sprites',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',riverPanel:'Flüsse',roadPanel:'Wege & Straßen',polishPanel:'Grafik-Finish',viewSettings:'Ansicht & Qualität',testSceneSettings:'Testszene & Ausgabe'};
  // Set up native accessible disclosure containers, no reimplementation of existing event handlers.
  function accordion(element,open){
   const wrap=document.createElement('details');wrap.className='lab-accordion';wrap.id='drawer_'+element.id;wrap.open=!!open;
@@ -28,22 +28,156 @@
    for(const node of nodes.slice(part.first,part.last+1))container.append(node);
    d.append(container);form.append(d);}
  }
- // Sticky quick actions are always one click away, rather than buried after metadata.
- const shortcuts=document.createElement('nav');shortcuts.className='inspector-shortcuts';shortcuts.setAttribute('aria-label','Schnellzugriff');
- shortcuts.innerHTML='<button type="button" id="shortcutGeography">Geografie-Labor</button><button type="button" id="shortcutGeographyImport">Geografie-JSON importieren</button><button type="button" id="shortcutNature">Natur verteilen</button><button type="button" id="shortcutMountain">Berge</button><button type="button" id="shortcutShadows">Schatten</button><button type="button" id="shortcutMap">Testkarte</button>';
+ // Never alter runtime state, IndexedDB, or saved scene values when
+ // reorganizing the user interface; existing controls retain their IDs.
+ function makeBlock(title,nodes,{collapsed=false}={}){
+  const outer=document.createElement(collapsed?'details':'section');
+  outer.className=collapsed?'lab-advanced':'lab-setting-block';
+  const head=document.createElement(collapsed?'summary':'h4');
+  head.textContent=title;
+  const body=document.createElement('div');
+  body.className='lab-setting-body';
+  outer.append(head,body);
+  for(const node of nodes)if(node)body.append(node);
+  return {outer,body};
+ }
+ function directChild(root,id){
+  let node=$(id);
+  while(node&&node.parentElement!==root)node=node.parentElement;
+  return node?.parentElement===root?node:null;
+ }
+ // The normal view exposes display and transition controls. Older water
+ // repetition and diagnostics remain accessible without taking page space.
+ const view=$('viewSettings');
+ if(view){
+  const all=[...view.children].filter(node=>node.tagName!=='H3');
+  const split=all.indexOf(directChild(view,'edgeBlendToggle'));
+  const debug=all.indexOf(directChild(view,'transitionDebugMode'));
+  if(split>0&&debug>split){
+   const oldWater=directChild(view,'waterSamplingMode');
+   const waterHelp=oldWater?.nextElementSibling?.tagName==='P'?
+    oldWater.nextElementSibling:null;
+   const display=makeBlock('Kartenansicht',all.slice(0,split));
+   const blend=makeBlock('Geländeübergänge',all.slice(split,debug));
+   const advanced=makeBlock('Diagnose & ältere A/B-Vergleiche',
+    all.slice(debug),{collapsed:true});
+   if(oldWater){
+    advanced.body.prepend(oldWater);
+    if(waterHelp)advanced.body.insertBefore(waterHelp,oldWater.nextSibling);
+    const note=document.createElement('p');
+    note.className='muted';
+    note.textContent='Standard: Wassertexturen behalten ihr Motiv pro Hex. Alte Wiederholungsdarstellung nur zum Vergleichen.';
+    blend.body.append(note);
+   }
+   view.append(display.outer,blend.outer,advanced.outer);
+  }
+ }
+ // Group ordinary scene choices apart from the renderer feature toggles.
+ // All toggles stay addressable for old scenes and controlled A/B checks.
+ const tests=$('testSceneSettings');
+ if(tests){
+  const all=[...tests.children].filter(node=>node.tagName!=='H3');
+  const settings=all.indexOf(directChild(tests,'chunkRendering'));
+  const bake=all.indexOf(directChild(tests,'terrainBake'));
+  const exports=all.indexOf(directChild(tests,'saveScene'));
+  if(settings>0&&bake>settings&&exports>bake){
+   const fog=directChild(tests,'fogPreview');
+   const worker=directChild(tests,'workerTerrain');
+   const workerHelp=worker?.nextElementSibling?.tagName==='P'?
+    worker.nextElementSibling:null;
+   const chunkStats=directChild(tests,'chunkStats');
+   const gpuNodes=['gpuTerrain','gpuSprites','gpuStatus'].map(
+    id=>directChild(tests,id)).filter(Boolean);
+   const basics=makeBlock('Szenengröße & Vorschau',
+    all.slice(0,settings));
+   const renderer=makeBlock('Renderer-Standardwerte & Diagnose',
+    all.slice(settings,bake),{collapsed:true});
+   const preparation=makeBlock('Karten vorbereiten & Spielatlas',
+    all.slice(bake,exports));
+   const files=makeBlock('Export & Verwaltung',
+    all.slice(exports));
+   if(fog)basics.body.append(fog);
+   for(const node of [worker,workerHelp,chunkStats])
+    if(node)renderer.body.append(node);
+   const gpu=makeBlock('WebGL2-Vergleiche (standardmäßig aus)',
+    gpuNodes,{collapsed:true});
+   renderer.body.append(gpu.outer);
+   tests.append(basics.outer,renderer.outer,preparation.outer,files.outer);
+  }
+ }
+ // Stable workflow order, existing listeners keep working because the
+ // real DOM nodes, not cloned replacements, are moved.
+ const groups=[
+  {id:'terrain',title:'01 · Gelände & Wasser',
+   drawers:['terrainTests','reliefPanel','shorelinePanel','riverPanel','roadPanel']},
+  {id:'nature',title:'02 · Natur, Berge & Schatten',
+   drawers:['natureLabTools','mountainTools','spriteShadowLab','polishPanel']},
+  {id:'view',title:'03 · Ansicht & Darstellung',
+   drawers:['viewSettings']},
+  {id:'test',title:'04 · Testkarte & Ausgabe',
+   drawers:['testSceneSettings']}
+ ];
+ for(const group of groups){
+  const section=document.createElement('section');
+  section.className='inspector-group';
+  section.id='tools_'+group.id;
+  const heading=document.createElement('h3');
+  heading.textContent=group.title;
+  section.setAttribute('aria-label',group.title);
+  section.append(heading);
+  for(const id of group.drawers){
+   const drawer=$('drawer_'+id);
+   if(drawer)section.append(drawer);
+  }
+  if(section.children.length>1)inspector.append(section);
+ }
+ // Collect top-bar authoring actions in one expandable menu, rather than
+ // making all of them compete for space with zoom and view selection.
+ const quick=document.querySelector('.map-toolbar .quick-actions');
+ if(quick){
+  const dropdown=document.createElement('details');
+  dropdown.className='toolbar-tools-menu';
+  const heading=document.createElement('summary');
+  heading.textContent='Werkzeuge';
+  heading.setAttribute('aria-label','Kartenwerkzeuge anzeigen');
+  quick.before(dropdown);
+  dropdown.append(heading,quick);
+  quick.addEventListener('click',event=>{
+   if(event.target.closest('button'))dropdown.open=false;
+  });
+ }
+ const shortcuts=document.createElement('nav');
+ shortcuts.className='inspector-shortcuts';
+ shortcuts.setAttribute('aria-label','Arbeitsbereiche im Inspector');
+ const targets=[
+  ['terrainTests','Gelände'],['natureLabTools','Natur'],
+  ['mountainTools','Berge'],['spriteShadowLab','Schatten'],
+  ['viewSettings','Ansicht'],['testSceneSettings','Test & Export']
+ ];
+ for(const [id,label] of targets){
+  if(!$('drawer_'+id))continue;
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent=label;
+  button.dataset.drawer=id;
+  button.setAttribute('aria-controls','drawer_'+id);
+  shortcuts.append(button);
+ }
  inspector.querySelector('.paneheader')?.after(shortcuts);
- function openDrawer(id){const drawer=$('drawer_'+id);if(drawer)drawer.open=true;drawer?.scrollIntoView({behavior:'smooth',block:'start'});}
- const populate=()=>{openDrawer('natureLabTools');$('nPopulate')?.click();};
- $('quickPopulate')?.addEventListener('click',populate);$('shortcutNature')?.addEventListener('click',populate);
-  // A second always-visible entry point avoids hiding geography among many
-  // toolbar actions on narrow browser windows.
-  $('shortcutGeography')?.addEventListener('click',()=>$('openGeography')?.click());
-  $('shortcutGeographyImport')?.addEventListener('click',()=>$('geographyImport')?.click());
- const openMountain=()=>openDrawer('mountainTools');
- $('quickMountains')?.addEventListener('click',openMountain);$('shortcutMountain')?.addEventListener('click',openMountain);
- $('shortcutShadows')?.addEventListener('click',()=>openDrawer('spriteShadowLab'));
- $('quick37')?.addEventListener('click',()=>{$('sceneSize').value='37';$('sceneSize').dispatchEvent(new Event('change',{bubbles:true}));});
- $('shortcutMap')?.addEventListener('click',()=>openDrawer('terrainTests'));
+ function openDrawer(id){
+  const drawer=$('drawer_'+id);
+  if(!drawer)return;
+  drawer.open=true;
+  drawer.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+ shortcuts.addEventListener('click',event=>{
+  const button=event.target.closest('button[data-drawer]');
+  if(button)openDrawer(button.dataset.drawer);
+ });
+ // A jump to the Nature panel must NOT implicitly redistribute sprites.
+ // Actual editing remains a separate, clearly labelled authoring action.
+ $('quickPopulate')?.addEventListener('click',()=>$('nPopulate')?.click());
+ $('quickMountains')?.addEventListener('click',()=>openDrawer('mountainTools'));
  // Planned sprite library; explicit filenames and catalog defaults, no user record overwritten.
  const planList=$('spritePlanList'),input=$('spritePlanSearch'),feedback=$('spritePlanFeedback');
  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
