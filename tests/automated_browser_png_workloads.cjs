@@ -54,10 +54,10 @@ async function run(){
      cv.width=width;cv.height=height;
      const g=cv.getContext('2d',{alpha:true});
      if(!config.texture){
-      const gradient=g.createLinearGradient(0,0,width,height);
-      gradient.addColorStop(0,scenery?'#355441':'#6a8d56');
-      gradient.addColorStop(1,scenery?'#927e5c':'#aabe80');
-      g.fillStyle=gradient;g.fillRect(0,0,width,height);
+      // A genuinely low-entropy control: solid color plus a few
+      // rectangles, not a gradient (which produces large PNG payloads).
+      g.fillStyle=scenery?'#355441':'#6a8d56';
+      g.fillRect(0,0,width,height);
       for(let i=0;i<20;i++){
        g.fillStyle=scenery?'rgba(43,78,57,.25)':'rgba(76,99,56,.25)';
        g.fillRect((i*61+seed*19)%width,(i*47+seed*29)%height,45,16);
@@ -118,6 +118,10 @@ async function run(){
      sceneryPixels:config.scenery**2};
    },config);
    assert.equal(seed.count,99);
+   process.stdout.write('Step25Y seed '+JSON.stringify({
+    workload:config.id,compressedBytes:seed.meanCompressedTileBytes,
+    minBytes:seed.minCompressedTileBytes,maxBytes:seed.maxCompressedTileBytes,
+    groundPixels:seed.groundPixels,sceneryPixels:seed.sceneryPixels})+'\\n');
    const samples=[],order=[false,true,true,false];
    for(const parallel of order){
     const result=await page.evaluate(async({parallel,config})=>{
@@ -252,7 +256,9 @@ async function run(){
   const [smooth,textured,large]=measured;
   assert.ok(textured.seed.meanCompressedTileBytes>
    smooth.seed.meanCompressedTileBytes*1.5,
-   'Textured fixtures must represent materially larger compressed PNGs');
+   'Textured PNG bytes must exceed flat control by >1.5×; got '+
+   JSON.stringify({flat:smooth.seed.meanCompressedTileBytes,
+    textured:textured.seed.meanCompressedTileBytes}));
   assert.ok(large.seed.groundPixels>textured.seed.groundPixels&&
    large.seed.sceneryPixels>textured.seed.sceneryPixels,
    'High-resolution fixture must use more decoded pixels per tile');
