@@ -30,8 +30,8 @@ small{color:#abc0b6}code{color:#d0e8d5}
 <button id="start">Einzeltest ausführen</button>
 <button id="download" disabled>Ergebnis-JSON speichern</button>
 </div>
-<p><strong>Gesamttest:</strong> Automatisch drei Routen (warme Fahrt, mehrfache 1×/2×-Zoomwechsel, neue Regionen mit Rückfahrt). Auf dem Kandidaten zusätzlich alle vier Optimierungen jeweils A/B/B/A. Ein Klick pro Serverversion, inklusive eines lokalen Gesamt-JSON-Exports. Der Browser-Tab muss währenddessen im Vordergrund bleiben.</p>
-<p><small>Baseline zuerst auf dem <code>main</code>-Server; dann Server stoppen, Kandidaten-Server starten und den gleichen Test mit A/B/B/A ausführen. Immer dasselbe Firefox-Profil und <code>127.0.0.1:8780</code> verwenden. Karte und Sichtrechte vor dem Vergleich kontrollieren.</small></p>
+<p><strong>Gesamttest:</strong> Automatisch drei Routen (warme Fahrt, mehrfache 1×/2×-Zoomwechsel, neue Regionen mit Rückfahrt). Mit PowerShell <code>-Action All</code> werden beide Renderer unter derselben Firefox-Origin verglichen: 3 Baseline-Routen und 48 Kandidatenläufe, alle automatisch in <strong>einem</strong> Durchlauf. Auf einzeln gestarteten Servern wird nur die jeweilige Version gemessen. Ein Gesamt-JSON wird lokal exportiert. Der Browser-Tab muss währenddessen im Vordergrund bleiben.</p>
+<p><small>Vollständiger Ein-Klick-Vergleich: im aktualisierten Werkzeug-Worktree <code>pwsh -File .\tests\windows\prepare-original-map.ps1 -Action All</code> starten. Die Einzeltasten oben bleiben für gezielte Nachmessungen auf separat gestarteten Baseline-/Kandidatenservern verfügbar. Dasselbe Firefox-Profil und <code>127.0.0.1:8780</code> verwenden.</small></p>
 <div id="status" role="status">Bereit. Ein Test führt ausschließlich Lesezugriffe auf die vorberechnete Spielkarte aus. Bereits gespeicherte 1×-/2×-Ableitungen können vom Viewer bei Bedarf ergänzt werden.</div>
 <table><thead><tr><th>Lauf</th><th>FrameGap p95</th><th>Draw p95</th><th>Re-Decodes</th><th>Evictions</th><th>sichtbare Reads</th><th>Fehler</th><th>sichtbar bereit</th></tr></thead><tbody id="results"></tbody></table>
 <iframe id="game" title="Originalkarten-Viewer" src="about:blank"></iframe>
