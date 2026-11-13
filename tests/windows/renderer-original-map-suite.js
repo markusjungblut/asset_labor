@@ -15,11 +15,27 @@ function percentile(values,p){
  const v=values.filter(finite).sort((a,b)=>a-b);
  return v.length?v[Math.min(v.length-1,Math.ceil(v.length*p)-1)]:null;
 }
+
+function viewerVisibilityPx(){
+ const r=$('game').getBoundingClientRect();
+ return Math.max(0,Math.min(innerHeight,r.bottom)-Math.max(0,r.top));
+}
+async function ensureViewerVisible(){
+ const minPx=Math.min(180,Math.max(80,innerHeight*.45));
+ if(viewerVisibilityPx()<minPx){
+  $('game').scrollIntoView({block:'center',behavior:'instant'});
+  await wait(150);
+ }
+ if(viewerVisibilityPx()<minPx)
+  throw Error('Testkarte ist ausserhalb des sichtbaren Firefox-Fensters. Browserfenster vergroessern, kein verstecktes iframe benchmarken.');
+}
+
 function api(){
  try{return $('game').contentWindow.__vedrasFrozenGameTest||null;}
  catch(_){return null;}
 }
 async function load(scene,feature,value,version=''){
+ await ensureViewerVisible();
  $('game').src='about:blank';await wait(75);
  const url=new URL((version?version+'/':'')+'frozen-map-game.html',location.href);
  url.searchParams.set('scene',scene);
@@ -161,6 +177,8 @@ async function drive(a,poses){
  for(const p of poses){
   if(cancelled)throw Error('Vom Benutzer abgebrochen');
   if(document.hidden)throw Error('Firefox-Tab wurde im Test inaktiv. Test wiederholen und im Vordergrund lassen.');
+  if(viewerVisibilityPx()<Math.min(80,innerHeight*.25))
+   throw Error('Renderer-iframe waehrend der Fahrt ausserhalb des Viewports: Lauf ungueltig');
   if(a.testPan(p)!==true)throw Error('Diagnose-Kamera-API nicht verfuegbar');
   await nextFrame();
   const now=performance.now();
@@ -258,6 +276,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
   p95DrawMs:r.phasesMs?.drawMs?.p95??null,
   p95RafTickMs:ticks.p95RafTickMs,p50RafTickMs:ticks.p50RafTickMs,
   p99RafTickMs:ticks.p99RafTickMs,maxRafTickMs:ticks.maxRafTickMs,
+  visibleIframePx:viewerVisibilityPx(),
   rafOver50:ticks.rafOver50,rafOver100:ticks.rafOver100,
   rafTickSamples:ticks.samples,
   p95WorldBlitMs:r.phasesMs?.worldBlitMs?.p95??null,
@@ -314,6 +333,11 @@ function groupSummary(records,controls,id){
  const triggers=bb.reduce((total,r)=>total+(r[signal]||0),0);
  if(triggers===0)issues.push('Wirkmechanismus nicht ausgeloest: '+signal);
  const conversions=runs.reduce((total,r)=>total+r.derivedConversions,0);
+ const startA=median(aa.map(r=>r.decodedPixelsBefore));
+ const startB=median(bb.map(r=>r.decodedPixelsBefore));
+ const ramStartDifference=startA>0?Math.abs(startB-startA)/startA:null;
+ if(ramStartDifference!==null&&ramStartDifference>.25&&Math.abs(startB-startA)>8000000)
+  issues.push('A/B beginnen mit deutlich anderem RAM-Cachezustand');
  if(conversions)issues.push('Persistente 1x/2x-Cacheableitungen im Messintervall: '+conversions);
  const checkpoints=controls.filter(r=>r.scenario===scenario&&r.success);
  const drawValues=checkpoints.map(r=>r.p95DrawMs).filter(finite);
@@ -351,6 +375,7 @@ function groupSummary(records,controls,id){
  const qualified=issues.length===0;
  return {groupId:id,feature,scenario,total:runs.length,
   trigger:signal,triggerCount:triggers,derivedConversions:conversions,
+  ramStartMedianA:startA,ramStartMedianB:startB,ramStartDifference,
   checkpointCount:checkpoints.length,controlDrawRangeMs:drawDrift,
   controlRafRangeMs:rafDrift,metrics,
   rafRelativeDifference:relative==null?null:Math.round(relative*1000)/1000,
