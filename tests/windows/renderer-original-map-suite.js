@@ -353,7 +353,12 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  return record;
 }
 
-function median(values){return percentile(values,.50);}
+function median(values){
+ const sorted=values.filter(finite).sort((a,b)=>a-b);
+ if(!sorted.length)return null;
+ const middle=Math.floor(sorted.length/2);
+ return sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2;
+}
 function groupSummary(records,controls,id){
  const runs=records.filter(r=>r.groupId===id&&r.success);
  const example=runs[0];
