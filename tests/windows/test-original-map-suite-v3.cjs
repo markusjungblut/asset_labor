@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -63,6 +63,28 @@ test('route returns to initial pose and performs real 1x/2x and distant jumps',(
   }
   if(scenario==='pressure')assert.ok(plan.poses.some(x=>Math.abs(x.panX)>1500));
  }
+});
+test('iframe guard rejects old A/B viewer API and incomplete navigation',()=>{
+ const expected='http://127.0.0.1:8780/candidate/frozen-map-game.html?leadPrefetch=1&_suiteRun=47';
+ const previous='http://127.0.0.1:8780/candidate/frozen-map-game.html?leadPrefetch=0&_suiteRun=46';
+ const a={readOnly:true,testPan(){return true;},stats(){return {saved:120};}};
+ const frame={contentWindow:{
+  location:{href:previous},document:{readyState:'complete'},
+  __vedrasFrozenGameTest:a
+ }};
+ const {readyViewerAt}=sandbox.window.__suiteTestHooks;
+ assert.equal(readyViewerAt(frame,expected),null,
+  'Do not reuse the prior run API while new iframe navigation is pending');
+ frame.contentWindow.location.href=expected;
+ frame.contentWindow.document.readyState='loading';
+ assert.equal(readyViewerAt(frame,expected),null,
+  'Do not accept an unfinished iframe document');
+ frame.contentWindow.document.readyState='complete';
+ assert.equal(readyViewerAt(frame,expected),a,
+  'Exact URL and fully initialized current document is accepted');
+ frame.contentWindow.__vedrasFrozenGameTest=null;
+ assert.equal(readyViewerAt(frame,expected),null,
+  'Do not accept the current document until the player API exists');
 });
 test('missing-tile window is measured from adjacent active frames',()=>{
  const result=readinessWhileMoving({frames:[
