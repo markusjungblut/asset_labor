@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -85,6 +85,14 @@ test('iframe guard rejects old A/B viewer API and incomplete navigation',()=>{
  frame.contentWindow.__vedrasFrozenGameTest=null;
  assert.equal(readyViewerAt(frame,expected),null,
   'Do not accept the current document until the player API exists');
+});
+test('true median averages middle values for even A/B sample counts',()=>{
+ const {median}=sandbox.window.__suiteTestHooks;
+ assert.equal(median([1,2,10,11]),6);
+ assert.equal(median([11,2,1,10]),6);
+ assert.equal(median([2,5,9]),5);
+ assert.equal(median([Number.NaN,2,4]),3);
+ assert.equal(median([]),null);
 });
 test('missing-tile window is measured from adjacent active frames',()=>{
  const result=readinessWhileMoving({frames:[
