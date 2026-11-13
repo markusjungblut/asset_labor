@@ -297,6 +297,90 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  }
  return record;
 }
+
+function median(values){return percentile(values,.50);}
+function groupSummary(records,controls,id){
+ const runs=records.filter(r=>r.groupId===id&&r.success);
+ const example=runs[0];
+ if(!example)return {groupId:id,qualified:false,status:'OHNE DATEN',issues:['Keine gueltigen Messungen']};
+ const feature=example.feature,scenario=example.scenario;
+ const aa=runs.filter(r=>r.value===0),bb=runs.filter(r=>r.value===1);
+ const issues=[];
+ if(aa.length!==4||bb.length!==4)issues.push('Nicht vier A- und vier B-Wiederholungen');
+ if(runs.some(r=>!r.valid))issues.push('Ungueltige oder unvollstaendige Einzelmessungen');
+ const signal={lodRecency:'lodRecencyEvictions',
+  leadPrefetch:'prefetchLeadingStarts',visibleBorrow:'visibleBorrowStarts',
+  parallelDecode:'parallelTileDecodes'}[feature];
+ const triggers=bb.reduce((total,r)=>total+(r[signal]||0),0);
+ if(triggers===0)issues.push('Wirkmechanismus nicht ausgeloest: '+signal);
+ const conversions=runs.reduce((total,r)=>total+r.derivedConversions,0);
+ if(conversions)issues.push('Persistente 1x/2x-Cacheableitungen im Messintervall: '+conversions);
+ const checkpoints=controls.filter(r=>r.scenario===scenario&&r.success);
+ const drawValues=checkpoints.map(r=>r.p95DrawMs).filter(finite);
+ const rafValues=checkpoints.map(r=>r.p95RafTickMs).filter(finite);
+ const drawDrift=drawValues.length>1?Math.max(...drawValues)-Math.min(...drawValues):null;
+ const rafDrift=rafValues.length>1?Math.max(...rafValues)-Math.min(...rafValues):null;
+ if(rafDrift===null||drawDrift===null)issues.push('Fehlende unabhaengige Kontrollfahrt');
+ if((rafDrift>12&&Math.max(...rafValues)>1.25*Math.min(...rafValues))||
+    (drawDrift>8&&Math.max(...drawValues)>1.25*Math.min(...drawValues)))
+   issues.push('Kontrollfahrten driften: rAF '+rafDrift+' ms, draw '+drawDrift+' ms');
+ const metrics={};
+ for(const key of ['p95RafTickMs','p95DrawMs','p95FrameGapMs','missingDurationMs','longestMissingMs']){
+  const blocks=[];
+  for(const block of [1,2]){
+   const samples=runs.filter(r=>r.block===block);
+   const av=samples.filter(r=>r.value===0).map(r=>r[key]).filter(finite);
+   const bv=samples.filter(r=>r.value===1).map(r=>r[key]).filter(finite);
+   if(av.length===2&&bv.length===2){
+    const a=(av[0]+av[1])/2,b=(bv[0]+bv[1])/2;
+    blocks.push({block,meanA:a,meanB:b,differenceMs:Math.round((b-a)*100)/100,
+     ratio:b/a||null});
+   }
+  }
+  metrics[key]={
+   aMedian:median(aa.map(r=>r[key])),bMedian:median(bb.map(r=>r[key])),
+   blocks};
+ }
+ const raf=metrics.p95RafTickMs;
+ const rafDiff=(raf.bMedian??0)-(raf.aMedian??0);
+ const relative=raf.aMedian>0?rafDiff/raf.aMedian:null;
+ const stable=raf.blocks.length===2&&
+   ((raf.blocks[0].differenceMs>0&&raf.blocks[1].differenceMs>0)||
+    (raf.blocks[0].differenceMs<0&&raf.blocks[1].differenceMs<0));
+ if(!stable)issues.push('Die beiden Crossover-Bloecke zeigen keine einheitliche Richtung');
+ const qualified=issues.length===0;
+ return {groupId:id,feature,scenario,total:runs.length,
+  trigger:signal,triggerCount:triggers,derivedConversions:conversions,
+  checkpointCount:checkpoints.length,controlDrawRangeMs:drawDrift,
+  controlRafRangeMs:rafDrift,metrics,
+  rafRelativeDifference:relative==null?null:Math.round(relative*1000)/1000,
+  qualified,issues,
+  status:!qualified?'NICHT BELASTBAR':Math.abs(relative)<.10?
+   'KEIN REPRODUZIERBARER UNTERSCHIED':'TENDENZ - IN ZWEITER FIREFOX-SITZUNG PRUEFEN'};
+}
+function summarizeSuite(report){
+ const all=report.records||[];
+ const controls=all.filter(r=>r.control);
+ const groupIds=[...new Set(all.map(r=>r.groupId).filter(Boolean))];
+ const comparisons=groupIds.map(id=>groupSummary(all,controls,id));
+ const baselineDrift={};
+ for(const scenario of ['warm','lod','region']){
+  const b=all.filter(r=>r.version==='baseline'&&r.scenario===scenario&&r.success);
+  if(b.length>=2)baselineDrift[scenario]={
+   drawP95First:b[0].p95DrawMs,drawP95Last:b[b.length-1].p95DrawMs,
+   rafP95First:b[0].p95RafTickMs,rafP95Last:b[b.length-1].p95RafTickMs};
+ }
+ return {schema:'vedras-windows-original-map-statistics-v3',
+  releaseDecision:'KEIN AUTOMATISCHER MERGE ODER PERFORMANCE-GO',
+  independence:'Messungen in einer Firefox-Sitzung sind NICHT unabhaengig. Zweite frische Sitzung fuer Freigabebewertung noetig.',
+  method:'4 A + 4 B in gegenlaeufiger ABBA-/BAAB-Reihenfolge, isolierte Flags, Kontrollfahrten, getrennte Wirkungsnachweise',
+  comparisons,qualifiedGroups:comparisons.filter(x=>x.qualified).length,
+  unqualifiedGroups:comparisons.filter(x=>!x.qualified).length,
+  invalidRuns:all.filter(x=>!x.valid).length,
+  baselineDrift,controls:controls.map(r=>({scenario:r.scenario,
+   p95RafTickMs:r.p95RafTickMs,p95DrawMs:r.p95DrawMs,measuredAt:r.measuredAt}))};
+}
+
 function row(r){
  const tr=document.createElement('tr');
  const cells=[r.label,r.p95FrameGapMs,r.p95DrawMs,r.decodeRepeats,r.evictions,
