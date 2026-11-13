@@ -4,10 +4,11 @@
 const $=id=>document.getElementById(id);
 const features=['lodRecency','leadPrefetch','visibleBorrow','parallelDecode'];
 const scenarios=['warm','lod','region'];
-const NAMES={warm:'Warme Fahrt',lod:'1x/2x-Zoomwechsel',region:'Neue Region + Rueckfahrt'};
+const NAMES={warm:'Warme Fahrt',lod:'1x/2x-Zoomwechsel',region:'Neue Region + Rueckfahrt',pressure:'Schnelle Richtungswechsel unter Ladelast'};
 const wait=ms=>new Promise(ok=>setTimeout(ok,ms));
 const nextFrame=()=>new Promise(ok=>requestAnimationFrame(ok));
 const finite=n=>Number.isFinite(n);
+const ALL_FLAGS=['lodRecency','leadPrefetch','visibleBorrow','parallelDecode'];
 let running=false,cancelled=false,latest=null;
 function status(message){$('status').textContent=message;}
 function percentile(values,p){
@@ -24,8 +25,12 @@ async function load(scene,feature,value,version=''){
  url.searchParams.set('scene',scene);
  url.searchParams.set('lod','near');
  url.searchParams.set('perf','1');
- url.searchParams.set('parallelDecode','0');
- if(feature!==null)url.searchParams.set(feature,String(value));
+ // Isolated A/B: the candidate starts with all four tested flags OFF.
+ // The separate "production" smoke test deliberately uses shipped defaults.
+ const isolated=(version==='candidate'||(!version&&feature!==null))&&feature!=='production';
+ if(isolated)for(const key of ALL_FLAGS)url.searchParams.set(key,'0');
+ else url.searchParams.set('parallelDecode','0');
+ if(feature!==null&&feature!=='production')url.searchParams.set(feature,String(value));
  $('game').src=url.href;
  const until=performance.now()+35000;
  while(performance.now()<until){
@@ -117,6 +122,19 @@ function route(base,scenario,tiles){
   interpolate(second,first,32);
   interpolate(first,begin,36);
   interpolate(begin,back,9);
+ }else if(scenario==='pressure'){
+  // Strong read contention while panning between widely separated stored tiles.
+  // No synthetic tiles or permission changes. A and B share exact poses.
+  const ranked=tiles.map(t=>({tile:t,d:(t.x-origin.x)**2+(t.y-origin.y)**2}))
+   .sort((a,b)=>b.d-a.d).map(e=>e.tile);
+  const points=[],stride=Math.max(1,Math.floor(ranked.length/12));
+  for(let i=0;i<ranked.length&&points.length<12;i+=stride)points.push(ranked[i]);
+  for(let lap=0;lap<3;lap++){
+   const order=lap%2?points.slice().reverse():points;
+   for(const t of order){p(t.x,t.y,.92,2);p(t.x,t.y,.92,2);}
+  }
+  for(let i=0;i<10;i++)p(origin.x,origin.y,.92,2);
+  p(origin.x,origin.y,z0,base.dpr||1.25);
  }else{throw Error('Unbekannte Route');}
  return {poses,origin,far,other};
 }
@@ -150,41 +168,98 @@ async function drive(a,poses){
   last=now;
  }
  for(let i=0;i<3;i++)await nextFrame();
- return {p95RafTickMs:percentile(ticks,.95),samples:ticks.length};
+ return {p95RafTickMs:percentile(ticks,.95),p50RafTickMs:percentile(ticks,.50),p99RafTickMs:percentile(ticks,.99),maxRafTickMs:ticks.length?Math.max(...ticks):null,rafOver50:ticks.filter(t=>t>50).length,rafOver100:ticks.filter(t=>t>100).length,samples:ticks.length};
 }
+
+function readinessWhileMoving(report){
+ const frames=(report.frames||[]).filter(f=>f.active&&f.visibleTiles>0);
+ let missingFrames=0,missingDurationMs=0,longestMissingMs=0,streak=0,peakMissingTiles=0;
+ for(let i=0;i<frames.length;i++){
+  const missing=Math.max(0,frames[i].visibleTiles-(frames[i].visibleReadyTiles||0));
+  peakMissingTiles=Math.max(peakMissingTiles,missing);
+  const dt=i+1<frames.length?Math.min(250,Math.max(0,frames[i+1].tMs-frames[i].tMs)):0;
+  if(missing){missingFrames++;missingDurationMs+=dt;streak+=dt;longestMissingMs=Math.max(longestMissingMs,streak);}
+  else streak=0;
+ }
+ return {observedFrames:frames.length,missingFrames,
+  missingFraction:frames.length?missingFrames/frames.length:null,
+  missingDurationMs:Math.round(missingDurationMs),
+  longestMissingMs:Math.round(longestMissingMs),peakMissingTiles};
+}
+
 function delta(a,b,key){return Math.max(0,(b[key]||0)-(a[key]||0));}
-async function measure(scene,feature,value,scenario,label,tiles,version=''){
+async function measure(scene,feature,value,scenario,label,tiles,version='',extras={}){
  const a=await load(scene,feature,value,version);
- if(feature!==null){
-  const key={leadPrefetch:'directionalPrefetch',lodRecency:'lodRecency',
-   visibleBorrow:'visibleBorrow',parallelDecode:'parallelLayerDecode'}[feature];
-  if(a.stats()[key]!==Boolean(value))
-   throw Error('Schalter '+feature+' nicht aktivierbar (erwartet '+value+'). Richtigen Kandidatenserver pruefen.');
+ if(feature!==null&&feature!=='production'){
+  const mapping={leadPrefetch:'directionalPrefetch',lodRecency:'lodRecency',
+   visibleBorrow:'visibleBorrow',parallelDecode:'parallelLayerDecode'};
+  const actual=a.stats();
+  for(const key of ALL_FLAGS){
+   const expected=key===feature?Boolean(value):false;
+   if(actual[mapping[key]]!==expected)
+    throw Error('Schalter nicht isoliert: '+key+', erwartet '+Number(expected));
+  }
+ }
+ if(extras.control&&version==='candidate'){
+  const st=a.stats();
+  if(st.lodRecency||st.directionalPrefetch||st.visibleBorrow||st.parallelLayerDecode)
+   throw Error('Kontrolle: Nicht alle vier Flags deaktiviert');
  }
  const base=a.pose();
  if(!base)throw Error('Keine Startkamera');
  const routeInfo=route(base,scenario,tiles);
  const startReady=await settle(a);
  if(!startReady.ok)throw Error('Startansicht unvollstaendig: '+startReady.ready+'/'+startReady.visible);
+ if(scenario==='warm'){
+  // Warm means warm: traverse once without recording, return and settle.
+  await drive(a,routeInfo.poses);
+  a.testPan(base);
+  const preheated=await settle(a);
+  if(!preheated.ok)throw Error('Warme Vorfahrt unvollstaendig');
+ }
+ await wait(200);
  a.profileReset();
  const before=a.stats();
+ const derivedBefore={one:a.derived1x?.().converted||0,two:a.derived2x?.().converted||0};
  const start=performance.now();
  const ticks=await drive(a,routeInfo.poses);
  const movingReport=a.profileReport();
+ const moveStats=a.stats();
  const endReady=await settle(a);
  const after=a.stats();
  const r=movingReport;
+ const readiness=readinessWhileMoving(r);
+ const derivedConversions=Math.max(0,(a.derived1x?.().converted||0)-derivedBefore.one)+
+  Math.max(0,(a.derived2x?.().converted||0)-derivedBefore.two);
+ const validityIssues=[];
+ if(r.frameCounts?.active<Math.min(24,routeInfo.poses.length*.4))validityIssues.push('Zu wenige aktive Frames');
+ if(ticks.samples<Math.min(20,routeInfo.poses.length*.4))validityIssues.push('Zu wenige rAF-Ticks');
+ if((r.sampleLimit?.droppedFrames||0)>0||(r.sampleLimit?.droppedTiles||0)>0)
+  validityIssues.push('Samplelimit erreicht');
+ if(!endReady.ok)validityIssues.push('Rueckkehransicht nicht geladen');
+ if(delta(before,after,'failures'))validityIssues.push('Kachel-Ladefehler');
+ if(scenario==='lod'&&delta(before,moveStats,'lodSwitches')<4)
+  validityIssues.push('Weniger als vier LOD-Wechsel');
+ if(['region','pressure'].includes(scenario)&&delta(before,moveStats,'visibleReadStarts')<5)
+  validityIssues.push('Neue Region nicht geladen (weniger als fuenf sichtbare Reads)');
  const variantCounts={};
  for(const f of r.frames||[]){
   if(f.activeVariant)variantCounts[f.activeVariant]=(variantCounts[f.activeVariant]||0)+1;
  }
  const record={
-  label,feature,value,scenario,success:true,
+  label,feature,value,scenario,version,
+  groupId:extras.groupId||null,block:extras.block||null,control:!!extras.control,
+  production:feature==='production',success:true,
+  valid:validityIssues.length===0,validityIssues,readiness,derivedConversions,
+  missingDurationMs:readiness.missingDurationMs,longestMissingMs:readiness.longestMissingMs,
   measuredAt:new Date().toISOString(),
   frameSamples:r.frameCounts?.active??0,
   p95FrameGapMs:r.phasesMs?.frameGapMs?.p95??null,
   p95DrawMs:r.phasesMs?.drawMs?.p95??null,
-  p95RafTickMs:ticks.p95RafTickMs,rafTickSamples:ticks.samples,
+  p95RafTickMs:ticks.p95RafTickMs,p50RafTickMs:ticks.p50RafTickMs,
+  p99RafTickMs:ticks.p99RafTickMs,maxRafTickMs:ticks.maxRafTickMs,
+  rafOver50:ticks.rafOver50,rafOver100:ticks.rafOver100,
+  rafTickSamples:ticks.samples,
   p95WorldBlitMs:r.phasesMs?.worldBlitMs?.p95??null,
   p95CloudMs:r.phasesMs?.cloudMs?.p95??null,
   decodeRepeats:delta(before,after,'decodeRepeats'),
@@ -192,12 +267,15 @@ async function measure(scene,feature,value,scenario,label,tiles,version=''){
   visibleReadStarts:delta(before,after,'visibleReadStarts'),
   prefetchReadStarts:delta(before,after,'prefetchReadStarts'),
   lodSwitches:delta(before,after,'lodSwitches'),
+  lodRecencyEvictions:delta(before,after,'lodRecencyEvictions'),
   visibleBorrowStarts:delta(before,after,'visibleBorrowStarts'),
   prefetchLeadingStarts:delta(before,after,'prefetchLeadingStarts'),
   parallelTileDecodes:delta(before,after,'parallelTileDecodes'),
+  parallelDecodeFailures:delta(before,after,'parallelDecodeFailures'),
   failures:delta(before,after,'failures')+delta(before,after,'parallelDecodeFailures'),
   decodedBefore:before.decoded,decodedAfter:after.decoded,
   decodedPixelsBefore:before.decodedPixels,decodedPixelsAfter:after.decodedPixels,
+  maxDecodedPixels:after.maxDecodedPixels,peakInFlight:after.peakInFlight,
   variantCounts,ready:endReady,startReady,
   droppedFrames:r.sampleLimit?.droppedFrames??0,
   droppedTiles:r.sampleLimit?.droppedTiles??0,
@@ -214,6 +292,9 @@ async function measure(scene,feature,value,scenario,label,tiles,version=''){
   },
   raw:r
  };
+ if(scenario==='lod'&&!record.coverage.bothLods){
+  record.valid=false;record.validityIssues.push('1x/2x-Variantenabdeckung fehlt');
+ }
  return record;
 }
 function row(r){
