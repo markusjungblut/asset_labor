@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vedras Reiche – Windows-Renderer-Abnahme</title>
+<style>
+:root{font:15px system-ui,Segoe UI,sans-serif;color-scheme:dark}
+body{max-width:1180px;margin:24px auto;padding:0 18px;background:#13212a;color:#e5eee9}
+h1{font-size:1.4rem}p{color:#bdd0c8;line-height:1.5}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+label{display:grid;gap:4px;font-size:.87rem}input,select,button{padding:9px;border:1px solid #687e77;background:#233a41;color:inherit;border-radius:5px}
+button{cursor:pointer}button:disabled{opacity:.45;cursor:default}
+#status{margin:14px 0;min-height:22px;white-space:pre-wrap}
+#game{width:100%;height:530px;border:1px solid #506b65;background:#9ea9a4}
+table{border-collapse:collapse;width:100%;font-size:.84rem;margin:14px 0}th,td{border-bottom:1px solid #53635d;text-align:left;padding:8px}
+small{color:#abc0b6}code{color:#d0e8d5}
+</style>
+</head>
+<body>
+<h1>Vedras Reiche – Originalkarten-Renderer testen</h1>
+<p>Dieser Runner verwendet den vorhandenen Frozen-Viewer in einem eingebetteten Frame. Keine Terrain-Bakes, keine Löschung von IndexedDB oder lokalen Karten. Daten bleiben im Browser, bis du sie ausdrücklich als JSON exportierst.</p>
+<div class="controls">
+<label>Kartenkennung <input id="scene" value="v1-0374527a" pattern="v1-[0-9a-f]{8}"></label>
+<label>Modus <select id="mode"><option value="baseline">Baseline / Standard</option><option value="abba">Kandidat – A/B/B/A</option></select></label>
+<label>Optimierung <select id="feature"><option value="lodRecency">25T · LOD-Cache</option><option value="leadPrefetch">25S · gerichtetes Vorladen</option><option value="visibleBorrow">25U · sichtbare Lesepriorität</option><option value="parallelDecode">25X · parallele Dekodierung</option></select></label>
+<label>Fahrt <select id="scenario"><option value="warm">Warme Kamerafahrt</option><option value="lod">1×/2× Zoomwechsel</option><option value="region">Neue Region und Rückfahrt</option></select></label>
+<button id="start">Test ausführen</button>
+<button id="download" disabled>Ergebnis-JSON speichern</button>
+</div>
+<p><small>Baseline zuerst auf dem <code>main</code>-Server; dann Server stoppen, Kandidaten-Server starten und den gleichen Test mit A/B/B/A ausführen. Immer dasselbe Firefox-Profil und <code>127.0.0.1:8780</code> verwenden. Karte und Sichtrechte vor dem Vergleich kontrollieren.</small></p>
+<div id="status" role="status">Bereit. Ein Test führt ausschließlich Lesezugriffe auf die vorberechnete Spielkarte aus. Bereits gespeicherte 1×-/2×-Ableitungen können vom Viewer bei Bedarf ergänzt werden.</div>
+<table><thead><tr><th>Lauf</th><th>FrameGap p95</th><th>Draw p95</th><th>Re-Decodes</th><th>Evictions</th><th>sichtbare Reads</th><th>Fehler</th><th>sichtbar bereit</th></tr></thead><tbody id="results"></tbody></table>
+<iframe id="game" title="Originalkarten-Viewer" src="about:blank"></iframe>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const fields=["scene","mode","feature","scenario"];
+let data=null,running=false;
+function state(msg){$("status").textContent=msg;}
+function download(){
+ if(!data)return;
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const a=document.createElement("a"),url=URL.createObjectURL(blob);
+ a.href=url;a.download="vedras_windows_"+data.mode+"_"+data.scenario+"_"+data.feature+"_"+Date.now()+".json";
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+function api(){
+ try{return $("game").contentWindow.__vedrasFrozenGameTest||null;}catch(_){return null;}
+}
+async function waitApi(timeoutMs=30000){
+ const end=Date.now()+timeoutMs;
+ while(Date.now()<end){
+  const a=api();
+  if(a&&a.readOnly&&a.stats().saved>0)return a;
+  await sleep(140);
+ }
+ throw Error("Karte nicht verfügbar: Szene/near-LOD, Firefox-Profil und Origin prüfen. Nicht neu backen.");
+}
+async function load(scene,feature,value){
+ $("game").src="about:blank";
+ await sleep(80);
+ const url=new URL("frozen-map-game.html",location.href);
+ url.searchParams.set("scene",scene);url.searchParams.set("lod","near");
+ url.searchParams.set("perf","1");
+ url.searchParams.set("parallelDecode","0");
+ if(feature)url.searchParams.set(feature,String(value));
+ $("game").src=url.href;
+ return await waitApi();
+}
+function route(base,scenario){
+ const p=(dx,dy,z)=>({panX:base.panX+dx,panY:base.panY+dy,zoom:z??base.zoom});
+ if(scenario==="lod"){
+  const out=[];for(let i=0;i<6;i++)out.push(p(0,0,i%2===0?.50:.85));
+  out.push(p(0,0,base.zoom));return out;
+ }
+ if(scenario==="region")return [
+  p(-190,-65),p(-390,-150),p(-650,-230),p(-840,-280),
+  p(-650,-230),p(-390,-150),p(-190,-65),p(0,0)
+ ];
+ const out=[];
+ for(let i=0;i<18;i++)out.push(p(-i*34,-Math.sin(i/4)*90));
+ for(let i=17;i>=0;i--)out.push(p(-i*34,-Math.sin(i/4)*90));
+ return out;
+}
+async function drive(a,poses,delayMs){
+ for(const pose of poses){
+  if(a.testPan?.(pose)!==true)throw Error("Diagnose-Kamerafahrt nicht verfügbar. perf=1 erforderlich.");
+  await sleep(delayMs);
+ }
+}
+function latestVisibility(report){
+ const fs=report.frames||[];
+ for(let i=fs.length-1;i>=0;i--){
+  if(fs[i].visibleTiles>0)return {visible:fs[i].visibleTiles,ready:fs[i].visibleReadyTiles};
+ }
+ return null;
+}
+async function settle(a,maxMs=8000){
+ const end=Date.now()+maxMs;
+ let visibility=null;
+ while(Date.now()<end){
+  a.forceRedraw();
+  await sleep(140);
+  const report=a.profileReport();
+  visibility=latestVisibility(report);
+  if(visibility&&visibility.ready===visibility.visible)return {ok:true,...visibility};
+ }
+ return {ok:false,...(visibility||{visible:0,ready:0})};
+}
+function metric(r,key){return r.phasesMs?.[key]?.p95??null;}
+async function measure(scene,feature,value,scenario,label){
+ state("Lade "+label+" auf der echten lokalen Karte …");
+ const a=await load(scene,feature,value);
+ const initial=a.pose();
+ if(!initial)throw Error("Keine gültige Startkamera.");
+ const poses=route(initial,scenario);
+ const entry=await settle(a);
+ if(!entry.ok)throw Error("Startansicht nicht vollständig geladen (sichtbar "+entry.ready+"/"+entry.visible+"). Bitte Kartenbestand und Fog prüfen.");
+ if(scenario!=="region"){
+  state("Wärme identische "+scenario+"-Route für "+label+" vor …");
+  await drive(a,poses,scenario==="lod"?190:55);
+  await settle(a);
+  a.testPan(initial);
+  await sleep(500);
+  await settle(a);
+ }
+ a.profileReset();
+ const before=a.stats();
+ state("Messe "+label+": "+scenario+". Tab im Vordergrund lassen …");
+ await drive(a,poses,scenario==="lod"?220:40);
+ const complete=await settle(a);
+ const report=a.profileReport(),after=a.stats();
+ const delta=key=>Math.max(0,(after[key]||0)-(before[key]||0));
+ const record={
+  label,feature,value,scenario,
+  p95FrameGapMs:metric(report,"frameGapMs"),p95DrawMs:metric(report,"drawMs"),
+  decodeRepeats:delta("decodeRepeats"),evictions:delta("evictions"),
+  visibleReadStarts:delta("visibleReadStarts"),failures:delta("failures"),
+  ready:complete,frameSamples:report.frameCounts?.active??0,
+  droppedFrames:report.sampleLimit?.droppedFrames??0,
+  droppedTiles:report.sampleLimit?.droppedTiles??0,
+  derived1xBefore:before.decoded1x,derived2xBefore:before.decoded2x,
+  raw:report
+ };
+ const tr=document.createElement("tr");
+ for(const v of [label,record.p95FrameGapMs,record.p95DrawMs,record.decodeRepeats,
+  record.evictions,record.visibleReadStarts,record.failures,
+  String(complete.ready)+"/"+String(complete.visible)]){
+  const td=document.createElement("td");td.textContent=v==null?"–":String(v);tr.appendChild(td);
+ }
+ $("results").appendChild(tr);
+ return record;
+}
+$("download").addEventListener("click",download);
+$("start").addEventListener("click",async()=>{
+ if(running)return;
+ const opts=Object.fromEntries(fields.map(k=>[k,$(k).value]));
+ if(!/^v1-[0-9a-f]{8}$/.test(opts.scene)){state("Ungültige Kartenkennung.");return;}
+ running=true;data=null;$("download").disabled=true;$("start").disabled=true;
+ fields.forEach(k=>$(k).disabled=true);$("results").textContent="";
+ try{
+  const sequence=opts.mode==="abba"?[0,1,1,0]:[null];
+  const records=[];
+  for(let i=0;i<sequence.length;i++){
+   const value=sequence[i],label=opts.mode==="abba"?("Lauf "+(i+1)+" "+(value?"B":"A")):"Baseline";
+   records.push(await measure(opts.scene,opts.mode==="abba"?opts.feature:null,
+    value,opts.scenario,label));
+  }
+  data={schema:"vedras-windows-original-map-abba-v1",at:new Date().toISOString(),...opts,
+   sequence,records};
+  $("download").disabled=false;
+  state("Fertig: "+records.length+" Fahrten. JSON lokal speichern und mit dem Referenzlauf vergleichen. Keine automatische Mergefreigabe.");
+ }catch(err){
+  state("ABGEBROCHEN: "+String(err.message||err)+". Keine automatische Reparatur oder Storage-Löschung.");
+ }finally{
+  running=false;$("start").disabled=false;fields.forEach(k=>$(k).disabled=false);
+ }
+});
+})();
+</script>
+</body></html>
