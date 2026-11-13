@@ -2,7 +2,7 @@
 # No reset/clean/stash/rebase/checkout in the original working tree.
 [CmdletBinding()]
 param(
- [ValidateSet('Prepare','Baseline','Candidate','Node')]
+ [ValidateSet('Prepare','Baseline','Candidate','All','Node')]
  [string]$Action='Prepare',
  [string]$RepoPath="$HOME\Desktop\asset_labor",
  [switch]$NoFetch
@@ -69,6 +69,7 @@ if ($Action -eq 'Prepare') {
  Write-Host "Zwei isolierte Worktrees erstellt. Ergebnisse: $logs" -ForegroundColor Green
  Write-Host ('Baseline:  .\tests\windows\prepare-original-map.ps1 -Action Baseline -RepoPath "' + $root + '"')
  Write-Host ('Kandidat:  .\tests\windows\prepare-original-map.ps1 -Action Candidate -RepoPath "' + $root + '"')
+ Write-Host ('Alle Tests: .\tests\windows\prepare-original-map.ps1 -Action All -RepoPath "' + $root + '"')
  Write-Host ('Node:      .\tests\windows\prepare-original-map.ps1 -Action Node -RepoPath "' + $root + '"')
  Write-Host "Browser:   http://127.0.0.1:8780/renderer-original-map.html"
  Write-Warning 'Untracked-Dateien wurden NUR aufgelistet, nicht gesichert. Originalprofil/IndexedDB/ZIP unverändert lassen.'
@@ -85,6 +86,41 @@ if ($Action -eq 'Node') {
  Write-Host "Node-Regression: $($tests.Count) Testdateien"
  & node --test @tests
  Require-Success 'Node-Regression'
+ return
+}
+if ($Action -eq 'All') {
+ # Serve both isolated versions at a single exact localhost origin.
+ # Only static GET/HEAD requests; the original working tree stays untouched.
+ foreach ($dir in @($baseline,$candidate)) {
+  if (-not (Test-Path -LiteralPath (Join-Path $dir 'frozen-map-game.html') -PathType Leaf)) {
+   throw "Isolierter Test-Worktree fehlt oder ist unvollstaendig: $dir. Zuerst -Action Prepare."
+  }
+ }
+ $suiteServer=Join-Path $PSScriptRoot 'serve-original-map-suite.py'
+ if (-not (Test-Path -LiteralPath $suiteServer -PathType Leaf)) {
+  throw "Gesamtserver fehlt: $suiteServer. Testzweig PR #139 aktualisieren."
+ }
+ if (-not (Get-Command py -ErrorAction SilentlyContinue) -and
+     -not (Get-Command python -ErrorAction SilentlyContinue)) {
+  throw 'Python 3 fehlt.'
+ }
+ $socket=[System.Net.Sockets.TcpClient]::new()
+ try {
+  try {
+   $socket.Connect('127.0.0.1',$port)
+   throw "Port $port ist belegt. Alten Server zuerst mit Strg+C beenden."
+  } catch [System.Net.Sockets.SocketException] {
+   # Connection refused: port is free.
+  }
+ } finally { $socket.Dispose() }
+ Write-Host "Ein-Klick-Gesamttest: Baseline + Kandidat, gleiche Firefox-Origin" -ForegroundColor Green
+ Write-Host "Im bisherigen Firefox-Profil: http://127.0.0.1:$port/renderer-original-map.html"
+ Write-Host 'In der Browserseite: Alle Tests automatisch (1 Klick). Nach dem Export Strg+C.'
+ if (Get-Command py -ErrorAction SilentlyContinue) {
+  & py -3 $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot --port $port
+ } else {
+  & python $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot --port $port
+ }
  return
 }
 $target=if ($Action -eq 'Baseline') {$baseline} else {$candidate}
