@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -132,6 +132,25 @@ test('rejects hardware time drift',()=>{
  const r=groupSummary(group(),controls(95),'parallelDecode/region');
  assert.equal(r.qualified,false);
  assert.match(r.issues.join(' '),/driften/);
+});
+test('rejects a feature activated only once in four B runs',()=>{
+ const onlyOne=group().map((r,i)=>({...r,parallelTileDecodes:i===1?3:0}));
+ const r=groupSummary(onlyOne,controls(),'parallelDecode/region');
+ assert.equal(r.qualified,false);
+ assert.equal(r.triggeredBRuns,1);
+ assert.ok(r.issues.join(' ').includes('nur in 1/4 B-Laeufen'));
+});
+test('stops only severe repeated control drift, not mild variation',()=>{
+ const {severeControlDrift}=sandbox.window.__suiteTestHooks;
+ const example=(raf,draw)=>({control:true,scenario:'region',valid:true,success:true,
+  p95RafTickMs:raf,p95DrawMs:draw});
+ const stable=[example(148,90),example(142,94),example(150,88)];
+ assert.equal(severeControlDrift(stable,stable[2]),null);
+ const drifting=[example(148,144),example(107,79),example(256,74)];
+ const problem=severeControlDrift(drifting,drifting[2]);
+ assert.ok(problem);
+ assert.equal(problem.metric,'p95RafTickMs');
+ assert.equal(problem.absoluteDriftMs,149);
 });
 test('rejects mismatched A/B initial RAM',()=>{
  const data=group().map(r=>r.value?{...r,decodedPixelsBefore:46_000_000}:r);
