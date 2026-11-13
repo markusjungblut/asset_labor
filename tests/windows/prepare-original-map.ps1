@@ -89,6 +89,18 @@ if ($Action -eq 'Node') {
  return
 }
 if ($Action -eq 'All') {
+ # Self-test the browser benchmark's pure helpers before any expensive
+ # Windows original-map measurements (no access to image/IndexedDB files).
+ $suiteTest=Join-Path $PSScriptRoot 'test-original-map-suite-v3.cjs'
+ if (-not (Test-Path -LiteralPath $suiteTest -PathType Leaf)) {
+  throw "Suite-Selbsttest fehlt: $suiteTest. Bitte PR #139 aktualisieren."
+ }
+ if (Get-Command node -ErrorAction SilentlyContinue) {
+  & node --test $suiteTest
+  Require-Success 'Renderer-Suite v3 Selbsttests'
+ } else {
+  Write-Warning 'Node nicht vorhanden. Suite-Selbsttests nicht automatisch ausgefuehrt.'
+ }
  # Serve both isolated versions at a single exact localhost origin.
  # Only static GET/HEAD requests; the original working tree stays untouched.
  foreach ($dir in @($baseline,$candidate)) {
