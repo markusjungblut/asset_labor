@@ -399,7 +399,7 @@ function exportJson(){
  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function lock(on){
- const ids=['start','startAll','scene','mode','feature','scenario'];
+ const ids=['start','startAll','scene','mode','feature','scenario','runOrder'];
  for(const id of ids){const e=$(id);if(e)e.disabled=on;}
  $('stopAll').disabled=!on;
 }
@@ -409,6 +409,85 @@ async function combinedAvailable(){
   return response.ok&&(await response.text()).trim()==='combined-v1';
  }catch(_){return false;}
 }
+
+async function primeDerivedCache(scene,version,tiles){
+ const a=await load(scene,version==='candidate'?'production':null,null,version);
+ const start=a.pose();
+ if(!start)throw Error('Preflight: Kamera nicht verfuegbar');
+ const check=await settle(a);
+ if(!check.ok)throw Error('Preflight: Startkarte unvollstaendig');
+ const before={one:a.derived1x?.().converted||0,two:a.derived2x?.().converted||0};
+ for(const scenario of ['lod','region']){
+  const poses=route(start,scenario,tiles).poses;
+  await drive(a,poses);
+  const ok=await settle(a,15000);
+  if(!ok.ok)throw Error('Preflight '+scenario+' nicht vollstaendig');
+  a.testPan(start);
+  await settle(a,12000);
+ }
+ return {version,derived1xNew:(a.derived1x?.().converted||0)-before.one,
+  derived2xNew:(a.derived2x?.().converted||0)-before.two};
+}
+function makeTasks(order){
+ const tasks=[];
+ // Bracket the entire candidate campaign with same-version main control
+ // at the beginning and end to reveal overall runtime drift.
+ for(const scenario of ['warm','lod','region']){
+  tasks.push({kind:'baseline',version:'baseline',feature:null,value:null,scenario,
+   label:'Baseline Anfang / '+NAMES[scenario]});
+ }
+ const scenarioOrder=['region','lod','warm','pressure'];
+ for(const scenario of scenarioOrder){
+  const candidates=scenario==='pressure'?['visibleBorrow']:
+   ALL_FLAGS.slice().map((_,i)=>ALL_FLAGS[(i+scenarioOrder.indexOf(scenario))%4]);
+  if(order==='reverse')candidates.reverse();
+  function checkpoint(marker){
+   tasks.push({kind:'control',version:'candidate',feature:null,value:null,scenario,
+    control:true,label:'Kontrolle / '+NAMES[scenario]+' / '+marker});
+  }
+  checkpoint('Start');
+  for(let i=0;i<candidates.length;i++){
+   const feature=candidates[i],groupId=feature+'/'+scenario;
+   for(const block of [1,2]){
+    const sequence=block===1?[0,1,1,0]:[1,0,0,1];
+    for(let j=0;j<sequence.length;j++){
+     const value=sequence[j];
+     tasks.push({kind:'feature',version:'candidate',feature,value,scenario,
+      groupId,block,order:j+1,
+      label:feature+' / '+NAMES[scenario]+' / Block '+block+' '+(value?'B':'A')+(j+1)});
+    }
+   }
+   if(i===1&&candidates.length>2)checkpoint('Mitte');
+  }
+  checkpoint('Ende');
+ }
+ for(const scenario of ['warm','lod','region']){
+  tasks.push({kind:'baseline',version:'baseline',feature:null,value:null,scenario,
+   label:'Baseline Ende / '+NAMES[scenario]});
+ }
+ for(const scenario of ['warm','lod','region']){
+  tasks.push({kind:'production',version:'candidate',feature:'production',value:null,scenario,
+   label:'Produktiv-Konfiguration / '+NAMES[scenario]});
+ }
+ return tasks;
+}
+function addComparisonRows(summary){
+ const target=$('comparisons');
+ if(!target)return;
+ target.textContent='';
+ for(const c of summary.comparisons){
+  const tr=document.createElement('tr');
+  for(const value of [c.feature,c.scenario,
+   c.metrics?.p95RafTickMs?.aMedian,c.metrics?.p95RafTickMs?.bMedian,
+   c.triggerCount,c.status]){
+   const td=document.createElement('td');
+   td.textContent=value==null?'–':String(value);
+   tr.appendChild(td);
+  }
+  if(!c.qualified)tr.style.background='#40342f';
+  target.appendChild(tr);
+ }
+}
 async function suite(){
  if(running)return;
  const scene=$('scene').value.trim();
@@ -416,73 +495,96 @@ async function suite(){
  running=true;cancelled=false;latest=null;lock(true);
  $('downloadAll').disabled=true;
  $('results').textContent='';
- let records=[],errors=[];
+ if($('comparisons'))$('comparisons').textContent='';
+ let records=[],errors=[],tasks=[],attempted=0,prime=[];
  const started=new Date().toISOString();
- let mode='unknown',run=0,total=0;
  try{
-  status('Pruefe Originalkarte und lese nur Kachelkoordinaten …');
   const combined=await combinedAvailable();
-  const probe=await load(scene,null,null,combined?'baseline':'');
-  const stats=probe.stats();
-  mode=combined?'combined':
-   Object.prototype.hasOwnProperty.call(stats,'lodRecency')?'candidate':'baseline';
-  if(combined&&Object.prototype.hasOwnProperty.call(stats,'lodRecency'))
-   throw Error('Kombi-Baseline scheint keine main-Version zu sein. Vergleich abgebrochen.');
+  if(!combined)throw Error('Fuer belastbare A/B-Messungen nur den kombinierten Read-only-Server (-Action All) verwenden.');
+  status('Pruefe main und Kandidat, Kartenkennung und lokale Kachelschluessel …');
+  const probe=await load(scene,null,null,'baseline');
+  if('lodRecency' in probe.stats())throw Error('Baseline ist nicht main. Vergleich ungueltig.');
+  const candidateProbe=await load(scene,'lodRecency',0,'candidate');
+  if(!('lodRecency' in candidateProbe.stats()))throw Error('Kandidat ohne Test-Flags. Vergleich ungueltig.');
   const tiles=await tileCenters(scene);
-  const tasks=[];
-  if(mode==='baseline'||mode==='combined'){
-   for(const scenario of scenarios)
-    tasks.push({version:combined?'baseline':'',feature:null,value:null,scenario,
-     label:'Baseline / '+NAMES[scenario]});
-  }
-  if(mode==='candidate'||mode==='combined'){
-   for(const feature of features)for(const scenario of scenarios)
-    for(const value of [0,1,1,0])
-     tasks.push({version:combined?'candidate':'',feature,value,scenario,
-      label:'Kandidat / '+feature+' / '+NAMES[scenario]+' / '+(value?'B':'A')});
-  }
-  total=tasks.length;
-  latest={schema:'vedras-windows-original-map-full-suite-v2',at:started,scene,mode,
-   browser:navigator.userAgent,origin:location.origin,
-   plan:mode==='combined'?'3 Baseline-Routen + 4 Features x 3 Routen x A/B/B/A = 51 Laeufe':
-    mode==='candidate'?'4 Features x 3 Routen x A/B/B/A = 48 Laeufe':'3 Referenzrouten',
-   persistedCacheCaveat:'A/B/B/A laedt iframe-Speicher neu, loescht jedoch keinerlei persistente 1x/2x-Ableitungen. Spaetere Laeufe koennen vom Warm-Cache profitieren.',
-   fpsCaveat:'frameGapMs und RAF-Ticks sind keine GPU-Present-FPS.',
-   tilesIndexed:tiles.length,records,errors,completed:false};
+  const order=$('runOrder')?.value==='reverse'?'reverse':'standard';
+  tasks=makeTasks(order);
+  latest={
+   schema:'vedras-windows-original-map-full-suite-v3',
+   at:started,scene,mode:'combined',order,browser:navigator.userAgent,
+   origin:location.origin,plan:tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
+   methodologicalNotes:[
+    'A/B: alle vier Feature-Flags deaktiviert; nur das untersuchte Feature ist im B-Lauf aktiviert.',
+    'ABBA + BAAB: vier A- und vier B-Messungen pro Feature und Route; jeweils neue JS-RAM-Karte im iframe.',
+    'Persistent gespeicherte abgeleitete 1x/2x-Bilder werden vorgewaermt und nie geloescht. Das ist KEIN echter disk-cold-Vergleich.',
+    'Kontrollfahrten dienen zur Drift-Erkennung. Ein einziges Firefox-Session-Ergebnis erlaubt keine endgueltige Freigabe.',
+    'Nur Renderer/JS- und rAF-Zeitmessungen; keine GPU-Present-FPS oder physische End-to-End-Latenz.',
+    'Beobachtete Sichtbarkeitsluecken werden aus aktiven Frames abgeleitet; zwischen Frames koennen ungesehene Laecken liegen.'
+   ],
+   tasksPlanned:tasks.length,tilesIndexed:tiles.length,
+   records,errors,preflight:prime,completed:false,
+   environment:{hardwareConcurrency:navigator.hardwareConcurrency||null,
+    deviceMemory:navigator.deviceMemory??null,
+    viewport:{width:window.innerWidth,height:window.innerHeight},
+    userAgent:navigator.userAgent}
+  };
   window.__vedrasWindowsSuiteLatest=latest;
+  // Normalize persistent derived image state without touching original PNGs.
+  for(const version of ['baseline','candidate']){
+   if(cancelled)break;
+   status('Vorbereitung: gespeicherte 1x/2x-Ableitungen fuer '+version+' angleichen …');
+   prime.push(await primeDerivedCache(scene,version,tiles));
+  }
   for(const task of tasks){
    if(cancelled)break;
-   run++;
-   status('Automatischer Lauf '+run+'/'+total+': '+task.label+'. Firefox-Tab im Vordergrund lassen. Keine Bilddaten werden hochgeladen.');
+   attempted++;
+   status('Vergleich '+attempted+'/'+tasks.length+': '+task.label+
+    '. Firefox aktiv lassen. Kontrollfahrten markieren Drift.');
    try{
-    const result=await measure(scene,task.feature,task.value,task.scenario,task.label,tiles,task.version);
+    const result=await measure(scene,task.feature,task.value,task.scenario,
+     task.label,tiles,task.version,task);
     records.push(result);row(result);
-   }catch(e){
-    const msg=String(e?.message||e);
-    errors.push({run,...task,error:msg});
-    const failure={...task,success:false,p95FrameGapMs:null,p95DrawMs:null,error:msg};
-    row(failure);
-    if(cancelled||/Originalkarte nicht erreichbar|Startansicht unvollstaendig/.test(msg))break;
+   }catch(error){
+    const msg=String(error?.message||error);
+    errors.push({run:attempted,...task,error:msg});
+    row({...task,success:false,error:msg});
+    // A one-off route error remains in the report; systemic failure stops.
+    if(cancelled||/nicht erreichbar|Startansicht unvollstaendig|nicht isoliert|Kontrolle:|Schalter|Kandidat ohne|nicht main/.test(msg))
+     break;
    }
+   // Let the browser process detached canvases and asynchronous tasks
+   // before allocating the next iframe; do not call explicit GC APIs.
+   $('game').src='about:blank';
+   await wait(600);
   }
-  latest.completed=!cancelled&&run===total&&errors.length===0;
-  latest.finishedAt=new Date().toISOString();
+  latest.attemptedRuns=attempted;
   latest.completedRuns=records.length;
-  latest.attemptedRuns=run;
-  latest.warnings=records.filter(r=>r.coverage?.warning||!r.ready?.ok).map(r=>({label:r.label,warning:r.coverage?.warning||'Zielansicht nicht vollstaendig'}));
-  const report='Abgeschlossen: '+records.length+'/'+total+' Laeufe, Fehler: '+errors.length+
-   ', Abdeckungswarnungen: '+latest.warnings.length+
-   '. Ergebnisse werden als eine JSON-Datei gespeichert. Keine automatische Merge-Freigabe.';
-  status((cancelled?'Gestoppt. ': '')+report);
+  latest.finishedAt=new Date().toISOString();
+  latest.completed=!cancelled&&attempted===tasks.length&&errors.length===0;
+  latest.statistics=summarizeSuite(latest);
+  latest.warnings=records.filter(r=>!r.valid||!r.ready?.ok||r.coverage?.warning)
+   .map(r=>({label:r.label,issues:r.validityIssues||[],
+    coverage:r.coverage?.warning||null}));
+  addComparisonRows(latest.statistics);
   $('downloadAll').disabled=false;
+  status((cancelled?'Abgebrochen. ':'Fertig. ')+records.length+'/'+tasks.length+
+   ' Messungen, '+errors.length+' Fehler, '+latest.statistics.unqualifiedGroups+
+   ' nicht belastbare Gruppen. Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
   exportJson();
- }catch(e){
-  const msg=String(e?.message||e);
-  status('Abbruch: '+msg+'. Keine Loeschung, kein Bake. Bereits gemessene Daten bleiben exportierbar.');
-  errors.push({run,error:msg});
-  if(latest){latest.errors=errors;latest.completed=false;latest.finishedAt=new Date().toISOString();
-   $('downloadAll').disabled=false;exportJson();}
- }finally{running=false;lock(false);}
+ }catch(error){
+  const msg=String(error?.message||error);
+  status('ABGEBROCHEN: '+msg+'. Keine Daten geloescht oder gebacken.');
+  errors.push({run:attempted,error:msg});
+  if(latest){
+   latest.completed=false;latest.finishedAt=new Date().toISOString();
+   latest.statistics=summarizeSuite(latest);
+   $('downloadAll').disabled=false;
+   exportJson();
+  }
+ }finally{
+  $('game').src='about:blank';
+  running=false;lock(false);
+ }
 }
 $('startAll').addEventListener('click',suite);
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
