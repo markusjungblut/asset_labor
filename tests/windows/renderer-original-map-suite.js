@@ -18,9 +18,9 @@ function api(){
  try{return $('game').contentWindow.__vedrasFrozenGameTest||null;}
  catch(_){return null;}
 }
-async function load(scene,feature,value){
+async function load(scene,feature,value,version=''){
  $('game').src='about:blank';await wait(75);
- const url=new URL('frozen-map-game.html',location.href);
+ const url=new URL((version?version+'/':'')+'frozen-map-game.html',location.href);
  url.searchParams.set('scene',scene);
  url.searchParams.set('lod','near');
  url.searchParams.set('perf','1');
@@ -153,8 +153,14 @@ async function drive(a,poses){
  return {p95RafTickMs:percentile(ticks,.95),samples:ticks.length};
 }
 function delta(a,b,key){return Math.max(0,(b[key]||0)-(a[key]||0));}
-async function measure(scene,feature,value,scenario,label,tiles){
- const a=await load(scene,feature,value);
+async function measure(scene,feature,value,scenario,label,tiles,version=''){
+ const a=await load(scene,feature,value,version);
+ if(feature!==null){
+  const key={leadPrefetch:'directionalPrefetch',lodRecency:'lodRecency',
+   visibleBorrow:'visibleBorrow',parallelDecode:'parallelLayerDecode'}[feature];
+  if(a.stats()[key]!==Boolean(value))
+   throw Error('Schalter '+feature+' nicht aktivierbar (erwartet '+value+'). Richtigen Kandidatenserver pruefen.');
+ }
  const base=a.pose();
  if(!base)throw Error('Keine Startkamera');
  const routeInfo=route(base,scenario,tiles);
@@ -232,6 +238,12 @@ function lock(on){
  for(const id of ids){const e=$(id);if(e)e.disabled=on;}
  $('stopAll').disabled=!on;
 }
+async function combinedAvailable(){
+ try{
+  const response=await fetch('/__vedras_suite_mode',{cache:'no-store'});
+  return response.ok&&(await response.text()).trim()==='combined-v1';
+ }catch(_){return false;}
+}
 async function suite(){
  if(running)return;
  const scene=$('scene').value.trim();
@@ -244,22 +256,31 @@ async function suite(){
  let mode='unknown',run=0,total=0;
  try{
   status('Pruefe Originalkarte und lese nur Kachelkoordinaten …');
-  const probe=await load(scene,null,null);
+  const combined=await combinedAvailable();
+  const probe=await load(scene,null,null,combined?'baseline':'');
   const stats=probe.stats();
-  mode=Object.prototype.hasOwnProperty.call(stats,'lodRecency')?'candidate':'baseline';
+  mode=combined?'combined':
+   Object.prototype.hasOwnProperty.call(stats,'lodRecency')?'candidate':'baseline';
+  if(combined&&Object.prototype.hasOwnProperty.call(stats,'lodRecency'))
+   throw Error('Kombi-Baseline scheint keine main-Version zu sein. Vergleich abgebrochen.');
   const tiles=await tileCenters(scene);
   const tasks=[];
-  if(mode==='baseline'){
-   for(const scenario of scenarios)tasks.push({feature:null,value:null,scenario,label:'Baseline / '+NAMES[scenario]});
-  }else{
+  if(mode==='baseline'||mode==='combined'){
+   for(const scenario of scenarios)
+    tasks.push({version:combined?'baseline':'',feature:null,value:null,scenario,
+     label:'Baseline / '+NAMES[scenario]});
+  }
+  if(mode==='candidate'||mode==='combined'){
    for(const feature of features)for(const scenario of scenarios)
     for(const value of [0,1,1,0])
-     tasks.push({feature,value,scenario,label:feature+' / '+NAMES[scenario]+' / '+(value?'B':'A')});
+     tasks.push({version:combined?'candidate':'',feature,value,scenario,
+      label:'Kandidat / '+feature+' / '+NAMES[scenario]+' / '+(value?'B':'A')});
   }
   total=tasks.length;
   latest={schema:'vedras-windows-original-map-full-suite-v2',at:started,scene,mode,
    browser:navigator.userAgent,origin:location.origin,
-   plan:mode==='candidate'?'4 Features x 3 Routen x A/B/B/A':'3 Referenzrouten',
+   plan:mode==='combined'?'3 Baseline-Routen + 4 Features x 3 Routen x A/B/B/A = 51 Laeufe':
+    mode==='candidate'?'4 Features x 3 Routen x A/B/B/A = 48 Laeufe':'3 Referenzrouten',
    persistedCacheCaveat:'A/B/B/A laedt iframe-Speicher neu, loescht jedoch keinerlei persistente 1x/2x-Ableitungen. Spaetere Laeufe koennen vom Warm-Cache profitieren.',
    fpsCaveat:'frameGapMs und RAF-Ticks sind keine GPU-Present-FPS.',
    tilesIndexed:tiles.length,records,errors,completed:false};
@@ -269,7 +290,7 @@ async function suite(){
    run++;
    status('Automatischer Lauf '+run+'/'+total+': '+task.label+'. Firefox-Tab im Vordergrund lassen. Keine Bilddaten werden hochgeladen.');
    try{
-    const result=await measure(scene,task.feature,task.value,task.scenario,task.label,tiles);
+    const result=await measure(scene,task.feature,task.value,task.scenario,task.label,tiles,task.version);
     records.push(result);row(result);
    }catch(e){
     const msg=String(e?.message||e);
