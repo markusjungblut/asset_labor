@@ -502,13 +502,15 @@ async function primeDerivedCache(scene,version,tiles){
 }
 function makeTasks(order){
  const tasks=[];
+ const baselineOrder=order==='reverse'?['region','lod','warm']:['warm','lod','region'];
  // Bracket the entire candidate campaign with same-version main control
  // at the beginning and end to reveal overall runtime drift.
- for(const scenario of ['warm','lod','region']){
+ for(const scenario of baselineOrder){
   tasks.push({kind:'baseline',version:'baseline',feature:null,value:null,scenario,
    label:'Baseline Anfang / '+NAMES[scenario]});
  }
- const scenarioOrder=['region','lod','warm','pressure'];
+ const scenarioOrder=order==='reverse'?
+  ['pressure','region','lod','warm']:['warm','lod','region','pressure'];
  for(const scenario of scenarioOrder){
   const candidates=scenario==='pressure'?['visibleBorrow']:
    ALL_FLAGS.slice().map((_,i)=>ALL_FLAGS[(i+scenarioOrder.indexOf(scenario))%4]);
@@ -533,7 +535,7 @@ function makeTasks(order){
   }
   checkpoint('Ende');
  }
- for(const scenario of ['warm','lod','region']){
+ for(const scenario of baselineOrder){
   tasks.push({kind:'baseline',version:'baseline',feature:null,value:null,scenario,
    label:'Baseline Ende / '+NAMES[scenario]});
  }
