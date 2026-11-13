@@ -13,6 +13,9 @@ button{cursor:pointer}button:disabled{opacity:.45;cursor:default}
 #status{margin:14px 0;min-height:22px;white-space:pre-wrap}
 #game{width:100%;height:530px;border:1px solid #506b65;background:#9ea9a4}
 table{border-collapse:collapse;width:100%;font-size:.84rem;margin:14px 0}th,td{border-bottom:1px solid #53635d;text-align:left;padding:8px}
+#game{display:block;position:sticky;top:4px;z-index:3;box-shadow:0 3px 14px #07120fa8}
+.run-log{max-height:270px;overflow-y:auto;border:1px solid #506b65;border-radius:5px}
+.run-log table{margin:0}h2{font-size:1.1rem;margin-top:16px}.run-log thead{position:sticky;top:0;background:#233a41}
 small{color:#abc0b6}code{color:#d0e8d5}
 </style>
 </head>
@@ -24,17 +27,21 @@ small{color:#abc0b6}code{color:#d0e8d5}
 <label>Modus <select id="mode"><option value="baseline">Baseline / Standard</option><option value="abba">Kandidat – A/B/B/A</option></select></label>
 <label>Optimierung <select id="feature"><option value="lodRecency">25T · LOD-Cache</option><option value="leadPrefetch">25S · gerichtetes Vorladen</option><option value="visibleBorrow">25U · sichtbare Lesepriorität</option><option value="parallelDecode">25X · parallele Dekodierung</option></select></label>
 <label>Fahrt <select id="scenario"><option value="warm">Warme Kamerafahrt</option><option value="lod">1×/2× Zoomwechsel</option><option value="region">Neue Region und Rückfahrt</option></select></label>
+<label>Testreihenfolge <select id="runOrder"><option value="standard">Standard</option><option value="reverse">Umgekehrt (2. Sitzung)</option></select></label>
 <button id="startAll" style="background:#326c56;font-weight:700;border-color:#80c9a7">Alle Tests automatisch (1 Klick)</button>
 <button id="stopAll" disabled>Gesamttest stoppen</button>
 <button id="downloadAll" disabled>Gesamtbericht erneut speichern</button>
 <button id="start">Einzeltest ausführen</button>
 <button id="download" disabled>Ergebnis-JSON speichern</button>
 </div>
-<p><strong>Gesamttest:</strong> Automatisch drei Routen (warme Fahrt, mehrfache 1×/2×-Zoomwechsel, neue Regionen mit Rückfahrt). Mit PowerShell <code>-Action All</code> werden beide Renderer unter derselben Firefox-Origin verglichen: 3 Baseline-Routen und 48 Kandidatenläufe, alle automatisch in <strong>einem</strong> Durchlauf. Auf einzeln gestarteten Servern wird nur die jeweilige Version gemessen. Ein Gesamt-JSON wird lokal exportiert. Der Browser-Tab muss währenddessen im Vordergrund bleiben.</p>
-<p><small>Vollständiger Ein-Klick-Vergleich: im aktualisierten Werkzeug-Worktree <code>pwsh -File .\tests\windows\prepare-original-map.ps1 -Action All</code> starten. Die Einzeltasten oben bleiben für gezielte Nachmessungen auf separat gestarteten Baseline-/Kandidatenservern verfügbar. Dasselbe Firefox-Profil und <code>127.0.0.1:8780</code> verwenden.</small></p>
+<p><strong>Belastbarer Vergleich v3:</strong> Die Ein-Klick-Suite führt 124 Fahrten aus: 6 Baseline-Kontrollen, 104 isolierte Kandidaten-A/B-Läufe (jeweils ABBA und BAAB), 11 zeitliche Kontrollfahrten und 3 Tests mit den produktiven Kandidaten-Standardschaltern. Mit warmem Pan, wiederholten 1×/2×-Zoomwechseln, neuen Regionen und Rückfahrt sowie abrupten Richtungswechseln zur Lesepriorität. Der Viewer steht dauerhaft oberhalb der begrenzten Ergebnistabelle. Eine automatische Performance-Freigabe erfolgt nicht.</p>
+<p><small>Start über den aktualisierten Werkzeug-Worktree mit <code>pwsh -File .\tests\windows\prepare-original-map.ps1 -Action All</code>. Immer dasselbe Firefox-Profil und <code>127.0.0.1:8780</code>. Den Tab während des Durchlaufs im Vordergrund lassen. Die erste Sitzung mit „Standard“ durchführen; für einen unabhängigeren Vergleich Firefox neu starten und „Umgekehrt (2. Sitzung)“ wählen. Die Einzeltest-Schaltflächen gelten nur für separat gestartete Server.</small></p>
 <div id="status" role="status">Bereit. Ein Test führt ausschließlich Lesezugriffe auf die vorberechnete Spielkarte aus. Bereits gespeicherte 1×-/2×-Ableitungen können vom Viewer bei Bedarf ergänzt werden.</div>
-<table><thead><tr><th>Lauf</th><th>FrameGap p95</th><th>Draw p95</th><th>Re-Decodes</th><th>Evictions</th><th>sichtbare Reads</th><th>Fehler</th><th>sichtbar bereit</th></tr></thead><tbody id="results"></tbody></table>
 <iframe id="game" title="Originalkarten-Viewer" src="about:blank"></iframe>
+<h2>Vergleichsauswertung (nur qualifizierte Gruppen interpretieren)</h2>
+<table><thead><tr><th>Optimierung</th><th>Route</th><th>A · rAF p95</th><th>B · rAF p95</th><th>Auslösungen</th><th>Bewertung</th></tr></thead><tbody id="comparisons"></tbody></table>
+<h2>Einzelläufe</h2>
+<div class="run-log"><table><thead><tr><th>Lauf</th><th>FrameGap p95</th><th>Draw p95</th><th>Re-Decodes</th><th>Evictions</th><th>sichtbare Reads</th><th>Fehler</th><th>sichtbar bereit</th></tr></thead><tbody id="results"></tbody></table></div>
 <script>
 (function(){
 "use strict";
