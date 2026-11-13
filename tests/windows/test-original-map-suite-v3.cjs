@@ -48,9 +48,15 @@ test('route returns to initial pose and performs real 1x/2x and distant jumps',(
   const plan=route(base,scenario,tiles);
   assert.ok(plan.poses.length>=40,scenario);
   const last=plan.poses.at(-1);
-  assert.equal(last.zoom,base.zoom,scenario);
-  assert.equal(last.panX,base.panX,scenario);
-  assert.equal(last.panY,base.panY,scenario);
+  // Interpolated coordinates can differ by floating-point roundoff,
+  // e.g. 0.32999999999999996 versus 0.33. Compare with a tight tolerance.
+  const epsilon=1e-10;
+  assert.ok(Math.abs(last.zoom-base.zoom)<=epsilon,
+   scenario+': zoom must return to initial value');
+  assert.ok(Math.abs(last.panX-base.panX)<=epsilon,
+   scenario+': panX must return to initial value');
+  assert.ok(Math.abs(last.panY-base.panY)<=epsilon,
+   scenario+': panY must return to initial value');
   if(scenario==='lod'){
    assert.ok(plan.poses.some(x=>x.zoom>=.72));
    assert.ok(plan.poses.some(x=>x.zoom<=.60));
