@@ -24,9 +24,13 @@ small{color:#abc0b6}code{color:#d0e8d5}
 <label>Modus <select id="mode"><option value="baseline">Baseline / Standard</option><option value="abba">Kandidat – A/B/B/A</option></select></label>
 <label>Optimierung <select id="feature"><option value="lodRecency">25T · LOD-Cache</option><option value="leadPrefetch">25S · gerichtetes Vorladen</option><option value="visibleBorrow">25U · sichtbare Lesepriorität</option><option value="parallelDecode">25X · parallele Dekodierung</option></select></label>
 <label>Fahrt <select id="scenario"><option value="warm">Warme Kamerafahrt</option><option value="lod">1×/2× Zoomwechsel</option><option value="region">Neue Region und Rückfahrt</option></select></label>
-<button id="start">Test ausführen</button>
+<button id="startAll" style="background:#326c56;font-weight:700;border-color:#80c9a7">Alle Tests automatisch (1 Klick)</button>
+<button id="stopAll" disabled>Gesamttest stoppen</button>
+<button id="downloadAll" disabled>Gesamtbericht erneut speichern</button>
+<button id="start">Einzeltest ausführen</button>
 <button id="download" disabled>Ergebnis-JSON speichern</button>
 </div>
+<p><strong>Gesamttest:</strong> Automatisch drei Routen (warme Fahrt, mehrfache 1×/2×-Zoomwechsel, neue Regionen mit Rückfahrt). Auf dem Kandidaten zusätzlich alle vier Optimierungen jeweils A/B/B/A. Ein Klick pro Serverversion, inklusive eines lokalen Gesamt-JSON-Exports. Der Browser-Tab muss währenddessen im Vordergrund bleiben.</p>
 <p><small>Baseline zuerst auf dem <code>main</code>-Server; dann Server stoppen, Kandidaten-Server starten und den gleichen Test mit A/B/B/A ausführen. Immer dasselbe Firefox-Profil und <code>127.0.0.1:8780</code> verwenden. Karte und Sichtrechte vor dem Vergleich kontrollieren.</small></p>
 <div id="status" role="status">Bereit. Ein Test führt ausschließlich Lesezugriffe auf die vorberechnete Spielkarte aus. Bereits gespeicherte 1×-/2×-Ableitungen können vom Viewer bei Bedarf ergänzt werden.</div>
 <table><thead><tr><th>Lauf</th><th>FrameGap p95</th><th>Draw p95</th><th>Re-Decodes</th><th>Evictions</th><th>sichtbare Reads</th><th>Fehler</th><th>sichtbar bereit</th></tr></thead><tbody id="results"></tbody></table>
@@ -181,4 +185,5 @@ $("start").addEventListener("click",async()=>{
 });
 })();
 </script>
+<script src="renderer-original-map-suite.js"></script>
 </body></html>
