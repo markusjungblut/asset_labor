@@ -2,6 +2,31 @@
 
 **Status: Ein-Klick-Gesamtsuite ergaenzt; bisherige Warm-Pans liefen auf Windows, neue Zoom-/Regions-Matrix steht zur Ausfuehrung bereit.** Zugeordnet zu [Issue #137](https://github.com/markusjungblut/asset_labor/issues/137). Alle Tests laufen mit der echten lokal gespeicherten Frozen Map. Keine Änderungen an Original-ZIP, IndexedDB, Fog-Quelle, Asset-Labor-Editor oder main. Keine automatischen Merges/Resets.
 
+## Empfohlen: Vollstaendiger Vergleich mit **einem** Startknopf
+
+Die zwei isolierten Test-Worktrees sind bereits erzeugt; **Prepare nicht wiederholen**. Der neue localhost-Server liefert beide Renderer-Versionen unter derselben Origin und verschiedenen URL-Pfaden. Firefox sieht deshalb dieselbe lokale IndexedDB-Karte; alle 51 Fahrten koennen mit **einem einzigen Klick** laufen.
+
+1. Laufenden Server auf Port 8780 mit Strg+C beenden.
+2. Einmal den Testwerkzeuge-Zweig aktualisieren und den Kombiserver starten:
+
+~~~powershell
+cd "C:\Users\marku\Desktop\asset_labor_renderer_tools"
+git status --short
+git fetch --no-tags origin
+git switch --detach origin/test/windows-original-map-renderer-20261113
+pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action All -RepoPath "C:\Users\marku\Desktop\asset_labor"
+~~~
+
+Falls der **Werkzeug-Worktree** vor dem Wechsel lokale Aenderungen anzeigt, erst pruefen statt diese zu verwerfen; niemals Reset, Clean oder Stash am Original. Die bestehenden Baseline-/Kandidaten-Worktrees werden von -Action All nicht geaendert.
+
+3. Im **gleichen Firefox-Profil wie bisher** http://127.0.0.1:8780/renderer-original-map.html oeffnen und **"Alle Tests automatisch (1 Klick)"** druecken. Der Tab muss im Vordergrund bleiben.
+
+Die Suite laedt die Viewer als /baseline/frozen-map-game.html bzw. /candidate/frozen-map-game.html **ohne Aenderung von Hostname oder Port**. Drei Referenzrouten unter main, danach 48 Kandidatenlaeufe (vier Flags mal drei Szenarien mal A/B/B/A), automatische Fortschrittsanzeige, Abbruchmoeglichkeit und **ein gemeinsames JSON**. Keine Quelldaten werden hochgeladen. Eine Browser-Download-Berechtigung kann das automatische Speichern verhindern; dann die Schaltflaeche "Gesamtbericht erneut speichern" verwenden.
+
+Die bisherigen Aktionen -Action Baseline und -Action Candidate und ihre Einzeltests bleiben optional fuer Nachmessungen. -Action All prueft nur statische GET/HEAD-Dateien, hat keinerlei Editor-POST-Endpunkte und erstellt keine Karten oder Repositories.
+
+---
+
 ## Vorbereitung ohne Eingriff in lokale Änderungen
 
 PowerShell im bisherigen Repo (Pfad ggf. ändern):
