@@ -27,7 +27,7 @@ if ($origin -notmatch 'github[.]com[:/]markusjungblut/asset_labor(?:[.]git)?$') 
 $parent=Split-Path $root -Parent
 $baseline=Join-Path $parent 'asset_labor_renderer_baseline_20261113'
 $candidate=Join-Path $parent 'asset_labor_renderer_candidate_20261113'
-$dashboard=Join-Path $PSScriptRoot 'renderer-original-map.html'
+$assets=@('renderer-original-map.html','renderer-original-map-suite.js')
 if ($Action -eq 'Prepare') {
  $logs=Join-Path $parent ('asset_labor_renderer_results_'+(Get-Date -Format 'yyyyMMdd_HHmmss'))
  New-Item -ItemType Directory -Path $logs -ErrorAction Stop | Out-Null
@@ -58,7 +58,9 @@ if ($Action -eq 'Prepare') {
  foreach ($item in @(@{Dir=$baseline;Ref='origin/main'},@{Dir=$candidate;Ref="origin/$branch"})) {
   & git -C $root worktree add --detach $item.Dir $item.Ref
   Require-Success "Worktree $($item.Ref)"
-  Copy-Item -LiteralPath $dashboard -Destination (Join-Path $item.Dir 'renderer-original-map.html')
+  foreach ($asset in $assets) {
+   Copy-Item -LiteralPath (Join-Path $PSScriptRoot $asset) -Destination (Join-Path $item.Dir $asset) -ErrorAction Stop
+  }
  }
  & git -C $baseline rev-parse HEAD |
   Out-File -LiteralPath (Join-Path $logs 'baseline-head.txt') -Encoding utf8
@@ -102,6 +104,15 @@ if (-not (Get-Command py -ErrorAction SilentlyContinue) -and
     -not (Get-Command python -ErrorAction SilentlyContinue)) {
  throw 'Python 3 fehlt.'
 }
+# Refresh only generated test worktrees. Do not touch the original repo.
+foreach ($asset in $assets) {
+ $source=Join-Path $PSScriptRoot $asset
+ if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+  throw "Testdatei fehlt: $source. Testzweig PR #139 aktualisieren."
+ }
+ Copy-Item -LiteralPath $source -Destination (Join-Path $target $asset) -Force -ErrorAction Stop
+}
+Write-Host "Test-Dashboard und komplette Ein-Klick-Suite in $Action-Worktree aktualisiert." -ForegroundColor Green
 Write-Host "$Action / $target" -ForegroundColor Cyan
 Write-Host "Im bereits verwendeten Firefox-Profil öffnen: http://127.0.0.1:$port/renderer-original-map.html"
 Write-Host 'Nach dem Test den Server mit Strg+C beenden. Nicht parallel starten.'
