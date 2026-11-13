@@ -35,7 +35,7 @@ test('deterministic 124-task matrix, isolated crossover and reverse order',()=>{
   const t=tasks.filter(x=>x.groupId===id);
   assert.equal(t.length,8,id);
   assert.equal(t.map(x=>x.value).join(''),'01101001',id);
-  assert.deepEqual(t.map(x=>x.block),[1,1,1,1,2,2,2,2],id);
+  assert.deepEqual(Array.from(t,x=>x.block),[1,1,1,1,2,2,2,2],id);
  }
  const firstFeature=t=>t.find(r=>r.kind==='feature'&&r.scenario==='region').feature;
  assert.notEqual(firstFeature(tasks),firstFeature(reversed));
