@@ -9,7 +9,7 @@ const wait=ms=>new Promise(ok=>setTimeout(ok,ms));
 const nextFrame=()=>new Promise(ok=>requestAnimationFrame(ok));
 const finite=n=>Number.isFinite(n);
 const ALL_FLAGS=['lodRecency','leadPrefetch','visibleBorrow','parallelDecode'];
-let running=false,cancelled=false,latest=null;
+let running=false,cancelled=false,latest=null,iframeLoadNumber=0;
 function status(message){$('status').textContent=message;}
 function percentile(values,p){
  const v=values.filter(finite).sort((a,b)=>a-b);
@@ -34,10 +34,36 @@ function api(){
  try{return $('game').contentWindow.__vedrasFrozenGameTest||null;}
  catch(_){return null;}
 }
+// Do not accept __vedrasFrozenGameTest from the previous iframe document.
+// Setting iframe.src is asynchronous when Firefox is under CPU/GPU pressure.
+// A unique URL per run plus the actual contentWindow document URL identifies
+// the currently loaded version, not just a stale WindowProxy.
+function readyViewerAt(frame,expectedHref){
+ try{
+  const w=frame.contentWindow;
+  if(!w||w.location.href!==expectedHref||w.document.readyState!=='complete')
+   return null;
+  const a=w.__vedrasFrozenGameTest||null;
+  return a&&a.readOnly&&typeof a.testPan==='function'&&
+   a.stats?.().saved>0?a:null;
+ }catch(_){return null;}
+}
 async function load(scene,feature,value,version=''){
  await ensureViewerVisible();
- $('game').src='about:blank';await wait(75);
+ const frame=$('game');
+ frame.src='about:blank';
+ const resetDeadline=performance.now()+15000;
+ while(performance.now()<resetDeadline){
+  if(cancelled)throw Error('Vom Benutzer abgebrochen');
+  let current;
+  try{current=frame.contentWindow?.location.href;}catch(_){current=null;}
+  if(current==='about:blank')break;
+  await wait(65);
+ }
+ if(frame.contentWindow?.location.href!=='about:blank')
+  throw Error('Viewer-Navigation zu about:blank haengt; A/B-Lauf nicht gestartet, Originaldaten unberuehrt.');
  const url=new URL((version?version+'/':'')+'frozen-map-game.html',location.href);
+ url.searchParams.set('_suiteRun',String(++iframeLoadNumber));
  url.searchParams.set('scene',scene);
  url.searchParams.set('lod','near');
  url.searchParams.set('perf','1');
@@ -47,15 +73,25 @@ async function load(scene,feature,value,version=''){
  if(isolated)for(const key of ALL_FLAGS)url.searchParams.set(key,'0');
  else url.searchParams.set('parallelDecode','0');
  if(feature!==null&&feature!=='production')url.searchParams.set(feature,String(value));
- $('game').src=url.href;
- const until=performance.now()+35000;
+ frame.src=url.href;
+ const until=performance.now()+45000;
+ let lastObservedHref=null;
  while(performance.now()<until){
   if(cancelled)throw Error('Vom Benutzer abgebrochen');
-  const a=api();
-  if(a&&a.readOnly&&a.testPan&&a.stats?.().saved>0)return a;
-  await wait(110);
+  let href=null;
+  try{href=frame.contentWindow?.location.href||null;}catch(_){}
+  if(href)lastObservedHref=href;
+  const a=readyViewerAt(frame,url.href);
+  if(a){
+   // A second check after a browser task turn catches pending navigation.
+   await wait(35);
+   if(readyViewerAt(frame,url.href)===a)return a;
+  }
+  await wait(90);
  }
- throw Error('Originalkarte nicht erreichbar. Firefox-Profil, Karten-ID und 127.0.0.1:8780 pruefen. Keine Daten loeschen.');
+ throw Error('Viewer-Navigation/API-Timeout: erwartet '+url.pathname+
+  ', zuletzt '+(lastObservedHref||'kein Dokument')+
+  '. Kein Zurueckfallen auf alte iframe-API. Bitte Firefox-Origin/Server pruefen; keine Karte loeschen.');
 }
 async function tileCenters(scene){
  const prefix=scene+'|near|';
