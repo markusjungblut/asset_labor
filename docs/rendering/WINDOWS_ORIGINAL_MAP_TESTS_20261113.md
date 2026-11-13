@@ -1,13 +1,10 @@
 # Windows-Tests: gespeicherte Originalkarte (13.11.2026)
 
-**Status: Ein-Klick-Gesamtsuite ergaenzt; bisherige Warm-Pans liefen auf Windows, neue Zoom-/Regions-Matrix steht zur Ausfuehrung bereit.** Zugeordnet zu [Issue #137](https://github.com/markusjungblut/asset_labor/issues/137). Alle Tests laufen mit der echten lokal gespeicherten Frozen Map. Keine Änderungen an Original-ZIP, IndexedDB, Fog-Quelle, Asset-Labor-Editor oder main. Keine automatischen Merges/Resets.
+**Status: Praezisions-Suite v3 in PR #139 implementiert, auf der Originalkarte noch nicht ausgefuehrt.** Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
-## Empfohlen: Vollstaendiger Vergleich mit **einem** Startknopf
+## Empfohlen: Praezisions-Suite v3 mit einem Startknopf
 
-Die zwei isolierten Test-Worktrees sind bereits erzeugt; **Prepare nicht wiederholen**. Der neue localhost-Server liefert beide Renderer-Versionen unter derselben Origin und verschiedenen URL-Pfaden. Firefox sieht deshalb dieselbe lokale IndexedDB-Karte; alle 51 Fahrten koennen mit **einem einzigen Klick** laufen.
-
-1. Laufenden Server auf Port 8780 mit Strg+C beenden.
-2. Einmal den Testwerkzeuge-Zweig aktualisieren und den Kombiserver starten:
+Die beiden isolierten Test-Worktrees und der Werkzeug-Worktree existieren bereits. **Prepare nicht wiederholen.** Laufenden Server auf Port 8780 mit Strg+C stoppen, dann:
 
 ~~~powershell
 cd "C:\Users\marku\Desktop\asset_labor_renderer_tools"
@@ -17,13 +14,39 @@ git switch --detach origin/test/windows-original-map-renderer-20261113
 pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action All -RepoPath "C:\Users\marku\Desktop\asset_labor"
 ~~~
 
-Falls der **Werkzeug-Worktree** vor dem Wechsel lokale Aenderungen anzeigt, erst pruefen statt diese zu verwerfen; niemals Reset, Clean oder Stash am Original. Die bestehenden Baseline-/Kandidaten-Worktrees werden von -Action All nicht geaendert.
+Falls der Werkzeug-Worktree lokale Aenderungen anzeigt, vorher pruefen und nicht verwerfen. Niemals Reset, Clean, Stash oder Merge am Originalrepository ausfuehren.
 
-3. Im **gleichen Firefox-Profil wie bisher** http://127.0.0.1:8780/renderer-original-map.html oeffnen und **"Alle Tests automatisch (1 Klick)"** druecken. Der Tab muss im Vordergrund bleiben.
+Im **bisherigen Firefox-Profil**, in dem die Karte bereits gespeichert ist, http://127.0.0.1:8780/renderer-original-map.html oeffnen und auf **"Alle Tests automatisch (1 Klick)"** klicken. Tab im Vordergrund lassen. Der Bericht wird als ein lokales JSON gespeichert. Wenn der automatische Download blockiert ist, die Schaltflaeche **"Gesamtbericht erneut speichern"** verwenden.
 
-Die Suite laedt die Viewer als /baseline/frozen-map-game.html bzw. /candidate/frozen-map-game.html **ohne Aenderung von Hostname oder Port**. Drei Referenzrouten unter main, danach 48 Kandidatenlaeufe (vier Flags mal drei Szenarien mal A/B/B/A), automatische Fortschrittsanzeige, Abbruchmoeglichkeit und **ein gemeinsames JSON**. Keine Quelldaten werden hochgeladen. Eine Browser-Download-Berechtigung kann das automatische Speichern verhindern; dann die Schaltflaeche "Gesamtbericht erneut speichern" verwenden.
+### Testplan: 124 Fahrten nach gemeinsamer Vorwaermung
 
-Die bisherigen Aktionen -Action Baseline und -Action Candidate und ihre Einzeltests bleiben optional fuer Nachmessungen. -Action All prueft nur statische GET/HEAD-Dateien, hat keinerlei Editor-POST-Endpunkte und erstellt keine Karten oder Repositories.
+- **6 Baseline-Fahrten** auf main: Warm-Pan, Zoomwechsel und Regionsfahrt am Anfang und Ende zur Laufzeit-Driftkontrolle.
+- **104 isolierte Kandidaten-Fahrten**: vier Optimierungen (lodRecency, leadPrefetch, visibleBorrow, parallelDecode) auf je drei Routen plus eine zusaetzliche schnelle Regionswechselstrecke fuer visibleBorrow. Je Gruppe **A/B/B/A und B/A/A/B**, also vier A- und vier B-Messungen. Alle drei anderen untersuchten Optimierungen sind bei jedem isolierten A/B-Test explizit ausgeschaltet.
+- **11 Kandidaten-Kontrollfahrten** auf denselben Strecken mit allen vier Features ausgeschaltet, ueber die Testserie verteilt zur Erkennung von Browser-/GPU-Zeitdrift.
+- **3 Produktionskonfigurations-Fahrten** am Schluss mit den normalen Kandidaten-Standardschaltern (parallelDecode bleibt standardmaessig deaktiviert).
+
+Der Viewer steht neu oberhalb einer festen, scrollbaren Ergebnistabelle; er wird vor einer Fahrt sichtbar positioniert. Bei unzureichender Sichtbarkeit, inaktivem Tab, Ladefehlern und zu wenigen Frames wird die Messung abgelehnt oder als ungueltig markiert. Kein ausdruecklicher Aufruf einer Garbage Collection und kein erzwungenes Leeren von Caches.
+
+**Messdaten:** Renderer-Draw-p95, rAF-Tick-p50/p95/p99, FrameGap, Weltbild-Kopiervorgaenge, 1x/2x-Varianten und Wechsel, sichtbare und vorgezogene Reads, Cache-Evictions, Decode-Wiederholungen, Start-RAM-Cachezustand sowie beobachtete Anzahl und Dauer unvollstaendiger sichtbarer Kacheln. Sichtbare Luecken werden stichprobenbasiert erfasst, nicht lueckenlos auf GPU-/Monitor-Ebene.
+
+### Qualitaetsgates im JSON
+
+Der v3-Export enthaelt den Bereich statistics.comparisons. Jede Feature/Route-Gruppe hat acht A/B-Laeufe und wird als NICHT BELASTBAR gekennzeichnet, falls:
+
+- Der Wirkmechanismus bei eingeschaltetem Feature nicht tatsaechlich ausgeloest wurde: lodRecencyEvictions, prefetchLeadingStarts, visibleBorrowStarts bzw. parallelTileDecodes.
+- Ein Lauf nicht mindestens ausreichend viele sichtbare Frames/rAF-Ticks enthaelt, bei Zoom die beiden LODs fehlen oder bei der Regionsfahrt keine neuen sichtbaren Reads entstehen.
+- Waerend der Messung persistente abgeleitete 1x/2x-Caches neu erzeugt werden, die A/B-RAM-Anfangszustaende stark abweichen, Profilmessungen ueberlaufen oder Kontrollfahrten deutlich driften.
+- Die symmetrischen A/B-Crossover-Bloecke widerspruechliche, nicht vernachlaessigbare Effekte zeigen.
+
+Unterschiede von wenigen Millisekunden werden nicht als klare Regressions-/Gewinnbeweise dargestellt. Die Berichtsauswertung bleibt konservativ. **Keine automatische GO-/Mergefreigabe.**
+
+### Zweite unabhaengigere Sitzung
+
+Die Reihenfolge ist im Dropdown **"Testreihenfolge"** waehlbar: beim ersten Durchlauf **Standard**. Dann das Gesamt-JSON speichern, **Firefox vollstaendig schliessen und neu starten**, denselben Kombiserver weiterlaufen lassen und **"Umgekehrt (2. Sitzung)"** auswaehlen. Wieder mit nur einem Klick laufen lassen. Beide JSONs zusammen auswerten. Keine Browser- oder IndexedDB-Daten loeschen.
+
+### Grenzen und Sicherheit
+
+Die lokale Original-IndexedDB, Frozen-PNG, ZIP, Manifest, Fog-Rechte und das Originalrepository werden nicht geloescht oder ueberschrieben. Der Frozen-Viewer kann wie zuvor **separate abgeleitete 1x-/2x-Cachebilder** persistieren. Die Messung ist ein kontrollierter **RAM-cold / persistenter-Cache-warm**-Vergleich, kein garantiertes Disk-Cold-Experiment. TestPose-Aenderungen nutzen die Diagnose-API testPan und werden im Profiler als pan bezeichnet, auch wenn die Zoomroute effektiv zwischen LODs wechselt. rAF- und Drawzeiten sind **keine GPU-Present-FPS**, physische Eingabelatenz oder messbarer Monitor-Refresh; GPU-Speicher und Langzeit-Firefox-Heap brauchen gesonderte Werkzeuge. Visuelle Kontrollen auf Fog, Wassernaehte und Scenery-Fehler bleiben manuell.
 
 ---
 
@@ -42,51 +65,10 @@ pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action Prepare -
 
 Das erstellt zwei weitere, **isolierte** Worktrees neben dem Original: baseline aus origin/main und candidate aus origin/perf/step25z-real-ram-eviction-20261112 (Draft #136, enthält #128–#135). Die vorhandenen Originaldateien einschließlich lokaler uncommitteter Änderungen bleiben unangetastet. Die Vorbereitung dokumentiert Git-Status und Diffs. **Untracked-Dateien werden nur aufgelistet, nicht gesichert.** Existierende Testverzeichnisse werden nicht überschrieben.
 
-## Ein-Klick-Gesamttest (aktualisierte PR #139)
 
-**Keine erneute Vorbereitung erforderlich.** Die beiden isolierten Test-Worktrees aus "Prepare" bleiben erhalten. Bei "Baseline" bzw. "Candidate" kopiert das PowerShell-Startskript die aktualisierte Testoberflaeche und die neue Suite in das jeweilige Testverzeichnis.
+## Historische Einzeltests (v2, nicht fuer die neue Praezisionsauswertung)
 
-### Testwerkzeug aktualisieren
-
-Alle ggf. laufenden Server auf Port 8780 zuerst mit Strg+C beenden:
-
-~~~powershell
-cd "C:\Users\marku\Desktop\asset_labor_renderer_tools"
-git status --short
-git fetch --no-tags origin
-git switch --detach origin/test/windows-original-map-renderer-20261113
-~~~
-
-Falls git status lokale Aenderungen **im Werkzeug-Worktree** meldet, vorher pruefen. Kein Reset, Stash oder Clean. Der Befehl veraendert nicht das Originalrepository.
-
-### 1. Baseline (ein Klick)
-
-~~~powershell
-pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action Baseline -RepoPath "C:\Users\marku\Desktop\asset_labor"
-~~~
-
-Im **bisherigen Firefox-Profil** die URL http://127.0.0.1:8780/renderer-original-map.html aufrufen und **"Alle Tests automatisch (1 Klick)"** druecken. Die Suite erkennt "main" automatisch. Drei Routen werden nacheinander gefahren: warme Fahrt mit Rueckfahrt, wiederholte 1x/2x-Zoomwechsel (0,44 zu 0,96, inklusive Rueckkehr), mehrere neue Regionen mit Rueckfahrt. Das Ergebnis wird als **eine JSON-Datei** lokal heruntergeladen.
-
-### 2. Kandidat (ein Klick)
-
-Baseline-Server mit Strg+C beenden. In demselben Werkzeuge-Ordner:
-
-~~~powershell
-pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action Candidate -RepoPath "C:\Users\marku\Desktop\asset_labor"
-~~~
-
-Gleiche Firefox-URL, gleiches Profil, erneut **"Alle Tests automatisch (1 Klick)"** druecken. Die Suite erkennt den Kandidaten und prueft alle **vier Schalter** (lodRecency, leadPrefetch, visibleBorrow, parallelDecode) mit **allen drei Fahrten** und jeweils A/B/B/A (0/1/1/0): **48 Laeufe**, genau ein gemeinsamer JSON-Export.
-
-### Testdesign und Datenintegritaet
-
-- Neue Regionen: kein starrer Versatz; der Runner liest per **readonly IndexedDB-Transaktion ausschliesslich Kachelschluessel** und waehlt vorhandene, weit entfernte Near-Kachelkoordinaten. Keine Kachelinhalte werden fuer die Routenplanung ausgelesen oder hochgeladen.
-- Camera-Pan und Zoom per originaler Diagnose-API, rAF-gesteuert statt vorgegebener 40-ms-Pause. Gemessen: FrameGap-p95, Draw-p95, rAF-Tick-p95, LOD-Varianten, neue Reads, Cache-Evictions, Dekodierungen und sichtbare Bildbereitschaft.
-- Bleibt eine LOD-Variante aus oder werden in der Regionsfahrt keine neuen Kacheln gelesen, markiert der Bericht die eingeschraenkte Aussagekraft. Der Runner bricht bei fehlender Startkarte ab. Einzelne fehlgeschlagene Laeufe werden als Fehler festgehalten, nicht still ignoriert.
-- Den Firefox-Tab im Vordergrund behalten; bei inaktivem Tab wird die laufende Messung beendet. Ein Stopp-Knopf ermoeglicht Teilergebnis-Export.
-- **Kein** Cache-Clear, keine Original-Atlas- oder Fog-Mutationen, kein Neu-Baking, keine privaten Bilddaten im Repo, kein automatischer Merge. Der Viewer kann persistente **abgeleitete** 1x/2x-Bilder wie bisher ergaenzen; ABBA ist somit nicht vollstaendig "cold-cache-identisch".
-- FrameGap und rAF-Gaps sind **keine GPU-Present-FPS**. Test-Pose-Aenderungen werden in der vorhandenen Diagnose-API formal als "pan" gemeldet, obwohl die Zoomroute zwischen den LODs umschaltet. Visuelle Kontrolle und mehrminuetiger RAM-Test bleiben fuer die Abnahme notwendig.
-
----
+Die folgenden Befehle fuer separat gestartete Baseline-/Kandidatenserver bleiben fuer gezielte, unqualifizierte Einzeltests verfuegbar. **Fuer die 124-Laeufe-Gesamtsuite ausschliesslich -Action All wie oben verwenden.**
 
 ## Baseline (alte Einzeltests, optional)
 
