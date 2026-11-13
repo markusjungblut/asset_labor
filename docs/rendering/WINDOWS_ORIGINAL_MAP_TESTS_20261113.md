@@ -2,6 +2,18 @@
 
 **Status: Praezisions-Suite v3 in PR #139 implementiert, auf der Originalkarte noch nicht ausgefuehrt.** Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Diagnose nach dem ersten v3-Windows-Report (13.11.2026)
+
+Der erste v3-Report aus Firefox 160 wurde **nach 46 von 124 gueltigen Messlaeufen** beim 47. Versuch angehalten. Grund: `leadPrefetch` sollte an sein, der zurueckgegebene Runtime-Status meldete aus. Das alte Laden akzeptierte bei verzoegerter Navigation moeglicherweise die noch aktive API des vorherigen iframe. **Diese Ursache ist plausibel, aber durch das JSON allein nicht abschliessend bewiesen.** Der Runner verwendet jetzt eine eindeutige `_suiteRun`-Kennung und akzeptiert ausschliesslich den fertigen Dokument-URL-Zustand des aktuellen Frames. Ein synthetischer Regressionstest prueft die Abweisung der alten API.
+
+Bereits innerhalb dieser Teilserie drifteten die unveraenderten Regions-Kontrollen bei rAF-p95 von **148 ueber 107 auf 256 ms**; spaetere Zoom-Fahrten lagen vereinzelt deutlich hoeher. Das ist **kein belastbarer kausaler Nachweis** fuer oder gegen eine der Optimierungen. Die neue Drift-Sicherung beendet die Serie nach mindestens drei Kontrollen einer Route, wenn die Schwankung mehr als 80 ms, mehr als das 1,7-Fache und ein kritischer absoluter Wert ist. Sie exportiert den Teilbericht mit `qualityStop` statt die restlichen kostspieligen Messungen als regulaer aussagekraeftig zu behandeln.
+
+Eine Feature-Aktivierung muss jetzt in **mindestens zwei der vier B-Laeufe** mittels des jeweiligen Wirkungszaehlers nachgewiesen werden; ein zufaelliger Einzel-Trigger reicht nicht mehr. Die erste Sitzung misst die normalen Szenarien **warm, lod, region, pressure**; die zweite Sitzung mit **Umgekehrt** misst diese Szenarien und die Feature-Reihenfolge in umgekehrter Reihenfolge. Beide Sitzungen brauchen einen frischen Firefox-Start. Falls die Kontrollfahrten erneut driften, **keine Freigabe** aus den Ergebnissen ableiten und nicht blind die gesamte Serie wiederholen.
+
+Datenintegritaet weiterhin unveraendert: keine Original-Atlas-Löschung, keine Fog-Aenderung, kein Neu-Baking.
+
+---
+
 ## Empfohlen: Praezisions-Suite v3 mit einem Startknopf
 
 Die beiden isolierten Test-Worktrees und der Werkzeug-Worktree existieren bereits. **Prepare nicht wiederholen.** Laufenden Server auf Port 8780 mit Strg+C stoppen, dann:
@@ -42,7 +54,7 @@ Unterschiede von wenigen Millisekunden werden nicht als klare Regressions-/Gewin
 
 ### Zweite unabhaengigere Sitzung
 
-Die Reihenfolge ist im Dropdown **"Testreihenfolge"** waehlbar: beim ersten Durchlauf **Standard**. Dann das Gesamt-JSON speichern, **Firefox vollstaendig schliessen und neu starten**, denselben Kombiserver weiterlaufen lassen und **"Umgekehrt (2. Sitzung)"** auswaehlen. Wieder mit nur einem Klick laufen lassen. Beide JSONs zusammen auswerten. Keine Browser- oder IndexedDB-Daten loeschen.
+Die Reihenfolge ist im Dropdown **"Testreihenfolge"** waehlbar: beim ersten Durchlauf **Standard**. Die Szenarien sind nach Belastung aufsteigend angeordnet, im zweiten Lauf umgekehrt. Dann das Gesamt-JSON speichern, **Firefox vollstaendig schliessen und neu starten**, denselben Kombiserver weiterlaufen lassen und **"Umgekehrt (2. Sitzung)"** auswaehlen. Wieder mit nur einem Klick laufen lassen. Beide JSONs zusammen auswerten. Keine Browser- oder IndexedDB-Daten loeschen.
 
 ### Grenzen und Sicherheit
 
