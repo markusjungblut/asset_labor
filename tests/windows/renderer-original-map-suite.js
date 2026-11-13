@@ -367,7 +367,10 @@ function groupSummary(records,controls,id){
   leadPrefetch:'prefetchLeadingStarts',visibleBorrow:'visibleBorrowStarts',
   parallelDecode:'parallelTileDecodes'}[feature];
  const triggers=bb.reduce((total,r)=>total+(r[signal]||0),0);
+ const triggeredRuns=bb.filter(r=>(r[signal]||0)>0).length;
  if(triggers===0)issues.push('Wirkmechanismus nicht ausgeloest: '+signal);
+ else if(triggeredRuns<2)issues.push('Wirkmechanismus nur in '+triggeredRuns+
+  '/4 B-Laeufen ausgeloest: keine reproduzierbare Feature-Belastung');
  const conversions=runs.reduce((total,r)=>total+r.derivedConversions,0);
  const startA=median(aa.map(r=>r.decodedPixelsBefore));
  const startB=median(bb.map(r=>r.decodedPixelsBefore));
@@ -414,7 +417,7 @@ function groupSummary(records,controls,id){
   issues.push('Grosse Unterschiede mit widerspruechlicher Richtung zwischen den Crossover-Bloecken');
  const qualified=issues.length===0;
  return {groupId:id,feature,scenario,total:runs.length,
-  trigger:signal,triggerCount:triggers,derivedConversions:conversions,
+  trigger:signal,triggerCount:triggers,triggeredBRuns:triggeredRuns,derivedConversions:conversions,
   ramStartMedianA:startA,ramStartMedianB:startB,ramStartDifference,
   checkpointCount:checkpoints.length,controlDrawRangeMs:drawDrift,
   controlRafRangeMs:rafDrift,metrics,
@@ -540,6 +543,27 @@ function makeTasks(order){
  }
  return tasks;
 }
+// Stop wasting an entire 124-run campaign when a repeated, unchanged
+// candidate control shows order-of-magnitude timing drift. The stop is
+// NOT a performance result: it is an environmental reliability warning.
+function severeControlDrift(records,last){
+ if(!last?.control||!last.success||!last.valid)return null;
+ const c=records.filter(r=>r.control&&r.scenario===last.scenario&&r.success&&r.valid);
+ if(c.length<3)return null;
+ for(const [field,absolute,relative,minMax] of [
+  ['p95RafTickMs',80,1.7,150],
+  ['p95DrawMs',80,1.7,130]
+ ]){
+  const v=c.map(r=>r[field]).filter(finite);
+  if(v.length<3)continue;
+  const high=Math.max(...v),low=Math.min(...v);
+  if(high-low>absolute&&high>relative*Math.max(1,low)&&high>minMax)
+   return {scenario:last.scenario,metric:field,minimumMs:low,maximumMs:high,
+    absoluteDriftMs:high-low,reason:'Starke Drift in unveraenderten Kontrollfahrten ('+
+      field+': '+low+'-'+high+' ms). Firefox neu starten; Vergleich aus dieser Sitzung nicht freigeben.'};
+ }
+ return null;
+}
 function addComparisonRows(summary){
  const target=$('comparisons');
  if(!target)return;
@@ -613,6 +637,11 @@ async function suite(){
     const result=await measure(scene,task.feature,task.value,task.scenario,
      task.label,tiles,task.version,task);
     records.push(result);row(result);
+    const unstable=severeControlDrift(records,result);
+    if(unstable){
+     latest.qualityStop={afterRun:attempted,...unstable};
+     break;
+    }
    }catch(error){
     const msg=String(error?.message||error);
     errors.push({run:attempted,...task,error:msg});
@@ -629,14 +658,18 @@ async function suite(){
   latest.attemptedRuns=attempted;
   latest.completedRuns=records.length;
   latest.finishedAt=new Date().toISOString();
-  latest.completed=!cancelled&&attempted===tasks.length&&errors.length===0;
+  latest.completed=!cancelled&&!latest.qualityStop&&
+   attempted===tasks.length&&errors.length===0;
   latest.statistics=summarizeSuite(latest);
   latest.warnings=records.filter(r=>!r.valid||!r.ready?.ok||r.coverage?.warning)
    .map(r=>({label:r.label,issues:r.validityIssues||[],
     coverage:r.coverage?.warning||null}));
+  if(latest.qualityStop)latest.warnings.unshift({label:'QUALITAETSSTOPP',
+   issues:[latest.qualityStop.reason]});
   addComparisonRows(latest.statistics);
   $('downloadAll').disabled=false;
-  status((cancelled?'Abgebrochen. ':'Fertig. ')+records.length+'/'+tasks.length+
+  status((latest.qualityStop?'QUALITAETSSTOPP: '+latest.qualityStop.reason+' ': 
+    cancelled?'Abgebrochen. ':'Fertig. ')+records.length+'/'+tasks.length+
    ' Messungen, '+errors.length+' Fehler, '+latest.statistics.unqualifiedGroups+
    ' nicht belastbare Gruppen. Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
   exportJson();
