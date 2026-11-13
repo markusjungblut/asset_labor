@@ -340,6 +340,7 @@ function groupSummary(records,controls,id){
   issues.push('A/B beginnen mit deutlich anderem RAM-Cachezustand');
  if(conversions)issues.push('Persistente 1x/2x-Cacheableitungen im Messintervall: '+conversions);
  const checkpoints=controls.filter(r=>r.scenario===scenario&&r.success);
+ if(checkpoints.some(r=>!r.valid))issues.push('Mindestens eine Kontrollfahrt ungueltig');
  const drawValues=checkpoints.map(r=>r.p95DrawMs).filter(finite);
  const rafValues=checkpoints.map(r=>r.p95RafTickMs).filter(finite);
  const drawDrift=drawValues.length>1?Math.max(...drawValues)-Math.min(...drawValues):null;
@@ -368,10 +369,13 @@ function groupSummary(records,controls,id){
  const raf=metrics.p95RafTickMs;
  const rafDiff=(raf.bMedian??0)-(raf.aMedian??0);
  const relative=raf.aMedian>0?rafDiff/raf.aMedian:null;
- const stable=raf.blocks.length===2&&
+ const consistent=raf.blocks.length===2&&
    ((raf.blocks[0].differenceMs>0&&raf.blocks[1].differenceMs>0)||
     (raf.blocks[0].differenceMs<0&&raf.blocks[1].differenceMs<0));
- if(!stable)issues.push('Die beiden Crossover-Bloecke zeigen keine einheitliche Richtung');
+ const negligible=raf.blocks.length===2&&raf.blocks.every(b=>
+  Math.abs(b.differenceMs)<=Math.max(3,b.meanA*.10));
+ if(!consistent&&!negligible)
+  issues.push('Grosse Unterschiede mit widerspruechlicher Richtung zwischen den Crossover-Bloecken');
  const qualified=issues.length===0;
  return {groupId:id,feature,scenario,total:runs.length,
   trigger:signal,triggerCount:triggers,derivedConversions:conversions,
@@ -425,7 +429,11 @@ function exportJson(){
 }
 function lock(on){
  const ids=['start','startAll','scene','mode','feature','scenario','runOrder'];
- for(const id of ids){const e=$(id);if(e)e.disabled=on;}
+ for(const id of ids){
+  const e=$(id);if(!e)continue;
+  const legacy=['start','mode','feature','scenario'].includes(id);
+  e.disabled=on||(legacy&&window.__vedrasCombinedMode===true);
+ }
  $('stopAll').disabled=!on;
 }
 async function combinedAvailable(){
@@ -611,6 +619,10 @@ async function suite(){
   running=false;lock(false);
  }
 }
+combinedAvailable().then(isCombined=>{
+ window.__vedrasCombinedMode=isCombined;
+ if(isCombined)for(const id of ['start','mode','feature','scenario'])$(id).disabled=true;
+}).catch(()=>{});
 $('startAll').addEventListener('click',suite);
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
 $('downloadAll').addEventListener('click',exportJson);
