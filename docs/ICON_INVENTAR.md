@@ -1,6 +1,6 @@
 # Icon-Inventar und Themenordner — Vedras Reiche
 
-**Stand:** 12.11.2026 · **Quelle:** `markusjungblut/asset_labor`, Branch `main`, Bestand aus `main` vom 12.11.2026.
+**Stand:** 15.11.2026 · **Quelle:** `markusjungblut/asset_labor`, Branch `main`, Bestand aus `main` vom 15.11.2026.
 
 ## Maßgebliche Ablage
 
@@ -8,8 +8,8 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 
 - **Gesamtbestand:** 721 PNG-Dateien in `assets/icons/`.
 - **Themenordner:** 35.
-- **Sonderablage `nicht benötigt`:** 28 PNGs; Dateien bleiben erhalten, gehören aber nicht in die aktive Auswahl.
-- **Bilder nicht umbenennen, konvertieren, löschen oder grafisch überarbeiten**, um Kategorien zu korrigieren; Kategorisierung erfolgt über den Pfad. Alte interne IDs nicht aus Dateinamen erraten.
+- **Sonderablage `nicht benötigt`:** 29 PNGs; Dateien bleiben erhalten, gehören aber nicht in die aktive Auswahl.
+- **Bilder bei reiner Ordnerkorrektur nicht umbenennen, konvertieren, löschen oder grafisch überarbeiten.** Redaktionell ausdrücklich freigegebene Umbenennungen sind Ausnahmen; der neue Pfad im Katalog ist dann maßgeblich. Alte interne IDs nicht aus Dateinamen erraten.
 
 ## Verbindliche Einordnung: Medaille und Pokal
 
@@ -36,17 +36,17 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Fortbewegungsmittel | 8 |
 | Freizeit & Symbole | 6 |
 | Gefäße & Behälter | 13 |
-| Geld & Wertgegenstände | 11 |
+| Geld & Wertgegenstände | 10 |
 | Getränke | 11 |
 | Holz & Forstwirtschaft | 34 |
 | Industrie | 19 |
 | Kleidung & Accessoires | 15 |
-| Lebensmittel | 98 |
+| Lebensmittel | 97 |
 | Menschen | 14 |
 | Metalle & Werkstoffe | 16 |
 | moderne Rohstoffe | 21 |
 | moderne Waffen | 19 |
-| nicht benötigt | 28 |
+| nicht benötigt | 29 |
 | Papier & Schreibmaterial | 6 |
 | Pflanzen | 27 |
 | Pilze | 8 |
@@ -56,7 +56,7 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 | Textilien & Leder | 11 |
 | Tiere | 11 |
 | Tierische Rohstoffe | 19 |
-| UI Icons | 14 |
+| UI Icons | 15 |
 | Waffen & Munition | 68 |
 | Werkzeuge & Handwerk | 20 |
 | **Gesamt** | **721** |
@@ -79,6 +79,14 @@ Die Bilder liegen unverändert unter `assets/icons/<Themenordner>/<Dateiname>.pn
 **In `nicht benötigt` umsortiert:** `Wasser.png` und `Goldmünzen.png` (nicht mit anderen Münzen-Icons gleichsetzen).
 
 Alle neun Original-PNGs wurden ohne inhaltliche Änderung ausschließlich per Git-Baumpfad verschoben. M26s Item-/Anbieterkatalog benötigt nach dieser Sortierung ebenfalls eine Pfadkorrektur.
+
+## Neue Icon-Namen, Ausschlüsse und UI (15.11.2026)
+
+- Die **bisherige** Datei `Lebensmittel/Schiffszwieback.png` wurde **unverändert** nach `nicht benötigt/Schiffszwieback.png` verschoben und aus aktiven Spiel- und Sammlungsbeständen ausgeschlossen.
+- Die **andere** Grafik `Lebensmittel/Schiffszwiebackstücke.png` heißt **jetzt** `Lebensmittel/Schiffszwieback.png` und ist der einzige aktive Schiffszwieback-Sammelgegenstand.
+- `Lebensmittel/Weizenkörner.png` heißt `Lebensmittel/Roggen.png`; `Lebensmittel/Reiskörner.png` heißt `Lebensmittel/Langkornreis.png`.
+- `Geld & Wertgegenstände/Tresor.png` wurde nach `UI Icons/Tresor.png` verschoben; **kein aktives Sammel-, Händler- oder Gacha-Icon**.
+- Die Grafikdatei-BLOBs sind **unverändert**. Die beiden Schiffszwieback-Bilder teilen jetzt ihren *Basenamen* über **verschiedene Ordner** hinweg; für eindeutige Zuordnung stets den **vollständigen GitHub-Pfad** und den Ablagestatus verwenden.
 
 ## Pflege- und Abgleichregeln
 
