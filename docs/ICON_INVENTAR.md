@@ -82,11 +82,11 @@ Alle neun Original-PNGs wurden ohne inhaltliche Änderung ausschließlich per Gi
 
 ## Neue Icon-Namen, Ausschlüsse und UI (15.11.2026)
 
-- Die **bisherige** Datei `Lebensmittel/Schiffszwieback.png` wurde **unverändert** nach `nicht benötigt/Schiffszwieback.png` verschoben und aus aktiven Spiel- und Sammlungsbeständen ausgeschlossen.
+- Die **bisherige** Datei `Lebensmittel/Schiffszwieback.png` wurde zunächst nach `nicht benötigt/Schiffszwieback.png` verschoben und heißt nun **`nicht benötigt/Schiffszwiebackstück.png`**. Sie bleibt aus Spiel und Sammlungen ausgeschlossen.
 - Die **andere** Grafik `Lebensmittel/Schiffszwiebackstücke.png` heißt **jetzt** `Lebensmittel/Schiffszwieback.png` und ist der einzige aktive Schiffszwieback-Sammelgegenstand.
 - `Lebensmittel/Weizenkörner.png` heißt `Lebensmittel/Roggen.png`; `Lebensmittel/Reiskörner.png` heißt `Lebensmittel/Langkornreis.png`.
 - `Geld & Wertgegenstände/Tresor.png` wurde nach `UI Icons/Tresor.png` verschoben; **kein aktives Sammel-, Händler- oder Gacha-Icon**.
-- Die Grafikdatei-BLOBs sind **unverändert**. Die beiden Schiffszwieback-Bilder teilen jetzt ihren *Basenamen* über **verschiedene Ordner** hinweg; für eindeutige Zuordnung stets den **vollständigen GitHub-Pfad** und den Ablagestatus verwenden.
+- Die Grafikdatei-BLOBs sind **unverändert**. Die beiden Grafiken heißen nun **unterschiedlich**: aktiver `Lebensmittel/Schiffszwieback.png` und ausgeschlossener `nicht benötigt/Schiffszwiebackstück.png`. Der vollständige GitHub-Pfad und der Ablagestatus bleiben die verlässlichen Kennungen.
 
 ## Pflege- und Abgleichregeln
 
