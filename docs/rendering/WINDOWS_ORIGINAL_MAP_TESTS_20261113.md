@@ -1,6 +1,23 @@
 # Windows-Tests: gespeicherte Originalkarte (13.11.2026)
 
-**Status: Praezisions-Suite v3 in PR #139 implementiert, auf der Originalkarte noch nicht ausgefuehrt.** Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
+**Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
+
+## Folgeanalyse und gezielter 13-Läufe-Blit-Test (16.11.2026)
+
+Zwei Windows-Berichte: `vedras_windows_complete_combined_1794589069471.json` (124/124, Standard) und `vedras_windows_complete_combined_1794834749515.json` (48/124, Umgekehrt, kontrollierter Qualitaetsstopp nach Regions-Kontrollen rAF-p95 59/309/155 ms). Zusammen 172 gueltige Einzellaeufe. **Kein Feature-Performance-GO.**
+
+Die rohen Profiler-Frames enthalten 487 Messungen mit `worldBlitMs >= 100 ms` (365 bzw. 122). Nur 23 davon waren jeweils der erste profilierte Frame des Laufs (14 bzw. 9); die anderen traten **waehrend der Bewegung** auf. Ein Extremwert im zweiten Bericht ist `worldBlitMs=3019 ms` bei `drawMs=3021 ms`. Das ist ein `drawImage()`-Wall-Time-Befund, **kein Nachweis fuer eine bestimmte GPU-Ursache**. Der betroffene Kandidatenpfad zeichnet den offscreen World-Raster auf die sichtbare Canvas; es koennen auch CPU-/Treiber-Synchronisation und Browserlast beteiligt sein.
+
+Statt der 124-Laeufe-Suite abermals auszufuehren, steht im gleichen Dashboard nun **„Blit-Kurzdiagnose (13 Läufe)“** bereit. Messplan:
+- 1 Baseline-main am Anfang und 1 am Ende (gleiche Original-IndexedDB).
+- 3 isolierte, unveraenderte Kandidaten-Kontrollen mit allen vier Feature-Flags deaktiviert.
+- 8 isolierte Kandidatenlaeufe `parallelDecode/region`: 4× A AUS, 4× B AN, in ABBA-/BAAB-Bloecken. Mit „Umgekehrt“ wird die Blockreihenfolge getauscht.
+- Der Runner nutzt weiterhin die realen Regionsrouten, kontrolliert vollstaendige Rueckkehransicht, Read-/Decodefehler und schwer driftende Kontrollen. Der Report enthaelt **alle rohen Frame-Messungen** und zusaetzlich `blitDiagnosis` mit Schwellenzahlen (>=100/250/500/1000 ms), Verteilung nach DPR/Version/Modus, Beginn-gegen-Fahrt-Aufschluesselung und maximal 24 detaillierten Ausreissern.
+- Die Kurzdiagnose kann eine Regression bestaetigen oder weitere Hypothesen ueber die Blit-Ausreisser liefern, **aber nicht eigenstaendig eine GPU-Ursache oder das ganze Feature-Set freigeben**. Kein auto merge.
+
+**Start:** Werkzeug-Worktree aus dem GitHub-Testbranch aktualisieren (nur wenn `git status --short` keine zu schuetzenden lokalen Aenderungen zeigt), Server `-Action All` neu starten, Firefox mit gespeicherter Karte verwenden, http://127.0.0.1:8780/renderer-original-map.html oeffnen und **„Blit-Kurzdiagnose (13 Läufe)“** klicken. Nicht die grosse Suite wiederholen. Die neue Datei `vedras_windows_complete_blit_*.json` hochladen. Nichts in IndexedDB loeschen; die Vorbereitung darf vorhandene abgeleitete 1x/2x-Kacheln lesen und ggf. ergaenzen.
+
+---
 
 ## Diagnose nach dem ersten v3-Windows-Report (13.11.2026)
 
