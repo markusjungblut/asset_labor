@@ -73,7 +73,7 @@ async function load(scene,feature,value,version='',trace=false){
  }
  // Isolated A/B: the candidate starts with all four tested flags OFF.
  // The separate "production" smoke test deliberately uses shipped defaults.
- const isolated=(version==='candidate'||(!version&&feature!==null))&&feature!=='production';
+ const isolated=(version==='candidate'||version==='experiment'||(!version&&feature!==null))&&feature!=='production';
  if(isolated)for(const key of ALL_FLAGS)url.searchParams.set(key,'0');
  else url.searchParams.set('parallelDecode','0');
  if(feature!==null&&feature!=='production')url.searchParams.set(feature,String(value));
@@ -267,11 +267,26 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
   if(st.lodRecency||st.directionalPrefetch||st.visibleBorrow||st.parallelLayerDecode)
    throw Error('Kontrolle: Nicht alle vier Flags deaktiviert');
  }
+ if(feature==='fallbackAtlas'&&Boolean(a.stats().fallbackAtlasEnabled)!==Boolean(value))
+  throw Error('1x-Fallback-Feature nicht korrekt isoliert');
  const base=a.pose();
  if(!base)throw Error('Keine Startkamera');
  const routeInfo=route(base,scenario,tiles);
  const startReady=await settle(a);
  if(!startReady.ok)throw Error('Startansicht unvollstaendig: '+startReady.ready+'/'+startReady.visible);
+ let fallbackWarmupMs=0;
+ if(feature==='fallbackAtlas'&&value===1){
+  const t0=performance.now(),deadline=t0+45000;
+  while(performance.now()<deadline){
+   if(cancelled)throw Error('Warmup abgebrochen');
+   const st=a.stats();
+   if(st.fallbackWarmFinished||st.fallbackWarmCapped)break;
+   a.forceRedraw();await wait(85);
+  }
+  fallbackWarmupMs=Math.round(performance.now()-t0);
+  if(!a.stats().fallbackWarmFinished&&!a.stats().fallbackWarmCapped)
+   throw Error('Fallback-Warmup-Timeout');
+ }
  if(scenario==='warm'){
   // Warm means warm: traverse once without recording, return and settle.
   await drive(a,routeInfo.poses);
@@ -315,6 +330,19 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
   groupId:extras.groupId||null,block:extras.block||null,control:!!extras.control,
   stress:!!extras.stress,stressPhase:extras.stressPhase||null,
   trace:!!extras.trace,
+  fallbackWarmupMs,
+  fallbackAtStart:{
+   enabled:!!before.fallbackAtlasEnabled,resident:before.fallbackWarmResident||0,
+   target:before.fallbackWarmTarget||0,pixels:before.fallbackResidentPixels||0,
+   complete:!!before.fallbackWarmFinished,capped:!!before.fallbackWarmCapped
+  },
+  fallbackAtEnd:{
+   resident:after.fallbackWarmResident||0,target:after.fallbackWarmTarget||0,
+   pixels:after.fallbackResidentPixels||0,
+   staleStorageSkips:after.fallbackStaleStorageSkips||0,
+   staleDecodeDrops:after.fallbackStaleDecodeDrops||0,
+   fallbackHits:after.fallbackHits||0
+  },
   production:feature==='production',success:true,
   valid:validityIssues.length===0,validityIssues,readiness,derivedConversions,
   missingDurationMs:readiness.missingDurationMs,longestMissingMs:readiness.longestMissingMs,
@@ -485,13 +513,19 @@ function exportJson(){
  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function lock(on){
- const ids=['start','startAll','startBlit','startStress','startTrace','scene','mode','feature','scenario','runOrder'];
+ const ids=['start','startAll','startBlit','startStress','startTrace','startFallback','scene','mode','feature','scenario','runOrder'];
  for(const id of ids){
   const e=$(id);if(!e)continue;
   const legacy=['start','mode','feature','scenario'].includes(id);
   e.disabled=on||(legacy&&window.__vedrasCombinedMode===true);
  }
  $('stopAll').disabled=!on;
+}
+async function fallbackAvailable(){
+ try{
+  const response=await fetch('/__vedras_fallback_mode',{cache:'no-store'});
+  return response.ok&&(await response.text()).trim()==='fallback-v1';
+ }catch(_){return false;}
 }
 async function combinedAvailable(){
  try{
@@ -567,6 +601,72 @@ function makeTasks(order){
 // Deliberately short: the repeated region route reproduces the large drawImage
 // stalls seen in both Windows reports, while the unchanged controls bracket
 // isolated parallelDecode A/B comparisons. Never delete/modify the map.
+function makeFallbackTasks(order='standard'){
+ const tasks=[],scenario='pressure',feature='fallbackAtlas';
+ const baseline=label=>tasks.push({kind:'baseline',version:'baseline',
+  feature:null,value:null,scenario:'region',label:'1x Baseline '+label});
+ const control=label=>tasks.push({kind:'control',version:'candidate',
+  feature:null,value:null,scenario:'region',control:true,label:'1x Kontrolle '+label});
+ baseline('Anfang');control('Anfang');
+ const blocks=order==='reverse'?[2,1]:[1,2];
+ for(const block of blocks){
+  const seq=block===1?[0,1,1,0]:[1,0,0,1];
+  for(let i=0;i<seq.length;i++){
+   const value=seq[i];
+   tasks.push({kind:'feature',feature,value,scenario,block,
+    version:value?'experiment':'candidate',
+    label:'1x-Sicherheitscache Druck Block '+block+' '+(value?'B':'A')+(i+1)});
+  }
+  control(block===blocks[0]?'Mitte':'Ende');
+ }
+ baseline('Ende');
+ return tasks;
+}
+function analyzeFallback(records){
+ const runs=records.filter(r=>r.feature==='fallbackAtlas'&&r.success);
+ const a=runs.filter(r=>r.value===0),b=runs.filter(r=>r.value===1);
+ const metrics={};
+ for(const key of ['missingDurationMs','p95RafTickMs','p95DrawMs','evictions','decodeRepeats']){
+  metrics[key]={aMedian:median(a.map(r=>r[key])),bMedian:median(b.map(r=>r[key])),
+   blockDiffs:[1,2].map(block=>{
+    const x=median(a.filter(r=>r.block===block).map(r=>r[key]));
+    const y=median(b.filter(r=>r.block===block).map(r=>r[key]));
+    return x===null||y===null?null:y-x;
+   })};
+ }
+ metrics.missingFraction={
+  aMedian:median(a.map(r=>r.readiness?.missingFraction)),
+  bMedian:median(b.map(r=>r.readiness?.missingFraction)),
+  blockDiffs:[1,2].map(block=>{
+   const x=median(a.filter(r=>r.block===block).map(r=>r.readiness?.missingFraction));
+   const y=median(b.filter(r=>r.block===block).map(r=>r.readiness?.missingFraction));
+   return x===null||y===null?null:y-x;
+  })
+ };
+ const issues=[];
+ if(a.length!==4||b.length!==4)issues.push('Keine vier A- und B-Messungen');
+ if(runs.some(r=>!r.valid))issues.push('Ungueltige Einzelmessungen');
+ if(b.some(r=>!r.fallbackAtStart?.enabled))issues.push('B-Fallback nicht aktiv');
+ if(b.some(r=>(r.fallbackAtStart?.resident||0)===0))issues.push('B ohne vorgewaermte 1x-Daten');
+ if(b.some(r=>r.fallbackAtStart?.capped))issues.push('B-Fallback-Speicheranteil gedeckelt');
+ return {schema:'vedras-1x-fallback-ab-v1',
+  status:issues.length?'EINGESCHRAENKT':'TECHNISCH GUELTIG',
+  issues,metrics,
+  warm:b.map(r=>({label:r.label,warmupMs:r.fallbackWarmupMs,
+   ready:r.fallbackAtStart?.resident,target:r.fallbackAtStart?.target,
+   capped:r.fallbackAtStart?.capped})),
+  totals:{a:a.length,b:b.length,
+   fallbackHits:b.reduce((t,r)=>t+(r.fallbackAtEnd?.fallbackHits||0),0),
+   skippedObsoleteStorage:b.reduce((t,r)=>t+(r.fallbackAtEnd?.staleStorageSkips||0),0),
+   discardedObsoleteDecodes:b.reduce((t,r)=>t+(r.fallbackAtEnd?.staleDecodeDrops||0),0)},
+  perRun:runs.map(r=>({label:r.label,block:r.block,value:r.value,
+   missingFraction:r.readiness?.missingFraction,missingDurationMs:r.missingDurationMs,
+   p95RafTickMs:r.p95RafTickMs,p95DrawMs:r.p95DrawMs,
+   decodedPixelsAfter:r.decodedPixelsAfter,evictions:r.evictions,
+   decodeRepeats:r.decodeRepeats})),
+  note:'A is cold per-iframe RAM like prior tests; B pre-warms compact low-res RAM and reports warmup separately. No automatic release.'
+ };
+}
 function makeBlitTasks(order='standard'){
  const tasks=[],scenario='region',feature='parallelDecode',groupId='parallelDecode/region';
  const baseline=marker=>tasks.push({kind:'baseline',version:'baseline',
@@ -777,8 +877,8 @@ function addComparisonRows(summary){
 }
 async function suite(mode='full'){
  if(running)return;
- const traceMode=mode==='trace';
- const quick=mode==='blit'||mode==='stress'||traceMode,stress=mode==='stress';
+ const traceMode=mode==='trace',fallbackMode=mode==='fallback';
+ const quick=mode==='blit'||mode==='stress'||traceMode||fallbackMode,stress=mode==='stress';
  const scene=$('scene').value.trim();
  if(!/^v1-[0-9a-f]{8}$/.test(scene)){status('Ungueltige Kartenkennung');return;}
  running=true;cancelled=false;latest=null;lock(true);
@@ -790,6 +890,8 @@ async function suite(mode='full'){
  try{
   const combined=await combinedAvailable();
   if(!combined)throw Error('Fuer belastbare A/B-Messungen nur den kombinierten Read-only-Server (-Action All) verwenden.');
+  if(fallbackMode&&!await fallbackAvailable())
+   throw Error('1x-Fallback-A/B erfordert -Action All -FallbackExperiment');
   status('Pruefe main und Kandidat, Kartenkennung und lokale Kachelschluessel …');
   const probe=await load(scene,null,null,'baseline');
   if('lodRecency' in probe.stats())throw Error('Baseline ist nicht main. Vergleich ungueltig.');
@@ -797,16 +899,19 @@ async function suite(mode='full'){
   if(!('lodRecency' in candidateProbe.stats()))throw Error('Kandidat ohne Test-Flags. Vergleich ungueltig.');
   const tiles=await tileCenters(scene);
   const order=$('runOrder')?.value==='reverse'?'reverse':'standard';
-  tasks=traceMode?makeTraceTasks():stress?makeStressTasks(order):
+  tasks=fallbackMode?makeFallbackTasks(order):traceMode?makeTraceTasks():stress?makeStressTasks(order):
    quick?makeBlitTasks(order):makeTasks(order);
   latest={
-   schema:traceMode?'vedras-windows-tile-lifecycle-trace-v1':
+   schema:fallbackMode?'vedras-windows-fallback-atlas-ab-v1':
+    traceMode?'vedras-windows-tile-lifecycle-trace-v1':
     stress?'vedras-windows-world-blit-stress-v1':
     quick?'vedras-windows-world-blit-diagnostic-v1':
     'vedras-windows-original-map-full-suite-v3',
-   at:started,scene,mode:traceMode?'trace':stress?'stress':quick?'blit':'combined',
+   at:started,scene,mode:fallbackMode?'fallback':traceMode?'trace':stress?'stress':quick?'blit':'combined',
    order:traceMode?'fixed-pressure':order,browser:navigator.userAgent,
-   origin:location.origin,plan:traceMode?
+   origin:location.origin,plan:fallbackMode?
+    '13 Laeufe: 2 main, 3 Kandidaten-Kontrollen, 4 A original, 4 B mit 1x-Fallback, ABBA und BAAB':
+    traceMode?
     '9 Laeufe: 2 uninstrumentierte main, 3 Kandidatenregion-Kontrollen, 4 Druckfahrten mit opt-in Kachelspur':
     stress?
     '23 Laeufe: 2 main, 6 konstante region controls, 15 stress routes (alle Feature-Flags AUS)':
@@ -870,6 +975,7 @@ async function suite(mode='full'){
   latest.statistics=summarizeSuite(latest);
   if(quick)latest.blitDiagnosis=analyzeBlit(records);
   if(traceMode)latest.tileLifecycleSummary=summarizeTileTraces(records);
+  if(fallbackMode)latest.fallbackComparison=analyzeFallback(records);
   latest.warnings=records.filter(r=>!r.valid||!r.ready?.ok||r.coverage?.warning)
    .map(r=>({label:r.label,issues:r.validityIssues||[],
     coverage:r.coverage?.warning||null}));
@@ -884,6 +990,10 @@ async function suite(mode='full'){
    (quick?' World-Blit >=100ms: '+latest.blitDiagnosis.thresholdCounts['100']+
     ' Frames; davon nach dem ersten Frame: '+latest.blitDiagnosis.movingStalls+'.':'')+
    (stress?' Lastphasen mit gleicher isolierter Konfiguration; kein A/B-Vergleich.':'')+
+   (fallbackMode?' 1x-Fallback: fehlende Frames Anteil Median A='+
+    latest.fallbackComparison.metrics.missingFraction.aMedian+' B='+
+    latest.fallbackComparison.metrics.missingFraction.bMedian+
+    ', Warmup separat gemessen.':'')+
    (traceMode?' Tile-Trace '+latest.tileLifecycleSummary.observedRuns+
      ' instrumentierte Laeufe; echte Ursachen aus den Trace-Ereignissen ableiten.':'')+
    ' Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
@@ -897,6 +1007,7 @@ async function suite(mode='full'){
    latest.statistics=summarizeSuite(latest);
    if(quick)latest.blitDiagnosis=analyzeBlit(records);
    if(traceMode)latest.tileLifecycleSummary=summarizeTileTraces(records);
+  if(fallbackMode)latest.fallbackComparison=analyzeFallback(records);
    $('downloadAll').disabled=false;
    exportJson();
   }
@@ -913,6 +1024,7 @@ $('startAll').addEventListener('click',suite);
 $('startBlit')?.addEventListener('click',()=>suite('blit'));
 $('startStress')?.addEventListener('click',()=>suite('stress'));
 $('startTrace')?.addEventListener('click',()=>suite('trace'));
+$('startFallback')?.addEventListener('click',()=>suite('fallback'));
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
 $('downloadAll').addEventListener('click',exportJson);
 })();
