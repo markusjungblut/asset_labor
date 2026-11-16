@@ -805,7 +805,7 @@ async function suite(mode='full'){
     quick?'vedras-windows-world-blit-diagnostic-v1':
     'vedras-windows-original-map-full-suite-v3',
    at:started,scene,mode:traceMode?'trace':stress?'stress':quick?'blit':'combined',
-   order,browser:navigator.userAgent,
+   order:traceMode?'fixed-pressure':order,browser:navigator.userAgent,
    origin:location.origin,plan:traceMode?
     '9 Laeufe: 2 uninstrumentierte main, 3 Kandidatenregion-Kontrollen, 4 Druckfahrten mit opt-in Kachelspur':
     stress?
@@ -818,7 +818,8 @@ async function suite(mode='full'){
     'Persistent gespeicherte abgeleitete 1x/2x-Bilder werden vorgewaermt und nie geloescht. Das ist KEIN echter disk-cold-Vergleich.',
     'Kontrollfahrten dienen zur Drift-Erkennung. Ein einziges Firefox-Session-Ergebnis erlaubt keine endgueltige Freigabe.',
     'Nur Renderer/JS- und rAF-Zeitmessungen; keine GPU-Present-FPS oder physische End-to-End-Latenz.',
-    'Beobachtete Sichtbarkeitsluecken werden aus aktiven Frames abgeleitet; zwischen Frames koennen ungesehene Laecken liegen.'
+    'Beobachtete Sichtbarkeitsluecken werden aus aktiven Frames abgeleitet; zwischen Frames koennen ungesehene Laecken liegen.',
+    ...(traceMode?['Der 9er Kachel-Trace nutzt einen fixen Ablauf (region/pressure/pressure/region/pressure/pressure/region); die Reihenfolgenwahl aendert die Route NICHT.']:[])
    ],
    tasksPlanned:tasks.length,tilesIndexed:tiles.length,
    records,errors,preflight:prime,completed:false,
