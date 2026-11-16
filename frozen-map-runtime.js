@@ -90,7 +90,7 @@ window.VedrasFrozenMap=(()=>{
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
      directionalPrefetch=true,lodRecency=true,visibleBorrow=true,
-     parallelLayerDecode=false}={}){
+     parallelLayerDecode=false,fallbackAtlas=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -111,6 +111,15 @@ window.VedrasFrozenMap=(()=>{
   let protectedKeys=new Set();
   const SCENERY_OVERHANG_WORLD=128; // Existing world-tile scene pad
   const decoded=new Map(),loading=new Set();
+  // Opt-in: retain compact authorized 1x images while full-res 2x tiles
+  // cycle through the original bounded cache. No persisted atlas is changed.
+  const fallbackAtlasEnabled=!!(fallbackAtlas&&overview1x&&storage.getVariant);
+  const FALLBACK_SHARE=.65;
+  let fallbackKeys=[],fallbackCursor=0,fallbackWarmFinished=false,
+   fallbackWarmCapped=false,fallbackWarmStarts=0,
+   fallbackStaleStorageSkips=0,fallbackStaleDecodeDrops=0,
+   fallbackHits=0;
+
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
   let lodRecencyEvictions=0,visibleBorrowStarts=0,peakInFlight=0;
@@ -257,6 +266,14 @@ window.VedrasFrozenMap=(()=>{
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
    activeVariant,lodSwitches,variantFallbackFrames,maxDecodedPixels,
+   fallbackAtlasEnabled,fallbackWarmFinished,fallbackWarmCapped,
+   fallbackWarmTarget:fallbackKeys.length,fallbackWarmStarts,
+   fallbackWarmResident:fallbackAtlasEnabled?
+    fallbackKeys.filter(key=>decoded.has(cacheKey(key,'1x'))).length:0,
+   fallbackResidentPixels:fallbackAtlasEnabled?
+    [...decoded.values()].filter(e=>e.variant==='1x')
+     .reduce((sum,e)=>sum+e.pixels,0):0,
+   fallbackStaleStorageSkips,fallbackStaleDecodeDrops,fallbackHits,
    prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
    visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
@@ -307,6 +324,10 @@ window.VedrasFrozenMap=(()=>{
    activeVariant='2x';lodSwitches=0;variantFallbackFrames=0;
    seenDecoded.clear();typicalPixels['1x']=0;typicalPixels['2x']=0;
    visibleMissing=false;
+   fallbackKeys=[];fallbackCursor=0;fallbackWarmFinished=false;
+   fallbackWarmCapped=false;fallbackWarmStarts=0;
+   fallbackStaleStorageSkips=0;fallbackStaleDecodeDrops=0;
+   fallbackHits=0;
    prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
@@ -352,6 +373,12 @@ window.VedrasFrozenMap=(()=>{
     // reversal than an older offscreen bitmap of the active LOD.
     // Keep the visible-set pinning and speculative-first eviction exactly
     // as before; change only the order of remaining safe victims.
+    // Protect compact 1x fallback coverage; evict offscreen high-quality
+    // copies before low-resolution safety-net entries.
+    if(!victim&&fallbackAtlasEnabled)for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&entry.variant==='2x'){
+      victim=key;break;
+     }
     if(!victim&&lodRecency){
      let oldest=Infinity,hasInactive=false;
      for(const [key,entry] of decoded){
@@ -378,7 +405,8 @@ window.VedrasFrozenMap=(()=>{
    }
   }
   function read(key,variant=desiredVariant(),purpose='visible'){
-   const speculative=purpose==='prefetch',
+   const warming=purpose==='fallback',
+    speculative=purpose==='prefetch'||warming,
     id=cacheKey(key,variant),
     alternate=cacheKey(key,variant==='1x'?'2x':'1x');
    const hit=decoded.get(id);
@@ -394,6 +422,8 @@ window.VedrasFrozenMap=(()=>{
    }
    const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
    if(fallback){
+    if(fallbackAtlasEnabled&&!speculative&&fallback.variant==='1x')
+     fallbackHits++;
     if(!speculative||!prefetchGuard){
      decoded.delete(alternate);decoded.set(alternate,fallback);
     }
@@ -401,7 +431,7 @@ window.VedrasFrozenMap=(()=>{
    }
    if(!available.has(key))return fallback||null;
    if(loading.has(id)){
-    if(!speculative&&loadingPurpose.get(id)==='prefetch')
+    if(!speculative&&['prefetch','fallback'].includes(loadingPurpose.get(id)))
      loadingPurpose.set(id,'visible');
     return fallback||null;
    }
@@ -410,7 +440,7 @@ window.VedrasFrozenMap=(()=>{
      prefetchSkippedVisible++;return fallback||null;
     }
     const activeSpec=[...loadingPurpose.values()]
-     .filter(x=>x==='prefetch').length;
+     .filter(x=>x==='prefetch'||x==='fallback').length;
     if(activeSpec>=MAX_SPECULATIVE||
        loading.size>=MAX_INFLIGHT-1){
      prefetchSkippedSlots++;return fallback||null;
@@ -419,7 +449,7 @@ window.VedrasFrozenMap=(()=>{
     // Estimate the bitmap pixels from completed variants, never PNG bytes.
     const reserve=Math.max(maxDecodedPixels*.12,
      2*(typicalPixels[variant]||2000000));
-    if(decodedPixels+reserve>=maxDecodedPixels){
+    if(!warming&&decodedPixels+reserve>=maxDecodedPixels){
      prefetchSkippedBudget++;return fallback||null;
     }
    }
@@ -439,8 +469,9 @@ window.VedrasFrozenMap=(()=>{
    if(borrowing)visibleBorrowStarts++;
    loading.add(id);
    peakInFlight=Math.max(peakInFlight,loading.size);
-   loadingPurpose.set(id,speculative?'prefetch':'visible');
-   if(speculative)prefetchReadStarts++;else visibleReadStarts++;
+   loadingPurpose.set(id,warming?'fallback':speculative?'prefetch':'visible');
+   if(warming)fallbackWarmStarts++;
+   else if(speculative)prefetchReadStarts++;else visibleReadStarts++;
    const run=generation,readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
    // A rejected getVariant() request must not leave loading slots stuck.
@@ -448,6 +479,12 @@ window.VedrasFrozenMap=(()=>{
     storage.getVariant(key,variant):storage.get(key)).then(async record=>{
     readFinished=profiler?clock():0;
     if(!record||!Array.isArray(record.layers))throw Error('Kachelpaket fehlt');
+    // A full-resolution tile that left the viewport while storage ran is
+    // not worth decoding; only the compact fallback has long-term priority.
+    if(fallbackAtlasEnabled&&variant==='2x'&&
+       loadingPurpose.get(id)!=='prefetch'&&!protectedKeys.has(id)){
+     fallbackStaleStorageSkips++;return;
+    }
     const images=[],decodeStarted=profiler?clock():0;
     try{
      if(parallelLayerDecode&&record.layers.length>1){
@@ -471,6 +508,12 @@ window.VedrasFrozenMap=(()=>{
     if(!active||run!==generation||record.key!==key||
        record.sceneKey!==sceneKey||record.level!==level){
      for(const im of images)im.close?.();return;
+    }
+    if(fallbackAtlasEnabled&&variant==='2x'&&
+       loadingPurpose.get(id)!=='prefetch'&&!protectedKeys.has(id)){
+     fallbackStaleDecodeDrops++;
+     for(const im of images)im.close?.();
+     return;
     }
     const pixels=images.reduce((sum,im)=>
      sum+(im.width||0)*(im.height||0),0);
@@ -516,6 +559,33 @@ window.VedrasFrozenMap=(()=>{
     }
    });
    return fallback||null;
+  }
+  function warmFallback(){
+   if(!fallbackAtlasEnabled||fallbackWarmFinished||!active||visibleMissing||
+      !fallbackKeys.length||loading.size>=MAX_INFLIGHT-1)return;
+   if([...loadingPurpose.values()].some(v=>v==='prefetch'||v==='fallback'))
+    return;
+   let fallbackPixels=0;
+   for(const entry of decoded.values())
+    if(entry.variant==='1x')fallbackPixels+=entry.pixels;
+   if(fallbackPixels>=maxDecodedPixels*FALLBACK_SHARE){
+    fallbackWarmCapped=true;return;
+   }
+   // One idle 1x read per frame, leaving a loading slot for urgent visible
+   // packets; never decode speculative full-resolution art in this queue.
+   for(let n=0;n<fallbackKeys.length;n++){
+    const key=fallbackKeys[fallbackCursor];
+    fallbackCursor=(fallbackCursor+1)%fallbackKeys.length;
+    const id=cacheKey(key,'1x');
+    if(decoded.has(id)||loading.has(id))continue;
+    const before=loading.size;
+    read(key,'1x','fallback');
+    if(loading.size===before)
+     fallbackCursor=(fallbackCursor+fallbackKeys.length-1)%
+      fallbackKeys.length;
+    return;
+   }
+   fallbackWarmFinished=true;
   }
   function getPose(){return pose?{...pose}:null;}
   function isHexReady(c){
@@ -1146,6 +1216,9 @@ window.VedrasFrozenMap=(()=>{
     }
     else misses++;
    }
+   // Warm tiny 1x fallback copies only after servicing all visible demands.
+   // Regular offscreen prefetch uses whatever capacity remains.
+   warmFallback();
    // Demand is ordered after on-screen keys; a new visible packet can
    // pre-empt speculative work on the next RAF, but previously prefetched
    // packets remain warm across short camera reversals.
@@ -1375,6 +1448,8 @@ window.VedrasFrozenMap=(()=>{
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
+   fallbackKeys=fallbackAtlasEnabled?[...available]:[];
+   fallbackCursor=0;fallbackWarmFinished=!fallbackKeys.length;
    buildTileIndex();
    active=true;repaint();onStatus(report());return report();
   }
