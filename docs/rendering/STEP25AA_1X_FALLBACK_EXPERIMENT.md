@@ -1,3 +1,21 @@
+## 17.11.2026 – Reverse-Gegencheck des 1×+parallelDecode-Abschlusstests
+
+Quelle: `vedras_windows_complete_final_1794872819392.json`, Windows 10 / Firefox 160, Scene `v1-0374527a`, **Reverse-Folge** (B-A-A / B-B-A), 16.11.2026 ca. 23:45–23:47 UTC. Vollständig **9/9 erfolgreich und gültig**, 0 Fehler, 0 Warnungen, automatische `finalComparison.issues=[]`. Sämtliche A-/B-/Kontrollfahrten halten den 1×-Sicherheitscache **120/120 Tiles** vollständig vorgewärmt (43.217.940 Pixel); bei B wurde `parallelDecode` nachweislich **272-mal** genutzt. Keine beobachteten fehlenden Kachelframes, weder A (0) noch B (0). Das 95.000.000-Pixelbudget wurde im Bericht eingehalten.
+
+**Reverse-Pressure-Messung, je drei Läufe:**
+- A (`parallelDecode=0`): rAF-p95 **58 / 65 / 64 ms**, Median **64 ms**; rAF-p99-Median **83 ms**; Draw-p95-Median **4 ms**; Evictions-Median **17**, Decode-Repeats-Median **3**, aktiver Drawframe-Median **66**.
+- B (`parallelDecode=1`): rAF-p95 **68 / 53 / 62 ms**, Median **62 ms**; rAF-p99-Median **76 ms**; Draw-p95-Median **4 ms**; Evictions-Median **25**, Decode-Repeats-Median **5**, aktiver Drawframe-Median **66**.
+- Kontroll-rAF-p95 **30 / 32 / 28 ms**; weniger Drift als im ersten 9er-Bericht, kein einheitlich deutlicher Vorteil für B.
+
+**Abgleich mit dem Standard-9er-Bericht** `vedras_windows_complete_final_1794872435171.json`:
+- Standard A/B rAF-p95-Median **66→53 ms (−13 ms; −19,7%)**; Reverse **64→62 ms (−2 ms; −3,1%)**. Die ursprüngliche deutliche Verbesserung reproduziert sich beim Umkehren der Reihenfolge **nicht zuverlässig**.
+- In beiden 9er-Sitzungen: **18/18 gültige Runs**, je 3 A und 3 B Pressurefahrten, 3 Kontrollen, insgesamt **0** fehlende Kachelframes in allen Pressurefahrten und vollständiger 1×-Warmzustand. Kein nachgewiesener Draw-p95- oder Pixelbudgetfehler durch den Parallelschalter.
+- Automatische Bewertung des Reverse-Berichts: **`KEIN BELASTBARER ZUSATZNUTZEN: PARALLELDECODE AUS LASSEN`**. Genau deshalb darf der standardseitige `MOEGLICHER KLEINER GEWINN`-Befund **nicht alleinstehend als Feature-GO gelesen werden**.
+
+**Abschließende Auswahl für diese 120-Tile-Originalkarte:** Experimenteller 1×-Sicherheitscache bleibt die klare Lösung gegen sichtbare Cache-Eviction-Lücken, aber weiterhin erst nach visueller/Fog-/Startprüfung zur Freigabe geeignet. `parallelDecode` derzeit **AUS (keine reproduzierbare Zusatzwirkung)**, nicht als technisch defekt eingestuft. `visibleBorrow` hat unter vollständigem 1×-Warmcache mangels wartender sichtbarer Reads hinter Prefetch bislang keinen Nutzen; `leadPrefetch` ohne gemessenen Nettoeffekt und potenzielle spekulative RAM-/Slot-Last; `lodRecency` gegenüber dem bevorzugt residenten 1×-Atlas nachrangig. **Alle vier älteren Zusatzflags standardmäßig AUS**, keine weiteren Performance-Benchmarks ohne neue konkrete Problemsituation, beide PRs bleiben Draft, kein Merge.
+
+---
+
 ## 17.11.2026 – Ergebnis des kleinen 9er-ParallelDecode-Abschlusstests
 
 Quelle: `vedras_windows_complete_final_1794872435171.json` (Firefox 160, Windows 10, Scene `v1-0374527a`, Standardfolge, 16.11.2026 23:39–23:40 UTC). **Alle neun Läufe gültig**, keine Fehler oder Warnungen. Drei A- und drei B-Pressure-Läufe sowie drei Regionskontrollen auf dem gleichen Experimentrenderer mit aktivem, vollständig vorbereitetem **120/120 1×-Atlas** (43.217.940 Pixel); nur die zusätzliche Option `parallelDecode` wurde in B aktiviert. Alle anderen drei älteren Versuche blieben aus.
