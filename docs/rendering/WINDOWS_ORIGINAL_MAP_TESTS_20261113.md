@@ -2,6 +2,28 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Opt-in Diagnose sichtbarer Kachelwartezeiten (16.11.2026)
+
+Die drei real gemessenen Fehlerarten sind zu trennen: (1) kurze oder lange JS/Canvas-Stalls, (2) rAF-Frame-Gaps ohne aehnlich lange synchrone Draw-Zeit und (3) fehlende sichtbare Kartenkacheln, obwohl der Renderer arbeitet. Der abgeschlossene 23er-Mischlastbericht bestaetigte **Typ 3** unter schnellen Richtungswechseln besonders deutlich. Ein weiteres 124er-Sammelbenchmark ist vor der Ursachenbestimmung nicht sinnvoll.
+
+**Quellcodebefund aus dem tatsaechlich getesteten `perf/step25z-real-ram-eviction-20261112`-Renderer:** Der Tile-Loader erlaubt normalerweise nur `MAX_INFLIGHT=3` Ladevorgaenge. Ohne freien Slot gibt `read()` einen bestehenden LOD-Fallback oder `null` zurueck; eine blockierte sichtbare Kachel wird **nicht in eine separate persistente Queue gestellt**, sondern bei einem spaeteren Frame erneut angefordert. Der Bitmap-RAM-Cache ist nach dekodierten Pixeln begrenzt (`maxDecodedPixels=95_000_000`); `keepWithinBudget()` verdraengt nicht gepinnte Kandidaten und zaehlt Evictions. Diese Mechanismen sind mit den gemessenen sichtbaren Luecken und wiederholten Decodes vereinbar. Sie belegen **noch nicht**, ob der Hauptanteil von Kachel-Lesestart, Storage, Decode, Eviction oder einer Kombination stammt.
+
+**Neu:** `tests/windows/serve-original-map-suite.py` bietet einen strikt optionalen, **nur im Arbeitsspeicher** injizierten Trace der Kandidaten-Runtime an. Bei `/candidate/frozen-map-game.html?tileTrace=1` wird ausschließlich der referenzierte Runtime-Script-Request `frozen-map-runtime.js?tileTrace=1` gepatcht. Auf der Festplatte und auf GitHub wird **keine produktive Runtime-Datei geaendert**. Die normale 124/23/13-Suite und die `main`-Baseline erhalten weiter unveraenderte Quellen. Der Server prueft vor dem Start alle Trace-Anker im tatsaechlichen Kandidatenskript und, sofern Node verfuegbar ist, dessen JS-Syntax. Bei unbekannter Runtime wird der instrumentierte Lauf abgelehnt, statt eine andere Version still zu verwenden.
+
+Die Trace-Events sind nach relativer Zeit und Tile-ID aufgeloest:
+- `missing-start`, `missing-ready`, `missing-left-view`: wann eine sichtbare Kachel ohne nutzbares LOD-Bild war, wieder erschien oder bei noch fehlendem Bild den Viewport verließ. Der Status 'left-view' ist **keine bestaetigte Dekodierbereitschaft**.
+- `capacity-wait`: sichtbare Kachel konnte wegen gefuellter normaler In-flight-Slots nicht starten; `inflight-wait`: fuer dieselbe Kachel laeuft bereits eine Anforderung. Wiederholte Warte-Events werden je Kachel und Ursache auf **hoechstens eines pro 40ms** reduziert; Eventzaehlungen sind daher **keine exakte Zahl abgelehnter Frame-Requests**.
+- `read-start`, `storage-done`, `decode-done`, `ready`, `read-error`: Schritte bis zum fertigen Kachelbild einschließlich `redecoded` und der Aussage, ob die Kachel nach Budgetpruefung im RAM verblieb.
+- `evict`: entfernter Cache-Schluessel, Variante, Ursprung und Pixelumfang mit RAM-Stand beim Entfernen.
+
+Alle Ereignisse stehen in `records[].tileTrace.events`, die aufsummierten Auswertungen in `tileLifecycleSummary`. Pro Kandidatenlauf sind maximal **6500** Trace-Events enthalten; `dropped` weist Ueberlaeufe aus. `movementEndMs` trennt Bewegungsphase und anschließende Beruhigung. Neben den Events bleiben die Original-Profiling-Frames im JSON erhalten.
+
+**Bedienung:** Tooling-Worktree auf Testbranch aktualisieren, bestehenden Server mit Strg+C beenden, `pwsh -NoProfile -File .\\tests\\windows\\prepare-original-map.ps1 -Action All -RepoPath "C:\\Users\\marku\\Desktop\\asset_labor"` neu starten. Im bereits verwendeten Firefox-Profil Dashboard `http://127.0.0.1:8780/renderer-original-map.html`, neue Schaltflaeche **„Kachel-Wartezeiten (9 Läufe)“** waehlen, die JSON `vedras_windows_complete_trace_*.json` hochladen. Die Instrumentierung hat messbaren Overhead und eignet sich nicht fuer den direkten FPS- oder A/B-Vergleich mit uninstrumentierten Sitzungen. Der Modus besitzt kein Performance-GO und aendert keine Atlas/Fog-Daten.
+
+**Teststatus:** JavaScript-Aufgabenplan, eventuelle Trace-Syntax und korrekte Patch-Anker der auf GitHub gespeicherten Kandidaten-Runtime statisch geprueft. Der echte opt-in Windows-/Firefox-Test ist noch nicht durchgefuehrt. PR bleibt Draft; kein Merge.
+
+---
+
 ## Auswertung des ersten 23-Laeufe-Mischlast-Realtests (16.11.2026)
 
 Originalkarte `v1-0374527a`, Windows 10/Firefox 160, `vedras_windows_complete_stress_1794840202188.json`, `order=standard`, Start 14:41 UTC, Ende 14:43 UTC:
