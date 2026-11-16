@@ -83,8 +83,10 @@
    if(stats.frames>1&&now-lastStatusPaint<180)return;
    lastStatusPaint=now;
    const optimized=twoXStore.stats(),overview=oneXStore.stats();
-   metrics.textContent=stats.decoded+' / '+stats.saved+
-    ' gespeicherte Tiles im Bildspeicher · '+stats.pending+
+   // A single stored tile can have BOTH 1x and 2x decoded bitmaps.
+   // Label their counts separately, including with resident 1x fallback.
+   metrics.textContent=stats.saved+' gespeicherte Kacheln · '+
+    stats.decoded+' Bildpakete im RAM · '+stats.pending+
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
     ' ms pro Bild · 0 Terrain-Bakes · Wolken: '+
     (stats.clouds?.bases??0)+'/4'+
