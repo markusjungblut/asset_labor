@@ -153,6 +153,14 @@ if ($Action -eq 'All') {
    }
   }
   $extraServerArgs=@('--experiment',$experiment)
+  if (Get-Command node -ErrorAction SilentlyContinue) {
+   $fallbackTest=Join-Path $experiment 'tests/test_rendering_step25aa_fallback_cache.cjs'
+   if (-not (Test-Path -LiteralPath $fallbackTest -PathType Leaf)) {
+    throw "Fallback-Regressionstest fehlt: $fallbackTest"
+   }
+   & node --test $fallbackTest
+   Require-Success '1x-Fallback-Regressionstests'
+  }
   Write-Host "1x-Fallback-Experiment: $experiment" -ForegroundColor Cyan
  }
  $socket=[System.Net.Sockets.TcpClient]::new()
