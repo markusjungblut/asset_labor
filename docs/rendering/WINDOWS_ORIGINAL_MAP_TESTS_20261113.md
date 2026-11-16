@@ -2,6 +2,23 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Reverse-Kurztest und isolierte Mischlast-Suite (16.11.2026)
+
+Zweiter kurzer Originalkarten-Bericht `vedras_windows_complete_blit_1794839233064.json`, `order=reverse`: 13/13 erfolgreiche und gueltige Laeufe, keine Fehler/Warnungen, kein Quality-Stop. **2.377 Frames, 0 mit `worldBlitMs>=100ms`, maximale beobachtete Blit-Zeit 1 ms.** Zusammen mit Standard-Kurztest: **4.764** Frames ohne lange Blit-Aufrufe. Unveraenderte Kandidaten-Kontrollen rAF-p95 **29/34/32 ms** (Draw-p95 4/4/4 ms); Baseline rAF-p95 Anfang/Ende 34/35 ms.
+
+`parallelDecode` wurde in 4/4 aktiven B-Laeufen, insgesamt **338-mal** ausgeloest. A/B rAF-p95-Mediane **A=35 ms, B=33 ms**; Crossover-Blockdifferenzen **-1,5/-3,5 ms** (beide B etwas schneller). Draw-p95 A/B-Median jeweils **4 ms**. Dieser Reverse-Kurztest ist laut Suite formal `qualified=true`, aber `status=KEIN REPRODUZIERBARER UNTERSCHIED`; das ist kein substantieller Performancegewinn. Im Standard-Kurztest war die rAF-Richtung widerspruechlich. **Keine Freigabe, `parallelDecode` produktiv AUS belassen.**
+
+**Neue gezielte Mischlast-Diagnose (23 Laeufe):** Im Dashboard der braune Knopf „Mischlast-Diagnose (23 Läufe)“; Aufgabenplan:
+- Main-Baseline vor und nach dem Test (Regionsroute), kein Schreibzugriff auf Originaldaten.
+- Sechs identische Kandidaten-Regionskontrollen, vor und nach jeder der fuenf Belastungsphasen.
+- Fuenf Phasen mit je drei identischen Fahrten: `pressure / lod / warm / pressure / lod` (oder umgekehrt `lod / pressure / warm / lod / pressure`).
+- Bei **saemtlichen Kandidaten-Stressfahrten** sind alle vier Feature-Flags explizit AUS. Die Stressfahrten sind keine A/B-Vergleiche; sie sollen das Auftreten der früheren extremen Blit-Wall-Times von einer Sequenz-/Sitzungsbelastung abhaengig testen.
+- Frame-Rohdaten, `blitDiagnosis` nach Phase/Konfiguration und `qualityStop` bei schwerer Kontroll-Drift. Kein Automerge. Alter 124er Knopf bleibt unveraendert.
+
+Start nur im aktualisierten **Werkzeug-Worktree** (lokale Aenderungen vor einem Branchwechsel pruefen), Server `-Action All` stoppen und neu starten; Firefox-Profil mit Karte beibehalten, **Standard** und **„Mischlast-Diagnose (23 Läufe)“** waehlen. JSON `vedras_windows_complete_stress_*.json` anschliessend auswerten. Nicht den Original-Worktree aendern, keine Browserdaten loeschen. Der neue 23er-Pfad ist nur syntaktisch und mit synthetischen Plan-/Profilerwerten geprueft, Windows-Realtest noch offen.
+
+---
+
 ## Folgeanalyse und gezielter 13-Läufe-Blit-Test (16.11.2026)
 
 Zwei Windows-Berichte: `vedras_windows_complete_combined_1794589069471.json` (124/124, Standard) und `vedras_windows_complete_combined_1794834749515.json` (48/124, Umgekehrt, kontrollierter Qualitaetsstopp nach Regions-Kontrollen rAF-p95 59/309/155 ms). Zusammen 172 gueltige Einzellaeufe. **Kein Feature-Performance-GO.**
