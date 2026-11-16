@@ -137,7 +137,7 @@ if ($Action -eq 'All') {
   } else {
    $registered=(& git -C $experiment rev-parse --show-toplevel).Trim()
    Require-Success 'Experiment-Worktree pruefen'
-   if ($registered -ne $experiment) {
+   if ([System.IO.Path]::GetFullPath($registered) -ne [System.IO.Path]::GetFullPath($experiment)) {
     throw "Unbekanntes Experiment-Verzeichnis, kein Eingriff: $experiment"
    }
    $changes=@(& git -C $experiment status --porcelain -uall)
