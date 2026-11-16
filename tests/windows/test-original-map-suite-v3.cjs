@@ -86,7 +86,7 @@ test('9-run tile lifecycle plan brackets exactly four instrumented pressure rout
  const {makeTraceTasks}=sandbox.window.__suiteTestHooks;
  const tasks=makeTraceTasks();
  assert.equal(tasks.length,9);
- assert.deepEqual(tasks.map(t=>t.kind),
+ assert.deepEqual(Array.from(tasks,t=>t.kind),
   ['baseline','control','stress','stress','control','stress','stress','control','baseline']);
  assert.equal(tasks.filter(t=>t.kind==='baseline').length,2);
  assert.equal(tasks.filter(t=>t.kind==='control').length,3);
