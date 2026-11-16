@@ -274,8 +274,9 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  const routeInfo=route(base,scenario,tiles);
  const startReady=await settle(a);
  if(!startReady.ok)throw Error('Startansicht unvollstaendig: '+startReady.ready+'/'+startReady.visible);
- let fallbackWarmupMs=0;
+ let fallbackWarmupMs=0,fallbackWarmupConversions=0;
  if(feature==='fallbackAtlas'&&value===1){
+  const priorConversions=(a.derived1x?.().converted||0);
   const t0=performance.now(),deadline=t0+45000;
   while(performance.now()<deadline){
    if(cancelled)throw Error('Warmup abgebrochen');
@@ -284,6 +285,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
    a.forceRedraw();await wait(85);
   }
   fallbackWarmupMs=Math.round(performance.now()-t0);
+  fallbackWarmupConversions=(a.derived1x?.().converted||0)-priorConversions;
   if(!a.stats().fallbackWarmFinished&&!a.stats().fallbackWarmCapped)
    throw Error('Fallback-Warmup-Timeout');
  }
@@ -330,7 +332,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
   groupId:extras.groupId||null,block:extras.block||null,control:!!extras.control,
   stress:!!extras.stress,stressPhase:extras.stressPhase||null,
   trace:!!extras.trace,
-  fallbackWarmupMs,
+  fallbackWarmupMs,fallbackWarmupConversions,
   fallbackAtStart:{
    enabled:!!before.fallbackAtlasEnabled,resident:before.fallbackWarmResident||0,
    target:before.fallbackWarmTarget||0,pixels:before.fallbackResidentPixels||0,
@@ -653,6 +655,7 @@ function analyzeFallback(records){
   status:issues.length?'EINGESCHRAENKT':'TECHNISCH GUELTIG',
   issues,metrics,
   warm:b.map(r=>({label:r.label,warmupMs:r.fallbackWarmupMs,
+   conversions:r.fallbackWarmupConversions,
    ready:r.fallbackAtStart?.resident,target:r.fallbackAtStart?.target,
    capped:r.fallbackAtStart?.capped})),
   totals:{a:a.length,b:b.length,
