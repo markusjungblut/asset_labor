@@ -273,6 +273,9 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  }
  if(extras.fallbackCombo&&!a.stats().fallbackAtlasEnabled)
   throw Error('Fallback-Kombitest: 1x-Sicherheitscache nicht aktiviert');
+ if(extras.fallbackCombo&&(!a.stats().fallbackAtlasEnabled||
+     (feature===null&&a.stats().parallelLayerDecode)))
+  throw Error('Kombitest: Fallback oder parallele Dekodierung in Kontrolle nicht isoliert');
  if(feature==='fallbackAtlas'&&Boolean(a.stats().fallbackAtlasEnabled)!==Boolean(value))
   throw Error('1x-Fallback-Feature nicht korrekt isoliert');
  const base=a.pose();
@@ -653,6 +656,9 @@ function analyzeFinal(records){
    issues.push('1x-Fallback nicht vollstaendig in allen A/B-Runs vorgewaermt');
  if(b.some(r=>(r.parallelTileDecodes||0)<=0))
   issues.push('ParallelDecode-Wirkmechanismus in B nicht ausgeloest');
+ if(metrics.frameSamples.aMedian&&metrics.frameSamples.bMedian&&
+  metrics.frameSamples.bMedian/metrics.frameSamples.aMedian<.75)
+   issues.push('B zeichnet deutlich weniger aktive Frames als A');
  if(runs.some(r=>r.decodedPixelsAfter>95000000))
   issues.push('Bitmap-Pixelbudget verletzt');
  const totalMissingA=a.reduce((n,r)=>n+(r.readiness?.missingFrames||0),0);
@@ -1001,8 +1007,13 @@ async function suite(mode='full'){
     quick?'13 Region-Fahrten: 2 main, 3 unveraenderte Kontrollen, 4 A + 4 B':
     tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
    methodologicalNotes:[
-    'A/B: alle vier Feature-Flags deaktiviert; nur das untersuchte Feature ist im B-Lauf aktiviert.',
-    'ABBA + BAAB: vier A- und vier B-Messungen pro Feature und Route; jeweils neue JS-RAM-Karte im iframe.',
+    ...(finalMode?[
+     'Final: fallbackAtlas=1 und 120/120 Warm-1x-Tiles in beiden Varianten; nur parallelDecode bei B an, andere drei alte Optimierungen AUS.',
+     '9 Laeufe: 3 experimentelle region controls und 3 A / 3 B Pressure-Runs, jeweils neuer iframe-RAM-Cache. Explorative Mini-A/B, KEINE ABBA-Bestaetigung in grossen Serien.'
+    ]:[
+     'A/B: alle vier Feature-Flags deaktiviert; nur das untersuchte Feature ist im B-Lauf aktiviert.',
+     'ABBA + BAAB: vier A- und vier B-Messungen pro Feature und Route; jeweils neue JS-RAM-Karte im iframe.'
+    ]),
     'Persistent gespeicherte abgeleitete 1x/2x-Bilder werden vorgewaermt und nie geloescht. Das ist KEIN echter disk-cold-Vergleich.',
     'Kontrollfahrten dienen zur Drift-Erkennung. Ein einziges Firefox-Session-Ergebnis erlaubt keine endgueltige Freigabe.',
     'Nur Renderer/JS- und rAF-Zeitmessungen; keine GPU-Present-FPS oder physische End-to-End-Latenz.',
