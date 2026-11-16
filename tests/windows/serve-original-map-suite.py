@@ -87,12 +87,14 @@ def _tile_trace_runtime(source):
 
 
 class ReadOnlySuiteHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, baseline, candidate, suite, **kwargs):
+    def __init__(self, *args, baseline, candidate, suite, experiment=None, **kwargs):
         self._roots = {
             "baseline": Path(baseline).resolve(),
             "candidate": Path(candidate).resolve(),
             "suite": Path(suite).resolve(),
         }
+        if experiment is not None:
+            self._roots["experiment"] = Path(experiment).resolve()
         super().__init__(*args, directory=str(self._roots["suite"]), **kwargs)
 
     def translate_path(self, path):
@@ -103,6 +105,9 @@ class ReadOnlySuiteHandler(SimpleHTTPRequestHandler):
         elif request_path.startswith("/candidate/"):
             self.directory = str(self._roots["candidate"])
             request_path = "/" + request_path[len("/candidate/"):]
+        elif request_path.startswith("/experiment/") and "experiment" in self._roots:
+            self.directory = str(self._roots["experiment"])
+            request_path = "/" + request_path[len("/experiment/"):]
         elif request_path in (
             "/renderer-original-map.html",
             "/renderer-original-map-suite.js",
@@ -150,6 +155,10 @@ class ReadOnlySuiteHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/__vedras_fallback_mode":
+            data = b"fallback-v1" if "experiment" in self._roots else b"unavailable"
+            self._send_diagnostic_text(data.decode("ascii"), "text/plain; charset=utf-8")
+            return
         if path == "/__vedras_suite_mode":
             data = b"combined-v1"
             self.send_response(200)
@@ -180,9 +189,12 @@ def main():
     parser.add_argument("--baseline", required=True)
     parser.add_argument("--candidate", required=True)
     parser.add_argument("--suite", required=True)
+    parser.add_argument("--experiment")
     parser.add_argument("--port", type=int, default=8780)
     args = parser.parse_args()
-    for dirname in (args.baseline, args.candidate, args.suite):
+    for dirname in (args.baseline, args.candidate, args.suite, args.experiment):
+        if dirname is None:
+            continue
         if not Path(dirname).is_dir():
             parser.error("Test directory missing: " + dirname)
     for folder in (args.baseline, args.candidate):
@@ -209,11 +221,20 @@ def main():
             parser.error("Instrumented JS failed syntax check: " + checked.stderr[:1500])
     else:
         print("Warning: node missing; transformed runtime not JS syntax-checked", flush=True)
+    if args.experiment:
+        game = Path(args.experiment) / "frozen-map-game.js"
+        runtime = Path(args.experiment) / "frozen-map-runtime.js"
+        if not game.is_file() or not runtime.is_file():
+            parser.error("Missing experimental viewer scripts")
+        if "fallbackAtlas=params.get" not in game.read_text(encoding="utf-8") or \
+                "fallbackAtlasEnabled" not in runtime.read_text(encoding="utf-8"):
+            parser.error("Experiment does not contain the 1x fallback implementation")
     handler = partial(
         ReadOnlySuiteHandler,
         baseline=args.baseline,
         candidate=args.candidate,
         suite=args.suite,
+        experiment=args.experiment,
     )
     with ThreadingHTTPServer(("127.0.0.1", args.port), handler) as server:
         print("Readonly complete Firefox suite: http://127.0.0.1:%d/renderer-original-map.html" % args.port, flush=True)
