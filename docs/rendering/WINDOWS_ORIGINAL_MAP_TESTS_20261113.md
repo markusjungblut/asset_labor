@@ -2,6 +2,20 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Auswertung des ersten 23-Laeufe-Mischlast-Realtests (16.11.2026)
+
+Originalkarte `v1-0374527a`, Windows 10/Firefox 160, `vedras_windows_complete_stress_1794840202188.json`, `order=standard`, Start 14:41 UTC, Ende 14:43 UTC:
+- **23/23 erfolgreich und gueltig**, 0 Fehler, 0 Warnungen, 0 `qualityStop`, insgesamt **2.609** Rohframes. `worldBlitMs>=100ms`: **0**. Maximaler Blit **11ms**, ausschließlich in der abschließenden main-Baseline; Kandidaten max **1ms**. Die Hypothese einer sich unter der hier getesteten Mischlast aufbauenden starken Blit-Latenz wurde **nicht** reproduziert. Sie kann unter abweichenden Bedingungen weiter auftreten (alte Berichte: 487 Frames >=100ms).
+- Sechs feste Kandidaten-Regionskontrollen rAF-p95 **35/34/34/33/41/33ms**, Draw-p95 **4/4/4/5/4/4ms**; Baseline rAF-p95 **31→41ms**, Draw-p95 **4→6ms**. Der einmalige Kontrollwert 41ms ist kein schwerer Kontroll-Driftstopp. Einzelner `drawMs=64ms`-Frame in letzter Main-Baseline: `worldPrepareMs=55ms`, `worldBlitMs=7ms`, kein langes Blit.
+- In **allen sechs Pressure-Fahrten** fehlen sichtbare Tile-Bestandteile bei **64–77 von 82** aktiven Frames (78–94%); je Lauf **2.088–2.429ms** aufsummierte framebasierte Missing-Duration, maximal **15 gleichzeitig fehlende Tiles**. Laengster einzelner zusammenhaengender Missing-Abschnitt **666–1.285ms**. Vollstaendige Bereitschaft am Laufende; **kein Tile-Decode-/Readfehler, kein dauerhafter Datenverlust**.
+- Pressure: **221** wiederholte Dekodierungen, **528** Evictions, **691** sichtbare Read-Starts; Prefetch-Read-Starts in den sechs Runs **1 insgesamt**. Sichtbare Tile-Decode-p95 je Run **86–118ms**. Das ist starke Korrelation von Cache-Churn, anstehenden sichtbaren Decodes und unvollstaendiger Kamera-Ansicht, **noch kein kausaler Nachweis eines spezifischen Eviction-Fehlers**.
+- Sechs Zoom-/LOD-Runs: Missing-Duration **0ms**, Decoder-Repeats und Evictions **0**; rAF-p95 **21–33ms**. Drei Warm-Runs: Missing-Duration **0ms**, rAF-p95 **17–18ms**.
+- In der Kandidaten-Stress-Konfiguration waren **alle vier experimentellen Feature-Flags AUS**; deshalb liegt **kein A/B-Vergleich** und keine Aktivierungsentscheidung zu `parallelDecode` oder anderen Schaltern vor. Keine automatische Mergefreigabe.
+
+**Naechste Phase:** Den Untersuchungsfokus von `worldBlit` auf sichtbare Read-/Decode-Warteschlangen, Cache-Eviction/Redecode unter schnellen Richtungswechseln und RAM-Budget-Zustaende verlagern. Hierzu sollte zunaechst eine kurze reproduzierbare Pressure-Messung mit granularen Messungen zu Ursachen jeder Missing-Tile-Phase und Read-/Decode-Queue-Laufzeiten erstellt werden. Kein weiterer langer 124er-Test; keine ungepruefte Anhebung des 95-Millionen-Pixel-Limits. PR bleibt Draft.
+
+---
+
 ## Reverse-Kurztest und isolierte Mischlast-Suite (16.11.2026)
 
 Zweiter kurzer Originalkarten-Bericht `vedras_windows_complete_blit_1794839233064.json`, `order=reverse`: 13/13 erfolgreiche und gueltige Laeufe, keine Fehler/Warnungen, kein Quality-Stop. **2.377 Frames, 0 mit `worldBlitMs>=100ms`, maximale beobachtete Blit-Zeit 1 ms.** Zusammen mit Standard-Kurztest: **4.764** Frames ohne lange Blit-Aufrufe. Unveraenderte Kandidaten-Kontrollen rAF-p95 **29/34/32 ms** (Draw-p95 4/4/4 ms); Baseline rAF-p95 Anfang/Ende 34/35 ms.
