@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,makeTraceTasks,summarizeTileTraces,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,makeTraceTasks,makeFallbackTasks,analyzeFallback,summarizeTileTraces,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -39,6 +39,52 @@ test('deterministic 124-task matrix, isolated crossover and reverse order',()=>{
  }
  const firstFeature=t=>t.find(r=>r.kind==='feature'&&r.scenario==='region').feature;
  assert.notEqual(firstFeature(tasks),firstFeature(reversed));
+});
+test('13-run 1x fallback experiment uses separate candidate A and experiment B',()=>{
+ const {makeFallbackTasks}=sandbox.window.__suiteTestHooks;
+ const plans=[makeFallbackTasks('standard'),makeFallbackTasks('reverse')];
+ for(const tasks of plans){
+  assert.equal(tasks.length,13);
+  assert.equal(tasks.filter(x=>x.kind==='baseline').length,2);
+  assert.equal(tasks.filter(x=>x.control).length,3);
+  const ab=tasks.filter(x=>x.feature==='fallbackAtlas');
+  assert.equal(ab.length,8);
+  assert.equal(ab.filter(x=>x.value===0).length,4);
+  assert.equal(ab.filter(x=>x.value===1).length,4);
+  assert.ok(ab.every(x=>x.scenario==='pressure'));
+  assert.ok(ab.every(x=>x.version===(x.value===1?'experiment':'candidate')));
+  assert.ok(tasks.filter(x=>x.control).every(x=>x.version==='candidate'));
+  assert.ok(tasks.filter(x=>x.kind==='baseline').every(x=>x.version==='baseline'));
+ }
+ const bits=t=>t.filter(x=>x.feature==='fallbackAtlas').map(x=>x.value).join('');
+ assert.equal(bits(plans[0]),'01101001');
+ assert.equal(bits(plans[1]),'10010110');
+});
+test('1x fallback comparison retains missing and raf paired blocks and warmup',()=>{
+ const {analyzeFallback}=sandbox.window.__suiteTestHooks;
+ const records=[];
+ for(const block of [1,2])for(const [i,value] of [0,1,1,0].entries()){
+  records.push({success:true,valid:true,feature:'fallbackAtlas',value,block,
+   label:'B'+block+'-'+i,missingDurationMs:value?300:1800,
+   p95RafTickMs:value?25:36,p95DrawMs:value?5:4,
+   evictions:value?10:70,decodeRepeats:value?2:20,
+   readiness:{missingFraction:value?.12:.85},
+   fallbackWarmupMs:value?1500:0,
+   fallbackAtStart:{enabled:!!value,resident:value?110:0,target:value?120:0,
+    capped:false},fallbackAtEnd:{fallbackHits:value?44:0,
+    staleStorageSkips:value?5:0,staleDecodeDrops:value?3:0}
+  });
+ }
+ const cmp=analyzeFallback(records);
+ assert.equal(cmp.status,'TECHNISCH GUELTIG');
+ assert.equal(cmp.metrics.missingFraction.aMedian,.85);
+ assert.equal(cmp.metrics.missingFraction.bMedian,.12);
+ assert.equal(cmp.metrics.missingDurationMs.aMedian,1800);
+ assert.equal(cmp.metrics.missingDurationMs.bMedian,300);
+ assert.equal(cmp.metrics.p95RafTickMs.blockDiffs[0],-11);
+ assert.equal(cmp.totals.fallbackHits,176);
+ assert.equal(cmp.totals.skippedObsoleteStorage,20);
+ assert.equal(cmp.warm.length,4);
 });
 test('13-run blit plan uses two main baselines, three off-controls, four A and four B',()=>{
  const {makeBlitTasks}=sandbox.window.__suiteTestHooks;
