@@ -29,11 +29,13 @@ small{color:#abc0b6}code{color:#d0e8d5}
 <label>Fahrt <select id="scenario"><option value="warm">Warme Kamerafahrt</option><option value="lod">1×/2× Zoomwechsel</option><option value="region">Neue Region und Rückfahrt</option></select></label>
 <label>Testreihenfolge <select id="runOrder"><option value="standard">Standard</option><option value="reverse">Umgekehrt (2. Sitzung)</option></select></label>
 <button id="startAll" style="background:#326c56;font-weight:700;border-color:#80c9a7">Alle Tests automatisch (1 Klick)</button>
+<button id="startBlit" style="background:#315675;font-weight:700;border-color:#7caccb">Blit-Kurzdiagnose (13 Läufe)</button>
 <button id="stopAll" disabled>Gesamttest stoppen</button>
 <button id="downloadAll" disabled>Gesamtbericht erneut speichern</button>
 <button id="start">Einzeltest ausführen</button>
 <button id="download" disabled>Ergebnis-JSON speichern</button>
 </div>
+<p><strong>Neu – gezielte Blit-Kurzdiagnose:</strong> Der blaue Knopf führt nur 13 Regionenfahrten aus: 2 unveränderte Main-Baselines, 3 Kandidaten-Kontrollen und 8 isolierte <code>parallelDecode</code>-Vergleiche (4× AUS, 4× AN in ABBA-/BAAB-Reihenfolge). Im JSON stehen zusätzlich alle World-Blit-Ausreißer ab 100 ms mit Lauf, Zeitstempel, DPR, Canvas-Pixelzahl und Draw-/Blit-Dauer. Eine erhebliche Drift beendet den Test mit exportiertem Teilbericht. Die Originalkarte wird nicht gelöscht; eine Leistungsfreigabe erfolgt nicht. Für einen zweiten Kurztest kann „Umgekehrt“ gewählt werden.</p>
 <p><strong>Belastbarer Vergleich v3:</strong> Die Ein-Klick-Suite führt 124 Fahrten aus: 6 Baseline-Kontrollen, 104 isolierte Kandidaten-A/B-Läufe (jeweils ABBA und BAAB), 11 zeitliche Kontrollfahrten und 3 Tests mit den produktiven Kandidaten-Standardschaltern. Mit warmem Pan, wiederholten 1×/2×-Zoomwechseln, neuen Regionen und Rückfahrt sowie abrupten Richtungswechseln zur Lesepriorität. Der Viewer steht dauerhaft oberhalb der begrenzten Ergebnistabelle. Eine automatische Performance-Freigabe erfolgt nicht.</p>
 <p><small>Start über den aktualisierten Werkzeug-Worktree mit <code>pwsh -File .\tests\windows\prepare-original-map.ps1 -Action All</code>. Immer dasselbe Firefox-Profil und <code>127.0.0.1:8780</code>. Den Tab während des Durchlaufs im Vordergrund lassen. Die erste Sitzung mit „Standard“ durchführen; für einen unabhängigeren Vergleich Firefox neu starten und „Umgekehrt (2. Sitzung)“ wählen. Die Einzeltest-Schaltflächen gelten nur für separat gestartete Server.</small></p>
 <div id="status" role="status">Bereit. Ein Test führt ausschließlich Lesezugriffe auf die vorberechnete Spielkarte aus. Bereits gespeicherte 1×-/2×-Ableitungen können vom Viewer bei Bedarf ergänzt werden.</div>
