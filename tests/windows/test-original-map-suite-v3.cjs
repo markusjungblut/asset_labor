@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,makeTraceTasks,summarizeTileTraces,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -81,6 +81,46 @@ test('23-run isolated mixed stress plan protects original atlas and brackets sta
  }
  assert.equal(makeStressTasks('standard')[2].scenario,'pressure');
  assert.equal(makeStressTasks('reverse')[2].scenario,'lod');
+});
+test('9-run tile lifecycle plan brackets exactly four instrumented pressure routes',()=>{
+ const {makeTraceTasks}=sandbox.window.__suiteTestHooks;
+ const tasks=makeTraceTasks();
+ assert.equal(tasks.length,9);
+ assert.deepEqual(tasks.map(t=>t.kind),
+  ['baseline','control','stress','stress','control','stress','stress','control','baseline']);
+ assert.equal(tasks.filter(t=>t.kind==='baseline').length,2);
+ assert.equal(tasks.filter(t=>t.kind==='control').length,3);
+ assert.equal(tasks.filter(t=>t.kind==='stress').length,4);
+ assert.ok(tasks.filter(t=>t.version==='candidate').every(t=>
+  t.trace===true&&t.feature===null&&t.value===null));
+ assert.ok(tasks.filter(t=>t.version==='baseline').every(t=>!t.trace));
+ assert.ok(tasks.filter(t=>t.kind==='stress').every(t=>t.scenario==='pressure'));
+ assert.ok(tasks.filter(t=>t.kind==='control').every(t=>t.scenario==='region'));
+});
+test('tile lifecycle summary separates capacity waits, decode repeats and visible missing',()=>{
+ const {summarizeTileTraces}=sandbox.window.__suiteTestHooks;
+ const records=[
+  {label:'pressure 1',scenario:'pressure',tileTrace:{
+   counts:{'capacity-wait':3,'inflight-wait':2,evict:4,'missing-start':3},
+   dropped:0,peakMissing:2,events:[
+    {kind:'ready',redecoded:true},
+    {kind:'missing-ready',waitMs:80},
+    {kind:'missing-left-view',waitMs:40}
+   ]}},
+  {label:'pressure 2',scenario:'pressure',tileTrace:{
+   counts:{'capacity-wait':1,'missing-start':2},dropped:2,peakMissing:4,
+   events:[{kind:'missing-ready',waitMs:120}]}}
+ ];
+ const sum=summarizeTileTraces(records);
+ assert.equal(sum.observedRuns,2);
+ assert.equal(sum.tracesWithDroppedEvents,1);
+ assert.equal(sum.eventCounts['capacity-wait'],4);
+ assert.equal(sum.eventCounts.evict,4);
+ assert.equal(sum.peakMissing,4);
+ assert.equal(sum.missingReadyDurationMedianMs,100);
+ assert.equal(sum.missingLeftViewDurationMedianMs,40);
+ assert.equal(sum.perRun[0].redecodedReadies,1);
+ assert.equal(sum.perRun[1].longestResolvedMs,120);
 });
 test('blit evidence retains later stalls, first stalls and pixel/DPR context',()=>{
  const {analyzeBlit}=sandbox.window.__suiteTestHooks;
