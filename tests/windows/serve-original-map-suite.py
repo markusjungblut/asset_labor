@@ -8,6 +8,8 @@ from argparse import ArgumentParser
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from shutil import which
+from subprocess import run
 from urllib.parse import urlsplit, parse_qs
 
 
@@ -189,6 +191,24 @@ def main():
     for filename in ("renderer-original-map.html", "renderer-original-map-suite.js"):
         if not (Path(args.suite) / filename).is_file():
             parser.error("Runner missing: " + filename)
+    # Validate exact diagnostic anchors before binding a port, never silently
+    # serve a differently patched candidate or change source files on disk.
+    viewer_source = (Path(args.candidate) / "frozen-map-game.html").read_text(encoding="utf-8")
+    if viewer_source.count("frozen-map-runtime.js?v=") != 1:
+        parser.error("Candidate viewer runtime tag changed; tile trace disabled")
+    try:
+        traced_runtime = _tile_trace_runtime(
+            (Path(args.candidate) / "frozen-map-runtime.js").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        parser.error("Candidate lifecycle trace preflight failed: " + str(exc))
+    node = which("node")
+    if node:
+        checked = run([node, "--check", "-"], input=traced_runtime,
+                      text=True, capture_output=True, timeout=15, check=False)
+        if checked.returncode:
+            parser.error("Instrumented JS failed syntax check: " + checked.stderr[:1500])
+    else:
+        print("Warning: node missing; transformed runtime not JS syntax-checked", flush=True)
     handler = partial(
         ReadOnlySuiteHandler,
         baseline=args.baseline,
