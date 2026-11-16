@@ -2,6 +2,28 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Reale Ergebnisse: zwei Kachel-Lifecycle-Sitzungen (16.11.2026)
+
+Vollstaendige Dateien:
+- `vedras_windows_complete_trace_1794860153797.json` (`order=standard`)
+- `vedras_windows_complete_trace_1794860323649.json` (`order=reverse`, **nur Metadaten: Der 9er-Trace-Plan wurde in beiden Sitzungen mit identischer Fahrtenfolge ausgefuehrt**; `makeTraceTasks()` nutzte die Auswahl nicht). Der Testzweig korrigiert fuer *zukuenftige* Trace-Reports die irrefuehrende Angabe auf `fixed-pressure`. Die zwei bestehenden Reports bleiben unveraendert.
+
+Beide Sitzungen liefen in Firefox 160 auf der Originalkarte erfolgreich: **je 9/9 gueltig**, insgesamt 18/18, keinerlei Fehler, Warnungen oder QualityStop; **2.520** aufgezeichnete Bewegungsframes, **0 mit `worldBlitMs>=100ms`**, maximaler Blit **1ms**. Beide Sitzungen enthalten je vier instrumentierte Pressure-Fahrten, drei instrumentierte Region-Kontrollen und zwei uninstrumentierte Main-Baselines. Alle vier experimentellen Kandidaten-Flags sind deaktiviert.
+
+**Acht Pressure-Fahrten gesamt:**
+- **566/656** gemessene Bewegungsframes mit mindestens einer fehlenden Kachel = **86,3%**; pro Lauf **1.936–2.431ms** aufsummierte Missing-Frame-Dauer, bis zu **15** fehlende Kacheln gleichzeitig. Kein dauerhafter Defekt, kein gemeldeter Tile-Read-/Decodefehler, am Laufende vollständig bereit.
+- **1.329** `missing-start`-Episoden; **1.148** (**86,4%**) enden mit `missing-left-view` (Kamera verlaesst das Tile vor sichtbarer Bereitschaft), **181** (**13,6%**) enden mit `missing-ready`. Zeit von Missing-Start bis Left-View: Median **68,5ms**, bis sichtbar Ready: Median **142ms**. Diese Zeiten beschreiben beobachtete, durch Kamerawechsel begrenzte Sichtbarkeits-Episoden, **nicht** alle Hintergrund-Loads.
+- **1.316/1.329** (**99,0%**) der `missing-start`-Ereignisse wurden bei **drei belegten In-flight-Slots** beobachtet. Zusaetzlich **1.357** gedrosselte `capacity-wait`-Events und **466** `inflight-wait`-Events. Die 40ms-Drosselung verhindert, dass diese Werte als exakte Zahl abgelehnter Requests interpretiert werden.
+- **916** sichtbare `read-start`-Ereignisse. Storage-Phase: Median **4ms**, p95 **16ms**, maximal **71ms**; Decode-Phase: Median **47ms**, p95 **93ms**, maximal **218ms**. Paarung `read-start -> ready`: Median **53ms**, p95 **100ms**. Die Dekodierung beansprucht in diesem Szenario typischerweise deutlich mehr Zeit als das Lesen aus persistenter Speicherung.
+- **676** RAM-Evictions, davon 663 Bitmap-Eintraege mit `origin='visible'` und 13 mit `origin='prefetch'`. **286** fertige Decodes wurden als `redecoded=true` gemeldet (aus 917 `ready`-Events, darunter ein vor dem Trace-Reset begonnener Vorgang). Das deutet auf Churn hin, ist aber keine Aussage, dass die gerade gezeichnete Kachel aus dem RAM entfernt wurde: die sichtbare Menge ist beim Evicten gepinnt.
+- Bei **794/1.329** Missing-Episoden wurde waehrend der beobachteten Sichtbarkeit **kein neuer `read-start` fuer dieselbe Variante** protokolliert (in 781 davon endete die Sichtbarkeit zuerst). Nicht als sicherer Scheduler-Fehler zaehlen: eine alternative LOD-Variante kann als Fallback erscheinen; manche Ladevorgaenge koennen vor der betreffenden Episode begonnen haben. Die Korrelation zeigt aber hohe kurzfristige Druckbelastung auf die Slots.
+
+**Wichtige Abgrenzung:** Die Reports sind zwei Wiederholungen desselben festen Testablaufs, **keine gegenlaeufige Cross-over-Messung** und kein A/B einer Ladeoptimierung. `readiness.missingDurationMs` summiert beobachtete Frame-Abstaende; `tileTrace` misst einzelne Episoden und kann bei schnellen Regionssprüngen fuer dieselbe Tile-ID mehrfach auftreten. Beide Metriken duerfen nicht als dasselbe interpretiert oder unkritisch addiert werden. Trace-Overhead erlaubt keine direkte FPS-Freigabe gegen uninstrumentierte Laeufe.
+
+**Entwicklungsempfehlung:** Naechste Aenderung nur experimentell und testbar im isolierten Branch: eine *sichtbarkeits-/aktualitaetsbasierte, begrenzte* Priorisierung neuer Kachelanforderungen. Die drei normalen Decode-Slots und die unveraenderte 95-Millionen-Pixel-Grenze dienen zunaechst als feste Kontrollbedingungen. Spaetere A/B-Vergleiche muessen bei gleicher route/Cache-Vorwaermung *prozentuale Missing-Frames*, Missing-Dauer und P95-Draw/rAF gemeinsam messen; keine Freigabe nur nach Zahl gestarteter Reads. Kein Merge/GO.
+
+---
+
 ## Opt-in Diagnose sichtbarer Kachelwartezeiten (16.11.2026)
 
 Die drei real gemessenen Fehlerarten sind zu trennen: (1) kurze oder lange JS/Canvas-Stalls, (2) rAF-Frame-Gaps ohne aehnlich lange synchrone Draw-Zeit und (3) fehlende sichtbare Kartenkacheln, obwohl der Renderer arbeitet. Der abgeschlossene 23er-Mischlastbericht bestaetigte **Typ 3** unter schnellen Richtungswechseln besonders deutlich. Ein weiteres 124er-Sammelbenchmark ist vor der Ursachenbestimmung nicht sinnvoll.
