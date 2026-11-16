@@ -565,6 +565,9 @@ window.VedrasFrozenMap=(()=>{
       !fallbackKeys.length||loading.size>=MAX_INFLIGHT-1)return;
    if([...loadingPurpose.values()].some(v=>v==='prefetch'||v==='fallback'))
     return;
+   if(fallbackKeys.every(key=>decoded.has(cacheKey(key,'1x')))){
+    fallbackWarmFinished=true;return;
+   }
    let fallbackPixels=0,pinnedPixels=0;
    for(const [id,entry] of decoded){
     if(entry.variant==='1x')fallbackPixels+=entry.pixels;
@@ -576,7 +579,7 @@ window.VedrasFrozenMap=(()=>{
    const reserve=Math.max(maxDecodedPixels*.08,2*(typicalPixels['2x']||0));
    const ceiling=Math.max(0,Math.min(maxDecodedPixels*FALLBACK_SHARE,
     maxDecodedPixels-pinnedPixels-reserve));
-   const estimatedNext=typicalPixels['1x']||500000;
+   const estimatedNext=typicalPixels['1x']||Math.min(500000,maxDecodedPixels*.01);
    if(fallbackPixels+estimatedNext>ceiling){
     fallbackWarmCapped=true;return;
    }
