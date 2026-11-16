@@ -472,7 +472,7 @@ function exportJson(){
  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function lock(on){
- const ids=['start','startAll','scene','mode','feature','scenario','runOrder'];
+ const ids=['start','startAll','startBlit','scene','mode','feature','scenario','runOrder'];
  for(const id of ids){
   const e=$(id);if(!e)continue;
   const legacy=['start','mode','feature','scenario'].includes(id);
@@ -550,6 +550,97 @@ function makeTasks(order){
  }
  return tasks;
 }
+
+// Deliberately short: the repeated region route reproduces the large drawImage
+// stalls seen in both Windows reports, while the unchanged controls bracket
+// isolated parallelDecode A/B comparisons. Never delete/modify the map.
+function makeBlitTasks(order='standard'){
+ const tasks=[],scenario='region',feature='parallelDecode',groupId='parallelDecode/region';
+ const baseline=marker=>tasks.push({kind:'baseline',version:'baseline',
+  feature:null,value:null,scenario,label:'Blit Baseline '+marker});
+ const control=marker=>tasks.push({kind:'control',version:'candidate',
+  feature:null,value:null,scenario,control:true,label:'Blit Kontrolle '+marker});
+ baseline('Anfang');
+ control('Anfang');
+ const blocks=order==='reverse'?[2,1]:[1,2];
+ for(const block of blocks){
+  const seq=block===1?[0,1,1,0]:[1,0,0,1];
+  for(let i=0;i<seq.length;i++){
+   const value=seq[i];
+   tasks.push({kind:'feature',version:'candidate',feature,value,scenario,
+    groupId,block,order:i+1,label:'Blit parallelDecode / Block '+block+
+     ' '+(value?'B':'A')+(i+1)});
+  }
+  control(block===blocks[0]?'Mitte':'Ende');
+ }
+ baseline('Ende');
+ return tasks;
+}
+// Raw profiler frames are retained in the JSON. This small derived index
+// describes stalls rather than diagnosing GPU behavior, which performance.now()
+// around synchronous Canvas 2D drawImage cannot determine on its own.
+function analyzeBlit(records){
+ const thresholds=[100,250,500,1000];
+ const summary={
+  schema:'vedras-windows-world-blit-evidence-v1',
+  note:'worldBlitMs is synchronous JS/Canvas drawImage wall time; no GPU-present or GPU-stall causal proof. Timestamps tMs are relative to each profileReset.',
+  totalFrames:0,framesWithBlit:0,thresholdCounts:{},initialStalls:0,movingStalls:0,
+  byDpr:{},byVersion:{},byConfiguration:{},perRun:[],worstFrames:[],
+  featureConclusion:'No automatic performance release; compare separate sessions, mechanism activations and controls.'
+ };
+ for(const threshold of thresholds)summary.thresholdCounts[String(threshold)]=0;
+ for(let runIndex=0;runIndex<records.length;runIndex++){
+  const r=records[runIndex];
+  const frames=r.raw?.frames||[];
+  let maxBlitMs=0,over100=0,over250=0;
+  for(let frameIndex=0;frameIndex<frames.length;frameIndex++){
+   const f=frames[frameIndex],blit=f.worldBlitMs;
+   if(!finite(blit))continue;
+   summary.totalFrames++;
+   summary.framesWithBlit++;
+   maxBlitMs=Math.max(maxBlitMs,blit);
+   const version=r.version||'unknown';
+   const config=r.feature==='parallelDecode'?(r.value?'B-on':'A-off'):
+    r.control?'control-off':version==='baseline'?'main':'other';
+   const dpr=finite(f.dpr)?String(f.dpr):'unknown';
+   for(const [collection,key] of [
+    [summary.byDpr,dpr],[summary.byVersion,version],
+    [summary.byConfiguration,config]]){
+    if(!collection[key])collection[key]={frames:0,over100:0,over250:0,maxBlitMs:0};
+    const item=collection[key];
+    item.frames++;
+    if(blit>=100)item.over100++;
+    if(blit>=250)item.over250++;
+    item.maxBlitMs=Math.max(item.maxBlitMs,blit);
+   }
+   for(const threshold of thresholds){
+    if(blit>=threshold)summary.thresholdCounts[String(threshold)]++;
+   }
+   if(blit>=100){
+    over100++;
+    if(frameIndex===0)summary.initialStalls++;
+    else summary.movingStalls++;
+    if(blit>=250)over250++;
+    summary.worstFrames.push({
+     run:runIndex+1,label:r.label,version,configuration:config,
+     tMs:f.tMs,frameIndex,worldBlitMs:blit,
+     worldPrepareMs:f.worldPrepareMs,drawMs:f.drawMs,
+     frameGapMs:f.frameGapMs,worldRasterMiB:f.worldRasterMiB,
+     canvasPixels:f.canvasPixels,dpr:f.dpr,zoom:f.zoom,
+     visibleTiles:f.visibleTiles,visibleReadyTiles:f.visibleReadyTiles,
+     activeVariant:f.activeVariant
+    });
+   }
+  }
+  summary.perRun.push({run:runIndex+1,label:r.label,version:r.version,
+   feature:r.feature,value:r.value,frames:frames.length,
+   maxBlitMs,over100,over250,p95RafTickMs:r.p95RafTickMs,
+   p95DrawMs:r.p95DrawMs,missingDurationMs:r.missingDurationMs});
+ }
+ summary.worstFrames.sort((a,b)=>b.worldBlitMs-a.worldBlitMs);
+ summary.worstFrames=summary.worstFrames.slice(0,24);
+ return summary;
+}
 // Stop wasting an entire 124-run campaign when a repeated, unchanged
 // candidate control shows order-of-magnitude timing drift. The stop is
 // NOT a performance result: it is an environmental reliability warning.
@@ -588,8 +679,9 @@ function addComparisonRows(summary){
   target.appendChild(tr);
  }
 }
-async function suite(){
+async function suite(mode='full'){
  if(running)return;
+ const quick=mode==='blit';
  const scene=$('scene').value.trim();
  if(!/^v1-[0-9a-f]{8}$/.test(scene)){status('Ungueltige Kartenkennung');return;}
  running=true;cancelled=false;latest=null;lock(true);
@@ -608,11 +700,14 @@ async function suite(){
   if(!('lodRecency' in candidateProbe.stats()))throw Error('Kandidat ohne Test-Flags. Vergleich ungueltig.');
   const tiles=await tileCenters(scene);
   const order=$('runOrder')?.value==='reverse'?'reverse':'standard';
-  tasks=makeTasks(order);
+  tasks=quick?makeBlitTasks(order):makeTasks(order);
   latest={
-   schema:'vedras-windows-original-map-full-suite-v3',
-   at:started,scene,mode:'combined',order,browser:navigator.userAgent,
-   origin:location.origin,plan:tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
+   schema:quick?'vedras-windows-world-blit-diagnostic-v1':
+    'vedras-windows-original-map-full-suite-v3',
+   at:started,scene,mode:quick?'blit':'combined',order,browser:navigator.userAgent,
+   origin:location.origin,plan:quick?
+    '13 Region-Fahrten: 2 main, 3 unveraenderte Kontrollen, 4 A + 4 B':
+    tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
    methodologicalNotes:[
     'A/B: alle vier Feature-Flags deaktiviert; nur das untersuchte Feature ist im B-Lauf aktiviert.',
     'ABBA + BAAB: vier A- und vier B-Messungen pro Feature und Route; jeweils neue JS-RAM-Karte im iframe.',
@@ -668,6 +763,7 @@ async function suite(){
   latest.completed=!cancelled&&!latest.qualityStop&&
    attempted===tasks.length&&errors.length===0;
   latest.statistics=summarizeSuite(latest);
+  if(quick)latest.blitDiagnosis=analyzeBlit(records);
   latest.warnings=records.filter(r=>!r.valid||!r.ready?.ok||r.coverage?.warning)
    .map(r=>({label:r.label,issues:r.validityIssues||[],
     coverage:r.coverage?.warning||null}));
@@ -675,10 +771,13 @@ async function suite(){
    issues:[latest.qualityStop.reason]});
   addComparisonRows(latest.statistics);
   $('downloadAll').disabled=false;
-  status((latest.qualityStop?'QUALITAETSSTOPP: '+latest.qualityStop.reason+' ': 
+  status((latest.qualityStop?'QUALITAETSSTOPP: '+latest.qualityStop.reason+' ':
     cancelled?'Abgebrochen. ':'Fertig. ')+records.length+'/'+tasks.length+
    ' Messungen, '+errors.length+' Fehler, '+latest.statistics.unqualifiedGroups+
-   ' nicht belastbare Gruppen. Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
+   ' nicht belastbare Gruppen.'+
+   (quick?' World-Blit >=100ms: '+latest.blitDiagnosis.thresholdCounts['100']+
+    ' Frames; davon nach dem ersten Frame: '+latest.blitDiagnosis.movingStalls+'.':'')+
+   ' Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
   exportJson();
  }catch(error){
   const msg=String(error?.message||error);
@@ -687,6 +786,7 @@ async function suite(){
   if(latest){
    latest.completed=false;latest.finishedAt=new Date().toISOString();
    latest.statistics=summarizeSuite(latest);
+   if(quick)latest.blitDiagnosis=analyzeBlit(records);
    $('downloadAll').disabled=false;
    exportJson();
   }
@@ -700,6 +800,7 @@ combinedAvailable().then(isCombined=>{
  if(isCombined)for(const id of ['start','mode','feature','scenario'])$(id).disabled=true;
 }).catch(()=>{});
 $('startAll').addEventListener('click',suite);
+$('startBlit')?.addEventListener('click',()=>suite('blit'));
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
 $('downloadAll').addEventListener('click',exportJson);
 })();
