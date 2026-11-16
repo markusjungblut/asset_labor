@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -39,6 +39,51 @@ test('deterministic 124-task matrix, isolated crossover and reverse order',()=>{
  }
  const firstFeature=t=>t.find(r=>r.kind==='feature'&&r.scenario==='region').feature;
  assert.notEqual(firstFeature(tasks),firstFeature(reversed));
+});
+test('13-run blit plan uses two main baselines, three off-controls, four A and four B',()=>{
+ const {makeBlitTasks}=sandbox.window.__suiteTestHooks;
+ const normal=makeBlitTasks('standard'),reverse=makeBlitTasks('reverse');
+ for(const tasks of [normal,reverse]){
+  assert.equal(tasks.length,13);
+  assert.equal(tasks.filter(t=>t.kind==='baseline').length,2);
+  assert.equal(tasks.filter(t=>t.kind==='control').length,3);
+  const ab=tasks.filter(t=>t.kind==='feature');
+  assert.equal(ab.length,8);
+  assert.equal(ab.filter(t=>t.value===0).length,4);
+  assert.equal(ab.filter(t=>t.value===1).length,4);
+  assert.ok(ab.every(t=>t.groupId==='parallelDecode/region'));
+  assert.ok(tasks.filter(t=>t.kind==='control').every(t=>t.value===null));
+ }
+ const values=t=>t.filter(r=>r.kind==='feature').map(r=>r.value).join('');
+ assert.equal(values(normal),'01101001');
+ assert.equal(values(reverse),'10010110');
+});
+test('blit evidence retains later stalls, first stalls and pixel/DPR context',()=>{
+ const {analyzeBlit}=sandbox.window.__suiteTestHooks;
+ const records=[
+  {label:'candidate B',version:'candidate',feature:'parallelDecode',value:1,
+   p95RafTickMs:90,p95DrawMs:80,raw:{frames:[
+    {tMs:0,dpr:1.25,canvasPixels:706525,drawMs:3001,worldBlitMs:3000},
+    {tMs:5000,dpr:2,canvasPixels:1807760,drawMs:270,worldBlitMs:268,
+     worldRasterMiB:46,zoom:.9,visibleTiles:8,visibleReadyTiles:6}
+   ]}},
+  {label:'baseline',version:'baseline',feature:null,value:null,
+   p95RafTickMs:40,p95DrawMs:5,raw:{frames:[
+    {tMs:0,dpr:1.25,canvasPixels:706525,drawMs:5,worldBlitMs:3}
+   ]}}
+ ];
+ const result=analyzeBlit(records);
+ assert.equal(result.totalFrames,3);
+ assert.equal(result.thresholdCounts['100'],2);
+ assert.equal(result.thresholdCounts['250'],2);
+ assert.equal(result.thresholdCounts['1000'],1);
+ assert.equal(result.initialStalls,1);
+ assert.equal(result.movingStalls,1);
+ assert.equal(result.byDpr['2'].over100,1);
+ assert.equal(result.byVersion.candidate.over100,2);
+ assert.equal(result.worstFrames[0].worldBlitMs,3000);
+ assert.equal(result.worstFrames[1].canvasPixels,1807760);
+ assert.equal(result.perRun[0].over250,2);
 });
 test('route returns to initial pose and performs real 1x/2x and distant jumps',()=>{
  const base={zoom:.33,panX:0,panY:0,dpr:1.25,projectY:.85};
