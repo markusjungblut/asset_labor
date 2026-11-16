@@ -48,7 +48,7 @@ function readyViewerAt(frame,expectedHref){
    a.stats?.().saved>0?a:null;
  }catch(_){return null;}
 }
-async function load(scene,feature,value,version=''){
+async function load(scene,feature,value,version='',trace=false){
  await ensureViewerVisible();
  const frame=$('game');
  frame.src='about:blank';
@@ -67,6 +67,10 @@ async function load(scene,feature,value,version=''){
  url.searchParams.set('scene',scene);
  url.searchParams.set('lod','near');
  url.searchParams.set('perf','1');
+ if(trace){
+  if(version!=='candidate')throw Error('Tile-Trace ist nur im isolierten Kandidaten erlaubt');
+  url.searchParams.set('tileTrace','1');
+ }
  // Isolated A/B: the candidate starts with all four tested flags OFF.
  // The separate "production" smoke test deliberately uses shipped defaults.
  const isolated=(version==='candidate'||(!version&&feature!==null))&&feature!=='production';
@@ -243,7 +247,11 @@ function readinessWhileMoving(report){
 
 function delta(a,b,key){return Math.max(0,(b[key]||0)-(a[key]||0));}
 async function measure(scene,feature,value,scenario,label,tiles,version='',extras={}){
- const a=await load(scene,feature,value,version);
+ const a=await load(scene,feature,value,version,!!extras.trace);
+ const tileTrace=extras.trace?$('game').contentWindow?.__vedrasTileTrace:null;
+ if(extras.trace&&(!tileTrace||typeof tileTrace.reset!=='function'||
+   typeof tileTrace.report!=='function'))
+  throw Error('Kachel-Lifecycle-Instrumentierung fehlt: Server und Kandidatenzweig aktualisieren');
  if(feature!==null&&feature!=='production'){
   const mapping={leadPrefetch:'directionalPrefetch',lodRecency:'lodRecency',
    visibleBorrow:'visibleBorrow',parallelDecode:'parallelLayerDecode'};
@@ -273,11 +281,13 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  }
  await wait(200);
  a.profileReset();
+ if(tileTrace)tileTrace.reset();
  const before=a.stats();
  const derivedBefore={one:a.derived1x?.().converted||0,two:a.derived2x?.().converted||0};
  const start=performance.now();
  const ticks=await drive(a,routeInfo.poses);
  const movingReport=a.profileReport();
+ const traceMovementEndMs=tileTrace?tileTrace.report().durationMs:null;
  const moveStats=a.stats();
  const endReady=await settle(a);
  const after=a.stats();
@@ -304,6 +314,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
   label,feature,value,scenario,version,
   groupId:extras.groupId||null,block:extras.block||null,control:!!extras.control,
   stress:!!extras.stress,stressPhase:extras.stressPhase||null,
+  trace:!!extras.trace,
   production:feature==='production',success:true,
   valid:validityIssues.length===0,validityIssues,readiness,derivedConversions,
   missingDurationMs:readiness.missingDurationMs,longestMissingMs:readiness.longestMissingMs,
@@ -346,7 +357,8 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
     scenario==='region'&&delta(before,after,'visibleReadStarts')===0?
     'Keine neuen sichtbaren Reads: Cache-Vergleich eingeschraenkt':null
   },
-  raw:r
+  raw:r,
+  tileTrace:tileTrace?{...tileTrace.report(),movementEndMs:traceMovementEndMs}:null
  };
  if(scenario==='lod'&&!record.coverage.bothLods){
   record.valid=false;record.validityIssues.push('1x/2x-Variantenabdeckung fehlt');
@@ -473,7 +485,7 @@ function exportJson(){
  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function lock(on){
- const ids=['start','startAll','startBlit','startStress','scene','mode','feature','scenario','runOrder'];
+ const ids=['start','startAll','startBlit','startStress','startTrace','scene','mode','feature','scenario','runOrder'];
  for(const id of ids){
   const e=$(id);if(!e)continue;
   const legacy=['start','mode','feature','scenario'].includes(id);
@@ -580,6 +592,62 @@ function makeBlitTasks(order='standard'){
 // Reproduce long-session/route-order stress without a 124-run A/B campaign.
 // All candidate stress runs have ALL four tested feature flags OFF. Identical
 // unmodified candidate region controls are placed between each phase.
+
+function makeTraceTasks(){
+ const tasks=[];
+ const baseline=marker=>tasks.push({kind:'baseline',version:'baseline',
+  feature:null,value:null,scenario:'region',label:'Kachelspur Baseline '+marker});
+ const control=marker=>tasks.push({kind:'control',version:'candidate',
+  feature:null,value:null,scenario:'region',control:true,trace:true,
+  label:'Kachelspur Kontrolle '+marker});
+ const pressure=(section,i)=>tasks.push({kind:'stress',version:'candidate',
+  feature:null,value:null,scenario:'pressure',stress:true,trace:true,
+  stressPhase:section,label:'Kachelspur Richtungswechsel '+section+' '+i+'/2'});
+ baseline('Anfang');control('Anfang');
+ for(let i=1;i<=2;i++)pressure(1,i);
+ control('Mitte');
+ for(let i=1;i<=2;i++)pressure(2,i);
+ control('Ende');baseline('Ende');
+ return tasks;
+}
+function summarizeTileTraces(records){
+ const summary={schema:'vedras-tile-lifecycle-summary-v1',observedRuns:0,
+  tracesWithDroppedEvents:0,eventCounts:{},missingReadyDurations:[],
+  missingLeftViewDurations:[],peakMissing:0,perRun:[]};
+ for(const r of records){
+  const trace=r.tileTrace;
+  if(!trace)continue;
+  summary.observedRuns++;
+  if(trace.dropped)summary.tracesWithDroppedEvents++;
+  summary.peakMissing=Math.max(summary.peakMissing,trace.peakMissing||0);
+  for(const [kind,n] of Object.entries(trace.counts||{}))
+   summary.eventCounts[kind]=(summary.eventCounts[kind]||0)+n;
+  const ready=(trace.events||[]).filter(e=>e.kind==='missing-ready')
+   .map(e=>e.waitMs).filter(finite);
+  const left=(trace.events||[]).filter(e=>e.kind==='missing-left-view')
+   .map(e=>e.waitMs).filter(finite);
+  summary.missingReadyDurations.push(...ready);
+  summary.missingLeftViewDurations.push(...left);
+  summary.perRun.push({
+   label:r.label,scenario:r.scenario,
+   events:(trace.events||[]).length,dropped:trace.dropped||0,
+   capacityWaits:trace.counts?.['capacity-wait']||0,
+   inflightWaits:trace.counts?.['inflight-wait']||0,
+   evictions:trace.counts?.evict||0,
+   redecodedReadies:(trace.events||[]).filter(e=>e.kind==='ready'&&e.redecoded).length,
+   missingStarts:trace.counts?.['missing-start']||0,
+   missingResolved:ready.length,missingLeftView:left.length,
+   longestResolvedMs:ready.length?Math.max(...ready):0,
+   peakMissing:trace.peakMissing||0
+  });
+ }
+ summary.missingReadyDurationMedianMs=median(summary.missingReadyDurations);
+ summary.missingLeftViewDurationMedianMs=median(summary.missingLeftViewDurations);
+ // Keep aggregate small; raw evidence is in each record.tileTrace.events.
+ delete summary.missingReadyDurations;
+ delete summary.missingLeftViewDurations;
+ return summary;
+}
 function makeStressTasks(order='standard'){
  const tasks=[],scenario='region';
  const baseline=marker=>tasks.push({kind:'baseline',version:'baseline',
@@ -709,7 +777,8 @@ function addComparisonRows(summary){
 }
 async function suite(mode='full'){
  if(running)return;
- const quick=mode==='blit'||mode==='stress',stress=mode==='stress';
+ const traceMode=mode==='trace';
+ const quick=mode==='blit'||mode==='stress'||traceMode,stress=mode==='stress';
  const scene=$('scene').value.trim();
  if(!/^v1-[0-9a-f]{8}$/.test(scene)){status('Ungueltige Kartenkennung');return;}
  running=true;cancelled=false;latest=null;lock(true);
@@ -728,14 +797,18 @@ async function suite(mode='full'){
   if(!('lodRecency' in candidateProbe.stats()))throw Error('Kandidat ohne Test-Flags. Vergleich ungueltig.');
   const tiles=await tileCenters(scene);
   const order=$('runOrder')?.value==='reverse'?'reverse':'standard';
-  tasks=stress?makeStressTasks(order):quick?makeBlitTasks(order):makeTasks(order);
+  tasks=traceMode?makeTraceTasks():stress?makeStressTasks(order):
+   quick?makeBlitTasks(order):makeTasks(order);
   latest={
-   schema:stress?'vedras-windows-world-blit-stress-v1':
+   schema:traceMode?'vedras-windows-tile-lifecycle-trace-v1':
+    stress?'vedras-windows-world-blit-stress-v1':
     quick?'vedras-windows-world-blit-diagnostic-v1':
     'vedras-windows-original-map-full-suite-v3',
-   at:started,scene,mode:stress?'stress':quick?'blit':'combined',
+   at:started,scene,mode:traceMode?'trace':stress?'stress':quick?'blit':'combined',
    order,browser:navigator.userAgent,
-   origin:location.origin,plan:stress?
+   origin:location.origin,plan:traceMode?
+    '9 Laeufe: 2 uninstrumentierte main, 3 Kandidatenregion-Kontrollen, 4 Druckfahrten mit opt-in Kachelspur':
+    stress?
     '23 Laeufe: 2 main, 6 konstante region controls, 15 stress routes (alle Feature-Flags AUS)':
     quick?'13 Region-Fahrten: 2 main, 3 unveraenderte Kontrollen, 4 A + 4 B':
     tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
@@ -795,6 +868,7 @@ async function suite(mode='full'){
    attempted===tasks.length&&errors.length===0;
   latest.statistics=summarizeSuite(latest);
   if(quick)latest.blitDiagnosis=analyzeBlit(records);
+  if(traceMode)latest.tileLifecycleSummary=summarizeTileTraces(records);
   latest.warnings=records.filter(r=>!r.valid||!r.ready?.ok||r.coverage?.warning)
    .map(r=>({label:r.label,issues:r.validityIssues||[],
     coverage:r.coverage?.warning||null}));
@@ -809,6 +883,8 @@ async function suite(mode='full'){
    (quick?' World-Blit >=100ms: '+latest.blitDiagnosis.thresholdCounts['100']+
     ' Frames; davon nach dem ersten Frame: '+latest.blitDiagnosis.movingStalls+'.':'')+
    (stress?' Lastphasen mit gleicher isolierter Konfiguration; kein A/B-Vergleich.':'')+
+   (traceMode?' Tile-Trace '+latest.tileLifecycleSummary.observedRuns+
+     ' instrumentierte Laeufe; echte Ursachen aus den Trace-Ereignissen ableiten.':'')+
    ' Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
   exportJson();
  }catch(error){
@@ -819,6 +895,7 @@ async function suite(mode='full'){
    latest.completed=false;latest.finishedAt=new Date().toISOString();
    latest.statistics=summarizeSuite(latest);
    if(quick)latest.blitDiagnosis=analyzeBlit(records);
+   if(traceMode)latest.tileLifecycleSummary=summarizeTileTraces(records);
    $('downloadAll').disabled=false;
    exportJson();
   }
@@ -834,6 +911,7 @@ combinedAvailable().then(isCombined=>{
 $('startAll').addEventListener('click',suite);
 $('startBlit')?.addEventListener('click',()=>suite('blit'));
 $('startStress')?.addEventListener('click',()=>suite('stress'));
+$('startTrace')?.addEventListener('click',()=>suite('trace'));
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
 $('downloadAll').addEventListener('click',exportJson);
 })();
