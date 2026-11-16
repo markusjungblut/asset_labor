@@ -5,11 +5,16 @@ param(
  [ValidateSet('Prepare','Baseline','Candidate','All','Node')]
  [string]$Action='Prepare',
  [string]$RepoPath="$HOME\Desktop\asset_labor",
- [switch]$NoFetch
+ [switch]$NoFetch,
+ [switch]$FallbackExperiment
 )
 $ErrorActionPreference='Stop'
 $branch='perf/step25z-real-ram-eviction-20261112'
+$experimentBranch='exp/step25aa-resident-1x-fallback-20261116'
 $port=8780
+if ($FallbackExperiment -and $Action -ne 'All') {
+ throw '-FallbackExperiment ist nur mit -Action All vorgesehen.'
+}
 function Require-Success([string]$description) {
  if ($LASTEXITCODE -ne 0) { throw "$description fehlgeschlagen (Exit $LASTEXITCODE)." }
 }
@@ -27,6 +32,7 @@ if ($origin -notmatch 'github[.]com[:/]markusjungblut/asset_labor(?:[.]git)?$') 
 $parent=Split-Path $root -Parent
 $baseline=Join-Path $parent 'asset_labor_renderer_baseline_20261113'
 $candidate=Join-Path $parent 'asset_labor_renderer_candidate_20261113'
+$experiment=Join-Path $parent 'asset_labor_renderer_fallback_experiment_20261116'
 $assets=@('renderer-original-map.html','renderer-original-map-suite.js')
 if ($Action -eq 'Prepare') {
  $logs=Join-Path $parent ('asset_labor_renderer_results_'+(Get-Date -Format 'yyyyMMdd_HHmmss'))
@@ -116,6 +122,39 @@ if ($Action -eq 'All') {
      -not (Get-Command python -ErrorAction SilentlyContinue)) {
   throw 'Python 3 fehlt.'
  }
+ $extraServerArgs=@()
+ if ($FallbackExperiment) {
+  # Explicitly fetched and checked out into a NEW isolated test worktree.
+  # The original working tree and its uncommitted files are untouched.
+  $refSpec="+refs/heads/${experimentBranch}:refs/remotes/origin/${experimentBranch}"
+  & git -C $root fetch --no-tags origin $refSpec
+  Require-Success 'Experiment-Ref abrufen'
+  $expected=(& git -C $root rev-parse "origin/$experimentBranch").Trim()
+  Require-Success 'Experiment-Ref verifizieren'
+  if (-not (Test-Path -LiteralPath $experiment -PathType Container)) {
+   & git -C $root worktree add --detach $experiment "origin/$experimentBranch"
+   Require-Success 'Experiment-Worktree erstellen'
+  } else {
+   $registered=(& git -C $experiment rev-parse --show-toplevel).Trim()
+   Require-Success 'Experiment-Worktree pruefen'
+   if ($registered -ne $experiment) {
+    throw "Unbekanntes Experiment-Verzeichnis, kein Eingriff: $experiment"
+   }
+   $changes=@(& git -C $experiment status --porcelain -uall)
+   Require-Success 'Experiment-Status'
+   if ($changes.Count -gt 0) {
+    throw "Experiment-Worktree enthaelt lokale Aenderungen; kein Ueberschreiben: $experiment"
+   }
+   $head=(& git -C $experiment rev-parse HEAD).Trim()
+   Require-Success 'Experiment-HEAD'
+   if ($head -ne $expected) {
+    & git -C $experiment switch --detach "origin/$experimentBranch"
+    Require-Success 'Sauberen Experiment-Worktree aktualisieren'
+   }
+  }
+  $extraServerArgs=@('--experiment',$experiment)
+  Write-Host "1x-Fallback-Experiment: $experiment" -ForegroundColor Cyan
+ }
  $socket=[System.Net.Sockets.TcpClient]::new()
  try {
   try {
@@ -129,9 +168,9 @@ if ($Action -eq 'All') {
  Write-Host "Im bisherigen Firefox-Profil: http://127.0.0.1:$port/renderer-original-map.html"
  Write-Host 'In der Browserseite: Alle Tests automatisch (1 Klick). Nach dem Export Strg+C.'
  if (Get-Command py -ErrorAction SilentlyContinue) {
-  & py -3 $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot --port $port
+  & py -3 $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot @extraServerArgs --port $port
  } else {
-  & python $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot --port $port
+  & python $suiteServer --baseline $baseline --candidate $candidate --suite $PSScriptRoot @extraServerArgs --port $port
  }
  return
 }
