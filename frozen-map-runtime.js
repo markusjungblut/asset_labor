@@ -565,10 +565,19 @@ window.VedrasFrozenMap=(()=>{
       !fallbackKeys.length||loading.size>=MAX_INFLIGHT-1)return;
    if([...loadingPurpose.values()].some(v=>v==='prefetch'||v==='fallback'))
     return;
-   let fallbackPixels=0;
-   for(const entry of decoded.values())
+   let fallbackPixels=0,pinnedPixels=0;
+   for(const [id,entry] of decoded){
     if(entry.variant==='1x')fallbackPixels+=entry.pixels;
-   if(fallbackPixels>=maxDecodedPixels*FALLBACK_SHARE){
+    if(protectedKeys.has(id))pinnedPixels+=entry.pixels;
+   }
+   // Never churn the safety net against an unusually large pinned
+   // viewport. Reserve room for urgent 2x additions and cap background
+   // 1x coverage rather than repeatedly admitting and evicting it.
+   const reserve=Math.max(maxDecodedPixels*.08,2*(typicalPixels['2x']||0));
+   const ceiling=Math.max(0,Math.min(maxDecodedPixels*FALLBACK_SHARE,
+    maxDecodedPixels-pinnedPixels-reserve));
+   const estimatedNext=typicalPixels['1x']||500000;
+   if(fallbackPixels+estimatedNext>ceiling){
     fallbackWarmCapped=true;return;
    }
    // One idle 1x read per frame, leaving a loading slot for urgent visible
