@@ -1,3 +1,28 @@
+## 17.11.2026 – Ergebnis des kleinen 9er-ParallelDecode-Abschlusstests
+
+Quelle: `vedras_windows_complete_final_1794872435171.json` (Firefox 160, Windows 10, Scene `v1-0374527a`, Standardfolge, 16.11.2026 23:39–23:40 UTC). **Alle neun Läufe gültig**, keine Fehler oder Warnungen. Drei A- und drei B-Pressure-Läufe sowie drei Regionskontrollen auf dem gleichen Experimentrenderer mit aktivem, vollständig vorbereitetem **120/120 1×-Atlas** (43.217.940 Pixel); nur die zusätzliche Option `parallelDecode` wurde in B aktiviert. Alle anderen drei älteren Versuche blieben aus.
+
+| Gemessene Druckfahrten (je 3) | A: 1× allein | B: 1× + parallel |
+| --- | ---: | ---: |
+| rAF-p95 pro Lauf | 66 / 66 / 73 ms | 47 / 53 / 57 ms |
+| rAF-p95 Median | 66 ms | **53 ms (−19,7%)** |
+| rAF-p99 Median | 98 ms | **74 ms** |
+| Draw-p95 Median | 5 ms | 5 ms |
+| Missing-Frames in aktiven Drawframes | 0/191 | 0/201 |
+| Tatsächliche Parallel-Tile-Decodes | 0 | **257** |
+| Evictions Median | 28 | 26 |
+| Decode-Repeats Median | 5 | 5 |
+| Durchschnittliche Bewegungsdauer | 2.559 ms | 2.275 ms |
+| Aktive Drawframes pro Lauf | 62 / 65 / 64 | 67 / 65 / 69 |
+
+B bleibt lückenlos in den beobachteten Drawframes, zeichnet sogar **mehr** davon auf, erzeugt keine lange `worldBlitMs>=100ms`-Operation und überschreitet das feste 95M-Pixelbudget in den aufgezeichneten Frames nicht (Maximum insgesamt 94.991.661 Pixel). Warmup A 1.384/1.480/1.387 ms, B 1.561/1.386/1.387 ms, jeweils 0 neu abgeleitete 1×-Cache-Einträge.
+
+**Interpretationsgrenzen:** Kontroll-p95-rAF verbessert sich im Laufe derselben Sitzung **34 → 29 → 27 ms**. Das B-Feature wurde in jedem Block nach A getestet (A-B-B / A-A-B), sodass Sitzungstrend/Cache-/Systemdrift einen Teil des beobachteten Vorteils erklären könnten. Der Report bewertet die Sache daher korrekt als **„MOEGLICHER KLEINER GEWINN: WEITERE PRUEFUNG NOETIG“**. Kein allgemeingültiger FPS-/GPU-Nachweis und keine automatische Freigabe.
+
+**Empfehlung:** Der 1×-Sicherheitscache bleibt vorrangig. Ein **einmaliger Reverse-9er-Test** in einer getrennten Firefox-Sitzung (B-A-A / B-B-A) ist der kleinste sinnvolle Gegencheck. Bis zu einem konsistenten Ergebnis `parallelDecode` weiterhin opt-in/AUS per Default, beide PRs Draft, kein Merge.
+
+---
+
 ## Zwei echte Firefox-A/B-Sitzungen: Erfolg mit vorgewärmtem Sicherheitscache (16.11.2026)
 
 Datenquellen: `vedras_windows_complete_fallback_1794866617591.json` (standard) und `vedras_windows_complete_fallback_1794866724882.json` (reverse), Windows 10, Firefox 160, Originalscene `v1-0374527a`, 120 Tiles. Beide Berichte vollstaendig (je 13/13 erfolgreich und gueltig), 0 Fehler, 0 Warnungen, kein Quality-Stop. Acht A-Pressure-Fahrten (bestehender Kandidat) und acht B-Pressure-Fahrten (separater `fallbackAtlas=1`-Renderer) in echten gegenläufigen ABBA/BAAB-Reihenfolgen.
