@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -57,6 +57,30 @@ test('13-run blit plan uses two main baselines, three off-controls, four A and f
  const values=t=>t.filter(r=>r.kind==='feature').map(r=>r.value).join('');
  assert.equal(values(normal),'01101001');
  assert.equal(values(reverse),'10010110');
+});
+test('23-run isolated mixed stress plan protects original atlas and brackets stages',()=>{
+ const {makeStressTasks}=sandbox.window.__suiteTestHooks;
+ for(const order of ['standard','reverse']){
+  const tasks=makeStressTasks(order);
+  assert.equal(tasks.length,23);
+  assert.equal(tasks.filter(t=>t.kind==='baseline').length,2);
+  assert.equal(tasks.filter(t=>t.kind==='control').length,6);
+  assert.equal(tasks.filter(t=>t.kind==='stress').length,15);
+  assert.equal(tasks[0].version,'baseline');
+  assert.equal(tasks.at(-1).version,'baseline');
+  assert.equal(tasks[1].scenario,'region');
+  assert.ok(tasks.filter(t=>t.kind==='control').every(t=>t.scenario==='region'));
+  assert.ok(tasks.filter(t=>t.kind==='stress').every(t=>
+   t.version==='candidate'&&t.feature===null&&t.value===null&&t.stress===true));
+  const groups=tasks.filter(t=>t.kind==='stress').map(t=>t.scenario);
+  assert.equal(groups.filter(t=>t==='pressure').length,6);
+  assert.equal(groups.filter(t=>t==='lod').length,6);
+  assert.equal(groups.filter(t=>t==='warm').length,3);
+  const ctrlIndices=tasks.map((t,i)=>t.kind==='control'?i:null).filter(x=>x!==null);
+  assert.equal(ctrlIndices.join(','),'1,5,9,13,17,21');
+ }
+ assert.equal(makeStressTasks('standard')[2].scenario,'pressure');
+ assert.equal(makeStressTasks('reverse')[2].scenario,'lod');
 });
 test('blit evidence retains later stalls, first stalls and pixel/DPR context',()=>{
  const {analyzeBlit}=sandbox.window.__suiteTestHooks;
