@@ -664,6 +664,8 @@ function analyzeFinal(records){
  const totalMissingA=a.reduce((n,r)=>n+(r.readiness?.missingFrames||0),0);
  const totalMissingB=b.reduce((n,r)=>n+(r.readiness?.missingFrames||0),0);
  const controls=records.filter(r=>r.control&&r.fallbackCombo&&r.success);
+ if(controls.length!==3||controls.some(r=>!r.valid))
+  issues.push('Kontrollfahrten unvollstaendig oder ungueltig');
  const controlRaf=controls.map(r=>r.p95RafTickMs);
  const gain=metrics.p95RafTickMs.delta;
  const verdict=issues.length?'NICHT QUALIFIZIERT':
@@ -1054,7 +1056,7 @@ async function suite(mode='full'){
     errors.push({run:attempted,...task,error:msg});
     row({...task,success:false,error:msg});
     // A one-off route error remains in the report; systemic failure stops.
-    if(cancelled||/nicht erreichbar|Startansicht unvollstaendig|nicht isoliert|Kontrolle:|Schalter|Kandidat ohne|nicht main/.test(msg))
+    if(cancelled||/nicht erreichbar|Startansicht unvollstaendig|nicht isoliert|Kontrolle:|Schalter|Kandidat ohne|nicht main|Kombitest|Warmup-Timeout/.test(msg))
      break;
    }
    // Let the browser process detached canvases and asynchronous tasks
