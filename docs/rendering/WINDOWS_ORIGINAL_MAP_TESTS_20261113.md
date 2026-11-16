@@ -2,6 +2,22 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Zwei echte Firefox-A/B-Sitzungen: Erfolg mit vorgewärmtem Sicherheitscache (16.11.2026)
+
+Datenquellen: `vedras_windows_complete_fallback_1794866617591.json` (standard) und `vedras_windows_complete_fallback_1794866724882.json` (reverse), Windows 10, Firefox 160, Originalscene `v1-0374527a`, 120 Tiles. Beide Berichte vollstaendig (je 13/13 erfolgreich und gueltig), 0 Fehler, 0 Warnungen, kein Quality-Stop. Acht A-Pressure-Fahrten (bestehender Kandidat) und acht B-Pressure-Fahrten (separater `fallbackAtlas=1`-Renderer) in echten gegenläufigen ABBA/BAAB-Reihenfolgen.
+
+**Beobachteter Effekt:** A hatte **551/656 aktive Frames (84,0%)** mit fehlenden Kacheln und **17.171ms** aufsummierte Missing-Duration; B hatte **0/507 Frames (0%)** mit fehlenden sichtbaren Kacheln, Missing-Duration **0ms**. Auch Cache-Churn fiel stark: Evictions **710→96 (−86,5%)**, Decode-Repeats **295→14 (−95,3%)**, Visible Read Starts **932→650**. `fallbackHits` summiert **4.782 wiederholte Nutzungen**, nicht 4.782 unterschiedliche Kacheln; verworfene alte 2×-Decode-Ergebnisse **289**, Storage-Pre-Skip **0**.
+
+B hatte jeweils **120/120** 1×-Fallbacks resident, Pixelanzahl **43.217.940** (ca. 165 MiB bei 4 Bytes/Pixel). Kein 1×-Warmup-Cap erreicht. Das bestehende **95M-Pixelbudget** wurde nicht erhöht und war im aufgezeichneten Drucktest eingehalten. Warmup: Median **1.435,5ms**, Minimum **1.300ms**, Maximum **6.352ms**, Mittelwert **2.152ms**. Derived-1×-Konvertierungen **0**. A hatte vor der Fahrt im Median ca. 21,4M Pixel im RAM, B 43,2M Pixel vorgewärmte Sicherheitstexturen: dieser Test misst bewusst **warm vs. warm+zusätzlichen 1×-Vorrat**, keinen gleichen initialen RAM-Zustand oder Kaltstart.
+
+Nebenbedingungen: Mittel der Pressure-Lauf-p95-rAF-Ticks **A 65,9ms, B 63,6ms**, keine stabile signifikante Framezeitverbesserung nachgewiesen. Mittel p95-Draw **A 4,25ms, B 4,75ms**. Einer der ersten B-Frames zeigte **35ms drawMs**, die jeweiligen p95-Werte blieben niedrig. Alle Druck-Welt-Blits unter 100ms. Kandidaten-Regionskontrollen rAF-p95 **34/35/34ms** (standard), **34/44/38ms** (reverse). Main-Baselines rAF-p95 **36→37ms** und **33→32ms**.
+
+**Wichtiger methodischer Unterschied:** Die gleiche Kameraroute hatte je Pressure-Lauf 82 rAF-Ticks, aber A protokollierte 82 **aktiv gezeichnete** Frames je Lauf, B nur 62–66; B-Null-Missing ist deshalb ein sehr starkes Ergebnis für die **aufgezeichneten Zeichnungsframes**, nicht der Beweis, dass jeder einzelne Kamera-Tick auf der Hardware korrekt präsentiert wurde. Die 1×-Bildqualität bei hohem Zoom, die Stabilität unter normaler kontinuierlicher Spielnutzung und die initiale inkrementelle Hintergrund-Vorbereitung müssen vor produktiver Aktivierung visuell bzw. in einem geeigneten Live-Szenario kontrolliert werden. Mehrere Tausend Tile-Hits sind kein Ersatz für diese Darstellungskontrolle.
+
+**Entscheidung:** Das 1×-Fallback-Design erreicht auf der 120-Tile-Originalkarte unter schneller, vorgewärmter Richtungswechsel-Belastung sein primaeres Ziel: **keine gemessenen sichtbaren Kachellücken bei stark weniger Evictions/Redecodes**. Experiment als vielversprechende Lösung beibehalten; Feature bleibt bis zur visuellen/Start-/Fog-Korrektheitspruefung opt-in. Beide PRs weiterhin **Draft**, kein Merge/Performance-GO.
+
+---
+
 ## Konkreter Gegenentwurf: 1×-Sicherheitscache und 13er-A/B (16.11.2026)
 
 Die lange bekannte RAM-Verdrängung ist bei einem festen 95M-Pixelbudget nicht durch eine reine Änderung der LRU-Reihenfolge abzuschaffen. Die **sichtbaren Lücken** lassen sich aber möglicherweise verhindern, wenn eine kleinere, vorab dekodierte und autorisierte 1×-Kopie der Welt im Cache bevorzugt erhalten bleibt, während 2×-Qualitätskopien nach Bedarf nachgeladen werden.
