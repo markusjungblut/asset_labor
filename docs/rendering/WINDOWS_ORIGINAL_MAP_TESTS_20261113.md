@@ -2,6 +2,24 @@
 
 **Status: v3 auf der gespeicherten Originalkarte unter Windows/Firefox ausgefuehrt.** Zwei neue Berichte liegen vor; der zweite wurde korrekt wegen starker Kontroll-Drift angehalten. Kein Performance-GO. Die 51 Laeufe der alten v2-Suite waren funktional erfolgreich, zeigten aber starke Zeitdrift. Der iframe lag damals unter einer wachsenden Ergebnistabelle und konnte ausserhalb des sichtbaren Bereichs geraten. Die neue Suite behebt diese Stoerquellen; gehoert zu Issue #137.
 
+## Konkreter Gegenentwurf: 1×-Sicherheitscache und 13er-A/B (16.11.2026)
+
+Die lange bekannte RAM-Verdrängung ist bei einem festen 95M-Pixelbudget nicht durch eine reine Änderung der LRU-Reihenfolge abzuschaffen. Die **sichtbaren Lücken** lassen sich aber möglicherweise verhindern, wenn eine kleinere, vorab dekodierte und autorisierte 1×-Kopie der Welt im Cache bevorzugt erhalten bleibt, während 2×-Qualitätskopien nach Bedarf nachgeladen werden.
+
+**Implementiert, separat und deaktiviert per Default:** Experimentzweig `exp/step25aa-resident-1x-fallback-20261116`, [Draft-PR #140](https://github.com/markusjungblut/asset_labor/pull/140) gegen den bisherigen Kandidatenbranch `perf/step25z-real-ram-eviction-20261112`. Die experimentelle Runtime nimmt ausschließlich `?fallbackAtlas=1` an. Bei diesem Flag werden 1×-Kacheln unter Leerlaufbedingungen mit maximal einer Hintergrund-Ladeoperation vorbereitet, bis alle vorhandenen Tiles resident sind oder der 1×-Anteil ca. 65% desselben 95M-Budgets erreicht. Ungeschützte 2×-Bildkopien weichen vor residentem 1×-Fallback; aktuell sichtbare Kacheln bleiben geschützt. Mit 1×-Kopie rendern wir bei fehlender 2×-Variante sofort die geometrisch korrekte, schlechter aufgelöste Welt. Veraltete 2×-Ladevorgänge dürfen vor oder nach der Dekodierung verworfen werden, wenn die Kamera die Kachel verlassen hat. Es gibt **keine** automatische Anhebung von Parallelität oder Pixelbudget.
+
+Die Original-Frozen-Karte und die Fog-Berechtigungen werden nicht geändert. Achtung: falls im **separaten** Derived-1×-IndexedDB-Cache noch einzelne 1×-Kopien fehlen, darf die bestehende Derived-Schicht diese bei Bedarf neu erzeugen. Daher werden **Warmup-Dauer und 1×-Konvertierungen außerhalb der A/B-Messung gesondert** festgehalten. Auch beim späteren Erfolg können 2×-Evictions auftreten; Erfolgskriterium sind niedrigere sichtbare Missing-Frames, nicht `evictions==0`.
+
+**Neue Testversion:** Die Werkzeug-Suite in PR #139 hat einen türkisen Button **„1×-Sicherheitscache A/B (13 Läufe)“**, den isolierten dritten Server-Pfad `/experiment/`, einen `--experiment`-Parameter und einen zusätzlichen opt-in-Schalter im PowerShell-Starter. Testplan: 2 Main-Baselines, 3 unveränderte Regionskontrollen, 4 A-Druckfahrten des alten Kandidaten und 4 B-Druckfahrten auf der echten neuen Runtime, ABBA/BAAB bzw. umgekehrt. Im B-Lauf wird 1× für die Karte vorgewärmt, bevor der Profiler zurückgesetzt wird. Der Export `vedras_windows_complete_fallback_*.json` enthält `fallbackComparison`, beide Rohprofiler, Warmup, reale RAM-Belegung und den Anteil fehlender sichtbarer Frames. Bereits bestehende 124er-, 23er-, 13er-Blit- und 9er-Trace-Fahrten bleiben unverändert.
+
+**Sicherer Start auf Windows:** vorher laufenden Server mit Strg+C beenden, ausschließlich das `asset_labor_renderer_tools`-Worktree bei sauberem Status aktualisieren und dann:
+```powershell
+pwsh -NoProfile -File .\tests\windows\prepare-original-map.ps1 -Action All -FallbackExperiment -RepoPath "C:\Users\marku\Desktop\asset_labor"
+```
+Das Skript erzeugt/aktualisiert nur ein **drittes isoliertes und sauberes Worktree** `asset_labor_renderer_fallback_experiment_20261116`; bei lokalen Änderungen dort wird statt Überschreiben abgebrochen. Es führt den Node-Selbsttest der neuen 1×-Runtime aus. Im gleichen Firefox-Profil `http://127.0.0.1:8780/renderer-original-map.html` öffnen, Reihenfolge Standard und den neuen A/B-Button anklicken. Die 1×-Fallback-Lösung ist syntaktisch und mit Mock-Cache-Zuständen geprüft, aber **noch nicht auf Windows/Firefox real vermessen**. Kein Merge, kein produktives Performance-GO.
+
+---
+
 ## Reale Ergebnisse: zwei Kachel-Lifecycle-Sitzungen (16.11.2026)
 
 Vollstaendige Dateien:
