@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'renderer-original-map-suite.js'),'utf8');
 const needle="$('startAll').addEventListener('click',suite);";
 assert.ok(source.includes(needle),'Suite test-hook anchor changed');
-const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,makeTraceTasks,makeFallbackTasks,analyzeFallback,summarizeTileTraces,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
+const injected=source.replace(needle,"window.__suiteTestHooks={makeTasks,makeBlitTasks,makeStressTasks,makeTraceTasks,makeFallbackTasks,makeFinalTasks,analyzeFinal,analyzeFallback,summarizeTileTraces,analyzeBlit,route,readinessWhileMoving,groupSummary,summarizeSuite,readyViewerAt,severeControlDrift,median};\n"+needle);
 const elements=new Map();
 const document={
  getElementById(id){
@@ -39,6 +39,44 @@ test('deterministic 124-task matrix, isolated crossover and reverse order',()=>{
  }
  const firstFeature=t=>t.find(r=>r.kind==='feature'&&r.scenario==='region').feature;
  assert.notEqual(firstFeature(tasks),firstFeature(reversed));
+});
+test('9-run final crossover keeps both A and B on 1x experimental runtime',()=>{
+ const {makeFinalTasks}=sandbox.window.__suiteTestHooks;
+ const ss=makeFinalTasks('standard'),rs=makeFinalTasks('reverse');
+ for(const tasks of [ss,rs]){
+  assert.equal(tasks.length,9);
+  const ab=tasks.filter(t=>t.feature==='parallelDecode');
+  assert.equal(ab.length,6);
+  assert.equal(ab.filter(t=>t.value===0).length,3);
+  assert.equal(ab.filter(t=>t.value===1).length,3);
+  assert.equal(tasks.filter(t=>t.control).length,3);
+  assert.ok(tasks.every(t=>t.version==='experiment'&&t.fallbackCombo));
+  assert.ok(tasks.filter(t=>t.control).every(t=>
+   t.feature===null&&t.scenario==='region'));
+  assert.ok(ab.every(t=>t.scenario==='pressure'));
+ }
+ const bits=t=>t.filter(x=>x.feature==='parallelDecode').map(x=>x.value).join('');
+ assert.equal(bits(ss),'011001');
+ assert.equal(bits(rs),'100110');
+});
+test('final evaluator rejects missing B activations and preserves paired metrics',()=>{
+ const {analyzeFinal}=sandbox.window.__suiteTestHooks;
+ const values=[0,1,1,0,0,1],records=values.map((value,i)=>({
+  label:'sample '+i,feature:'parallelDecode',fallbackCombo:true,
+  success:true,valid:true,ready:{ok:true},value,
+  missingDurationMs:0,readiness:{missingFraction:0,missingFrames:0},
+  p95RafTickMs:value?45:59,p95DrawMs:value?5:4,p99RafTickMs:93,
+  evictions:8,decodeRepeats:0,frameSamples:64,rafOver50:4,
+  parallelTileDecodes:value?20:0,decodedPixelsAfter:76000000,
+  fallbackAtStart:{enabled:true,complete:true,resident:120,target:120}
+ }));
+ const x=analyzeFinal(records);
+ assert.equal(x.verdict,'MOEGLICHER KLEINER GEWINN: WEITERE PRUEFUNG NOETIG');
+ assert.equal(x.metrics.p95RafTickMs.delta,-14);
+ assert.equal(x.metrics.p95DrawMs.delta,1);
+ assert.equal(x.totals.missingB,0);
+ records[1].parallelTileDecodes=0;
+ assert.equal(analyzeFinal(records).verdict,'NICHT QUALIFIZIERT');
 });
 test('13-run 1x fallback experiment uses separate candidate A and experiment B',()=>{
  const {makeFallbackTasks}=sandbox.window.__suiteTestHooks;
