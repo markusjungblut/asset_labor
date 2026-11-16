@@ -254,7 +254,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
     throw Error('Schalter nicht isoliert: '+key+', erwartet '+Number(expected));
   }
  }
- if(extras.control&&version==='candidate'){
+ if((extras.control||extras.stress)&&version==='candidate'){
   const st=a.stats();
   if(st.lodRecency||st.directionalPrefetch||st.visibleBorrow||st.parallelLayerDecode)
    throw Error('Kontrolle: Nicht alle vier Flags deaktiviert');
@@ -303,6 +303,7 @@ async function measure(scene,feature,value,scenario,label,tiles,version='',extra
  const record={
   label,feature,value,scenario,version,
   groupId:extras.groupId||null,block:extras.block||null,control:!!extras.control,
+  stress:!!extras.stress,stressPhase:extras.stressPhase||null,
   production:feature==='production',success:true,
   valid:validityIssues.length===0,validityIssues,readiness,derivedConversions,
   missingDurationMs:readiness.missingDurationMs,longestMissingMs:readiness.longestMissingMs,
@@ -472,7 +473,7 @@ function exportJson(){
  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function lock(on){
- const ids=['start','startAll','startBlit','scene','mode','feature','scenario','runOrder'];
+ const ids=['start','startAll','startBlit','startStress','scene','mode','feature','scenario','runOrder'];
  for(const id of ids){
   const e=$(id);if(!e)continue;
   const legacy=['start','mode','feature','scenario'].includes(id);
@@ -576,6 +577,32 @@ function makeBlitTasks(order='standard'){
  baseline('Ende');
  return tasks;
 }
+// Reproduce long-session/route-order stress without a 124-run A/B campaign.
+// All candidate stress runs have ALL four tested feature flags OFF. Identical
+// unmodified candidate region controls are placed between each phase.
+function makeStressTasks(order='standard'){
+ const tasks=[],scenario='region';
+ const baseline=marker=>tasks.push({kind:'baseline',version:'baseline',
+  feature:null,value:null,scenario,label:'Last Baseline '+marker});
+ const control=marker=>tasks.push({kind:'control',version:'candidate',
+  feature:null,value:null,scenario,control:true,label:'Last Kontrolle '+marker});
+ baseline('Anfang');
+ control('Anfang');
+ const stages=order==='reverse'?
+  ['lod','pressure','warm','lod','pressure']:
+  ['pressure','lod','warm','pressure','lod'];
+ for(let phase=0;phase<stages.length;phase++){
+  const scenario=stages[phase];
+  for(let repetition=1;repetition<=3;repetition++){
+   tasks.push({kind:'stress',version:'candidate',feature:null,value:null,
+    stress:true,stressPhase:phase+1,scenario,
+    label:'Last '+(phase+1)+'/5 '+NAMES[scenario]+' '+repetition+'/3'});
+  }
+  control('nach Phase '+(phase+1));
+ }
+ baseline('Ende');
+ return tasks;
+}
 // Raw profiler frames are retained in the JSON. This small derived index
 // describes stalls rather than diagnosing GPU behavior, which performance.now()
 // around synchronous Canvas 2D drawImage cannot determine on its own.
@@ -601,7 +628,8 @@ function analyzeBlit(records){
    maxBlitMs=Math.max(maxBlitMs,blit);
    const version=r.version||'unknown';
    const config=r.feature==='parallelDecode'?(r.value?'B-on':'A-off'):
-    r.control?'control-off':version==='baseline'?'main':'other';
+    r.control?'control-off':r.stress?'stress-off':
+    version==='baseline'?'main':'other';
    const dpr=finite(f.dpr)?String(f.dpr):'unknown';
    for(const [collection,key] of [
     [summary.byDpr,dpr],[summary.byVersion,version],
@@ -681,7 +709,7 @@ function addComparisonRows(summary){
 }
 async function suite(mode='full'){
  if(running)return;
- const quick=mode==='blit';
+ const quick=mode==='blit'||mode==='stress',stress=mode==='stress';
  const scene=$('scene').value.trim();
  if(!/^v1-[0-9a-f]{8}$/.test(scene)){status('Ungueltige Kartenkennung');return;}
  running=true;cancelled=false;latest=null;lock(true);
@@ -700,13 +728,16 @@ async function suite(mode='full'){
   if(!('lodRecency' in candidateProbe.stats()))throw Error('Kandidat ohne Test-Flags. Vergleich ungueltig.');
   const tiles=await tileCenters(scene);
   const order=$('runOrder')?.value==='reverse'?'reverse':'standard';
-  tasks=quick?makeBlitTasks(order):makeTasks(order);
+  tasks=stress?makeStressTasks(order):quick?makeBlitTasks(order):makeTasks(order);
   latest={
-   schema:quick?'vedras-windows-world-blit-diagnostic-v1':
+   schema:stress?'vedras-windows-world-blit-stress-v1':
+    quick?'vedras-windows-world-blit-diagnostic-v1':
     'vedras-windows-original-map-full-suite-v3',
-   at:started,scene,mode:quick?'blit':'combined',order,browser:navigator.userAgent,
-   origin:location.origin,plan:quick?
-    '13 Region-Fahrten: 2 main, 3 unveraenderte Kontrollen, 4 A + 4 B':
+   at:started,scene,mode:stress?'stress':quick?'blit':'combined',
+   order,browser:navigator.userAgent,
+   origin:location.origin,plan:stress?
+    '23 Laeufe: 2 main, 6 konstante region controls, 15 stress routes (alle Feature-Flags AUS)':
+    quick?'13 Region-Fahrten: 2 main, 3 unveraenderte Kontrollen, 4 A + 4 B':
     tasks.length+' Laeufe in zwei gegenlaeufigen Bloecken',
    methodologicalNotes:[
     'A/B: alle vier Feature-Flags deaktiviert; nur das untersuchte Feature ist im B-Lauf aktiviert.',
@@ -777,6 +808,7 @@ async function suite(mode='full'){
    ' nicht belastbare Gruppen.'+
    (quick?' World-Blit >=100ms: '+latest.blitDiagnosis.thresholdCounts['100']+
     ' Frames; davon nach dem ersten Frame: '+latest.blitDiagnosis.movingStalls+'.':'')+
+   (stress?' Lastphasen mit gleicher isolierter Konfiguration; kein A/B-Vergleich.':'')+
    ' Gesamt-JSON lokal exportieren. Keine Mergefreigabe.');
   exportJson();
  }catch(error){
@@ -801,6 +833,7 @@ combinedAvailable().then(isCombined=>{
 }).catch(()=>{});
 $('startAll').addEventListener('click',suite);
 $('startBlit')?.addEventListener('click',()=>suite('blit'));
+$('startStress')?.addEventListener('click',()=>suite('stress'));
 $('stopAll').addEventListener('click',()=>{cancelled=true;status('Stopp angefordert: laufenden Schritt beenden und bisherige Daten exportieren …');});
 $('downloadAll').addEventListener('click',exportJson);
 })();
