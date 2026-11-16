@@ -70,6 +70,10 @@ test('final evaluator rejects missing B activations and preserves paired metrics
   parallelTileDecodes:value?20:0,decodedPixelsAfter:76000000,
   fallbackAtStart:{enabled:true,complete:true,resident:120,target:120}
  }));
+ for(let i=0;i<3;i++)records.push({
+  label:'control '+i,control:true,fallbackCombo:true,
+  success:true,valid:true,p95RafTickMs:35
+ });
  const x=analyzeFinal(records);
  assert.equal(x.verdict,'MOEGLICHER KLEINER GEWINN: WEITERE PRUEFUNG NOETIG');
  assert.equal(x.metrics.p95RafTickMs.delta,-14);
