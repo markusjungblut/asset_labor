@@ -34,6 +34,8 @@
  const visibleBorrow=params.get('visibleBorrow')!=='0';
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
+ // Experimental compact 1x background residency: off in normal sessions.
+ const fallbackAtlas=params.get('fallbackAtlas')==='1';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -79,7 +81,7 @@
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
-  visibleBorrow,parallelLayerDecode,streamingWorldCache,
+  visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
   onStatus:stats=>{
@@ -288,7 +290,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
-   parallelLayerDecode,streamingWorldCache,
+   parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
    indexedTileSelection
