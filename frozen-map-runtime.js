@@ -561,13 +561,16 @@ window.VedrasFrozenMap=(()=>{
    return fallback||null;
   }
   function warmFallback(){
-   if(!fallbackAtlasEnabled||fallbackWarmFinished||!active||visibleMissing||
+   if(!fallbackAtlasEnabled||!active||visibleMissing||
       !fallbackKeys.length||loading.size>=MAX_INFLIGHT-1)return;
    if([...loadingPurpose.values()].some(v=>v==='prefetch'||v==='fallback'))
     return;
+   // Reactivate repair if a once-complete fallback atlas was evicted during
+   // a later high-resolution viewport. No unbounded retry under RAM pressure.
    if(fallbackKeys.every(key=>decoded.has(cacheKey(key,'1x')))){
-    fallbackWarmFinished=true;return;
+    fallbackWarmFinished=true;fallbackWarmCapped=false;return;
    }
+   fallbackWarmFinished=false;fallbackWarmCapped=false;
    let fallbackPixels=0,pinnedPixels=0;
    for(const [id,entry] of decoded){
     if(entry.variant==='1x')fallbackPixels+=entry.pixels;
