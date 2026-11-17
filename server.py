@@ -24,6 +24,9 @@ EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
 HOST = '127.0.0.1'
 DEFAULT_PORT = 8780
 PORT = int(os.environ.get('VEDRAS_PORT', DEFAULT_PORT))
+# START_WINDOWS.bat deliberately refuses another port: browser IndexedDB
+# is origin-bound, and silently changing :8780 makes maps appear missing.
+STRICT_PORT = os.environ.get('VEDRAS_STRICT_PORT') == '1'
 ATLAS_LOCK = threading.Lock()
 ATLAS_STATUS = {'state': 'idle', 'error': '', 'sprites': 0, 'pages': 0}
 
@@ -402,14 +405,22 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def choose_server():
-    if PORT == 0:  # Useful for tests and optional automatic port selection.
+    if PORT == 0:  # Useful for CI/isolated tests; binds a random free port.
         return ThreadingHTTPServer((HOST, 0), Handler)
-    for port in range(PORT, min(PORT + 30, 65536)):
+    # Fixed-origin Windows launcher: do not silently switch to a different
+    # IndexedDB namespace when the intended port is already occupied.
+    for port in range(PORT, min(PORT + (1 if STRICT_PORT else 30), 65536)):
         try:
             return ThreadingHTTPServer((HOST, port), Handler)
         except OSError as exc:
-            # Socket is in use by an older version; never connect to that server.
             if getattr(exc, 'errno', None) in (48, 98, 10048):
+                if STRICT_PORT:
+                    raise RuntimeError(
+                        f'Port {PORT} ist belegt. Bitte den bisherigen '
+                        'Vedras-/Testserver kontrolliert mit Strg+C beenden '
+                        f'und erneut starten. NICHT auf Port {PORT + 1} wechseln: '
+                        'dort sind die Karten in einer anderen IndexedDB-Origin.'
+                    ) from exc
                 print(f'Port {port} belegt, versuche {port + 1} ...', flush=True)
                 continue
             raise
@@ -417,9 +428,13 @@ def choose_server():
 
 
 if __name__ == '__main__':
-    server = choose_server()
+    try:
+        server = choose_server()
+    except RuntimeError as error:
+        print(f'VEDRAS STARTFEHLER: {error}', flush=True)
+        raise SystemExit(2) from None
     port = server.server_port
-    url = f'http://{HOST}:{port}/?v={VERSION.replace(".", "-")}'
+    url = f'http://{HOST}:{port}/index.html?v={VERSION.replace(".", "-")}'
     print(f'VEDRAS ASSET-LABOR v{VERSION}', flush=True)
     print(f'Projektordner: {BASE}', flush=True)
     print(f'Aktuelle URL: {url}', flush=True)
