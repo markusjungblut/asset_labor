@@ -102,6 +102,13 @@ window.VedrasStaticMapZipInspector=(()=>{
    crc=crcAdd(crc,bytes);
   }
   requireValue(crcEnd(crc)===entry.crc,'CRC-Fehler: '+entry.name);
+  // Layer names are metadata, not proof the payload is an actual PNG.
+  if(entry.name!=='manifest.json'){
+   requireValue(blob.size>=8,'PNG-Schicht zu kurz');
+   const sig=await sliceBytes(blob,0,8);
+   requireValue([137,80,78,71,13,10,26,10].every((n,i)=>sig[i]===n),
+    'keine PNG-Signatur: '+entry.name);
+  }
   return blob;
  }
  function manifestValid(m,entries){
