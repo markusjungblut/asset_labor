@@ -350,7 +350,8 @@ test('zoom-aware original 4x bitmap residency follows screen pixels, not archive
  assert.equal(player.report().groundTier,4);
  assert.equal(options[2],null,
   'near 4x on-screen sampling must use native PNG without resizing');
- assert.equal(player.report().groundTierSwitches,2);
+ assert.equal(player.report().groundTierSwitches,3,
+  'initial density selection and two zoom upgrades use distinct tiers');
  player.stop();
 });
 test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
