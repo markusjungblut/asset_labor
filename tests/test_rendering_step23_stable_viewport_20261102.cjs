@@ -145,7 +145,10 @@ test('panning is a live world raster rather than frozen 4-MP screenshot',()=>{
  assert.ok(html.includes('min-width:10ch;text-align:center;white-space:nowrap'));
  assert.ok(game.includes('metrics.title=metrics.textContent'));
  assert.ok(!game.includes('player.beginZoomPreview('));
- assert.ok(game.includes('setPose({panX:p.panX+dx,panY:p.panY+dy}'));
+ assert.ok(game.includes('const pan={panX:p.panX+dx,panY:p.panY+dy}')); 
+ assert.ok(game.includes('setPose(pan,{deferDpr:true})'));
+ assert.ok(game.includes('pan.dpr=1.25'));
+ assert.ok(game.includes('if(!drag)setPose({})'));
  assert.ok(game.includes("for(const evt of ['pointerup','pointercancel','lostpointercapture'])"));
  assert.ok(runtime.includes('list=[...list].sort'));
 });
