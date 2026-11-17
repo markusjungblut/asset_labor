@@ -833,6 +833,10 @@ const run=async()=>{
   assert.equal(warmed.failures,0);
   assert.equal(await fallbackPage.evaluate(()=>
    window.__vedrasFrozenGameTest.readOnly),true);
+  // Navigation reconstructs <details> in the closed state.
+  // A hidden checkbox cannot be clicked until the menu is reopened.
+  if(!(await fallbackPage.locator('#performanceOptions').evaluate(el=>el.open)))
+   await fallbackPage.locator('#performanceOptions > summary').click();
   await fallbackPage.locator('#optFallbackAtlas').uncheck();
   await fallbackPage.waitForURL(url=>
    url.searchParams.get('fallbackAtlas')==='0',{timeout:20000});
