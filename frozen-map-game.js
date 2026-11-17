@@ -28,6 +28,9 @@
  // Quality is opt-in: ground uses archived 4× source, scenery stays 2×.
  // No ZIP, source PNG or derived cache is overwritten.
  const groundDetailRequested=params.get('ground4x')==='1';
+ // Opt-in until real Firefox profiling establishes a regression-free gain.
+ // Tiered decoder reads 4x source, but keeps only screen-needed pixels in RAM.
+ const adaptiveGroundDecode=groundDetailRequested&&params.get('groundDecode')==='adaptive';
  let groundDetailActive=false;
  const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
   standard:twoXStore,overview:oneXStore,
@@ -75,14 +78,16 @@
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog],
   ['optFallbackAtlas','fallbackAtlas',fallbackAtlas],
-  ['optGround4x','ground4x',groundDetailRequested]
+  ['optGround4x','ground4x',groundDetailRequested],
+  ['optAdaptiveGround','groundDecode',adaptiveGroundDecode]
  ]){
   const checkbox=$(id);
   if(!checkbox)continue;
   checkbox.checked=active;
   checkbox.addEventListener('change',()=>{
    const next=new URL(location.href);
-   next.searchParams.set(parameter,checkbox.checked?'1':'0');
+   next.searchParams.set(parameter,parameter==='groundDecode'?
+    (checkbox.checked?'adaptive':'full'):(checkbox.checked?'1':'0'));
    location.assign(next.pathname+next.search+next.hash);
   });
  }
@@ -93,6 +98,8 @@
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
+  maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
+  adaptiveGroundDecode,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -114,6 +121,10 @@
     (stats.clouds?.bases??0)+'/4'+
     ' · Wolkenvorlauf ≥ '+stats.cloudBufferHexes+' Hex'+
     (stats.cloudDissolveActive?' · Auflösen aktiv':'')+
+    (adaptiveGroundDecode?' · 4×-Bitmap-Tier '+stats.groundTier+'×'+
+     ' · '+stats.groundResizedTiles+' verkleinerte Ground-Bitmaps'+
+     ' · '+(stats.groundResizedPixelsSaved/1000000).toFixed(1)+
+     ' Mio. dekodierte Pixel vermieden':'')+
     (stats.zoomPreviewActive?' · Zoomvorschau aktiv':'')+
     ' · Zoomvorschau-Bilder '+stats.zoomPreviewFrames+
     ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
@@ -360,7 +371,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
-   dragLowDprFrames,overview1x,largeViewportCache,
+   adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
