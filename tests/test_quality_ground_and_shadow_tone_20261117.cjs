@@ -249,6 +249,6 @@ test('fourfold camera gesture is a reversible 1.25x raster budget, not a PNG rew
  assert.match(game,/fogDprCap:groundDetailRequested\?1\.25:Infinity/);
  assert.match(game,/groundDetailRequested&&params\.get\('fogLayer'\)!=='0'/);
  assert.match(runtime,/const overlayDpr=Math\.min\(dpr,cap\)/);
- assert.match(runtime,/preferFogLayerAtHighDpr&&dpr>=2\.25/);
+ assert.match(runtime,/dpr>=2\.25\|\|\(!!baseStamp&&cameraStill\)/);
  assert.doesNotMatch(game,/indexedDB\.deleteDatabase\(|\.clearPrefix\(|bakeWorldTile\(/);
 });
