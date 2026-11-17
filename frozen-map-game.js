@@ -122,6 +122,8 @@
     (overview1x?' · LOD '+stats.activeVariant+
      ' · 1×-Cache '+overview.hits+' / '+overview.converted:
      ' · 1×-LOD deaktiviert')+
+    (groundDetailActive?' · Nachgewiesener 4×-Boden '+
+     groundDetailStore.stats().originalGrounds+' Kachelabrufe':'')+
     ' · 1×/2× im RAM '+stats.decoded1x+'/'+stats.decoded2x+
     ' · Evictions '+stats.evictions+
     ' · Re-Decodes '+stats.decodeRepeats+
@@ -139,24 +141,28 @@
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
- let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null;
+ let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null,
+  groundProbe=null;
  try{
   const manifestReadStarted=performance.now();
   const manifest=await player.loadManifest(scene);
   manifestReadMs=performance.now()-manifestReadStarted;
   const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
    manifest.levels[0];
-  // Derive 2× images ONLY for legacy full 4× near PNG sources.
-  // The originals and the manifest continue to live in the original DB.
-  groundDetailActive=groundDetailRequested&&lod==='near'&&
-   Number(manifest.pose?.dpr)>=3;
+  // A saved pose.dpr is metadata, NOT proof of 4x PNG pixels.
+  // Check three representative original Ground IHDR headers without decoding
+  // the full atlas, then independently verify each fetched Ground record.
+  groundProbe=lod==='near'?await groundDetailStore.probe(scene,lod):null;
+  const true4x=lod==='near'&&groundProbe?.available===true;
+  groundDetailActive=groundDetailRequested&&true4x;
   groundDetailStore.setEnabled(groundDetailActive);
-  twoXStore.setEnabled(lod==='near'&&Number(manifest.pose?.dpr)>=3);
+  twoXStore.setEnabled(true4x);
   const qualityOption=$('optGround4x');
   if(qualityOption){
-   qualityOption.disabled=!(lod==='near'&&Number(manifest.pose?.dpr)>=3);
-   qualityOption.title=qualityOption.disabled?
-    'Nur vorhandene originale 4×-Near-Karten sind geeignet.':'Originale 4×-Bodenkacheln verwenden';
+   qualityOption.disabled=!true4x;
+   qualityOption.title=!true4x?
+    'Keine durchgängig nachgewiesenen 4×-Originalboden-PNGs. Manifest-DPR reicht nicht aus.':
+    'Nachgewiesene originale 4×-Bodenkacheln verwenden';
   }
   oneXStore.setEnabled(overview1x&&lod==='near');
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
@@ -167,16 +173,16 @@
    // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
-   const gameDpr=Math.min(groundDetailActive?2.5:2,
-    Math.sqrt((groundDetailActive?13000000:8000000)/area),
-    (groundDetailActive?6144:4096)/edge);
+   const gameDpr=Math.min(groundDetailActive?4:2,
+    Math.sqrt((groundDetailActive?18000000:8000000)/area),
+    (groundDetailActive?8192:4096)/edge);
    startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
     window.VedrasFrozenViewPolicy.displayDpr({
      zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-     baseDpr:groundDetailActive?2.5:2,
-     maxDpr:groundDetailActive?2.5:2,
-     maxPixels:groundDetailActive?13000000:8000000,
-     maxEdge:groundDetailActive?6144:4096}):Math.max(1,gameDpr)};
+     baseDpr:groundDetailActive?4:2,
+     maxDpr:groundDetailActive?4:2,
+     maxPixels:groundDetailActive?18000000:8000000,
+     maxEdge:groundDetailActive?8192:4096}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
@@ -187,8 +193,12 @@
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
    (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
-   (groundDetailActive?'4×-Originalboden / 2×-Objekte: Qualitätsvergleich aktiv. ': '')+
-   (groundDetailRequested&&!groundDetailActive?'4×-Boden für diesen Atlas nicht verfügbar. ':'')+
+   (groundDetailActive?'4×-Originalboden durch PNG-Prüfung bestätigt; Objekte bleiben 2×. ': '')+
+   (groundDetailRequested&&!groundDetailActive?
+    'Kein durchgängig echter 4×-Boden in den geprüften Quellkacheln; höheres Display-Raster würde keine Details erzeugen. ': '')+
+   (groundProbe?'Originalboden-Referenz: '+groundProbe.original4x+'/'+
+    groundProbe.sampled+' geprüfte 4×-Kacheln · kleinste Quelle '+
+    groundProbe.minDensity.toFixed(2)+'×. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -206,11 +216,11 @@
   const policy=window.VedrasFrozenViewPolicy;
   const outDpr=policy?policy.displayDpr({
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-   baseDpr:groundDetailActive?2.5:2,
-   maxDpr:groundDetailActive?2.5:2,
-   maxPixels:groundDetailActive?13000000:8000000,
-   maxEdge:groundDetailActive?6144:4096
-  }):Math.min(groundDetailActive?2.5:2,view.dpr||1);
+   baseDpr:groundDetailActive?4:2,
+   maxDpr:groundDetailActive?4:2,
+   maxPixels:groundDetailActive?18000000:8000000,
+   maxEdge:groundDetailActive?8192:4096
+  }):Math.min(groundDetailActive?4:2,view.dpr||1);
   if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
@@ -319,7 +329,7 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
-   groundDetailRequested,groundDetailActive,overview1x,largeViewportCache,
+   groundProbe,groundDetailRequested,groundDetailActive,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
@@ -358,6 +368,6 @@
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
   derived1x:()=>oneXStore.stats(),
   groundDetail:()=>({requested:groundDetailRequested,active:groundDetailActive,
-   ...groundDetailStore.stats()})
+   probe:groundProbe,...groundDetailStore.stats()})
  };
 })();
