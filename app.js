@@ -3964,6 +3964,7 @@ function frozenSceneKey(){
   state.river,state.riverPaths,state.riverBanks,state.riverBankStrength,
   state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
   state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
+  window.VedrasShadowTone?.get?.()||null,
   catalog.assets,catalog.terrainTypes,catalog.categories,
   // Runtime imageRevision changes when the SAME source is decoded at a
   // different resolution or revived after eviction. Only persistent file
