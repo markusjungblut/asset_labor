@@ -252,3 +252,46 @@ test('fourfold camera gesture is a reversible 1.25x raster budget, not a PNG rew
  assert.match(runtime,/dpr>=2\.25\|\|\(!!baseStamp&&cameraStill\)/);
  assert.doesNotMatch(game,/indexedDB\.deleteDatabase\(|\.clearPrefix\(|bakeWorldTile\(/);
 });
+
+test('4x Ground loads directly and never invokes the wasteful full 2x conversion',async()=>{
+ const api=moduleOf('frozen-map-ground-detail.js').VedrasFrozenGroundDetail;
+ function png(w,h){
+  const p=new Uint8Array(24);p.set([137,80,78,71,13,10,26,10]);
+  const data=new DataView(p.buffer);data.setUint32(16,w);data.setUint32(20,h);
+  return new Blob([p]);
+ }
+ const key='v1-0374527a|near|0,0',raw={
+  key,revision:'original-4x',tile:{size:512},
+  layers:[{layer:'ground',pad:3,png:png(2072,1761)},
+   {layer:'scenery',pad:128,png:png(3072,2608)}]
+ };
+ const scene2x=new Blob(['scenery2x']);
+ let originalReads=0,sceneryMixed=0,fullConversions=0;
+ const standard={
+  async get(){fullConversions++;throw Error('Must not resample original ground');},
+  async keys(){return [];},
+  async getSceneryMixed(requested,record){
+   assert.equal(requested,key);assert.equal(record,raw);sceneryMixed++;
+   return {...record,layers:[record.layers[0],
+    {...record.layers[1],png:scene2x}]};
+  }
+ };
+ const original={async get(){originalReads++;return raw;},
+  async keys(){return[key];}};
+ const store=api.createStore({standard,original,
+  overview:{async getVariant(){return null;}}});
+ store.setEnabled(true);
+ const combined=await store.get(key);
+ assert.equal(originalReads,1);
+ assert.equal(sceneryMixed,1);
+ assert.equal(fullConversions,0);
+ assert.equal(combined.layers[0].png,raw.layers[0].png);
+ assert.equal(combined.layers[1].png,scene2x);
+ assert.equal(combined.groundDetailSource,'original-4x');
+ const derived=read('frozen-map-derived-2x.js');
+ assert.match(derived,/async function getSceneryMixed\(key,original\)/);
+ assert.match(derived,/complete\?\.derivedFormat==='2x-png-v1'/);
+ assert.match(derived,/layers\.push\(\['scenery','structures'\]\.includes\(layer\.layer\)\?/);
+ assert.match(derived,/derivedFormat:'scenery-only-2x-v1'/);
+ assert.doesNotMatch(derived,/deleteDatabase\(/);
+});
