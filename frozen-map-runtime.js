@@ -1679,6 +1679,19 @@ window.VedrasFrozenMap=(()=>{
       source.tile.size!==tile.size||
       !source.layers?.some(l=>l.layer==='ground'&&l.png instanceof Blob))
     throw Error('Unpassender oder nicht vorhandener 4×-Originalboden');
+   // Prevent a 2x/2.5x legacy atlas from masquerading as native 4x.
+   // Read only 24 bytes of the original Ground Blob; never decode or
+   // rewrite the heavyweight terrain image during this refresh.
+   const ground=source.layers.find(l=>l.layer==='ground');
+   const header=await ground.png.slice(0,24).arrayBuffer();
+   const bytes=new Uint8Array(header);
+   if(bytes.length!==24||
+      [137,80,78,71,13,10,26,10].some((b,i)=>bytes[i]!==b))
+    throw Error('Bodenquelle ist keine gültige 4×-PNG');
+   const dv=new DataView(header),gw=dv.getUint32(16),gh=dv.getUint32(20),
+    span=(tile.size+2*(ground.pad||0));
+   if(gw<span*4-.5||gh<span*.85*4-1)
+    throw Error('Bodenquelle ist nicht nachweislich echtes 4×');
    const png=await encode(sceneryLayer.image);
    const record={key,sceneKey:scene,level:'near',
     tile:{...source.tile},revision:source.revision,
