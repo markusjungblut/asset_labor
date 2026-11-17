@@ -91,7 +91,13 @@ window.VedrasFrozenGroundDetail=(()=>{
    const scenery=typeof standard.getSceneryMixed==='function'?
     await standard.getSceneryMixed(key,raw):await standard.get(key);
    const result=merge(raw,scenery);
-   if(result.groundDetailSource==='original-4x')counters.originalGrounds++;
+   if(result.groundDetailSource==='original-4x'){
+    // Read-only metadata for decoding exactly the screen-needed density.
+    // The original PNG Blob is never changed or saved again.
+    result.groundSourcePixels={width:info.width,height:info.height,
+     density:info.density};
+    counters.originalGrounds++;
+   }
    else counters.missingOriginals++;
    return result;
   };
