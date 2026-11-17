@@ -295,3 +295,71 @@ test('4x Ground loads directly and never invokes the wasteful full 2x conversion
  assert.match(derived,/derivedFormat:'scenery-only-2x-v1'/);
  assert.doesNotMatch(derived,/deleteDatabase\(/);
 });
+
+test('zoom-aware original 4x bitmap residency follows screen pixels, not archive DPR',async()=>{
+ const window={},options=[];
+ const layer=(width,height,opts)=>({width:opts?.resizeWidth||width,
+  height:opts?.resizeHeight||height,close(){}});
+ const view={width:2859,height:1382};
+ const g={setTransform(){},clearRect(){},save(){},restore(){},
+  beginPath(){},moveTo(){},lineTo(){},closePath(){},clip(){},
+  fillRect(){},fill(){},drawImage(){}};
+ const canvas={width:0,height:0,getContext:()=>g,
+  getBoundingClientRect:()=>view};
+ const scene='v1-0374527a',key=scene+'|near|0,0';
+ const pngGround=new Blob(['ground']),pngScenery=new Blob(['scenery']);
+ const source={key,sceneKey:scene,level:'near',revision:'exact',
+  tile:{id:'0,0',x:0,y:0,size:512},
+  groundDetailSource:'original-4x',
+  groundSourcePixels:{width:2080,height:1768,density:4},
+  layers:[{layer:'ground',pad:4,png:pngGround},
+   {layer:'scenery',pad:128,png:pngScenery}]
+ };
+ const context={window,Blob,console,requestAnimationFrame(){},
+  performance:{now:()=>1}};
+ vm.runInNewContext(read('frozen-map-view-policy.js'),context);
+ vm.runInNewContext(read('frozen-map-runtime.js'),context);
+ const player=window.VedrasFrozenMap.create({
+  canvas,storage:{async keys(){return [key];},
+   async getVariant(){return source;}},
+  decode:async(blob,opts)=>{
+   if(blob===pngGround){
+    options.push(opts||null);return layer(2080,1768,opts);
+   }
+   return layer(1200,1200,null);
+  },
+  adaptiveGroundDecode:true,maxDecodedPixels:128000000,
+  overview1x:false,useLayerCache:false
+ });
+ await player.load(scene,'near',
+  {zoom:.64,panX:0,panY:0,dpr:2.13,projectY:.85},[]);
+ const settle=async()=>{for(let i=0;i<5;i++){
+  player.draw();await new Promise(resolve=>setImmediate(resolve));
+ }};
+ await settle();
+ assert.equal(player.report().groundTier,1.75);
+ assert.equal(options[0].resizeWidth,910);
+ assert.equal(options[0].resizeHeight,774);
+ assert.ok(player.report().groundResizedPixelsSaved>2000000);
+ player.setPose({zoom:.94});
+ await settle();
+ assert.equal(player.report().groundTier,2.5);
+ assert.equal(options[1].resizeWidth,1300);
+ player.setPose({zoom:1.83});
+ await settle();
+ assert.equal(player.report().groundTier,4);
+ assert.equal(options[2],null,
+  'near 4x on-screen sampling must use native PNG without resizing');
+ assert.equal(player.report().groundTierSwitches,2);
+ player.stop();
+});
+test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
+ const runtime=read('frozen-map-runtime.js'),
+  page=read('frozen-map-game.js'),html=read('frozen-map-game.html');
+ assert.match(page,/params\.get\('groundDecode'\)==='adaptive'/);
+ assert.match(page,/maxDecodedPixels:adaptiveGroundDecode\?128000000:95000000/);
+ assert.match(html,/id="optAdaptiveGround"/);
+ assert.match(runtime,/groundTierSwitches/);
+ assert.match(runtime,/resizeWidth:Math\.max\(1,Math\.round\(p\.width\*scale\)\)/);
+ assert.doesNotMatch(runtime,/deleteDatabase\(/);
+});
