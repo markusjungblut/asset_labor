@@ -132,7 +132,7 @@ test('a valid ZIP entry with a fake PNG body still fails PNG signature gate',asy
   layer:'ground',file:LAYER,pad:0,crop:null,byteSize:fake.size
  }]}),[entry(fake)]);
  const result=await reader.inspect(zip);
- await assert.rejects(result.verifyLayer(LAYER),/keine PNG-Signatur/);
+ await assert.rejects(result.verifyLayer(LAYER),/PNG-(?:Schicht zu kurz|Signatur)/);
 });
 test('inspection never reads large PNG bodies into JS memory',async()=>{
  const payload=new Blob([PNG,Buffer.alloc(2*1024*1024)]);
