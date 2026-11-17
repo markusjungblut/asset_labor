@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','frozen-map-runtime.js'),'utf8');
 // Test-only access to the existing closure; no extra export in production.
-const needle='  return {capture,load,stop,draw,report,getPose,setPose,setClouds,';
+const needle='  return {capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,';
 assert.equal(source.split(needle).length,2,'Runtime test probe anchor changed');
 const instrumented=source.replace(needle,`  return {__probe:{
    seed(entries,pins){
@@ -22,7 +22,7 @@ const instrumented=source.replace(needle,`  return {__probe:{
    },
    has:id=>decoded.has(id),enforce:keepWithinBudget,
    read,warmFallback
-  },capture,load,stop,draw,report,getPose,setPose,setClouds,`);
+  },capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,`);
 const scene='v1-0374527a';
 const keys=Array.from({length:3},(_,i)=>scene+'|near|'+i+',0');
 const wait=()=>new Promise(resolve=>setTimeout(resolve,0));
