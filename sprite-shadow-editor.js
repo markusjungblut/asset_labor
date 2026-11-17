@@ -487,12 +487,16 @@ window.addEventListener('DOMContentLoaded',()=>{
     if($(label))$(label).textContent=Math.round(values[key]*100)+' %';
    }
   }
-  for(const [slider,,key] of ui)$(slider)?.addEventListener('input',()=>{
-   Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
-   refreshTone();refresh();core.requestDraw();
-  });
+  for(const [slider,,key] of ui){
+   $(slider)?.addEventListener('input',()=>{
+    Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
+    refreshTone();refresh();core.requestDraw();
+   });
+   // Only invalidate the expensive WorldTile scenery once on release.
+   $(slider)?.addEventListener('change',()=>core.invalidateScenery?.());
+  }
   $('shadowToneReset')?.addEventListener('click',()=>{
-   Tone.set(Tone.defaults());refreshTone();refresh();core.requestDraw();
+   Tone.set(Tone.defaults());refreshTone();refresh();core.invalidateScenery?.();
   });
   refreshTone();
  }
