@@ -120,6 +120,10 @@
     stats.overviewRasterBuilds+' Neuaufbauten'+
     ' · Wolken-Cache '+stats.cloudBackdropHits+' Treffer / '+
     stats.cloudBackdropBuilds+' Neuaufbauten'+
+    (groundDetailActive?' · 4×-Boden beibehalten: '+
+     optimized.groundDownscalesSkipped+' Boden-Konvertierungen vermieden'+
+     ' · 2×-Scenery-Cache '+(optimized.mixedLegacyHits+optimized.mixedHits)+
+     ' Treffer / '+optimized.mixedBuilt+' neue':'')+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
