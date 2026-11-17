@@ -1,4 +1,4 @@
-/* Parameter-driven geography workbench – same script in both repositories. */
+/* Parameter-driven geography workbench for the Asset-Labor. */
 (()=>{
 "use strict";
 const G=window.VedrasGeography,$=id=>document.getElementById(id);
