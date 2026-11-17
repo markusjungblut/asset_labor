@@ -4194,7 +4194,7 @@ $('frozenReshade').addEventListener('click',async()=>{
   if(!existing)await frozenMap.saveManifest(target,{
    cells:current,levels:['near'],pose:sourceManifest.pose,
    expectedTiles:sourceKeys.length,clouds:sourceManifest.clouds,
-   sceneryBaseScene:source,shadowTone:tone
+   sceneryBaseScene:source,shadowTone:tone,appendOnly:true
   });
   // Each committed overlay is independently resumable, and original
   // 4x Ground stays stored ONLY in the source scene's record.
