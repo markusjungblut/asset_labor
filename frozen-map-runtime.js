@@ -48,6 +48,10 @@ window.VedrasFrozenMap=(()=>{
   const data=new Map();
   return {
    async put(rec){data.set(rec.key,rec);},
+   async putIfAbsent(rec){
+    if(data.has(rec.key))throw Error('Eintrag existiert bereits: '+rec.key);
+    data.set(rec.key,rec);
+   },
    async get(key){return data.get(key)||null;},
    async keys(prefix){return [...data.keys()].filter(k=>k.startsWith(prefix));},
    async clearPrefix(prefix){for(const key of [...data.keys()])
@@ -82,6 +86,9 @@ window.VedrasFrozenMap=(()=>{
   }
   return linkedStore({
    put:rec=>job('readwrite',os=>os.put(rec)),
+   // A unique IndexedDB add() is atomic even if two browser tabs run the
+   // same one-time scenery refresh concurrently. No existing image is lost.
+   putIfAbsent:rec=>job('readwrite',os=>os.add(rec)),
    get:key=>job('readonly',os=>os.get(key)),
    keys:async prefix=>{
     const db=await open();
@@ -1599,7 +1606,7 @@ window.VedrasFrozenMap=(()=>{
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
       pose:initialPose=null,clouds:cloudData=null,expectedTiles=null,
-      sceneryBaseScene=null,shadowTone=null}={}){
+      sceneryBaseScene=null,shadowTone=null,appendOnly=false}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -1616,7 +1623,9 @@ window.VedrasFrozenMap=(()=>{
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
     savedAt:new Date().toISOString()};
-   await storage.put(record);return record;
+   if(appendOnly&&storage.putIfAbsent)await storage.putIfAbsent(record);
+   else await storage.put(record);
+   return record;
   }
   async function loadManifest(scene){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
@@ -1681,7 +1690,8 @@ window.VedrasFrozenMap=(()=>{
    // Recheck before commit. An interrupted bake resumes by skipping
    // completed targets; no original source key is ever overwritten.
    if(await storage.get(key))throw Error('Zielkachel wurde inzwischen belegt');
-   await storage.put(record);
+   if(storage.putIfAbsent)await storage.putIfAbsent(record);
+   else await storage.put(record);
    return {saved:1,skipped:0};
   }
   return {capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,
