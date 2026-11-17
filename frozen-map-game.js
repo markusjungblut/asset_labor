@@ -29,6 +29,13 @@
  const largeViewportCache=params.get('cacheLarge')!=='0';
  // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
  const prefetchGuard=params.get('prefetchGuard')!=='0';
+  const directionalPrefetch=params.get('leadPrefetch')==='1';
+ const lodRecency=params.get('lodRecency')==='1';
+ const visibleBorrow=params.get('visibleBorrow')==='1';
+ // Step25X: opt-in only pending real hardware A/B.
+ const parallelLayerDecode=params.get('parallelDecode')==='1';
+ // Experimental compact 1x background residency: off in normal sessions.
+ const fallbackAtlas=params.get('fallbackAtlas')==='1';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -55,7 +62,8 @@
   ['optWorldPad','worldPad',adaptiveWorldPad],
   ['optWorldBands','worldBands',sparseWorldBlit],
   ['optTileIndex','tileIndex',indexedTileSelection],
-  ['optFogLayer','fogLayer',layeredFog]
+  ['optFogLayer','fogLayer',layeredFog],
+  ['optFallbackAtlas','fallbackAtlas',fallbackAtlas]
  ]){
   const checkbox=$(id);
   if(!checkbox)continue;
@@ -73,7 +81,8 @@
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:oneXStore,useLayerCache:!directRenderer,profiler,
-  overview1x,largeViewportCache,prefetchGuard,streamingWorldCache,
+  overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
+  visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
   onStatus:stats=>{
@@ -83,8 +92,7 @@
    if(stats.frames>1&&now-lastStatusPaint<180)return;
    lastStatusPaint=now;
    const optimized=twoXStore.stats(),overview=oneXStore.stats();
-   // A single stored tile can have BOTH 1x and 2x decoded bitmaps.
-   // Label their counts separately, including with resident 1x fallback.
+   // Stored tile IDs differ from simultaneous decoded 1x/2x copies.
    metrics.textContent=stats.saved+' gespeicherte Kacheln · '+
     stats.decoded+' Bildpakete im RAM · '+stats.pending+
     ' PNG-Lesevorgänge · '+stats.paintMs.toFixed(1)+
@@ -110,6 +118,10 @@
     ' · Re-Decodes '+stats.decodeRepeats+
     ' · Hintergrund '+stats.prefetchReadStarts+
     ' · Vorladen gebremst '+stats.prefetchSkippedBudget+
+     ' · Nachlauf vermieden '+stats.prefetchTrailingSkipped+
+     ' · Zuletzt genutzte Zoomstufe gehalten '+stats.lodRecencyEvictions+
+    ' · Sofort gestartete sichtbare Reads '+stats.visibleBorrowStarts+
+    ' · Parallel dekodierte Tiles '+stats.parallelTileDecodes+
     ' · Raster '+(largeViewportCache?'groß':'alt')+
     ' · Direkt-Welt/Wolken '+stats.worldCacheFallbackFrames+'/'+
      stats.cloudCacheFallbackFrames+
@@ -279,7 +291,9 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),overview1x,largeViewportCache,
-   prefetchGuard,streamingWorldCache,adaptiveCloudCache,autoCloudStrategy,
+   prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
+   parallelLayerDecode,fallbackAtlas,streamingWorldCache,
+   adaptiveCloudCache,autoCloudStrategy,
    fogViewportCull,layeredFog,adaptiveWorldPad,sparseWorldBlit,
    indexedTileSelection
   }):{

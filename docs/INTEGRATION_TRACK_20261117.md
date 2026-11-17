@@ -6,6 +6,14 @@
 
 **Weiterer Integrationsstand:** Der eigenständige [Draft #142](https://github.com/markusjungblut/asset_labor/pull/142) portiert den opt-in-1×-Sicherheitscache direkt auf `main`, mit allen vier früheren optionalen Leistungsschaltern standardmäßig AUS. Beide Teile wurden ohne Branch-Merge virtuell gemeinsam gegen **13 statische Vertragsprüfungen** geprüft: 13/13 bestanden (4 UI, 5 Brücke, 4 Cache-Defaults) mit GitHub-Quelltexten und einem isolierten Testadapter. Dies ist ausdrücklich **keine** vollständige Firefox-Laufzeitprüfung. Der separate Native-Node-Lauf des Editor-Viewer-Smokes und die gemeinsame Originalkarten-/Windows-Abnahme stehen noch aus. **Keine automatische Zusammenführung der beiden Drafts** vor Freigabe.
 
+## Zusammengesetzter Integrationskandidat – 17.11.2026
+
+**Draft, kein Merge und kein Produktiv-GO.** Branch `integration/vedras-ui-fallback-rc-20261117` kombiniert den auf `main` basierenden UI-Stand aus [#141](https://github.com/markusjungblut/asset_labor/pull/141) mit dem auf `main` portierten opt-in-1×-Cache aus [#142](https://github.com/markusjungblut/asset_labor/pull/142), ohne den alten experimentellen PR-Stapel zu mergen. Der einzige gemeinsam veränderte Quellpfad ist `frozen-map-game.js`: Im Cache-Port bleibt die bereits korrigierte RAM-/Kachel-Statusanzeige erhalten.
+
+**Neue Prüfungen für den gemeinsamen Stand:** Der sparsame UI-CI-Workflow führt den bisher nur separat geprüften Editor-Viewer-Vertragstest und den Cache-Default-Test jetzt **nativ mit Node 22** aus. Sparse Checkout nimmt hierfür Root-JavaScript/HTML und notwendige Tests auf, jedoch keine großen `assets/`-Grafiken oder privaten Kartenarchive. Der synthetische Firefox-Kartentest wird um eine tatsächliche Ein-/Ausschaltung von `fallbackAtlas` ergänzt; er wartet auf ein residentes 1×-Bildpaket, prüft das 95M-Pixelbudget und bestätigt, dass der Viewer read-only bleibt.
+
+**Entscheidung unverändert:** `fallbackAtlas=0` und die vier alten Schalter `leadPrefetch/lodRecency/visibleBorrow/parallelDecode=0` sind Defaults. Weder Kopfbranch noch frühere Draft-PRs oder der lokale Windows-Arbeitsbaum werden automatisch gemergt. Vor Release: CI beider Prüfpfade, erste Kalt-RAM-Ladung, Fog-/Küsten-/Kachelgrenzen, 2×-Nachschärfen, längere Kamerafahrten und Speicherdruck auf der echten Originalkarte prüfen. ZIP-Reimport und Skalierung auf große Karten bleiben eigene offene Produktgates.
+
 ## 1. Aktueller Code-/PR-Stand (verifiziert)
 
 - `main` hat den eigenständigen Frozen-Game-Viewer, den Editor sowie die Bild-/Weltmodule. Im Editor sind die Steuerungen `frozenCapture`, `frozenCaptureAll`, `frozenCancel`, `frozenPlay`, `frozenStandalone` und `frozenExport` vorhanden. Der eigenständige Viewer bietet getrennte Kamera-/Fog-/Profilierungssteuerung und einen Rückweg zum Editor.
