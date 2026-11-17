@@ -62,7 +62,10 @@
  // The original Set scanner remains available with &tileIndex=0.
  const indexedTileSelection=params.get('tileIndex')!=='0';
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
- const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
+ // The high-detail viewer should not repaint 4x terrain for each 850ms
+ // cloud-fade frame. Keep manual fogLayer=0 as an explicit A/B escape hatch.
+ const layeredFog=(params.get('fogLayer')==='1'||
+  (groundDetailRequested&&params.get('fogLayer')!=='0'))&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
  // A compact UI for the most relevant, reversible game-viewer switches.
  // A reload re-reads only the prepared atlas; it never alters or rebakes it.
@@ -94,6 +97,8 @@
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
+  fogDprCap:groundDetailRequested?1.25:Infinity,
+  preferFogLayerAtHighDpr:groundDetailRequested,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -143,6 +148,7 @@
  });
  let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null,
   groundProbe=null;
+ let panSettler=null,dragLowDprFrames=0;
  try{
   const manifestReadStarted=performance.now();
   const manifest=await player.loadManifest(scene);
@@ -264,7 +270,8 @@
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
  canvas.addEventListener('pointerdown',e=>{
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+  if(panSettler!==null){clearTimeout(panSettler);panSettler=null;}
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
@@ -274,13 +281,32 @@
   if(!dx&&!dy)return;
   if(profiler)profiler.input('pan');
   drag.x=e.clientX;drag.y=e.clientY;
-  // Do not scale a 4-MP low-res snapshot across 2x scenery. Instead move
-  // the real camera and let the padded world/cloud raster caches repaint.
-  // Tile reads, fog readiness and fades continue WHILE dragging.
-  setPose({panX:p.panX+dx,panY:p.panY+dy},{deferDpr:true});
+  // Full-detail 4x backing can reach 18 MP and bypass the world cache.
+  // During a drag, keep the real tile compositor at 1.25x so camera
+  // frames remain bounded. After release restore 4x exactly once.
+  // No PNGs are downgraded/re-encoded; the 4x source stays in RAM.
+  const pan={panX:p.panX+dx,panY:p.panY+dy};
+  if(groundDetailActive&&!drag.moved&&(p.dpr||1)>1.25){
+   pan.dpr=1.25;dragLowDprFrames++;
+   const raster=$('rasterQuality');
+   if(raster)raster.textContent='Raster 1.25× (Bewegung)';
+  }
+  drag.moved=true;
+  setPose(pan,{deferDpr:true});
  });
+ const finishPan=()=>{
+  if(!drag)return;
+  const moved=drag.moved;
+  drag=null;
+  if(!moved||!groundDetailActive)return;
+  if(panSettler!==null)clearTimeout(panSettler);
+  panSettler=setTimeout(()=>{
+   panSettler=null;
+   if(!drag)setPose({}); // restores bounded original 4x DPR
+  },150);
+ };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
-  canvas.addEventListener(evt,()=>{drag=null;});
+  canvas.addEventListener(evt,finishPan);
  // Layout-driven statistics never trigger a resize. Genuine viewport size
  // changes preserve the current world pose and all decoded image tiles;
  // repaint at most once per animation frame.
@@ -329,7 +355,8 @@
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
-   groundProbe,groundDetailRequested,groundDetailActive,overview1x,largeViewportCache,
+   groundProbe,groundDetailRequested,groundDetailActive,
+   dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
@@ -368,6 +395,7 @@
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
   derived1x:()=>oneXStore.stats(),
   groundDetail:()=>({requested:groundDetailRequested,active:groundDetailActive,
+   dragLowDprFrames,
    probe:groundProbe,...groundDetailStore.stats()})
  };
 })();
