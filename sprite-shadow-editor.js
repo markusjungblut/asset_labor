@@ -68,7 +68,9 @@ window.VedrasSpriteShadows=(()=>{
   if(x.enabled===false||x.opacity<=0)return;
   const globalStrength=strength===null?current.global.strength:strength;
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
-  const alpha=clamp(globalStrength*opacity*(small?.28:1)*(family==='snow_fallen_logs'?.8:1),0,.95);
+  const familyFactor=(small?.28:1)*(family==='snow_fallen_logs'?.8:1);
+  const alpha=clamp(globalStrength*opacity*
+   (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor),0,.95);
   if(alpha<=0)return;
   if(x.manual?.polygons?.length){
    window.VedrasManualShadows.render(ctx,x.manual,p,width,alpha,Math.min(30,x.softness));
@@ -156,8 +158,10 @@ window.VedrasSpriteShadows=(()=>{
    log=family==='fallen_logs'||family==='snow_fallen_logs';
   const globalStrength=strength===null?current.global.strength:strength;
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
-  const alpha=globalStrength*opacity*(kind==='ground_cover'?.28:1)*
+  const familyFactor=(kind==='ground_cover'?.28:1)*
    (family==='snow_fallen_logs'?.8:1);
+  const alpha=globalStrength*opacity*
+   (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor);
   if(x.enabled===false||!(alpha>0))return;
   // Hand-painted masks, very small objects, and unsupported canvases keep
   // the original exact renderer. No cached stamp can override manual art.
