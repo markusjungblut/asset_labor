@@ -4,6 +4,7 @@
  */
 const assert=require('node:assert/strict');
 const http=require('node:http'),fs=require('node:fs');
+const zlib=require('node:zlib');
 const path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const {firefox}=require('playwright');
@@ -16,8 +17,34 @@ const allowed=new Set([
  'frozen-map-profiler.js','frozen-map-world-blit.js','cloud-artwork.js'
 ]);
 const SOURCE='v1-aabbccdd',SENTINEL='v1-0374527a';
-const PNG=Buffer.from(
- 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
+// The common tiny base64 "PNG placeholder" has an INVALID internal
+// IDAT CRC. Generate a standards-valid, opaque synthetic PNG instead.
+const PNG=(()=>{
+ const width=256,height=256,stride=width*4+1;
+ const raw=Buffer.alloc(height*stride);
+ for(let y=0;y<height;y++){
+  const row=y*stride;raw[row]=0; // PNG scanline filter NONE
+  for(let x=0;x<width;x++){
+   const at=row+1+x*4;
+   raw[at]=45;raw[at+1]=120;raw[at+2]=76;raw[at+3]=255;
+  }
+ }
+ const chunk=(name,data)=>{
+  const tag=Buffer.from(name,'ascii'),size=Buffer.alloc(4),crc=Buffer.alloc(4);
+  size.writeUInt32BE(data.length,0);
+  crc.writeUInt32BE(writer.crc32(Buffer.concat([tag,data])),0);
+  return Buffer.concat([size,tag,data,crc]);
+ };
+ const ihdr=Buffer.alloc(13);
+ ihdr.writeUInt32BE(width,0);ihdr.writeUInt32BE(height,4);
+ ihdr[8]=8;ihdr[9]=6; // RGBA 8-bit
+ return Buffer.concat([
+  Buffer.from([137,80,78,71,13,10,26,10]),
+  chunk('IHDR',ihdr),
+  chunk('IDAT',zlib.deflateSync(raw)),
+  chunk('IEND',Buffer.alloc(0))
+ ]);
+})();
 const mods={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(root,'frozen-map-package.js'),'utf8'),
  {...mods,Blob,TextEncoder,TextDecoder,DataView,Uint8Array});
@@ -176,8 +203,15 @@ async function main(){
    null,{timeout:30000});
   assert.equal(await viewer.evaluate(()=>
    window.__vedrasFrozenGameTest.readOnly),true);
-  assert.equal(await viewer.evaluate(()=>
-   window.__vedrasFrozenGameTest.stats().failures),0);
+  const diagnostics=await viewer.evaluate(()=>({
+   stats:window.__vedrasFrozenGameTest.stats(),
+   derived1x:window.__vedrasFrozenGameTest.derived1x(),
+   derived2x:window.__vedrasFrozenGameTest.derived2x()
+  }));
+  if(diagnostics.stats.failures)
+   process.stderr.write('Imported viewer diagnostic: '+
+    JSON.stringify(diagnostics)+'\n');
+  assert.equal(diagnostics.stats.failures,0);
   await viewer.reload();
   await viewer.waitForFunction(()=>
    window.__vedrasFrozenGameTest?.stats()?.saved===2,
