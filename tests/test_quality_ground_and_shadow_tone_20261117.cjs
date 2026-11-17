@@ -194,3 +194,61 @@ test('a provisional near tile remains hidden by fog until exact layers finish',(
  assert.ok(!calls.includes('opaque-fog'),
   'only the finished target LOD may lift the fog');
 });
+
+test('fourfold static Ground uses 1.25x fog and retains its base during dissolve',async()=>{
+ const window={};
+ const ctx={setTransform(){},clearRect(){},save(){},restore(){},
+  beginPath(){},moveTo(){},lineTo(){},closePath(){},clip(){},
+  fillRect(){},fill(){},drawImage(){}};
+ const c={width:0,height:0,getContext:()=>ctx,
+  getBoundingClientRect:()=>({width:600,height:400})},
+  fog={width:0,height:0,getContext:()=>ctx,hidden:true};
+ window.VedrasCloudArtwork={create:()=>({
+  setSeed(){},setAssets(){},stats:()=>({bases:4,version:1}),
+  drawBase(){},drawUnready(){},drawTransitions(){}
+ })};
+ vm.runInNewContext(read('frozen-map-view-policy.js'),{window});
+ vm.runInNewContext(read('frozen-map-runtime.js'),{window,console,
+  requestAnimationFrame(){},performance:{now:()=>1}});
+ const player=window.VedrasFrozenMap.create({
+  canvas:c,fogCanvas:fog,storage:{async keys(){return [];}},overview1x:false,
+  fogDprCap:1.25,preferFogLayerAtHighDpr:true
+ });
+ await player.load('v1-0374527a','near',
+  {zoom:1,panX:0,panY:0,dpr:4,projectY:.85},[]);
+ player.draw();
+ assert.equal(c.width,2400);
+ assert.equal(fog.width,750);
+ assert.equal(fog.height,500);
+ assert.equal(fog.hidden,false);
+ const first=player.report().baseFrames;
+ for(let i=0;i<4;i++)player.draw();
+ assert.equal(player.report().baseFrames,first);
+ assert.equal(player.report().fogOnlyFrames,4);
+ player.setPose({panX:20});player.draw();
+ assert.equal(player.report().baseFrames,first+1);
+ assert.equal(fog.hidden,false,
+  '4x stationary redraw must already be clean before the next fog fade');
+ player.draw();
+ assert.equal(player.report().baseFrames,first+1,
+  'no extra 18MP erase-and-repaint after camera move');
+ player.setPose({dpr:1.25,panX:40});player.draw();
+ assert.equal(c.width,750);
+ assert.equal(fog.hidden,true,'moving quality mode stays on one canvas');
+ player.setPose({dpr:4});player.draw();
+ assert.equal(c.width,2400);
+ assert.equal(fog.width,750);
+ assert.equal(fog.hidden,false);
+ player.stop();
+});
+test('fourfold camera gesture is a reversible 1.25x raster budget, not a PNG rewrite',()=>{
+ const game=read('frozen-map-game.js'),runtime=read('frozen-map-runtime.js');
+ assert.match(game,/groundDetailActive&&!drag\.moved&&\(p\.dpr\|\|1\)>1\.25/);
+ assert.match(game,/pan\.dpr=1\.25;dragLowDprFrames\+\+/);
+ assert.match(game,/if\(!drag\)setPose\(\{\}\); \/\/ restores bounded original 4x DPR/);
+ assert.match(game,/fogDprCap:groundDetailRequested\?1\.25:Infinity/);
+ assert.match(game,/groundDetailRequested&&params\.get\('fogLayer'\)!=='0'/);
+ assert.match(runtime,/const overlayDpr=Math\.min\(dpr,cap\)/);
+ assert.match(runtime,/preferFogLayerAtHighDpr&&dpr>=2\.25/);
+ assert.doesNotMatch(game,/indexedDB\.deleteDatabase\(|\.clearPrefix\(|bakeWorldTile\(/);
+});
