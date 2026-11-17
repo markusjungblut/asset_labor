@@ -11,9 +11,33 @@ vm.runInNewContext(fs.readFileSync(path.join(root,'static-map-zip-inspector.js')
  {window,Blob,TextEncoder,TextDecoder,Uint8Array,DataView});
 const writer=window.VedrasFrozenMapPackage;
 const reader=window.VedrasStaticMapZipInspector;
-const PNG=new Blob([Buffer.from(
- 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64')],
- {type:'image/png'});
+function validPngBytes(){
+ const zlib=require('node:zlib'),width=8,height=8;
+ const data=Buffer.alloc((width*4+1)*height);
+ for(let y=0;y<height;y++){
+  const row=y*(width*4+1);data[row]=0;
+  for(let x=0;x<width;x++){
+   const at=row+1+x*4;
+   data[at]=44;data[at+1]=90;data[at+2]=60;data[at+3]=255;
+  }
+ }
+ const chunk=(type,bytes)=>{
+  const code=Buffer.from(type),length=Buffer.alloc(4),crc=Buffer.alloc(4);
+  length.writeUInt32BE(bytes.length);
+  crc.writeUInt32BE(writer.crc32(Buffer.concat([code,bytes])));
+  return Buffer.concat([length,code,bytes,crc]);
+ };
+ const ihdr=Buffer.alloc(13);
+ ihdr.writeUInt32BE(width,0);ihdr.writeUInt32BE(height,4);
+ ihdr[8]=8;ihdr[9]=6;
+ return Buffer.concat([
+  Buffer.from([137,80,78,71,13,10,26,10]),
+  chunk('IHDR',ihdr),
+  chunk('IDAT',zlib.deflateSync(data)),
+  chunk('IEND',Buffer.alloc(0))
+ ]);
+}
+const PNG=new Blob([validPngBytes()],{type:'image/png'});
 const SCENE='v1-1234abcd',LAYER='tiles/near/0_0.0.png';
 const entry=(blob=PNG)=>({name:LAYER,blob});
 function manifest({complete=true,expectedTiles=1,layers=null}={}){
@@ -133,4 +157,18 @@ test('the inspector contains no storage writes and compiles as a standalone scri
  assert.doesNotMatch(source,/\bindexedDB\b.*\.(?:put|add|delete|clear)\(/);
  assert.doesNotMatch(source,/\bdeleteDatabase\(|bakeWorldTile\(/);
  assert.doesNotThrow(()=>new Function(source));
+});
+test('PNG internal CRC is checked even when the outer ZIP CRC is correct',async()=>{
+ const corrupt=Buffer.from(validPngBytes());
+ const idat=corrupt.indexOf(Buffer.from('IDAT','ascii'));
+ assert.ok(idat>20);
+ // Alter IDAT bytes but leave its own internal CRC unchanged.
+ corrupt[idat+4]^=1;
+ const forged=new Blob([corrupt],{type:'image/png'});
+ const zip=await archive(manifest({layers:[{
+  layer:'ground',file:LAYER,pad:0,crop:null,byteSize:forged.size
+ }]}),[entry(forged)]);
+ const result=await reader.inspect(zip);
+ await assert.rejects(result.verifyLayer(LAYER),
+  /PNG-Chunk-Prüfsumme ungültig/);
 });
