@@ -4075,6 +4075,199 @@ $('frozenCancel').addEventListener('click',()=>{
  if(frozenTour)frozenTour.cancel=true;
  frozenNotice('Karten-Vorbereitung wird nach dem aktuellen Schritt beendet; bereits gespeicherte PNGs bleiben erhalten.');
 });
+// A shadow-only refresh never runs Ground/Terrain/Coast render jobs.
+// Authoring must match the archived landscape: legacy manifests carry no
+// complete Ground fingerprint, so the UI requires a manual static-content
+// confirmation in addition to exact cell/tile-geometry checks.
+function frozenSceneryAssetsReady(tile,details=null){
+ const paths=new Set(),xmin=tile.x-320,xmax=tile.x+tile.size+320,
+  ymin=tile.y-320,ymax=tile.y+tile.size+320;
+ const inside=(x,y)=>x>=xmin&&x<=xmax&&y>=ymin&&y<=ymax;
+ for(const n of state.natureInstances||[]){
+  const p=axialPos(n.q,n.r);
+  if(inside(p.x+(n.dx||0),p.y+(n.dy||0))&&n.assetPath)
+   paths.add(n.assetPath);
+ }
+ for(const m of state.mountainInstances||[]){
+  const p=axialPos(m.q,m.r);
+  if(inside(p.x,p.y)&&m.assetPath)paths.add(m.assetPath);
+ }
+ for(const [k,o] of Object.entries(state.hexObject||{})){
+  const [q,r]=k.split(',').map(Number),p=axialPos(q,r);
+  if(inside(p.x,p.y)&&o?.path)paths.add(o.path);
+ }
+ const waiting=[],missing=[];
+ for(const path of paths){
+  const asset=assetByPath.get(path);
+  if(!asset){missing.push(path);continue;}
+  if(!asset.img?.naturalWidth){
+   waiting.push(path);imagePool.ensure(asset,11);
+  }
+ }
+ if(details){details.waitingAssets=waiting;details.missingAssets=missing;}
+ return !missing.length&&!waiting.length;
+}
+function bakeFrozenSceneryOnly(tile){
+ if(!frozenSceneryAssetsReady(tile))return null;
+ // Identical owner-by-anchor scenery composition as bakeWorldTile(), but
+ // deliberately no drawGround(), drawRoads(), terrain prime or re-encoding.
+ const z=state.zoom,pad=128,sourceScale=2,
+  worldSize=tile.size+2*pad;
+ const cv=document.createElement('canvas');
+ cv.width=Math.max(1,Math.round(worldSize*sourceScale));
+ cv.height=Math.max(1,Math.round(worldSize*PROJECT_Y*sourceScale));
+ const g=cv.getContext('2d',{alpha:true});
+ if(!g)throw Error('Scenery-Canvas nicht verfügbar');
+ const old={ctx,W,H,dpr:state.dpr,panX:state.panX,panY:state.panY,
+  gpuFrame,paintContext:step15PaintContext};
+ try{
+  ctx=g;W=worldSize*z;H=worldSize*z*PROJECT_Y;
+  state.dpr=cv.width/W;
+  state.panX=-W/2-(tile.x-pad)*z;
+  state.panY=-H/2-(tile.y-pad)*z*PROJECT_Y;
+  gpuFrame=false;
+  step15PaintContext={origin:'frozen-scenery-refresh',tileId:tile.id};
+  g.setTransform(state.dpr,0,0,state.dpr,0,0);
+  spriteAtlas?.beginFrame();
+  window.VedrasSpriteShadows?.beginFrame?.();
+  try{
+   drawMapObjects({includeUnits:false,
+    anchorBounds:{x:tile.x,y:tile.y,width:tile.size,height:tile.size}});
+  }finally{spriteAtlas?.endFrame();}
+ }finally{
+  ctx=old.ctx;W=old.W;H=old.H;state.dpr=old.dpr;
+  state.panX=old.panX;state.panY=old.panY;
+  gpuFrame=old.gpuFrame;step15PaintContext=old.paintContext;
+ }
+ return {...packWorldTileScenery(cv,'near'),pad};
+}
+$('frozenReshade').addEventListener('click',async()=>{
+ if(!frozenMap||frozenMapMode||frozenTour)return;
+ const source=String($('frozenScenerySource')?.value||'').trim(),
+  confirmed=$('frozenSceneryConfirm')?.checked===true;
+ if(!/^v1-[0-9a-f]{8}$/.test(source)||!confirmed){
+  frozenNotice('Quellkarte eingeben und unveränderte Gelände-/Objektzuordnungen ausdrücklich bestätigen.');
+  return;
+ }
+ if(state.view!=='map'||state.mode==='far'||state.quality!=='4'||
+    !state.objects||$('fogPreview')?.checked){
+  frozenNotice('Für den Schatten-Refresh Kartenansicht, 4×, sichtbare Objekte und deaktivierte Fog-Demo wählen.');
+  return;
+ }
+ const target=frozenSceneKey();
+ if(source===target){
+  frozenNotice('Quell- und Zielkennung sind gleich. Es wird niemals eine Originalkarte überschrieben.');
+  return;
+ }
+ const button=$('frozenReshade');
+ button.disabled=true;
+ try{
+  const sourceManifest=await frozenMap.loadManifest(source);
+  if(!sourceManifest.levels.includes('near'))throw Error('Quellkarte hat kein Near-LOD');
+  const current=frozenLocalCells(),
+   saved=sourceManifest.cells||[];
+  const byId=new Map(saved.map(c=>[c.q+','+c.r,c]));
+  if(current.length!==saved.length||
+     current.some(c=>{
+      const old=byId.get(c.q+','+c.r);
+      return !old||Math.abs(c.x-old.x)>.01||
+       Math.abs(c.y-old.y)>.01||Math.abs(c.radius-old.radius)>.01;
+     }))
+   throw Error('Hex-Geometrie weicht von der Quellkarte ab');
+  const sourceKeys=await frozenMap.storage.keys(source+'|near|');
+  const points=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+   xs=points.map(p=>p.x),ys=points.map(p=>p.y),margin=HEX*1.5;
+  const all=window.VedrasChunks.visible({
+   x:Math.min(...xs)-margin,y:Math.min(...ys)-margin,
+   width:Math.max(...xs)-Math.min(...xs)+margin*2,
+   height:Math.max(...ys)-Math.min(...ys)+margin*2
+  },worldCells,512),lookup=new Map(all.map(t=>[t.id,t]));
+  if(!sourceKeys.length||sourceKeys.length!==all.length||
+     sourceKeys.some(key=>!lookup.has(key.split('|').at(-1))))
+   throw Error('Quellkarte unvollständig oder Chunk-Raster passt nicht. Kein Ground wird ersetzt.');
+  const tone=window.VedrasShadowTone?.get?.()||{lift:0,balance:0};
+  const existing=await frozenMap.storage.get(target+'|manifest');
+  if(existing&&(existing.sceneryBaseScene!==source||
+     existing.shadowTone?.lift!==tone.lift||
+     existing.shadowTone?.balance!==tone.balance))
+   throw Error('Zielkarte existiert mit anderen Basis-/Schatteneinstellungen');
+  if(!existing)await frozenMap.saveManifest(target,{
+   cells:current,levels:['near'],pose:sourceManifest.pose,
+   expectedTiles:sourceKeys.length,clouds:sourceManifest.clouds,
+   sceneryBaseScene:source,shadowTone:tone
+  });
+  // Each committed overlay is independently resumable, and original
+  // 4x Ground stays stored ONLY in the source scene's record.
+  const run={cancel:false,quality:'scenery',offlineOnly:true};
+  frozenTour=run;lockFrozenTourEditor(true);
+  $('frozenCancel').hidden=false;
+  $('frozenCaptureAll').disabled=true;
+  $('frozenCapture').disabled=true;
+  $('frozenPlay').disabled=true;
+  const oldZoom=state.zoom;
+  let created=0,skipped=0,failed=0,visited=0;
+  const known=new Set(await frozenMap.storage.keys(target+'|near|'));
+  try{
+   if(fastInteracting)endFastCamera(true);
+   tileModeActive=true;
+   state.zoom=Math.max(1.1,state.zoom);
+   worldTiles?.setPlaybackPaused(true);
+   for(const sourceKey of sourceKeys){
+    if(run.cancel)break;
+    if(frozenSceneKey()!==target){
+     run.cancel=true;throw Error('Editorzustand änderte sich während der Erstellung');
+    }
+    const id=sourceKey.split('|').at(-1),tile=lookup.get(id);
+    const targetKey=window.VedrasFrozenMap.makeKey(target,'near',id);
+    if(known.has(targetKey)){skipped++;visited++;continue;}
+    const old=await frozenMap.storage.get(sourceKey);
+    if(old?.groundRefKey||old?.tile?.id!==id||
+       old.tile.x!==tile.x||old.tile.y!==tile.y||
+       old.tile.size!==tile.size)
+     throw Error('Unpassende Original-Kachel '+id);
+    const start=performance.now(),details={};
+    while(!run.cancel&&!frozenSceneryAssetsReady(tile,details)&&
+          performance.now()-start<20000){
+     if(details.missingAssets?.length)
+      throw Error('Nicht mehr vorhandenes Objekt-Asset '+details.missingAssets[0]);
+     await new Promise(resolve=>setTimeout(resolve,200));
+    }
+    if(run.cancel)break;
+    if(!frozenSceneryAssetsReady(tile,details)){
+     failed++;visited++;
+     frozenNotice('Scenery-Quelle für '+id+' noch nicht verfügbar. Erneuter Durchlauf möglich.');
+     continue;
+    }
+    const scenery=bakeFrozenSceneryOnly(tile);
+    if(!scenery)throw Error('Schatten-Layer nicht fertig: '+id);
+    const written=await frozenMap.captureScenery(target,sourceKey,tile,scenery);
+    created+=written.saved;skipped+=written.skipped;visited++;
+    known.add(targetKey);
+    frozenNotice('Schattenkarte '+target+': '+visited+'/'+sourceKeys.length+
+     ' Kacheln · '+created+' aktualisiert · '+skipped+' vorhanden · '+
+     failed+' warten. 4×-Boden bleibt unverändert.');
+    // Keep UI/cancel responsive between expensive Scenery encodes.
+    await new Promise(resolve=>setTimeout(resolve,0));
+   }
+   frozenNotice((run.cancel?'Angehalten: ':'Scenery-Aktualisierung beendet: ')+
+    created+' neue / '+skipped+' vorhandene / '+failed+' fehlende Kacheln. '+
+    'Neue Spielkarte: '+target+'. Die Originalkarte '+source+' bleibt erhalten.');
+  }finally{
+   state.zoom=oldZoom;updateTerrainLod(oldZoom);
+   run.offlineOnly=false;frozenTour=null;
+   tileModeActive=true;worldTiles?.setPlaybackPaused(false);
+   lockFrozenTourEditor(false);
+   $('frozenCancel').hidden=true;
+   $('frozenCaptureAll').disabled=false;
+   $('frozenCapture').disabled=false;
+   $('frozenPlay').disabled=false;
+   fastLastPrime=0;fastRender();
+  }
+ }catch(error){frozenNotice('Schatten-Aktualisierung nicht ausgeführt/abgebrochen: '+
+   String(error?.message||error));}
+ finally{button.disabled=false;}
+});
+
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  if(state.view!=='map'||state.mode==='far'){
