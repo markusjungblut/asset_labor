@@ -474,6 +474,28 @@ window.addEventListener('DOMContentLoaded',()=>{
   'mountainContactLength'])$(id)?.addEventListener('input',()=>{
    if(isMountainAsset(asset()))preview();
   });
+ // Tonal calibration is a local visual preview, deliberately separate from
+ // the versioned server-side sprite profile JSON. No PNGs or stored maps change.
+ const Tone=window.VedrasShadowTone;
+ if(Tone){
+  const ui=[['shadowToneLift','shadowToneLiftValue','lift'],
+   ['shadowToneBalance','shadowToneBalanceValue','balance']];
+  function refreshTone(){
+   const values=Tone.get();
+   for(const [slider,label,key] of ui){
+    if($(slider))$(slider).value=String(Math.round(values[key]*100));
+    if($(label))$(label).textContent=Math.round(values[key]*100)+' %';
+   }
+  }
+  for(const [slider,,key] of ui)$(slider)?.addEventListener('input',()=>{
+   Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
+   refreshTone();refresh();core.requestDraw();
+  });
+  $('shadowToneReset')?.addEventListener('click',()=>{
+   Tone.set(Tone.defaults());refreshTone();refresh();core.requestDraw();
+  });
+  refreshTone();
+ }
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.
  for(const id of ['shadowGlobalStrength','shadowGeneralStrength'])$(id)?.addEventListener('input',()=>{
   const value=Number($(id).value)/100;
