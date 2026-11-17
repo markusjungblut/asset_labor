@@ -161,3 +161,36 @@ test('near source fidelity increases with editor quality and stays bounded',()=>
  assert.match(source,/resolution:terrainSource\.resolution,maxPixels:terrainSource\.maxPixels/);
  assert.match(source,/const terrainSource=window\.VedrasRenderQuality\.terrainSource/);
 });
+
+test('a provisional near tile remains hidden by fog until exact layers finish',()=>{
+ const calls=[],context={
+  setTransform(){},clearRect(){},save(){},restore(){},beginPath(){},
+  moveTo(){},lineTo(){},closePath(){},clip(){},fillRect(){},
+  fill(){calls.push('opaque-fog');},
+  drawImage(image){calls.push(image.label);}
+ };
+ const env={window:{},performance:{now:()=>1000}};
+ vm.runInNewContext(read('world-tile-streamer.js'),env);
+ const renderer=env.window.VedrasWorldTiles.create({
+  canvas:{width:0,height:0,getContext:()=>context},
+  source:null,requireScenery:true
+ });
+ const tile={id:'0,0',x:0,y:0,size:512,visibility:'visible'};
+ const view={width:1000,height:700,zoom:.6,dpr:1,panX:0,panY:0,projectY:.85};
+ const packet=preview=>({complete:true,preview,sourceDensity:preview?.5:1.5,
+  layers:[{layer:'ground',image:{width:64,height:64,label:'ground'}},
+   {layer:'scenery',image:{width:64,height:64,label:'scenery'}}]});
+ renderer.setFogCells([{q:0,r:0,x:256,y:256,radius:75,visibility:'visible'}]);
+ assert.equal(renderer.seed(tile,'mid',packet(true)),true);
+ renderer.request(view,[tile]);
+ let result=renderer.render(view);
+ assert.equal(result.provisional,1);
+ assert.ok(calls.includes('opaque-fog'),
+  'a complete-but-soft bitmap must not reveal the underlying hex');
+ calls.length=0;
+ assert.equal(renderer.seed(tile,'mid',packet(false)),true);
+ result=renderer.render(view);
+ assert.equal(result.exact,1);
+ assert.ok(!calls.includes('opaque-fog'),
+  'only the finished target LOD may lift the fog');
+});
