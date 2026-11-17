@@ -318,7 +318,8 @@
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
-   derived1x:oneXStore.stats(),overview1x,largeViewportCache,
+   derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
+   groundDetailRequested,groundDetailActive,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
@@ -355,6 +356,8 @@
   }:null,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
-  derived1x:()=>oneXStore.stats()
+  derived1x:()=>oneXStore.stats(),
+  groundDetail:()=>({requested:groundDetailRequested,active:groundDetailActive,
+   ...groundDetailStore.stats()})
  };
 })();
