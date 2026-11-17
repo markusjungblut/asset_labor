@@ -137,12 +137,88 @@ window.VedrasFrozenDerived2x=(()=>{
    inflight.set(key,promise);
    return promise;
   }
+  // High-detail viewer: do not downscale a 4x Ground that will be
+  // discarded immediately. Reuse a pre-existing 2x tile for its Scenery
+  // where possible, otherwise derive and persist only the Scenery PNG.
+  // This derived-only cache never duplicates the huge original Ground blob.
+  const mixedInflight=new Map();
+  let mixedHits=0,mixedBuilt=0,mixedLegacyHits=0,mixedFailures=0,
+   groundDownscalesSkipped=0;
+  async function getSceneryMixed(key,original){
+   if(!original?.layers?.length||key.endsWith('|manifest'))return original;
+   const overlayKey=key+'~scenery-only-v1';
+   const combine=record=>{
+    if(!record||record.sourceRevision!==original.revision||
+       !Array.isArray(record.layers)||record.layers.length!==original.layers.length)
+     return null;
+    let replaced=0;
+    const layers=original.layers.map((layer,i)=>{
+     const smaller=record.layers[i];
+     if(['scenery','structures'].includes(layer.layer)&&
+        smaller?.layer===layer.layer&&smaller.png instanceof Blob){
+      replaced++;return smaller;
+     }
+     return layer;
+    });
+    if(!replaced)return null;
+    groundDownscalesSkipped++;
+    return {...original,layers,derivedFormat:'4x-ground-2x-scenery-v1'};
+   };
+   // Existing complete 2x-derived record is authoritative for smaller
+   // Scenery; do not generate a second copy after an older standard session.
+   try{
+    const complete=await job('readonly',os=>os.get(key));
+    if(complete?.derivedFormat==='2x-png-v1'){
+     const reused=combine(complete);
+     if(reused){mixedLegacyHits++;return reused;}
+    }
+   }catch(error){mixedFailures++;counters.lastError=String(error?.message||error);}
+   if(volatile.has(overlayKey)){
+    const entry=volatile.get(overlayKey),existing=combine(entry.record);
+    if(existing){mixedHits++;return existing;}
+    volatileBytes-=entry.bytes;volatile.delete(overlayKey);
+   }
+   try{
+    const cached=await job('readonly',os=>os.get(overlayKey));
+    if(cached?.derivedFormat==='scenery-only-2x-v1'){
+     const hit=combine(cached);
+     if(hit){mixedHits++;return hit;}
+    }
+   }catch(error){mixedFailures++;counters.lastError=String(error?.message||error);}
+   if(mixedInflight.has(key))return mixedInflight.get(key);
+   const promise=(async()=>{
+    const layers=[];
+    for(const layer of original.layers)
+     layers.push(['scenery','structures'].includes(layer.layer)?
+      await downscale(layer):null);
+    const overlay={key:overlayKey,derivedFormat:'scenery-only-2x-v1',
+     sourceRevision:original.revision,layers};
+    mixedBuilt++;
+    const bytes=layers.reduce((n,layer)=>n+(layer?.png?.size||0),0);
+    try{await job('readwrite',os=>os.put(overlay));}
+    catch(error){
+     mixedFailures++;counters.lastError=String(error?.message||error);
+     if(bytes<=maxVolatileBytes){
+      volatile.set(overlayKey,{record:overlay,bytes});volatileBytes+=bytes;
+      while(volatileBytes>maxVolatileBytes&&volatile.size>1){
+       const oldest=volatile.keys().next().value,entry=volatile.get(oldest);
+       volatile.delete(oldest);volatileBytes-=entry.bytes;
+      }
+     }
+    }
+    return combine(overlay)||original;
+   })().finally(()=>mixedInflight.delete(key));
+   mixedInflight.set(key,promise);
+   return promise;
+  }
   return {
-   get,keys:prefix=>source.keys(prefix),
+   get,getSceneryMixed,keys:prefix=>source.keys(prefix),
    put:()=>Promise.reject(Error('2×-Abspielcache ist nur lesend; Originalarchiv bleibt unverändert')),
    setEnabled:value=>{enabled=value===true;},
    stats:()=>({...counters,enabled,pending:inflight.size,
-    volatileTiles:volatile.size,volatileBytes})
+    volatileTiles:volatile.size,volatileBytes,
+    mixedHits,mixedBuilt,mixedLegacyHits,mixedFailures,
+    groundDownscalesSkipped,mixedPending:mixedInflight.size})
   };
  }
  return {DB,scaledCrop,dimensions,createStore};
