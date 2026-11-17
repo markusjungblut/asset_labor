@@ -196,3 +196,13 @@ test('inspector is mandatory and browser storage is never deleted implicitly',as
  assert.doesNotMatch(code,/deleteDatabase\(|\.clear\(/);
  assert.doesNotThrow(()=>new Function(code));
 });
+test('abandoned import recovery requires explicit confirmation',async()=>{
+ const token='a'.repeat(32);
+ await assert.rejects(importer.discardPending(TARGET,token),/ausdrückliche Bereinigungsbestätigung/);
+ const code=fs.readFileSync(path.join(root,'static-map-zip-importer.js'),'utf8');
+ assert.match(code,/MIN_RECOVERY_AGE_MS=30\*60\*1000/);
+ assert.match(code,/os\.openKeyCursor\(range\(scene\)\)/);
+ assert.match(code,/rec\.result\?\.importToken!==token/);
+ assert.match(code,/if\(manifest\.result\)/);
+ assert.match(code,/os\.put\(\{\.\.\.marker\.result,lastActivityAt:/);
+});

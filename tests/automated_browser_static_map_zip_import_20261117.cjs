@@ -245,9 +245,99 @@ async function main(){
    null,{timeout:30000});
   assert.equal(await viewer.evaluate(()=>
    window.__vedrasFrozenGameTest.scene),target);
+
+  // Simulate a crashed importer. It reserved a random NEW scene and stored
+  // one tile but never published its manifest. A reload must NOT expose it
+  // as a finished map or clean it automatically.
+  const stale='v1-feed0001',fresh='v1-feed0002',foreign='v1-feed0003';
+  const tok='b'.repeat(32),otherTok='c'.repeat(32);
+  await page.evaluate(async ({stale,fresh,foreign,tok,otherTok})=>{
+   const api=window.VedrasStaticMapZipImporter;
+   const store=api.createIndexedStorage();
+   const record=scene=>({key:scene+'|near|9,9',sceneKey:scene,level:'near',
+    tile:{id:'9,9',x:0,y:0,size:512},layers:[],revision:'crash-fixture'});
+   await store.reserve(stale,tok);
+   await store.addTile(stale,tok,record(stale));
+   await store.reserve(fresh,tok);
+   await store.reserve(foreign,tok);
+   await store.addTile(foreign,tok,record(foreign));
+   await store.close();
+   const db=await new Promise((resolve,reject)=>{
+    const r=indexedDB.open('vedras-frozen-world-v1',1);
+    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+   });
+   try{
+    await new Promise((resolve,reject)=>{
+     const tx=db.transaction('tiles','readwrite'),os=tx.objectStore('tiles');
+     for(const scene of [stale,foreign]){
+      const q=os.get(scene+'|import-pending');
+      q.onsuccess=()=>{
+       os.put({...q.result,lastActivityAt:'2020-01-01T00:00:00.000Z'});
+      };
+     }
+     os.add({key:foreign+'|near|8,8',sceneKey:foreign,
+      importToken:otherTok,level:'near',tile:{id:'8,8'}});
+     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+    });
+   }finally{db.close();}
+  },{stale,fresh,foreign,tok,otherTok});
+  await page.reload();
+  const beforeCleanup=await page.evaluate(async()=>{
+   const open=window.VedrasStaticMapZipImporter;
+   return open.listPending();
+  });
+  assert.equal(beforeCleanup.length,3);
+  assert.equal(beforeCleanup.find(x=>x.scene===stale)?.eligible,true);
+  assert.equal(beforeCleanup.find(x=>x.scene===fresh)?.eligible,false);
+  assert.equal(beforeCleanup.find(x=>x.scene===foreign)?.eligible,true);
+  await assert.rejects(page.evaluate(async ({scene,tok})=>
+   window.VedrasStaticMapZipImporter.discardPending(scene,tok),
+   {scene:stale,tok}),/ausdrückliche Bereinigungsbestätigung/);
+  await assert.rejects(page.evaluate(async ({scene,tok})=>
+   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
+    {confirmed:true}),{scene:stale,tok:otherTok}),
+   /Kein passender unvollständiger Import/);
+  await assert.rejects(page.evaluate(async ({scene,tok})=>
+   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
+    {confirmed:true}),{scene:fresh,tok}),
+   /noch aktiv oder jünger als 30 Minuten/);
+  await assert.rejects(page.evaluate(async ({scene,tok})=>
+   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
+    {confirmed:true}),{scene:foreign,tok}),
+   /Importdatensatz nicht eindeutig zugeordnet/);
+  await page.locator('#scanPending').click();
+  const recovery=page.locator('[data-scene="'+stale+'"]');
+  await recovery.waitFor({state:'visible'});
+  assert.equal(await recovery.isDisabled(),false);
+  assert.equal(await page.locator('[data-scene="'+fresh+'"]').isDisabled(),true);
+  page.once('dialog',dialog=>dialog.accept());
+  await recovery.click();
+  await page.waitForFunction(s=>
+   document.getElementById('pendingResults').textContent.includes('Bereinigt: '+s),
+   stale,{timeout:15000});
+  const keys=await page.evaluate(async()=>{
+   const db=await new Promise((resolve,reject)=>{
+    const r=indexedDB.open('vedras-frozen-world-v1',1);
+    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+   });
+   try{return await new Promise((resolve,reject)=>{
+    const q=db.transaction('tiles','readonly').objectStore('tiles').getAllKeys();
+    q.onsuccess=()=>resolve(q.result);
+    q.onerror=()=>reject(q.error);
+   });}finally{db.close();}
+  });
+  assert.equal(keys.some(k=>k.startsWith(stale+'|')),false);
+  assert.ok(keys.includes(fresh+'|import-pending'));
+  assert.ok(keys.includes(foreign+'|import-pending'));
+  assert.ok(keys.includes(foreign+'|near|9,9'));
+  assert.ok(keys.includes(foreign+'|near|8,8'));
+  assert.ok(keys.includes(SENTINEL+'|manifest'));
+  assert.ok(keys.includes(target+'|manifest'));
+  assert.equal(keys.filter(k=>k.endsWith('|manifest')).length,2);
+
   assert.deepEqual(errors,[]);
   process.stdout.write('ZIP importer Firefox/IndexedDB: PASS (new scene '+
-   target+', original intact, rollback, viewer reload, opt-in 1x lifecycle)\n');
+   target+', original intact, rollback, viewer reload, 1x and explicit stale recovery)\n');
   await context.close();
  }finally{
   await browser?.close();
