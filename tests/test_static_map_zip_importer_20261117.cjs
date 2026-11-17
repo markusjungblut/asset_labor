@@ -148,7 +148,7 @@ test('a corrupt later PNG rolls back only new scene and does not publish',async(
  const original={key:'v1-deadbeef|near|0,0',preserve:1};
  const db=store({existing:[original]});
  await assert.rejects(importer.restore(await payload({brokenLayer:true}),
-  options(db)),/PNG-Signatur/);
+  options(db)),/PNG-(?:Schicht zu kurz|Signatur)/);
  assert.equal(db.calls.rollback,1);
  assert.equal(db.calls.add,1);
  assert.equal(db.calls.publish,0);
