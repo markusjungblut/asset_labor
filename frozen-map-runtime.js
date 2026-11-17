@@ -14,6 +14,36 @@ window.VedrasFrozenMap=(()=>{
  });
  const SCHEMA=1,DB='vedras-frozen-world-v1',STORE='tiles';
  const integer=v=>Number.isSafeInteger(v);
+ // A shadow-only successor stores only a new transparent Scenery PNG.
+ // Its Ground is referenced by the immutable source record, not copied
+ // into IndexedDB a second time. Resolve the reference in memory only.
+ function linkedStore(raw){
+  return {...raw,async get(key){
+   const record=await raw.get(key);
+   if(record?.derivedFormat!=='scenery-refresh-v1')return record;
+   const originalKey=record.groundRefKey;
+   if(typeof originalKey!=='string'||!/^v1-[0-9a-f]{8}\|near\|/.test(originalKey)||
+      originalKey===key||!/^v1-[0-9a-f]{8}\|near\|/.test(key))
+    throw Error('Ungültiger Bodenverweis der Schattenkarte');
+   // Only one link level is permitted: the source must be a complete
+   // original tile, never another linked/derived shadow tile.
+   const original=await raw.get(originalKey);
+   if(!original||original.groundRefKey||original.level!==record.level||
+      original.tile?.id!==record.tile?.id||
+      original.tile?.x!==record.tile?.x||
+      original.tile?.y!==record.tile?.y||
+      original.tile?.size!==record.tile?.size)
+    throw Error('Originalboden fehlt oder die Kachelgeometrie weicht ab');
+   const ground=original.layers?.find(l=>
+    l.layer==='ground'||l.layer==='terrain');
+   const scenery=record.layers?.find(l=>
+    l.layer==='scenery'||l.layer==='structures');
+   if(!(ground?.png instanceof Blob)||!(scenery?.png instanceof Blob)||
+      record.layers.length!==1)
+    throw Error('Schattenkarte hat keinen gültigen Boden oder Scenery-Layer');
+   return {...record,layers:[ground,scenery]};
+  }};
+ }
  function memoryStore(){
   const data=new Map();
   return {
@@ -50,7 +80,7 @@ window.VedrasFrozenMap=(()=>{
     tx.onabort=()=>reject(tx.error||Error('IndexedDB-Transaktion abgebrochen'));
    });
   }
-  return {
+  return linkedStore({
    put:rec=>job('readwrite',os=>os.put(rec)),
    get:key=>job('readonly',os=>os.get(key)),
    keys:async prefix=>{
@@ -65,7 +95,7 @@ window.VedrasFrozenMap=(()=>{
    },
    // No implicit cleanup: archived evidence is persistent until an explicit
    // future user-requested deletion workflow is added.
-  };
+  });
  }
  function valid(packet){
   if(!packet||packet.dirty||packet.preview||!packet.complete||
@@ -1568,7 +1598,8 @@ window.VedrasFrozenMap=(()=>{
   // used by a standalone player that does not load app.js or any workers.
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
-      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null}={}){
+      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null,
+      sceneryBaseScene=null,shadowTone=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -1580,6 +1611,8 @@ window.VedrasFrozenMap=(()=>{
     levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
     pose:initialPose?{...initialPose}:null,
     expectedTiles:Number.isSafeInteger(expectedTiles)&&expectedTiles>=0?expectedTiles:null,
+    sceneryBaseScene:typeof sceneryBaseScene==='string'?sceneryBaseScene:null,
+    shadowTone:shadowTone?{lift:Number(shadowTone.lift),balance:Number(shadowTone.balance)}:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
     savedAt:new Date().toISOString()};
@@ -1614,9 +1647,46 @@ window.VedrasFrozenMap=(()=>{
    }
    return {saved,skipped,rejected,total:packets.length};
   }
-  return {capture,load,stop,draw,report,getPose,setPose,setClouds,
+  // Append one fully rendered Scenery tile to a new scene while keeping
+  // the old 4x Ground in place. Never overwrite an existing key.
+  async function captureScenery(scene,sourceKey,tile,sceneryLayer){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene)||typeof sourceKey!=='string'||
+      !/^v1-[0-9a-f]{8}\|near\|/.test(sourceKey)||
+      sourceKey.startsWith(scene+'|')||!tile?.id||
+      !sceneryLayer?.image?.width||!sceneryLayer?.image?.height)
+    throw Error('Ungültige Scenery-only-Neuberechnung');
+   const key=makeKey(scene,'near',tile.id);
+   const prior=await storage.get(key);
+   if(prior){
+    if(prior.groundRefKey!==sourceKey||
+       prior.derivedFormat!=='scenery-refresh-v1')
+     throw Error('Zielkachel existiert bereits mit anderem Inhalt');
+    return {saved:0,skipped:1};
+   }
+   const source=await storage.get(sourceKey);
+   if(!source||source.groundRefKey||source.key!==sourceKey||
+      source.level!=='near'||source.tile?.id!==tile.id||
+      source.tile.x!==tile.x||source.tile.y!==tile.y||
+      source.tile.size!==tile.size||
+      !source.layers?.some(l=>l.layer==='ground'&&l.png instanceof Blob))
+    throw Error('Unpassender oder nicht vorhandener 4×-Originalboden');
+   const png=await encode(sceneryLayer.image);
+   const record={key,sceneKey:scene,level:'near',
+    tile:{...source.tile},revision:source.revision,
+    groundRefKey:sourceKey,derivedFormat:'scenery-refresh-v1',
+    sceneryNative2x:true,layers:[{
+     layer:'scenery',pad:sceneryLayer.pad??128,
+     crop:sceneryLayer.crop||null,png
+    }]};
+   // Recheck before commit. An interrupted bake resumes by skipping
+   // completed targets; no original source key is ever overwritten.
+   if(await storage.get(key))throw Error('Zielkachel wurde inzwischen belegt');
+   await storage.put(record);
+   return {saved:1,skipped:0};
+  }
+  return {capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,
    beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,isActive:()=>active,storage};
  }
- return {create,memoryStore,indexedStore,valid,makeKey};
+ return {create,memoryStore,indexedStore,linkedStore,valid,makeKey};
 })();
