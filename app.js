@@ -4802,7 +4802,7 @@ function importGeographyWorld(world){
  persistScene();requestDraw();
  for(const type of ['forest','river','road'])window.dispatchEvent(new Event('vedras:'+type+'-changed'));
  window.VedrasNature?.renderPlaced?.();
- $('catalogMessage').textContent='Geografie v2.1 übernommen: '+next.length+' Hexe. Relief aus der Geografie aktiv: '+
+ $('catalogMessage').textContent='Geografie '+window.VedrasGeography.VERSION+' übernommen: '+next.length+' Hexe. Relief aus der Geografie aktiv: '+
   next.filter(c=>c.reliefClass==='hills').length+' Hügelhexe mit eigenen Profilen, '+
   next.filter(c=>c.reliefClass==='mountain').length+' Berghexe. Bodentexturen separat gecacht.';
 }
@@ -4824,10 +4824,9 @@ $('geographyImportFile').addEventListener('change',async event=>{
   if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
   const version=raw.generatorVersion||raw.version;
   if(version!==G.VERSION){
-   if(version!=='geography-v2.0.0'||!window.confirm(
-     'Diese gespeicherte Datei stammt aus Worldgen v2.0. Bei der Übernahme '
-     +'wird die Geografie mit dem stabilisierten Generator v2.1 neu erzeugt. '
-     +'Das Ergebnis kann anders aussehen. Fortfahren?'))
+   if(!['geography-v2.0.0','geography-v2.1.0'].includes(version)||
+       !window.confirm('Gespeicherte Weltversion '+version+' wird mit '+G.VERSION+
+       ' neu generiert. Die Landschaft kann sich dadurch ändern. Fortfahren?'))
     throw Error('Weltversion wird ohne ausdrückliche Zustimmung nicht konvertiert.');
   }
   if(!raw.seed||!Number.isSafeInteger(Number(raw.width))||!Number.isSafeInteger(Number(raw.height)))
