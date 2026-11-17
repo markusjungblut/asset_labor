@@ -51,4 +51,6 @@ Der Check ist ein **statischer Vertragstest** und ersetzt weder Firefox-/Windows
 
 **Zuerst die Windows-/Browser-Sichtprüfung des vorhandenen 1×-Sicherheitscaches inklusive Fog, Nachschärfen und Start ohne vorgewärmten RAM abschließen.** Parallel das UI-Aufräumen #138 separat integrierbar machen, ohne die stabilen Editor-Defaults zu verlieren. Erst danach dürfen UI, Renderer und Export in einen gemeinsamen Release-Kandidaten aufgenommen werden.
 
+**Vorprüfung (17.11.2026):** Fünf Vertragsprüfungen wurden gegen die aktuellen Dateien aus dem GitHub-Branch mit einem isolierten Node-API-/Dateisystem-Testadapter erfolgreich ausgeführt: 5/5 bestanden. JavaScript-Syntax beider geänderten Dateien geprüft. **Ein nativer `node --test`-Lauf in einem vollständigen Checkout und die Firefox-Sichtprüfung stehen noch aus.**
+
 **Status:** Integrierbarer Smoke-Test und Statusbeschriftung implementiert; noch **kein** vollständiger Systemmerge oder Windows-End-to-End-GO.
