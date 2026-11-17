@@ -1302,7 +1302,7 @@ function deferSceneRender(channel,apply,delay=170,saveScope=true){
  },delay));
 }
 let terrainRasterCache={signature:null,raster:null};
-const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:56,maxPixels:24000000});
+const terrainChunks=window.VedrasChunks.create({size:512,maxTiles:56,maxPixels:28000000});
 // Independent streaming queues share the world/region/local LOD tier; no pan-time raster rebuild.
 // Each layer receives its own small bounded queue, never an unbounded world scan.
 function streamingOptions(limit=8){
@@ -1629,7 +1629,8 @@ function drawGroundImpl(){
  ctx.translate(W/2+state.panX,H/2+state.panY);ctx.scale(state.zoom,state.zoom*PROJECT_Y);
  const groundPrepStart=performance.now();
  const groundPrep=frameMemo.use('terrain',
-  previewDensity()+'|'+updateTerrainLod(state.zoom)+'|'+finalRendering+'|'+state.workerTerrain+'|'+catalogRevision,
+  // Previously 2×/3×/4× shared a terrain-source cache signature.
+  state.quality+'|'+previewDensity()+'|'+updateTerrainLod(state.zoom)+'|'+finalRendering+'|'+state.workerTerrain+'|'+catalogRevision,
   ()=>{
    const fallback=baseImage(),selected=worldCells.map(c=>imageForBiome(c)||fallback);
    const selectedMap=new Map(worldCells.map((c,i)=>[key(c.q,c.r),selected[i]]));
@@ -1647,12 +1648,17 @@ function drawGroundImpl(){
     geographyRelief?'geography-materials':state.relief,
     state.mountainInstances,workerActive?'worker':'main-thread']);
    const terrainFactor=lodProfile().terrain;
-   const chunkSignature=JSON.stringify([chunkFamily,lod,terrainFactor,state.relief,previewDensity()]);
+   const terrainSource=window.VedrasRenderQuality.terrainSource({
+    quality:state.quality,lod,previewDensity:previewDensity(),
+    terrainFactor,final:finalRendering
+   });
+   const chunkSignature=JSON.stringify([chunkFamily,lod,terrainFactor,
+    terrainSource,state.quality,state.relief,previewDensity()]);
    return {fallback,selectedMap,signature,geographyRelief,workerActive,lod,
-    materialFamily,chunkFamily,chunkSignature,terrainFactor};
+    materialFamily,chunkFamily,chunkSignature,terrainFactor,terrainSource};
   });
  const {fallback,selectedMap,signature,geographyRelief,workerActive,lod,
-  materialFamily,chunkFamily,chunkSignature,terrainFactor}=groundPrep;
+  materialFamily,chunkFamily,chunkSignature,terrainFactor,terrainSource}=groundPrep;
  lastGroundMaterialPaths=new Map(worldCells.map(cell=>{
   const id=key(cell.q,cell.r);
   return [id,(selectedMap.get(id)||fallback)?.path||null];
@@ -1689,8 +1695,9 @@ function drawGroundImpl(){
     },
     buildTile:async(tile,nearby)=>{
      const diskKey=staticTerrain?await staticTerrain.keyFor({
-      engine:'terrain-static-v2',tile:tile.id,materialFamily,lod,
-      relief:state.relief,geographyRelief,density:previewDensity(),
+      engine:'terrain-static-v3-quality-source',tile:tile.id,materialFamily,lod,
+      relief:state.relief,geographyRelief,density:terrainSource.resolution,
+      sourceQuality:state.quality,sourceBudget:terrainSource.maxPixels,
       mountains:state.mountainInstances,
       cells:nearby.map(c=>{
        const a=selectedMap.get(key(c.q,c.r))||fallback;
@@ -1719,7 +1726,7 @@ function drawGroundImpl(){
       blend:state.edgeBlend,materialScales:state.materialScales,
       terrainTone:(rgb,material,id)=>window.VedrasPolish.terrainRGB(
        rgb[0],rgb[1],rgb[2],state.visualPolish.terrain,material,id),
-      resolution:terrainFactor*previewDensity(),maxPixels:finalRendering?1600000:850000,cornerBlend:state.cornerBlend,
+      resolution:terrainSource.resolution,maxPixels:terrainSource.maxPixels,cornerBlend:state.cornerBlend,
       transitionMode:(a,b)=>window.VedrasCatalog.profile(catalog,a,b).mode,
       materialClassOf:id=>window.VedrasCatalog.terrainType(catalog,id)?.materialClass||'ground'
      });
@@ -1745,7 +1752,7 @@ function drawGroundImpl(){
       waterSampling:state.waterSampling,irregularity:state.edgeIrregularity,
       blend:state.edgeBlend,materialScales:state.materialScales,
       terrainAmount:state.visualPolish.terrain,
-      resolution:terrainFactor*previewDensity(),maxPixels:finalRendering?1600000:850000,
+      resolution:terrainSource.resolution,maxPixels:terrainSource.maxPixels,
       cornerBlend:state.cornerBlend
      },
      cells:nearby.map(c=>{
@@ -1799,15 +1806,15 @@ function drawGroundImpl(){
    ' · Worker abgeschlossen: '+window.VedrasTerrainWorker.status().completed;
  }else{
   terrainChunks.clear();
-  if(terrainRasterCache.signature!==signature||terrainRasterCache.density!==previewDensity()*lodProfile().terrain||!terrainRasterCache.raster){
-   terrainRasterCache.signature=signature;terrainRasterCache.density=previewDensity()*lodProfile().terrain;const start=performance.now();
+  if(terrainRasterCache.signature!==signature||terrainRasterCache.density!==terrainSource.resolution||!terrainRasterCache.raster){
+   terrainRasterCache.signature=signature;terrainRasterCache.density=terrainSource.resolution;const start=performance.now();
    terrainRasterCache.raster=window.VedrasAutotile.build(worldCells,
     c=>selectedMap.get(key(c.q,c.r))||fallback,effectiveBiome,{
     band:state.edgeWidth,blendVariants:state.blendVariants,waterSampling:state.waterSampling,
     irregularity:state.edgeIrregularity,blend:state.edgeBlend,materialScales:state.materialScales,
     terrainTone:(rgb,material,id)=>window.VedrasPolish.terrainRGB(
      rgb[0],rgb[1],rgb[2],state.visualPolish.terrain,material,id),
-    resolution:previewDensity()*lodProfile().terrain,maxPixels:finalRendering?4200000:1000000,
+    resolution:terrainSource.resolution,maxPixels:finalRendering?4200000:Math.max(1000000,terrainSource.maxPixels),
     cornerBlend:state.cornerBlend,transitionMode:(a,b)=>window.VedrasCatalog.profile(catalog,a,b).mode,
     materialClassOf:id=>window.VedrasCatalog.terrainType(catalog,id)?.materialClass||'ground'
    });
