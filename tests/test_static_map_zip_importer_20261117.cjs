@@ -12,9 +12,33 @@ for(const f of ['frozen-map-package.js','static-map-zip-inspector.js',
 const writer=window.VedrasFrozenMapPackage,
  importer=window.VedrasStaticMapZipImporter,
  inspector=window.VedrasStaticMapZipInspector;
-const png=new Blob([Buffer.from(
- 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64')],
- {type:'image/png'});
+function validPngBytes(){
+ const zlib=require('node:zlib'),width=8,height=8;
+ const data=Buffer.alloc((width*4+1)*height);
+ for(let y=0;y<height;y++){
+  const row=y*(width*4+1);data[row]=0;
+  for(let x=0;x<width;x++){
+   const at=row+1+x*4;
+   data[at]=44;data[at+1]=90;data[at+2]=60;data[at+3]=255;
+  }
+ }
+ const chunk=(type,bytes)=>{
+  const code=Buffer.from(type),length=Buffer.alloc(4),crc=Buffer.alloc(4);
+  length.writeUInt32BE(bytes.length);
+  crc.writeUInt32BE(writer.crc32(Buffer.concat([code,bytes])));
+  return Buffer.concat([length,code,bytes,crc]);
+ };
+ const ihdr=Buffer.alloc(13);
+ ihdr.writeUInt32BE(width,0);ihdr.writeUInt32BE(height,4);
+ ihdr[8]=8;ihdr[9]=6;
+ return Buffer.concat([
+  Buffer.from([137,80,78,71,13,10,26,10]),
+  chunk('IHDR',ihdr),
+  chunk('IDAT',zlib.deflateSync(data)),
+  chunk('IEND',Buffer.alloc(0))
+ ]);
+}
+const png=new Blob([validPngBytes()],{type:'image/png'});
 const SOURCE='v1-abc12345',TARGET='v1-00000001',OTHER='v1-00000002';
 function payload({complete=true,expectedTiles=2,brokenLayer=false,
  invalidCells=false,source=SOURCE,visibility='visible'}={}){
