@@ -206,6 +206,10 @@ function seedReadyWorldTiles(){
  if(!ground||!scenery)return;
  const lod=worldTiles.chooseLod(state.zoom),bounds=streamingViewBounds(96);
  const preview=!worldTileSnapshotsSharp(ground,scenery,lod);
+ // Blended near terrain may NOT inherit a low-density viewport snapshot.
+ // A world-core fallback will render the actual authored transition field.
+ // Avoid seeding square previews that look final beside exact chunks.
+ if(preview&&lod==='near'&&state.edgeBlend)return;
  const sourceDensity=Math.min(worldTileSnapshotDensity(ground),
   worldTileSnapshotDensity(scenery));
  const tiles=window.VedrasChunks.visible(bounds,worldCells,512);
@@ -650,7 +654,10 @@ function fastRender(){
     worldTiles.terrainReady(tileId,revision);
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics,
-     drawPreview:drawFastTerrainPreview
+     // Per-hex quick previews use an unblended source texture and show
+     // hard biome edges. Keep them behind Fog when authored edge blending
+     // is enabled; do not present a fake finished transition.
+     drawPreview:state.edgeBlend?null:drawFastTerrainPreview
     });
   }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
   if(result){
