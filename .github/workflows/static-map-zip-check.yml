@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - static-map-zip-inspector.js
+      - static-map-zip-importer.js
+      - static-map-import-ui.js
+      - static-map-import.html
+      - tests/test_static_map_zip_importer_20261117.cjs
       - frozen-map-package.js
       - tests/test_static_map_zip_inspector_20261117.cjs
       - .github/workflows/static-map-zip-check.yml
@@ -28,11 +32,13 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /static-map-zip-inspector.js
+            /static-map-zip-importer.js
+            /tests/test_static_map_zip_importer_20261117.cjs
             /frozen-map-package.js
             /tests/test_static_map_zip_inspector_20261117.cjs
       - name: Node 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run bounded ZIP32 inspection tests
-        run: node --test tests/test_static_map_zip_inspector_20261117.cjs
+      - name: Run ZIP validation and explicit safe-import contract tests
+        run: node --test tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs
