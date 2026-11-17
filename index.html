@@ -347,6 +347,14 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <p class="muted">Nur vollständig fertige Bildkacheln speichern. Im Test werden weder Terrain-Mischungen noch Küsten, Schatten oder Weltkacheln neu berechnet. Der gespeicherte Bereich kann ohne neue Renderaufträge bewegt und gezoomt werden.</p>
 <button type="button" id="frozenCapture" class="button outline block">Fertige sichtbare Bildkacheln einfrieren</button>
 <button type="button" id="frozenCaptureAll" class="button primary block">Gesamte Karte einmalig als Spielkacheln vorbereiten</button>
+<details id="frozenSceneryRefreshPanel"><summary>Schatten der fertigen Spielkarte aktualisieren (Boden wiederverwenden)</summary>
+<p class="muted">Erzeugt eine NEUE Spielkartenkennung. Nur Objekt- und Schatten-PNGs werden neu berechnet; die Original-4×-Bodenkacheln bleiben an ihrem bisherigen Speicherort. Der Vorgang ist abbrechbar und fortsetzbar.</p>
+<label for="frozenScenerySource">Vorhandene Quell-Spielkarte</label>
+<input id="frozenScenerySource" type="text" value="v1-0374527a" pattern="v1-[0-9a-f]{8}" spellcheck="false">
+<label class="checkbox"><input id="frozenSceneryConfirm" type="checkbox"> Ich habe bestätigt, dass seit der Quellkarte nur die Schatteneinstellungen geändert wurden – keine Gelände-, Küsten-, Straßen-, Objekt- oder Asset-Zuordnungen.</label>
+<button type="button" id="frozenReshade" class="button outline block">Neue Spielkarte mit aktualisierten Schatten erzeugen</button>
+<p class="muted">Die geometrische Übereinstimmung wird zusätzlich geprüft. Ältere Spielkarten haben jedoch keinen vollständigen Ground-Fingerprint; deshalb ist diese Bestätigung erforderlich. Die neue Karte bleibt unvollständig, bis alle neuen Objektkacheln erzeugt sind.</p>
+</details>
 <button type="button" id="frozenCancel" class="button outline block" hidden>Vorbereitung abbrechen</button>
 <button type="button" id="frozenPlay" class="button outline block">Spielkarten-Test starten</button>
 <button type="button" id="frozenStandalone" class="button outline block">Fertige Spielkarte ohne Asset-Labor öffnen</button>
