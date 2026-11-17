@@ -32,9 +32,17 @@ window.VedrasShadowTone=(()=>{
   const {r,g,b}=colorRgb();
   return 'rgb('+r+','+g+','+b+')';
  }
+ // Some nature families were additionally multiplied by .28/.8 after
+ // profile normalization, so their shadows remained almost transparent.
+ // At full equalization neutralize these per-family attenuations too.
+ function attenuation(value){
+  if(!Number.isFinite(value)||value<=0)return 0;
+  const factor=clamp(value,0,1);
+  return clamp(factor+(1-factor)*current.balance,0,1);
+ }
  function opacity(value,target=.40){
   if(!Number.isFinite(value)||value<=0)return 0;
   return clamp(value+(target-value)*current.balance,0,1);
  }
- return {defaults,clean,get,set,colorRgb,colorCss,opacity,revision:()=>revision};
+ return {defaults,clean,get,set,colorRgb,colorCss,opacity,attenuation,revision:()=>revision};
 })();
