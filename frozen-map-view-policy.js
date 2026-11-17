@@ -8,14 +8,15 @@ window.VedrasFrozenViewPolicy=(()=>{
  const HEX_WIDTH=256;
  const MARGIN_WORLD=HEX_WIDTH+64; // 1 complete hex plus scenery/shadow overhang
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
- function displayDpr({zoom=1,width=800,height=600,baseDpr=2,maxPixels=8000000}={}){
+ function displayDpr({zoom=1,width=800,height=600,baseDpr=2,maxPixels=8000000,
+  maxDpr=2,maxEdge=4096}={}){
   const z=Number.isFinite(zoom)?zoom:1;
   const overview=z<=.42?1.25:z>=.52?baseDpr:
    1.25+(baseDpr-1.25)*(z-.42)/.10;
   const pixels=Math.max(1,width*height);
   const edge=Math.max(1,width,height);
   return clamp(Math.min(baseDpr,overview,Math.sqrt(maxPixels/pixels),
-   4096/edge),1,2);
+   maxEdge/edge),1,maxDpr);
  }
  function screenBounds(view,{marginWorld=MARGIN_WORLD}={}){
   const p=view.projectY||.85,z=view.zoom||1;
