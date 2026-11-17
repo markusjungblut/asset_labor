@@ -62,6 +62,8 @@ jobs:
             /cloud-artwork.js
             /shadow-tone.js
             /shadow-system.js
+            /render-quality-policy.js
+            /world-tile-streamer.js
             /index.html
             /app.js
             /tests/test_quality_ground_and_shadow_tone_20261117.cjs
