@@ -13,6 +13,7 @@ const allowed=new Set([
  'static-map-zip-inspector.js','static-map-zip-importer.js',
  'frozen-map-game.html','frozen-map-game.js','frozen-map-runtime.js',
  'frozen-map-derived-1x.js','frozen-map-derived-2x.js',
+ 'frozen-map-ground-detail.js',
  'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
  'frozen-map-profiler.js','frozen-map-world-blit.js','cloud-artwork.js'
 ]);
