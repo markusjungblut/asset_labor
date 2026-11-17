@@ -1294,7 +1294,9 @@ window.VedrasFrozenMap=(()=>{
    // paint a clean background, avoiding an expensive second 4x repaint
    // just to move Fog out of the world canvas on the next dissolve tick.
    const wantsFogLayer=!!fogCtx&&!zoomPreview&&
-    (!baseStamp||cameraStill||(preferFogLayerAtHighDpr&&dpr>=2.25));
+    (preferFogLayerAtHighDpr?
+     (dpr>=2.25||(!!baseStamp&&cameraStill)):
+     (!baseStamp||cameraStill));
    if(fogCtx&&fogLayerActive!==wantsFogLayer){
     fogLayerActive=wantsFogLayer;
     fogCanvas.hidden=!wantsFogLayer;
