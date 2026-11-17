@@ -143,3 +143,21 @@ test('readiness is exact-LOD and non-provisional; authored blend hides hard per-
  assert.match(editor,/drawPreview:state\.edgeBlend\?null:drawFastTerrainPreview/);
  assert.match(editor,/if\(preview&&lod==='near'&&state\.edgeBlend\)return;/);
 });
+
+test('near source fidelity increases with editor quality and stays bounded',()=>{
+ const p=moduleOf('render-quality-policy.js').VedrasRenderQuality;
+ const args={lod:'near',previewDensity:1,terrainFactor:1};
+ const q2=p.terrainSource({...args,quality:'2'});
+ const q3=p.terrainSource({...args,quality:'3'});
+ const q4=p.terrainSource({...args,quality:'4'});
+ assert.ok(q2.resolution>1&&q2.resolution<q3.resolution);
+ assert.ok(q3.resolution<q4.resolution);
+ assert.ok(q4.maxPixels<=1500000);
+ assert.equal(p.terrainSource({...args,lod:'far',quality:'4'}).resolution,1);
+ assert.equal(p.terrainSource({...args,lod:'far',quality:'4'}).maxPixels,850000);
+ const source=read('app.js');
+ assert.match(source,/state\.quality\+'\|'\+previewDensity\(\)/);
+ assert.match(source,/terrain-static-v3-quality-source/);
+ assert.match(source,/resolution:terrainSource\.resolution,maxPixels:terrainSource\.maxPixels/);
+ assert.match(source,/const terrainSource=window\.VedrasRenderQuality\.terrainSource/);
+});
