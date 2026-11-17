@@ -94,7 +94,8 @@ window.VedrasFrozenDerived2x=(()=>{
    for(const layer of record.layers){
     // Only image layers may be downscaled; world placement and layer order
     // always come directly from the archived record.
-    if(['ground','terrain','scenery','structures'].includes(layer.layer))
+    if(['ground','terrain'].includes(layer.layer)||
+       (!record.sceneryNative2x&&['scenery','structures'].includes(layer.layer)))
      layers.push(await downscale(layer));
     else layers.push({...layer});
    }
@@ -146,6 +147,10 @@ window.VedrasFrozenDerived2x=(()=>{
    groundDownscalesSkipped=0;
   async function getSceneryMixed(key,original){
    if(!original?.layers?.length||key.endsWith('|manifest'))return original;
+   // Fresh shadow-only successors already store Scenery at 2x. Do not
+   // waste time or reduce its quality by downscaling it to 1x again.
+   if(original.sceneryNative2x)return {...original,
+    derivedFormat:'4x-ground-2x-scenery-v1'};
    const overlayKey=key+'~scenery-only-v1';
    const combine=record=>{
     if(!record||record.sourceRevision!==original.revision||
