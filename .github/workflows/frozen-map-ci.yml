@@ -16,6 +16,7 @@ on:
       - 'shadow-tone.js'
       - 'shadow-system.js'
       - 'tests/test_quality_ground_and_shadow_tone_20261117.cjs'
+      - 'tests/test_frozen_scenery_refresh_20261117.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
@@ -29,6 +30,7 @@ on:
       - 'shadow-tone.js'
       - 'shadow-system.js'
       - 'tests/test_quality_ground_and_shadow_tone_20261117.cjs'
+      - 'tests/test_frozen_scenery_refresh_20261117.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
@@ -67,6 +69,7 @@ jobs:
             /index.html
             /app.js
             /tests/test_quality_ground_and_shadow_tone_20261117.cjs
+            /tests/test_frozen_scenery_refresh_20261117.cjs
       - name: Node 22
         uses: actions/setup-node@v4
         with:
@@ -75,6 +78,8 @@ jobs:
         run: node --test tests/test_rendering_step2[1-5]*.cjs
       - name: Ground source quality and shadow-tone unit contracts
         run: node --test tests/test_quality_ground_and_shadow_tone_20261117.cjs
+      - name: Linked Ground and scenery-only shadow refresh contracts
+        run: node --test tests/test_frozen_scenery_refresh_20261117.cjs
       - name: Cache Playwright Firefox binary (short CI runtime)
         uses: actions/cache@v4
         with:
