@@ -62,6 +62,8 @@ jobs:
             /cloud-artwork.js
             /shadow-tone.js
             /shadow-system.js
+            /index.html
+            /app.js
             /tests/test_quality_ground_and_shadow_tone_20261117.cjs
       - name: Node 22
         uses: actions/setup-node@v4
