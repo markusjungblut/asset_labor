@@ -133,3 +133,41 @@ test('the editor re-bakes Scenery alone, validates geometry and asks for confirm
  assert.match(deriv,/if\(original\.sceneryNative2x\)/);
  assert.match(deriv,/!record\.sceneryNative2x/);
 });
+
+test('portable ZIP of a linked scene embeds both complete image layers',async()=>{
+ const api=runtime(),raw=api.memoryStore(),storage=api.linkedStore(raw);
+ const from='v1-0374527a',to='v1-12345678',
+  tile={id:'0,0',x:0,y:0,size:512};
+ const original=api.makeKey(from,'near',tile.id);
+ const ground=fourXGround(),oldScene=new Blob(['old']),
+  newScene=new Blob(['corrected shadow png']);
+ await raw.put({key:original,sceneKey:from,level:'near',tile,
+  revision:'original-r1',layers:[
+   {layer:'ground',pad:3,png:ground},
+   {layer:'scenery',pad:128,png:oldScene}]});
+ const player=api.create({canvas:{getContext:()=>({})},storage,
+  encode:async()=>newScene});
+ await player.saveManifest(to,{cells:[{
+  q:0,r:0,x:0,y:0,radius:52,visibility:'visible'}],
+  levels:['near'],expectedTiles:1,
+  sceneryBaseScene:from,shadowTone:{lift:.5,balance:.75},
+  appendOnly:true});
+ await player.captureScenery(to,original,tile,{
+  image:{width:200,height:140},pad:128});
+ const packageCtx={window:{},Blob,TextEncoder,DataView,Uint8Array};
+ vm.runInNewContext(read('frozen-map-package.js'),packageCtx);
+ const zipped=await packageCtx.window.VedrasFrozenMapPackage
+  .exportMap(storage,to,'near',{totalExpected:1});
+ assert.equal(zipped.manifest.complete,true);
+ assert.equal(zipped.manifest.tiles.length,1);
+ assert.deepEqual(Array.from(zipped.manifest.tiles[0].layers,
+  l=>l.layer),['ground','scenery']);
+ assert.equal(zipped.manifest.tiles[0].layers[0].byteSize,ground.size);
+ assert.equal(zipped.manifest.tiles[0].layers[1].byteSize,newScene.size);
+ // ZIP STORE entries contain both PNG payloads: the portable export is
+ // self-contained and never relies on this browser's linked Ground key.
+ const bytes=Buffer.from(await zipped.blob.arrayBuffer());
+ assert.ok(bytes.includes(Buffer.from('corrected shadow png')));
+ assert.ok(bytes.includes(Buffer.from(await ground.arrayBuffer())));
+ assert.equal((await raw.get(original)).layers[1].png,oldScene);
+});
