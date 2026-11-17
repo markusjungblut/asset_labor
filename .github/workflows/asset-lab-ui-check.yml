@@ -1,0 +1,67 @@
+name: Asset-Labor UI Cleanup – Lightweight Regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - index.html
+      - style.css
+      - ui-organizer.js
+      - app.js
+      - tests/test_asset_lab_ui_cleanup_20261112.cjs
+      - tests/automated_browser_asset_lab_ui_cleanup.cjs
+      - .github/workflows/asset-lab-ui-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asset-lab-ui-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  inspector-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Sparse checkout – only UI sources and tests
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /index.html
+            /style.css
+            /ui-organizer.js
+            /app.js
+            /tests/test_asset_lab_ui_cleanup_20261112.cjs
+            /tests/automated_browser_asset_lab_ui_cleanup.cjs
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source defaults and control compatibility
+        run: node --test tests/test_asset_lab_ui_cleanup_20261112.cjs
+      - name: Cache pinned Firefox binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: vedras-playwright-firefox-${{ runner.os }}-1.57.0
+      - name: Install browser smoke runner
+        run: |
+          mkdir -p .ci-tools
+          npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
+          .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Validate grouped inspector with real Firefox DOM
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_asset_lab_ui_cleanup.cjs
+      - name: Upload UI-only screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-lab-ui-smoke
+          path: test-artifacts/
+          retention-days: 5
+          if-no-files-found: ignore
