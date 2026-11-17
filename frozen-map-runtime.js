@@ -90,7 +90,10 @@ window.VedrasFrozenMap=(()=>{
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
      directionalPrefetch=false,lodRecency=false,visibleBorrow=false,
-     parallelLayerDecode=false,fallbackAtlas=false}={}){
+     parallelLayerDecode=false,fallbackAtlas=false,
+     // High-detail Ground: let Fog animate at a small independent backing
+     // scale while the costly static 4x landscape remains unchanged.
+     fogDprCap=Infinity,preferFogLayerAtHighDpr=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -287,6 +290,8 @@ window.VedrasFrozenMap=(()=>{
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
+   fogDprCap:Number.isFinite(fogDprCap)?fogDprCap:null,
+   preferFogLayerAtHighDpr,
    indexedTileSelection,indexedTileSelectionActive:!!tileColumns,
    tileIndexEntries,tileIndexQueries,tileIndexCandidateChecks,
    tileLegacyCandidateChecks,tileParsedRecords:tileRecords.length,
@@ -1285,18 +1290,29 @@ window.VedrasFrozenMap=(()=>{
     baseStamp.height===height&&baseStamp.dpr===dpr&&
     baseStamp.zoom===view.zoom&&baseStamp.panX===view.panX&&
     baseStamp.panY===view.panY&&baseStamp.projectY===proj;
-   const wantsFogLayer=!!fogCtx&&(!baseStamp||cameraStill)&&!zoomPreview;
+   // In full 4x mode the first idle frame after a drag must already
+   // paint a clean background, avoiding an expensive second 4x repaint
+   // just to move Fog out of the world canvas on the next dissolve tick.
+   const wantsFogLayer=!!fogCtx&&!zoomPreview&&
+    (!baseStamp||cameraStill||(preferFogLayerAtHighDpr&&dpr>=2.25));
    if(fogCtx&&fogLayerActive!==wantsFogLayer){
     fogLayerActive=wantsFogLayer;
     fogCanvas.hidden=!wantsFogLayer;
    }
    if(wantsFogLayer){
-    if(fogCanvas.width!==dw||fogCanvas.height!==dh){
-     fogCanvas.width=dw;fogCanvas.height=dh;
+    // A full 18 MP transparent Fog canvas duplicated the display raster
+    // and made even idle cloud dissolves expensive. The static terrain
+    // remains at its requested 4x DPR; Fog needs only a soft 1.25x buffer.
+    const cap=Number.isFinite(fogDprCap)?Math.max(.5,fogDprCap):dpr;
+    const overlayDpr=Math.min(dpr,cap),
+     fw=Math.max(1,Math.round(width*overlayDpr)),
+     fh=Math.max(1,Math.round(height*overlayDpr));
+    if(fogCanvas.width!==fw||fogCanvas.height!==fh){
+     fogCanvas.width=fw;fogCanvas.height=fh;
     }
     fogCtx.setTransform(1,0,0,1,0,0);
-    fogCtx.clearRect(0,0,dw,dh);
-    fogCtx.setTransform(dpr,0,0,dpr,0,0);
+    fogCtx.clearRect(0,0,fw,fh);
+    fogCtx.setTransform(overlayDpr,0,0,overlayDpr,0,0);
     fogCtx.globalAlpha=1;fogCtx.imageSmoothingEnabled=true;
     fogCtx.imageSmoothingQuality='high';
    }
@@ -1443,6 +1459,7 @@ window.VedrasFrozenMap=(()=>{
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
      layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+     fogBackingPixels:fogCanvas?.width*fogCanvas?.height||0,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
