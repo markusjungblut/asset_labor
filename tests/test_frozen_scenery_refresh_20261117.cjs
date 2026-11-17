@@ -104,7 +104,7 @@ test('the editor re-bakes Scenery alone, validates geometry and asks for confirm
  const bake=editor.slice(begin,end);
  assert.match(bake,/drawMapObjects\(\{includeUnits:false/);
  assert.match(bake,/packWorldTileScenery\(cv,'near'\)/);
- assert.doesNotMatch(bake,/drawGround\(|drawRoads\(|bakeWorldTile\(/);
+ assert.doesNotMatch(bake.replace(/\/\/[^\n]*/g,''),/drawGround\(|drawRoads\(|bakeWorldTile\(/);
  assert.match(editor,/frozenMap\.captureScenery\(target,sourceKey,tile,scenery\)/);
  assert.match(editor,/frozenMap\.storage\.keys\(target\+'\|near\|'\)/);
  assert.match(editor,/current\.length!==saved\.length/);
