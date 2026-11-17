@@ -7,6 +7,8 @@
 window.VedrasStaticMapZipImporter=(()=>{
  const SCHEMA=1,DB='vedras-frozen-world-v1',STORE='tiles';
  const PREFIX='v1-',LEVELS=['near','mid','far'];
+ // Never treat a recently active import as abandoned.
+ const MIN_RECOVERY_AGE_MS=30*60*1000,MAX_RECOVERY_RECORDS=30001;
  const sceneValid=s=>/^v1-[0-9a-f]{8}$/.test(s||'');
  const fail=s=>{throw Error('Kartenimport: '+s)};
  const randomHex=n=>{
@@ -38,12 +40,16 @@ window.VedrasStaticMapZipImporter=(()=>{
   function transaction(mode,operation){
    return open().then(db=>new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,mode),store=tx.objectStore(STORE);
-    let result;
+    let result,reason=null;
     tx.oncomplete=()=>resolve(result);
-    tx.onerror=()=>reject(tx.error||Error('IndexedDB-Transaktion fehlgeschlagen'));
-    tx.onabort=()=>reject(tx.error||Error('IndexedDB-Transaktion abgebrochen'));
-    try{operation(store,value=>{result=value;},()=>tx.abort());}
-    catch(_){try{tx.abort();}catch(__){}}
+    tx.onerror=()=>reject(reason||tx.error||Error('IndexedDB-Transaktion fehlgeschlagen'));
+    tx.onabort=()=>reject(reason||tx.error||Error('IndexedDB-Transaktion abgebrochen'));
+    const abort=message=>{
+     reason=Error('Kartenimport: '+(message||'Schreibtransaktion abgebrochen'));
+     try{tx.abort();}catch(_){}
+    };
+    try{operation(store,value=>{result=value;},abort);}
+    catch(e){abort(String(e?.message||e));}
    }));
   }
   const range=scene=>IDBKeyRange.bound(prefix(scene),prefix(scene)+'\uffff');
@@ -71,6 +77,8 @@ window.VedrasStaticMapZipImporter=(()=>{
        record.key===pendingKey(scene)||record.key===prefix(scene)+'manifest'){
        abort();return;
       }
+      // Refresh activity lease transactionally with each completed tile.
+      os.put({...marker.result,lastActivityAt:new Date().toISOString()});
       os.add({...record,importToken:token});
       done(true);
      };
@@ -106,6 +114,90 @@ window.VedrasStaticMapZipImporter=(()=>{
       cursor.continue();
      };
      request.onerror=abort;
+    });
+   },
+   // Read-only primary-KEY scan. Large PNG tile records are not loaded.
+   async pending(){
+    return transaction('readonly',(os,done,abort)=>{
+     const found=[],scan=os.openKeyCursor(IDBKeyRange.bound('v1-','v1-\uffff'));
+     scan.onsuccess=()=>{
+      const cursor=scan.result;
+      if(!cursor){done(found);return;}
+      const key=cursor.key;
+      if(typeof key!=='string'||!key.endsWith('|import-pending')){
+       cursor.continue();return;
+      }
+      const scene=key.slice(0,-'|import-pending'.length);
+      if(!sceneValid(scene)){cursor.continue();return;}
+      const req=os.get(key);
+      req.onsuccess=()=>{
+       const m=req.result;
+       if(m?.sceneKey===scene&&m?.status==='import-pending'&&
+        /^[0-9a-f]{32}$/.test(m.importToken||'')){
+        const activity=Date.parse(m.lastActivityAt||m.startedAt||'');
+        const age=Date.now()-activity;
+        found.push({scene,token:m.importToken,startedAt:m.startedAt,
+         lastActivityAt:m.lastActivityAt||m.startedAt,
+         eligible:Number.isFinite(activity)&&age>=MIN_RECOVERY_AGE_MS});
+        if(found.length>100){abort('Zu viele offene Importe');return;}
+       }
+       cursor.continue();
+      };
+      req.onerror=()=>abort('Importmarkierung konnte nicht gelesen werden');
+     };
+     scan.onerror=()=>abort('Importmarkierungen konnten nicht gesucht werden');
+    });
+   },
+   // Never clean a published scene, an active import, or a row without
+   // the exact reservation token. One atomic transaction, no partial delete.
+   async discardPending(scene,token){
+    if(!sceneValid(scene)||!/^[0-9a-f]{32}$/.test(token||''))
+     fail('ungültige Bereinigungskennung');
+    return transaction('readwrite',(os,done,abort)=>{
+     const req=os.get(pendingKey(scene));
+     req.onsuccess=()=>{
+      const m=req.result;
+      if(m?.key!==pendingKey(scene)||m.sceneKey!==scene||
+       m.status!=='import-pending'||m.importToken!==token){
+       abort('Kein passender unvollständiger Import');return;
+      }
+      const last=Date.parse(m.lastActivityAt||m.startedAt||'');
+      if(!Number.isFinite(last)||Date.now()-last<MIN_RECOVERY_AGE_MS){
+       abort('Import noch aktiv oder jünger als 30 Minuten');return;
+      }
+      const manifest=os.get(scene+'|manifest');
+      manifest.onsuccess=()=>{
+       if(manifest.result){abort('Fertige Karte darf nicht bereinigt werden');return;}
+       let removed=0;
+       const scan=os.openKeyCursor(range(scene));
+       scan.onsuccess=()=>{
+        const cursor=scan.result;
+        if(!cursor){done({scene,removed});return;}
+        if(++removed>MAX_RECOVERY_RECORDS){
+         abort('Importumfang überschreitet sichere Bereinigungsgrenze');return;
+        }
+        const key=cursor.key;
+        const tile=typeof key==='string'&&key.startsWith(prefix(scene))&&
+         /^(near|mid|far)\|-?\d+,-?\d+$/.test(key.slice(prefix(scene).length));
+        if(key!==pendingKey(scene)&&!tile){
+         abort('Fremder Datensatz im Importbereich');return;
+        }
+        const rec=os.get(key);
+        rec.onsuccess=()=>{
+         if(rec.result?.key!==key||rec.result?.sceneKey!==scene||
+          rec.result?.importToken!==token){
+          abort('Importdatensatz nicht eindeutig zugeordnet');return;
+         }
+         os.delete(key);
+         cursor.continue();
+        };
+        rec.onerror=()=>abort('Importdatensatz konnte nicht geprüft werden');
+       };
+       scan.onerror=()=>abort('Importbereich konnte nicht geprüft werden');
+      };
+      manifest.onerror=()=>abort('Fertigstellungsstatus konnte nicht geprüft werden');
+     };
+     req.onerror=()=>abort('Importmarkierung konnte nicht geprüft werden');
     });
    },
    async close(){
@@ -227,5 +319,17 @@ window.VedrasStaticMapZipImporter=(()=>{
    throw error;
   }finally{if(ownStore)await db.close();}
  }
- return {restore,createIndexedStorage};
+ // Explicit recovery tools; never invoked by restore or on page startup.
+ async function listPending({storage=null}={}){
+  const own=!storage,db=storage||createIndexedStorage();
+  try{return await db.pending();}
+  finally{if(own)await db.close();}
+ }
+ async function discardPending(scene,token,{confirmed=false,storage=null}={}){
+  if(confirmed!==true)fail('ausdrückliche Bereinigungsbestätigung fehlt');
+  const own=!storage,db=storage||createIndexedStorage();
+  try{return await db.discardPending(scene,token);}
+  finally{if(own)await db.close();}
+ }
+ return {restore,createIndexedStorage,listPending,discardPending};
 })();

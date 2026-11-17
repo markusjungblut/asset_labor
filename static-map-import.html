@@ -16,6 +16,9 @@ label.check input{margin-top:5px;flex-shrink:0}
 #preview{white-space:pre-wrap;font-variant-numeric:tabular-nums;line-height:1.7}
 #status{min-height:2em;white-space:pre-wrap;overflow-wrap:anywhere}
 #openViewer[hidden],#partialRow[hidden]{display:none}
+#pendingResults{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+#pendingResults .recoveryRow{border-top:1px solid #486257;padding:9px 0}
+#pendingResults button{margin:7px 0 0 10px;padding:5px 9px}
 .warn{color:#f7ca8a}.muted{color:#b5c8bd}
 a{color:#a7d8b9}
 </style></head><body>
@@ -44,11 +47,19 @@ Das bestehende Original wird nicht überschrieben.</label>
 <p id="status" role="status" aria-live="polite"></p>
 <a class="action" id="openViewer" hidden>Wiederhergestellte Karte öffnen</a>
 </section>
+<section>
+<strong>3. Unterbrochene Importe prüfen (optional)</strong>
+<p>Nur nicht veröffentlichte und mindestens 30 Minuten inaktive Importe dürfen
+nach gesonderter Bestätigung bereinigt werden. <strong>Fertige Karten und
+fremde Datensätze sind geschützt.</strong> Keine automatische Bereinigung.</p>
+<button type="button" id="scanPending">Offene Importe suchen – nur lesen</button>
+<div id="pendingResults" role="status" aria-live="polite">Noch keine Prüfung.</div>
+</section>
 <p><small>Während eines laufenden Imports die Seite nicht schließen. Bei einem Fehler werden
 ausschließlich neue, noch nicht veröffentlichte Importdaten zurückgesetzt. Browser-Abstürze
 können unveröffentlichte Restdaten zurücklassen; bestehende Karten werden nicht verändert.
 Ein erfolgreicher Import wurde noch nicht für große Original-ZIP-Dateien freigegeben.</small></p>
 <script src="static-map-zip-inspector.js?v=20261117-readonly"></script>
-<script src="static-map-zip-importer.js?v=20261117-staged"></script>
-<script src="static-map-import-ui.js?v=20261117-staged"></script>
+<script src="static-map-zip-importer.js?v=20261117-recovery"></script>
+<script src="static-map-import-ui.js?v=20261117-recovery"></script>
 </body></html>

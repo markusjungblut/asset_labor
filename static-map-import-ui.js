@@ -66,5 +66,50 @@
     '\nDas ursprüngliche Kartenarchiv wurde nicht verändert.';
   }finally{busy=false;update();}
  });
+ // No automatic cleanup. Inspect the marker list only when clicked.
+ const scan=$('scanPending'),results=$('pendingResults');
+ scan.addEventListener('click',async()=>{
+  if(busy)return;
+  scan.disabled=true;
+  results.textContent='Suche Importmarkierungen – noch keine Änderungen …';
+  try{
+   const pending=await window.VedrasStaticMapZipImporter.listPending();
+   results.replaceChildren();
+   if(!pending.length){
+    results.textContent='Keine offenen Importmarkierungen gefunden.';return;
+   }
+   for(const item of pending){
+    const row=document.createElement('div');
+    row.className='recoveryRow';
+    const label=document.createElement('span');
+    label.textContent=item.scene+' · Letzte Aktivität: '+
+     (item.lastActivityAt||'unbekannt')+
+     (item.eligible?' · Bereinigung zulässig':' · noch aktiv/zu neu');
+    row.appendChild(label);
+    const remove=document.createElement('button');
+    remove.type='button';
+    remove.dataset.scene=item.scene;
+    remove.textContent='Nur diesen unvollständigen Import entfernen';
+    remove.disabled=!item.eligible;
+    remove.addEventListener('click',async()=>{
+     if(!window.confirm('Den unveröffentlichten Import '+item.scene+
+      ' entfernen? Stelle sicher, dass kein anderer Tab importiert. '+
+      'Fertige Karten bleiben unverändert.'))return;
+     remove.disabled=true;
+     try{
+      const result=await window.VedrasStaticMapZipImporter.discardPending(
+       item.scene,item.token,{confirmed:true});
+      row.textContent='Bereinigt: '+result.scene+' ('+result.removed+
+       ' ausschließlich zugehörige Importdatensätze)';
+     }catch(e){
+      label.textContent='Bereinigung abgelehnt: '+String(e.message||e);
+     }
+    });
+    row.appendChild(remove);
+    results.appendChild(row);
+   }
+  }catch(e){results.textContent='Prüfung fehlgeschlagen: '+String(e.message||e);}
+  finally{scan.disabled=false;}
+ });
  update();
 })();
