@@ -55,6 +55,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (bei 4× automatisch und auf 1,25× begrenzt; `fogLayer=0` schaltet sie für den Vergleich aus)</label>
 <label><input type="checkbox" id="optFallbackAtlas"> Experimenteller 1×-Sicherheitscache (RAM-Vorwärmung; nur fertige Kartenkacheln)</label>
 <label><input type="checkbox" id="optGround4x"> <strong>Schärferer Originalboden</strong> (4×-Quell-PNG wird geprüft, danach bis 4×-Anzeige (max. 18 MP); mehr RAM, nur Near)</label>
+<label><input type="checkbox" id="optAdaptiveGround"> 4×-Bitmap-Cache an die Bildschirmauflösung anpassen (Test: Originalboden bleibt unverändert, weniger RAM, bei starkem Zoom wieder 4×)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
 <main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
@@ -65,9 +66,9 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
 <script src="frozen-map-world-blit.js?v=20261109-step25o"></script>
- <script src="frozen-map-runtime.js?v=20261117-safe-1x-integration&amp;perf=4x-motion-fog"></script>
+ <script src="frozen-map-runtime.js?v=20261117-adaptive-bitmap-20261117"></script>
 <script src="frozen-map-derived-2x.js?v=20261117-scenery-only"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
-<script src="frozen-map-ground-detail.js?v=20261117-direct-ground-mix"></script>
-<script src="frozen-map-game.js?v=20261117-safe-1x-integration&amp;ground=20261117-direct-mix&amp;perf=4x-motion-fog"></script>
+<script src="frozen-map-ground-detail.js?v=20261117-adaptive-metadata"></script>
+<script src="frozen-map-game.js?v=20261117-adaptive-bitmap-20261117"></script>
 </body></html>
