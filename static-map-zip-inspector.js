@@ -93,6 +93,66 @@ window.VedrasStaticMapZipInspector=(()=>{
   requireValue(start+entry.size<=eocd.centralStart,'ZIP-Datenbereich überschritten');
   return file.slice(start,start+entry.size);
  }
+ // Parse PNG chunks with bounded slices. A correct ZIP CRC and the
+ // eight signature bytes alone do NOT imply that the PNG will decode.
+ // This catches broken internal CRCs, malformed chunk boundaries,
+ // oversized image dimensions and incomplete/trailing file content.
+ async function checkPng(blob,name){
+  const signature=[137,80,78,71,13,10,26,10];
+  requireValue(blob.size>=45,'PNG-Schicht zu kurz: '+name);
+  const sig=await sliceBytes(blob,0,8);
+  requireValue(signature.every((n,i)=>sig[i]===n),
+   'keine PNG-Signatur: '+name);
+  let offset=8,chunks=0,sawHeader=false,sawImage=false,sawEnd=false;
+  while(offset<blob.size){
+   requireValue(++chunks<=100000&&offset+12<=blob.size,
+    'PNG-Chunk-Index überschreitet Grenzen: '+name);
+   const head=await sliceBytes(blob,offset,8),v=reader(head);
+   const size=v.getUint32(0,false);
+   const kind=String.fromCharCode(...head.subarray(4));
+   requireValue(/^[A-Za-z]{4}$/.test(kind)&&
+    offset+size+12<=blob.size,'PNG-Chunk-Länge oder -Typ ungültig: '+name);
+   if(!sawHeader){
+    requireValue(kind==='IHDR'&&size===13,'PNG muss mit IHDR beginnen: '+name);
+    const ihdr=reader(await sliceBytes(blob,offset+8,13));
+    const width=ihdr.getUint32(0,false),height=ihdr.getUint32(4,false);
+    const depth=ihdr.getUint8(8),color=ihdr.getUint8(9),
+     compression=ihdr.getUint8(10),filter=ihdr.getUint8(11),
+     interlace=ihdr.getUint8(12);
+    const depths={0:[1,2,4,8,16],2:[8,16],3:[1,2,4,8],
+     4:[8,16],6:[8,16]};
+    requireValue(width>0&&height>0&&width<=10000&&height<=10000&&
+     width*height<=48000000&&depths[color]?.includes(depth)&&
+     compression===0&&filter===0&&(interlace===0||interlace===1),
+     'PNG-IHDR-Bildparameter unzulässig: '+name);
+    sawHeader=true;
+   }else{
+    requireValue(kind!=='IHDR','doppeltes PNG-IHDR: '+name);
+   }
+   if(kind==='IDAT')sawImage=true;
+   if(kind==='IEND'){
+    requireValue(sawImage&&size===0&&offset+12===blob.size,
+     'PNG-IEND fehlt oder hat nachlaufende Daten: '+name);
+    sawEnd=true;
+   }
+   if(kind[0]===kind[0].toUpperCase()&&
+    !['IHDR','PLTE','IDAT','IEND'].includes(kind))
+    error('nicht unterstützter kritischer PNG-Chunk: '+kind);
+   let checksum=crcAdd(crcStart(),head.subarray(4,8));
+   for(let p=offset+8;p<offset+8+size;p+=MB){
+    const bytes=await sliceBytes(blob,p,Math.min(MB,offset+8+size-p));
+    checksum=crcAdd(checksum,bytes);
+   }
+   const expected=reader(await sliceBytes(blob,offset+8+size,4))
+    .getUint32(0,false);
+   requireValue(crcEnd(checksum)===expected,
+    'PNG-Chunk-Prüfsumme ungültig: '+name+' / '+kind);
+   offset+=size+12;
+   if(kind==='IEND')break;
+  }
+  requireValue(sawHeader&&sawImage&&sawEnd&&offset===blob.size,
+   'PNG-Bilddaten unvollständig: '+name);
+ }
  async function verifiedBlob(file,eocd,entry,{maxBytes=LIMITS.layer}={}){
   requireValue(entry.size<=maxBytes,'ZIP-Eintrag überschreitet Leselimit');
   const blob=await entryBlob(file,eocd,entry);
@@ -102,13 +162,9 @@ window.VedrasStaticMapZipInspector=(()=>{
    crc=crcAdd(crc,bytes);
   }
   requireValue(crcEnd(crc)===entry.crc,'CRC-Fehler: '+entry.name);
-  // Layer names are metadata, not proof the payload is an actual PNG.
-  if(entry.name!=='manifest.json'){
-   requireValue(blob.size>=8,'PNG-Schicht zu kurz');
-   const sig=await sliceBytes(blob,0,8);
-   requireValue([137,80,78,71,13,10,26,10].every((n,i)=>sig[i]===n),
-    'keine PNG-Signatur: '+entry.name);
-  }
+  // Enforce PNG chunk structure and internal CRC only on an explicitly
+  // requested layer, not while simply previewing a 600 MB ZIP manifest.
+  if(entry.name!=='manifest.json')await checkPng(blob,entry.name);
   return blob;
  }
  function manifestValid(m,entries){
