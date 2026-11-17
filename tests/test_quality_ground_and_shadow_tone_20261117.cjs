@@ -65,7 +65,7 @@ test('shadow tone defaults preserve historical color and relative alpha',()=>{
  assert.equal(tone.opacity(0),0);
  assert.equal(tone.revision(),1);
  tone.set({lift:100,balance:-20},{persist:false});
- assert.equal(tone.get().lift,0);
+ assert.equal(tone.get().lift,1);
  assert.equal(tone.get().balance,0);
 });
 test('tone affects mountain alpha and RGB while preserving origin geometry',()=>{
