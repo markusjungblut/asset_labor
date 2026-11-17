@@ -79,13 +79,18 @@ window.VedrasFrozenGroundDetail=(()=>{
     reasons:[...new Set(details.map(x=>x.reason))]};
   }
   const get=async key=>{
-   const derived=await standard.get(key);
-   if(!enabled||!derived||key.endsWith('|manifest'))return derived;
+   if(!enabled||key.endsWith('|manifest'))return standard.get(key);
+   // Read Ground once, then obtain only the *smaller Scenery* from its
+   // separate derived store. The original 4x Ground is never downscaled.
    const raw=await original.get(key);
    const info=await sourceGround(raw);
    counters.reads++;
-   if(!info.ready){counters.missingOriginals++;return derived;}
-   const result=merge(raw,derived);
+   if(!info.ready){
+    counters.missingOriginals++;return standard.get(key);
+   }
+   const scenery=typeof standard.getSceneryMixed==='function'?
+    await standard.getSceneryMixed(key,raw):await standard.get(key);
+   const result=merge(raw,scenery);
    if(result.groundDetailSource==='original-4x')counters.originalGrounds++;
    else counters.missingOriginals++;
    return result;
