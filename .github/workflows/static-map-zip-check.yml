@@ -1,0 +1,38 @@
+name: Static map ZIP – Read-only format checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - static-map-zip-inspector.js
+      - frozen-map-package.js
+      - tests/test_static_map_zip_inspector_20261117.cjs
+      - .github/workflows/static-map-zip-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-map-zip-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zip-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Sparse checkout – no real PNGs or user atlas
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static-map-zip-inspector.js
+            /frozen-map-package.js
+            /tests/test_static_map_zip_inspector_20261117.cjs
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run bounded ZIP32 inspection tests
+        run: node --test tests/test_static_map_zip_inspector_20261117.cjs
