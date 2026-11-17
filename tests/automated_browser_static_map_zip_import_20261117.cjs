@@ -17,6 +17,10 @@ const allowed=new Set([
  'frozen-map-profiler.js','frozen-map-world-blit.js','cloud-artwork.js'
 ]);
 const SOURCE='v1-aabbccdd',SENTINEL='v1-0374527a';
+const mods={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(root,'frozen-map-package.js'),'utf8'),
+ {...mods,Blob,TextEncoder,TextDecoder,DataView,Uint8Array});
+const writer=mods.window.VedrasFrozenMapPackage;
 // The common tiny base64 "PNG placeholder" has an INVALID internal
 // IDAT CRC. Generate a standards-valid, opaque synthetic PNG instead.
 const PNG=(()=>{
@@ -45,10 +49,6 @@ const PNG=(()=>{
   chunk('IEND',Buffer.alloc(0))
  ]);
 })();
-const mods={window:{}};
-vm.runInNewContext(fs.readFileSync(path.join(root,'frozen-map-package.js'),'utf8'),
- {...mods,Blob,TextEncoder,TextDecoder,DataView,Uint8Array});
-const writer=mods.window.VedrasFrozenMapPackage;
 async function archive({badLast=false}={}){
  const cells=[
   {q:0,r:0,x:0,y:0,radius:164,visibility:'visible'},
