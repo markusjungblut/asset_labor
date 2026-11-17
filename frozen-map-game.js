@@ -25,6 +25,14 @@
  }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
+ // Quality is opt-in: ground uses archived 4× source, scenery stays 2×.
+ // No ZIP, source PNG or derived cache is overwritten.
+ const groundDetailRequested=params.get('ground4x')==='1';
+ let groundDetailActive=false;
+ const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
+  standard:twoXStore,overview:oneXStore,
+  original:window.VedrasFrozenMap.indexedStore()
+ });
  const overview1x=params.get('overview1x')!=='0';
  const largeViewportCache=params.get('cacheLarge')!=='0';
  // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
@@ -63,7 +71,8 @@
   ['optWorldBands','worldBands',sparseWorldBlit],
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog],
-  ['optFallbackAtlas','fallbackAtlas',fallbackAtlas]
+  ['optFallbackAtlas','fallbackAtlas',fallbackAtlas],
+  ['optGround4x','ground4x',groundDetailRequested]
  ]){
   const checkbox=$(id);
   if(!checkbox)continue;
@@ -80,7 +89,7 @@
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
-  storage:oneXStore,useLayerCache:!directRenderer,profiler,
+  storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -139,7 +148,16 @@
    manifest.levels[0];
   // Derive 2× images ONLY for legacy full 4× near PNG sources.
   // The originals and the manifest continue to live in the original DB.
+  groundDetailActive=groundDetailRequested&&lod==='near'&&
+   Number(manifest.pose?.dpr)>=3;
+  groundDetailStore.setEnabled(groundDetailActive);
   twoXStore.setEnabled(lod==='near'&&Number(manifest.pose?.dpr)>=3);
+  const qualityOption=$('optGround4x');
+  if(qualityOption){
+   qualityOption.disabled=!(lod==='near'&&Number(manifest.pose?.dpr)>=3);
+   qualityOption.title=qualityOption.disabled?
+    'Nur vorhandene originale 4×-Near-Karten sind geeignet.':'Originale 4×-Bodenkacheln verwenden';
+  }
   oneXStore.setEnabled(overview1x&&lod==='near');
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
@@ -149,11 +167,16 @@
    // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
-   const gameDpr=Math.min(2,Math.sqrt(8000000/area),4096/edge);
+   const gameDpr=Math.min(groundDetailActive?2.5:2,
+    Math.sqrt((groundDetailActive?13000000:8000000)/area),
+    (groundDetailActive?6144:4096)/edge);
    startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
     window.VedrasFrozenViewPolicy.displayDpr({
      zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-     baseDpr:2}):Math.max(1,gameDpr)};
+     baseDpr:groundDetailActive?2.5:2,
+     maxDpr:groundDetailActive?2.5:2,
+     maxPixels:groundDetailActive?13000000:8000000,
+     maxEdge:groundDetailActive?6144:4096}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
@@ -164,6 +187,8 @@
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
    (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
+   (groundDetailActive?'4×-Originalboden / 2×-Objekte: Qualitätsvergleich aktiv. ': '')+
+   (groundDetailRequested&&!groundDetailActive?'4×-Boden für diesen Atlas nicht verfügbar. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -181,8 +206,11 @@
   const policy=window.VedrasFrozenViewPolicy;
   const outDpr=policy?policy.displayDpr({
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-   baseDpr:2
-  }):Math.min(2,view.dpr||1);
+   baseDpr:groundDetailActive?2.5:2,
+   maxDpr:groundDetailActive?2.5:2,
+   maxPixels:groundDetailActive?13000000:8000000,
+   maxEdge:groundDetailActive?6144:4096
+  }):Math.min(groundDetailActive?2.5:2,view.dpr||1);
   if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
