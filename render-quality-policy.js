@@ -48,5 +48,20 @@ window.VedrasRenderQuality=(()=>{
     ({'fast':288,'auto':288,'1':288,'2':352,'3':448,'4':576}[kind])*1048576:
     192*1048576};
  }
- return {resolve,profiles};
+ // Source texture density is independent of display DPR. The previous
+ // 2x/3x/4x editor profiles shared a 1.0x chunk source, so the resulting
+ // enlarged images could not reveal any additional ground detail.
+ // Keep the boost near-only and bound the source raster per 512-world core.
+ function terrainSource({quality='2',lod='near',previewDensity=1,
+   terrainFactor=1,final=false}={}){
+  const scale=lod==='near'?
+   ({fast:1,auto:1,'1':1,'2':1.18,'3':1.34,'4':1.5}[String(quality)]??1):1;
+  const resolution=Math.max(.5,Math.min(3,
+   previewDensity*terrainFactor*scale));
+  const maxPixels=final?1600000:lod==='near'?
+   ({fast:850000,auto:850000,'1':850000,'2':1050000,
+    '3':1250000,'4':1500000}[String(quality)]??850000):850000;
+  return {resolution,maxPixels,scale,version:'near-source-v1'};
+ }
+ return {resolve,profiles,terrainSource};
 })();
