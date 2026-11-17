@@ -1,6 +1,15 @@
-# Gemeinsame Weltgenerierung v2.1 – Festlegungen und Grenzen (20.10.2026)
+# Gemeinsame Weltgenerierung v2.1.1 – Festlegungen und Grenzen (17.11.2026)
 
-Die Version **geography-v2.1.0** ersetzt die bisherige Version 2.0 **nur für neue geografische Welt-Builds**. Der alte produktive Generator im Spiel (`domain/worldgen`) und vorhandene Spielstände werden nicht automatisch geändert. Die kanonische Engine `browsergame/public/worldgen-geography.js` und die Asset-Labor-Kopie `asset_labor/worldgen-geography.js` sind identisch.
+**Neuer Asset-Labor-Teststand `geography-v2.1.1`**: Die Anpassung wird ausschließlich für neu berechnete Geografien verwendet. Vorhandene Welt-Snapshots bleiben unverändert. Der alte produktive Generator im Spiel (`domain/worldgen`) wird nicht umgestellt. Hinweis: Die früher dokumentierte kanonische Datei `browsergame/public/worldgen-geography.js` ist im aktuellen `browsergame`-Repository nicht mehr vorhanden; diese Änderung liegt daher zunächst nur im `asset_labor`-Repository vor.
+
+## Korrektur v2.1.1: Kälte, Sandwüste und Auswertung
+
+- **Gefrorene Tundra:** Der bisherige feste Grenzwert `temperature < 0.14` lag bei der Standardkonfiguration (`0.57 ± 0.43`) außerhalb des erreichbaren Bereichs. Die Grenze liegt nun bei `biomes.coldBoundary - 0.04` und erzeugt regulär `frozen_tundra` (bei erhöhter Feuchtigkeit weiterhin `snowfields`).
+- **Sandwüste:** Der reguläre Katalogtyp `sandy_desert` fehlte in der gewichteten ariden Auswahl. Er erhält `geology.aridSandyDesert` (Standard: 14) als einstellbares Gewicht neben den übrigen Wüstentypen. Weder Testterrain noch Wald-Overlay werden in die normale Grundterrain-Auswahl aufgenommen.
+- **Live-Statistik:** Im Geografie-Labor werden alle regulären Grundterrain-IDs und alle sechs Biomfamilien mit ihrer aktuellen Hexzahl gezeigt, einschließlich Nullwerten. Eine Mehrfachanalyse über 2–40 andere Seeds bei gleicher Konfiguration berechnet Durchschnitt pro Welt, mittleren Flächenanteil und Anzahl der Welten mit Vorkommen. Gezählt wird ausschließlich über die `stats`-Objekte, nicht über im Arbeitsspeicher aufbewahrte Karten; die Auswertung wird für die aktuellen Parameter lokal zwischengespeichert und kann als JSON exportiert werden. Ändern sich Seed, Größe, Ursprung oder Parameter, wird die alte Auswertung nicht als aktuell ausgegeben.
+- **Versionierung:** Das Generator-Seed enthält die Version; daher heißen veränderte neue Welten `geography-v2.1.1`. Alte v2.0-/v2.1.0-Presets können nach ausdrücklicher Bestätigung für neue Generierungen übernommen werden; bestehende Welt-JSONs werden nicht unbemerkt überschrieben.
+
+## Korrigierte Regeln
 
 ## Korrigierte Regeln
 
