@@ -290,21 +290,26 @@ async function main(){
   assert.equal(beforeCleanup.find(x=>x.scene===stale)?.eligible,true);
   assert.equal(beforeCleanup.find(x=>x.scene===fresh)?.eligible,false);
   assert.equal(beforeCleanup.find(x=>x.scene===foreign)?.eligible,true);
-  await assert.rejects(page.evaluate(async ({scene,tok})=>
-   window.VedrasStaticMapZipImporter.discardPending(scene,tok),
-   {scene:stale,tok}),/ausdrückliche Bereinigungsbestätigung/);
-  await assert.rejects(page.evaluate(async ({scene,tok})=>
-   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
-    {confirmed:true}),{scene:stale,tok:otherTok}),
-   /Kein passender unvollständiger Import/);
-  await assert.rejects(page.evaluate(async ({scene,tok})=>
-   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
-    {confirmed:true}),{scene:fresh,tok}),
-   /noch aktiv oder jünger als 30 Minuten/);
-  await assert.rejects(page.evaluate(async ({scene,tok})=>
-   window.VedrasStaticMapZipImporter.discardPending(scene,tok,
-    {confirmed:true}),{scene:foreign,tok}),
-   /Importdatensatz nicht eindeutig zugeordnet/);
+  // Playwright forwards a rejected page.evaluate() promise to pageerror.
+  // Catch expected refusals INSIDE the page, then assert their messages here.
+  // This preserves the global unexpected-error gate at the end of this test.
+  const rejected=await page.evaluate(async ({stale,fresh,foreign,tok,otherTok})=>{
+   const importer=window.VedrasStaticMapZipImporter;
+   async function refuse(scene,token,opts){
+    try{await importer.discardPending(scene,token,opts);return null;}
+    catch(e){return String(e?.message||e);}
+   }
+   return {
+    noConsent:await refuse(stale,tok,{}),
+    wrongToken:await refuse(stale,otherTok,{confirmed:true}),
+    tooRecent:await refuse(fresh,tok,{confirmed:true}),
+    foreignRow:await refuse(foreign,tok,{confirmed:true})
+   };
+  },{stale,fresh,foreign,tok,otherTok});
+  assert.match(rejected.noConsent,/ausdrückliche Bereinigungsbestätigung/);
+  assert.match(rejected.wrongToken,/Kein passender unvollständiger Import/);
+  assert.match(rejected.tooRecent,/noch aktiv oder jünger als 30 Minuten/);
+  assert.match(rejected.foreignRow,/Importdatensatz nicht eindeutig zugeordnet/);
   await page.locator('#scanPending').click();
   const recovery=page.locator('[data-scene="'+stale+'"]');
   await recovery.waitFor({state:'visible'});
