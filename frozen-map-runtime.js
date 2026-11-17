@@ -93,7 +93,8 @@ window.VedrasFrozenMap=(()=>{
      parallelLayerDecode=false,fallbackAtlas=false,
      // High-detail Ground: let Fog animate at a small independent backing
      // scale while the costly static 4x landscape remains unchanged.
-     fogDprCap=Infinity,preferFogLayerAtHighDpr=false}={}){
+     fogDprCap=Infinity,preferFogLayerAtHighDpr=false,
+     adaptiveGroundDecode=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -140,8 +141,30 @@ window.VedrasFrozenMap=(()=>{
   // Each variant keeps a private RAM identity; persisted storage keys do
   // not change. Keep previous 2x visible until a matching 1x tile is READY.
   let activeVariant='2x',lodSwitches=0,variantFallbackFrames=0;
-  const cacheKey=(key,variant)=>key+'~'+variant;
+  // The source is an actual 4x PNG. Decode fewer pixels only when the
+  // screen cannot display its full native information. Distinct tiers
+  // have distinct RAM identities; the original storage ID never changes.
+  const GROUND_TIERS=[1.75,2.5,4];
+  const tierForDeviceDensity=density=>density<=1.5?1.75:
+   density<=2.4?2.5:4;
+  let groundTier=2.5,groundTierSwitches=0,
+   groundResizedTiles=0,groundResizedPixelsSaved=0;
+  const cacheKey=(key,variant,tier=groundTier)=>key+'~'+variant+
+   (adaptiveGroundDecode&&variant==='2x'?'~g'+tier:'');
   const decodedEntry=(key,variant)=>decoded.get(cacheKey(key,variant));
+  const spareTierEntry=(key,variant)=>{
+   if(!adaptiveGroundDecode||variant!=='2x')return null;
+   for(const tier of GROUND_TIERS){
+    if(tier===groundTier)continue;
+    const entry=decoded.get(cacheKey(key,'2x',tier));
+    if(entry)return entry;
+   }
+   return null;
+  };
+  const spareTierKey=(key,variant)=>{
+   const found=spareTierEntry(key,variant);
+   return found?cacheKey(key,'2x',found.groundTier):null;
+  };
   const desiredVariant=()=>{
    if(!overview1x||!storage.getVariant)return '2x';
    if(activeVariant==='2x'&&pose?.zoom<=.60)activeVariant='1x';
@@ -255,8 +278,12 @@ window.VedrasFrozenMap=(()=>{
   const clouds=window.VedrasCloudArtwork?.create({
    onReady:()=>{cloudRevision++;cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
-  const decodePNG=decode||(async blob=>{
-   if(typeof createImageBitmap==='function')return createImageBitmap(blob);
+  const decodePNG=decode||(async(blob,options)=>{
+   if(typeof createImageBitmap==='function'){
+    if(options)try{return await createImageBitmap(blob,options);}
+     catch{ /* Browser lacks decode-time PNG resize; preserve source. */ }
+    return createImageBitmap(blob);
+   }
    return new Promise((resolve,reject)=>{
     const url=URL.createObjectURL(blob),im=new Image();
     im.onload=()=>{URL.revokeObjectURL(url);resolve(im)};
@@ -292,6 +319,8 @@ window.VedrasFrozenMap=(()=>{
    renderMode:useLayerCache?'cached':'direct',
    fogDprCap:Number.isFinite(fogDprCap)?fogDprCap:null,
    preferFogLayerAtHighDpr,
+   adaptiveGroundDecode,groundTier,groundTierSwitches,
+   groundResizedTiles,groundResizedPixelsSaved,
    indexedTileSelection,indexedTileSelectionActive:!!tileColumns,
    tileIndexEntries,tileIndexQueries,tileIndexCandidateChecks,
    tileLegacyCandidateChecks,tileParsedRecords:tileRecords.length,
@@ -425,7 +454,8 @@ window.VedrasFrozenMap=(()=>{
     if(!speculative){hit.origin='visible';hit.lastVisibleFrame=frame;}
     hits++;return hit;
    }
-   const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
+   const fallback=speculative&&prefetchGuard?null:
+    (decoded.get(alternate)||spareTierEntry(key,variant));
    if(fallback){
     if(fallbackAtlasEnabled&&!speculative&&fallback.variant==='1x')
      fallbackHits++;
@@ -477,7 +507,8 @@ window.VedrasFrozenMap=(()=>{
    loadingPurpose.set(id,warming?'fallback':speculative?'prefetch':'visible');
    if(warming)fallbackWarmStarts++;
    else if(speculative)prefetchReadStarts++;else visibleReadStarts++;
-   const run=generation,readStarted=profiler?clock():0;
+   const run=generation,requestedTier=groundTier,
+    readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
    // A rejected getVariant() request must not leave loading slots stuck.
    Promise.resolve().then(()=>storage.getVariant?
@@ -491,12 +522,22 @@ window.VedrasFrozenMap=(()=>{
      fallbackStaleStorageSkips++;return;
     }
     const images=[],decodeStarted=profiler?clock():0;
+    const resizeGround=layer=>{
+     if(!adaptiveGroundDecode||variant!=='2x'||requestedTier>=4||
+       record.groundDetailSource!=='original-4x'||
+       !['ground','terrain'].includes(layer.layer)||
+       !record.groundSourcePixels?.density)return undefined;
+     const p=record.groundSourcePixels,scale=requestedTier/p.density;
+     return {resizeWidth:Math.max(1,Math.round(p.width*scale)),
+      resizeHeight:Math.max(1,Math.round(p.height*scale)),
+      resizeQuality:'high'};
+    };
     try{
      if(parallelLayerDecode&&record.layers.length>1){
       // Ground/Scenery PNGs are independent. allSettled preserves
       // layer order and safely closes any success after a sibling fails.
       const outcomes=await Promise.allSettled(
-       record.layers.map(layer=>decodePNG(layer.png)));
+       record.layers.map(layer=>decodePNG(layer.png,resizeGround(layer))));
       const failure=outcomes.find(x=>x.status==='rejected');
       if(failure){
        parallelDecodeFailures++;
@@ -507,7 +548,7 @@ window.VedrasFrozenMap=(()=>{
       for(const result of outcomes)images.push(result.value);
       parallelTileDecodes++;
      }else for(const layer of record.layers)
-      images.push(await decodePNG(layer.png));
+      images.push(await decodePNG(layer.png,resizeGround(layer)));
     }catch(error){for(const im of images)im.close?.();throw error;}
     if(profiler)decodeDuration=clock()-decodeStarted;
     if(!active||run!==generation||record.key!==key||
@@ -522,6 +563,20 @@ window.VedrasFrozenMap=(()=>{
     }
     const pixels=images.reduce((sum,im)=>
      sum+(im.width||0)*(im.height||0),0);
+    if(adaptiveGroundDecode&&requestedTier<4&&
+       record.groundDetailSource==='original-4x'){
+     const source=record.groundSourcePixels;
+     if(source){
+      const raster=record.layers.findIndex(l=>
+       l.layer==='ground'||l.layer==='terrain');
+      const reduced=images[raster];
+      if(reduced&&reduced.width<source.width){
+       groundResizedTiles++;
+       groundResizedPixelsSaved+=Math.max(0,
+        source.width*source.height-reduced.width*reduced.height);
+      }
+     }
+    }
     const actualPurpose=loadingPurpose.get(id)||'visible';
     const count=seenDecoded.get(id)||0;
     if(count){
@@ -534,8 +589,8 @@ window.VedrasFrozenMap=(()=>{
     if(seenDecoded.size>MAX_SEEN)
      seenDecoded.delete(seenDecoded.keys().next().value);
     typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
-    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose,
-     lastVisibleFrame:actualPurpose==='visible'?frame:-1});
+    decoded.set(id,{record,images,pixels,variant,groundTier:requestedTier,
+     origin:actualPurpose,lastVisibleFrame:actualPurpose==='visible'?frame:-1});
     decodedRevision++;
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
@@ -615,6 +670,7 @@ window.VedrasFrozenMap=(()=>{
     for(let iy=Math.floor((c.y-c.radius+.01)/512);
      iy<=Math.floor((c.y+c.radius-.01)/512);iy++)
      if(!decodedEntry(makeKey(sceneKey,level,ix+','+iy),activeVariant)&&
+         !spareTierEntry(makeKey(sceneKey,level,ix+','+iy),activeVariant)&&
          !decodedEntry(makeKey(sceneKey,level,ix+','+iy),
           activeVariant==='1x'?'2x':'1x'))return false;
    return true;
@@ -1075,7 +1131,11 @@ window.VedrasFrozenMap=(()=>{
     if(!viewportPolicy.visibleTile(
       Math.round(t.x/512),Math.round(t.y/512),bufferedBounds))continue;
     const logical=entry.record.key,previous=chosen.get(logical);
-    if(!previous||entry.variant===activeVariant)chosen.set(logical,key);
+    const fidelity=e=>e.variant!==activeVariant?0:
+     (adaptiveGroundDecode&&e.variant==='2x'?
+      (e.groundTier===groundTier?3:2):3);
+    if(!previous||fidelity(entry)>fidelity(decoded.get(previous)))
+     chosen.set(logical,key);
    }
    const bufferKeys=[...chosen.values()].sort();
    // Map iteration order is LRU order and changes on every tile read.
@@ -1208,14 +1268,30 @@ window.VedrasFrozenMap=(()=>{
     }
     visible.push({key,left,top,right,bottom});
    }
+   // Use real screen demand rather than temporary drag DPR to avoid
+   // futile 4x bitmap allocation at 0.64x zoom. Increase the tier only
+   // when the output could actually display extra source pixels.
+   if(adaptiveGroundDecode){
+    const fullDpr=viewportPolicy?.displayDpr({
+     zoom:view.zoom,width,height,baseDpr:4,
+     maxDpr:4,maxPixels:18000000,maxEdge:8192
+    })??Math.max(1,dpr);
+    const tier=tierForDeviceDensity(view.zoom*fullDpr);
+    if(tier!==groundTier){
+     groundTier=tier;groundTierSwitches++;overviewRaster=null;
+    }
+   }
    const previousVariant=activeVariant,variant=desiredVariant();
    if(previousVariant!==variant){lodSwitches++;overviewRaster=null;}
    visibleMissing=visible.some(t=>!decodedEntry(t.key,variant));
    protectedKeys=new Set(visible.flatMap(t=>{
     const result=[cacheKey(t.key,variant)];
-    const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
-    if(!decoded.has(cacheKey(t.key,variant))&&decoded.has(other))
-     result.push(other);
+    const other=cacheKey(t.key,variant==='1x'?'2x':'1x'),
+     spare=spareTierKey(t.key,variant);
+    if(!decoded.has(cacheKey(t.key,variant))){
+     if(decoded.has(other))result.push(other);
+     if(spare)result.push(spare);
+    }
     return result;
    }));
    keepWithinBudget();
