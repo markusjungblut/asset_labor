@@ -3,6 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),
  fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+function fourXGround(width=2072,height=1761){
+ const h=new Uint8Array(24);h.set([137,80,78,71,13,10,26,10]);
+ const d=new DataView(h.buffer);d.setUint32(16,width);d.setUint32(20,height);
+ return new Blob([h],{type:'image/png'});
+}
 function runtime(){
  const ctx={window:{},Blob,console,
   performance:{now:()=>1},requestAnimationFrame(){}};
@@ -16,7 +21,7 @@ test('scenery-only successor stores one PNG and links an immutable original Grou
  };
  const sourceKey=api.makeKey(source,'near',tile.id),
   targetKey=api.makeKey(target,'near',tile.id);
- const ground=new Blob(['precious original 4x ground']),
+ const ground=fourXGround(),
   sourceScenery=new Blob(['old shadows']),newScenery=new Blob(['fixed shadows']);
  await storage.put({key:sourceKey,sceneKey:source,level:'near',
   revision:'terrain-r1',tile,
@@ -48,13 +53,27 @@ test('scenery-only successor stores one PNG and links an immutable original Grou
  assert.equal(encoded,1,'resume cannot encode an already committed tile');
  assert.equal((await raw.keys(target+'|near|')).length,1);
 });
+test('shadow-only refresh rejects a legacy low-resolution Ground',async()=>{
+ const api=runtime(),raw=api.memoryStore(),storage=api.linkedStore(raw);
+ const tile={id:'0,0',x:0,y:0,size:512};
+ const from='v1-aaaaaaaa|near|0,0',to='v1-bbbbbbbb';
+ await raw.put({key:from,sceneKey:'v1-aaaaaaaa',level:'near',
+  tile,revision:'r1',layers:[
+   {layer:'ground',pad:3,png:fourXGround(1295,1101)},
+   {layer:'scenery',png:new Blob(['old'])}]});
+ const player=api.create({canvas:{getContext:()=>({})},storage,
+  encode:async()=>new Blob(['new'])});
+ await assert.rejects(player.captureScenery(to,from,tile,{
+  image:{width:300,height:200}}),/nicht nachweislich echtes 4×/);
+ assert.equal((await raw.keys(to+'|near|')).length,0);
+});
 test('scenery-only successor cannot overwrite or link mismatched original geometry',async()=>{
  const api=runtime(),raw=api.memoryStore(),storage=api.linkedStore(raw);
  const source='v1-aaaaaaaa',target='v1-bbbbbbbb';
  const tile={id:'0,0',x:0,y:0,size:512};
  const sourceKey=api.makeKey(source,'near',tile.id),targetKey=api.makeKey(target,'near',tile.id);
  await raw.put({key:sourceKey,sceneKey:source,level:'near',
-  tile,revision:'r',layers:[{layer:'ground',png:new Blob(['original'])},
+  tile,revision:'r',layers:[{layer:'ground',png:fourXGround()},
    {layer:'scenery',png:new Blob(['original-scenery'])}]});
  const player=api.create({canvas:{getContext:()=>({})},storage,
   encode:async()=>new Blob(['new-scene'])});
