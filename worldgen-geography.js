@@ -1,6 +1,6 @@
 /* Vedras Reiche – shared, versioned geographic world builder.
- * CANONICAL: browsergame/public/worldgen-geography.js
- * MIRROR: asset_labor/worldgen-geography.js – keep byte-for-byte identical.
+ * Asset-Labor reference engine; historical browsergame/public mirror is not
+ * present on the currently connected browsergame main branch.
  * Browser and Node/CommonJS; no renderer, network, gameplay or asset dependencies.
  * Worldgen is an explicit pre-game world-build step, not a tile-on-first-visit hook.
  */
