@@ -1,0 +1,90 @@
+name: Static map ZIP – Read-only format checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - static-map-zip-inspector.js
+      - static-map-zip-importer.js
+      - static-map-import-ui.js
+      - static-map-import.html
+      - tests/test_static_map_zip_importer_20261117.cjs
+      - tests/test_integrated_map_zip_contract_20261117.cjs
+      - index.html
+      - worldgen-geography.js
+      - tests/automated_browser_static_map_zip_import_20261117.cjs
+      - frozen-map-game.html
+      - frozen-map-game.js
+      - frozen-map-runtime.js
+      - frozen-map-derived-1x.js
+      - frozen-map-derived-2x.js
+      - frozen-map-view-policy.js
+      - frozen-map-fog-viewport.js
+      - frozen-map-profiler.js
+      - frozen-map-world-blit.js
+      - cloud-artwork.js
+      - frozen-map-package.js
+      - tests/test_static_map_zip_inspector_20261117.cjs
+      - .github/workflows/static-map-zip-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-map-zip-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zip-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Sparse checkout – no real PNGs or user atlas
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static-map-zip-inspector.js
+            /static-map-zip-importer.js
+            /tests/test_static_map_zip_importer_20261117.cjs
+            /tests/test_integrated_map_zip_contract_20261117.cjs
+            /index.html
+            /worldgen-geography.js
+            /tests/automated_browser_static_map_zip_import_20261117.cjs
+            /static-map-import.html
+            /static-map-import-ui.js
+            /frozen-map-game.html
+            /frozen-map-game.js
+            /frozen-map-runtime.js
+            /frozen-map-derived-1x.js
+            /frozen-map-derived-2x.js
+            /frozen-map-view-policy.js
+            /frozen-map-fog-viewport.js
+            /frozen-map-profiler.js
+            /frozen-map-world-blit.js
+            /cloud-artwork.js
+            /frozen-map-package.js
+            /tests/test_static_map_zip_inspector_20261117.cjs
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run ZIP validation and explicit safe-import contract tests
+        run: node --test tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs
+      - name: Verify combined Editor–ZIP–Game contracts
+        run: node --test tests/test_integrated_map_zip_contract_20261117.cjs
+      - name: Cache Playwright Firefox
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: vedras-playwright-firefox-${{ runner.os }}-1.57.0
+      - name: Install pinned Firefox smoke runner
+        run: |
+          mkdir -p .ci-tools
+          npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
+          .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Firefox IndexedDB import / rollback / viewer reload
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+        run: node tests/automated_browser_static_map_zip_import_20261117.cjs
