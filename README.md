@@ -1,3 +1,15 @@
+## Asset-Labor unter Windows starten (Hauptanwendung, keine Tests)
+
+Im **vollständigen Asset-Labor-Ordner mit `assets/`** auf `START_WINDOWS.bat` doppelklicken. Python 3 startet `server.py` auf **festem Port 8780** und öffnet `http://127.0.0.1:8780/index.html` – die eigentliche Asset-Labor-Oberfläche mit Grafikbibliothek, Karte und Werkzeugen. Die Datei `START_RENDERTEST_WINDOWS.cmd` und die anderen `START_STEP*.cmd` sind **nur Teststarter**.
+
+**Wichtig für bereits gespeicherte Karten:** Firefox unter derselben Origin `http://127.0.0.1:8780` und im bisherigen Profil verwenden. Falls der Port schon belegt ist, startet der reguläre Windows-Starter **nicht** auf 8781, sondern erklärt das Problem: bisherigen Server kontrolliert beenden und dann neu starten. Ein anderer Port würde in eine andere IndexedDB-Speicherumgebung führen. **Keine Browserdaten, Original-ZIPs oder uncommitteten Dateien löschen.**
+
+Wenn statt der Bibliothek nur Tests erscheinen, zuerst die genaue URL und den Projektpfad im schwarzen Starter-Fenster prüfen. Eine Testseite wie `frozen-map-benchmark.html` oder eine GitHub-Actions-Testausgabe ist **nicht** das Asset-Labor. Ein nur für CI per Sparse Checkout angelegter Worktree enthält unter Umständen keine `assets/` und ist keine vollständige Editorkopie. Für das sichere Windows-Update ohne Verlust lokaler Änderungen siehe [PC-Abnahme nach der Integration](docs/PC_ABNAHME_ASSET_LABOR_20261117.md).
+
+---
+
+> **Integrationsphase (17.11.2026):** Bestehende Editor-/Spielkarten-Funktionen gemeinsam absichern, statt neue Renderer-Experimente zu starten. Der neue schnelle Editor↔Viewer-Smoke-Test und die gestuften Freigabegates stehen in [Integrationsplan](docs/INTEGRATION_TRACK_20261117.md). Keine automatische Runtime-Freigabe oder Datenmigration.
+
 **Icon-Bestand und Ordnerkategorien (10.11.2026):** 721 PNG-Icons sind in Themenordnern unter `assets/icons/` abgelegt. **Medallie.png** und **Goldene_Trophäe.png** gehören beide zur Kategorie **UI Icons**. [Dokumentation und Verteilung](docs/ICON_INVENTAR.md) · [Vollständiger CSV-Katalog](docs/ICON_KATALOG.csv).
 
 > **Rendering Schritt 16:** Ground-Reuse und selektive World-Tile-Revisionsprüfung sind implementiert, echte Performance-/Grafikabnahme auf Windows steht aus. [Abnahmeanleitung](docs/rendering/STEP16_GROUND_REUSE.md) · [Fahrplan](docs/rendering/RENDERING_ROADMAP_AFTER_STEP14.md).

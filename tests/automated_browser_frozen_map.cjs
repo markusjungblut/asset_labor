@@ -803,6 +803,57 @@ const run=async()=>{
   assert.equal(toggled.length,5);
   await settingsPage.close();
 
+  // CI-only integration gate on the synthetic 120-tile atlas: the real
+  // Firefox viewer must enable and disable resident 1x safely via its UI.
+  const fallbackPage=await ctx.newPage();
+  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await fallbackPage.waitForFunction(n=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
+  assert.equal(await fallbackPage.locator('#optFallbackAtlas').isChecked(),false);
+  assert.equal(await fallbackPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats().fallbackAtlasEnabled),false);
+  await fallbackPage.locator('#performanceOptions > summary').click();
+  await fallbackPage.locator('#optFallbackAtlas').check();
+  await fallbackPage.waitForURL(url=>
+   url.searchParams.get('fallbackAtlas')==='1',{timeout:20000});
+  await fallbackPage.waitForFunction(n=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
+  await fallbackPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.fallbackWarmResident>0,
+   null,{timeout:45000});
+  const warmed=await fallbackPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats());
+  assert.equal(warmed.fallbackAtlasEnabled,true);
+  assert.equal(warmed.fallbackWarmTarget,COUNT);
+  assert.ok(warmed.fallbackWarmResident>0&&
+   warmed.fallbackWarmResident<=warmed.fallbackWarmTarget);
+  assert.ok(warmed.fallbackWarmStarts>0);
+  assert.equal(warmed.maxDecodedPixels,95000000);
+  assert.ok(warmed.decodedPixels<=warmed.maxDecodedPixels);
+  assert.equal(warmed.failures,0);
+  assert.equal(await fallbackPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.readOnly),true);
+  // Navigation reconstructs <details> in the closed state.
+  // A hidden checkbox cannot be clicked until the menu is reopened.
+  if(!(await fallbackPage.locator('#performanceOptions').evaluate(el=>el.open)))
+   await fallbackPage.locator('#performanceOptions > summary').click();
+  await fallbackPage.locator('#optFallbackAtlas').uncheck();
+  await fallbackPage.waitForURL(url=>
+   url.searchParams.get('fallbackAtlas')==='0',{timeout:20000});
+  await fallbackPage.waitForFunction(n=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
+  const reverted=await fallbackPage.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats());
+  assert.equal(reverted.fallbackAtlasEnabled,false);
+  assert.equal(reverted.failures,0);
+  collected.results.fallbackOptIn={
+   syntheticTiles:COUNT,resident:warmed.fallbackWarmResident,
+   target:warmed.fallbackWarmTarget,warmStarts:warmed.fallbackWarmStarts,
+   decodedPixels:warmed.decodedPixels,maxDecodedPixels:warmed.maxDecodedPixels,
+   reversible:reverted.fallbackAtlasEnabled===false,readOnly:true
+  };
+  await fallbackPage.close();
+
   // Real wheel/zoom UI, actual 1x IndexedDB variant, then back to 2x.
   for(let i=0;i<4;i++)await guarded.locator('#zoomOut').click();
   await guarded.waitForFunction(()=>
