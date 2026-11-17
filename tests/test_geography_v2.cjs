@@ -1,4 +1,4 @@
-/* Shared geography v2.1 – run: node tests/test_geography_v2.cjs */
+/* Shared geography v2.1.1 – run: node tests/test_geography_v2.cjs */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
@@ -6,7 +6,10 @@ const enginePath=fs.existsSync(path.join(root,'worldgen-geography.js'))
  ?path.join(root,'worldgen-geography.js')
  :path.join(root,'public/worldgen-geography.js');
 const G=require(enginePath),defaults=G.defaultConfig();
-assert.equal(G.VERSION,'geography-v2.1.0');
+assert.equal(G.VERSION,'geography-v2.1.1');
+assert(G.TERRAIN_IDS.includes('frozen_tundra')&&G.TERRAIN_IDS.includes('sandy_desert'));
+assert(!G.TERRAIN_IDS.includes('hilly_ground')&&!G.TERRAIN_IDS.includes('forest_floor'));
+assert.equal(defaults['geology.aridSandyDesert'],14);
 assert(!Object.hasOwn(defaults,'climate.latitudeCooling'),'no map-edge latitude climate');
 assert(!Object.hasOwn(defaults,'features.horseShare'),'one quota for all animal species');
 for(const id of ['water.fraction','water.lakeInfluence','biomes.targetHexes',
@@ -17,6 +20,29 @@ const one=G.generateWorld('geography-v21-regression',{width:65,height:52});
 const identical=G.generateWorld('geography-v21-regression',{width:65,height:52});
 assert.deepEqual(one,identical,'same version + seed + config => same world');
 assert.equal(one.cells.length,65*52);
+const samples=Array.from({length:6},(_,i)=>
+ G.generateWorld('geography-distribution-'+i,{width:95,height:75}).stats);
+const averages=G.aggregateDistributions(samples);
+assert.equal(averages.samples,6);
+for(const id of G.TERRAIN_IDS)assert(Object.hasOwn(averages.terrains,id),
+ 'all standard terrains reported even at zero occurrences: '+id);
+for(const id of G.BIOME_IDS)assert(Object.hasOwn(averages.biomes,id),
+ 'all biome families reported even at zero occurrences: '+id);
+for(const id of ['frozen_tundra','sandy_desert']){
+ const total=samples.reduce((n,s)=>n+(s.terrains[id]||0),0);
+ assert(total>0,'terrain must be able to spawn normally: '+id);
+ assert.equal(averages.terrains[id].total,total);
+ assert.equal(averages.terrains[id].mean,total/samples.length);
+ assert.equal(averages.terrains[id].worldsPresent,
+  samples.filter(s=>(s.terrains[id]||0)>0).length);
+}
+assert.throws(()=>G.aggregateDistributions([]),RangeError);
+const zerocount=G.aggregateDistributions([{total:100,land:80,
+ biomes:{grassland:80},terrains:{grassland:80,coastal_water:20}}]);
+assert.equal(zerocount.terrains.frozen_tundra.mean,0);
+assert.equal(zerocount.terrains.sandy_desert.worldsPresent,0);
+assert.equal(zerocount.biomes.grassland.percent,100);
+assert.equal(zerocount.terrains.coastal_water.percent,20);
 assert.equal(one.riverGeometry,'hex-edges');
 const uiPath=fs.existsSync(path.join(root,'geography-lab.js'))
  ?path.join(root,'geography-lab.js')
@@ -87,4 +113,4 @@ const extra=G.generateWorld('fungi-test',{width:15,height:15});
 if(G.getWorldCell(extra,2,3).surfaceClass==='land')
  assert(G.getWorldCell(extra,2,3).features.includes('extension.fungi'));
 console.log('PASS Worldgen v2.1: expansion stable; permanent ocean terrains; coast; '+
- 'river EDGE topology; wood statistics; lake monotonicity; all-animal quota; extensions.');
+ 'river EDGE topology; wood statistics; lake monotonicity; all-animal quota; extensions; biome averages and missing spawn fixes.');

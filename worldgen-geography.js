@@ -1,13 +1,24 @@
 /* Vedras Reiche – shared, versioned geographic world builder.
- * CANONICAL: browsergame/public/worldgen-geography.js
- * MIRROR: asset_labor/worldgen-geography.js – keep byte-for-byte identical.
+ * Asset-Labor reference engine; historical browsergame/public mirror is not
+ * present on the currently connected browsergame main branch.
  * Browser and Node/CommonJS; no renderer, network, gameplay or asset dependencies.
  * Worldgen is an explicit pre-game world-build step, not a tile-on-first-visit hook.
  */
 (function (root) {
   "use strict";
-  const VERSION = "geography-v2.1.0";
+  const VERSION = "geography-v2.1.1";
   const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+  // Spawnable world terrain IDs. Test grounds, forest overlays and coast art
+  // are intentionally omitted; zero-count IDs remain visible in statistics.
+  const TERRAIN_IDS = Object.freeze([
+    "ocean","coastal_water","icy_ocean","stormy_ocean",
+    "frozen_tundra","tundra","snowfields","highland",
+    "grassland","pasture","sparse_pasture","savanna","jungle",
+    "moor","marshland","swamp",
+    "rocky_badlands","badlands","rocky_desert","sandy_rocky_desert",
+    "sandy_desert","desert","clay_desert","sandy_badlands","wasteland","semi_desert"
+  ]);
+  const BIOME_IDS = Object.freeze(["cold","grassland","savanna","arid","wetland","jungle"]);
   const definitions = [
     ["Welt / Wasser","water.fraction","Wasser-Zielanteil",0.25,0.05,0.65,0.01,"Statistischer Wasseranteil statt exakter Quote jedes Kartenausschnitts"],
     ["Welt / Wasser","water.scale","Größe der Wasserlandschaften",18,5,85,1,"Höher bedeutet größere zusammenhängende Meere und Seen"],
@@ -56,6 +67,7 @@
     ["Boden-Untertypen","geology.aridBadlands","Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridRockyDesert","Steinwüste Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridSandyRocky","Sandig-steinige Wüste Gewicht",15,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
+    ["Boden-Untertypen","geology.aridSandyDesert","Sandwüste Gewicht",14,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridDesert","Wüstenboden Gewicht",14,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridClay","Lehmwüste Gewicht",12,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridSandyBadlands","Sandige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
@@ -113,6 +125,33 @@
       throw RangeError("Hügel- und Berganteil dürfen zusammen maximal 95 % ausmachen.");
     return out;
   }
+  // Aggregate completed world stats, not entire world arrays. Means include
+  // missing/zero occurrences; proportions use the total eligible hex count.
+  function aggregateDistributions(samples) {
+    if(!Array.isArray(samples)||!samples.length)
+      throw RangeError("Mindestens eine generierte Welt für die Statistik erforderlich.");
+    const stats=samples.map(sample=>sample?.stats??sample);
+    if(stats.some(s=>!s||!Number.isFinite(s.total)||s.total<=0||
+        !Number.isFinite(s.land)||s.land<0||s.land>s.total||
+        !s.biomes||!s.terrains))
+      throw TypeError("Ungültige Weltstatistik.");
+    function collect(ids,group,denominator) {
+      const keys=[...new Set([...ids,...stats.flatMap(s=>Object.keys(s[group]))])];
+      const eligible=stats.reduce((sum,s)=>sum+s[denominator],0);
+      return Object.fromEntries(keys.map(id=>{
+        const counts=stats.map(s=>s[group][id]||0);
+        const total=counts.reduce((sum,count)=>sum+count,0);
+        return [id,{total,mean:total/stats.length,
+          percent:eligible?100*total/eligible:0,
+          worldsPresent:counts.filter(count=>count>0).length}];
+      }));
+    }
+    return {generatorVersion:VERSION,samples:stats.length,
+      meanHexes:stats.reduce((sum,s)=>sum+s.total,0)/stats.length,
+      meanLand:stats.reduce((sum,s)=>sum+s.land,0)/stats.length,
+      biomes:collect(BIOME_IDS,"biomes","land"),
+      terrains:collect(TERRAIN_IDS,"terrains","total")};
+  }
   function registerParameter(def) {
     if(!def||typeof def.id!=="string"||!/^extension\.[a-z0-9_.]+$/.test(def.id)||definitions.some(d=>d[1]===def.id))
       throw Error("Neue Parameter benötigen eine eindeutige extension.*-ID.");
@@ -136,6 +175,7 @@
         ["badlands","geology.aridBadlands"],
         ["rocky_desert","geology.aridRockyDesert"],
         ["sandy_rocky_desert","geology.aridSandyRocky"],
+        ["sandy_desert","geology.aridSandyDesert"],
         ["desert","geology.aridDesert"],
         ["clay_desert","geology.aridClay"],
         ["sandy_badlands","geology.aridSandyBadlands"],
@@ -148,8 +188,11 @@
       return "grassland";
     }
     if(family==="cold"){
-      if(t<.14)return h>.55?"snowfields":"frozen_tundra";
-      if(t<.25)return h>.8?"snowfields":"tundra";
+      // The old fixed <.14 cutoff was unreachable with default climate (.57 ± .43).
+      // Keep deep tundra tied to the configured boundary instead of a fixed,
+      // practically inaccessible absolute temperature.
+      if(t<c["biomes.coldBoundary"]-.04)return h>.60?"snowfields":"frozen_tundra";
+      if(t<c["biomes.coldBoundary"])return h>.8?"snowfields":"tundra";
       return reliefValue&&reliefValue.hill>c["geology.highlandSoil"]?"highland":"tundra";
     }
     if(family==="wetland")return t>.64?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
@@ -458,8 +501,9 @@
     return {version:VERSION,seed,width,height,originQ,originR,config:c,
       cells,riverPaths,riverPreviewPaths:countedRoutes.map(path=>path.map(p=>[p.q,p.r])),stats,riverGeometry:"hex-edges"};
   }
-  const api={VERSION,DIRS,parameterSchema,defaultConfig,normalizeConfig,
-    registerParameter,registerFeature,generateWorld,getWorldCell:(world,q,r)=>{
+  const api={VERSION,DIRS,TERRAIN_IDS,BIOME_IDS,parameterSchema,defaultConfig,
+    normalizeConfig,aggregateDistributions,registerParameter,registerFeature,
+    generateWorld,getWorldCell:(world,q,r)=>{
       const oq=world.originQ??0,or=world.originR??0;
       if(q<oq||r<or||q>=oq+world.width||r>=or+world.height)return null;
       return world.cells[(r-or)*world.width+(q-oq)]??null;

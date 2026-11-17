@@ -18,6 +18,18 @@ details{border-top:1px solid #415062;padding:7px 0}summary{font-weight:700;curso
 figure{margin:12px 0;background:#0c1620;border:1px solid #3a5164;border-radius:10px;overflow:hidden}
 canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 #stats{font-size:13px;color:#bfd2df;line-height:1.6}
+.distribution{border-top:1px solid #405568;margin:18px 0 12px;padding-top:14px}
+.distribution h3{font-size:14px;margin:16px 0 8px}
+.distribution .sample-control{font-size:12px;color:#c2d2df;max-width:160px}
+.distribution .sample-control input{margin-top:4px}
+.distribution-status{color:#bdd4dd;font-size:12px;min-height:20px;margin-top:10px}
+.table-scroll{overflow-x:auto}
+.distribution table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+.distribution th,.distribution td{border-bottom:1px solid #30475a;padding:7px 9px}
+.distribution th{color:#d1e4ec;font-weight:600;white-space:nowrap}
+.distribution .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.distribution .terrain-id{font-size:11px;color:#98abba}
+.distribution .zero{color:#99a9b8}
 #selected{background:#21394a;padding:10px;margin-top:10px;border-radius:7px;white-space:pre-wrap;font-size:12px}
 .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
 #message{color:#d9bc83;font-size:12px;margin:8px 0;min-height:18px}
@@ -39,10 +51,25 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 </div>
 <div id="message" role="status">Wird vorbereitet …</div>
 <figure><canvas id="worldMap" width="1200" height="750" aria-label="Prozedurale Hex-Weltkarte"></canvas></figure>
-<div id="stats"></div><div id="selected">Hexfeld anklicken, um die geografischen Werte und Besonderheiten zu prüfen.</div>
+<div id="stats"></div>
+<section class="distribution" aria-labelledby="distributionTitle">
+<h2 id="distributionTitle">Biom- und Terrainverteilung</h2>
+<p class="minor">Aktuelle Hexzahlen für alle regulären, erzeugbaren Typen – einschließlich 0. Die Mittelwerte werden über unabhängig generierte Seeds mit denselben Parametern und derselben Ausschnittgröße berechnet. Testgelände und Wald-Overlays zählen nicht als Grundterrain.</p>
+<div class="toolbar">
+<label class="sample-control">Anzahl Testwelten<input id="analysisSamples" type="number" min="2" max="40" value="8"></label>
+<button id="analyzeDistribution" type="button" class="primary">Mittelwerte berechnen</button>
+<button id="exportDistribution" type="button" disabled>Statistik als JSON exportieren</button>
+</div>
+<div id="distributionStatus" class="distribution-status" role="status">Noch keine Mehrfachanalyse berechnet.</div>
+<h3>Biomregionen – Anteil an Landhexen</h3>
+<div class="table-scroll"><table><thead><tr><th>Biom</th><th class="numeric">Aktuell</th><th class="numeric">Ø pro Welt</th><th class="numeric">Ø Anteil</th><th class="numeric">Welten mit Vorkommen</th></tr></thead><tbody id="biomeCounts"></tbody></table></div>
+<h3>Terrain-Untertypen – Anteil an allen Hexen</h3>
+<div class="table-scroll"><table><thead><tr><th>Terrain</th><th class="numeric">Aktuell</th><th class="numeric">Ø pro Welt</th><th class="numeric">Ø Anteil</th><th class="numeric">Welten mit Vorkommen</th></tr></thead><tbody id="terrainCounts"></tbody></table></div>
+</section>
+<div id="selected">Hexfeld anklicken, um die geografischen Werte und Besonderheiten zu prüfen.</div>
 <div class="actions"><button id="downloadWorld">Generierte Welt als JSON exportieren</button><button id="sendToLab">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js?v=2.1.0"></script><script src="geography-lab.js?v=2.1.0"></script>
+<script src="worldgen-geography.js?v=2.1.1"></script><script src="geography-lab.js?v=2.1.1"></script>
 </body></html>

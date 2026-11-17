@@ -1,13 +1,29 @@
-/* Parameter-driven geography workbench – same script in both repositories. */
+/* Parameter-driven geography workbench for the Asset-Labor. */
 (()=>{
 "use strict";
 const G=window.VedrasGeography,$=id=>document.getElementById(id);
 let config=G.defaultConfig(),world=null,selected=null,renderPending=false;
+const DISTRIBUTION_STORAGE_KEY="vedras-geography-distribution-v2.1.1";
+let distribution=null,distributionKey=null,distributionRun=0,distributionRunning=false;
+const BIOME_NAMES={cold:"Kalte Regionen",grassland:"Grasland",savanna:"Savanne",
+ arid:"Trockengebiete",wetland:"Feuchtgebiete",jungle:"Dschungel"};
+const TERRAIN_NAMES={
+ ocean:"Ozean",coastal_water:"Küstenwasser",icy_ocean:"Eisiger Ozean",
+ stormy_ocean:"Stürmischer Ozean",frozen_tundra:"Gefrorene Tundra",
+ tundra:"Tundra",snowfields:"Schneefelder",highland:"Hochland",
+ grassland:"Grasland",pasture:"Weideland",sparse_pasture:"Karges Weideland",
+ savanna:"Savanne",jungle:"Dschungel",moor:"Moor",marshland:"Marschland",
+ swamp:"Sumpf",rocky_badlands:"Steinige Badlands",badlands:"Badlands",
+ rocky_desert:"Steinwüste",sandy_rocky_desert:"Sandig-steinige Wüste",
+ sandy_desert:"Sandwüste",desert:"Wüstenboden",clay_desert:"Lehmwüste",
+ sandy_badlands:"Sandige Badlands",wasteland:"Ödland",semi_desert:"Halbwüste"
+};
 const COLORS={ocean:"#1d537b",coastal_water:"#478cac",icy_ocean:"#95cad8",
  stormy_ocean:"#253f71",frozen_tundra:"#bec6ca",tundra:"#849d8f",
  snowfields:"#f0f2eb",grassland:"#80b570",pasture:"#91bc76",sparse_pasture:"#a1ad75",
  savanna:"#a6af59",jungle:"#318962",moor:"#568673",marshland:"#538a77",
  swamp:"#3c7960",rocky_desert:"#a79569",sandy_rocky_desert:"#c4aa6b",
+ sandy_desert:"#e3c27c",
  desert:"#d5bb77",clay_desert:"#bb9266",badlands:"#ad7950",sandy_badlands:"#cd9b65",
  rocky_badlands:"#988066",wasteland:"#807768",semi_desert:"#c2b37c",highland:"#82968a"};
 function buildControls(){
@@ -53,6 +69,19 @@ function build(){
     originQ:Number($('worldOriginQ').value),originR:Number($('worldOriginR').value)});
   $('message').textContent="Berechnet in "+Math.round(performance.now()-start)+
     " ms · "+world.version+" · Seed "+world.seed;
+  const signature=JSON.stringify({version:G.VERSION,seed:world.seed,width:world.width,
+   height:world.height,originQ:world.originQ,originR:world.originR,config:world.config});
+  if(distributionKey!==signature){
+   ++distributionRun;
+   distributionRunning=false;
+   $('analyzeDistribution').disabled=false;
+   distributionKey=signature;distribution=null;
+   try{
+    const cached=JSON.parse(localStorage.getItem(DISTRIBUTION_STORAGE_KEY));
+    if(cached?.signature===signature&&cached?.data?.generatorVersion===G.VERSION)
+     distribution=cached.data;
+   }catch(_error){/* Browsers may disable local storage. */}
+  }
   selected=null;draw();updateStats();
  }catch(error){$('message').textContent=error.message;}
 }
@@ -163,6 +192,79 @@ function updateStats(){
   ' · Biomkerne: '+s.biomeRegions.count+' (Ø '+s.biomeRegions.average+
   ', Median '+s.biomeRegions.median+', davon '+s.biomeRegions.within30to90+' mit 30–90 Hexen)' +
   ' · Häufigste Terrains: '+most.map(([k,v])=>k+' '+v).join(', ');
+ renderDistribution();
+}
+function renderDistribution(){
+ if(!world)return;
+ const number=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1});
+ const appendRows=(target,ids,counts,means,names)=>{
+  const rows=$(target);rows.replaceChildren();
+  const keys=[...new Set([...ids,...Object.keys(counts||{}),...Object.keys(means||{})])];
+  for(const id of keys){
+   const current=counts?.[id]||0,average=means?.[id];
+   const tr=document.createElement('tr');if(current===0)tr.className='zero';
+   const type=document.createElement('td'),label=document.createElement('div'),
+    identifier=document.createElement('div');
+   label.textContent=names[id]||id;identifier.textContent=id;
+   identifier.className='terrain-id';type.append(label,identifier);tr.append(type);
+   const values=[number(current),average?number(average.mean):'—',
+    average?number(average.percent)+' %':'—',
+    average?average.worldsPresent+' / '+distribution.samples:'—'];
+   for(const value of values){
+    const td=document.createElement('td');td.className='numeric';
+    td.textContent=value;tr.append(td);
+   }
+   rows.append(tr);
+  }
+ };
+ appendRows('biomeCounts',G.BIOME_IDS,world.stats.biomes,distribution?.biomes,BIOME_NAMES);
+ appendRows('terrainCounts',G.TERRAIN_IDS,world.stats.terrains,distribution?.terrains,TERRAIN_NAMES);
+ $('exportDistribution').disabled=!distribution;
+ if(!distribution&&!distributionRunning)
+  $('distributionStatus').textContent='Aktuelle Welt angezeigt. Mittelwerte für mehrere Seeds noch nicht berechnet.';
+ else if(distribution&&!distributionRunning)
+  $('distributionStatus').textContent=distribution.samples+' Testwelten, je '+
+   number(distribution.meanHexes)+' Hexfelder (Ø '+number(distribution.meanLand)+
+   ' Landhexe). Mittelwerte passend zu den aktuellen Einstellungen.';
+}
+async function analyzeDistribution(){
+ if(distributionRunning||!world)return;
+ const n=Number($('analysisSamples').value);
+ if(!Number.isSafeInteger(n)||n<2||n>40){
+  $('distributionStatus').textContent='Bitte 2 bis 40 Testwelten auswählen.';return;
+ }
+ const basis=world,signature=distributionKey,run=++distributionRun;
+ const options={width:basis.width,height:basis.height,
+  originQ:basis.originQ,originR:basis.originR,config:{...basis.config}};
+ const samples=[];
+ distributionRunning=true;$('analyzeDistribution').disabled=true;
+ try{
+  for(let i=0;i<n;i++){
+   if(run!==distributionRun||signature!==distributionKey)return;
+   // Seed suffix remains unique even when the user's seed has 256 characters.
+   const suffix=':stat:'+String(i+1);
+   const sampleSeed=basis.seed.slice(0,256-suffix.length)+suffix;
+   samples.push(G.generateWorld(sampleSeed,options).stats);
+   $('distributionStatus').textContent='Statistik berechnen: '+(i+1)+' / '+n+
+    ' Testwelten (eigene Seeds, identische Parameter) …';
+   await new Promise(resolve=>window.setTimeout(resolve,0));
+  }
+  if(run!==distributionRun||signature!==distributionKey)return;
+  distribution=G.aggregateDistributions(samples);
+  try{
+   localStorage.setItem(DISTRIBUTION_STORAGE_KEY,JSON.stringify({
+    signature,data:distribution}));
+  }catch(_error){/* Reporting works without browser storage. */}
+ }catch(error){
+  if(run===distributionRun)
+   $('distributionStatus').textContent='Statistik fehlgeschlagen: '+error.message;
+ }finally{
+  if(run===distributionRun){
+   distributionRunning=false;
+   $('analyzeDistribution').disabled=false;
+   if(distribution)renderDistribution();
+  }
+ }
 }
 $('worldMap').addEventListener('click',e=>{
  if(!world||!geometry)return;
@@ -183,6 +285,15 @@ function download(name,data){
  a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('generate').addEventListener('click',build);
+$('analyzeDistribution').addEventListener('click',analyzeDistribution);
+$('exportDistribution').addEventListener('click',()=>{
+ if(!distribution||!world)return;
+ download('vedras-geografie-biome-statistik.json',{
+  seedBase:world.seed,width:world.width,height:world.height,
+  originQ:world.originQ,originR:world.originR,config:world.config,
+  ...distribution
+ });
+});
 $('viewMode').addEventListener('change',draw);
 for(const id of ['worldSeed','worldWidth','worldHeight','worldOriginQ','worldOriginR'])$(id).addEventListener('change',requestBuild);
 $('resetConfig').addEventListener('click',()=>{config=G.defaultConfig();buildControls();build();});
@@ -200,9 +311,9 @@ $('configFile').addEventListener('change',async e=>{
   const obj=JSON.parse(await file.text());
   const version=obj.generatorVersion||obj.version;
   if(version!==G.VERSION){
-   if(version!=="geography-v2.0.0"||!window.confirm(
-     "Geografie 2.0 wurde überarbeitet. Die alten Werte können übernommen werden, "+
-     "aber die Karte wird in 2.1 neu generiert. Bewusst übernehmen?"))
+   if(!["geography-v2.0.0","geography-v2.1.0"].includes(version)||!window.confirm(
+     "Die gespeicherten Parameter stammen aus "+version+". Sie können in "+
+     G.VERSION+" übernommen werden; die generierte Karte kann sich ändern. Fortfahren?"))
     throw Error("Alte Worldgen-Version nicht ohne Zustimmung übernommen.");
   }
   config=G.normalizeConfig(obj.config);
