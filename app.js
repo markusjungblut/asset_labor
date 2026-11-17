@@ -506,6 +506,7 @@ function staticScenerySignature(){
  return JSON.stringify([
   objectLayoutCache.stats().revision,
   window.VedrasSpriteShadows?.revision?.()||0,
+  window.VedrasShadowTone?.revision?.()||0,
   state.shadowGlobal,state.shadowAssetPresets,state.mountainShadowDefaults,
   state.visualPolish.nature,state.natureShadowDebug,state.objects,
   state.mode,state.sceneSize
@@ -2161,7 +2162,17 @@ function visibleRoadEdges(){
 // the LEFT-FOOT contact point; it is no longer sheared into a hidden spike.
 const mountainSilhouettes=new WeakMap();
 function shadowSilhouette(img){
- if(mountainSilhouettes.has(img))return mountainSilhouettes.get(img);
+ const tone=window.VedrasShadowTone?.colorCss()||'#203131';
+ const prior=mountainSilhouettes.get(img);
+ if(prior){
+  if(prior.tone!==tone){
+   const g=prior.canvas.getContext('2d');
+   g.save();g.globalCompositeOperation='source-in';g.fillStyle=tone;
+   g.fillRect(0,0,prior.canvas.width,prior.canvas.height);g.restore();
+   prior.tone=tone;
+  }
+  return prior;
+ }
  const b=visibleBounds(img),side=512,ratio=Math.min(1,side/Math.max(b.sw,b.sh));
  const cv=document.createElement('canvas');cv.width=Math.max(8,Math.round(b.sw*ratio));cv.height=Math.max(8,Math.round(b.sh*ratio));
  const g=cv.getContext('2d',{willReadFrequently:true});
@@ -2169,8 +2180,8 @@ function shadowSilhouette(img){
  // Keep the alpha channel and compute an anchor in the authored-foot band.
  let footprint=null;
  try{footprint=g.getImageData(0,0,cv.width,cv.height).data;}catch{}
- g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
- const result={canvas:cv,aspect:b.sh/b.sw,footData:footprint,footCache:new Map()};
+ g.globalCompositeOperation='source-in';g.fillStyle=tone;g.fillRect(0,0,cv.width,cv.height);
+ const result={canvas:cv,aspect:b.sh/b.sw,footData:footprint,footCache:new Map(),tone};
  mountainSilhouettes.set(img,result);return result;
 }
 function mountainShadowSettings(o){
@@ -2218,7 +2229,8 @@ function shadowLocalMask(width,settings,global){
   // Keep even large zoomed mountains below a ~320 px footprint raster.
   factor=Math.min(.60,320/Math.max(width,1)),w=width*factor;
  const cfg={...settings,softness:settings.softness*factor};
- const id=JSON.stringify([Math.round(w*100)/100,cfg,global]);
+ const id=JSON.stringify([Math.round(w*100)/100,cfg,global,
+  window.VedrasShadowTone?.revision?.()||0]);
  if(mountainShadowRasterCache.has(id)){
   const mask=mountainShadowRasterCache.get(id);
   mountainShadowRasterCache.delete(id);mountainShadowRasterCache.set(id,mask);
@@ -2526,7 +2538,7 @@ function drawFallenLogShadow(obj,p){
  ctx.save();
  ctx.globalCompositeOperation='source-over';
  ctx.globalAlpha=Math.min(.8,geometry.opacity*strength);
- ctx.fillStyle='#203131';
+ ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
  ctx.filter='blur('+geometry.blur+'px)';
  // Long, continuous ground contact over the full log instead of a dot.
  ctx.beginPath();
