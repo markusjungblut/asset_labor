@@ -212,6 +212,33 @@ async function main(){
    process.stderr.write('Imported viewer diagnostic: '+
     JSON.stringify(diagnostics)+'\n');
   assert.equal(diagnostics.stats.failures,0);
+
+  // Combined-feature gate: a freshly imported scene must work with the
+  // optional resident 1x safety net from the new integration runtime.
+  // It is OFF in normal sessions and may never overwrite the ZIP original.
+  await viewer.goto(origin+'/'+href+'&perf=1&fallbackAtlas=1');
+  await viewer.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===2,
+   null,{timeout:30000});
+  await viewer.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.fallbackWarmResident>0,
+   null,{timeout:30000});
+  const withFallback=await viewer.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats());
+  assert.equal(withFallback.fallbackAtlasEnabled,true);
+  assert.equal(withFallback.fallbackWarmTarget,2);
+  assert.ok(withFallback.fallbackWarmResident>=1);
+  assert.ok(withFallback.decodedPixels<=withFallback.maxDecodedPixels);
+  assert.equal(withFallback.failures,0);
+
+  await viewer.goto(origin+'/'+href+'&perf=1&fallbackAtlas=0');
+  await viewer.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===2,
+   null,{timeout:30000});
+  const withoutFallback=await viewer.evaluate(()=>
+   window.__vedrasFrozenGameTest.stats());
+  assert.equal(withoutFallback.fallbackAtlasEnabled,false);
+  assert.equal(withoutFallback.failures,0);
   await viewer.reload();
   await viewer.waitForFunction(()=>
    window.__vedrasFrozenGameTest?.stats()?.saved===2,
@@ -220,7 +247,7 @@ async function main(){
    window.__vedrasFrozenGameTest.scene),target);
   assert.deepEqual(errors,[]);
   process.stdout.write('ZIP importer Firefox/IndexedDB: PASS (new scene '+
-   target+', original intact, rollback and viewer reload)\n');
+   target+', original intact, rollback, viewer reload, opt-in 1x lifecycle)\n');
   await context.close();
  }finally{
   await browser?.close();
