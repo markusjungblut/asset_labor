@@ -214,8 +214,19 @@
   manifestReadMs=performance.now()-manifestReadStarted;
   if(benchmark)benchmark.href='frozen-map-benchmark.html?scene='+
    encodeURIComponent(scene);
-  const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
-   manifest.levels[0];
+  const previewIncomplete=params.get('previewIncomplete')==='1';
+  // Explicit near must NEVER fall through to a saved far/1x atlas.
+  if(requestedLevel&&!manifest.levels.includes(requestedLevel))
+   throw Error('Die angeforderte Detailstufe '+requestedLevel+
+    ' fehlt in dieser Karte (vorhanden: '+manifest.levels.join(', ')+
+    '). Für die fertige Spielkarte im Asset-Labor Qualität 4× wählen.');
+  if(manifest.generationStatus==='building'&&!previewIncomplete)
+   throw Error('4×-Spielkarte noch UNVOLLSTÄNDIG ('+
+    (manifest.verifiedTiles??0)+' / '+(manifest.expectedTiles??'?')+
+    ' Kacheln). Im Asset-Labor erneut vollständig vorbereiten. '+
+    'Nur zur Diagnose mit &previewIncomplete=1 öffnen.');
+  const lod=requestedLevel||(
+   manifest.levels.includes('near')?'near':manifest.levels[0]);
   // A saved pose.dpr is metadata, NOT proof of 4x PNG pixels.
   // Check three representative original Ground IHDR headers without decoding
   // the full atlas, then independently verify each fetched Ground record.
@@ -257,6 +268,13 @@
     expectedTiles:manifest.expectedTiles
    });
   sceneRegisterMs=performance.now()-registerStarted;
+  if(manifest.generationStatus==='complete'&&!status.completeVisibleAtlas&&
+     !previewIncomplete){
+   player.stop();
+   throw Error('Der veröffentlichte 4×-Atlas ist inzwischen unvollständig: '+
+    status.saved+' / '+manifest.expectedTiles+
+    ' Kacheln gespeichert. Originalbilder bleiben unverändert.');
+  }
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
