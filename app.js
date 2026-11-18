@@ -4068,7 +4068,7 @@ function frozenSceneKey(){
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v5-original-materials',state.quality==='4'?'atlas-4x':'atlas-native',
+  'game-map-export-renderer-v6-verified-near',state.quality==='4'?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
@@ -4120,6 +4120,10 @@ $('frozenCapture').addEventListener('click',async()=>{
   const scene=frozenSceneKey();
   let prior=null;
   try{prior=await frozenMap.loadManifest(scene);}catch(_){}
+  if(prior?.generationStatus){
+   frozenNotice('Diese Szene wird bereits als 4×-Atlas vorbereitet. '+
+    'Zum Fortsetzen „Gesamte Karte einmalig vorbereiten“ benutzen.');return;
+  }
   await frozenMap.saveAuthoredWorld(scene,authoredSceneSnapshot());
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
    levels:[...new Set([...(prior?.levels||[]),packets[0].level])],
@@ -4444,6 +4448,13 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   frozenNotice('Fog-Demo deaktivieren: Keine verborgenen Spielbereiche in eine lokale Karte exportieren.');return;
  }
  if(!worldCells.length){frozenNotice('Keine fertige Welt vorhanden.');return;}
+ // The full-game export always targets native 4x Near. A Far snapshot is
+ // never an acceptable substitute for a published final atlas.
+ if(state.quality!=='4'){
+  frozenNotice('Bitte Qualitätsstufe 4× auswählen. Die endgültige '+
+   'Spielkarte darf nicht als unscharfer Far-/1×-Atlas erzeugt werden.');
+  return;
+ }
  const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
   xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
  const all=window.VedrasChunks.visible({
@@ -4456,10 +4467,31 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   lod=quality4?'near':(worldTiles?.chooseLod(state.zoom)||'mid');
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
  try{
+  const prior=await frozenMap.loadManifest(scene).catch(()=>null);
+  if(prior?.generationStatus==='complete'){
+   const previous=await frozenMap.verifyArchive(scene,'near',all,{
+    require4x:true});
+   if(previous.complete){
+    frozenNotice('4×-Near-Atlas '+scene+' ist bereits vollständig geprüft ('+
+     all.length+' Kacheln).');
+    return;
+   }
+   throw Error('Ein bereits veröffentlichtes Archiv ist beschädigt: '+
+    previous.invalidTiles.length+' ungültige, '+
+    previous.missingIds.length+' fehlende Kacheln. '+
+    'Seine unveränderlichen Quellbilder werden nicht überschrieben.');
+  }
+  if(prior&&(prior.expectedTiles!==all.length||
+    !prior.levels.includes('near')))
+   throw Error('Die angefangene Spielkarte hat ein anderes Chunk-Raster.');
   await frozenMap.saveAuthoredWorld(scene,authoredSceneSnapshot());
-  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
-   pose:{...pose,dpr:quality4?4:state.dpr,projectY:PROJECT_Y},
-   expectedTiles:all.length,clouds:frozenCloudSettings()});
+  // A building manifest supports resumability. Only the audit may
+  // transition it to "complete" after all original images are checked.
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:['near'],
+   pose:{...pose,dpr:4,projectY:PROJECT_Y},
+   expectedTiles:all.length,clouds:frozenCloudSettings(),
+   generationStatus:'building',verifiedTiles:0,
+   missingTileIds:all.map(t=>t.id)});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
