@@ -64,22 +64,21 @@ test('stale or misordered original ground cannot replace a valid derived tile',(
  assert.equal(api.merge(b,a),a);
  assert.equal(api.merge(null,a),a);
 });
-test('gutter bridge samples a source strip across shared device boundaries',()=>{
+test('core inset removes suspect source-border pixels without erasing neighbors',()=>{
  const api=moduleOf('frozen-map-runtime.js').VedrasFrozenMap;
- const image={width:2072,height:1761},dpr=2,zoom=1,proj=.85,
+ const image={width:2072,height:1761},
   t={entry:{record:{tile:{size:512}}},left:40,right:552,
    top:70,bottom:70+512*.85};
- const right=api.groundSeamStrip(image,t,3,'right',dpr,zoom,proj);
- const bottom=api.groundSeamStrip(image,t,3,'bottom',dpr,zoom,proj);
- assert.ok(right&&bottom);
- assert.ok(Math.abs(right.x+right.w/2-t.right)<1e-9);
- assert.ok(Math.abs(bottom.y+bottom.h/2-t.bottom)<1e-9);
- assert.ok(right.sx>=0&&right.sx+right.sw<=image.width);
- assert.ok(bottom.sy>=0&&bottom.sy+bottom.sh<=image.height);
- assert.equal(api.groundSeamStrip(image,t,0,'right',dpr,zoom,proj),null);
- assert.match(read('frozen-map-runtime.js'),/exclusiveGroundSeams&&sourceGutterSeamBridge/);
- assert.match(read('frozen-map-runtime.js'),/g\.globalCompositeOperation='copy'/);
- assert.match(read('frozen-map-game.js'),/params\.get\('groundSeam'\)!=='exclusive'/);
+ const raw=api.groundCorePlacement(image,t,3),
+  safe=api.groundCorePlacement(image,t,3,true);
+ assert.equal(safe.x,raw.x);assert.equal(safe.w,raw.w);
+ assert.equal(safe.y,raw.y);assert.equal(safe.h,raw.h);
+ assert.ok(safe.sx>raw.sx&&safe.sy>raw.sy);
+ assert.ok(safe.sw<raw.sw&&safe.sh<raw.sh);
+ assert.ok(safe.sx+safe.sw<raw.sx+raw.sw);
+ assert.equal(api.groundCorePlacement(image,t,0,true).sx,0);
+ assert.doesNotMatch(read('frozen-map-runtime.js'),/globalCompositeOperation='copy'/);
+ assert.match(read('frozen-map-game.js'),/params\\.get\\('groundSeam'\\)!=='exclusive'/);
 });
 test('shadow tone defaults preserve historical color and relative alpha',()=>{
  const win=moduleOf('shadow-tone.js'),tone=win.VedrasShadowTone;

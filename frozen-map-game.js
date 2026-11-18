@@ -93,19 +93,18 @@
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
- // Default: exclusive device-snapped Ground tile cores. The saved PNG
- // gutter remains a sampling halo, never an overlapping destination.
- // ?groundSeam=exclusive compares core ownership without source stitching;
- // ?groundSeam=legacy is the old overlap reference.
+ // Default: trim up to two suspect SOURCE border pixels with a single
+ // exact snapped core draw. No destructive seam overpainting. The A/B
+ // controls retain ?groundSeam=exclusive (raw core) and =legacy (overlap).
  const exclusiveGroundSeams=params.get('groundSeam')!=='legacy';
- const sourceGutterSeamBridge=exclusiveGroundSeams&&
+ const sourceEdgeInset=exclusiveGroundSeams&&
   params.get('groundSeam')!=='exclusive';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
   maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
-  adaptiveGroundDecode,exclusiveGroundSeams,sourceGutterSeamBridge,
+  adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -254,7 +253,9 @@
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
-  const status=await player.load(scene,lod,startPose,manifest.cells);
+  const status=await player.load(scene,lod,startPose,manifest.cells,{
+    expectedTiles:manifest.expectedTiles
+   });
   sceneRegisterMs=performance.now()-registerStarted;
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
@@ -268,7 +269,11 @@
     groundProbe.sampled+' geprüfte 4×-Kacheln · kleinste Quelle '+
     groundProbe.minDensity.toFixed(2)+'×. ':'')+
    (shadowSuccessorSource?'Korrigierte Schatten automatisch geladen (Original '+
-    shadowSuccessorSource+' mit ?original=1 erreichbar). ':'')+
+    shadowSuccessorSource+' mit ?original=1 erreichbar). ':
+    'Schatten in gespeicherten PNGs sind eingebrannt; ein Editorregler allein ändert sie nicht. ')+
+   (sourceEdgeInset?'Quellpixel-Nahtschutz aktiv (?groundSeam=exclusive als A/B). ':'')+
+   (status.completeVisibleAtlas?
+    'Vollständiger lokaler Atlas: keine zusätzlichen Lade-Wolken beim Zoom. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -421,7 +426,7 @@
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
    groundSeamPolicy:!exclusiveGroundSeams?'legacy-overlap':
-      sourceGutterSeamBridge?'source-gutter-bridge':'exclusive',
+      sourceEdgeInset?'source-edge-inset':'exclusive',
    requestedScene,shadowSuccessorSource,
    adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
