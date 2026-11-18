@@ -131,6 +131,6 @@ test('viewer startup does not eagerly read semantic data or require generator',(
  assert.match(game,/showWorldData.*addEventListener\('click'/);
  assert.match(html,/id="showWorldData"/);
  assert.match(editor,/saveAuthoredWorld\(scene,authoredSceneSnapshot\(\)\)/);
- assert.match(editor,/worldCells:saved\.worldCells/);
+ assert.match(editor,/worldCells=saved\.worldCells/);
  assert.doesNotMatch(game,/VedrasGeography\.generateWorld|bakeWorldTile\(/);
 });
