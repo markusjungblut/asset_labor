@@ -133,7 +133,7 @@ test('2x original atlas stays read-only and preview is fog-clipped',()=>{
  assert.doesNotMatch(game,/player\.beginZoomPreview\(/);
  assert.match(runtime,/paintWorld\(g,extendedView,shown,backingDpr\)/);
  assert.match(runtime,/clouds\.drawTransitions\(g,extendedView,fogEdgesFor\(extendedView\)\)/);
- assert.match(runtime,/clouds\.drawUnready\(g,extendedView,fogCellsFor\(extendedView\)/);
+ assert.match(runtime,/if\(!completeVisibleAtlas\)clouds\.drawUnready\(g,extendedView/);
  assert.match(runtime,/if\(ox<=0&&oy<=0&&ox\+destW>=width&&oy\+destH>=height\)/);
  assert.doesNotMatch(runtime,/bakeWorldTile\(|drawGroundImpl\(/);
  assert.doesNotMatch(game,/source\.put\(|deleteDatabase\(/);
