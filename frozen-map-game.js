@@ -422,6 +422,39 @@
    });
   }
  }
+ const seamAuditButton=$('auditGroundSeams');
+ if(seamAuditButton){
+  seamAuditButton.addEventListener('click',async()=>{
+   seamAuditButton.disabled=true;
+   const previous=output.textContent;
+   try{
+    if(!window.VedrasFrozenSeamAudit)throw Error('Bodennaht-Prüfung fehlt');
+    output.textContent='Originalboden wird an fünf Chunkgrenzen verglichen …';
+    // Fully read-only. Only PNGs stored under the exact scene are read.
+    // The linked resolver follows immutable Ground references where needed.
+    const raw=window.VedrasFrozenMap.indexedStore();
+    const store=window.VedrasFrozenMap.linkedStore(raw);
+    const report=await window.VedrasFrozenSeamAudit.audit(scene,store,{
+     progress:(done,total)=>{output.textContent='Bodennaht-Prüfung '+
+      done+' / '+total+' Quellkachel-Paare …';}
+    });
+    const file=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),
+     url=URL.createObjectURL(file),link=document.createElement('a');
+    link.href=url;link.download='vedras_bodennahte_'+scene+'.json';
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    output.textContent='Originalboden geprüft: '+report.summary.compared+
+     '/'+report.summary.total+' Kachelpaare; '+
+     report.summary.likelySourceMismatch+
+     ' mit deutlicher Quellabweichung. JSON erstellt; kein Atlas verändert.';
+   }catch(error){
+    output.textContent='Bodennaht-Prüfung fehlgeschlagen: '+
+     String(error?.message||error);
+   }finally{
+    seamAuditButton.disabled=false;
+   }
+  });
+ }
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
   profileReport,profileReset,profileStatus,
