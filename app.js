@@ -1148,7 +1148,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const state={zoom:.65,panX:0,panY:20,mode:'normal',view:'map',dpr:1,quality:'2',
  selected:'0,0',fogSeed:'vedras-local-preview',strategyOverlay:'both',fastCamera:true,grid:false,objects:true,river:true,riverPaths:[],riverWidth:40,riverBanks:true,riverBankStrength:80,riverDebug:false,roadShown:true,roadEdges:[{a:[0,0],b:[1,-1],level:'trail'},{a:[0,0],b:[-1,1],level:'trail'},{a:[0,0],b:[1,0],level:'trail'}],roadMaterial:'trail',roadPaintMode:false,roadPaintOrigin:null,bounds:false,sceneSize:37,chunkRendering:true,chunkRenderingOverride:false,workerTerrain:true,gpuTerrain:false,gpuTerrainUserEnabled:false,gpuSprites:false,adaptiveLod:true,worldStreaming:true,width:160,edgeBlend:true,blendVariants:true,waterSampling:'hex',edgeWidth:28,edgeDebug:false,seamCheck:false,materialScales:{},visualPolish:window.VedrasPolish.defaults(),edgeIrregularity:5,cornerBlend:true,transitionDebugMode:"edges",
  shoreline:{enabled:true,mode:'art',width:34,outer:10},
- asset:null,compareA:null,compareB:null,geographyScene:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
+ asset:null,compareA:null,compareB:null,geographyScene:null,geographySource:null,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{},hexObject:{},hexShadow:{},natureInstances:[],mountainInstances:[],mountainDebug:false,mountainShadowDebug:false,mountainSpacing:'normal',mountainShadowDefaults:{opacity:.44,softness:17,originX:-.10,originY:.015,angle:150,length:.72,rootWidth:.26,midWidth:.21,tipWidth:.105,contactWidth:.16,contactLength:.33},shadowGlobal:.68,shadowAssetPresets:{},shadowHandles:false,mountainMode:'single',mountainChainId:'alpen_01',showLegacyNature:true,natureSeed:12345,forest:window.VedrasForest.defaults(),relief:window.VedrasRelief.defaults()};
 let assets=[],assetByPath=new Map(),drawPending=false,W=800,H=600,worldCells=[];
 // Diagnostic reference only; never used to change terrain rendering.
 let step15ImportedTerrain=null;
@@ -1238,7 +1238,7 @@ function assignBiomes(restoreGeography=false){
   state.geographyScene.cells.length===state.sceneSize){
   worldCells=state.geographyScene.cells;invalidateTerrain();requestDraw();return;
  }
- state.geographyScene=null;
+ state.geographyScene=null;state.geographySource=null;
  const cs=[];const radius=sceneRadius(state.sceneSize);for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){if(Math.abs(q+r)>radius)continue;
  const fixed={"0,0":'plains',"-1,0":'forest',"-1,1":'forest',"0,-1":'hills',"1,-1":'mountain',"0,1":'plains',"1,0":'plains'};
  const h=hash(q,r,13)%12;const biome=fixed[key(q,r)]||(h<2?'forest':h===2?'mountain':h<5?'hills':'plains');cs.push({q,r,biome,terrainTypeId:demoTypes[biome],name:{plains:'Grasland',forest:'Waldboden',hills:'Hügel',mountain:'Gebirge'}[biome]});}
@@ -3749,7 +3749,7 @@ function clearCell(){
  delete state.hexObject[state.selected];delete state.hexShadow[state.selected];
  persistScene(false);requestDraw();
 }
-const savedFields=['terrainTest','relief','geographyScene','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','fogSeed','forest','river','riverPaths','riverWidth','riverBanks','riverBankStrength','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','chunkRenderingOverride','workerTerrain','gpuTerrain','gpuTerrainUserEnabled','gpuSprites','adaptiveLod','worldStreaming','fastCamera','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline','strategyOverlay'];
+const savedFields=['terrainTest','relief','geographyScene','geographySource','natureInstances','mountainInstances','mountainDebug','mountainMode','mountainChainId','mountainSpacing','mountainShadowDefaults','mountainShadowDebug','shadowGlobal','shadowAssetPresets','shadowHandles','showLegacyNature','natureSeed','fogSeed','forest','river','riverPaths','riverWidth','riverBanks','riverBankStrength','riverDebug','roadShown','roadEdges','roadMaterial','hexTerrain','biomeTerrain','baseBiomeByHex','hexObject','hexShadow','sceneSize','chunkRendering','chunkRenderingOverride','workerTerrain','gpuTerrain','gpuTerrainUserEnabled','gpuSprites','adaptiveLod','worldStreaming','fastCamera','materialScales','visualPolish','edgeBlend','blendVariants','waterSampling','edgeWidth','edgeDebug','edgeIrregularity','cornerBlend','transitionDebugMode','shoreline','strategyOverlay'];
 function persistScene(invalidateObjects=true){
  // Saving UI state must not flush every cached renderer layer.
  if(invalidateObjects===true){
@@ -3782,8 +3782,13 @@ $('adaptiveLod').checked=state.adaptiveLod;
 $('gpuSprites').checked=state.gpuSprites;
 $('gpuTerrain').checked=state.gpuTerrain;$('quality').value=state.quality;
 $('sceneSize').value=String(state.sceneSize);$('chunkRendering').checked=state.chunkRendering;$('workerTerrain').checked=state.workerTerrain;}
-function exportScene(){const config={schema:'vedras-asset-labor-scene-0.8',schemaVersion:2,catalogVersion:catalog.schemaVersion,terrainTypeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),typeOfCell(c)])),baseBiomeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),baseBiomeOf(c)])),projection:{hexWidth:256,groundY:PROJECT_Y},
- terrainByHex:state.hexTerrain,terrainByBiome:state.biomeTerrain,objectsByHex:state.hexObject,shadowsByHex:state.hexShadow,natureInstances:state.natureInstances,mountainInstances:state.mountainInstances,mountainDebug:state.mountainDebug,mountainMode:state.mountainMode,mountainChainId:state.mountainChainId,mountainSpacing:state.mountainSpacing,mountainShadowDefaults:state.mountainShadowDefaults,mountainShadowDebug:state.mountainShadowDebug,shadowGlobal:state.shadowGlobal,shadowAssetPresets:state.shadowAssetPresets,shadowHandles:state.shadowHandles,natureSeed:state.natureSeed,river:state.river,riverPaths:riverRoutes(),riverWidth:state.riverWidth,riverBanks:state.riverBanks,riverBankStrength:state.riverBankStrength,riverDebug:state.riverDebug,roadShown:state.roadShown,roadEdges:visibleRoadEdges(),roadMaterial:state.roadMaterial,forest:state.forest,forestByHex:Object.fromEntries(forestCells().map(c=>[c.key,{baseBiome:c.baseBiome,biome:c.biome,forestClass:c.forestClass,density:Number(c.density.toFixed(3)),edgeInfluence:Number(c.edgeInfluence.toFixed(3)),jungle:c.jungle}])),sceneSize:state.sceneSize,chunkRendering:state.chunkRendering,workerTerrain:state.workerTerrain,autotiling:{enabled:state.edgeBlend,blendVariants:state.blendVariants,waterSampling:state.waterSampling,width:state.edgeWidth,irregularity:state.edgeIrregularity,cornerBlend:state.cornerBlend,debug:state.edgeDebug,debugMode:state.transitionDebugMode},materialScales:state.materialScales,visualPolish:state.visualPolish,terrainTest:state.terrainTest||null,relief:state.relief,shoreline:state.shoreline};
+function authoredSceneSnapshot(){const config={schema:'vedras-asset-labor-scene-0.8',schemaVersion:3,catalogVersion:catalog.schemaVersion,terrainTypeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),typeOfCell(c)])),baseBiomeByHex:Object.fromEntries(worldCells.map(c=>[key(c.q,c.r),baseBiomeOf(c)])),projection:{hexWidth:256,groundY:PROJECT_Y},
+ terrainByHex:state.hexTerrain,terrainByBiome:state.biomeTerrain,objectsByHex:state.hexObject,shadowsByHex:state.hexShadow,natureInstances:state.natureInstances,mountainInstances:state.mountainInstances,mountainDebug:state.mountainDebug,mountainMode:state.mountainMode,mountainChainId:state.mountainChainId,mountainSpacing:state.mountainSpacing,mountainShadowDefaults:state.mountainShadowDefaults,mountainShadowDebug:state.mountainShadowDebug,shadowGlobal:state.shadowGlobal,shadowAssetPresets:state.shadowAssetPresets,shadowHandles:state.shadowHandles,natureSeed:state.natureSeed,river:state.river,riverPaths:riverRoutes(),riverWidth:state.riverWidth,riverBanks:state.riverBanks,riverBankStrength:state.riverBankStrength,riverDebug:state.riverDebug,roadShown:state.roadShown,roadEdges:visibleRoadEdges(),roadMaterial:state.roadMaterial,forest:state.forest,forestByHex:Object.fromEntries(forestCells().map(c=>[c.key,{baseBiome:c.baseBiome,biome:c.biome,forestClass:c.forestClass,density:Number(c.density.toFixed(3)),edgeInfluence:Number(c.edgeInfluence.toFixed(3)),jungle:c.jungle}])),sceneSize:state.sceneSize,chunkRendering:state.chunkRendering,workerTerrain:state.workerTerrain,autotiling:{enabled:state.edgeBlend,blendVariants:state.blendVariants,waterSampling:state.waterSampling,width:state.edgeWidth,irregularity:state.edgeIrregularity,cornerBlend:state.cornerBlend,debug:state.edgeDebug,debugMode:state.transitionDebugMode},materialScales:state.materialScales,visualPolish:state.visualPolish,terrainTest:state.terrainTest||null,relief:state.relief,shoreline:state.shoreline,
+ worldCells:worldCells.map(c=>({...c})),geographySource:state.geographySource||null,
+ shadowTone:window.VedrasShadowTone?.get?.()||null};
+ return window.VedrasAuthoredWorld.clone(config);
+}
+function exportScene(){const config=authoredSceneSnapshot();
  const url=URL.createObjectURL(new Blob([JSON.stringify(config,null,2)],{type:'application/json'}));const el=document.createElement('a');el.href=url;el.download='vedras_scene.json';el.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 async function loadLibrary(list,mode){
  const old=state.asset;
@@ -4047,10 +4052,11 @@ function frozenSceneKey(){
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v3-stable-authored',state.quality==='4'?'atlas-4x':'atlas-native',
+  'game-map-export-renderer-v4-semantic-world',state.quality==='4'?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
+  state.geographySource,
   state.natureInstances,state.mountainInstances,state.hexObject,state.hexShadow,
   state.forest,state.materialScales,state.visualPolish,state.relief,
   state.shoreline,state.roadEdges,state.roadShown,
@@ -4098,6 +4104,7 @@ $('frozenCapture').addEventListener('click',async()=>{
   const scene=frozenSceneKey();
   let prior=null;
   try{prior=await frozenMap.loadManifest(scene);}catch(_){}
+  await frozenMap.saveAuthoredWorld(scene,authoredSceneSnapshot());
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
    levels:[...new Set([...(prior?.levels||[]),packets[0].level])],
    pose:prior?.pose||{zoom:state.zoom,panX:state.panX,
@@ -4270,6 +4277,7 @@ $('frozenReshade').addEventListener('click',async()=>{
      existing.shadowTone?.lift!==tone.lift||
      existing.shadowTone?.balance!==tone.balance))
    throw Error('Zielkarte existiert mit anderen Basis-/Schatteneinstellungen');
+  await frozenMap.saveAuthoredWorld(target,authoredSceneSnapshot());
   if(!existing)await frozenMap.saveManifest(target,{
    cells:current,levels:['near'],pose:sourceManifest.pose,
    expectedTiles:sourceKeys.length,clouds:sourceManifest.clouds,
@@ -4384,6 +4392,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   lod=quality4?'near':(worldTiles?.chooseLod(state.zoom)||'mid');
  const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
  try{
+  await frozenMap.saveAuthoredWorld(scene,authoredSceneSnapshot());
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),levels:[lod],
    pose:{...pose,dpr:quality4?4:state.dpr,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings()});
@@ -4545,6 +4554,21 @@ $('frozenExport').addEventListener('click',async()=>{
    ' · '+Math.round(result.blob.size/1024/1024)+' MiB');
  }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
  finally{button.disabled=false;}
+});
+$('frozenWorldOpen').addEventListener('click',async()=>{
+ if(!frozenMap||frozenTour||frozenMapMode)return;
+ const source=$('frozenWorldId')?.value?.trim()||'';
+ if(!/^v1-[0-9a-f]{8}$/.test(source)){
+  frozenNotice('Zum Laden eine gültige Kartenkennung eingeben.');return;
+ }
+ try{
+  const authored=await frozenMap.loadAuthoredWorld(source);
+  if(!window.confirm('Gespeicherte Welt '+source+' mit '+authored.worldCells.length+
+    ' Hexfeldern in den Editor laden? Die derzeitige Arbeitsansicht wird ersetzt.'))return;
+  applyAuthoredEditorScene(authored);
+  frozenNotice('Editierbare Welt '+source+' mit '+authored.worldCells.length+
+   ' echten Hexfeldern geladen, ohne Worldgen oder Atlas-Rebake.');
+ }catch(error){frozenNotice('Welt konnte nicht geladen werden: '+String(error?.message||error));}
 });
 $('frozenStandalone').addEventListener('click',()=>{
  if(!frozenMap||frozenTour)return;
@@ -4806,16 +4830,19 @@ function shorelineTest(mode){
 $('shorelineSixTest').addEventListener('click',()=>shorelineTest('six'));
 $('shorelineCornersTest').addEventListener('click',()=>shorelineTest('corners'));
 
-$('sceneImport').addEventListener('change',async e=>{
- const f=e.target.files?.[0];if(!f)return;
- try{
-  const scene=JSON.parse(await f.text());
+function applyAuthoredEditorScene(scene){
   if(!['vedras-asset-labor-scene-0.8','vedras-asset-labor-scene-0.7','vedras-asset-labor-scene-0.6'].includes(scene.schema))throw Error('Nicht unterstütztes Szenenformat');
   step15ImportedTerrain=scene.terrainTypeByHex||null;
   const tileMap=scene.terrainByHex||{},biomeMap=scene.terrainByBiome||{};
   const good=x=>typeof x==='string'&&assetByPath.has(x)&&isTerrainValid(useAsset(x))&&!!typeOfAsset(useAsset(x));
   const skipped=[...Object.values(tileMap),...Object.values(biomeMap)].filter(v=>!good(v)).length;
   state.sceneSize=SCENE_SIZES.includes(Number(scene.sceneSize))?Number(scene.sceneSize):37;state.chunkRendering=!!scene.chunkRendering;state.chunkRenderingOverride=true;state.workerTerrain=scene.workerTerrain!==false;$('chunkRendering').checked=state.chunkRendering;$('workerTerrain').checked=state.workerTerrain;$('sceneSize').value=String(state.sceneSize);assignBiomes();
+  if(scene.schemaVersion===3){
+   const saved=window.VedrasAuthoredWorld.clone(scene);
+   worldCells=saved.worldCells;
+   state.geographyScene={size:state.sceneSize,cells:worldCells};
+   state.geographySource=saved.geographySource||null;
+  }else state.geographySource=null;
   // Preserve explicit water terrain from the scene without changing land types.
   if(scene.terrainTypeByHex&&typeof scene.terrainTypeByHex==='object')
    for(const cell of worldCells){
@@ -4839,9 +4866,16 @@ $('sceneImport').addEventListener('change',async e=>{
   $('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('waterSamplingMode').value=state.waterSampling;
   $('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;
   $('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);
+  if(scene.schemaVersion===3&&scene.shadowTone)
+   window.VedrasShadowTone?.set(scene.shadowTone);
   persistScene();invalidateTerrain();requestDraw();setView('map');
   $('catalogMessage').textContent=`Szene importiert. ${skipped} fehlende oder nicht zugeordnete Textur(en) ausgelassen.`;
- }catch(err){alert('Szenenimport abgelehnt: '+err.message);}e.target.value='';
+}
+$('sceneImport').addEventListener('change',async e=>{
+ const f=e.target.files?.[0];if(!f)return;
+ try{applyAuthoredEditorScene(JSON.parse(await f.text()));}
+ catch(err){alert('Szenenimport abgelehnt: '+err.message);}
+ e.target.value='';
 });
 $('saveScene').addEventListener('click',exportScene);
 // A final image is recomposed from source assets; NEVER upscale a low-res
@@ -5097,6 +5131,9 @@ function importGeographyWorld(world){
   ' geografisch generierte Hexfelder ersetzt. Platzierte Objekte, Wege und Flüsse in der Testszene werden zurückgesetzt. Die originale Grafikbibliothek und beide Asset-Kataloge bleiben unangetastet. Fortfahren?'))return;
  worldCells=next;
  state.geographyScene={size:state.sceneSize,cells:next};
+ state.geographySource={version:world.version,seed:world.seed,
+  width:world.width,height:world.height,originQ:world.originQ??0,
+  originR:world.originR??0,config:{...world.config}};
  state.hexTerrain={};state.biomeTerrain={};state.baseBiomeByHex={};
  state.hexObject={};state.hexShadow={};state.natureInstances=[];state.mountainInstances=[];
  state.roadEdges=[];state.roadPaintMode=false;state.roadPaintOrigin=null;
