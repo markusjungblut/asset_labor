@@ -46,9 +46,10 @@ test('browser data and existing scenes remain protected by safe importer',()=>{
  assert.match(inspector,/PNG-Chunk-Prüfsumme ungültig/);
  assert.match(game,/readOnly:true/);
 });
-test('no unapproved render experiments become default when ZIP is present',()=>{
- for(const param of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode','fallbackAtlas'])
+test('legacy experiments remain opt-in; measured safety atlas stays reversible',()=>{
+ for(const param of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode'])
   assert.ok(game.includes("params.get('"+param+"')==='1'"),param);
+ assert.match(game,/params\.get\('fallbackAtlas'\)!=='0'/);
  assert.match(runtime,/directionalPrefetch=false,lodRecency=false,visibleBorrow=false/);
  assert.match(runtime,/parallelLayerDecode=false,fallbackAtlas=false/);
  assert.match(viewer,/id="optFallbackAtlas"/);
