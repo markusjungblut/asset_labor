@@ -122,6 +122,6 @@ test('viewer enables exclusive Ground by default and keeps legacy A/B rollback',
  assert.match(runtime,/groundCorePlacement\(image,t,pad,sourceEdgeInset\)/);
  assert.match(game,/params\.get\('groundSeam'\)!=='legacy'/);
  assert.match(game,/adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset/);
- assert.match(html,/20261118-source-edge-inset-v3/);
+ assert.match(html,/20261118-near-archive-audit-v4/);
  assert.match(html,/20261118-viewport-audit-v3/);
 });

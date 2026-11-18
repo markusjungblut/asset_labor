@@ -91,11 +91,11 @@ test('manifest building status and tile accounting survive an interrupted sessio
  assert.equal(b.verifiedTiles,2);
 });
 test('full export requires 4x and a successful read-only audit before release',()=>{
- assert.match(app,/state\\.quality!=='4'/);
- assert.match(app,/game-map-export-renderer-v6-verified-near/);
- assert.match(app,/const workQueue=all\\.slice\\(\\),retriedIds=new Set/);
- assert.match(app,/verifyArchive\\(scene,'near',all,\\{require4x:true\\}\\)/);
- assert.match(app,/generationStatus:published\\?'complete':'building'/);
- assert.match(game,/requestedLevel&&!manifest\\.levels\\.includes\\(requestedLevel\\)/);
- assert.match(game,/manifest\\.generationStatus==='building'/);
+ assert.ok(app.includes("state.quality!=='4'"));
+ assert.ok(app.includes('game-map-export-renderer-v6-verified-near'));
+ assert.ok(app.includes('const workQueue=all.slice(),retriedIds=new Set()'));
+ assert.ok(app.includes("verifyArchive(scene,'near',all,{require4x:true})"));
+ assert.ok(app.includes("generationStatus:published?'complete':'building'"));
+ assert.ok(game.includes('requestedLevel&&!manifest.levels.includes(requestedLevel)'));
+ assert.ok(game.includes("manifest.generationStatus==='building'"));
 });

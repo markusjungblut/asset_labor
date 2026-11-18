@@ -189,6 +189,6 @@ test('only a fully completed shadow-scene becomes automatic playback choice',()=
  assert.match(viewer,/shadowSuccessorSource=scene;scene=preferred/);
  assert.match(viewer,/params\.get\('ground4x'\)==='1'/);
  assert.match(viewer,/params\.get\('fallbackAtlas'\)!=='0'/);
- assert.match(html,/frozen-map-game\.js\?v=20261118-viewport-audit-v6/);
+ assert.match(html,/frozen-map-game\.js\?v=20261118-near-fallback-guard-v7/);
  assert.doesNotMatch(editor,/deleteDatabase\(|indexedDB\.deleteDatabase\(/);
 });
