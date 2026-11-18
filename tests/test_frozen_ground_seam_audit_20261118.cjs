@@ -108,7 +108,7 @@ test('viewer enables exclusive Ground by default and keeps legacy A/B rollback',
  const runtime=fs.readFileSync(path.join(root,'frozen-map-runtime.js'),'utf8');
  assert.match(runtime,/exclusiveGroundSeams=true/);
  assert.match(runtime,/if\(exclusiveGroundSeams\)/);
- assert.match(runtime,/groundCorePlacement\(image,t,pad\)/);
+ assert.match(runtime,/groundCorePlacement\(image,t,pad,sourceEdgeInset\)/);
  assert.match(game,/params\.get\('groundSeam'\)!=='legacy'/);
  assert.match(game,/adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset/);
  assert.match(html,/20261118-source-edge-inset-v3/);
