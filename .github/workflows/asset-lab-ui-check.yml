@@ -51,6 +51,7 @@ jobs:
             /tests/test_rendering_step25ab_integrated_flags_20261117.cjs
             /tests/test_frozen_4x_source_consistency_20261118.cjs
             /tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
+            /scripts/rendering-step16a-audit.mjs
             /*.js
             /frozen-map-game.html
       - name: Node 22
