@@ -166,6 +166,26 @@
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
+ // The semantic world is intentionally lazy: not part of viewer startup,
+ // camera frames, PNG selection or the decoded-image memory budget.
+ $('showWorldData')?.addEventListener('click',async()=>{
+  const button=$('showWorldData');button.disabled=true;
+  try{
+   const record=await window.VedrasFrozenMap.indexedStore().get(scene+'|world'),
+    doc=record?.data,contract=window.VedrasAuthoredWorld;
+   if(!record||record.kind!=='vedras-authored-world-v1'||
+      !contract?.validate(doc)){
+    output.textContent='Diese ältere Bildkarte enthält keine gespeicherte, editierbare Hexwelt.';
+    return;
+   }
+   const origin=doc.geographySource;
+   output.textContent='Persistente Hexwelt: '+doc.worldCells.length+
+    ' Felder · '+(origin?'Worldgen '+origin.version+' / Seed '+origin.seed:
+     'manuell erstellte Karte')+
+    ' · ohne Geografie-Neuberechnung; zur Bearbeitung die Kennung im Asset-Labor öffnen.';
+  }catch(error){output.textContent='Hexwelt-Daten nicht lesbar: '+String(error?.message||error);}
+  finally{button.disabled=false;}
+ });
  let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null,
   groundProbe=null;
  let panSettler=null,dragLowDprFrames=0;
