@@ -841,8 +841,25 @@ function groundSourceRevision(t,terrainVersion=null,readyMaps=null){
  const road=state.roadShown?versionFor(roadChunks,readyMaps?.road,true):'off';
  const river=state.river&&state.riverBanks&&state.riverBankStrength>0?
   versionFor(riverChunks,readyMaps?.river,true):'off';
+ // River water is rendered into every affected Ground PNG from the
+ // mouth's authored water material. Its asset decode/revision belongs
+ // to Ground provenance even if river-bank chunk pixels are unchanged.
+ // Without this, a tile baked before/after its texture becomes ready may
+ // reuse the same apparently authoritative Ground revision.
+ const riverWater=state.river?riverRoutes()
+  .filter(route=>(route.hexes||[]).some(([q,r])=>{
+   const p=axialPos(q,r);
+   return p.x>=t.x-320&&p.x<=t.x+t.size+320&&
+    p.y>=t.y-320&&p.y<=t.y+t.size+320;
+  })).map(route=>{
+   const mouth=route.hexes?.at(-1),
+    cell=mouth?worldCells.find(c=>c.q===mouth[0]&&c.r===mouth[1]):null,
+    water=cell?imageForBiome(cell,false):null;
+   return [water?.path||null,water?.mtime||null,
+    water?.imageRevision||0,water?.img?.naturalWidth||0];
+  }):[];
  return JSON.stringify([String(sourceVersion),String(coast),
-  String(road),String(river)]);
+  String(road),String(river),riverWater]);
 }
 function groundTileContentKey(t,level,coreVersion){
  if(coreVersion==null)return null;
