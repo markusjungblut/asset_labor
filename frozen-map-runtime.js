@@ -701,8 +701,7 @@ window.VedrasFrozenMap=(()=>{
    // Never churn the safety net against an unusually large pinned
    // viewport. Reserve room for urgent 2x additions and cap background
    // 1x coverage rather than repeatedly admitting and evicting it.
-   const ceiling=Math.max(0,Math.min(maxDecodedPixels*.35,
-    maxDecodedPixels*FALLBACK_SHARE));
+   const ceiling=Math.max(0,maxDecodedPixels*FALLBACK_SHARE);
    const estimatedNext=typicalPixels['1x']||Math.min(500000,maxDecodedPixels*.01);
    if(fallbackPixels+estimatedNext>ceiling){
     fallbackWarmCapped=true;return;
