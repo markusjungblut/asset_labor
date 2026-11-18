@@ -9,7 +9,7 @@ const ROOT=path.join(__dirname,'..'),OUT=process.env.VEDRAS_CI_ARTIFACTS||
 (async()=>{
  fs.mkdirSync(OUT,{recursive:true});
  const allow=p=>p==='frozen-map-game.html'||
-  /^frozen-map-[\\w-]+\\.js$/.test(p)||
+  /^frozen-map-[\w-]+\.js$/.test(p)||
   ['cloud-artwork.js','authored-world-contract.js'].includes(p);
  const server=http.createServer((req,res)=>{
   const name=new URL(req.url,'http://localhost').pathname.slice(1);
