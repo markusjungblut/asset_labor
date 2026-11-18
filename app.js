@@ -133,6 +133,64 @@ function shorelineTileStatus(t,allowPrepared=false,details=null){
  }
  return true;
 }
+// A river is baked into the *Ground* PNG, not into independent Scenery.
+// Previous readiness checks covered terrain, shores and sprites but did
+// not check whether its water texture and bank chunks were ready. Nearby
+// tiles could therefore be frozen with different river overlays, causing
+// persistent seams that are visible ONLY on river hexes.
+function riverTileStatus(t,allowPrepared=false,details=null){
+ if(!state.river)return true;
+ const routes=riverRoutes();
+ if(!routes.length)return true;
+ const nearby=routes.filter(route=>(route.hexes||[]).some(([q,r])=>{
+  const p=axialPos(q,r);
+  return p.x>=t.x-320&&p.x<=t.x+t.size+320&&
+   p.y>=t.y-320&&p.y<=t.y+t.size+320;
+ }));
+ if(!nearby.length)return true;
+ const byKey=new Map(worldCells.map(c=>[key(c.q,c.r),c]));
+ for(const route of nearby){
+  const mouth=route.hexes?.at(-1);
+  if(!mouth){if(details)details.riverReason='river-mouth-missing';return false;}
+  const cell=byKey.get(mouth.join(','));
+  const water=cell?imageForBiome(cell,false):null;
+  if(!water?.img?.naturalWidth){
+   if(water&&!details)imagePool.ensure(water,11);
+   if(details)details.riverReason='river-water-texture-not-ready';
+   return false;
+  }
+ }
+ if(state.riverBanks!==false&&Number(state.riverBankStrength)>0){
+  const prepared=riverNetworkCache.prepared;
+  if(!prepared?.lines?.length){
+   if(details)details.riverReason='river-bank-network-not-prepared';
+   return false;
+  }
+  const margin=80;
+  const needsBank=prepared.lines.some(line=>
+   line.maxX>=t.x-margin&&line.minX<=t.x+t.size+margin&&
+   line.maxY>=t.y-margin&&line.minY<=t.y+t.size+margin);
+  if(needsBank){
+   const entry=riverChunks.readyTiles({
+    x:t.x,y:t.y,width:t.size-1,height:t.size-1},
+    {limit:8,sourceKeys:true}).find(item=>item.tile.id===t.id);
+   if(!entry){
+    if(details)details.riverReason='river-bank-chunk-not-ready';
+    return false;
+   }
+   const paintedVersion=riverChunks.paintedVersions().get(t.id);
+   if(details){
+    details.riverVersion=entry.artwork.version;
+    details.riverPaintedVersion=paintedVersion??null;
+   }
+   if(!allowPrepared&&paintedVersion!==entry.artwork.version){
+    if(details)details.riverReason='river-bank-not-painted';
+    return false;
+   }
+  }
+ }
+ return true;
+}
 function tileArtworkReady(t){return tileArtworkStatus(t);}
 function tileArtworkStatus(t,details=null,allowPrepared=false){
  if(details){details.tileId=t.id;details.terrainVersion=null;
@@ -153,6 +211,10 @@ function tileArtworkStatus(t,details=null,allowPrepared=false){
   details.paintedVersion=terrainChunks.paintedVersions().get(t.id)??null;}
  if(!shorelineTileStatus(t,allowPrepared,details)){
   if(details)details.reason=details.shorelineReason;
+  return false;
+ }
+ if(!riverTileStatus(t,allowPrepared,details)){
+  if(details)details.reason=details.riverReason;
   return false;
  }
  if(!state.objects){if(details)details.reason='ready-objects-hidden';return true;}
