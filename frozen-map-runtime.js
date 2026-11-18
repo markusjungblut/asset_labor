@@ -1044,9 +1044,10 @@ window.VedrasFrozenMap=(()=>{
     }
     g.clip();
    }
-   // Ground uses exclusive device-snapped borders with an infinitesimal
-   // source-gutter overdraw. It covers fractional-DPR seams without changing
-   // the baked terrain content, and never samples outside the original PNG.
+   // Source gutters supply bilinear samples, but destination rectangles
+   // are device-snapped and exclusive. Unlike the previous overlapping
+   // gutter overdraw, this cannot double-composite semitransparent borders.
+   // The reversible legacy policy is retained for identical-scene A/B.
    const groundClipStart=profileFrame?clock():0;
    g.save();clipCells(0);
    if(profileFrame)profileFrame.maskMs+=clock()-groundClipStart;
