@@ -100,7 +100,7 @@ test('tone affects mountain alpha and RGB while preserving origin geometry',()=>
 test('viewer switch and authoring tone are not writes to the frozen archive',()=>{
  const game=read('frozen-map-game.js'),html=read('frozen-map-game.html'),
   editor=read('index.html'),app=read('app.js');
- assert.match(game,/params\.get\('ground4x'\)==='1'/);
+ assert.match(game,/params\.get\('ground4x'\)!=='0'/);
  assert.match(game,/groundDetailStore\.setEnabled\(groundDetailActive\)/);
  assert.match(game,/groundDetailStore\.probe\(scene,lod\)/);
  assert.doesNotMatch(game,/Number\(manifest\.pose\?\.dpr\)>=3/);
@@ -357,7 +357,7 @@ test('zoom-aware original 4x bitmap residency follows screen pixels, not archive
 test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
  const runtime=read('frozen-map-runtime.js'),
   page=read('frozen-map-game.js'),html=read('frozen-map-game.html');
- assert.match(page,/params\.get\('groundDecode'\)==='adaptive'/);
+ assert.match(page,/params\.get\('groundDecode'\)!=='full'/);
  assert.match(page,/maxDecodedPixels:adaptiveGroundDecode\?128000000:95000000/);
  assert.match(html,/id="optAdaptiveGround"/);
  assert.match(runtime,/groundTierSwitches/);
