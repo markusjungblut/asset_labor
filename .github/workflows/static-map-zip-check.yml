@@ -47,6 +47,9 @@ jobs:
           filter: blob:none
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /authored-world-contract.js
+            /tests/test_persisted_authored_world_20261118.cjs
+            /app.js
             /static-map-zip-inspector.js
             /static-map-zip-importer.js
             /tests/test_static_map_zip_importer_20261117.cjs
