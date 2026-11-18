@@ -53,9 +53,9 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optWorldBands"> Nur benötigte Weltbereiche kopieren</label>
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (bei 4× automatisch und auf 1,25× begrenzt; `fogLayer=0` schaltet sie für den Vergleich aus)</label>
-<label><input type="checkbox" id="optFallbackAtlas"> Experimenteller 1×-Sicherheitscache (RAM-Vorwärmung; nur fertige Kartenkacheln)</label>
-<label><input type="checkbox" id="optGround4x"> <strong>Schärferer Originalboden</strong> (4×-Quell-PNG wird geprüft, danach bis 4×-Anzeige (max. 18 MP); mehr RAM, nur Near)</label>
-<label><input type="checkbox" id="optAdaptiveGround"> 4×-Bitmap-Cache an die Bildschirmauflösung anpassen (Test: Originalboden bleibt unverändert, weniger RAM, bei starkem Zoom wieder 4×)</label>
+<label><input type="checkbox" id="optFallbackAtlas"> 1×-Sicherheitscache (automatisch aktiv; verhindert leere Kacheln und wiederholtes Laden)</label>
+<label><input type="checkbox" id="optGround4x"> <strong>Originalboden automatisch in 4×</strong> (nur bei nachgewiesenen 4×-PNG; abschaltbar für Vergleich)</label>
+<label><input type="checkbox" id="optAdaptiveGround"> Adaptive 4×-Dekodierung (automatisch aktiv; weniger RAM bei gleichem sichtbaren Detailbedarf)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
 <main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
