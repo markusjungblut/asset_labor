@@ -10,6 +10,17 @@ vm.runInNewContext(source,{window:w,Date,console});
 const api=w.VedrasFrozenSeamAudit;
 const pixels=(width,height)=>new Uint8ClampedArray(Array.from(
  {length:width*height},()=>[55,100,125,255]).flat());
+test('read-only seam audit selects saved neighbors crossing the actual zoom viewport',()=>{
+ const known=['v1-aabbccdd|near|0,0','v1-aabbccdd|near|1,0',
+  'v1-aabbccdd|near|0,1','v1-aabbccdd|near|10,10'];
+ const pairs=api.pairsForView({
+  zoom:4,panX:-2048,panY:0,width:1100,height:850,projectY:.85
+ },known);
+ assert.ok(pairs.some(p=>p[0]==='0,0'&&p[1]==='1,0'));
+ assert.ok(pairs.every(p=>!p.includes('10,10')));
+ assert.equal(api.pairsForView({zoom:0,width:100,height:100,
+  panX:0,panY:0},known).length,0);
+});
 test('a matching Ground gutter is reported as matching without any scene mutation',()=>{
  const a=pixels(24,32),b=a.slice();
  const result=api.comparePixels(a,b,24,32,'x');

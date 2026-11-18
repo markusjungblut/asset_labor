@@ -5,6 +5,38 @@
 ((root)=>{
  const PAIRS=[['-1,0','0,0'],['5,-1','5,0'],
   ['-3,-5','-2,-5'],['-6,0','-5,0'],['2,-5','2,-4']];
+ function pairsForView(view,known=[],limit=12){
+  if(!view||![view.zoom,view.panX,view.panY,view.width,view.height]
+    .every(Number.isFinite)||view.zoom<=0)return [];
+  const z=view.zoom,py=view.projectY||.85,
+   minX=(-view.width/2-view.panX)/z,
+   maxX=(view.width/2-view.panX)/z,
+   minY=(-view.height/2-view.panY)/(z*py),
+   maxY=(view.height/2-view.panY)/(z*py),
+   centerX=-view.panX/z,centerY=-view.panY/(z*py);
+  // Only audit actual stored neighbors that touch the CURRENT viewport.
+  // Do not decode arbitrary distant pairs that cannot explain a seam on
+  // the user's screen at 400% zoom.
+  const ids=new Set([...known].map(k=>String(k).split('|').at(-1)));
+  const present=(x,y)=>ids.has(x+','+y);
+  const found=[];
+  const x0=Math.floor(minX/512)-1,x1=Math.ceil(maxX/512),
+   y0=Math.floor(minY/512)-1,y1=Math.ceil(maxY/512);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+   if(!present(x,y))continue;
+   const id=x+','+y;
+   if(present(x+1,y)&&Math.abs((x+1)*512-centerX)<=
+      view.width/(2*z)+6)
+    found.push({pair:[id,(x+1)+','+y],
+     distance:((x+1)*512-centerX)**2+((y+.5)*512-centerY)**2});
+   if(present(x,y+1)&&Math.abs((y+1)*512-centerY)<=
+      view.height/(2*z*py)+6)
+    found.push({pair:[id,x+','+(y+1)],
+     distance:((x+.5)*512-centerX)**2+((y+1)*512-centerY)**2});
+  }
+  return found.sort((a,b)=>a.distance-b.distance)
+   .slice(0,Math.min(24,Math.max(1,limit))).map(v=>v.pair);
+ }
  function comparePixels(a,b,width,height,axis){
   if(!Number.isInteger(width)||!Number.isInteger(height)||
      width<2||height<2||a.length!==b.length||
@@ -163,5 +195,5 @@
    verdict:'RGB from transparent PNG pixels is ignored for mismatch classification. Fully transparent borders are inconclusive. Source agreement still requires a composition A/B test.'};
   return result;
  }
- root.VedrasFrozenSeamAudit={audit,comparePixels,classify,PAIRS};
+ root.VedrasFrozenSeamAudit={audit,comparePixels,classify,PAIRS,pairsForView};
 })(window);

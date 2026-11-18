@@ -461,12 +461,19 @@
    const previous=output.textContent;
    try{
     if(!window.VedrasFrozenSeamAudit)throw Error('Bodennaht-Prüfung fehlt');
-    output.textContent='Originalboden wird an fünf Chunkgrenzen verglichen …';
-    // Fully read-only. Only PNGs stored under the exact scene are read.
-    // The linked resolver follows immutable Ground references where needed.
+    // Compare the user's ACTUAL screen instead of five hardcoded, often
+    // distant tiles. Decode bounded stored neighbor pairs, never whole map.
     const raw=window.VedrasFrozenMap.indexedStore();
     const store=window.VedrasFrozenMap.linkedStore(raw);
+    const view={...player.getPose(),width:canvas.clientWidth,
+     height:canvas.clientHeight};
+    const keys=await store.keys(scene+'|near|');
+    const nearby=window.VedrasFrozenSeamAudit.pairsForView(view,keys,12);
+    const pairs=nearby.length?nearby:window.VedrasFrozenSeamAudit.PAIRS;
+    output.textContent='Originalboden: '+pairs.length+
+     ' Kachelgrenzen der aktuellen Kartenansicht prüfen …';
     const report=await window.VedrasFrozenSeamAudit.audit(scene,store,{
+     pairs,
      progress:(done,total)=>{output.textContent='Bodennaht-Prüfung '+
       done+' / '+total+' Quellkachel-Paare …';}
     });
