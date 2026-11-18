@@ -171,3 +171,24 @@ test('portable ZIP of a linked scene embeds both complete image layers',async()=
  assert.ok(bytes.includes(Buffer.from(await ground.arrayBuffer())));
  assert.equal((await raw.get(original)).layers[1].png,oldScene);
 });
+
+test('only a fully completed shadow-scene becomes automatic playback choice',()=>{
+ const editor=read('app.js'),viewer=read('frozen-map-game.js'),
+  html=read('frozen-map-game.html');
+ assert.match(editor,
+  /if\(!run\.cancel&&!failed&&completed===sourceKeys\.length\)/);
+ assert.match(editor,
+  /localStorage\.setItem\('vedras-frozen-shadow-current:'\+source,target\)/);
+ assert.match(editor,/Schattenkarte noch UNVOLLSTÄNDIG/);
+ assert.match(viewer,/params\.get\('original'\)!=='1'/);
+ assert.match(viewer,
+  /localStorage\.getItem\('vedras-frozen-shadow-current:'\+scene\)/);
+ assert.match(viewer,/successor\.sceneryBaseScene===scene&&successor\.shadowTone/);
+ assert.match(viewer,
+  /groundDetailStore\.keys\(preferred\+'\|near\|'\)\)\.length===count/);
+ assert.match(viewer,/shadowSuccessorSource=scene;scene=preferred/);
+ assert.match(viewer,/params\.get\('ground4x'\)!=='0'/);
+ assert.match(viewer,/params\.get\('fallbackAtlas'\)!=='0'/);
+ assert.match(html,/frozen-map-game\.js\?v=20261118-auto-shadow-4x-quality/);
+ assert.doesNotMatch(editor,/deleteDatabase\(|indexedDB\.deleteDatabase\(/);
+});
