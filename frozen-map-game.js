@@ -4,7 +4,8 @@
 (async()=>{
  const $=id=>document.getElementById(id),
   params=new URLSearchParams(location.search),
-  scene=params.get('scene'),requestedLevel=params.get('lod');
+  requestedScene=params.get('scene'),requestedLevel=params.get('lod');
+ let scene=requestedScene,shadowSuccessorSource=null;
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
  const benchmark=$('atlasBenchmark');
  if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
@@ -25,12 +26,12 @@
  }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
- // Quality is opt-in: ground uses archived 4× source, scenery stays 2×.
- // No ZIP, source PNG or derived cache is overwritten.
- const groundDetailRequested=params.get('ground4x')==='1';
- // Opt-in until real Firefox profiling establishes a regression-free gain.
- // Tiered decoder reads 4x source, but keeps only screen-needed pixels in RAM.
- const adaptiveGroundDecode=groundDetailRequested&&params.get('groundDecode')==='adaptive';
+ // Normal playback selects genuine native 4x Ground automatically where
+ // PNG-IHDR confirms it. The previous URL-only opt-in hid the quality
+ // users expected. Both options remain reversible for A/B regression tests.
+ const groundDetailRequested=params.get('ground4x')!=='0';
+ const adaptiveGroundDecode=groundDetailRequested&&
+  params.get('groundDecode')!=='full';
  let groundDetailActive=false;
  const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
   standard:twoXStore,overview:oneXStore,
@@ -46,7 +47,7 @@
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
  // Experimental compact 1x background residency: off in normal sessions.
- const fallbackAtlas=params.get('fallbackAtlas')==='1';
+ const fallbackAtlas=params.get('fallbackAtlas')!=='0';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -166,8 +167,29 @@
  let panSettler=null,dragLowDprFrames=0;
  try{
   const manifestReadStarted=performance.now();
+  // A successful, explicit Scenery-only update publishes a local alias
+  // to the immutable successor. Existing saved links open corrected
+  // shadows without additional switches. ?original=1 bypasses the alias.
+  if(params.get('original')!=='1'){
+   let preferred=null;
+   try{preferred=localStorage.getItem('vedras-frozen-shadow-current:'+scene);}
+   catch{}
+   if(preferred&&/^v1-[0-9a-f]{8}$/.test(preferred)&&preferred!==scene){
+    try{
+     const successor=await player.loadManifest(preferred);
+     const count=successor.expectedTiles;
+     if(successor.sceneryBaseScene===scene&&successor.shadowTone&&
+        Number.isSafeInteger(count)&&count>0&&
+        (await groundDetailStore.keys(preferred+'|near|')).length===count){
+      shadowSuccessorSource=scene;scene=preferred;
+     }
+    }catch{/* The original immutable atlas remains a safe fallback. */}
+   }
+  }
   const manifest=await player.loadManifest(scene);
   manifestReadMs=performance.now()-manifestReadStarted;
+  if(benchmark)benchmark.href='frozen-map-benchmark.html?scene='+
+   encodeURIComponent(scene);
   const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
    manifest.levels[0];
   // A saved pose.dpr is metadata, NOT proof of 4x PNG pixels.
@@ -220,6 +242,8 @@
    (groundProbe?'Originalboden-Referenz: '+groundProbe.original4x+'/'+
     groundProbe.sampled+' geprüfte 4×-Kacheln · kleinste Quelle '+
     groundProbe.minDensity.toFixed(2)+'×. ':'')+
+   (shadowSuccessorSource?'Korrigierte Schatten automatisch geladen (Original '+
+    shadowSuccessorSource+' mit ?original=1 erreichbar). ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -371,6 +395,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
+   requestedScene,shadowSuccessorSource,
    adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
