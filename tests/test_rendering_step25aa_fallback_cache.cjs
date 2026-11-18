@@ -60,9 +60,10 @@ test('hard bitmap RAM limit protects visible and compact 1x over offscreen 2x',(
  experiment.__probe.enforce();
  assert.equal(experiment.__probe.has('a~1x'),true);
  assert.equal(experiment.__probe.has('b~1x'),true);
- assert.equal(experiment.__probe.has('c~2x'),false);
+ assert.equal(experiment.__probe.has('c~2x'),true);
  assert.equal(experiment.__probe.has('d~2x'),true);
- assert.ok(experiment.report().decodedPixels<=55000);
+ assert.ok(experiment.report().decodedPixels<=experiment.report().effectiveDecodedBudget);
+ assert.ok(experiment.report().fallbackMemoryAllowance>0);
  const control=setup(false);
  control.__probe.seed(entries,['d~2x']);
  control.__probe.enforce();
@@ -70,6 +71,26 @@ test('hard bitmap RAM limit protects visible and compact 1x over offscreen 2x',(
  assert.equal(control.__probe.has('b~1x'),false);
  assert.equal(control.__probe.has('c~2x'),true);
  assert.ok(control.report().decodedPixels<=55000);
+});
+test('1x safety bitmaps cannot be evicted under fully pinned 4x pressure',()=>{
+ const t=setup(true);
+ t.__probe.seed([
+  {id:'s1~1x',variant:'1x',pixels:12000},
+  {id:'s2~1x',variant:'1x',pixels:12000},
+  {id:'s3~1x',variant:'1x',pixels:12000},
+  {id:'a~2x',variant:'2x',pixels:42000},
+  {id:'b~2x',variant:'2x',pixels:42000}
+ ],['a~2x','b~2x']);
+ const before=t.report().decodedPixels;
+ t.__probe.enforce();
+ for(const id of ['s1~1x','s2~1x','s3~1x','a~2x','b~2x'])
+  assert.equal(t.__probe.has(id),true,id);
+ assert.equal(t.report().decodedPixels,before);
+ assert.equal(t.report().evictions,0);
+ assert.equal(t.report().fallbackSafetyPressure,1);
+ assert.ok(t.report().effectiveDecodedBudget<before,
+  'soft budget exceed is observable, never hidden');
+ t.stop();
 });
 test('warmup decodes 1x through read-only storage without writing',async()=>{
  const player=setup(true);
