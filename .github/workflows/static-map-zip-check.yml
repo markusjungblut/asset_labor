@@ -15,6 +15,7 @@ on:
       - tests/automated_browser_static_map_zip_import_20261117.cjs
       - frozen-map-game.html
       - frozen-map-game.js
+      - frozen-map-seam-audit.js
       - frozen-map-ground-detail.js
       - frozen-map-runtime.js
       - frozen-map-derived-1x.js
@@ -57,6 +58,7 @@ jobs:
             /static-map-import-ui.js
             /frozen-map-game.html
             /frozen-map-game.js
+            /frozen-map-seam-audit.js
             /frozen-map-ground-detail.js
             /frozen-map-runtime.js
             /frozen-map-derived-1x.js
