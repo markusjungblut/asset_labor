@@ -15,14 +15,18 @@ function fixture({waterReady=true,banksReady=true,bankBuilt=true,
  const route=near?{hexes:[[0,0],[1,0]]}:
   {hexes:[[44,44],[45,44]]};
  const known={id:'0,0',tile,artwork:{version:11}};
+ const requested=[];
  const context={
-  state:{river,riverBanks:true,riverBankStrength:70},
+  assets:[mouthAsset],assetByPath:new Map(),
+  isTerrain:()=>true,typeOfAsset:()=>null,typeOfCell:()=>null,
+  state:{river,riverBanks:true,riverBankStrength:70,riverPaths:[route],
+   hexTerrain:{},biomeTerrain:{}},
   riverRoutes:()=>[route],
   axialPos:(q,r)=>({x:q*256,y:r*220}),
   worldCells:[{q:1,r:0},{q:45,r:44}],
   key:(q,r)=>q+','+r,
   imageForBiome:()=>mouthAsset,
-  imagePool:{ensure(){}},
+  imagePool:{ensure(asset,priority){requested.push({asset,priority});}},
   riverNetworkCache:{prepared:banksReady?{lines:[{
    minX:200,maxX:280,minY:0,maxY:220
   }]}:null},
@@ -32,16 +36,25 @@ function fixture({waterReady=true,banksReady=true,bankBuilt=true,
   }
  };
  vm.runInNewContext(functionSource,context);
- return {fn:context.riverTileStatus,tile,context};
+ return {fn:context.riverTileStatus,tile,context,requested};
 }
 test('a dry tile never waits for unrelated route textures or bank chunks',()=>{
  const {fn,tile}=fixture({waterReady:false,banksReady:false,near:false});
  assert.equal(fn(tile,true,{}),true);
 });
+test('invalid saved river routes never make a riverless atlas complete',()=>{
+ const {fn,tile,context}=fixture();
+ context.riverRoutes=()=>[];
+ const details={};
+ assert.equal(fn(tile,true,details),false);
+ assert.equal(details.riverReason,'river-route-not-renderable');
+});
 test('river Ground cannot become complete while the mouth PNG is undecoded',()=>{
- const {fn,tile}=fixture({waterReady:false});
+ const {fn,tile,requested}=fixture({waterReady:false});
  const details={};assert.equal(fn(tile,true,details),false);
  assert.equal(details.riverReason,'river-water-texture-not-ready');
+ assert.equal(requested.length,1,'diagnostic path must request missing water');
+ assert.equal(requested[0].priority,11);
 });
 test('river Ground cannot become complete while bank raster is not prepared',()=>{
  const {fn,tile}=fixture({banksReady:false});
@@ -74,4 +87,6 @@ test('only river-adjacent tiles enforce water preparation and water assets affec
  assert.match(sourceVersion,/water\?\.imageRevision\|\|0/);
  assert.match(sourceVersion,/String\(river\),riverWater/);
  assert.doesNotMatch(functionSource,/drawGround\(|drawRoads\(/);
+ assert.match(app,/state\.riverPaths=authoredRivers\?\?window\.VedrasRivers\.normalizeRoutes/);
+ assert.match(functionSource,/imagePool\.ensure\(pending,11\)/);
 });
