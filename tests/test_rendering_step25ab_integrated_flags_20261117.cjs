@@ -14,7 +14,7 @@ test('new optional safety-cache toggle passes only its URL flag',()=>{
  assert.match(html,/id="optFallbackAtlas"/);
  assert.match(game,/\['optFallbackAtlas','fallbackAtlas',fallbackAtlas\]/);
  assert.match(game,/visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache/);
- assert.match(html,/frozen-map-runtime\.js\?v=20261117-scenery-linked-v1/);
+ assert.match(html,/frozen-map-runtime\.js\?v=20261118-safety-resident-v2/);
  assert.match(html,/frozen-map-game\.js\?v=20261117-adaptive-bitmap-20261117/);
 });
 test('status distinguishes stored tiles and decoded resident bitmaps',()=>{
