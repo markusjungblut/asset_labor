@@ -4569,7 +4569,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     'Der Browser berechnet die hochwertige Karte NUR bei dieser Vorbereitung.');
   }
   failed=missing;
-  if(!run.cancel)frozenNotice('Vorbereitung beendet: '+processed+' / '+all.length+
+  if(!run.cancel)frozenNotice('Neue unveränderliche Bildkarte '+scene+': Vorbereitung beendet: '+processed+' / '+all.length+
    ' Regionen besucht, '+totalSaved+' fertige Bildpakete gespeichert, '+
    already+' bereits vorhanden, '+failed+' nicht fertig. '+
    (failed?'Erneut starten, um fehlende Regionen nachzuholen.':
