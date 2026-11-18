@@ -29,7 +29,7 @@
  // Normal playback selects genuine native 4x Ground automatically where
  // PNG-IHDR confirms it. The previous URL-only opt-in hid the quality
  // users expected. Both options remain reversible for A/B regression tests.
- const groundDetailRequested=params.get('ground4x')!=='0';
+ const groundDetailRequested=params.get('ground4x')==='1';
  const adaptiveGroundDecode=groundDetailRequested&&
   params.get('groundDecode')!=='full';
  let groundDetailActive=false;

@@ -72,14 +72,14 @@ test('shadow tone defaults preserve historical color and relative alpha',()=>{
  assert.equal(tone.opacity(0),0);
  assert.equal(tone.revision(),0);
  tone.set({lift:1,balance:1},{persist:false});
- assert.equal(tone.colorCss(),'rgb(116,116,116)');
- assert.equal(tone.opacity(.27),.4);
+ assert.equal(tone.colorCss(),'rgb(32,49,49)');
+ assert.equal(tone.opacity(.27),.52);
  assert.equal(tone.attenuation(.28),1,
   '100% normalization must also equalize the family .28 multiplier');
  assert.equal(tone.opacity(0),0);
  assert.equal(tone.revision(),1);
  tone.set({lift:100,balance:-20},{persist:false});
- assert.equal(tone.get().lift,1);
+ assert.equal(tone.get().lift,0);
  assert.equal(tone.get().balance,0);
 });
 test('tone affects mountain alpha and RGB while preserving origin geometry',()=>{
@@ -95,18 +95,18 @@ test('tone affects mountain alpha and RGB while preserving origin geometry',()=>
  assert.ok(after>before,'strength harmonization must lift a weak mountain shadow');
  assert.equal(shape.p1.x,shape.p1.x);
  assert.ok(sh.COLOR.r===32,'legacy fallback color remains unchanged');
- assert.equal(tone.colorRgb().r,99);
+ assert.equal(tone.colorRgb().r,32);
 });
 test('viewer switch and authoring tone are not writes to the frozen archive',()=>{
  const game=read('frozen-map-game.js'),html=read('frozen-map-game.html'),
   editor=read('index.html'),app=read('app.js');
- assert.match(game,/params\.get\('ground4x'\)!=='0'/);
+ assert.match(game,/params\.get\('ground4x'\)==='1'/);
  assert.match(game,/groundDetailStore\.setEnabled\(groundDetailActive\)/);
  assert.match(game,/groundDetailStore\.probe\(scene,lod\)/);
  assert.doesNotMatch(game,/Number\(manifest\.pose\?\.dpr\)>=3/);
  assert.match(html,/id="optGround4x"/);
  assert.match(html,/frozen-map-ground-detail\.js\?v=/);
- assert.match(editor,/id="shadowToneLift"/);
+ assert.doesNotMatch(editor,/id="shadowToneLift"/);
  assert.match(editor,/id="shadowToneBalance"/);
  assert.match(app,/VedrasShadowTone\?\.get\?\.\(\)\|\|null/);
  assert.doesNotMatch(read('frozen-map-ground-detail.js'),

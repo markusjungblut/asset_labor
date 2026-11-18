@@ -482,8 +482,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  // the versioned server-side sprite profile JSON. No PNGs or stored maps change.
  const Tone=window.VedrasShadowTone;
  if(Tone){
-  const ui=[['shadowToneLift','shadowToneLiftValue','lift'],
-   ['shadowToneBalance','shadowToneBalanceValue','balance']];
+  const ui=[['shadowToneBalance','shadowToneBalanceValue','balance']];
   function refreshTone(){
    const values=Tone.get();
    for(const [slider,label,key] of ui){

@@ -56,7 +56,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (bei 4× automatisch und auf 1,25× begrenzt; `fogLayer=0` schaltet sie für den Vergleich aus)</label>
 <label><input type="checkbox" id="optFallbackAtlas"> 1×-Sicherheitscache (automatisch aktiv; verhindert leere Kacheln und wiederholtes Laden)</label>
-<label><input type="checkbox" id="optGround4x"> <strong>Originalboden automatisch in 4×</strong> (nur bei nachgewiesenen 4×-PNG; abschaltbar für Vergleich)</label>
+<label><input type="checkbox" id="optGround4x"> <strong>Originalboden optional in 4×</strong> (standardmäßig 2×; 4× benötigt mehr RAM und Renderzeit)</label>
 <label><input type="checkbox" id="optAdaptiveGround"> Adaptive 4×-Dekodierung (automatisch aktiv; weniger RAM bei gleichem sichtbaren Detailbedarf)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
@@ -74,5 +74,5 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
 <script src="frozen-map-ground-detail.js?v=20261117-adaptive-metadata"></script>
 <script src="frozen-map-seam-audit.js?v=20261118-visible-alpha-audit-v2"></script>
-<script src="frozen-map-game.js?v=20261118-exclusive-grounds-and-audit-v2"></script>
+<script src="frozen-map-game.js?v=20261118-perf-2x-default-v3"></script>
 </body></html>

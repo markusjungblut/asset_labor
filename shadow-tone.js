@@ -7,7 +7,7 @@ window.VedrasShadowTone=(()=>{
  const defaults=()=>({lift:0,balance:0});
  function clean(raw){
   const result=defaults();
-  for(const key of Object.keys(result)){
+  for(const key of ['balance']){
    const v=raw?.[key];
    if(typeof v==='number'&&Number.isFinite(v))result[key]=clamp(v,0,1);
   }
@@ -17,16 +17,15 @@ window.VedrasShadowTone=(()=>{
  try{current=clean(JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(_){}
  function set(raw,{persist=true}={}){
   const next=clean(raw);
-  if(next.lift!==current.lift||next.balance!==current.balance)revision++;
+  if(next.balance!==current.balance)revision++;
   current=next;
   if(persist)try{localStorage.setItem(KEY,JSON.stringify(current));}catch(_){}
   return get();
  }
  const get=()=>({...current});
  function colorRgb(){
-  const t=current.lift;
-  return {r:Math.round(32+(116-32)*t),g:Math.round(49+(116-49)*t),
-   b:Math.round(49+(116-49)*t)};
+  // Shadow color remains the original neutral green-black.
+  return {r:32,g:49,b:49};
  }
  function colorCss(){
   const {r,g,b}=colorRgb();
@@ -38,11 +37,13 @@ window.VedrasShadowTone=(()=>{
  function attenuation(value){
   if(!Number.isFinite(value)||value<=0)return 0;
   const factor=clamp(value,0,1);
-  return clamp(factor+(1-factor)*current.balance,0,1);
+  const strength=1-(1-current.balance)**2;
+  return clamp(factor+(1-factor)*strength,0,1);
  }
  function opacity(value,target=.40){
   if(!Number.isFinite(value)||value<=0)return 0;
-  return clamp(value+(target-value)*current.balance,0,1);
+  const strength=1-(1-current.balance)**2;
+  return clamp(value+(Math.max(.52,target)-value)*strength,0,1);
  }
  return {defaults,clean,get,set,colorRgb,colorCss,opacity,attenuation,revision:()=>revision};
 })();
