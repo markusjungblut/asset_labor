@@ -26,7 +26,7 @@ const instrumented=source.replace(needle,`  return {__probe:{
 const scene='v1-0374527a';
 const keys=Array.from({length:3},(_,i)=>scene+'|near|'+i+',0');
 const wait=()=>new Promise(resolve=>setTimeout(resolve,0));
-function setup(enabled){
+function setup(enabled,maxDecodedPixels=55000){
  const sandbox={window:{},performance:{now:()=>Date.now()}};
  vm.createContext(sandbox);
  vm.runInContext(instrumented,sandbox,{timeout:4000});
@@ -43,7 +43,7 @@ function setup(enabled){
   decode:async()=>({width:100,height:100,close(){}}),
   fallbackAtlas:enabled,overview1x:true,lodRecency:false,
   directionalPrefetch:false,visibleBorrow:false,
-  parallelLayerDecode:false,maxDecodedPixels:55000,
+  parallelLayerDecode:false,maxDecodedPixels,
   onStatus:()=>{}
  });
  return player;
@@ -116,4 +116,30 @@ test('obsolete full-resolution load is skipped only with opt-in enabled',async()
   if(!enabled)assert.ok(stats.decoded>=1);
   player.stop();
  }
+});
+
+test('profile-11 scale: 120 compact safety images never get evicted by moving 4x Ground',()=>{
+ const player=setup(true,128000000);
+ const scene='v1-0374527a';
+ const oneX=Array.from({length:120},(_,i)=>({
+  id:scene+'|near|'+i+',0~1x',variant:'1x',pixels:360000
+ }));
+ const hi=Array.from({length:70},(_,i)=>({
+  id:scene+'|near|'+i+',0~2x',variant:'2x',pixels:2600000
+ }));
+ const pins=hi.slice(0,28).map(x=>x.id);
+ player.__probe.seed([...oneX,...hi],pins);
+ player.__probe.enforce();
+ const stats=player.report();
+ assert.equal(stats.decoded1x,120);
+ assert.equal(stats.fallbackMemoryAllowance,43200000);
+ assert.ok(stats.evictions>0,'offscreen high detail may be evicted');
+ assert.ok(stats.decoded2x>=28,'all visible 4x tiles remain');
+ assert.ok(stats.decodedPixels<=stats.effectiveDecodedBudget);
+ for(const x of oneX)assert.equal(player.__probe.has(x.id),true);
+ for(const key of pins)assert.equal(player.__probe.has(key),true);
+ player.__probe.enforce();
+ assert.equal(player.report().evictions,stats.evictions,
+  'a second budget pass cannot recycle already warm fallback tiles');
+ player.stop();
 });
