@@ -95,12 +95,16 @@
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
+ // Default: exclusive device-snapped Ground tile cores. The saved PNG
+ // gutter remains a sampling halo, never an overlapping destination.
+ // ?groundSeam=legacy retains the old compositor for visual A/B only.
+ const exclusiveGroundSeams=params.get('groundSeam')!=='legacy';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
   maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
-  adaptiveGroundDecode,
+  adaptiveGroundDecode,exclusiveGroundSeams,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -395,6 +399,7 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
+   groundSeamPolicy:exclusiveGroundSeams?'exclusive':'legacy-overlap',
    requestedScene,shadowSuccessorSource,
    adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
