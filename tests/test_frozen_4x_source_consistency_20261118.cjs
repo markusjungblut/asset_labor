@@ -34,7 +34,7 @@ test('once-failed required PNG is not permanently cached as absent',async()=>{
 });
 test('4x export isolates archive and asset pixel provenance from historical 4x maps',()=>{
  const app=read('app.js');
- assert.match(app,/game-map-export-renderer-v5-original-materials/);
+ assert.match(app,/game-map-export-renderer-v6-verified-near/);
  assert.match(app,/function freeze4xGroundSources\(/);
  assert.match(app,/await freeze4xGroundSources\(\)/);
  assert.match(app,/imagePool\.protect\(new Set\(sources\.map/);
