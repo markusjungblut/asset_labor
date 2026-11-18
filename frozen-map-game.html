@@ -47,6 +47,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <button id="zoomIn">+</button><span id="rasterQuality" title="Physikalische Canvas-Renderauflösung">Raster ?×</span><button id="resetView">Ansicht zurücksetzen</button>
 
 <a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
+<button id="showWorldData" title="Semantische Hexwelt nur auf Klick aus dem lokalen Speicher lesen; kein neuer Karten-Bake">Hexwelt-Daten</button>
 <button id="auditGroundSeams" title="Originale 4×-Boden-PNGs an fünf Chunkgrenzen vergleichen; nur Lesezugriffe und JSON-Export">Bodennähte prüfen</button>
 <button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
 <a href="index.html">Asset-Labor öffnen</a></div><details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
@@ -67,7 +68,8 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
 <script src="frozen-map-world-blit.js?v=20261109-step25o"></script>
- <script src="frozen-map-runtime.js?v=20261118-exclusive-ground-seams-v1"></script>
+ <script src="authored-world-contract.js?v=20261118-semantic-world-v1"></script>
+<script src="frozen-map-runtime.js?v=20261118-exclusive-ground-seams-v1"></script>
 <script src="frozen-map-derived-2x.js?v=20261117-native-2x-scenery-linked"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
 <script src="frozen-map-ground-detail.js?v=20261117-adaptive-metadata"></script>
