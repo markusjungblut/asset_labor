@@ -173,7 +173,7 @@ test('near source fidelity increases with editor quality and stays bounded',()=>
  assert.equal(p.terrainSource({...args,lod:'far',quality:'4'}).maxPixels,850000);
  const source=read('app.js');
  assert.match(source,/state\.quality\+'\|'\+previewDensity\(\)/);
- assert.match(source,/terrain-static-v3-quality-source/);
+ assert.match(source,/terrain-static-v4-source-dimensions/);
  assert.match(source,/resolution:terrainSource\.resolution,maxPixels:terrainSource\.maxPixels/);
  assert.match(source,/const terrainSource=window\.VedrasRenderQuality\.terrainSource/);
 });
