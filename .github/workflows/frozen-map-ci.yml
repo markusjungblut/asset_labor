@@ -62,6 +62,7 @@ jobs:
             /tests/automated_browser_frozen_map.cjs
             /tests/fixtures/frozen-ci-seed.html
             /frozen-map-*.js
+            /frozen-map-seam-audit.js
             /frozen-map-game.html
             /cloud-artwork.js
             /shadow-tone.js
