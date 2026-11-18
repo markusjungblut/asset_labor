@@ -2,8 +2,10 @@ name: Static map ZIP – Read-only format checks
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/**']
     paths:
+      - authored-world-contract.js
+      - tests/test_persisted_authored_world_20261118.cjs
       - static-map-zip-inspector.js
       - static-map-zip-importer.js
       - static-map-import-ui.js
@@ -79,6 +81,8 @@ jobs:
           node-version: '22'
       - name: Run ZIP validation and explicit safe-import contract tests
         run: node --test tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs
+      - name: Semantic Hexwelt save/load and portable ZIP tests
+        run: node --test tests/test_persisted_authored_world_20261118.cjs
       - name: Verify combined Editor–ZIP–Game contracts
         run: node --test tests/test_integrated_map_zip_contract_20261117.cjs
       - name: Cache Playwright Firefox
