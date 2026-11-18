@@ -21,7 +21,8 @@ const files=new Set([
  'frozen-map-world-blit.js',
  'frozen-map-derived-1x.js',
  'frozen-map-derived-2x.js','frozen-map-ground-detail.js',
- 'frozen-map-seam-audit.js','cloud-artwork.js'
+ 'frozen-map-seam-audit.js','cloud-artwork.js',
+ 'authored-world-contract.js'
 ]);
 const run=async()=>{
  fs.mkdirSync(OUTPUT,{recursive:true});
