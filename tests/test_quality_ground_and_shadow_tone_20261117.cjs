@@ -64,6 +64,23 @@ test('stale or misordered original ground cannot replace a valid derived tile',(
  assert.equal(api.merge(b,a),a);
  assert.equal(api.merge(null,a),a);
 });
+test('gutter bridge samples a source strip across shared device boundaries',()=>{
+ const api=moduleOf('frozen-map-runtime.js').VedrasFrozenMap;
+ const image={width:2072,height:1761},dpr=2,zoom=1,proj=.85,
+  t={entry:{record:{tile:{size:512}}},left:40,right:552,
+   top:70,bottom:70+512*.85};
+ const right=api.groundSeamStrip(image,t,3,'right',dpr,zoom,proj);
+ const bottom=api.groundSeamStrip(image,t,3,'bottom',dpr,zoom,proj);
+ assert.ok(right&&bottom);
+ assert.ok(Math.abs(right.x+right.w/2-t.right)<1e-9);
+ assert.ok(Math.abs(bottom.y+bottom.h/2-t.bottom)<1e-9);
+ assert.ok(right.sx>=0&&right.sx+right.sw<=image.width);
+ assert.ok(bottom.sy>=0&&bottom.sy+bottom.sh<=image.height);
+ assert.equal(api.groundSeamStrip(image,t,0,'right',dpr,zoom,proj),null);
+ assert.match(read('frozen-map-runtime.js'),/sourceGutterSeamBridge&&/);
+ assert.match(read('frozen-map-runtime.js'),/g\.globalCompositeOperation='copy'/);
+ assert.match(read('frozen-map-game.js'),/params\.get\('groundSeam'\)!=='exclusive'/);
+});
 test('shadow tone defaults preserve historical color and relative alpha',()=>{
  const win=moduleOf('shadow-tone.js'),tone=win.VedrasShadowTone;
  assert.equal(tone.colorCss(),'rgb(32,49,49)');

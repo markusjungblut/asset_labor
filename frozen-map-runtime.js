@@ -132,6 +132,28 @@ window.VedrasFrozenMap=(()=>{
    x:t.left,y:t.top,w:t.right-t.left,h:t.bottom-t.top
   };
  }
+ // Source gutter from the owning PNG is sampled on BOTH sides of a
+ // shared device boundary without overlaying transparent neighboring PNGs.
+ function groundSeamStrip(image,t,pad,edge,dpr,zoom,proj){
+  if(!(image?.width>0&&image?.height>0&&pad>0&&dpr>0&&zoom>0))return null;
+  const size=t.entry.record.tile.size||512,full=size+2*pad,
+   vertical=edge==='right';
+  if(!vertical&&edge!=='bottom')return null;
+  const projection=vertical?1:proj;
+  const half=Math.min(pad*.9,1.25/(dpr*zoom*projection));
+  if(!(half>0))return null;
+  if(vertical)return {
+   sx:image.width*(pad+size-half)/full,sy:image.height*pad/full,
+   sw:image.width*2*half/full,sh:image.height*size/full,
+   x:t.right-half*zoom,y:t.top,w:2*half*zoom,h:t.bottom-t.top
+  };
+  return {
+   sx:image.width*pad/full,sy:image.height*(pad+size-half)/full,
+   sw:image.width*size/full,sh:image.height*2*half/full,
+   x:t.left,y:t.bottom-half*zoom*proj,
+   w:t.right-t.left,h:2*half*zoom*proj
+  };
+ }
  function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
@@ -143,7 +165,8 @@ window.VedrasFrozenMap=(()=>{
      // High-detail Ground: let Fog animate at a small independent backing
      // scale while the costly static 4x landscape remains unchanged.
      fogDprCap=Infinity,preferFogLayerAtHighDpr=false,
-     adaptiveGroundDecode=false,exclusiveGroundSeams=true}={}){
+     adaptiveGroundDecode=false,exclusiveGroundSeams=true,
+     sourceGutterSeamBridge=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -1073,6 +1096,39 @@ window.VedrasFrozenMap=(()=>{
      g.drawImage(image,sx,sy,sw,sh,x-bx,y-by,w+2*bx,h+2*by);
     }else g.drawImage(image,x,y,w,h);
    }
+   // Only adjacent, decoded Ground tiles are repaired. Replace a tiny
+   // seam strip using one owner's existing PNG gutter. The Hex clip and
+   // immutable IndexedDB atlas remain unchanged.
+   if(exclusiveGroundSeams&&sourceGutterSeamBridge){
+    const byCoord=new Map(list.map(t=>[
+     t.entry.record.tile.x+','+t.entry.record.tile.y,t]));
+    for(const t of list){
+     const tile=t.entry.record.tile,idx=t.entry.record.layers.findIndex(
+      layer=>layer.layer==='ground'||layer.layer==='terrain');
+     if(idx<0)continue;
+     const pad=Math.max(0,t.entry.record.layers[idx].pad||0);
+     if(!pad)continue;
+     const source=t.entry.images[idx];
+     for(const [edge,nx,ny] of [
+      ['right',tile.x+tile.size,tile.y],
+      ['bottom',tile.x,tile.y+tile.size]
+     ]){
+      const neighbor=byCoord.get(nx+','+ny);
+      if(!neighbor||neighbor.entry.record.tile.size!==tile.size||
+         !neighbor.entry.record.layers.some(l=>
+          l.layer==='ground'||l.layer==='terrain'))continue;
+      const strip=groundSeamStrip(source,t,pad,edge,dpr,view.zoom,proj);
+      if(!strip)continue;
+      // 'copy' is restricted to the narrow seam clip. No darkened alpha
+      // overlaps and no clearing outside authorized Hexes.
+      g.save();g.beginPath();g.rect(strip.x,strip.y,strip.w,strip.h);
+      g.clip();g.globalCompositeOperation='copy';
+      g.drawImage(source,strip.sx,strip.sy,strip.sw,strip.sh,
+       strip.x,strip.y,strip.w,strip.h);
+      g.restore();
+     }
+    }
+   }
    g.restore();
    if(profileFrame)profileFrame.groundMs+=clock()-groundStarted;
    // Tree crowns and cast shadows extend beyond the owning 512-unit core.
@@ -1799,5 +1855,6 @@ window.VedrasFrozenMap=(()=>{
    beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
- return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,groundCorePlacement};
+ return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,
+  groundCorePlacement,groundSeamStrip};
 })();

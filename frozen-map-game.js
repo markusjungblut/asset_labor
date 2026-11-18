@@ -26,9 +26,7 @@
  }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
- // Normal playback selects genuine native 4x Ground automatically where
- // PNG-IHDR confirms it. The previous URL-only opt-in hid the quality
- // users expected. Both options remain reversible for A/B regression tests.
+ // Default play uses a bounded 2x frame. Native 4x remains opt-in only.
  const groundDetailRequested=params.get('ground4x')==='1';
  const adaptiveGroundDecode=groundDetailRequested&&
   params.get('groundDecode')!=='full';
@@ -97,14 +95,17 @@
  const directRenderer=params.get('render')==='direct';
  // Default: exclusive device-snapped Ground tile cores. The saved PNG
  // gutter remains a sampling halo, never an overlapping destination.
- // ?groundSeam=legacy retains the old compositor for visual A/B only.
+ // ?groundSeam=exclusive compares core ownership without source stitching;
+ // ?groundSeam=legacy is the old overlap reference.
  const exclusiveGroundSeams=params.get('groundSeam')!=='legacy';
+ const sourceGutterSeamBridge=exclusiveGroundSeams&&
+  params.get('groundSeam')!=='exclusive';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
   maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
-  adaptiveGroundDecode,exclusiveGroundSeams,
+  adaptiveGroundDecode,exclusiveGroundSeams,sourceGutterSeamBridge,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
@@ -419,7 +420,8 @@
    runtime:player.report(),derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
-   groundSeamPolicy:exclusiveGroundSeams?'exclusive':'legacy-overlap',
+   groundSeamPolicy:!exclusiveGroundSeams?'legacy-overlap':
+      sourceGutterSeamBridge?'source-gutter-bridge':'exclusive',
    requestedScene,shadowSuccessorSource,
    adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
