@@ -78,7 +78,7 @@ test('core inset removes suspect source-border pixels without erasing neighbors'
  assert.ok(safe.sx+safe.sw<raw.sx+raw.sw);
  assert.equal(api.groundCorePlacement(image,t,0,true).sx,0);
  assert.doesNotMatch(read('frozen-map-runtime.js'),/globalCompositeOperation='copy'/);
- assert.match(read('frozen-map-game.js'),/params\\.get\\('groundSeam'\\)!=='exclusive'/);
+ assert.ok(read('frozen-map-game.js').includes("params.get('groundSeam')!=='exclusive'"));
 });
 test('shadow tone defaults preserve historical color and relative alpha',()=>{
  const win=moduleOf('shadow-tone.js'),tone=win.VedrasShadowTone;
