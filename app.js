@@ -4154,11 +4154,15 @@ async function freeze4xGroundSources(){
   add(imageForBiome(c,false));
   if(state.hexTerrain[key(c.q,c.r)]){
    const a=assetByPath.get(state.hexTerrain[key(c.q,c.r)]);
-   if(a&&isTerrainValid(a))add(a);
+   if(!a||!isTerrain(a))throw Error(
+    'Nicht vorhandenes Bodenmaterial: '+state.hexTerrain[key(c.q,c.r)]);
+   add(a);
   }
   if(state.biomeTerrain[c.biome]){
    const a=assetByPath.get(state.biomeTerrain[c.biome]);
-   if(a&&isTerrainValid(a))add(a);
+   if(!a||!isTerrain(a))throw Error(
+    'Nicht vorhandenes Biome-Material: '+state.biomeTerrain[c.biome]);
+   add(a);
   }
  }
  for(const a of assets)
@@ -4177,9 +4181,13 @@ async function freeze4xGroundSources(){
  for(let i=0;i<sources.length;i+=4){
   const group=sources.slice(i,i+4);
   await Promise.all(group.map(a=>imagePool.ensure(a,12)));
-  for(const a of group)if(!a.img?.naturalWidth)
-   throw Error('4×-Quelltextur nicht geladen: '+a.path+
-    '. Asset-Labor erneut öffnen und diese Quelldatei prüfen.');
+  for(const a of group){
+   if(!a.img?.naturalWidth)throw Error('4×-Quelltextur nicht geladen: '+
+    a.path+'. Diese Quelldatei prüfen.');
+   if(isTerrain(a)&&a.terrainCheck?.ok===false)
+    throw Error('Ungültige Bodenquelle: '+a.path+' – '+
+     (a.terrainCheck.reason||'Terrainvalidierung fehlgeschlagen'));
+  }
  }
  const restore=await imagePool.originals(sources);
  return {restore,count:sources.length};
