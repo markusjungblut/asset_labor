@@ -124,36 +124,23 @@ window.VedrasFrozenMap=(()=>{
  // a tile's core. It must NEVER be painted over its neighbor: drawing
  // over the neighbor with source-over darkens translucent raster edges.
  // Every device-snapped core owns exactly its exclusive destination pixels.
- function groundCorePlacement(image,t,pad=0){
+ function groundCorePlacement(image,t,pad=0,insetEdge=false){
   const size=t.entry.record.tile.size||512,full=size+2*pad;
+  // Source borders of older saved Ground PNGs may contain baked bright
+  // transparent antialias fringes. Trim two SOURCE pixels (never device
+  // pixels) on each side, then resample the interior to the same exact
+  // snapped destination rectangle. No extra canvas draw or PNG rewrite.
+  const xInset=insetEdge&&pad>0?Math.min(pad*.75,2*full/image.width):0;
+  const yInset=insetEdge&&pad>0?Math.min(pad*.75,2*full/image.height):0;
   return {
-   sx:image.width*pad/full,sy:image.height*pad/full,
-   sw:image.width*size/full,sh:image.height*size/full,
+   sx:image.width*(pad+xInset)/full,sy:image.height*(pad+yInset)/full,
+   sw:image.width*(size-2*xInset)/full,
+   sh:image.height*(size-2*yInset)/full,
    x:t.left,y:t.top,w:t.right-t.left,h:t.bottom-t.top
   };
  }
- // Source gutter from the owning PNG is sampled on BOTH sides of a
- // shared device boundary without overlaying transparent neighboring PNGs.
- function groundSeamStrip(image,t,pad,edge,dpr,zoom,proj){
-  if(!(image?.width>0&&image?.height>0&&pad>0&&dpr>0&&zoom>0))return null;
-  const size=t.entry.record.tile.size||512,full=size+2*pad,
-   vertical=edge==='right';
-  if(!vertical&&edge!=='bottom')return null;
-  const projection=vertical?1:proj;
-  const half=Math.min(pad*.9,1.25/(dpr*zoom*projection));
-  if(!(half>0))return null;
-  if(vertical)return {
-   sx:image.width*(pad+size-half)/full,sy:image.height*pad/full,
-   sw:image.width*2*half/full,sh:image.height*size/full,
-   x:t.right-half*zoom,y:t.top,w:2*half*zoom,h:t.bottom-t.top
-  };
-  return {
-   sx:image.width*pad/full,sy:image.height*(pad+size-half)/full,
-   sw:image.width*size/full,sh:image.height*2*half/full,
-   x:t.left,y:t.bottom-half*zoom*proj,
-   w:t.right-t.left,h:2*half*zoom*proj
-  };
- }
+ // Never run source-gutter seam overpaint with 'copy'. It erases valid
+ // neighbor content and reveals the cloud background as rectangular lines.
  function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
@@ -166,7 +153,7 @@ window.VedrasFrozenMap=(()=>{
      // scale while the costly static 4x landscape remains unchanged.
      fogDprCap=Infinity,preferFogLayerAtHighDpr=false,
      adaptiveGroundDecode=false,exclusiveGroundSeams=true,
-     sourceGutterSeamBridge=false}={}){
+     sourceEdgeInset=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -174,6 +161,7 @@ window.VedrasFrozenMap=(()=>{
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
   let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
+   let completeVisibleAtlas=false;
   let tileRecords=[],authorizedClipCells=[];
   // Read-only metadata index; PNG blobs remain exclusively in IndexedDB.
   // Small scenes keep the original Set scan (no extra allocations/sorts).
@@ -363,7 +351,8 @@ window.VedrasFrozenMap=(()=>{
     im.src=url;
    });
   });
-  function report(){return {active,sceneKey,level,exclusiveGroundSeams,saved:available.size,
+  function report(){return {active,sceneKey,level,exclusiveGroundSeams,
+    sourceEdgeInset,completeVisibleAtlas,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
@@ -424,7 +413,7 @@ window.VedrasFrozenMap=(()=>{
      cloudBackdropRaster.canvas.height*4/1048576):0,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
-  function clearDecoded(){generation++;for(const entry of decoded.values())
+  function clearDecoded(){completeVisibleAtlas=false;generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();decodedRevision++;baseStamp=null;
    loading.clear();loadingPurpose.clear();
@@ -857,8 +846,8 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(g,extendedView,shown,backingDpr);
     if(clouds){
      g.setTransform(backingDpr,0,0,backingDpr,0,0);
-     clouds.drawUnready(g,extendedView,fogCellsFor(extendedView),
-      isHexReady,zoomSnapshotOpacity);
+     if(!completeVisibleAtlas)clouds.drawUnready(g,extendedView,
+       fogCellsFor(extendedView),isHexReady,zoomSnapshotOpacity);
      clouds.drawTransitions(g,extendedView,fogEdgesFor(extendedView));
     }
    }else{
@@ -1083,7 +1072,7 @@ window.VedrasFrozenMap=(()=>{
     if(exclusiveGroundSeams){
      // One image, one exclusive screen rectangle. No 0.65-device-pixel
      // gutter overdraw on top of adjacent (possibly translucent) ground.
-     const p=groundCorePlacement(image,t,pad);
+     const p=groundCorePlacement(image,t,pad,sourceEdgeInset);
      g.drawImage(image,p.sx,p.sy,p.sw,p.sh,p.x,p.y,p.w,p.h);
     }else if(pad){
      // Reversible legacy reference for the exact same stored PNGs.
@@ -1095,39 +1084,6 @@ window.VedrasFrozenMap=(()=>{
       sh=image.height*(512+2*by/(view.zoom*proj))/(512+2*pad);
      g.drawImage(image,sx,sy,sw,sh,x-bx,y-by,w+2*bx,h+2*by);
     }else g.drawImage(image,x,y,w,h);
-   }
-   // Only adjacent, decoded Ground tiles are repaired. Replace a tiny
-   // seam strip using one owner's existing PNG gutter. The Hex clip and
-   // immutable IndexedDB atlas remain unchanged.
-   if(exclusiveGroundSeams&&sourceGutterSeamBridge){
-    const byCoord=new Map(list.map(t=>[
-     t.entry.record.tile.x+','+t.entry.record.tile.y,t]));
-    for(const t of list){
-     const tile=t.entry.record.tile,idx=t.entry.record.layers.findIndex(
-      layer=>layer.layer==='ground'||layer.layer==='terrain');
-     if(idx<0)continue;
-     const pad=Math.max(0,t.entry.record.layers[idx].pad||0);
-     if(!pad)continue;
-     const source=t.entry.images[idx];
-     for(const [edge,nx,ny] of [
-      ['right',tile.x+tile.size,tile.y],
-      ['bottom',tile.x,tile.y+tile.size]
-     ]){
-      const neighbor=byCoord.get(nx+','+ny);
-      if(!neighbor||neighbor.entry.record.tile.size!==tile.size||
-         !neighbor.entry.record.layers.some(l=>
-          l.layer==='ground'||l.layer==='terrain'))continue;
-      const strip=groundSeamStrip(source,t,pad,edge,dpr,view.zoom,proj);
-      if(!strip)continue;
-      // 'copy' is restricted to the narrow seam clip. No darkened alpha
-      // overlaps and no clearing outside authorized Hexes.
-      g.save();g.beginPath();g.rect(strip.x,strip.y,strip.w,strip.h);
-      g.clip();g.globalCompositeOperation='copy';
-      g.drawImage(source,strip.sx,strip.sy,strip.sw,strip.sh,
-       strip.x,strip.y,strip.w,strip.h);
-      g.restore();
-     }
-    }
    }
    g.restore();
    if(profileFrame)profileFrame.groundMs+=clock()-groundStarted;
@@ -1636,7 +1592,8 @@ window.VedrasFrozenMap=(()=>{
      }
     }
     const fogUnreadyStart=profileFrame?clock():0;
-    clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
+    if(!completeVisibleAtlas)
+     clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
     if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
     const fogTransitionsStart=profileFrame?clock():0;
     clouds.drawTransitions(fogLayerActive?fogCtx:ctx,view,fogEdges);
@@ -1683,7 +1640,7 @@ window.VedrasFrozenMap=(()=>{
    if(dissolveActive)repaint();
    return currentReport;
   }
-  async function load(scene,selectedLevel,initialPose,knownCells){
+  async function load(scene,selectedLevel,initialPose,knownCells,{expectedTiles=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
@@ -1693,6 +1650,12 @@ window.VedrasFrozenMap=(()=>{
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
+   // A fully published local image atlas with ALL its hexes explicitly
+   // visible needs no new cloud mask on 1x/2x detail swaps. Hidden/explored
+   // server-authorized cells retain Fog regardless of image availability.
+   completeVisibleAtlas=Number.isSafeInteger(expectedTiles)&&expectedTiles>0&&
+    available.size===expectedTiles&&cells.length>0&&
+    cells.every(c=>c.visibility==='visible');
    fallbackKeys=fallbackAtlasEnabled?[...available]:[];
    fallbackCursor=0;fallbackWarmFinished=!fallbackKeys.length;
    buildTileIndex();
@@ -1856,5 +1819,5 @@ window.VedrasFrozenMap=(()=>{
    saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
  return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,
-  groundCorePlacement,groundSeamStrip};
+  groundCorePlacement};
 })();
