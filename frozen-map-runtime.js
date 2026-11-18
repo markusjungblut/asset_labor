@@ -1667,7 +1667,8 @@ window.VedrasFrozenMap=(()=>{
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
       pose:initialPose=null,clouds:cloudData=null,expectedTiles=null,
-      sceneryBaseScene=null,shadowTone=null,appendOnly=false}={}){
+      sceneryBaseScene=null,shadowTone=null,appendOnly=false,
+       generationStatus=null,verifiedTiles=null,missingTileIds=[]}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -1679,6 +1680,12 @@ window.VedrasFrozenMap=(()=>{
     levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
     pose:initialPose?{...initialPose}:null,
     expectedTiles:Number.isSafeInteger(expectedTiles)&&expectedTiles>=0?expectedTiles:null,
+    generationStatus:['building','complete'].includes(generationStatus)?
+     generationStatus:null,
+    verifiedTiles:Number.isSafeInteger(verifiedTiles)&&verifiedTiles>=0?
+     verifiedTiles:null,
+    missingTileIds:Array.isArray(missingTileIds)?
+     missingTileIds.filter(x=>typeof x==='string').slice(0,500):[],
     sceneryBaseScene:typeof sceneryBaseScene==='string'?sceneryBaseScene:null,
     shadowTone:shadowTone?{lift:Number(shadowTone.lift),balance:Number(shadowTone.balance)}:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
@@ -1757,11 +1764,84 @@ window.VedrasFrozenMap=(()=>{
      layer:layer.layer,pad:layer.pad||0,crop:layer.crop||null,
      png:await encode(layer.image)
     });
-    await storage.put({key,sceneKey:scene,level:packet.level,
-     tile:{...packet.tile},revision:packet.revision,layers});
+    const record={key,sceneKey:scene,level:packet.level,
+     tile:{...packet.tile},revision:packet.revision,layers};
+    if(storage.putIfAbsent)await storage.putIfAbsent(record);
+    else{
+     if(await storage.get(key))throw Error('Kachel bereits vorhanden: '+key);
+     await storage.put(record);
+    }
     saved++;known.add(key);onProgress({saved,skipped,total:exact.length,rejected});
    }
    return {saved,skipped,rejected,total:packets.length};
+  }
+  // Read-only completeness audit of original PNG records. The 24-byte
+  // PNG headers prove pixel density without decoding huge 4x RGBA frames.
+  async function pngHeader(layer){
+   if(!(layer?.png instanceof Blob))return null;
+   const bytes=new Uint8Array(await layer.png.slice(0,24).arrayBuffer());
+   if(bytes.length!==24||
+      [137,80,78,71,13,10,26,10].some((x,i)=>bytes[i]!==x))
+    return null;
+   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+   const width=view.getUint32(16),height=view.getUint32(20);
+   return width>0&&height>0&&width<=20000&&height<=20000?
+    {width,height}:null;
+  }
+  async function verifyArchive(scene,level,tiles,{require4x=false}={}){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene)||
+      !['far','mid','near'].includes(level)||!Array.isArray(tiles)||
+      !tiles.length)throw Error('Ungültige vollständige Kartenprüfliste');
+   const expected=new Map();
+   for(const tile of tiles){
+    if(typeof tile?.id!=='string'||!tile.id||
+       ![tile.x,tile.y,tile.size].every(Number.isFinite)||
+       tile.size<=0||expected.has(tile.id))
+     throw Error('Ungültiges oder doppeltes Chunk-Ziel: '+tile?.id);
+    expected.set(tile.id,tile);
+   }
+   const prefix=scene+'|'+level+'|',
+    storedKeys=await storage.keys(prefix),found=new Set(storedKeys),
+    missingIds=[],invalidTiles=[],extraIds=[];
+   for(const key of storedKeys)
+    if(!expected.has(key.slice(prefix.length)))
+     extraIds.push(key.slice(prefix.length));
+   for(const [id,tile] of expected){
+    const key=makeKey(scene,level,id);
+    if(!found.has(key)){missingIds.push(id);continue;}
+    try{
+     const record=await storage.get(key);
+     if(!record||record.sceneKey!==scene||record.level!==level||
+        record.tile?.id!==id||record.tile.x!==tile.x||
+        record.tile.y!==tile.y||record.tile.size!==tile.size||
+        typeof record.revision!=='string'||!Array.isArray(record.layers)||
+        record.groundRefKey){
+      invalidTiles.push({id,reason:'record-geometry-or-revision'});continue;
+     }
+     const ground=record.layers.find(x=>['ground','terrain'].includes(x.layer)),
+      scenery=record.layers.find(x=>['scenery','structures'].includes(x.layer));
+     const g=await pngHeader(ground),o=await pngHeader(scenery);
+     if(!g||!o){invalidTiles.push({id,reason:'missing-or-invalid-png'});continue;}
+     if(require4x){
+      const groundSpan=tile.size+2*(Number(ground.pad)||0),
+       scenerySpan=tile.size+2*(Number(scenery.pad)||0);
+      const gx=g.width/groundSpan,gy=g.height/(groundSpan*.85),
+       ox=o.width/scenerySpan,oy=o.height/(scenerySpan*.85);
+      if(gx<3.5||gx>4.3||Math.abs(gx-gy)>.20||
+         ox<1.8||Math.abs(ox-oy)>.20){
+       invalidTiles.push({id,reason:'wrong-native-pixel-density',
+        groundX:Math.round(gx*100)/100,
+        sceneryX:Math.round(ox*100)/100});
+      }
+     }
+    }catch(error){
+     invalidTiles.push({id,reason:'read-error: '+String(error?.message||error)});
+    }
+   }
+   return {scene,level,expected:expected.size,stored:storedKeys.length,
+    missingIds,invalidTiles,extraIds,
+    complete:storedKeys.length===expected.size&&!missingIds.length&&
+     !invalidTiles.length&&!extraIds.length};
   }
   // Append one fully rendered Scenery tile to a new scene while keeping
   // the old 4x Ground in place. Never overwrite an existing key.
@@ -1814,7 +1894,7 @@ window.VedrasFrozenMap=(()=>{
    else await storage.put(record);
    return {saved:1,skipped:0};
   }
-  return {capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,
+  return {capture,captureScenery,verifyArchive,load,stop,draw,report,getPose,setPose,setClouds,
    beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
