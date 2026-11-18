@@ -47,6 +47,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <button id="zoomIn">+</button><span id="rasterQuality" title="Physikalische Canvas-Renderauflösung">Raster ?×</span><button id="resetView">Ansicht zurücksetzen</button>
 
 <a id="atlasBenchmark" href="frozen-map-benchmark.html">Bildatlas vergleichen</a>
+<button id="auditGroundSeams" title="Originale 4×-Boden-PNGs an fünf Chunkgrenzen vergleichen; nur Lesezugriffe und JSON-Export">Bodennähte prüfen</button>
 <button id="downloadProfile" hidden title="Profilbericht im JSON-Format herunterladen">Performance-JSON</button>
 <a href="index.html">Asset-Labor öffnen</a></div><details id="performanceOptions"><summary>Optimierungen</summary><div class="performancePanel">
 <label><input type="checkbox" id="optWorldPad"> Größere Pan-Reserve (bis 14 MiB mehr Raster)</label>
@@ -70,5 +71,6 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-derived-2x.js?v=20261117-native-2x-scenery-linked"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
 <script src="frozen-map-ground-detail.js?v=20261117-adaptive-metadata"></script>
-<script src="frozen-map-game.js?v=20261118-auto-shadow-4x-quality"></script>
+<script src="frozen-map-seam-audit.js?v=20261118-readonly-ground-gutter-audit"></script>
+<script src="frozen-map-game.js?v=20261118-auto-shadow-seam-audit"></script>
 </body></html>
