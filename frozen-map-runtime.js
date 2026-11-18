@@ -120,6 +120,18 @@ window.VedrasFrozenMap=(()=>{
   return new Promise((resolve,reject)=>cv.toBlob(blob=>
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
+ // The 3-world-unit PNG gutter supplies correct interpolation outside
+ // a tile's core. It must NEVER be painted over its neighbor: drawing
+ // over the neighbor with source-over darkens translucent raster edges.
+ // Every device-snapped core owns exactly its exclusive destination pixels.
+ function groundCorePlacement(image,t,pad=0){
+  const size=t.entry.record.tile.size||512,full=size+2*pad;
+  return {
+   sx:image.width*pad/full,sy:image.height*pad/full,
+   sw:image.width*size/full,sh:image.height*size/full,
+   x:t.left,y:t.top,w:t.right-t.left,h:t.bottom-t.top
+  };
+ }
  function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
@@ -131,7 +143,7 @@ window.VedrasFrozenMap=(()=>{
      // High-detail Ground: let Fog animate at a small independent backing
      // scale while the costly static 4x landscape remains unchanged.
      fogDprCap=Infinity,preferFogLayerAtHighDpr=false,
-     adaptiveGroundDecode=false}={}){
+     adaptiveGroundDecode=false,exclusiveGroundSeams=true}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
   // Optional transparent viewport-size overlay; world stays on #game.
@@ -328,7 +340,7 @@ window.VedrasFrozenMap=(()=>{
     im.src=url;
    });
   });
-  function report(){return {active,sceneKey,level,saved:available.size,
+  function report(){return {active,sceneKey,level,exclusiveGroundSeams,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
@@ -1044,7 +1056,13 @@ window.VedrasFrozenMap=(()=>{
     if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
     const image=t.entry.images[i],pad=Math.max(0,layer.pad||0),
      x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
-    if(pad){
+    if(exclusiveGroundSeams){
+     // One image, one exclusive screen rectangle. No 0.65-device-pixel
+     // gutter overdraw on top of adjacent (possibly translucent) ground.
+     const p=groundCorePlacement(image,t,pad);
+     g.drawImage(image,p.sx,p.sy,p.sw,p.sh,p.x,p.y,p.w,p.h);
+    }else if(pad){
+     // Reversible legacy reference for the exact same stored PNGs.
      const bx=Math.min(.65/dpr,pad*view.zoom*.8),
       by=Math.min(.65/dpr,pad*view.zoom*proj*.8),
       sx=image.width*(pad-bx/view.zoom)/(512+2*pad),
@@ -1734,5 +1752,5 @@ window.VedrasFrozenMap=(()=>{
    beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,isActive:()=>active,storage};
  }
- return {create,memoryStore,indexedStore,linkedStore,valid,makeKey};
+ return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,groundCorePlacement};
 })();
