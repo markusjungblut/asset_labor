@@ -4249,9 +4249,25 @@ $('frozenReshade').addEventListener('click',async()=>{
     // Keep UI/cancel responsive between expensive Scenery encodes.
     await new Promise(resolve=>setTimeout(resolve,0));
    }
-   frozenNotice((run.cancel?'Angehalten: ':'Scenery-Aktualisierung beendet: ')+
-    created+' neue / '+skipped+' vorhandene / '+failed+' fehlende Kacheln. '+
-    'Neue Spielkarte: '+target+'. Die Originalkarte '+source+' bleibt erhalten.');
+   const completed=(await frozenMap.storage.keys(target+'|near|')).length;
+   if(!run.cancel&&!failed&&completed===sourceKeys.length){
+    // Publish only a complete new scene; the original 4x atlas stays
+    // untouched. Opening the old scene now selects the corrected version.
+    try{
+     localStorage.setItem('vedras-frozen-shadow-current:'+source,target);
+     frozenNotice('Schattenkarte '+target+' vollständig ('+completed+
+      ' Kacheln). Der Spielkartenviewer öffnet automatisch diese Version; '+
+      '?original=1 zeigt die alte Karte '+source+'.');
+    }catch{
+     frozenNotice('Schattenkarte '+target+' vollständig. Automatische '+
+      'Auswahl konnte nicht gespeichert werden. Neue Karte direkt mit '+
+      '?scene='+target+'&lod=near öffnen.');
+    }
+   }else{
+    frozenNotice('Schattenkarte noch UNVOLLSTÄNDIG: '+completed+'/'+
+     sourceKeys.length+' · '+failed+' fehlende. Fortsetzen möglich; '+
+     'bisherige Karte '+source+' bleibt aktiv und unverändert.');
+   }
   }finally{
    state.zoom=oldZoom;updateTerrainLod(oldZoom);
    run.offlineOnly=false;frozenTour=null;
