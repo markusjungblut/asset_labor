@@ -63,6 +63,7 @@ jobs:
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
             /tests/fixtures/frozen-ci-seed.html
+            /authored-world-contract.js
             /frozen-map-*.js
             /frozen-map-seam-audit.js
             /frozen-map-game.html
