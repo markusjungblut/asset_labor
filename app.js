@@ -4555,6 +4555,15 @@ $('frozenExport').addEventListener('click',async()=>{
  }catch(e){frozenNotice('ZIP-Export fehlgeschlagen: '+String(e.message||e));}
  finally{button.disabled=false;}
 });
+$('frozenWorldView').addEventListener('click',()=>{
+ const id=$('frozenWorldId')?.value?.trim()||'';
+ if(!/^v1-[0-9a-f]{8}$/.test(id)){
+  frozenNotice('Gültige gespeicherte Kartenkennung eingeben.');return;
+ }
+ // Synchronous user interaction: no worker, no bake and no popup blocker.
+ window.open('frozen-map-game.html?scene='+encodeURIComponent(id)+'&lod=near',
+  '_blank','noopener');
+});
 $('frozenWorldOpen').addEventListener('click',async()=>{
  if(!frozenMap||frozenTour||frozenMapMode)return;
  const source=$('frozenWorldId')?.value?.trim()||'';
