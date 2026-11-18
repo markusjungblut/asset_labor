@@ -1825,10 +1825,20 @@ window.VedrasFrozenMap=(()=>{
      if(require4x){
       const groundSpan=tile.size+2*(Number(ground.pad)||0),
        scenerySpan=tile.size+2*(Number(scenery.pad)||0);
+      const sc=scenery.crop||null;
+      // Cropped Scenery PNGs are intentionally tiny or 1x1 when empty.
+      // The original full canvas geometry is recorded in crop metadata.
+      const sw=sc?Number(sc.fullWidth):o.width,
+       sh=sc?Number(sc.fullHeight):o.height;
+      const validCrop=!sc||(
+       [sc.x,sc.y,sw,sh].every(Number.isFinite)&&
+       sc.x>=0&&sc.y>=0&&
+       o.width<=sw&&o.height<=sh&&
+       sc.x+o.width<=sw&&sc.y+o.height<=sh);
       const gx=g.width/groundSpan,gy=g.height/(groundSpan*.85),
-       ox=o.width/scenerySpan,oy=o.height/(scenerySpan*.85);
+       ox=sw/scenerySpan,oy=sh/(scenerySpan*.85);
       if(gx<3.5||gx>4.3||Math.abs(gx-gy)>.20||
-         ox<1.8||Math.abs(ox-oy)>.20){
+         !validCrop||ox<1.8||Math.abs(ox-oy)>.20){
        invalidTiles.push({id,reason:'wrong-native-pixel-density',
         groundX:Math.round(gx*100)/100,
         sceneryX:Math.round(ox*100)/100});
