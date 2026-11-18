@@ -4503,6 +4503,9 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  $('frozenPlay').disabled=true;
  let totalSaved=0,already=0,missing=0,failed=0,processed=0;
  let restoreFrozenSources=null;
+ // A failed tile is placed at the END of the queue exactly once. Other
+ // source assets get a chance to finish loading before its second attempt.
+ const workQueue=all.slice(),retriedIds=new Set();
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   if(fastInteracting)endFastCamera(true);
@@ -4524,7 +4527,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   // The IndexedDB key scan is once per tour, not O(tiles²).
   const knownFrozenTiles=new Set(await frozenMap.storage.keys(scene+'|'+lod+'|'));
   // Deterministic scan; each actual completed tile is saved separately.
-  for(const tile of all){
+  for(const tile of workQueue){
    if(run.cancel)break;
    if(frozenSceneKey()!==scene){
     frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
@@ -4597,23 +4600,50 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     }
     if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
     const result=await frozenMap.capture(scene,ready);
-    for(const packet of ready)if(window.VedrasFrozenMap.valid(packet))
-     knownFrozenTiles.add(window.VedrasFrozenMap.makeKey(scene,packet.level,packet.tile.id));
+    if(result.saved+result.skipped!==1)
+     throw Error('Falsche Anzahl gespeicherter 4×-Kacheln: '+tile.id);
+    knownFrozenTiles.add(fileKey);
     totalSaved+=result.saved;found=true;break;
    }
-   if(!found)missing++;
+   if(!found){
+    if(!retriedIds.has(tile.id)&&!run.cancel){
+     retriedIds.add(tile.id);workQueue.push(tile);
+    }else missing++;
+   }
    processed++;
-   if(!run.cancel)frozenNotice('Fertige Spielkarte vorbereiten: '+processed+' / '+
-    all.length+' Welt-Chunks besucht · '+totalSaved+' PNG-Pakete neu gespeichert · '+
-    already+' bereits vorhanden · '+missing+' noch nicht fertig. '+
-    'Der Browser berechnet die hochwertige Karte NUR bei dieser Vorbereitung.');
+   if(!run.cancel)frozenNotice('4×-Near-Karte: '+processed+' / '+
+    workQueue.length+' Versuche · '+totalSaved+' neu gespeichert · '+
+    already+' vorhanden · '+missing+' nach zwei Versuchen fehlend.');
   }
-  failed=missing;
-  if(!run.cancel)frozenNotice('Neue unveränderliche Bildkarte '+scene+': Vorbereitung beendet: '+processed+' / '+all.length+
-   ' Regionen besucht, '+totalSaved+' fertige Bildpakete gespeichert, '+
-   already+' bereits vorhanden, '+failed+' nicht fertig. '+
-   (failed?'Erneut starten, um fehlende Regionen nachzuholen.':
-    'Spielkarten-Test kann ohne Terrain-Worker gestartet werden.'));
+  // Source validation is authoritative, not the number of visited loops.
+  // A game atlas is published only if every actual PNG and coordinate
+  // passes the immutable archive audit, including the 4× ground density.
+  const audit=await frozenMap.verifyArchive(scene,'near',all,{require4x:true});
+  failed=audit.missingIds.length+audit.invalidTiles.length+
+   audit.extraIds.length;
+  const published=!run.cancel&&audit.complete;
+  await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
+   levels:['near'],pose:{...pose,dpr:4,projectY:PROJECT_Y},
+   expectedTiles:all.length,clouds:frozenCloudSettings(),
+   generationStatus:published?'complete':'building',
+   verifiedTiles:audit.stored,
+   missingTileIds:[...audit.missingIds,
+    ...audit.invalidTiles.map(v=>v.id)]});
+  if(published){
+   frozenNotice('FERTIG: '+scene+' · alle '+audit.expected+
+    ' Kacheln mit 4×-Ground und Scenery geprüft. '+
+    'Die fertige Near-Spielkarte kann jetzt geöffnet werden.');
+  }else{
+   const affected=[...audit.missingIds,
+    ...audit.invalidTiles.map(v=>v.id+' ('+v.reason+')'),
+    ...audit.extraIds.map(id=>id+' (unerwartet)')];
+   frozenNotice('UNVOLLSTÄNDIG: '+scene+' · '+audit.stored+'/'+
+    audit.expected+' Kacheln · '+failed+' fehlen oder sind ungültig'+
+    (run.cancel?' · abgebrochen':'')+'. '+
+    '„Gesamte Karte vorbereiten“ erneut drücken, um fortzusetzen. '+
+    'Chunks: '+affected.slice(0,12).join(', ')+
+    (affected.length>12?' …':''));
+  }
  }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
    '. Bereits gespeicherte PNGs bleiben erhalten.');}
  finally{
@@ -4705,14 +4735,19 @@ $('frozenPlay').addEventListener('click',async()=>{
  }
  const button=$('frozenPlay');button.disabled=true;
  try{
-  const scene=frozenSceneKey(),manifest=await frozenMap.loadManifest(scene),
-   level=manifest.levels.includes('near')?'near':
+  const scene=frozenSceneKey(),manifest=await frozenMap.loadManifest(scene);
+  if(manifest.generationStatus==='building')
+   throw Error('Near-Spielkarte noch unvollständig. '+
+    'Gesamte Karte erneut vorbereiten und fehlende Chunks nachholen.');
+  const level=manifest.levels.includes('near')?'near':
     manifest.levels.includes(worldTiles?.stats().lod)?worldTiles.stats().lod:
     manifest.levels[0];
   const initial={zoom:state.zoom,panX:state.panX,panY:state.panY,
    dpr:Math.max(state.dpr,manifest.pose?.dpr||1),projectY:PROJECT_Y};
   frozenMap.setClouds(manifest.clouds||frozenCloudSettings());
-  const result=await frozenMap.load(scene,level,initial,frozenLocalCells());
+  const result=await frozenMap.load(scene,level,initial,frozenLocalCells(),{
+   expectedTiles:manifest.expectedTiles
+  });
   if(!result.saved){frozenMap.stop();
    frozenNotice('Keine fertigen '+level+'-Kacheln gespeichert. Erst sichtbare Kacheln einfrieren.');return;}
   frozenMapMode=true;
