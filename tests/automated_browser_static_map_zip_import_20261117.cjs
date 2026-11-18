@@ -11,6 +11,7 @@ const {firefox}=require('playwright');
 const allowed=new Set([
  'static-map-import.html','static-map-import-ui.js',
  'static-map-zip-inspector.js','static-map-zip-importer.js',
+ 'authored-world-contract.js',
  'frozen-map-game.html','frozen-map-game.js','frozen-map-runtime.js',
  'frozen-map-derived-1x.js','frozen-map-derived-2x.js',
  'frozen-map-ground-detail.js',
