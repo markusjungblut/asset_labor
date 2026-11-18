@@ -4,9 +4,10 @@ const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'
 const game=fs.readFileSync(path.join(root,'frozen-map-game.js'),'utf8');
 const runtime=fs.readFileSync(path.join(root,'frozen-map-runtime.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'frozen-map-game.html'),'utf8');
-test('all four old experiments and fallback are off unless explicitly enabled',()=>{
- for(const flag of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode','fallbackAtlas'])
+test('old unapproved experiments remain opt-in; measured safety atlas has an opt-out',()=>{
+ for(const flag of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode'])
   assert.ok(game.includes("params.get('"+flag+"')==='1'"),flag);
+ assert.match(game,/params\.get\('fallbackAtlas'\)!=='0'/);
  assert.match(runtime,/directionalPrefetch=false,lodRecency=false,visibleBorrow=false/);
  assert.match(runtime,/parallelLayerDecode=false,fallbackAtlas=false/);
 });
@@ -15,7 +16,7 @@ test('new optional safety-cache toggle passes only its URL flag',()=>{
  assert.match(game,/\['optFallbackAtlas','fallbackAtlas',fallbackAtlas\]/);
  assert.match(game,/visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache/);
  assert.match(html,/frozen-map-runtime\.js\?v=20261118-safety-resident-v2/);
- assert.match(html,/frozen-map-game\.js\?v=20261117-adaptive-bitmap-20261117/);
+ assert.match(html,/frozen-map-game\.js\?v=20261118-auto-shadow-4x-quality/);
 });
 test('status distinguishes stored tiles and decoded resident bitmaps',()=>{
  assert.match(game,/stats\.saved\+' gespeicherte Kacheln/);
