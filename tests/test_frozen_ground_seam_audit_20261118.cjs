@@ -47,3 +47,71 @@ test('auditor reads only, never writes or deletes original IndexedDB or exported
  assert.doesNotThrow(()=>new Function(source));
  assert.doesNotThrow(()=>new Function(game));
 });
+
+test('fully transparent source gutters with arbitrary RGB are inconclusive, not defects',()=>{
+ const a=pixels(24,32),b=pixels(24,32);
+ for(let i=0;i<a.length;i+=4){
+  a[i]=20;a[i+1]=5;a[i+2]=90;a[i+3]=0;
+  b[i]=240;b[i+1]=250;b[i+2]=10;b[i+3]=0;
+ }
+ const m=api.comparePixels(a,b,24,32,'x');
+ assert.equal(m.differentPct,100,'legacy raw RGB alarm remains traceable');
+ assert.equal(m.transparentPct,100);
+ assert.equal(m.opaquePixelsCompared,0);
+ assert.equal(m.opaqueDifferentPct,null);
+ assert.equal(m.centerBrightnessDelta,null);
+ assert.equal(api.classify(m),'insufficient-visible-ground');
+});
+test('opaque mismatches remain reportable independently of transparent pixels',()=>{
+ const a=pixels(24,32),b=a.slice();
+ for(let y=0;y<32;y++)for(let x=0;x<24;x++){
+  const i=(y*24+x)*4;
+  b[i]=180;b[i+1]=200;b[i+2]=240;
+ }
+ const m=api.comparePixels(a,b,24,32,'x');
+ assert.equal(m.opaquePixelsCompared,768);
+ assert.equal(m.opaqueDifferentPct,100);
+ assert.equal(api.classify(m),'saved-neighbor-visible-RGB-differs');
+});
+test('a missing alpha-covered side is detected without relying on hidden RGB',()=>{
+ const a=pixels(24,32),b=a.slice();
+ for(let y=0;y<32;y++)for(let x=0;x<12;x++){
+  const i=(y*24+x)*4;
+  a[i+3]=0;b[i+3]=255;
+ }
+ const m=api.comparePixels(a,b,24,32,'x');
+ assert.equal(m.alphaMismatchPct,50);
+ assert.equal(api.classify(m),'saved-neighbor-alpha-coverage-differs');
+});
+test('exclusive device-snapped Ground cores share exact destination edges',()=>{
+ const sandbox={window:{},Blob,console};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'frozen-map-runtime.js'),'utf8'),sandbox);
+ const placement=sandbox.window.VedrasFrozenMap.groundCorePlacement;
+ const image={width:2072,height:1761},dpr=1.6,zoom=1.125,proj=.85,offset=17.24;
+ const snap=n=>Math.round(n*dpr)/dpr;
+ const make=(x,y)=>({entry:{record:{tile:{x,y,size:512}}},
+  left:snap(offset+x*zoom),right:snap(offset+(x+512)*zoom),
+  top:snap(offset+y*zoom*proj),
+  bottom:snap(offset+(y+512)*zoom*proj)});
+ const one=placement(image,make(0,0),3),
+  right=placement(image,make(512,0),3),
+  below=placement(image,make(0,512),3);
+ assert.equal(one.x+one.w,right.x);
+ assert.equal(one.y+one.h,below.y);
+ assert.equal(one.sx,12);
+ assert.equal(one.sw,2048);
+ assert.ok(one.sy>10&&one.sy<11);
+ assert.ok(one.sh>1740&&one.sh<1742);
+ assert.equal(one.x,right.x-right.w);
+ assert.ok(!('bleed' in one));
+});
+test('viewer enables exclusive Ground by default and keeps legacy A/B rollback',()=>{
+ const runtime=fs.readFileSync(path.join(root,'frozen-map-runtime.js'),'utf8');
+ assert.match(runtime,/exclusiveGroundSeams=true/);
+ assert.match(runtime,/if\(exclusiveGroundSeams\)/);
+ assert.match(runtime,/groundCorePlacement\(image,t,pad\)/);
+ assert.match(game,/params\.get\('groundSeam'\)!=='legacy'/);
+ assert.match(game,/adaptiveGroundDecode,exclusiveGroundSeams/);
+ assert.match(html,/20261118-exclusive-ground-seams-v1/);
+ assert.match(html,/20261118-visible-alpha-audit-v2/);
+});
