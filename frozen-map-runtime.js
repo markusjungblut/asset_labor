@@ -159,7 +159,7 @@ window.VedrasFrozenMap=(()=>{
   let fallbackKeys=[],fallbackCursor=0,fallbackWarmFinished=false,
    fallbackWarmCapped=false,fallbackWarmStarts=0,
    fallbackStaleStorageSkips=0,fallbackStaleDecodeDrops=0,
-   fallbackHits=0;
+   fallbackHits=0,fallbackSafetyPressure=0,fallbackMemoryAllowance=0;
 
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
@@ -341,6 +341,8 @@ window.VedrasFrozenMap=(()=>{
     [...decoded.values()].filter(e=>e.variant==='1x')
      .reduce((sum,e)=>sum+e.pixels,0):0,
    fallbackStaleStorageSkips,fallbackStaleDecodeDrops,fallbackHits,
+   fallbackMemoryAllowance,fallbackSafetyPressure,
+   effectiveDecodedBudget:maxDecodedPixels+fallbackMemoryAllowance,
    prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
    visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
@@ -398,7 +400,7 @@ window.VedrasFrozenMap=(()=>{
    fallbackKeys=[];fallbackCursor=0;fallbackWarmFinished=false;
    fallbackWarmCapped=false;fallbackWarmStarts=0;
    fallbackStaleStorageSkips=0;fallbackStaleDecodeDrops=0;
-   fallbackHits=0;
+   fallbackHits=0;fallbackMemoryAllowance=0;fallbackSafetyPressure=0;
    prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
@@ -432,12 +434,22 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
-   while(decodedPixels>maxDecodedPixels&&decoded.size>1){
+   // The compact 1x safety atlas is independent of near-resolution RAM.
+   // Profile (11): 122/171 repeated decodes affected the 1x safety net.
+   const safetyPixels=fallbackAtlasEnabled?
+    [...decoded.values()].reduce((n,e)=>n+
+      (e.variant==='1x'?e.pixels:0),0):0;
+   fallbackMemoryAllowance=fallbackAtlasEnabled?
+    Math.min(safetyPixels,maxDecodedPixels*.35):0;
+   const limit=maxDecodedPixels+fallbackMemoryAllowance;
+   while(decodedPixels>limit&&decoded.size>1){
     let victim=null;
     // Speculatively decoded but NEVER displayed images must yield
     // before recently visited terrain and before the inactive zoom LOD.
     if(prefetchGuard)for(const [key,entry] of decoded)
-     if(!protectedKeys.has(key)&&entry.origin==='prefetch'){
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')&&
+        entry.origin==='prefetch'){
       victim=key;break;
      }
     // A just-visited inactive LOD can be more valuable on the next zoom
@@ -453,7 +465,8 @@ window.VedrasFrozenMap=(()=>{
     if(!victim&&lodRecency){
      let oldest=Infinity,hasInactive=false;
      for(const [key,entry] of decoded){
-      if(protectedKeys.has(key))continue;
+      if(protectedKeys.has(key)||
+         (fallbackAtlasEnabled&&entry.variant==='1x'))continue;
       if(entry.variant!==activeVariant)hasInactive=true;
       const last=entry.lastVisibleFrame??-1;
       if(last<oldest){oldest=last;victim=key;}
@@ -462,12 +475,22 @@ window.VedrasFrozenMap=(()=>{
       lodRecencyEvictions++;
     }
     if(!victim)for(const [key,entry] of decoded)
-     if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')&&
+        entry.variant!==activeVariant){
       victim=key;break;
      }
-    if(!victim)for(const key of decoded.keys())
-     if(!protectedKeys.has(key)){victim=key;break;}
-    if(!victim)break;
+    if(!victim)for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')){
+      victim=key;break;
+     }
+    if(!victim){
+     // If a broad view cannot fit, never thrash visible 4x and safety 1x.
+     // This is a soft budget; report the RAM pressure explicitly.
+     if(fallbackAtlasEnabled)fallbackSafetyPressure++;
+     break;
+    }
     const entry=decoded.get(victim);
     decoded.delete(victim);decodedRevision++;
     decodedPixels-=entry.pixels;evictions++;
@@ -491,13 +514,15 @@ window.VedrasFrozenMap=(()=>{
     if(!speculative){hit.origin='visible';hit.lastVisibleFrame=frame;}
     hits++;return hit;
    }
+   const spare=spareTierKey(key,variant),
+    fallbackId=decoded.has(alternate)?alternate:spare;
    const fallback=speculative&&prefetchGuard?null:
-    (decoded.get(alternate)||spareTierEntry(key,variant));
+    (fallbackId?decoded.get(fallbackId):null);
    if(fallback){
     if(fallbackAtlasEnabled&&!speculative&&fallback.variant==='1x')
      fallbackHits++;
     if(!speculative||!prefetchGuard){
-     decoded.delete(alternate);decoded.set(alternate,fallback);
+     if(fallbackId){decoded.delete(fallbackId);decoded.set(fallbackId,fallback);}
     }
     if(!speculative){fallback.origin='visible';fallback.lastVisibleFrame=frame;}
    }
@@ -676,9 +701,8 @@ window.VedrasFrozenMap=(()=>{
    // Never churn the safety net against an unusually large pinned
    // viewport. Reserve room for urgent 2x additions and cap background
    // 1x coverage rather than repeatedly admitting and evicting it.
-   const reserve=Math.max(maxDecodedPixels*.08,2*(typicalPixels['2x']||0));
-   const ceiling=Math.max(0,Math.min(maxDecodedPixels*FALLBACK_SHARE,
-    maxDecodedPixels-pinnedPixels-reserve));
+   const ceiling=Math.max(0,Math.min(maxDecodedPixels*.35,
+    maxDecodedPixels*FALLBACK_SHARE));
    const estimatedNext=typicalPixels['1x']||Math.min(500000,maxDecodedPixels*.01);
    if(fallbackPixels+estimatedNext>ceiling){
     fallbackWarmCapped=true;return;
