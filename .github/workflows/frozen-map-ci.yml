@@ -22,6 +22,7 @@ on:
       - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_frozen_edges_20261118.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -39,6 +40,7 @@ on:
       - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_frozen_edges_20261118.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -64,6 +66,7 @@ jobs:
             /.github/workflows/frozen-map-ci.yml
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
+            /tests/automated_browser_frozen_edges_20261118.cjs
             /tests/fixtures/frozen-ci-seed.html
             /authored-world-contract.js
             /frozen-map-*.js
@@ -113,6 +116,12 @@ jobs:
           VEDRAS_CI_BROWSER: firefox
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_frozen_map.cjs
+      - name: Real Firefox pixel test for baked edge seams and completed local atlas
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_frozen_edges_20261118.cjs
       - name: Attach profile and screenshots, including when failing
         if: always()
         uses: actions/upload-artifact@v4
