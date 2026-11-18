@@ -85,6 +85,16 @@ window.VedrasFrozenMapPackage=(()=>{
   // filenames. A future standalone client cannot reconstruct Fog geometry
   // from 512-unit bitmap rectangles alone.
   const authored=await storage.get(scene+'|manifest');
+  // The ZIP remains a single portable map, not just an image atlas.
+  // Old image-only scenes still export without inventing missing semantics.
+  const semantic=await storage.get(scene+'|world');
+  let authoredWorld=null;
+  if(semantic){
+   if(semantic.kind!=='vedras-authored-world-v1'||
+      semantic.sceneKey!==scene||!window.VedrasAuthoredWorld)
+    throw Error('Weltdatenformat stimmt nicht mit dem Bildatlas überein');
+   authoredWorld=window.VedrasAuthoredWorld.clone(semantic.data);
+  }
   const manifest={schemaVersion:1,format:'vedras-static-game-map',
    scene,level,worldTileSize:512,projectY:.85,
    complete:totalExpected!=null&&keys.length===totalExpected,
@@ -94,6 +104,7 @@ window.VedrasFrozenMapPackage=(()=>{
    initialPose:authored?.pose||null,
    visibilityPolicy:'local-test-all-authored; multiplayer requires server Fog',
    clouds:authored?.clouds||null,
+   ...(authoredWorld?{authoredWorld}:{}),
    tiles:items};
   const encoded=JSON.stringify(manifest,null,2);
   const blob=await zipEntries([{name:'manifest.json',blob:new Blob([encoded],
