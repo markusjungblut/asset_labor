@@ -1780,14 +1780,16 @@ function drawGroundImpl(){
      const stamp=JSON.stringify(window.VedrasChunks.neighbors(tile,worldCells).map(c=>{
       const asset=selectedMap.get(key(c.q,c.r))||fallback;
       return [c.q,c.r,c.biome,effectiveBiome(c),asset?.path,asset?.mtime,
-       asset?.imageRevision||0,c.reliefClass,c.hillProfile,c.hillStrength,c.worldQ,c.worldR];
+       asset?.imageRevision||0,asset?.img?.naturalWidth||0,
+        asset?.img?.naturalHeight||0,c.reliefClass,c.hillProfile,
+        c.hillStrength,c.worldQ,c.worldR];
      }));
      terrainRasterCache.tileStamps?.set(tile.id,stamp);
      return stamp;
     },
     buildTile:async(tile,nearby)=>{
      const diskKey=staticTerrain?await staticTerrain.keyFor({
-      engine:'terrain-static-v3-quality-source',tile:tile.id,materialFamily,lod,
+      engine:'terrain-static-v4-source-dimensions',tile:tile.id,materialFamily,lod,
       relief:state.relief,geographyRelief,density:terrainSource.resolution,
       sourceQuality:state.quality,sourceBudget:terrainSource.maxPixels,
       mountains:state.mountainInstances,
@@ -1795,7 +1797,8 @@ function drawGroundImpl(){
        const a=selectedMap.get(key(c.q,c.r))||fallback;
        return [c.q,c.r,c.biome,effectiveBiome(c),c.reliefClass,
         c.hillProfile,c.hillStrength,c.worldQ,c.worldR,a?.path,a?.mtime,
-        a?.imageRevision||0,a?.meta?.textureWorldSize||256];
+        a?.imageRevision||0,a?.meta?.textureWorldSize||256,
+         a?.img?.naturalWidth||0,a?.img?.naturalHeight||0];
       })
      }):null;
      const precomputed=diskKey?await staticTerrain.read(diskKey):null;
@@ -4065,7 +4068,7 @@ function frozenSceneKey(){
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v4-semantic-world',state.quality==='4'?'atlas-4x':'atlas-native',
+  'game-map-export-renderer-v5-original-materials',state.quality==='4'?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
@@ -4140,6 +4143,46 @@ $('frozenCapture').addEventListener('click',async()=>{
 function preventEditorMutationDuringFrozenTour(event){
  if($('frozenCancel')?.contains(event.target))return;
  event.preventDefault();event.stopImmediatePropagation();
+}
+async function freeze4xGroundSources(){
+ // A frozen atlas must not mix preview and original source resolutions
+ // between independently baked 512-world-unit chunks.
+ const byPath=new Map();
+ const add=a=>{if(a?.path)byPath.set(a.path,a);};
+ add(baseImage());
+ for(const c of worldCells){
+  add(imageForBiome(c,false));
+  if(state.hexTerrain[key(c.q,c.r)]){
+   const a=assetByPath.get(state.hexTerrain[key(c.q,c.r)]);
+   if(a&&isTerrainValid(a))add(a);
+  }
+  if(state.biomeTerrain[c.biome]){
+   const a=assetByPath.get(state.biomeTerrain[c.biome]);
+   if(a&&isTerrainValid(a))add(a);
+  }
+ }
+ for(const a of assets)
+  if((state.shoreline?.enabled!==false&&a.category==='shorelines')||
+     (isTerrain(a)&&typeOfAsset(a)==='forest_floor'))add(a);
+ if(state.river)for(const route of riverRoutes()){
+  const mouth=route.hexes?.at(-1),
+   cell=mouth?worldCells.find(c=>c.q===mouth[0]&&c.r===mouth[1]):null;
+  if(cell)add(imageForBiome(cell,false));
+ }
+ const sources=[...byPath.values()];
+ if(!sources.length)throw Error('Keine Bodenquelltexturen für den 4×-Atlas');
+ imagePool.protect(new Set(sources.map(a=>a.path)));
+ // Missing authored images must fail explicitly, not silently bake the
+ // fallback color into some chunks while other chunks have loaded.
+ for(let i=0;i<sources.length;i+=4){
+  const group=sources.slice(i,i+4);
+  await Promise.all(group.map(a=>imagePool.ensure(a,12)));
+  for(const a of group)if(!a.img?.naturalWidth)
+   throw Error('4×-Quelltextur nicht geladen: '+a.path+
+    '. Asset-Labor erneut öffnen und diese Quelldatei prüfen.');
+ }
+ const restore=await imagePool.originals(sources);
+ return {restore,count:sources.length};
 }
 function frozenPrepare4xSourceQueues(tile){
  // Rebuild source configuration after a real image-pool revision, but never
@@ -4419,19 +4462,22 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
  $('frozenPlay').disabled=true;
  let totalSaved=0,already=0,missing=0,failed=0,processed=0;
+ let restoreFrozenSources=null;
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
   if(quality4){
-   // The viewer's ordinary WorldTile jobs compete for the same CPU/PNG
-   // pipeline. Pause them without deleting already displayed cache entries.
    worldTiles?.setPlaybackPaused(true);
-   // Set up near-detail SOURCE queues once on a small temporary canvas.
-   // No visible camera pan and no WorldTile live compositor during export.
+   frozenNotice('4×-Export: alle verwendeten Bodenquellen einheitlich laden …');
+   const frozenSources=await freeze4xGroundSources();
+   restoreFrozenSources=frozenSources.restore;
+   // Original source images have different texel content than 512px
+   // previews. Discard previously prepared preview-derived chunk caches.
+   run.offlineOnly=true;
+   invalidateTerrain('all');
    state.zoom=Math.max(1.1,pose.zoom);
    updateTerrainLod(state.zoom);
-   run.offlineOnly=true;
    frozenPrepare4xSourceQueues(all[0]);
    run.sourceRevision=frameMemo.stats().revision;
   }
@@ -4532,6 +4578,12 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    '. Bereits gespeicherte PNGs bleiben erhalten.');}
  finally{
   run.offlineOnly=false;
+  if(restoreFrozenSources){
+   restoreFrozenSources();
+   // Restore bounded preview caches after the immutable export.
+   invalidateTerrain('all');
+  }
+  lastProtectedCameraSignature='';
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
   updateTerrainLod(pose.zoom);
   frozenTour=null;lockFrozenTourEditor(false);button.disabled=false;
