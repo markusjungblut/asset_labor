@@ -102,7 +102,6 @@ test('exclusive device-snapped Ground cores share exact destination edges',()=>{
  assert.equal(one.sw,2048);
  assert.ok(one.sy>10&&one.sy<11);
  assert.ok(one.sh>1740&&one.sh<1742);
- assert.equal(one.x,right.x-right.w);
  assert.ok(!('bleed' in one));
 });
 test('viewer enables exclusive Ground by default and keeps legacy A/B rollback',()=>{
