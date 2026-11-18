@@ -10,32 +10,64 @@
      width<2||height<2||a.length!==b.length||
      a.length!==width*height*4||
      (axis!=='x'&&axis!=='y'))throw Error('Ungültige Bodennaht-Probe');
-  let sum=0,changed=0,alphaWeak=0,points=0;
-  const center=Math.floor((axis==='x'?width:height)/2);
-  let centerSum=0,edgeSum=0,nCenter=0,nEdge=0;
-  const coordinate=(i)=>axis==='x'?i%width:Math.floor(i/width);
-  for(let i=0;i<width*height;i++){
-   const j=i*4;
-   const d=(Math.abs(a[j]-b[j])+Math.abs(a[j+1]-b[j+1])+
-    Math.abs(a[j+2]-b[j+2]))/3;
-   sum+=d;changed+=d>12?1:0;
-   if(a[j+3]<240||b[j+3]<240)alphaWeak++;
-   const c=coordinate(i);
-   // A dark (or bright) stripe shared by BOTH PNGs can escape a
-   // source-difference test. Measure center-vs-neighbor contrast as well.
-   const light=(a[j]+a[j+1]+a[j+2])/3;
-   if(Math.abs(c-center)<=1){centerSum+=light;nCenter++;}
-   else if(Math.abs(c-center)>=4&&Math.abs(c-center)<=7){
+  // A transparent PNG pixel can contain arbitrary RGB. Counting it as a
+  // visible difference produced false 91%-mismatch alarms on empty edges.
+  let rawSum=0,rawChanged=0,transparent=0,
+   comparable=0,visibleSum=0,visibleChanged=0,
+   alphaMismatch=0,partial=0,centerSum=0,edgeSum=0,
+   nCenter=0,nEdge=0;
+  const count=width*height,mid=Math.floor((axis==='x'?width:height)/2);
+  for(let i=0;i<count;i++){
+   const j=i*4,aa=a[j+3],ba=b[j+3],
+    rgb=(Math.abs(a[j]-b[j])+Math.abs(a[j+1]-b[j+1])+
+     Math.abs(a[j+2]-b[j+2]))/3;
+   rawSum+=rgb;if(rgb>12)rawChanged++;
+   if(aa<240||ba<240)transparent++;
+   if(aa!==255||ba!==255)partial++;
+   if(Math.abs(aa-ba)>16)alphaMismatch++;
+   // Only compare RGB where both fragments contribute an opaque pixel.
+   // Alpha disagreement is recorded separately, not swept under the rug.
+   if(aa<240||ba<240)continue;
+   comparable++;visibleSum+=rgb;
+   if(rgb>12)visibleChanged++;
+   const c=axis==='x'?i%width:Math.floor(i/width),
+    light=(a[j]+a[j+1]+a[j+2]+b[j]+b[j+1]+b[j+2])/6;
+   if(Math.abs(c-mid)<=1){centerSum+=light;nCenter++;}
+   else if(Math.abs(c-mid)>=4&&Math.abs(c-mid)<=7){
     edgeSum+=light;nEdge++;
    }
-   points++;
   }
-  return {pixelsCompared:points,
-   meanRgbDifference:+(sum/points).toFixed(3),
-   differentPct:+(100*changed/points).toFixed(2),
-   transparentPct:+(100*alphaWeak/points).toFixed(2),
-   centerBrightnessDelta:nCenter&&nEdge?
+  const pct=n=>+(100*n/count).toFixed(2);
+  return {pixelsCompared:count,
+   // Keep original fields to make old-vs-new JSON comparison possible.
+   meanRgbDifference:+(rawSum/count).toFixed(3),
+   differentPct:pct(rawChanged),transparentPct:pct(transparent),
+   // Ground composition can only show these RGB disagreements.
+   opaquePixelsCompared:comparable,
+   opaqueCoveragePct:pct(comparable),
+   opaqueMeanRgbDifference:comparable?
+    +(visibleSum/comparable).toFixed(3):null,
+   opaqueDifferentPct:comparable?
+    +(100*visibleChanged/comparable).toFixed(2):null,
+   alphaMismatchPct:pct(alphaMismatch),
+   partialAlphaPct:pct(partial),
+   centerBrightnessDelta:nCenter>=16&&nEdge>=16?
     +(centerSum/nCenter-edgeSum/nEdge).toFixed(3):null};
+ }
+ function classify(metrics){
+  // In a largely empty strip, raw RGB mismatch is meaningless. Mark
+  // under-covered samples inconclusive instead of accusing source PNGs.
+  if(metrics.opaquePixelsCompared<256&&metrics.alphaMismatchPct<1)
+   return 'insufficient-visible-ground';
+  if(metrics.alphaMismatchPct>2)return 'saved-neighbor-alpha-coverage-differs';
+  if(metrics.opaquePixelsCompared>=256&&metrics.opaqueDifferentPct>15)
+   return 'saved-neighbor-visible-RGB-differs';
+  if(metrics.opaquePixelsCompared<256)
+   return 'insufficient-visible-ground';
+  if(metrics.centerBrightnessDelta!==null&&
+     metrics.centerBrightnessDelta< -12)
+   return 'possible-shared-baked-dark-stripe';
+  return 'visible-ground-overlap-matches; test viewer composition';
  }
  const decode=async(blob)=>createImageBitmap(blob);
  function strip(bitmap,x,y,width,height){
@@ -109,9 +141,7 @@
     result.pairs.push({pair,status:'compared',axis,pad,
      sourcePixels:[bitmapA.width,bitmapA.height],
      overlapPixels:[width,height],...metrics,
-     interpretation:metrics.differentPct>15?
-      'saved-neighbor-PNGs-disagree':
-      'saved-neighbor-PNGs-largely-agree; inspect baked stripe and viewer composition'});
+     interpretation:classify(metrics)});
    }catch(error){
     result.pairs.push({pair,status:'readback-error',
      error:String(error?.message||error).slice(0,180)});
@@ -122,10 +152,16 @@
   }
   const valid=result.pairs.filter(x=>x.status==='compared');
   result.summary={compared:valid.length,total:pairs.length,
-   likelySourceMismatch:valid.filter(x=>x.differentPct>15).length,
+   likelySourceMismatch:valid.filter(x=>
+    x.interpretation==='saved-neighbor-visible-RGB-differs'||
+    x.interpretation==='saved-neighbor-alpha-coverage-differs').length,
+   insufficientVisibleGround:valid.filter(x=>
+    x.interpretation==='insufficient-visible-ground').length,
+   bakedStripeCandidates:valid.filter(x=>
+    x.interpretation==='possible-shared-baked-dark-stripe').length,
    warning:valid.length<pairs.length?'Not all chosen pairs were measurable':null,
-   verdict:'This audit separates independent source mismatch from viewer-side image stitching. A source-matching pair may still contain a shared baked stripe.'};
+   verdict:'RGB from transparent PNG pixels is ignored for mismatch classification. Fully transparent borders are inconclusive. Source agreement still requires a composition A/B test.'};
   return result;
  }
- root.VedrasFrozenSeamAudit={audit,comparePixels,PAIRS};
+ root.VedrasFrozenSeamAudit={audit,comparePixels,classify,PAIRS};
 })(window);
