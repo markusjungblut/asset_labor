@@ -77,7 +77,7 @@ test('gutter bridge samples a source strip across shared device boundaries',()=>
  assert.ok(right.sx>=0&&right.sx+right.sw<=image.width);
  assert.ok(bottom.sy>=0&&bottom.sy+bottom.sh<=image.height);
  assert.equal(api.groundSeamStrip(image,t,0,'right',dpr,zoom,proj),null);
- assert.match(read('frozen-map-runtime.js'),/sourceGutterSeamBridge&&/);
+ assert.match(read('frozen-map-runtime.js'),/exclusiveGroundSeams&&sourceGutterSeamBridge/);
  assert.match(read('frozen-map-runtime.js'),/g\.globalCompositeOperation='copy'/);
  assert.match(read('frozen-map-game.js'),/params\.get\('groundSeam'\)!=='exclusive'/);
 });
