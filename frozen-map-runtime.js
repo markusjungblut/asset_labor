@@ -1677,6 +1677,52 @@ window.VedrasFrozenMap=(()=>{
     throw Error('Keine vorbereitete Spielkarten-Geometrie gefunden');
    return data;
   }
+  // Persist the functional, editable Hex world independently from PNGs,
+  // and never overwrite an already published scene's semantic identity.
+  async function saveAuthoredWorld(scene,authored){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))
+    throw Error('Ungültige Spielkartenkennung');
+   const contract=window.VedrasAuthoredWorld;
+   if(!contract)throw Error('Weltdaten-Vertrag nicht geladen');
+   const canonical=contract.serialize(authored),key=scene+'|world';
+   const existing=await storage.get(key);
+   if(existing){
+    if(existing.kind!=='vedras-authored-world-v1'||
+       !contract.validate(existing.data)||
+       contract.serialize(existing.data)!==canonical)
+     throw Error('Gespeicherte Welt hat unter dieser Kennung einen anderen Inhalt');
+    return {saved:false,scene,cellCount:authored.worldCells.length};
+   }
+   const record={key,sceneKey:scene,schema:SCHEMA,
+    kind:'vedras-authored-world-v1',data:JSON.parse(canonical),
+    savedAt:new Date().toISOString()};
+   if(storage.putIfAbsent){
+    try{await storage.putIfAbsent(record);}
+    catch(error){
+     const concurrent=await storage.get(key);
+     if(!concurrent||concurrent.kind!==record.kind||
+        !contract.validate(concurrent.data)||
+        contract.serialize(concurrent.data)!==canonical)throw error;
+     return {saved:false,scene,cellCount:authored.worldCells.length};
+    }
+   }else{
+    if(await storage.get(key))
+     throw Error('Weltschlüssel zwischen Prüfung und Speicherung belegt');
+    await storage.put(record);
+   }
+   return {saved:true,scene,cellCount:authored.worldCells.length};
+  }
+  async function loadAuthoredWorld(scene){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))
+    throw Error('Ungültige Spielkartenkennung');
+   const record=await storage.get(scene+'|world');
+   if(!record||record.sceneKey!==scene||
+      record.kind!=='vedras-authored-world-v1')
+    throw Error('Nur Bildatlas vorhanden: keine editierbare Weltbeschreibung gespeichert');
+   const contract=window.VedrasAuthoredWorld;
+   if(!contract)throw Error('Weltdaten-Vertrag nicht geladen');
+   return contract.clone(record.data);
+  }
   async function capture(scene,packets,{onProgress=()=>{}}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    const exact=packets.filter(valid),rejected=packets.length-exact.length;
@@ -1751,7 +1797,7 @@ window.VedrasFrozenMap=(()=>{
   }
   return {capture,captureScenery,load,stop,draw,report,getPose,setPose,setClouds,
    beginZoomPreview,endZoomPreview,
-   saveManifest,loadManifest,isActive:()=>active,storage};
+   saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
  return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,groundCorePlacement};
 })();
