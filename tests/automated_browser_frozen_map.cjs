@@ -808,7 +808,7 @@ const run=async()=>{
   // CI-only integration gate on the synthetic 120-tile atlas: the real
   // Firefox viewer must enable and disable resident 1x safely via its UI.
   const fallbackPage=await ctx.newPage();
-  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1&fallbackAtlas=0');
   await fallbackPage.waitForFunction(n=>
    window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
   assert.equal(await fallbackPage.locator('#optFallbackAtlas').isChecked(),false);
