@@ -93,11 +93,12 @@
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
- // Default: trim up to two suspect SOURCE border pixels with a single
- // exact snapped core draw. No destructive seam overpainting. The A/B
- // controls retain ?groundSeam=exclusive (raw core) and =legacy (overlap).
+ // Historical archives may have corrupt 2-pixel outer fringes and default
+ // to inset for compatibility. Newly generated atlases declare an immutable
+ // 'exclusive' source-edge policy and keep their exact source coordinates.
+ // Explicit ?groundSeam=inset/exclusive/legacy always overrides the manifest.
  const exclusiveGroundSeams=params.get('groundSeam')!=='legacy';
- const sourceEdgeInset=exclusiveGroundSeams&&
+ let sourceEdgeInset=exclusiveGroundSeams&&
   params.get('groundSeam')!=='exclusive';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
@@ -211,6 +212,14 @@
    }
   }
   const manifest=await player.loadManifest(scene);
+  // New 4x atlases carry exact clean source cores. Cropping two pixels
+  // uniformly from those tiles causes a new 1-world-unit data discontinuity
+  // even when both saved gutters are identical. Keep the old inset ONLY
+  // for historical atlases or when the user explicitly requests an A/B.
+  if(!params.has('groundSeam')&&manifest.groundSeamPolicy==='exclusive'){
+   sourceEdgeInset=false;
+   player.setSourceEdgeInset(false);
+  }
   manifestReadMs=performance.now()-manifestReadStarted;
   if(benchmark)benchmark.href='frozen-map-benchmark.html?scene='+
    encodeURIComponent(scene);
