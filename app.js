@@ -4346,9 +4346,9 @@ $('frozenReshade').addEventListener('click',async()=>{
   frozenNotice('Quellkarte eingeben und unveränderte Gelände-/Objektzuordnungen ausdrücklich bestätigen.');
   return;
  }
- if(state.view!=='map'||state.mode==='far'||state.quality!=='4'||
+ if(state.view!=='map'||state.mode==='far'||
     !state.objects||$('fogPreview')?.checked){
-  frozenNotice('Für den Schatten-Refresh Kartenansicht, 4×, sichtbare Objekte und deaktivierte Fog-Demo wählen.');
+  frozenNotice('Für den Schatten-Refresh Kartenansicht, sichtbare Objekte und deaktivierte Fog-Demo wählen.');
   return;
  }
  const target=frozenFinalSceneKey();
