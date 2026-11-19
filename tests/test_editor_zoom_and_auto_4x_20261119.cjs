@@ -54,6 +54,8 @@ test('fast camera explicitly primes terrain, shore, river and road layers',()=>{
  for(const layer of ['terrainChunks','shorelineChunks','riverChunks','roadChunks'])
   assert.ok(fast.includes(layer+'.prime(bounds'),layer);
  assert.ok(fast.includes('riverChunks.prime(bounds'));
+ assert.ok(fast.includes('Wartet bei '));
+ assert.ok(fast.includes('fastMissingCheckAt>1500'));
 });
 test('final map identity remains native-4x while editor preview is 2x',()=>{
  assert.ok(app.includes('function frozenFinalSceneKey()'));
