@@ -171,6 +171,7 @@
   balanceShortcut.textContent='Schattenangleich';
   balanceShortcut.dataset.drawer='spriteShadowLab';
   balanceShortcut.dataset.focus='shadowToneControls';
+  balanceShortcut.setAttribute('aria-controls','drawer_spriteShadowLab');
   shortcuts.append(balanceShortcut);
  }
  inspector.querySelector('.paneheader')?.after(shortcuts);
