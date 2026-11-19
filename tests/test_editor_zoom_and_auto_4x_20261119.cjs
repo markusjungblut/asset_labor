@@ -79,7 +79,7 @@ test('final map identity remains native-4x while editor preview is 2x',()=>{
 test('exhausted terrain retry is rearmed only after leaving and re-entering viewport',()=>{
  const chunkSource=fs.readFileSync(path.join(root,'chunks.js'),'utf8');
  const i=chunkSource.indexOf('function updateStreaming(viewport,tiles,prefetch){'),
-  end=chunkSource.indexOf('\n   // Used when the v0.17',i);
+  end=chunkSource.indexOf('\n  // Used when the v0.17',i);
  assert.ok(i>0&&end>i,'view membership state machine found');
  const area=chunkSource.slice(i,end);
  const cleared=[];
