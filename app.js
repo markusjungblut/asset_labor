@@ -3154,7 +3154,11 @@ function protectCameraImagePool(){
  // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
  // on the real 397-hex scene. Protect only the terrain actually beneath the
  // camera and the small shared shoreline set.
- for(const a of assets)if(a.category==='shorelines')pinned.add(a.path);
+ for(const a of assets)if(a.category==='shorelines'&&
+    state.shoreline?.enabled!==false){
+  pinned.add(a.path);
+  if(!a.img?.naturalWidth)imagePool.ensure(a,8);
+ }
  const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
  const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
   minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
@@ -3184,19 +3188,27 @@ function protectCameraImagePool(){
    }
   }
  }
+ const requestPinned=(path,priority=8)=>{
+  if(!path)return;
+  const asset=assetByPath.get(path);
+  if(!asset)return;
+  pinned.add(path);
+  if(!asset.img?.naturalWidth)imagePool.ensure(asset,priority);
+ };
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
-  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
+  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)
+   requestPinned(n.assetPath,9);
  }
  for(const m of state.mountainInstances||[]){
   const p=axialPos(m.q,m.r);
   if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450)
-   pinned.add(m.assetPath);
+   requestPinned(m.assetPath,9);
  }
  for(const [cell,object] of Object.entries(state.hexObject||{})){
   const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
   if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
-   pinned.add(object?.path);
+   requestPinned(object?.path,9);
  }
  if(warmCameraFootprint)
   for(const path of warmCameraFootprint)pinned.add(path);
