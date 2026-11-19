@@ -544,7 +544,8 @@ async function bakeWorldTile(t,level,{signal}={}){
 let frozenMapMode=false;
 let fastInteracting=false,fastFrameScheduled=false,fastWheelTimer=null,
  fastFrames=0,fastLastMs=0,fastLastCoverage=0,
- fastLastPrime=0,fastNewTerrain=0;
+ fastLastPrime=0,fastNewTerrain=0,
+ fastMissingReason='',fastMissingCheckAt=0;
 // The exact blended material field is expensive (~850k pixel samples per
 // cold 512-unit chunk). While it is computed, show an authored image-backed
 // preview only inside existing, explicitly VISIBLE Fog hexes. No readback,
@@ -705,11 +706,12 @@ function fastRender(){
     roadChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100,sourceKeys:true});
-  let result;
+  let result,visibleCameraTiles=[];
   if(worldTiles){
    const tiles=window.VedrasChunks.visible(bounds,worldCells,512)
     .map(t=>({...t,visibility:visibleFogTiles&&!visibleFogTiles.has(t.id)?
      'unknown':'visible'}));
+   visibleCameraTiles=tiles;
    if(window.VedrasStep15Trace?.enabled())
     window.VedrasStep15Trace.record('camera.request',{
      zoom:state.zoom,lod:terrainLod,dpr:state.dpr,
@@ -748,6 +750,24 @@ function fastRender(){
    realtimeMap.show();fastFrames++;
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
    fastNewTerrain=result.loaded??ready.length;
+   // A missing River/Scenery source once showed only a silent cloud. Give
+   // the user its exact blocked tile and reason, throttled to avoid putting
+   // the diagnostic material walks on the active camera hot path.
+   if(now-fastMissingCheckAt>1500){
+    fastMissingCheckAt=now;fastMissingReason='';
+    if(result.missing>0){
+     for(const tile of visibleCameraTiles){
+      if(tile.visibility==='unknown')continue;
+      const details={};
+      if(tileArtworkStatus(tile,details,true))continue;
+      const asset=details.waitingAssets?.[0]||details.missingOptionalAssets?.[0];
+      fastMissingReason=' · Wartet bei '+tile.id+': '+
+       (details.reason||'Quellgrafik fehlt')+
+       (asset?' ('+asset+')':'');
+      break;
+     }
+    }
+   }
    const status=$('fastCameraStats');
    if(status)status.textContent='Tile-Kamera v0.22.3: '+fastFrames+
     ' Bilder · '+fastLastMs.toFixed(1)+' ms Komposition · '+
@@ -761,6 +781,7 @@ function fastRender(){
     ' · '+(worldTiles?.stats().upgraded||0)+' nachgeschärft'+
     ' · '+(result.pending??terrainChunks.stats().pending)+' in Arbeit'+
      ' · '+(worldTiles?.stats().retryExhausted||0)+' Tile-Fehler'+
+     fastMissingReason+
      (worldTiles?.stats().clouds?
       ' · '+worldTiles.stats().clouds.bases+' Cloud-Hexgrafiken · Seeded':'');
   }
@@ -3133,7 +3154,11 @@ function protectCameraImagePool(){
  // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
  // on the real 397-hex scene. Protect only the terrain actually beneath the
  // camera and the small shared shoreline set.
- for(const a of assets)if(a.category==='shorelines')pinned.add(a.path);
+ for(const a of assets)if(a.category==='shorelines'&&
+    state.shoreline?.enabled!==false){
+  pinned.add(a.path);
+  if(!a.img?.naturalWidth)imagePool.ensure(a,8);
+ }
  const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
  const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
   minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
@@ -3163,19 +3188,27 @@ function protectCameraImagePool(){
    }
   }
  }
+ const requestPinned=(path,priority=8)=>{
+  if(!path)return;
+  const asset=assetByPath.get(path);
+  if(!asset)return;
+  pinned.add(path);
+  if(!asset.img?.naturalWidth)imagePool.ensure(asset,priority);
+ };
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
-  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)pinned.add(n.assetPath);
+  if(x>=minX&&x<=maxX&&y>=minY&&y<=maxY)
+   requestPinned(n.assetPath,9);
  }
  for(const m of state.mountainInstances||[]){
   const p=axialPos(m.q,m.r);
   if(p.x>=minX-450&&p.x<=maxX+450&&p.y>=minY-450&&p.y<=maxY+450)
-   pinned.add(m.assetPath);
+   requestPinned(m.assetPath,9);
  }
  for(const [cell,object] of Object.entries(state.hexObject||{})){
   const [q,r]=cell.split(',').map(Number),p=axialPos(q,r);
   if(p.x>=minX-260&&p.x<=maxX+260&&p.y>=minY-260&&p.y<=maxY+260)
-   pinned.add(object?.path);
+   requestPinned(object?.path,9);
  }
  if(warmCameraFootprint)
   for(const path of warmCameraFootprint)pinned.add(path);
@@ -4412,7 +4445,7 @@ $('frozenReshade').addEventListener('click',async()=>{
    worldTiles?.setPlaybackPaused(true);
    for(const sourceKey of sourceKeys){
     if(run.cancel)break;
-    if(frozenSceneKey()!==target){
+    if(frozenFinalSceneKey()!==target){
      run.cancel=true;throw Error('Editorzustand änderte sich während der Erstellung');
     }
     const id=sourceKey.split('|').at(-1),tile=lookup.get(id);
