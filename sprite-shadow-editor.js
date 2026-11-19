@@ -73,8 +73,22 @@ window.VedrasSpriteShadows=(()=>{
    (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor),0,.95);
   if(alpha<=0)return;
   if(x.manual?.polygons?.length){
+   // Many boulders have manually drawn long casts but no contact
+   // footprint: unlike automatic shadows, their base looks ungrounded.
+   // Add a compact, shared contact for rocks ONLY. Preserve every
+   // authored polygon, its direction and the original sprite PNG.
+   if(obj?.natureMeta?.kind==='rock'&&x.contact>0){
+    const originX=p.x+width*x.offsetX,originY=p.y+width*x.offsetY;
+    ctx.save();ctx.globalCompositeOperation='source-over';
+    ctx.globalAlpha=Math.min(.48,alpha*.46);
+    ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
+    ctx.filter='blur('+Math.max(1,Math.min(8,x.softness))+'px)';
+    ctx.beginPath();ctx.ellipse(originX-width*.10,originY,
+     width*.23,Math.max(1,width*.075),0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+   }
    window.VedrasManualShadows.render(ctx,x.manual,p,width,alpha,Math.min(30,x.softness));
-   return; // manual footprints supersede generic contact/silhouette
+   return; // custom cast replaces generic silhouette, but not rock contact
   }
   const height=width*silhouette.aspect,ax=clamp(Number(anchor.x??.5),0,1),
     ay=clamp(Number(anchor.y??.96),0,1),rad=x.angle*Math.PI/180,
