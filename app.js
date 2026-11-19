@@ -1349,11 +1349,24 @@ function inspectTerrain(asset){
   const t=document.createElement('canvas');t.width=t.height=40;const g=t.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0,40,40);
   const d=g.getImageData(0,0,40,40).data;
   const points=[[2,2],[37,2],[2,37],[37,37],[3,20],[36,20],[20,3],[20,36]];
-  let alphaBad=0,dark=0;
-  for(const [x,y] of points){const i=(y*40+x)*4,alpha=d[i+3];if(alpha<240)alphaBad++;
-   if(alpha>235&&d[i]<26&&d[i+1]<26&&d[i+2]<26)dark++;}
+  let alphaBad=0;
+  for(const [x,y] of points){const i=(y*40+x)*4;if(d[i+3]<240)alphaBad++;}
   if(alphaBad>=2)return {ok:false,reason:'Freigestellte Hex-/Objektgrafik erkannt (transparente Außenbereiche). Sie ist kein vollflächiges Terrainmaterial. Bitte nur Bodenstruktur ohne Hexkontur erzeugen.'};
-  if(dark>=3)return {ok:false,reason:'Schwarzer Außenhintergrund erkannt. Die Grafik ist als Terrain Base nicht geeignet.'};
+  // Einzelne sehr dunkle Wald-/Bodentextur-Pixel sind kein schwarzer
+  // Außenhintergrund. Nur eine fast durchgehende schwarze Randfläche mit
+  // deutlich andersfarbigem Inneren deutet auf ein eingebettetes Objekt.
+  let borderCount=0,borderBlack=0,coreCount=0,coreBlack=0;
+  for(let y=0;y<40;y++)for(let x=0;x<40;x++){
+   const border=x<4||x>=36||y<4||y>=36;
+   const core=x>=12&&x<28&&y>=12&&y<28;
+   if(!border&&!core)continue;
+   const i=(y*40+x)*4;
+   const black=d[i+3]>235&&d[i]<18&&d[i+1]<18&&d[i+2]<18;
+   if(border){borderCount++;if(black)borderBlack++;}
+   if(core){coreCount++;if(black)coreBlack++;}
+  }
+  if(borderBlack/borderCount>=.82&&coreBlack/coreCount<.35)
+   return {ok:false,reason:'Nahezu durchgehender schwarzer Außenhintergrund erkannt. Die Grafik ist als Terrain Base nicht geeignet.'};
   const ratio=img.naturalWidth/img.naturalHeight;
   if(ratio<.5||ratio>2)return {ok:false,reason:'Ungewöhnliches Seitenverhältnis; Terrain Base soll eine flächige, wiederholbare Materialtextur sein.'};
   return {ok:true,reason:'Opake Materialfläche: für Top-Surface geeignet. Ob die Textur nahtlos und frei von Einzelobjekten ist, bitte visuell prüfen.'};
