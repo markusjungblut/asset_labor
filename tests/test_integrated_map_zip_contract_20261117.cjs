@@ -54,3 +54,15 @@ test('legacy experiments remain opt-in; measured safety atlas stays reversible',
  assert.match(runtime,/parallelLayerDecode=false,fallbackAtlas=false/);
  assert.match(viewer,/id="optFallbackAtlas"/);
 });
+
+test('portable ZIP preserves exact ground core policy and rejects unrecognized modes',()=>{
+ const exporter=get('frozen-map-package.js');
+ assert.match(exporter,/groundSeamPolicy:authored\?\.groundSeamPolicy==='exclusive'/);
+ assert.match(inspector,/m\.groundSeamPolicy==='exclusive'/);
+ assert.match(importer,/groundSeamPolicy:source\.groundSeamPolicy==='exclusive'/);
+ assert.match(runtime,/groundSeamPolicy:groundSeamPolicy==='exclusive'/);
+ assert.match(game,/manifest\.groundSeamPolicy==='exclusive'/);
+ // A legacy archive without the field must still load with the old
+ // backwards-compatible inset (not silently claim a modern clean core).
+ assert.match(importer,/groundSeamPolicy:source\.groundSeamPolicy==='exclusive'\?'exclusive':null/);
+});
