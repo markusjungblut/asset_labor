@@ -156,6 +156,7 @@ window.VedrasFrozenMap=(()=>{
      sourceEdgeInset=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
+  let effectiveEdgeInset=sourceEdgeInset;
   // Optional transparent viewport-size overlay; world stays on #game.
   const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
@@ -352,7 +353,7 @@ window.VedrasFrozenMap=(()=>{
    });
   });
   function report(){return {active,sceneKey,level,exclusiveGroundSeams,
-    sourceEdgeInset,completeVisibleAtlas,saved:available.size,
+    sourceEdgeInset:effectiveEdgeInset,completeVisibleAtlas,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
@@ -1072,7 +1073,7 @@ window.VedrasFrozenMap=(()=>{
     if(exclusiveGroundSeams){
      // One image, one exclusive screen rectangle. No 0.65-device-pixel
      // gutter overdraw on top of adjacent (possibly translucent) ground.
-     const p=groundCorePlacement(image,t,pad,sourceEdgeInset);
+     const p=groundCorePlacement(image,t,pad,effectiveEdgeInset);
      g.drawImage(image,p.sx,p.sy,p.sw,p.sh,p.x,p.y,p.w,p.h);
     }else if(pad){
      // Reversible legacy reference for the exact same stored PNGs.
@@ -1668,7 +1669,8 @@ window.VedrasFrozenMap=(()=>{
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
       pose:initialPose=null,clouds:cloudData=null,expectedTiles=null,
       sceneryBaseScene=null,shadowTone=null,appendOnly=false,
-       generationStatus=null,verifiedTiles=null,missingTileIds=[]}={}){
+       generationStatus=null,verifiedTiles=null,missingTileIds=[],
+      groundSeamPolicy=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -1687,6 +1689,7 @@ window.VedrasFrozenMap=(()=>{
     missingTileIds:Array.isArray(missingTileIds)?
      missingTileIds.filter(x=>typeof x==='string').slice(0,500):[],
     sceneryBaseScene:typeof sceneryBaseScene==='string'?sceneryBaseScene:null,
+    groundSeamPolicy:groundSeamPolicy==='exclusive'?'exclusive':null,
     shadowTone:shadowTone?{lift:Number(shadowTone.lift),balance:Number(shadowTone.balance)}:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
@@ -1904,7 +1907,18 @@ window.VedrasFrozenMap=(()=>{
    else await storage.put(record);
    return {saved:1,skipped:0};
   }
+  function setSourceEdgeInset(enabled){
+   // Source-edge trimming is only an opt-in workaround for old 4x PNGs
+   // with known baked bright fringes. New seamless source atlases paint
+   // the exact original 512-unit core without stretching or erasing texels.
+   const next=enabled===true;
+   if(next===effectiveEdgeInset)return false;
+   effectiveEdgeInset=next;overviewRaster=null;baseStamp=null;
+   if(active)repaint();
+   return true;
+  }
   return {capture,captureScenery,verifyArchive,load,stop,draw,report,getPose,setPose,setClouds,
+   setSourceEdgeInset,
    beginZoomPreview,endZoomPreview,
    saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
