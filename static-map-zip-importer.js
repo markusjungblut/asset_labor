@@ -249,6 +249,7 @@ window.VedrasStaticMapZipImporter=(()=>{
    levels:[source.level],cells:parsed,pose,
    expectedTiles:source.expectedTiles,
    clouds,complete:source.complete,importedFromScene:source.scene,
+   groundSeamPolicy:source.groundSeamPolicy==='exclusive'?'exclusive':null,
    importedLocalPreviewOnly:true,savedAt:new Date().toISOString()};
  }
  function cropValid(c){
