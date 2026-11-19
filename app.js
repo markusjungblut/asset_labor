@@ -1831,7 +1831,7 @@ function drawGroundImpl(){
     },
     buildTile:async(tile,nearby)=>{
      const diskKey=staticTerrain?await staticTerrain.keyFor({
-      engine:'terrain-static-v4-source-dimensions',tile:tile.id,materialFamily,lod,
+      engine:'terrain-static-v5-ground-wrap-v1',tile:tile.id,materialFamily,lod,
       relief:state.relief,geographyRelief,density:terrainSource.resolution,
       sourceQuality:state.quality,sourceBudget:terrainSource.maxPixels,
       mountains:state.mountainInstances,
@@ -4153,7 +4153,7 @@ function frozenSceneKey({force4x=false}={}){
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v6-verified-near',
+  'game-map-export-renderer-v7-ground-wrap-v1',
   (force4x||state.quality==='4')?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
