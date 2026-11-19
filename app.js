@@ -3117,6 +3117,18 @@ function protectCameraImagePool(){
  if(signature===lastProtectedCameraSignature)return;
  lastProtectedCameraSignature=signature;
  const pinned=new Set();
+ // Resolve only the camera's material candidates, including those not yet
+ // decoded. Previously imageForBiome() selected only isTerrainValid images;
+ // that circular dependency meant unseen river/wet/terrain PNGs could never
+ // be requested when zooming into a cold region in the fast camera.
+ const byMaterial=new Map();
+ for(const asset of assets){
+  if(!isTerrain(asset)||asset.terrainCheck?.ok===false)continue;
+  const type=typeOfAsset(asset);
+  if(!type)continue;
+  if(!byMaterial.has(type))byMaterial.set(type,[]);
+  byMaterial.get(type).push(asset);
+ }
  // Never pin the entire terrain library: the previous code protected every
  // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
  // on the real 397-hex scene. Protect only the terrain actually beneath the
@@ -3129,8 +3141,27 @@ function protectCameraImagePool(){
   const pos=axialPos(cell.q,cell.r);
   if(pos.x<minX-HEX||pos.x>maxX+HEX||
      pos.y<minY-R*2||pos.y>maxY+R*2)continue;
+  const assigned=state.hexTerrain[key(cell.q,cell.r)]||
+   state.biomeTerrain[cell.biome]||null;
+  if(assigned){
+   const chosen=assetByPath.get(assigned);
+   if(chosen&&isTerrain(chosen)){
+    pinned.add(chosen.path);
+    if(!chosen.img?.naturalWidth)imagePool.ensure(chosen,10);
+   }
+  }
   const material=imageForBiome(cell);
   if(material?.path)pinned.add(material.path);
+  else{
+   const type=typeOfCell(cell,false);
+   const candidates=byMaterial.get(type)||
+    (type==='jungle'?byMaterial.get('forest_floor'):null)||[];
+   if(candidates.length){
+    const candidate=candidates[hash(cell.q,cell.r,11)%candidates.length];
+    pinned.add(candidate.path);
+    if(!candidate.img?.naturalWidth)imagePool.ensure(candidate,10);
+   }
+  }
  }
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
