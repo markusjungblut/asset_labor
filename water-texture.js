@@ -7,7 +7,7 @@ window.VedrasWaterTexture=(()=>{
  const cached=new WeakMap();
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
- function repairPixels(pixels,width,height){
+ function repairPixels(pixels,width,height,{centerStripe=true,edgeBand=8}={}){
   const original=pixels,output=new Uint8ClampedArray(original);
   if(width<24||height<24)return output;
   const at=(x,y,c)=>original[(y*width+x)*4+c];
@@ -16,7 +16,7 @@ window.VedrasWaterTexture=(()=>{
   // foam and localized art must NOT be blurred or flattened.
   const candidates=[Math.floor(width/2)-1,Math.floor(width/2),
    Math.floor(width/2)+1];
-  for(const x of candidates){
+  if(centerStripe)for(const x of candidates){
    let hit=0,rows=0;
    for(let y=4;y<height-4;y+=4){
     let deviation=0;
@@ -36,7 +36,7 @@ window.VedrasWaterTexture=(()=>{
   }
   // Source textures are not necessarily authored as perfect repeat tiles.
   // Blend just the outer 8 texels of each side into their wrapped partner.
-  const band=Math.min(8,Math.floor(Math.min(width,height)/6));
+  const band=Math.max(1,Math.min(Math.floor(edgeBand),Math.floor(Math.min(width,height)/6)));
   for(let y=0;y<height;y++)for(let d=0;d<band;d++){
    const weight=.5*(1-smooth(d/band));
    const a=(y*width+d)*4,b=(y*width+(width-1-d))*4;
