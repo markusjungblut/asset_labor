@@ -4165,7 +4165,14 @@ function frozenSceneKey({force4x=false}={}){
   state.river,state.riverPaths,state.riverBanks,state.riverBankStrength,
   state.waterSampling,state.edgeBlend,state.cornerBlend,state.edgeWidth,
   state.edgeIrregularity,state.blendVariants,state.objects,state.shadowGlobal,
+  state.shadowAssetPresets,state.mountainShadowDefaults,
   window.VedrasShadowTone?.get?.()||null,
+  // Earlier atlases omitted per-sprite/manual shadow profiles. A newly
+  // authored rock/bush shadow then reused a pre-existing immutable PNG
+  // under the same scene key, making shadow edits seem ineffective.
+  // Hash CONTENT, not the ephemeral UI edit counter/revision.
+  (()=>{const s=window.VedrasSpriteShadows?.get?.();
+   return s?{global:s.global,profiles:s.profiles}:null;})(),
   catalog.assets,catalog.terrainTypes,catalog.categories,
   // Runtime imageRevision changes when the SAME source is decoded at a
   // different resolution or revived after eviction. Only persistent file
