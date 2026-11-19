@@ -11,7 +11,7 @@ const zipPage=get('static-map-import.html'),zipUI=get('static-map-import-ui.js')
 test('keep current Geography v2.1.1 plus approved UI cleanup',()=>{
  assert.match(editor,/worldgen-geography\.js\?v=2\.1\.1/);
  assert.match(editor,/app\.js\?v=[^"]*&amp;geography=2\.1\.1/);
- assert.match(editor,/ui-organizer\.js\?v=0\.35\.0&amp;cleanup=20261112/);
+ assert.match(editor,/ui-organizer\.js\?v=20261119-shadow-shortcut-v1/);
  assert.equal(require(path.join(root,'worldgen-geography.js')).VERSION,'geography-v2.1.1');
 });
 test('restore entry remains separate and requires explicit positive consent',()=>{
