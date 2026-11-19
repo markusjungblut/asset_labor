@@ -85,3 +85,31 @@ test('hand-painted rock cast keeps manual art and gains the missing compact cont
  draw(shrub,'shrub');
  assert.deepEqual(marks,['manual'],'bush hand-art is preserved without rock contact');
 });
+
+test('changing hand-painted or mountain shadow invalidates only new immutable scene identity',()=>{
+ const app=read('app.js'),
+  start=app.indexOf('function frozenSceneKey({force4x=false}={}){'),
+  end=app.indexOf('// Native 4x final-map IDs',start);
+ assert.ok(start>0&&end>start);
+ const profiles={global:{opacity:.4},profiles:{
+  'assets/nature/boulder_05.png':{manual:{mode:'polygons',polygons:[[[-.2,-.1],[0,0],[.2,.1]]]}}
+ }};
+ const context={window:{
+  VedrasShadowTone:{get:()=>({balance:.5})},
+  VedrasSpriteShadows:{get:()=>profiles}
+ },worldCells:[],state:{quality:'2',visualPolish:{},shadowGlobal:1,
+  shadowAssetPresets:{},mountainShadowDefaults:{},forest:{},materialScales:{},
+  natureInstances:[],mountainInstances:[],hexObject:{},hexShadow:{}},
+ catalog:{assets:{},terrainTypes:[],categories:[]},assets:[],Math,JSON};
+ vm.runInNewContext(app.slice(start,end)+'\nwindow.sceneFingerprint=frozenSceneKey;',context);
+ const key=()=>context.window.sceneFingerprint({force4x:true});
+ const before=key();
+ profiles.profiles['assets/nature/boulder_05.png'].manual.polygons[0][0][0]=-.4;
+ assert.notEqual(key(),before,'manual cast editing must create a fresh atlas');
+ const after=key();
+ context.state.mountainShadowDefaults={opacity:.15};
+ assert.notEqual(key(),after,'mountain shadow controls also affect saved PNGs');
+ const again=key();
+ context.state.quality='3';
+ assert.equal(key(),again,'editor preview quality does not change native-4x identity');
+});
