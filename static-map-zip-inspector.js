@@ -182,6 +182,9 @@ window.VedrasStaticMapZipInspector=(()=>{
   requireValue(typeof m.complete==='boolean'&&
    (!m.complete||(m.expectedTiles!==null&&m.expectedTiles===m.exportedTiles)),
    'Unvollständiges ZIP ist als vollständig markiert');
+  requireValue(m.groundSeamPolicy===undefined||m.groundSeamPolicy===null||
+   m.groundSeamPolicy==='exclusive',
+   'unbekannte Bodennaht-Richtlinie im Archiv');
   requireValue(Array.isArray(m.cells)&&m.cells.length<=LIMITS.cells,
    'Hex-Geometrie fehlt oder ist zu groß');
   // Optional semantic data extends schema v1 without invalidating earlier
