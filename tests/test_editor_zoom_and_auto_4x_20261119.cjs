@@ -75,3 +75,28 @@ test('final map identity remains native-4x while editor preview is 2x',()=>{
  assert.ok(html.includes('Eine separate 4×-Einstellung ist nicht erforderlich.'));
  assert.ok(!app.includes('Bitte Qualitätsstufe 4× auswählen. Die endgültige'));
 });
+
+test('exhausted terrain retry is rearmed only after leaving and re-entering viewport',()=>{
+ const chunkSource=fs.readFileSync(path.join(root,'chunks.js'),'utf8');
+ const i=chunkSource.indexOf('function updateStreaming(viewport,tiles,prefetch){'),
+  end=chunkSource.indexOf('\n   // Used when the v0.17',i);
+ assert.ok(i>0&&end>i,'view membership state machine found');
+ const area=chunkSource.slice(i,end);
+ const cleared=[];
+ const sandbox={window:{},viewportWanted:new Set(),protectedIds:new Set(),
+  failures:new Map([['0,0',{terminal:true}]]),
+  forgetRetry:id=>{sandbox.failures.delete(id);cleared.push(id);},
+  observe(){},queue:new Map(),visibleQueuedAt:new Map(),
+  stats:{obsoleteVisibleDiscarded:0},lastFocus:null,cells:[],
+  prefetchQueue:new Map(),prefetchWanted:new Set()};
+ vm.runInNewContext(area+'\nwindow.testUpdate=updateStreaming;',sandbox);
+ const view={x:-100,y:-100,width:200,height:200};
+ sandbox.window.testUpdate(view,[],{enabled:false});
+ assert.equal(cleared.length,0,'moving away does not retry anything');
+ sandbox.window.testUpdate(view,[{id:'0,0'}],{enabled:false});
+ assert.deepEqual(cleared,['0,0']);
+ assert.equal(sandbox.failures.size,0);
+ sandbox.failures.set('0,0',{terminal:true});
+ sandbox.window.testUpdate(view,[{id:'0,0'}],{enabled:false});
+ assert.equal(cleared.length,1,'same-viewport redraw cannot reset exhausted retries');
+});
