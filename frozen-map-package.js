@@ -104,6 +104,9 @@ window.VedrasFrozenMapPackage=(()=>{
    initialPose:authored?.pose||null,
    visibilityPolicy:'local-test-all-authored; multiplayer requires server Fog',
    clouds:authored?.clouds||null,
+   // Preserve the exact 512-unit Ground crop policy across ZIP export.
+   // Otherwise a clean 4x atlas reverts to legacy inset after import.
+   groundSeamPolicy:authored?.groundSeamPolicy==='exclusive'?'exclusive':null,
    ...(authoredWorld?{authoredWorld}:{}),
    tiles:items};
   const encoded=JSON.stringify(manifest,null,2);
