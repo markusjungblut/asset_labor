@@ -22,7 +22,7 @@ window.VedrasTerrainWorker=(()=>{
   if(disabledReason||!supported())return false;
   if(worker)return true;
   try{
-   worker=new Worker('terrain-worker.js?v=0.30.2&artfix=20261027');
+   worker=new Worker('terrain-worker.js?v=20261119-ground-wrap-v1');
    ready=new Promise((yes,no)=>{resolveReady=yes;rejectReady=no;});
    worker.onmessage=e=>{
     const m=e.data;
