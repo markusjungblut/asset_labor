@@ -34,14 +34,14 @@ test('once-failed required PNG is not permanently cached as absent',async()=>{
 });
 test('4x export isolates archive and asset pixel provenance from historical 4x maps',()=>{
  const app=read('app.js');
- assert.match(app,/game-map-export-renderer-v6-verified-near/);
+ assert.match(app,/game-map-export-renderer-v7-ground-wrap-v1/);
  assert.match(app,/function freeze4xGroundSources\(/);
  assert.match(app,/await freeze4xGroundSources\(\)/);
  assert.match(app,/imagePool\.protect\(new Set\(sources\.map/);
  assert.match(app,/const restore=await imagePool\.originals\(sources\)/);
  assert.match(app,/restoreFrozenSources=frozenSources\.restore/);
  assert.match(app,/if\(restoreFrozenSources\)\{/);
- assert.match(app,/terrain-static-v4-source-dimensions/);
+ assert.match(app,/terrain-static-v5-ground-wrap-v1/);
  assert.match(app,/a\?\.img\?\.naturalWidth\|\|0,a\?\.img\?\.naturalHeight\|\|0/);
  assert.match(app,/asset\?\.img\?\.naturalWidth\|\|0/);
  assert.match(app,/invalidateTerrain\('all'\)/);
