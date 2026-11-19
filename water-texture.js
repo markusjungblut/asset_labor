@@ -57,23 +57,35 @@ window.VedrasWaterTexture=(()=>{
   }
   return output;
  }
- function seamlessTile(image){
+ function seamlessTile(image,options={}){
   if(!image)return null;
-  if(cached.has(image))return cached.get(image);
   const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
   if(!width||!height)return null;
+  // Water has its historical 8-pixel band; forest floor and land use a
+  // wider 32-pixel edge fade. Both are cached per source+policy, NEVER
+  // cached as one another. The original image is always read-only.
+  const centerStripe=options.centerStripe!==false,
+   edgeBand=Number.isFinite(options.edgeBand)?
+    clamp(Math.floor(options.edgeBand),1,Math.floor(Math.min(width,height)/6)||1):8;
+  const key=(centerStripe?'water':'ground')+'|'+edgeBand;
+  let variants=cached.get(image);
+  if(variants?.has(key))return variants.get(key);
   const tile=document.createElement('canvas');tile.width=width;tile.height=height;
   const ctx=tile.getContext('2d',{willReadFrequently:true});
+  if(!ctx)return image;
   ctx.drawImage(image,0,0,width,height);
+  let ready=tile;
   try{
    const src=ctx.getImageData(0,0,width,height);
-   src.data.set(repairPixels(src.data,width,height));
+   src.data.set(repairPixels(src.data,width,height,{centerStripe,edgeBand}));
    ctx.putImageData(src,0,0);
-   cached.set(image,tile);return tile;
   }catch{
-   // Tainted/missing source: retain normal textured image, never flat blue.
-   cached.set(image,image);return image;
+   // Tainted/missing source: retain original artwork, never flat blue.
+   ready=image;
   }
+  if(!variants){variants=new Map();cached.set(image,variants);}
+  variants.set(key,ready);
+  return ready;
  }
  function fillWorld(ctx,image,rect,worldSize=256){
   const width=image?.naturalWidth||image?.width,height=image?.naturalHeight||image?.height;
