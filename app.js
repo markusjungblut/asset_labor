@@ -695,6 +695,14 @@ function fastRender(){
    terrainChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
    if(state.shoreline?.enabled!==false)
     shorelineChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
+   // Fast zoom bypasses drawRoads(); until now it never scheduled missing
+   // river-bank / road chunks, while the WorldTile readiness gate awaited
+   // them. That could leave river territory permanently hidden by clouds.
+   if(state.river&&state.riverBanks!==false&&
+      Number(state.riverBankStrength)>0)
+    riverChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
+   if(state.roadShown)
+    roadChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
   const ready=terrainChunks.readyTiles(bounds,{limit:100,sourceKeys:true});
   let result;
@@ -3109,6 +3117,18 @@ function protectCameraImagePool(){
  if(signature===lastProtectedCameraSignature)return;
  lastProtectedCameraSignature=signature;
  const pinned=new Set();
+ // Resolve only the camera's material candidates, including those not yet
+ // decoded. Previously imageForBiome() selected only isTerrainValid images;
+ // that circular dependency meant unseen river/wet/terrain PNGs could never
+ // be requested when zooming into a cold region in the fast camera.
+ const byMaterial=new Map();
+ for(const asset of assets){
+  if(!isTerrain(asset)||asset.terrainCheck?.ok===false)continue;
+  const type=typeOfAsset(asset);
+  if(!type)continue;
+  if(!byMaterial.has(type))byMaterial.set(type,[]);
+  byMaterial.get(type).push(asset);
+ }
  // Never pin the entire terrain library: the previous code protected every
  // decoded PNG indefinitely, exceeding the 192 MiB image-pool budget by >1 GiB
  // on the real 397-hex scene. Protect only the terrain actually beneath the
@@ -3121,8 +3141,27 @@ function protectCameraImagePool(){
   const pos=axialPos(cell.q,cell.r);
   if(pos.x<minX-HEX||pos.x>maxX+HEX||
      pos.y<minY-R*2||pos.y>maxY+R*2)continue;
+  const assigned=state.hexTerrain[key(cell.q,cell.r)]||
+   state.biomeTerrain[cell.biome]||null;
+  if(assigned){
+   const chosen=assetByPath.get(assigned);
+   if(chosen&&isTerrain(chosen)){
+    pinned.add(chosen.path);
+    if(!chosen.img?.naturalWidth)imagePool.ensure(chosen,10);
+   }
+  }
   const material=imageForBiome(cell);
   if(material?.path)pinned.add(material.path);
+  else{
+   const type=typeOfCell(cell,false);
+   const candidates=byMaterial.get(type)||
+    (type==='jungle'?byMaterial.get('forest_floor'):null)||[];
+   if(candidates.length){
+    const candidate=candidates[hash(cell.q,cell.r,11)%candidates.length];
+    pinned.add(candidate.path);
+    if(!candidate.img?.naturalWidth)imagePool.ensure(candidate,10);
+   }
+  }
  }
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r),x=p.x+(n.dx||0),y=p.y+(n.dy||0);
@@ -4061,14 +4100,15 @@ const frozenMap=window.VedrasFrozenMap?.create({
    ' ms Bildkomposition · KEINE Terrain-/WorldTile-Neuberechnung';
  }
 })||null;
-function frozenSceneKey(){
+function frozenSceneKey({force4x=false}={}){
  // Fingerprint of ALL authored static map features; no camera coordinates,
  // selected Hex, Fog status, cache revisions or dynamic unit positions.
  // A static edit automatically switches to a different frozen-map archive.
  const fields=[
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
-  'game-map-export-renderer-v6-verified-near',state.quality==='4'?'atlas-4x':'atlas-native',
+  'game-map-export-renderer-v6-verified-near',
+  (force4x||state.quality==='4')?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
   state.hexTerrain,state.biomeTerrain,state.baseBiomeByHex,
@@ -4091,6 +4131,9 @@ function frozenSceneKey(){
  for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}
  return 'v1-'+(h>>>0).toString(16).padStart(8,'0');
 }
+// Native 4x final-map IDs must not depend on the ordinary editor preview
+// quality, which can remain 2x throughout the user's editing session.
+function frozenFinalSceneKey(){return frozenSceneKey({force4x:true});}
 function frozenCloudSettings(){
  // The standalone viewer loads only the four authored cloud PNGs; it needs
  // neither the editor scene nor a terrain worker to draw atmosphere.
@@ -4303,12 +4346,12 @@ $('frozenReshade').addEventListener('click',async()=>{
   frozenNotice('Quellkarte eingeben und unveränderte Gelände-/Objektzuordnungen ausdrücklich bestätigen.');
   return;
  }
- if(state.view!=='map'||state.mode==='far'||state.quality!=='4'||
+ if(state.view!=='map'||state.mode==='far'||
     !state.objects||$('fogPreview')?.checked){
-  frozenNotice('Für den Schatten-Refresh Kartenansicht, 4×, sichtbare Objekte und deaktivierte Fog-Demo wählen.');
+  frozenNotice('Für den Schatten-Refresh Kartenansicht, sichtbare Objekte und deaktivierte Fog-Demo wählen.');
   return;
  }
- const target=frozenSceneKey();
+ const target=frozenFinalSceneKey();
  if(source===target){
   frozenNotice('Quell- und Zielkennung sind gleich. Es wird niemals eine Originalkarte überschrieben.');
   return;
@@ -4448,13 +4491,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   frozenNotice('Fog-Demo deaktivieren: Keine verborgenen Spielbereiche in eine lokale Karte exportieren.');return;
  }
  if(!worldCells.length){frozenNotice('Keine fertige Welt vorhanden.');return;}
- // The full-game export always targets native 4x Near. A Far snapshot is
- // never an acceptable substitute for a published final atlas.
- if(state.quality!=='4'){
-  frozenNotice('Bitte Qualitätsstufe 4× auswählen. Die endgültige '+
-   'Spielkarte darf nicht als unscharfer Far-/1×-Atlas erzeugt werden.');
-  return;
- }
+ // One click starts native 4x capture. The user never has to discover
+ // a hidden 4x editor-preview selector to publish a high quality game.
  const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
   xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
  const all=window.VedrasChunks.visible({
@@ -4463,9 +4501,9 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   height:Math.max(...ys)-Math.min(...ys)+pad*2
  },worldCells,512);
  if(!all.length){frozenNotice('Keine belegten Welt-Chunks gefunden.');return;}
- const scene=frozenSceneKey(),quality4=state.quality==='4',
-  lod=quality4?'near':(worldTiles?.chooseLod(state.zoom)||'mid');
- const pose={zoom:state.zoom,panX:state.panX,panY:state.panY};
+ const scene=frozenFinalSceneKey(),quality4=true,lod='near';
+ const pose={zoom:state.zoom,panX:state.panX,panY:state.panY,
+  editorQuality:state.quality};
  try{
   const prior=await frozenMap.loadManifest(scene).catch(()=>null);
   if(prior?.generationStatus==='complete'){
@@ -4510,6 +4548,9 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  try{
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
+  // Preview quality changes temporarily, while immutable native PNGs
+  // are baked; the editor setting is restored in the finally block.
+  state.quality='4';
   if(quality4){
    worldTiles?.setPlaybackPaused(true);
    frozenNotice('4×-Export: alle verwendeten Bodenquellen einheitlich laden …');
@@ -4654,6 +4695,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    invalidateTerrain('all');
   }
   lastProtectedCameraSignature='';
+  state.quality=pose.editorQuality;
   state.zoom=pose.zoom;state.panX=pose.panX;state.panY=pose.panY;
   updateTerrainLod(pose.zoom);
   frozenTour=null;lockFrozenTourEditor(false);button.disabled=false;
@@ -4667,9 +4709,7 @@ $('frozenExport').addEventListener('click',async()=>{
  if(!frozenMap||frozenTour||!window.VedrasFrozenMapPackage)return;
  const button=$('frozenExport');button.disabled=true;
  try{
-  const scene=frozenSceneKey(),level=frozenMapMode?
-   frozenMap.report().level:(state.quality==='4'?'near':
-    (worldTiles?.stats().lod||'mid'));
+  const scene=frozenFinalSceneKey(),level='near';
   const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
    xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),pad=HEX*1.5;
   const all=worldCells.length?window.VedrasChunks.visible({
@@ -4716,9 +4756,8 @@ $('frozenWorldOpen').addEventListener('click',async()=>{
 });
 $('frozenStandalone').addEventListener('click',()=>{
  if(!frozenMap||frozenTour)return;
- const scene=frozenSceneKey();
- const lod=frozenMapMode?frozenMap.report().level:
-  state.quality==='4'?'near':(worldTiles?.stats().lod||'mid');
+ const scene=frozenFinalSceneKey();
+ const lod='near';
  // IMPORTANT: opening must happen synchronously in the trusted click
  // handler; browsers block window.open after an awaited IndexedDB lookup.
  // The isolated viewer itself checks the manifest and tile availability.
@@ -4735,7 +4774,7 @@ $('frozenPlay').addEventListener('click',async()=>{
  }
  const button=$('frozenPlay');button.disabled=true;
  try{
-  const scene=frozenSceneKey(),manifest=await frozenMap.loadManifest(scene);
+  const scene=frozenFinalSceneKey(),manifest=await frozenMap.loadManifest(scene);
   if(manifest.generationStatus==='building')
    throw Error('Near-Spielkarte noch unvollständig. '+
     'Gesamte Karte erneut vorbereiten und fehlende Chunks nachholen.');

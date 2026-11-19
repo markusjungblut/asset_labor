@@ -351,7 +351,8 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <p class="muted">Ältere reine Bildatlanten enthalten keine rekonstruierbare Weltbeschreibung; sie werden nicht automatisch umgedeutet oder überschrieben.</p>
 <p class="muted">Nur vollständig fertige Bildkacheln speichern. Im Test werden weder Terrain-Mischungen noch Küsten, Schatten oder Weltkacheln neu berechnet. Der gespeicherte Bereich kann ohne neue Renderaufträge bewegt und gezoomt werden.</p>
 <button type="button" id="frozenCapture" class="button outline block">Fertige sichtbare Bildkacheln einfrieren</button>
-<button type="button" id="frozenCaptureAll" class="button primary block">Gesamte Karte einmalig als Spielkacheln vorbereiten</button>
+<button type="button" id="frozenCaptureAll" class="button primary block">Gesamte Spielkarte vorbereiten · 4× automatisch</button>
+<p class="muted">Ein Klick genügt: Der Export verwendet automatisch die echte 4×-Qualität, prüft alle Kacheln und stellt danach die bisherige Editorqualität wieder her. Eine separate 4×-Einstellung ist nicht erforderlich.</p>
 <details id="frozenSceneryRefreshPanel"><summary>Schatten der fertigen Spielkarte aktualisieren (Boden wiederverwenden)</summary>
 <p class="muted">Erzeugt eine NEUE Spielkartenkennung. Nur Objekt- und Schatten-PNGs werden neu berechnet; die Original-4×-Bodenkacheln bleiben an ihrem bisherigen Speicherort. Der Vorgang ist abbrechbar und fortsetzbar.</p>
 <label for="frozenScenerySource">Vorhandene Quell-Spielkarte</label>
@@ -383,5 +384,5 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <script src="authored-world-contract.js?v=20261118-semantic-world-v1"></script>
 <script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4"></script>
 <script src="world-tile-streamer.js?v=0.22.6&amp;fix=exact-lod-20261117"></script>
-<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=0.55.8&amp;geography=2.1.1&amp;scenery=verified-near-v6&amp;rivers=source-ready-v2"></script><script src="nature-ui.js?v=0.36.1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.35.0&amp;cleanup=20261112"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=0.55.9&amp;geography=2.1.1&amp;scenery=automatic-4x-v7&amp;rivers=zoom-source-prime-v3"></script><script src="nature-ui.js?v=0.36.1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=0.35.0&amp;cleanup=20261112"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
