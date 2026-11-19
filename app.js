@@ -4446,7 +4446,8 @@ $('frozenReshade').addEventListener('click',async()=>{
   if(!existing)await frozenMap.saveManifest(target,{
    cells:current,levels:['near'],pose:sourceManifest.pose,
    expectedTiles:sourceKeys.length,clouds:sourceManifest.clouds,
-   sceneryBaseScene:source,shadowTone:tone,appendOnly:true
+   sceneryBaseScene:source,shadowTone:tone,
+   groundSeamPolicy:sourceManifest.groundSeamPolicy,appendOnly:true
   });
   // Each committed overlay is independently resumable, and original
   // 4x Ground stays stored ONLY in the source scene's record.
@@ -4583,6 +4584,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    pose:{...pose,dpr:4,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings(),
    generationStatus:'building',verifiedTiles:0,
+   groundSeamPolicy:'exclusive',
    missingTileIds:all.map(t=>t.id)});
  }catch(error){
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
@@ -4721,7 +4723,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    levels:['near'],pose:{...pose,dpr:4,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings(),
    generationStatus:published?'complete':'building',
-   verifiedTiles:audit.stored,
+   groundSeamPolicy:'exclusive',verifiedTiles:audit.stored,
    missingTileIds:[...audit.missingIds,
     ...audit.invalidTiles.map(v=>v.id)]});
   if(published){
