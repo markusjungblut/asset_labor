@@ -60,3 +60,28 @@ test('equalization control has a direct shortcut without mutating the map',()=>{
  assert.match(ui,/if\(detail\)detail\.open=true/);
  assert.match(html,/id="shadowToneBalance"/);
 });
+
+test('hand-painted rock cast keeps manual art and gains the missing compact contact',()=>{
+ const marks=[],window={
+  addEventListener(){},
+  VedrasManualShadows:{valid(){},render(){marks.push('manual');}},
+  VedrasShadowTone:{opacity:v=>v,attenuation:v=>v,colorCss:()=> '#203131'}
+ };
+ vm.runInNewContext(read('sprite-shadow-editor.js'),{window,Math,console});
+ const engine=window.VedrasSpriteShadows;
+ const rock='assets/nature/boulder_05.png',shrub='assets/nature/bush_05.png';
+ const manual={mode:'polygons',polygons:[[[-.4,-.1],[-.1,.1],[0,0]]]};
+ engine.set({...engine.defaults(),profiles:{
+  [rock]:{manual},[shrub]:{manual}
+ }});
+ const ctx={save(){},restore(){},beginPath(){},ellipse(){marks.push('contact');},
+  fill(){},setTransform(){}};
+ const draw=(asset,kind)=>engine.draw(ctx,{
+  asset:{path:asset},type:'nature',natureMeta:{kind}
+ },{x:100,y:100},52,{canvas:{},aspect:1},{x:.5,y:.95},1);
+ draw(rock,'rock');
+ assert.deepEqual(marks,['contact','manual']);
+ marks.length=0;
+ draw(shrub,'shrub');
+ assert.deepEqual(marks,['manual'],'bush hand-art is preserved without rock contact');
+});
