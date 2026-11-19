@@ -113,3 +113,60 @@ test('changing hand-painted or mountain shadow invalidates only new immutable sc
  context.state.quality='3';
  assert.equal(key(),again,'editor preview quality does not change native-4x identity');
 });
+
+test('read-only forest tile and water tile keep distinct seamless cache policies',()=>{
+ const source=pixels(128,128,x=>x<64?30:210);
+ const image={naturalWidth:128,naturalHeight:128,pixels:source};
+ const document={createElement(){
+  const canvas={width:0,height:0};
+  const g={
+   drawImage(img){canvas.pixels=new Uint8ClampedArray(img.pixels);},
+   getImageData(){return {data:new Uint8ClampedArray(canvas.pixels)};},
+   putImageData(p){canvas.pixels=new Uint8ClampedArray(p.data);}
+  };
+  canvas.getContext=()=>g;return canvas;
+ }};
+ const w={};
+ vm.runInNewContext(read('water-texture.js'),{window:w,document,Uint8ClampedArray,Math});
+ const api=w.VedrasWaterTexture;
+ const water=api.seamlessTile(image),
+  forest=api.seamlessTile(image,{centerStripe:false,edgeBand:32});
+ assert.notEqual(forest,water,'forest and water must not share an 8px texture');
+ assert.strictEqual(api.seamlessTile(image),water);
+ assert.strictEqual(api.seamlessTile(image,
+  {centerStripe:false,edgeBand:32}),forest);
+ assert.equal(source[0],30,'original source bytes are untouched');
+ assert.ok(Math.abs(forest.pixels[15*4]-source[15*4])>2,
+  'forest texture corrects nonseamless repeat boundaries');
+ assert.ok(Math.abs(water.pixels[15*4]-source[15*4])<2,
+  'existing water seam settings must not change');
+ const forestCode=read('forest-ground.js');
+ assert.match(forestCode,/VedrasWaterTexture\?\.seamlessTile\?\.\(image,/);
+ assert.match(forestCode,/centerStripe:false,edgeBand:32/);
+ assert.match(forestCode,/g\.createPattern\(repeated,'repeat'\)/);
+ assert.doesNotMatch(forestCode,/g\.createPattern\(image,'repeat'\)/);
+});
+test('new 4x manifests retain exclusive pixel-perfect core mapping; old ones remain optional inset',async()=>{
+ const env={window:{},Blob,requestAnimationFrame(){},performance:{now:()=>0}};
+ vm.runInNewContext(read('frozen-map-runtime.js'),env);
+ const api=env.window.VedrasFrozenMap,store=api.memoryStore();
+ const player=api.create({canvas:{getContext:()=>({})},storage:store,
+  sourceEdgeInset:true});
+ const scene='v1-fedcba98',cells=[{q:0,r:0,x:0,y:0,radius:100}];
+ await player.saveManifest(scene,{cells,levels:['near'],
+  groundSeamPolicy:'exclusive'});
+ assert.equal((await player.loadManifest(scene)).groundSeamPolicy,'exclusive');
+ assert.equal(player.report().sourceEdgeInset,true);
+ assert.equal(player.setSourceEdgeInset(false),true);
+ assert.equal(player.report().sourceEdgeInset,false);
+ assert.equal(player.setSourceEdgeInset(false),false);
+ const legacy='v1-00000001';
+ await player.saveManifest(legacy,{cells,levels:['near']});
+ assert.equal((await player.loadManifest(legacy)).groundSeamPolicy,null);
+ const editor=read('app.js'),game=read('frozen-map-game.js');
+ assert.match(editor,/groundSeamPolicy:'exclusive'/);
+ assert.match(editor,/groundSeamPolicy:sourceManifest\.groundSeamPolicy/);
+ assert.match(game,/!params\.has\('groundSeam'\)&&manifest\.groundSeamPolicy==='exclusive'/);
+ assert.match(game,/player\.setSourceEdgeInset\(false\)/);
+ assert.match(editor,/forest-floor-wrap-v1/);
+});
