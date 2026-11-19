@@ -4433,7 +4433,7 @@ $('frozenReshade').addEventListener('click',async()=>{
    worldTiles?.setPlaybackPaused(true);
    for(const sourceKey of sourceKeys){
     if(run.cancel)break;
-    if(frozenSceneKey()!==target){
+    if(frozenFinalSceneKey()!==target){
      run.cancel=true;throw Error('Editorzustand änderte sich während der Erstellung');
     }
     const id=sourceKey.split('|').at(-1),tile=lookup.get(id);
