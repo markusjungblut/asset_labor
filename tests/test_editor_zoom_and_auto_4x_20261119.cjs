@@ -11,19 +11,23 @@ test('cold camera primes missing assigned water and unassigned biome textures',(
  const src=app.slice(start,end);
  const water={path:'water.png',category:'terrain',kind:'water'},
   grass={path:'grass.png',category:'terrain',kind:'grassland'},
-  coast={path:'shore.png',category:'shorelines'};
+  coast={path:'shore.png',category:'shorelines'},
+  tree={path:'tree.png',category:'nature'},
+  hut={path:'hut.png',category:'buildings'};
  const requests=[],protectedSets=[];
  const win={};
  const context={window:win,console,
   state:{panX:0,panY:0,zoom:1,sceneSize:37,
    hexTerrain:{'0,0':'water.png'},biomeTerrain:{},
-   mountainInstances:[],natureInstances:[],hexObject:{}},
+   mountainInstances:[],natureInstances:[{q:0,r:0,assetPath:'tree.png'}],
+   hexObject:{'1,0':{path:'hut.png'}}},
   frameMemo:{stats:()=>({revision:1})},
   W:700,H:560,HEX:256,R:147,
   warmCameraFootprint:null,worldCells:[
    {q:0,r:0,biome:'water'}, {q:1,r:0,biome:'plains'}],
-  assets:[water,grass,coast],
-  assetByPath:new Map([[water.path,water],[grass.path,grass]]),
+  assets:[water,grass,coast,tree,hut],
+  assetByPath:new Map([[water.path,water],[grass.path,grass],
+   [tree.path,tree],[hut.path,hut]]),
   isTerrain:a=>a?.category==='terrain',
   typeOfAsset:a=>a?.kind,
   typeOfCell:c=>c.biome==='water'?'water':'grassland',
@@ -40,6 +44,8 @@ test('cold camera primes missing assigned water and unassigned biome textures',(
   'unloaded authored water texture must be requested');
  assert.ok(requests.includes('grass.png'),
   'unloaded fallback terrain must be requested');
+ for(const path of ['shore.png','tree.png','hut.png'])
+  assert.ok(requests.includes(path),path+' should load in cold camera');
  assert.ok(protectedSets[0].includes('water.png'));
  assert.ok(protectedSets[0].includes('grass.png'));
  const before=requests.length;
