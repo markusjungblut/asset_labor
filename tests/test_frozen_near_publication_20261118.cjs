@@ -91,7 +91,9 @@ test('manifest building status and tile accounting survive an interrupted sessio
  assert.equal(b.verifiedTiles,2);
 });
 test('full export requires 4x and a successful read-only audit before release',()=>{
- assert.ok(app.includes("state.quality!=='4'"));
+ assert.ok(app.includes("const scene=frozenFinalSceneKey(),quality4=true,lod='near'"));
+ assert.ok(app.includes("state.quality='4';"));
+ assert.ok(app.includes('state.quality=pose.editorQuality;'));
  assert.ok(app.includes('game-map-export-renderer-v6-verified-near'));
  assert.ok(app.includes('const workQueue=all.slice(),retriedIds=new Set()'));
  assert.ok(app.includes("verifyArchive(scene,'near',all,{require4x:true})"));
