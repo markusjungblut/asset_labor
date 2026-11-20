@@ -36,7 +36,7 @@
   standard:twoXStore,overview:oneXStore,
   original:window.VedrasFrozenMap.indexedStore()
  });
- const overview1x=params.get('overview1x')!=='0';
+ const overview1x=params.get('overview1x')!=='0'&&!originalSceneryRequested;
  const largeViewportCache=params.get('cacheLarge')!=='0';
  // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
  const prefetchGuard=params.get('prefetchGuard')!=='0';
