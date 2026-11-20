@@ -86,7 +86,7 @@ const tundraPool=Array.from({length:54},(_,i)=>({meta:make('boulder_'+n2(i+1)+'.
  .filter(a=>eligible(a.meta,'tundra'));
 const winterDraw=B.warmBoulderPool(tundraPool,a=>a.meta,.1);
 assert.equal(winterDraw.warmCount,0,'warm boulders never spawn in tundra');
-assert.equal(winterDraw.chance,.138,'winter boulder chance unchanged');
+assert(Math.abs(winterDraw.chance-.138)<1e-10,'winter boulder chance unchanged');
 // Five newly supplied ice blocks accept both German/English file naming.
 for(let n=1;n<=5;n++){
  exact('Eisblock_'+n2(n)+'.png',['snowfields','frozen_tundra','tundra']);
