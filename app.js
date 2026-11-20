@@ -4670,7 +4670,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  let restoreFrozenSources=null;
  // A failed tile is placed at the END of the queue exactly once. Other
  // source assets get a chance to finish loading before its second attempt.
- const workQueue=all.slice(),retriedIds=new Set();
+ const workQueue=all.slice(),retriedIds=new Set(),pixelIssues=new Map();
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   if(fastInteracting)endFastCamera(true);
@@ -4755,7 +4755,19 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      if(!tileArtworkStatus(tile,null,true))continue;
      // Separate editor-only full-resolution source. WorldTile's normal
      // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
-     const exact=await bakeWorldTile(tile,'near');
+     let exact;
+     try{exact=await bakeWorldTile(tile,'near');}
+     catch(error){
+      const reason=String(error?.message||error);
+      if(!reason.includes('4×-Ground ist an der Kernkante unvollständig'))throw error;
+      // A single transient malformed tile must not abandon the other
+      // immutable PNGs. Retry this specific tile at the END of the tour;
+      // never save or publish a failed Ground image.
+      pixelIssues.set(tile.id,reason);
+      frozenNotice('4×-Pixelprüfung: Quellkachel '+tile.id+
+       ' fehlerhaft · wird separat erneut versucht. '+reason);
+      break;
+     }
      if(!exact?.complete||run.cancel)continue;
      const ground=exact.layers?.find(l=>l.layer==='ground');
      if(!ground||ground.image.width<
@@ -4771,7 +4783,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     if(result.saved+result.skipped!==1)
      throw Error('Falsche Anzahl gespeicherter 4×-Kacheln: '+tile.id);
     knownFrozenTiles.add(fileKey);
-    totalSaved+=result.saved;found=true;break;
+    totalSaved+=result.saved;pixelIssues.delete(tile.id);found=true;break;
    }
    if(!found){
     if(!retriedIds.has(tile.id)&&!run.cancel){
@@ -4822,6 +4834,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   }else{
    const affected=[...audit.missingIds,
     ...audit.invalidTiles.map(v=>v.id+' ('+v.reason+')'),
+    ...[...pixelIssues].map(([id,why])=>id+' ('+why+')'),
     ...audit.extraIds.map(id=>id+' (unerwartet)'),
     ...seamAudit.failures.map(v=>v.pair.join(' / ')+' ('+v.verdict+')')];
    frozenNotice('UNVOLLSTÄNDIG: '+scene+' · '+audit.stored+'/'+
