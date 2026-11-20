@@ -4,7 +4,8 @@
 (async()=>{
  const $=id=>document.getElementById(id),
   params=new URLSearchParams(location.search),
-  scene=params.get('scene'),requestedLevel=params.get('lod');
+  requestedScene=params.get('scene'),requestedLevel=params.get('lod');
+ let scene=requestedScene,shadowSuccessorSource=null;
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
  const benchmark=$('atlasBenchmark');
  if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
@@ -25,7 +26,17 @@
  }
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
- const overview1x=params.get('overview1x')!=='0';
+ // Default play uses a bounded 2x frame. Native 4x remains opt-in only.
+ const originalSceneryRequested=params.get('scenery4x')==='1';
+ const groundDetailRequested=params.get('ground4x')==='1'||originalSceneryRequested;
+ const adaptiveGroundDecode=groundDetailRequested&&
+  params.get('groundDecode')!=='full';
+ let groundDetailActive=false,originalSceneryActive=false;
+ const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
+  standard:twoXStore,overview:oneXStore,
+  original:window.VedrasFrozenMap.indexedStore()
+ });
+ const overview1x=params.get('overview1x')!=='0'&&!originalSceneryRequested;
  const largeViewportCache=params.get('cacheLarge')!=='0';
  // Regression control: preserve 25C prefetch policy with ?prefetchGuard=0.
  const prefetchGuard=params.get('prefetchGuard')!=='0';
@@ -35,7 +46,7 @@
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
  // Experimental compact 1x background residency: off in normal sessions.
- const fallbackAtlas=params.get('fallbackAtlas')==='1';
+ const fallbackAtlas=params.get('fallbackAtlas')!=='0';
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -54,7 +65,10 @@
  // The original Set scanner remains available with &tileIndex=0.
  const indexedTileSelection=params.get('tileIndex')!=='0';
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
- const layeredFog=params.get('fogLayer')==='1'&&!!fogOverlay;
+ // The high-detail viewer should not repaint 4x terrain for each 850ms
+ // cloud-fade frame. Keep manual fogLayer=0 as an explicit A/B escape hatch.
+ const layeredFog=(params.get('fogLayer')==='1'||
+  (groundDetailRequested&&params.get('fogLayer')!=='0'))&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
  // A compact UI for the most relevant, reversible game-viewer switches.
  // A reload re-reads only the prepared atlas; it never alters or rebakes it.
@@ -63,28 +77,43 @@
   ['optWorldBands','worldBands',sparseWorldBlit],
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog],
-  ['optFallbackAtlas','fallbackAtlas',fallbackAtlas]
+  ['optFallbackAtlas','fallbackAtlas',fallbackAtlas],
+  ['optGround4x','ground4x',groundDetailRequested],
+  ['optScenery4x','scenery4x',originalSceneryRequested],
+  ['optAdaptiveGround','groundDecode',adaptiveGroundDecode]
  ]){
   const checkbox=$(id);
   if(!checkbox)continue;
   checkbox.checked=active;
   checkbox.addEventListener('change',()=>{
    const next=new URL(location.href);
-   next.searchParams.set(parameter,checkbox.checked?'1':'0');
+   next.searchParams.set(parameter,parameter==='groundDecode'?
+    (checkbox.checked?'adaptive':'full'):(checkbox.checked?'1':'0'));
    location.assign(next.pathname+next.search+next.hash);
   });
  }
  // Optional A/B reference: identical source layers, no cached composites.
  // Never modifies or clears the derived PNGs in IndexedDB.
  const directRenderer=params.get('render')==='direct';
+ // Historical archives may have corrupt 2-pixel outer fringes and default
+ // to inset for compatibility. Newly generated atlases declare an immutable
+ // 'exclusive' source-edge policy and keep their exact source coordinates.
+ // Explicit ?groundSeam=inset/exclusive/legacy always overrides the manifest.
+ const exclusiveGroundSeams=params.get('groundSeam')!=='legacy';
+ let sourceEdgeInset=exclusiveGroundSeams&&
+  params.get('groundSeam')!=='exclusive';
  let lastStatusPaint=-Infinity;
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
-  storage:oneXStore,useLayerCache:!directRenderer,profiler,
+  storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
+  maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
+  adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset,
   overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
+  fogDprCap:groundDetailRequested?1.25:Infinity,
+  preferFogLayerAtHighDpr:groundDetailRequested,
   onStatus:stats=>{
    // The Canvas is unaffected by diagnostics; avoid long DOM/text updates
    // on each rAF while the user pans, zooms or watches fog dissolve.
@@ -100,12 +129,20 @@
     (stats.clouds?.bases??0)+'/4'+
     ' · Wolkenvorlauf ≥ '+stats.cloudBufferHexes+' Hex'+
     (stats.cloudDissolveActive?' · Auflösen aktiv':'')+
+    (adaptiveGroundDecode?' · 4×-Bitmap-Tier '+stats.groundTier+'×'+
+     ' · '+stats.groundResizedTiles+' verkleinerte Ground-Bitmaps'+
+     ' · '+(stats.groundResizedPixelsSaved/1000000).toFixed(1)+
+     ' Mio. dekodierte Pixel vermieden':'')+
     (stats.zoomPreviewActive?' · Zoomvorschau aktiv':'')+
     ' · Zoomvorschau-Bilder '+stats.zoomPreviewFrames+
     ' · Übersicht-Canvas '+stats.overviewRasterHits+' Treffer / '+
     stats.overviewRasterBuilds+' Neuaufbauten'+
     ' · Wolken-Cache '+stats.cloudBackdropHits+' Treffer / '+
     stats.cloudBackdropBuilds+' Neuaufbauten'+
+    (groundDetailActive?' · 4×-Boden beibehalten: '+
+     optimized.groundDownscalesSkipped+' Boden-Konvertierungen vermieden'+
+     ' · 2×-Scenery-Cache '+(optimized.mixedLegacyHits+optimized.mixedHits)+
+     ' Treffer / '+optimized.mixedBuilt+' neue':'')+
     (optimized.enabled?' · 2×-Cache: '+optimized.hits+' Treffer / '+
      optimized.converted+' einmalig erzeugt'+
      (optimized.pending?' / '+optimized.pending+' in Arbeit':'')+
@@ -113,6 +150,8 @@
     (overview1x?' · LOD '+stats.activeVariant+
      ' · 1×-Cache '+overview.hits+' / '+overview.converted:
      ' · 1×-LOD deaktiviert')+
+    (groundDetailActive?' · Nachgewiesener 4×-Boden '+
+     groundDetailStore.stats().originalGrounds+' Kachelabrufe':'')+
     ' · 1×/2× im RAM '+stats.decoded1x+'/'+stats.decoded2x+
     ' · Evictions '+stats.evictions+
     ' · Re-Decodes '+stats.decodeRepeats+
@@ -130,17 +169,101 @@
    const p=player.getPose();if(p)zoomLabel.textContent=Math.round(p.zoom*100)+' %';
   }
  });
- let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null;
+ // The semantic world is intentionally lazy: not part of viewer startup,
+ // camera frames, PNG selection or the decoded-image memory budget.
+ $('showWorldData')?.addEventListener('click',async()=>{
+  const button=$('showWorldData');button.disabled=true;
+  try{
+   const record=await window.VedrasFrozenMap.indexedStore().get(scene+'|world'),
+    doc=record?.data,contract=window.VedrasAuthoredWorld;
+   if(!record||record.kind!=='vedras-authored-world-v1'||
+      !contract?.validate(doc)){
+    output.textContent='Diese ältere Bildkarte enthält keine gespeicherte, editierbare Hexwelt.';
+    return;
+   }
+   const origin=doc.geographySource;
+   output.textContent='Persistente Hexwelt: '+doc.worldCells.length+
+    ' Felder · '+(origin?'Worldgen '+origin.version+' / Seed '+origin.seed:
+     'manuell erstellte Karte')+
+    ' · ohne Geografie-Neuberechnung; zur Bearbeitung die Kennung im Asset-Labor öffnen.';
+  }catch(error){output.textContent='Hexwelt-Daten nicht lesbar: '+String(error?.message||error);}
+  finally{button.disabled=false;}
+ });
+ let startPose=null,drag=null,manifestReadMs=null,sceneRegisterMs=null,
+  groundProbe=null;
+ let panSettler=null,dragLowDprFrames=0;
  try{
   const manifestReadStarted=performance.now();
+  // A successful, explicit Scenery-only update publishes a local alias
+  // to the immutable successor. Existing saved links open corrected
+  // shadows without additional switches. ?original=1 bypasses the alias.
+  if(params.get('original')!=='1'){
+   let preferred=null;
+   try{preferred=localStorage.getItem('vedras-frozen-shadow-current:'+scene);}
+   catch{}
+   if(preferred&&/^v1-[0-9a-f]{8}$/.test(preferred)&&preferred!==scene){
+    try{
+     const successor=await player.loadManifest(preferred);
+     const count=successor.expectedTiles;
+     if(successor.sceneryBaseScene===scene&&successor.shadowTone&&
+        Number.isSafeInteger(count)&&count>0&&
+        (await groundDetailStore.keys(preferred+'|near|')).length===count){
+      shadowSuccessorSource=scene;scene=preferred;
+     }
+    }catch{/* The original immutable atlas remains a safe fallback. */}
+   }
+  }
   const manifest=await player.loadManifest(scene);
+  // New 4x atlases carry exact clean source cores. Cropping two pixels
+  // uniformly from those tiles causes a new 1-world-unit data discontinuity
+  // even when both saved gutters are identical. Keep the old inset ONLY
+  // for historical atlases or when the user explicitly requests an A/B.
+  if(!params.has('groundSeam')&&manifest.groundSeamPolicy==='exclusive'){
+   sourceEdgeInset=false;
+   player.setSourceEdgeInset(false);
+  }
   manifestReadMs=performance.now()-manifestReadStarted;
-  const lod=manifest.levels.includes(requestedLevel)?requestedLevel:
-   manifest.levels[0];
-  // Derive 2× images ONLY for legacy full 4× near PNG sources.
-  // The originals and the manifest continue to live in the original DB.
-  twoXStore.setEnabled(lod==='near'&&Number(manifest.pose?.dpr)>=3);
-  oneXStore.setEnabled(overview1x&&lod==='near');
+  if(benchmark)benchmark.href='frozen-map-benchmark.html?scene='+
+   encodeURIComponent(scene);
+  const previewIncomplete=params.get('previewIncomplete')==='1';
+  // Explicit near must NEVER fall through to a saved far/1x atlas.
+  if(requestedLevel&&!manifest.levels.includes(requestedLevel))
+   throw Error('Die angeforderte Detailstufe '+requestedLevel+
+    ' fehlt in dieser Karte (vorhanden: '+manifest.levels.join(', ')+
+    '). Für die fertige Spielkarte im Asset-Labor Qualität 4× wählen.');
+  if(manifest.generationStatus==='building'&&!previewIncomplete)
+   throw Error('4×-Spielkarte noch UNVOLLSTÄNDIG ('+
+    (manifest.verifiedTiles??0)+' / '+(manifest.expectedTiles??'?')+
+    ' Kacheln). Im Asset-Labor erneut vollständig vorbereiten. '+
+    'Nur zur Diagnose mit &previewIncomplete=1 öffnen.');
+  const lod=requestedLevel||(
+   manifest.levels.includes('near')?'near':manifest.levels[0]);
+  // A saved pose.dpr is metadata, NOT proof of 4x PNG pixels.
+  // Check three representative original Ground IHDR headers without decoding
+  // the full atlas, then independently verify each fetched Ground record.
+  groundProbe=lod==='near'?await groundDetailStore.probe(scene,lod):null;
+  const true4x=lod==='near'&&groundProbe?.available===true;
+  groundDetailActive=groundDetailRequested&&true4x;
+  originalSceneryActive=groundDetailActive&&originalSceneryRequested;
+  groundDetailStore.setEnabled(groundDetailActive);
+  groundDetailStore.setOriginalScenery(originalSceneryActive);
+  twoXStore.setEnabled(true4x);
+  const qualityOption=$('optGround4x');
+  if(qualityOption){
+   qualityOption.disabled=!true4x;
+   qualityOption.title=!true4x?
+    'Keine durchgängig nachgewiesenen 4×-Originalboden-PNGs. Manifest-DPR reicht nicht aus.':
+    'Nachgewiesene originale 4×-Bodenkacheln verwenden';
+  }
+  // Disable 1x overview when comparing the original 4x shadow raster.
+  oneXStore.setEnabled(overview1x&&lod==='near'&&!originalSceneryActive);
+  const sceneryOption=$('optScenery4x');
+  if(sceneryOption){
+   sceneryOption.disabled=!true4x;
+   sceneryOption.title=true4x?
+    'A/B: unveränderte originale Schatten-PNGs, benötigt mehr RAM':
+    'Nur mit echten 4×-Quell-PNGs verfügbar';
+  }
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
@@ -149,21 +272,49 @@
    // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
-   const gameDpr=Math.min(2,Math.sqrt(8000000/area),4096/edge);
+   const gameDpr=Math.min(groundDetailActive?4:2,
+    Math.sqrt((groundDetailActive?18000000:8000000)/area),
+    (groundDetailActive?8192:4096)/edge);
    startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
     window.VedrasFrozenViewPolicy.displayDpr({
      zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-     baseDpr:2}):Math.max(1,gameDpr)};
+     baseDpr:groundDetailActive?4:2,
+     maxDpr:groundDetailActive?4:2,
+     maxPixels:groundDetailActive?18000000:8000000,
+     maxEdge:groundDetailActive?8192:4096}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
-  const status=await player.load(scene,lod,startPose,manifest.cells);
+  const status=await player.load(scene,lod,startPose,manifest.cells,{
+    expectedTiles:manifest.expectedTiles
+   });
   sceneRegisterMs=performance.now()-registerStarted;
+  if(manifest.generationStatus==='complete'&&!status.completeVisibleAtlas&&
+     !previewIncomplete){
+   player.stop();
+   throw Error('Der veröffentlichte 4×-Atlas ist inzwischen unvollständig: '+
+    status.saved+' / '+manifest.expectedTiles+
+    ' Kacheln gespeichert. Originalbilder bleiben unverändert.');
+  }
   const raster=$('rasterQuality');
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
    (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
+   (originalSceneryActive?
+    'Original-Scenery-A/B: Schatten und Objekte direkt aus unveränderten Quell-PNGs; 1×-LOD deaktiviert. ':
+    groundDetailActive?'4×-Originalboden durch PNG-Prüfung bestätigt; Objekte bleiben 2×. ':'')+
+   (groundDetailRequested&&!groundDetailActive?
+    'Kein durchgängig echter 4×-Boden in den geprüften Quellkacheln; höheres Display-Raster würde keine Details erzeugen. ': '')+
+   (groundProbe?'Originalboden-Referenz: '+groundProbe.original4x+'/'+
+    groundProbe.sampled+' geprüfte 4×-Kacheln · kleinste Quelle '+
+    groundProbe.minDensity.toFixed(2)+'×. ':'')+
+   (shadowSuccessorSource?'Korrigierte Schatten automatisch geladen (Original '+
+    shadowSuccessorSource+' mit ?original=1 erreichbar). ':
+    'Schatten in gespeicherten PNGs sind eingebrannt; ein Editorregler allein ändert sie nicht. ')+
+   (sourceEdgeInset?'Quellpixel-Nahtschutz aktiv (?groundSeam=exclusive als A/B). ':'')+
+   (status.completeVisibleAtlas?
+    'Vollständiger lokaler Atlas: keine zusätzlichen Lade-Wolken beim Zoom. ':'')+
    'Gespeicherte Karte '+scene+' · '+lod+' · '+
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
@@ -181,8 +332,11 @@
   const policy=window.VedrasFrozenViewPolicy;
   const outDpr=policy?policy.displayDpr({
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-   baseDpr:2
-  }):Math.min(2,view.dpr||1);
+   baseDpr:groundDetailActive?4:2,
+   maxDpr:groundDetailActive?4:2,
+   maxPixels:groundDetailActive?18000000:8000000,
+   maxEdge:groundDetailActive?8192:4096
+  }):Math.min(groundDetailActive?4:2,view.dpr||1);
   if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
@@ -226,7 +380,8 @@
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
  canvas.addEventListener('pointerdown',e=>{
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY};
+  if(panSettler!==null){clearTimeout(panSettler);panSettler=null;}
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
@@ -236,13 +391,32 @@
   if(!dx&&!dy)return;
   if(profiler)profiler.input('pan');
   drag.x=e.clientX;drag.y=e.clientY;
-  // Do not scale a 4-MP low-res snapshot across 2x scenery. Instead move
-  // the real camera and let the padded world/cloud raster caches repaint.
-  // Tile reads, fog readiness and fades continue WHILE dragging.
-  setPose({panX:p.panX+dx,panY:p.panY+dy},{deferDpr:true});
+  // Full-detail 4x backing can reach 18 MP and bypass the world cache.
+  // During a drag, keep the real tile compositor at 1.25x so camera
+  // frames remain bounded. After release restore 4x exactly once.
+  // No PNGs are downgraded/re-encoded; the 4x source stays in RAM.
+  const pan={panX:p.panX+dx,panY:p.panY+dy};
+  if(groundDetailActive&&!drag.moved&&(p.dpr||1)>1.25){
+   pan.dpr=1.25;dragLowDprFrames++;
+   const raster=$('rasterQuality');
+   if(raster)raster.textContent='Raster 1.25× (Bewegung)';
+  }
+  drag.moved=true;
+  setPose(pan,{deferDpr:true});
  });
+ const finishPan=()=>{
+  if(!drag)return;
+  const moved=drag.moved;
+  drag=null;
+  if(!moved||!groundDetailActive)return;
+  if(panSettler!==null)clearTimeout(panSettler);
+  panSettler=setTimeout(()=>{
+   panSettler=null;
+   if(!drag)setPose({}); // restores bounded original 4x DPR
+  },150);
+ };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
-  canvas.addEventListener(evt,()=>{drag=null;});
+  canvas.addEventListener(evt,finishPan);
  // Layout-driven statistics never trigger a resize. Genuine viewport size
  // changes preserve the current world pose and all decoded image tiles;
  // repaint at most once per animation frame.
@@ -290,7 +464,12 @@
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
    runtime:player.report(),derived2x:twoXStore.stats(),
-   derived1x:oneXStore.stats(),overview1x,largeViewportCache,
+   derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
+   groundProbe,groundDetailRequested,groundDetailActive,
+   groundSeamPolicy:!exclusiveGroundSeams?'legacy-overlap':
+      sourceEdgeInset?'source-edge-inset':'exclusive',
+   requestedScene,shadowSuccessorSource,
+   adaptiveGroundDecode,dragLowDprFrames,overview1x,largeViewportCache,
    prefetchGuard,directionalPrefetch,lodRecency,visibleBorrow,
    parallelLayerDecode,fallbackAtlas,streamingWorldCache,
    adaptiveCloudCache,autoCloudStrategy,
@@ -316,6 +495,62 @@
    });
   }
  }
+ const seamAuditButton=$('auditGroundSeams');
+ if(seamAuditButton){
+  seamAuditButton.addEventListener('click',async()=>{
+   seamAuditButton.disabled=true;
+   const previous=output.textContent;
+   try{
+    if(!window.VedrasFrozenSeamAudit)throw Error('Bodennaht-Prüfung fehlt');
+    // Inspect actual visible neighbor pairs; the core audit decodes only
+    // bounded source strips, never the complete archived map.
+    const raw=window.VedrasFrozenMap.indexedStore();
+    const store=window.VedrasFrozenMap.linkedStore(raw);
+    const view={...player.getPose(),width:canvas.clientWidth,
+     height:canvas.clientHeight};
+    const keys=await store.keys(scene+'|near|');
+    const nearby=window.VedrasFrozenSeamAudit.pairsForView(view,keys,12);
+    const pairs=nearby.length?nearby:window.VedrasFrozenSeamAudit.PAIRS;
+    output.textContent='Originalboden: '+pairs.length+
+     ' Kachelgrenzen der aktuellen Kartenansicht prüfen …';
+    const report=await window.VedrasFrozenSeamAudit.audit(scene,store,{
+     pairs,
+     progress:(done,total)=>{output.textContent='Bodennaht-Prüfung '+
+      done+' / '+total+' Quellkachel-Paare …';}
+    });
+    // Gutter alpha can be absent on the *other* side of an exclusive
+    // 512-unit owner without causing any visible seam. Also inspect the
+    // actual owned RGB/alpha pixels on both sides of each line.
+    const checker=window.VedrasGroundCoreSeams;
+    if(!checker)throw Error('Core-Nahtprüfung fehlt');
+    const tileIds=[...new Set(pairs.flat())];
+    const tiles=tileIds.map(id=>{
+     const [cx,cy]=id.split(',').map(Number);
+     return {id,x:cx*512,y:cy*512,size:512};
+    });
+    report.core=await checker.auditSaved(scene,store,tiles,manifest.cells,{
+     onProgress:(done,total)=>{output.textContent=
+      'Tatsächliche Ground-Kernkanten: '+done+' / '+total+' …';}
+    });
+    const file=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),
+     url=URL.createObjectURL(file),link=document.createElement('a');
+    link.href=url;link.download='vedras_bodennahte_'+scene+'.json';
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    output.textContent='Originalboden geprüft: '+
+     report.core.checked+' sichtbare Kernkanten; '+
+     report.core.failures.length+' echte Kernnaht-Befunde. '+
+     report.summary.gutterAlphaCandidates+
+     ' Gutter-Alpha-Abweichungen sind nur diagnostisch. '+
+     'JSON erstellt; kein Atlas verändert.';
+   }catch(error){
+    output.textContent='Bodennaht-Prüfung fehlgeschlagen: '+
+     String(error?.message||error);
+   }finally{
+    seamAuditButton.disabled=false;
+   }
+  });
+ }
  window.__vedrasFrozenGameTest={
   stats:()=>player.report(),pose:()=>player.getPose(),
   profileReport,profileReset,profileStatus,
@@ -327,6 +562,9 @@
   }:null,
   // Read-only diagnostic: no editor instance, no workers, no tile sources.
   readOnly:true,scene,derived2x:()=>twoXStore.stats(),
-  derived1x:()=>oneXStore.stats()
+  derived1x:()=>oneXStore.stats(),
+  groundDetail:()=>({requested:groundDetailRequested,active:groundDetailActive,
+   dragLowDprFrames,
+   probe:groundProbe,...groundDetailStore.stats()})
  };
 })();

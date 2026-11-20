@@ -133,7 +133,7 @@ test('2x original atlas stays read-only and preview is fog-clipped',()=>{
  assert.doesNotMatch(game,/player\.beginZoomPreview\(/);
  assert.match(runtime,/paintWorld\(g,extendedView,shown,backingDpr\)/);
  assert.match(runtime,/clouds\.drawTransitions\(g,extendedView,fogEdgesFor\(extendedView\)\)/);
- assert.match(runtime,/clouds\.drawUnready\(g,extendedView,fogCellsFor\(extendedView\)/);
+ assert.match(runtime,/if\(!completeVisibleAtlas\)clouds\.drawUnready\(g,extendedView/);
  assert.match(runtime,/if\(ox<=0&&oy<=0&&ox\+destW>=width&&oy\+destH>=height\)/);
  assert.doesNotMatch(runtime,/bakeWorldTile\(|drawGroundImpl\(/);
  assert.doesNotMatch(game,/source\.put\(|deleteDatabase\(/);
@@ -145,7 +145,10 @@ test('panning is a live world raster rather than frozen 4-MP screenshot',()=>{
  assert.ok(html.includes('min-width:10ch;text-align:center;white-space:nowrap'));
  assert.ok(game.includes('metrics.title=metrics.textContent'));
  assert.ok(!game.includes('player.beginZoomPreview('));
- assert.ok(game.includes('setPose({panX:p.panX+dx,panY:p.panY+dy}'));
+ assert.ok(game.includes('const pan={panX:p.panX+dx,panY:p.panY+dy}')); 
+ assert.ok(game.includes('setPose(pan,{deferDpr:true})'));
+ assert.ok(game.includes('pan.dpr=1.25'));
+ assert.ok(game.includes('if(!drag)setPose({})'));
  assert.ok(game.includes("for(const evt of ['pointerup','pointercancel','lostpointercapture'])"));
  assert.ok(runtime.includes('list=[...list].sort'));
 });

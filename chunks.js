@@ -501,6 +501,15 @@ window.VedrasChunks=(()=>{
   // queued and never painted until they intersect the actual viewport.
   function updateStreaming(viewport,tiles,prefetch){
    const keep=new Set(tiles.map(t=>t.id));
+   // An exhausted worker/raster failure must not permanently blacklist a
+   // region after it has LEFT the viewport and is visited again later.
+   // Retain the four-attempt guard within a single visit (no retry storm).
+   const previousWanted=viewportWanted;
+   for(const id of keep){
+    if(previousWanted.has(id)||!failures.get(id)?.terminal)continue;
+    forgetRetry(id);
+    observe(id,'retry-rearmed',{reason:'visible-reentry'});
+   }
    viewportWanted=keep;
    protectedIds=new Set(keep);
    for(const id of [...queue.keys()])if(!keep.has(id)){

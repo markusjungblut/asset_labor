@@ -14,10 +14,44 @@ window.VedrasFrozenMap=(()=>{
  });
  const SCHEMA=1,DB='vedras-frozen-world-v1',STORE='tiles';
  const integer=v=>Number.isSafeInteger(v);
+ // A shadow-only successor stores only a new transparent Scenery PNG.
+ // Its Ground is referenced by the immutable source record, not copied
+ // into IndexedDB a second time. Resolve the reference in memory only.
+ function linkedStore(raw){
+  return {...raw,async get(key){
+   const record=await raw.get(key);
+   if(record?.derivedFormat!=='scenery-refresh-v1')return record;
+   const originalKey=record.groundRefKey;
+   if(typeof originalKey!=='string'||!/^v1-[0-9a-f]{8}\|near\|/.test(originalKey)||
+      originalKey===key||!/^v1-[0-9a-f]{8}\|near\|/.test(key))
+    throw Error('Ungültiger Bodenverweis der Schattenkarte');
+   // Only one link level is permitted: the source must be a complete
+   // original tile, never another linked/derived shadow tile.
+   const original=await raw.get(originalKey);
+   if(!original||original.groundRefKey||original.level!==record.level||
+      original.tile?.id!==record.tile?.id||
+      original.tile?.x!==record.tile?.x||
+      original.tile?.y!==record.tile?.y||
+      original.tile?.size!==record.tile?.size)
+    throw Error('Originalboden fehlt oder die Kachelgeometrie weicht ab');
+   const ground=original.layers?.find(l=>
+    l.layer==='ground'||l.layer==='terrain');
+   const scenery=record.layers?.find(l=>
+    l.layer==='scenery'||l.layer==='structures');
+   if(!(ground?.png instanceof Blob)||!(scenery?.png instanceof Blob)||
+      record.layers.length!==1)
+    throw Error('Schattenkarte hat keinen gültigen Boden oder Scenery-Layer');
+   return {...record,layers:[ground,scenery]};
+  }};
+ }
  function memoryStore(){
   const data=new Map();
   return {
    async put(rec){data.set(rec.key,rec);},
+   async putIfAbsent(rec){
+    if(data.has(rec.key))throw Error('Eintrag existiert bereits: '+rec.key);
+    data.set(rec.key,rec);
+   },
    async get(key){return data.get(key)||null;},
    async keys(prefix){return [...data.keys()].filter(k=>k.startsWith(prefix));},
    async clearPrefix(prefix){for(const key of [...data.keys()])
@@ -50,8 +84,11 @@ window.VedrasFrozenMap=(()=>{
     tx.onabort=()=>reject(tx.error||Error('IndexedDB-Transaktion abgebrochen'));
    });
   }
-  return {
+  return linkedStore({
    put:rec=>job('readwrite',os=>os.put(rec)),
+   // A unique IndexedDB add() is atomic even if two browser tabs run the
+   // same one-time scenery refresh concurrently. No existing image is lost.
+   putIfAbsent:rec=>job('readwrite',os=>os.add(rec)),
    get:key=>job('readonly',os=>os.get(key)),
    keys:async prefix=>{
     const db=await open();
@@ -65,7 +102,7 @@ window.VedrasFrozenMap=(()=>{
    },
    // No implicit cleanup: archived evidence is persistent until an explicit
    // future user-requested deletion workflow is added.
-  };
+  });
  }
  function valid(packet){
   if(!packet||packet.dirty||packet.preview||!packet.complete||
@@ -83,6 +120,27 @@ window.VedrasFrozenMap=(()=>{
   return new Promise((resolve,reject)=>cv.toBlob(blob=>
    blob?resolve(blob):reject(Error('PNG-Bild konnte nicht gespeichert werden')),'image/png'));
  }
+ // The 3-world-unit PNG gutter supplies correct interpolation outside
+ // a tile's core. It must NEVER be painted over its neighbor: drawing
+ // over the neighbor with source-over darkens translucent raster edges.
+ // Every device-snapped core owns exactly its exclusive destination pixels.
+ function groundCorePlacement(image,t,pad=0,insetEdge=false){
+  const size=t.entry.record.tile.size||512,full=size+2*pad;
+  // Source borders of older saved Ground PNGs may contain baked bright
+  // transparent antialias fringes. Trim two SOURCE pixels (never device
+  // pixels) on each side, then resample the interior to the same exact
+  // snapped destination rectangle. No extra canvas draw or PNG rewrite.
+  const xInset=insetEdge&&pad>0?Math.min(pad*.75,2*full/image.width):0;
+  const yInset=insetEdge&&pad>0?Math.min(pad*.75,2*full/image.height):0;
+  return {
+   sx:image.width*(pad+xInset)/full,sy:image.height*(pad+yInset)/full,
+   sw:image.width*(size-2*xInset)/full,
+   sh:image.height*(size-2*yInset)/full,
+   x:t.left,y:t.top,w:t.right-t.left,h:t.bottom-t.top
+  };
+ }
+ // Never run source-gutter seam overpaint with 'copy'. It erases valid
+ // neighbor content and reveals the cloud background as rectangular lines.
  function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
     overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
@@ -90,14 +148,21 @@ window.VedrasFrozenMap=(()=>{
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
      directionalPrefetch=false,lodRecency=false,visibleBorrow=false,
-     parallelLayerDecode=false,fallbackAtlas=false}={}){
+     parallelLayerDecode=false,fallbackAtlas=false,
+     // High-detail Ground: let Fog animate at a small independent backing
+     // scale while the costly static 4x landscape remains unchanged.
+     fogDprCap=Infinity,preferFogLayerAtHighDpr=false,
+     adaptiveGroundDecode=false,exclusiveGroundSeams=true,
+     sourceEdgeInset=false}={}){
   if(!canvas?.getContext)throw Error('Canvas für Spielkartentest fehlt');
   const ctx=canvas.getContext('2d',{alpha:true});
+  let effectiveEdgeInset=sourceEdgeInset;
   // Optional transparent viewport-size overlay; world stays on #game.
   const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
   let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
+   let completeVisibleAtlas=false;
   let tileRecords=[],authorizedClipCells=[];
   // Read-only metadata index; PNG blobs remain exclusively in IndexedDB.
   // Small scenes keep the original Set scan (no extra allocations/sorts).
@@ -118,7 +183,7 @@ window.VedrasFrozenMap=(()=>{
   let fallbackKeys=[],fallbackCursor=0,fallbackWarmFinished=false,
    fallbackWarmCapped=false,fallbackWarmStarts=0,
    fallbackStaleStorageSkips=0,fallbackStaleDecodeDrops=0,
-   fallbackHits=0;
+   fallbackHits=0,fallbackSafetyPressure=0,fallbackMemoryAllowance=0;
 
   const loadingPurpose=new Map(),seenDecoded=new Map();
   const MAX_SEEN=2048,MAX_INFLIGHT=3,MAX_SPECULATIVE=1;
@@ -137,8 +202,30 @@ window.VedrasFrozenMap=(()=>{
   // Each variant keeps a private RAM identity; persisted storage keys do
   // not change. Keep previous 2x visible until a matching 1x tile is READY.
   let activeVariant='2x',lodSwitches=0,variantFallbackFrames=0;
-  const cacheKey=(key,variant)=>key+'~'+variant;
+  // The source is an actual 4x PNG. Decode fewer pixels only when the
+  // screen cannot display its full native information. Distinct tiers
+  // have distinct RAM identities; the original storage ID never changes.
+  const GROUND_TIERS=[1.75,2.5,4];
+  const tierForDeviceDensity=density=>density<=1.5?1.75:
+   density<=2.4?2.5:4;
+  let groundTier=2.5,groundTierSwitches=0,
+   groundResizedTiles=0,groundResizedPixelsSaved=0;
+  const cacheKey=(key,variant,tier=groundTier)=>key+'~'+variant+
+   (adaptiveGroundDecode&&variant==='2x'?'~g'+tier:'');
   const decodedEntry=(key,variant)=>decoded.get(cacheKey(key,variant));
+  const spareTierEntry=(key,variant)=>{
+   if(!adaptiveGroundDecode||variant!=='2x')return null;
+   for(const tier of GROUND_TIERS){
+    if(tier===groundTier)continue;
+    const entry=decoded.get(cacheKey(key,'2x',tier));
+    if(entry)return entry;
+   }
+   return null;
+  };
+  const spareTierKey=(key,variant)=>{
+   const found=spareTierEntry(key,variant);
+   return found?cacheKey(key,'2x',found.groundTier):null;
+  };
   const desiredVariant=()=>{
    if(!overview1x||!storage.getVariant)return '2x';
    if(activeVariant==='2x'&&pose?.zoom<=.60)activeVariant='1x';
@@ -252,8 +339,12 @@ window.VedrasFrozenMap=(()=>{
   const clouds=window.VedrasCloudArtwork?.create({
    onReady:()=>{cloudRevision++;cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
-  const decodePNG=decode||(async blob=>{
-   if(typeof createImageBitmap==='function')return createImageBitmap(blob);
+  const decodePNG=decode||(async(blob,options)=>{
+   if(typeof createImageBitmap==='function'){
+    if(options)try{return await createImageBitmap(blob,options);}
+     catch{ /* Browser lacks decode-time PNG resize; preserve source. */ }
+    return createImageBitmap(blob);
+   }
    return new Promise((resolve,reject)=>{
     const url=URL.createObjectURL(blob),im=new Image();
     im.onload=()=>{URL.revokeObjectURL(url);resolve(im)};
@@ -261,7 +352,8 @@ window.VedrasFrozenMap=(()=>{
     im.src=url;
    });
   });
-  function report(){return {active,sceneKey,level,saved:available.size,
+  function report(){return {active,sceneKey,level,exclusiveGroundSeams,
+    sourceEdgeInset:effectiveEdgeInset,completeVisibleAtlas,saved:available.size,
    decoded:decoded.size,decodedPixels,hits,loads,misses,failures,evictions,
    decoded1x:[...decoded.values()].filter(e=>e.variant==='1x').length,
    decoded2x:[...decoded.values()].filter(e=>e.variant==='2x').length,
@@ -274,6 +366,8 @@ window.VedrasFrozenMap=(()=>{
     [...decoded.values()].filter(e=>e.variant==='1x')
      .reduce((sum,e)=>sum+e.pixels,0):0,
    fallbackStaleStorageSkips,fallbackStaleDecodeDrops,fallbackHits,
+   fallbackMemoryAllowance,fallbackSafetyPressure,
+   effectiveDecodedBudget:maxDecodedPixels+fallbackMemoryAllowance,
    prefetchGuard,visibleReadStarts,prefetchReadStarts,decodeRepeats,
    visibleDecodeRepeats,prefetchDecodeRepeats,evictedSpeculative,
    prefetchSkippedVisible,prefetchSkippedBudget,prefetchSkippedSlots,
@@ -287,6 +381,10 @@ window.VedrasFrozenMap=(()=>{
    cloudDissolveActive:dissolveActive,
    zoomPreviewActive:!!zoomPreview,zoomPreviewFrames,
    renderMode:useLayerCache?'cached':'direct',
+   fogDprCap:Number.isFinite(fogDprCap)?fogDprCap:null,
+   preferFogLayerAtHighDpr,
+   adaptiveGroundDecode,groundTier,groundTierSwitches,
+   groundResizedTiles,groundResizedPixelsSaved,
    indexedTileSelection,indexedTileSelectionActive:!!tileColumns,
    tileIndexEntries,tileIndexQueries,tileIndexCandidateChecks,
    tileLegacyCandidateChecks,tileParsedRecords:tileRecords.length,
@@ -316,7 +414,7 @@ window.VedrasFrozenMap=(()=>{
      cloudBackdropRaster.canvas.height*4/1048576):0,
    overviewRasterMiB:overviewRaster?
     Math.round(overviewRaster.canvas.width*overviewRaster.canvas.height*4/1048576):0};}
-  function clearDecoded(){generation++;for(const entry of decoded.values())
+  function clearDecoded(){completeVisibleAtlas=false;generation++;for(const entry of decoded.values())
    for(const img of entry.images)img.close?.();
    decoded.clear();decodedRevision++;baseStamp=null;
    loading.clear();loadingPurpose.clear();
@@ -327,7 +425,7 @@ window.VedrasFrozenMap=(()=>{
    fallbackKeys=[];fallbackCursor=0;fallbackWarmFinished=false;
    fallbackWarmCapped=false;fallbackWarmStarts=0;
    fallbackStaleStorageSkips=0;fallbackStaleDecodeDrops=0;
-   fallbackHits=0;
+   fallbackHits=0;fallbackMemoryAllowance=0;fallbackSafetyPressure=0;
    prefetchPose=null;prefetchMotionX=0;prefetchMotionY=0;
    prefetchCoastFrames=0;directionalPrefetchFrames=0;
    prefetchTrailingSkipped=0;prefetchLeadingStarts=0;
@@ -361,12 +459,22 @@ window.VedrasFrozenMap=(()=>{
    requestAnimationFrame(()=>{paintScheduled=false;if(active)draw();});
   };
   function keepWithinBudget(){
-   while(decodedPixels>maxDecodedPixels&&decoded.size>1){
+   // The compact 1x safety atlas is independent of near-resolution RAM.
+   // Profile (11): 122/171 repeated decodes affected the 1x safety net.
+   const safetyPixels=fallbackAtlasEnabled?
+    [...decoded.values()].reduce((n,e)=>n+
+      (e.variant==='1x'?e.pixels:0),0):0;
+   fallbackMemoryAllowance=fallbackAtlasEnabled?
+    Math.min(safetyPixels,maxDecodedPixels*.35):0;
+   const limit=maxDecodedPixels+fallbackMemoryAllowance;
+   while(decodedPixels>limit&&decoded.size>1){
     let victim=null;
     // Speculatively decoded but NEVER displayed images must yield
     // before recently visited terrain and before the inactive zoom LOD.
     if(prefetchGuard)for(const [key,entry] of decoded)
-     if(!protectedKeys.has(key)&&entry.origin==='prefetch'){
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')&&
+        entry.origin==='prefetch'){
       victim=key;break;
      }
     // A just-visited inactive LOD can be more valuable on the next zoom
@@ -382,7 +490,8 @@ window.VedrasFrozenMap=(()=>{
     if(!victim&&lodRecency){
      let oldest=Infinity,hasInactive=false;
      for(const [key,entry] of decoded){
-      if(protectedKeys.has(key))continue;
+      if(protectedKeys.has(key)||
+         (fallbackAtlasEnabled&&entry.variant==='1x'))continue;
       if(entry.variant!==activeVariant)hasInactive=true;
       const last=entry.lastVisibleFrame??-1;
       if(last<oldest){oldest=last;victim=key;}
@@ -391,12 +500,22 @@ window.VedrasFrozenMap=(()=>{
       lodRecencyEvictions++;
     }
     if(!victim)for(const [key,entry] of decoded)
-     if(!protectedKeys.has(key)&&entry.variant!==activeVariant){
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')&&
+        entry.variant!==activeVariant){
       victim=key;break;
      }
-    if(!victim)for(const key of decoded.keys())
-     if(!protectedKeys.has(key)){victim=key;break;}
-    if(!victim)break;
+    if(!victim)for(const [key,entry] of decoded)
+     if(!protectedKeys.has(key)&&
+        (!fallbackAtlasEnabled||entry.variant!=='1x')){
+      victim=key;break;
+     }
+    if(!victim){
+     // If a broad view cannot fit, never thrash visible 4x and safety 1x.
+     // This is a soft budget; report the RAM pressure explicitly.
+     if(fallbackAtlasEnabled)fallbackSafetyPressure++;
+     break;
+    }
     const entry=decoded.get(victim);
     decoded.delete(victim);decodedRevision++;
     decodedPixels-=entry.pixels;evictions++;
@@ -420,12 +539,15 @@ window.VedrasFrozenMap=(()=>{
     if(!speculative){hit.origin='visible';hit.lastVisibleFrame=frame;}
     hits++;return hit;
    }
-   const fallback=speculative&&prefetchGuard?null:decoded.get(alternate);
+   const spare=spareTierKey(key,variant),
+    fallbackId=decoded.has(alternate)?alternate:spare;
+   const fallback=speculative&&prefetchGuard?null:
+    (fallbackId?decoded.get(fallbackId):null);
    if(fallback){
     if(fallbackAtlasEnabled&&!speculative&&fallback.variant==='1x')
      fallbackHits++;
     if(!speculative||!prefetchGuard){
-     decoded.delete(alternate);decoded.set(alternate,fallback);
+     if(fallbackId){decoded.delete(fallbackId);decoded.set(fallbackId,fallback);}
     }
     if(!speculative){fallback.origin='visible';fallback.lastVisibleFrame=frame;}
    }
@@ -472,7 +594,8 @@ window.VedrasFrozenMap=(()=>{
    loadingPurpose.set(id,warming?'fallback':speculative?'prefetch':'visible');
    if(warming)fallbackWarmStarts++;
    else if(speculative)prefetchReadStarts++;else visibleReadStarts++;
-   const run=generation,readStarted=profiler?clock():0;
+   const run=generation,requestedTier=groundTier,
+    readStarted=profiler?clock():0;
    let readFinished=0,decodeDuration=0;
    // A rejected getVariant() request must not leave loading slots stuck.
    Promise.resolve().then(()=>storage.getVariant?
@@ -486,12 +609,22 @@ window.VedrasFrozenMap=(()=>{
      fallbackStaleStorageSkips++;return;
     }
     const images=[],decodeStarted=profiler?clock():0;
+    const resizeGround=layer=>{
+     if(!adaptiveGroundDecode||variant!=='2x'||requestedTier>=4||
+       record.groundDetailSource!=='original-4x'||
+       !['ground','terrain'].includes(layer.layer)||
+       !record.groundSourcePixels?.density)return undefined;
+     const p=record.groundSourcePixels,scale=requestedTier/p.density;
+     return {resizeWidth:Math.max(1,Math.round(p.width*scale)),
+      resizeHeight:Math.max(1,Math.round(p.height*scale)),
+      resizeQuality:'high'};
+    };
     try{
      if(parallelLayerDecode&&record.layers.length>1){
       // Ground/Scenery PNGs are independent. allSettled preserves
       // layer order and safely closes any success after a sibling fails.
       const outcomes=await Promise.allSettled(
-       record.layers.map(layer=>decodePNG(layer.png)));
+       record.layers.map(layer=>decodePNG(layer.png,resizeGround(layer))));
       const failure=outcomes.find(x=>x.status==='rejected');
       if(failure){
        parallelDecodeFailures++;
@@ -502,7 +635,7 @@ window.VedrasFrozenMap=(()=>{
       for(const result of outcomes)images.push(result.value);
       parallelTileDecodes++;
      }else for(const layer of record.layers)
-      images.push(await decodePNG(layer.png));
+      images.push(await decodePNG(layer.png,resizeGround(layer)));
     }catch(error){for(const im of images)im.close?.();throw error;}
     if(profiler)decodeDuration=clock()-decodeStarted;
     if(!active||run!==generation||record.key!==key||
@@ -517,6 +650,20 @@ window.VedrasFrozenMap=(()=>{
     }
     const pixels=images.reduce((sum,im)=>
      sum+(im.width||0)*(im.height||0),0);
+    if(adaptiveGroundDecode&&requestedTier<4&&
+       record.groundDetailSource==='original-4x'){
+     const source=record.groundSourcePixels;
+     if(source){
+      const raster=record.layers.findIndex(l=>
+       l.layer==='ground'||l.layer==='terrain');
+      const reduced=images[raster];
+      if(reduced&&reduced.width<source.width){
+       groundResizedTiles++;
+       groundResizedPixelsSaved+=Math.max(0,
+        source.width*source.height-reduced.width*reduced.height);
+      }
+     }
+    }
     const actualPurpose=loadingPurpose.get(id)||'visible';
     const count=seenDecoded.get(id)||0;
     if(count){
@@ -529,8 +676,8 @@ window.VedrasFrozenMap=(()=>{
     if(seenDecoded.size>MAX_SEEN)
      seenDecoded.delete(seenDecoded.keys().next().value);
     typicalPixels[variant]=Math.max(typicalPixels[variant],pixels);
-    decoded.set(id,{record,images,pixels,variant,origin:actualPurpose,
-     lastVisibleFrame:actualPurpose==='visible'?frame:-1});
+    decoded.set(id,{record,images,pixels,variant,groundTier:requestedTier,
+     origin:actualPurpose,lastVisibleFrame:actualPurpose==='visible'?frame:-1});
     decodedRevision++;
     decodedPixels+=pixels;loads++;
     keepWithinBudget();
@@ -579,9 +726,7 @@ window.VedrasFrozenMap=(()=>{
    // Never churn the safety net against an unusually large pinned
    // viewport. Reserve room for urgent 2x additions and cap background
    // 1x coverage rather than repeatedly admitting and evicting it.
-   const reserve=Math.max(maxDecodedPixels*.08,2*(typicalPixels['2x']||0));
-   const ceiling=Math.max(0,Math.min(maxDecodedPixels*FALLBACK_SHARE,
-    maxDecodedPixels-pinnedPixels-reserve));
+   const ceiling=Math.max(0,maxDecodedPixels*FALLBACK_SHARE);
    const estimatedNext=typicalPixels['1x']||Math.min(500000,maxDecodedPixels*.01);
    if(fallbackPixels+estimatedNext>ceiling){
     fallbackWarmCapped=true;return;
@@ -610,6 +755,7 @@ window.VedrasFrozenMap=(()=>{
     for(let iy=Math.floor((c.y-c.radius+.01)/512);
      iy<=Math.floor((c.y+c.radius-.01)/512);iy++)
      if(!decodedEntry(makeKey(sceneKey,level,ix+','+iy),activeVariant)&&
+         !spareTierEntry(makeKey(sceneKey,level,ix+','+iy),activeVariant)&&
          !decodedEntry(makeKey(sceneKey,level,ix+','+iy),
           activeVariant==='1x'?'2x':'1x'))return false;
    return true;
@@ -701,8 +847,8 @@ window.VedrasFrozenMap=(()=>{
     paintWorld(g,extendedView,shown,backingDpr);
     if(clouds){
      g.setTransform(backingDpr,0,0,backingDpr,0,0);
-     clouds.drawUnready(g,extendedView,fogCellsFor(extendedView),
-      isHexReady,zoomSnapshotOpacity);
+     if(!completeVisibleAtlas)clouds.drawUnready(g,extendedView,
+       fogCellsFor(extendedView),isHexReady,zoomSnapshotOpacity);
      clouds.drawTransitions(g,extendedView,fogEdgesFor(extendedView));
     }
    }else{
@@ -911,9 +1057,10 @@ window.VedrasFrozenMap=(()=>{
     }
     g.clip();
    }
-   // Ground uses exclusive device-snapped borders with an infinitesimal
-   // source-gutter overdraw. It covers fractional-DPR seams without changing
-   // the baked terrain content, and never samples outside the original PNG.
+   // Source gutters supply bilinear samples, but destination rectangles
+   // are device-snapped and exclusive. Unlike the previous overlapping
+   // gutter overdraw, this cannot double-composite semitransparent borders.
+   // The reversible legacy policy is retained for identical-scene A/B.
    const groundClipStart=profileFrame?clock():0;
    g.save();clipCells(0);
    if(profileFrame)profileFrame.maskMs+=clock()-groundClipStart;
@@ -923,7 +1070,13 @@ window.VedrasFrozenMap=(()=>{
     if(layer.layer!=='ground'&&layer.layer!=='terrain')continue;
     const image=t.entry.images[i],pad=Math.max(0,layer.pad||0),
      x=t.left,y=t.top,w=t.right-t.left,h=t.bottom-t.top;
-    if(pad){
+    if(exclusiveGroundSeams){
+     // One image, one exclusive screen rectangle. No 0.65-device-pixel
+     // gutter overdraw on top of adjacent (possibly translucent) ground.
+     const p=groundCorePlacement(image,t,pad,effectiveEdgeInset);
+     g.drawImage(image,p.sx,p.sy,p.sw,p.sh,p.x,p.y,p.w,p.h);
+    }else if(pad){
+     // Reversible legacy reference for the exact same stored PNGs.
      const bx=Math.min(.65/dpr,pad*view.zoom*.8),
       by=Math.min(.65/dpr,pad*view.zoom*proj*.8),
       sx=image.width*(pad-bx/view.zoom)/(512+2*pad),
@@ -1070,7 +1223,11 @@ window.VedrasFrozenMap=(()=>{
     if(!viewportPolicy.visibleTile(
       Math.round(t.x/512),Math.round(t.y/512),bufferedBounds))continue;
     const logical=entry.record.key,previous=chosen.get(logical);
-    if(!previous||entry.variant===activeVariant)chosen.set(logical,key);
+    const fidelity=e=>e.variant!==activeVariant?0:
+     (adaptiveGroundDecode&&e.variant==='2x'?
+      (e.groundTier===groundTier?3:2):3);
+    if(!previous||fidelity(entry)>fidelity(decoded.get(previous)))
+     chosen.set(logical,key);
    }
    const bufferKeys=[...chosen.values()].sort();
    // Map iteration order is LRU order and changes on every tile read.
@@ -1203,14 +1360,30 @@ window.VedrasFrozenMap=(()=>{
     }
     visible.push({key,left,top,right,bottom});
    }
+   // Use real screen demand rather than temporary drag DPR to avoid
+   // futile 4x bitmap allocation at 0.64x zoom. Increase the tier only
+   // when the output could actually display extra source pixels.
+   if(adaptiveGroundDecode){
+    const fullDpr=viewportPolicy?.displayDpr({
+     zoom:view.zoom,width,height,baseDpr:4,
+     maxDpr:4,maxPixels:18000000,maxEdge:8192
+    })??Math.max(1,dpr);
+    const tier=tierForDeviceDensity(view.zoom*fullDpr);
+    if(tier!==groundTier){
+     groundTier=tier;groundTierSwitches++;overviewRaster=null;
+    }
+   }
    const previousVariant=activeVariant,variant=desiredVariant();
    if(previousVariant!==variant){lodSwitches++;overviewRaster=null;}
    visibleMissing=visible.some(t=>!decodedEntry(t.key,variant));
    protectedKeys=new Set(visible.flatMap(t=>{
     const result=[cacheKey(t.key,variant)];
-    const other=cacheKey(t.key,variant==='1x'?'2x':'1x');
-    if(!decoded.has(cacheKey(t.key,variant))&&decoded.has(other))
-     result.push(other);
+    const other=cacheKey(t.key,variant==='1x'?'2x':'1x'),
+     spare=spareTierKey(t.key,variant);
+    if(!decoded.has(cacheKey(t.key,variant))){
+     if(decoded.has(other))result.push(other);
+     if(spare)result.push(spare);
+    }
     return result;
    }));
    keepWithinBudget();
@@ -1285,18 +1458,31 @@ window.VedrasFrozenMap=(()=>{
     baseStamp.height===height&&baseStamp.dpr===dpr&&
     baseStamp.zoom===view.zoom&&baseStamp.panX===view.panX&&
     baseStamp.panY===view.panY&&baseStamp.projectY===proj;
-   const wantsFogLayer=!!fogCtx&&(!baseStamp||cameraStill)&&!zoomPreview;
+   // In full 4x mode the first idle frame after a drag must already
+   // paint a clean background, avoiding an expensive second 4x repaint
+   // just to move Fog out of the world canvas on the next dissolve tick.
+   const wantsFogLayer=!!fogCtx&&!zoomPreview&&
+    (preferFogLayerAtHighDpr?
+     (dpr>=2.25||(!!baseStamp&&cameraStill)):
+     (!baseStamp||cameraStill));
    if(fogCtx&&fogLayerActive!==wantsFogLayer){
     fogLayerActive=wantsFogLayer;
     fogCanvas.hidden=!wantsFogLayer;
    }
    if(wantsFogLayer){
-    if(fogCanvas.width!==dw||fogCanvas.height!==dh){
-     fogCanvas.width=dw;fogCanvas.height=dh;
+    // A full 18 MP transparent Fog canvas duplicated the display raster
+    // and made even idle cloud dissolves expensive. The static terrain
+    // remains at its requested 4x DPR; Fog needs only a soft 1.25x buffer.
+    const cap=Number.isFinite(fogDprCap)?Math.max(.5,fogDprCap):dpr;
+    const overlayDpr=Math.min(dpr,cap),
+     fw=Math.max(1,Math.round(width*overlayDpr)),
+     fh=Math.max(1,Math.round(height*overlayDpr));
+    if(fogCanvas.width!==fw||fogCanvas.height!==fh){
+     fogCanvas.width=fw;fogCanvas.height=fh;
     }
     fogCtx.setTransform(1,0,0,1,0,0);
-    fogCtx.clearRect(0,0,dw,dh);
-    fogCtx.setTransform(dpr,0,0,dpr,0,0);
+    fogCtx.clearRect(0,0,fw,fh);
+    fogCtx.setTransform(overlayDpr,0,0,overlayDpr,0,0);
     fogCtx.globalAlpha=1;fogCtx.imageSmoothingEnabled=true;
     fogCtx.imageSmoothingQuality='high';
    }
@@ -1407,7 +1593,8 @@ window.VedrasFrozenMap=(()=>{
      }
     }
     const fogUnreadyStart=profileFrame?clock():0;
-    clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
+    if(!completeVisibleAtlas)
+     clouds.drawUnready(fogLayerActive?fogCtx:ctx,view,fogCells,ready,fadeOpacity);
     if(profileFrame)profileFrame.fogUnreadyMs=clock()-fogUnreadyStart;
     const fogTransitionsStart=profileFrame?clock():0;
     clouds.drawTransitions(fogLayerActive?fogCtx:ctx,view,fogEdges);
@@ -1443,6 +1630,7 @@ window.VedrasFrozenMap=(()=>{
      cloudCachePad:cloudEffectivePad,cloudPadClamps,
      cloudAutoMode,cloudAutoDirectMs:cloudAutoMean(cloudAutoDirect),
      layeredFog:!!fogCtx,fogLayerActive,baseFrames,fogOnlyFrames,
+     fogBackingPixels:fogCanvas?.width*fogCanvas?.height||0,
      cloudAutoCachedMs:cloudAutoMean(cloudAutoCached),
      worldCacheFallbackFrames,cloudCacheFallbackFrames,
      worldRasterMiB:currentReport.overviewRasterMiB,
@@ -1453,7 +1641,7 @@ window.VedrasFrozenMap=(()=>{
    if(dissolveActive)repaint();
    return currentReport;
   }
-  async function load(scene,selectedLevel,initialPose,knownCells){
+  async function load(scene,selectedLevel,initialPose,knownCells,{expectedTiles=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
@@ -1463,6 +1651,12 @@ window.VedrasFrozenMap=(()=>{
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
     .map(c=>[c.q+','+c.r,c]));
    available=new Set(await storage.keys(scene+'|'+level+'|'));
+   // A fully published local image atlas with ALL its hexes explicitly
+   // visible needs no new cloud mask on 1x/2x detail swaps. Hidden/explored
+   // server-authorized cells retain Fog regardless of image availability.
+   completeVisibleAtlas=Number.isSafeInteger(expectedTiles)&&expectedTiles>0&&
+    available.size===expectedTiles&&cells.length>0&&
+    cells.every(c=>c.visibility==='visible');
    fallbackKeys=fallbackAtlasEnabled?[...available]:[];
    fallbackCursor=0;fallbackWarmFinished=!fallbackKeys.length;
    buildTileIndex();
@@ -1473,7 +1667,10 @@ window.VedrasFrozenMap=(()=>{
   // used by a standalone player that does not load app.js or any workers.
   // Runtime visibility MUST be resolved by a game server in multiplayer.
   async function saveManifest(scene,{cells:mapCells,levels=['mid'],
-      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null}={}){
+      pose:initialPose=null,clouds:cloudData=null,expectedTiles=null,
+      sceneryBaseScene=null,shadowTone=null,appendOnly=false,
+       generationStatus=null,verifiedTiles=null,missingTileIds=[],
+      groundSeamPolicy=null}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
    if(!Array.isArray(mapCells)||!mapCells.every(c=>
       Number.isInteger(c.q)&&Number.isInteger(c.r)&&
@@ -1485,10 +1682,21 @@ window.VedrasFrozenMap=(()=>{
     levels:chosen,cells:mapCells.map(c=>({...c,visibility:'visible'})),
     pose:initialPose?{...initialPose}:null,
     expectedTiles:Number.isSafeInteger(expectedTiles)&&expectedTiles>=0?expectedTiles:null,
+    generationStatus:['building','complete'].includes(generationStatus)?
+     generationStatus:null,
+    verifiedTiles:Number.isSafeInteger(verifiedTiles)&&verifiedTiles>=0?
+     verifiedTiles:null,
+    missingTileIds:Array.isArray(missingTileIds)?
+     missingTileIds.filter(x=>typeof x==='string').slice(0,500):[],
+    sceneryBaseScene:typeof sceneryBaseScene==='string'?sceneryBaseScene:null,
+    groundSeamPolicy:groundSeamPolicy==='exclusive'?'exclusive':null,
+    shadowTone:shadowTone?{lift:Number(shadowTone.lift),balance:Number(shadowTone.balance)}:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
     savedAt:new Date().toISOString()};
-   await storage.put(record);return record;
+   if(appendOnly&&storage.putIfAbsent)await storage.putIfAbsent(record);
+   else await storage.put(record);
+   return record;
   }
   async function loadManifest(scene){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
@@ -1497,6 +1705,52 @@ window.VedrasFrozenMap=(()=>{
       !Array.isArray(data.cells)||!Array.isArray(data.levels))
     throw Error('Keine vorbereitete Spielkarten-Geometrie gefunden');
    return data;
+  }
+  // Persist the functional, editable Hex world independently from PNGs,
+  // and never overwrite an already published scene's semantic identity.
+  async function saveAuthoredWorld(scene,authored){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))
+    throw Error('Ungültige Spielkartenkennung');
+   const contract=window.VedrasAuthoredWorld;
+   if(!contract)throw Error('Weltdaten-Vertrag nicht geladen');
+   const canonical=contract.serialize(authored),key=scene+'|world';
+   const existing=await storage.get(key);
+   if(existing){
+    if(existing.kind!=='vedras-authored-world-v1'||
+       !contract.validate(existing.data)||
+       contract.serialize(existing.data)!==canonical)
+     throw Error('Gespeicherte Welt hat unter dieser Kennung einen anderen Inhalt');
+    return {saved:false,scene,cellCount:authored.worldCells.length};
+   }
+   const record={key,sceneKey:scene,schema:SCHEMA,
+    kind:'vedras-authored-world-v1',data:JSON.parse(canonical),
+    savedAt:new Date().toISOString()};
+   if(storage.putIfAbsent){
+    try{await storage.putIfAbsent(record);}
+    catch(error){
+     const concurrent=await storage.get(key);
+     if(!concurrent||concurrent.kind!==record.kind||
+        !contract.validate(concurrent.data)||
+        contract.serialize(concurrent.data)!==canonical)throw error;
+     return {saved:false,scene,cellCount:authored.worldCells.length};
+    }
+   }else{
+    if(await storage.get(key))
+     throw Error('Weltschlüssel zwischen Prüfung und Speicherung belegt');
+    await storage.put(record);
+   }
+   return {saved:true,scene,cellCount:authored.worldCells.length};
+  }
+  async function loadAuthoredWorld(scene){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene))
+    throw Error('Ungültige Spielkartenkennung');
+   const record=await storage.get(scene+'|world');
+   if(!record||record.sceneKey!==scene||
+      record.kind!=='vedras-authored-world-v1')
+    throw Error('Nur Bildatlas vorhanden: keine editierbare Weltbeschreibung gespeichert');
+   const contract=window.VedrasAuthoredWorld;
+   if(!contract)throw Error('Weltdaten-Vertrag nicht geladen');
+   return contract.clone(record.data);
   }
   async function capture(scene,packets,{onProgress=()=>{}}={}){
    if(!/^v1-[0-9a-f]{8}$/.test(scene))throw Error('Ungültige Spielkartenkennung');
@@ -1513,15 +1767,161 @@ window.VedrasFrozenMap=(()=>{
      layer:layer.layer,pad:layer.pad||0,crop:layer.crop||null,
      png:await encode(layer.image)
     });
-    await storage.put({key,sceneKey:scene,level:packet.level,
-     tile:{...packet.tile},revision:packet.revision,layers});
+    const record={key,sceneKey:scene,level:packet.level,
+     tile:{...packet.tile},revision:packet.revision,layers};
+    if(storage.putIfAbsent)await storage.putIfAbsent(record);
+    else{
+     if(await storage.get(key))throw Error('Kachel bereits vorhanden: '+key);
+     await storage.put(record);
+    }
     saved++;known.add(key);onProgress({saved,skipped,total:exact.length,rejected});
    }
    return {saved,skipped,rejected,total:packets.length};
   }
-  return {capture,load,stop,draw,report,getPose,setPose,setClouds,
+  // Read-only completeness audit of original PNG records. The 24-byte
+  // PNG headers prove pixel density without decoding huge 4x RGBA frames.
+  async function pngHeader(layer){
+   if(!(layer?.png instanceof Blob))return null;
+   const bytes=new Uint8Array(await layer.png.slice(0,24).arrayBuffer());
+   if(bytes.length!==24||
+      [137,80,78,71,13,10,26,10].some((x,i)=>bytes[i]!==x))
+    return null;
+   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+   const width=view.getUint32(16),height=view.getUint32(20);
+   return width>0&&height>0&&width<=20000&&height<=20000?
+    {width,height}:null;
+  }
+  async function verifyArchive(scene,level,tiles,{require4x=false}={}){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene)||
+      !['far','mid','near'].includes(level)||!Array.isArray(tiles)||
+      !tiles.length)throw Error('Ungültige vollständige Kartenprüfliste');
+   const expected=new Map();
+   for(const tile of tiles){
+    if(typeof tile?.id!=='string'||!tile.id||
+       ![tile.x,tile.y,tile.size].every(Number.isFinite)||
+       tile.size<=0||expected.has(tile.id))
+     throw Error('Ungültiges oder doppeltes Chunk-Ziel: '+tile?.id);
+    expected.set(tile.id,tile);
+   }
+   const prefix=scene+'|'+level+'|',
+    storedKeys=await storage.keys(prefix),found=new Set(storedKeys),
+    missingIds=[],invalidTiles=[],extraIds=[];
+   for(const key of storedKeys)
+    if(!expected.has(key.slice(prefix.length)))
+     extraIds.push(key.slice(prefix.length));
+   for(const [id,tile] of expected){
+    const key=makeKey(scene,level,id);
+    if(!found.has(key)){missingIds.push(id);continue;}
+    try{
+     const record=await storage.get(key);
+     if(!record||record.sceneKey!==scene||record.level!==level||
+        record.tile?.id!==id||record.tile.x!==tile.x||
+        record.tile.y!==tile.y||record.tile.size!==tile.size||
+        typeof record.revision!=='string'||!Array.isArray(record.layers)||
+        record.groundRefKey){
+      invalidTiles.push({id,reason:'record-geometry-or-revision'});continue;
+     }
+     const ground=record.layers.find(x=>['ground','terrain'].includes(x.layer)),
+      scenery=record.layers.find(x=>['scenery','structures'].includes(x.layer));
+     const g=await pngHeader(ground),o=await pngHeader(scenery);
+     if(!g||!o){invalidTiles.push({id,reason:'missing-or-invalid-png'});continue;}
+     if(require4x){
+      const groundSpan=tile.size+2*(Number(ground.pad)||0),
+       scenerySpan=tile.size+2*(Number(scenery.pad)||0);
+      const sc=scenery.crop||null;
+      // Cropped Scenery PNGs are intentionally tiny or 1x1 when empty.
+      // The original full canvas geometry is recorded in crop metadata.
+      const sw=sc?Number(sc.fullWidth):o.width,
+       sh=sc?Number(sc.fullHeight):o.height;
+      const validCrop=!sc||(
+       [sc.x,sc.y,sw,sh].every(Number.isFinite)&&
+       sc.x>=0&&sc.y>=0&&
+       o.width<=sw&&o.height<=sh&&
+       sc.x+o.width<=sw&&sc.y+o.height<=sh);
+      const gx=g.width/groundSpan,gy=g.height/(groundSpan*.85),
+       ox=sw/scenerySpan,oy=sh/(scenerySpan*.85);
+      if(gx<3.5||gx>4.3||Math.abs(gx-gy)>.20||
+         !validCrop||ox<1.8||Math.abs(ox-oy)>.20){
+       invalidTiles.push({id,reason:'wrong-native-pixel-density',
+        groundX:Math.round(gx*100)/100,
+        sceneryX:Math.round(ox*100)/100});
+      }
+     }
+    }catch(error){
+     invalidTiles.push({id,reason:'read-error: '+String(error?.message||error)});
+    }
+   }
+   return {scene,level,expected:expected.size,stored:storedKeys.length,
+    missingIds,invalidTiles,extraIds,
+    complete:storedKeys.length===expected.size&&!missingIds.length&&
+     !invalidTiles.length&&!extraIds.length};
+  }
+  // Append one fully rendered Scenery tile to a new scene while keeping
+  // the old 4x Ground in place. Never overwrite an existing key.
+  async function captureScenery(scene,sourceKey,tile,sceneryLayer){
+   if(!/^v1-[0-9a-f]{8}$/.test(scene)||typeof sourceKey!=='string'||
+      !/^v1-[0-9a-f]{8}\|near\|/.test(sourceKey)||
+      sourceKey.startsWith(scene+'|')||!tile?.id||
+      !sceneryLayer?.image?.width||!sceneryLayer?.image?.height)
+    throw Error('Ungültige Scenery-only-Neuberechnung');
+   const key=makeKey(scene,'near',tile.id);
+   const prior=await storage.get(key);
+   if(prior){
+    if(prior.groundRefKey!==sourceKey||
+       prior.derivedFormat!=='scenery-refresh-v1')
+     throw Error('Zielkachel existiert bereits mit anderem Inhalt');
+    return {saved:0,skipped:1};
+   }
+   const source=await storage.get(sourceKey);
+   if(!source||source.groundRefKey||source.key!==sourceKey||
+      source.level!=='near'||source.tile?.id!==tile.id||
+      source.tile.x!==tile.x||source.tile.y!==tile.y||
+      source.tile.size!==tile.size||
+      !source.layers?.some(l=>l.layer==='ground'&&l.png instanceof Blob))
+    throw Error('Unpassender oder nicht vorhandener 4×-Originalboden');
+   // Prevent a 2x/2.5x legacy atlas from masquerading as native 4x.
+   // Read only 24 bytes of the original Ground Blob; never decode or
+   // rewrite the heavyweight terrain image during this refresh.
+   const ground=source.layers.find(l=>l.layer==='ground');
+   const header=await ground.png.slice(0,24).arrayBuffer();
+   const bytes=new Uint8Array(header);
+   if(bytes.length!==24||
+      [137,80,78,71,13,10,26,10].some((b,i)=>bytes[i]!==b))
+    throw Error('Bodenquelle ist keine gültige 4×-PNG');
+   const dv=new DataView(header),gw=dv.getUint32(16),gh=dv.getUint32(20),
+    span=(tile.size+2*(ground.pad||0));
+   if(gw<span*4-.5||gh<span*.85*4-1)
+    throw Error('Bodenquelle ist nicht nachweislich echtes 4×');
+   const png=await encode(sceneryLayer.image);
+   const record={key,sceneKey:scene,level:'near',
+    tile:{...source.tile},revision:source.revision,
+    groundRefKey:sourceKey,derivedFormat:'scenery-refresh-v1',
+    sceneryNative2x:true,layers:[{
+     layer:'scenery',pad:sceneryLayer.pad??128,
+     crop:sceneryLayer.crop||null,png
+    }]};
+   // Recheck before commit. An interrupted bake resumes by skipping
+   // completed targets; no original source key is ever overwritten.
+   if(await storage.get(key))throw Error('Zielkachel wurde inzwischen belegt');
+   if(storage.putIfAbsent)await storage.putIfAbsent(record);
+   else await storage.put(record);
+   return {saved:1,skipped:0};
+  }
+  function setSourceEdgeInset(enabled){
+   // Source-edge trimming is only an opt-in workaround for old 4x PNGs
+   // with known baked bright fringes. New seamless source atlases paint
+   // the exact original 512-unit core without stretching or erasing texels.
+   const next=enabled===true;
+   if(next===effectiveEdgeInset)return false;
+   effectiveEdgeInset=next;overviewRaster=null;baseStamp=null;
+   if(active)repaint();
+   return true;
+  }
+  return {capture,captureScenery,verifyArchive,load,stop,draw,report,getPose,setPose,setClouds,
+   setSourceEdgeInset,
    beginZoomPreview,endZoomPreview,
-   saveManifest,loadManifest,isActive:()=>active,storage};
+   saveManifest,loadManifest,saveAuthoredWorld,loadAuthoredWorld,isActive:()=>active,storage};
  }
- return {create,memoryStore,indexedStore,valid,makeKey};
+ return {create,memoryStore,indexedStore,linkedStore,valid,makeKey,
+  groundCorePlacement};
 })();

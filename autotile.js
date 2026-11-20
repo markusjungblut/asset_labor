@@ -60,10 +60,15 @@ window.VedrasAutotile = (() => {
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(a.img,0,0,w,h);
   const pixels=g.getImageData(0,0,w,h).data;
-   // Only water materials receive guarded repeat-edge and isolated centre-
-   // stripe correction. Source PNGs and all non-water terrain stay intact.
-   const corrected=water&&window.VedrasWaterTexture?.repairPixels?
-    window.VedrasWaterTexture.repairPixels(pixels,w,h):pixels;
+   // Continuous world-space repeats MUST meet at matching texels. Many
+   // source ground images are not authored as seamless tiles; their raw
+   // left/right (and top/bottom) edges otherwise create STRAIGHT lines
+   // inside hexes and at the repeated material period. Repair only the
+   // derived sampled raster, never the original PNG or the saved asset.
+   // Water keeps its separate center-stripe correction and narrow band.
+   const corrected=window.VedrasWaterTexture?.repairPixels?
+    window.VedrasWaterTexture.repairPixels(pixels,w,h,
+     water?undefined:{centerStripe:false,edgeBand:32}):pixels;
    const sample={path:a.path,size,pixels:corrected,width:w,height:h};
   if(!bySize){bySize=new Map();textureCache.set(a.img,bySize);}
   bySize.set(cacheKey,sample);

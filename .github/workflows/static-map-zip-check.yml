@@ -2,12 +2,18 @@ name: Static map ZIP – Read-only format checks
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'feat/**']
     paths:
+      - authored-world-contract.js
+      - tests/test_persisted_authored_world_20261118.cjs
       - static-map-zip-inspector.js
       - static-map-zip-importer.js
       - static-map-import-ui.js
       - static-map-import.html
+      - saved-maps.html
+      - saved-maps.js
+      - tests/test_saved_maps_20261117.cjs
+      - tests/automated_browser_saved_maps_20261117.cjs
       - tests/test_static_map_zip_importer_20261117.cjs
       - tests/test_integrated_map_zip_contract_20261117.cjs
       - index.html
@@ -15,6 +21,8 @@ on:
       - tests/automated_browser_static_map_zip_import_20261117.cjs
       - frozen-map-game.html
       - frozen-map-game.js
+      - frozen-map-seam-audit.js
+      - frozen-map-ground-detail.js
       - frozen-map-runtime.js
       - frozen-map-derived-1x.js
       - frozen-map-derived-2x.js
@@ -45,6 +53,9 @@ jobs:
           filter: blob:none
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /authored-world-contract.js
+            /tests/test_persisted_authored_world_20261118.cjs
+            /app.js
             /static-map-zip-inspector.js
             /static-map-zip-importer.js
             /tests/test_static_map_zip_importer_20261117.cjs
@@ -53,9 +64,15 @@ jobs:
             /worldgen-geography.js
             /tests/automated_browser_static_map_zip_import_20261117.cjs
             /static-map-import.html
+            /saved-maps.html
+            /saved-maps.js
+            /tests/test_saved_maps_20261117.cjs
+            /tests/automated_browser_saved_maps_20261117.cjs
             /static-map-import-ui.js
             /frozen-map-game.html
             /frozen-map-game.js
+            /frozen-map-seam-audit.js
+            /frozen-map-ground-detail.js
             /frozen-map-runtime.js
             /frozen-map-derived-1x.js
             /frozen-map-derived-2x.js
@@ -72,8 +89,10 @@ jobs:
           node-version: '22'
       - name: Run ZIP validation and explicit safe-import contract tests
         run: node --test tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs
+      - name: Semantic Hexwelt save/load and portable ZIP tests
+        run: node --test tests/test_persisted_authored_world_20261118.cjs
       - name: Verify combined Editor–ZIP–Game contracts
-        run: node --test tests/test_integrated_map_zip_contract_20261117.cjs
+        run: node --test tests/test_integrated_map_zip_contract_20261117.cjs tests/test_saved_maps_20261117.cjs
       - name: Cache Playwright Firefox
         uses: actions/cache@v4
         with:
@@ -87,4 +106,6 @@ jobs:
       - name: Firefox IndexedDB import / rollback / viewer reload
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
-        run: node tests/automated_browser_static_map_zip_import_20261117.cjs
+        run: |
+          node tests/automated_browser_static_map_zip_import_20261117.cjs
+          node tests/automated_browser_saved_maps_20261117.cjs

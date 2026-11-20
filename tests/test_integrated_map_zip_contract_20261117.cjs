@@ -11,7 +11,7 @@ const zipPage=get('static-map-import.html'),zipUI=get('static-map-import-ui.js')
 test('keep current Geography v2.1.2 plus approved UI cleanup',()=>{
  assert.match(editor,/worldgen-geography\.js\?v=2\.1\.2/);
  assert.match(editor,/app\.js\?v=[^"]*&amp;geography=2\.1\.2/);
- assert.match(editor,/ui-organizer\.js\?v=0\.35\.0&amp;cleanup=20261112/);
+ assert.match(editor,/ui-organizer\.js\?v=20261119-shadow-shortcut-v1/);
  assert.equal(require(path.join(root,'worldgen-geography.js')).VERSION,'geography-v2.1.2');
 });
 test('restore entry remains separate and requires explicit positive consent',()=>{
@@ -46,10 +46,23 @@ test('browser data and existing scenes remain protected by safe importer',()=>{
  assert.match(inspector,/PNG-Chunk-Prüfsumme ungültig/);
  assert.match(game,/readOnly:true/);
 });
-test('no unapproved render experiments become default when ZIP is present',()=>{
- for(const param of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode','fallbackAtlas'])
+test('legacy experiments remain opt-in; measured safety atlas stays reversible',()=>{
+ for(const param of ['leadPrefetch','lodRecency','visibleBorrow','parallelDecode'])
   assert.ok(game.includes("params.get('"+param+"')==='1'"),param);
+ assert.match(game,/params\.get\('fallbackAtlas'\)!=='0'/);
  assert.match(runtime,/directionalPrefetch=false,lodRecency=false,visibleBorrow=false/);
  assert.match(runtime,/parallelLayerDecode=false,fallbackAtlas=false/);
  assert.match(viewer,/id="optFallbackAtlas"/);
+});
+
+test('portable ZIP preserves exact ground core policy and rejects unrecognized modes',()=>{
+ const exporter=get('frozen-map-package.js');
+ assert.match(exporter,/groundSeamPolicy:authored\?\.groundSeamPolicy==='exclusive'/);
+ assert.match(inspector,/m\.groundSeamPolicy==='exclusive'/);
+ assert.match(importer,/groundSeamPolicy:source\.groundSeamPolicy==='exclusive'/);
+ assert.match(runtime,/groundSeamPolicy:groundSeamPolicy==='exclusive'/);
+ assert.match(game,/manifest\.groundSeamPolicy==='exclusive'/);
+ // A legacy archive without the field must still load with the old
+ // backwards-compatible inset (not silently claim a modern clean core).
+ assert.match(importer,/groundSeamPolicy:source\.groundSeamPolicy==='exclusive'\?'exclusive':null/);
 });

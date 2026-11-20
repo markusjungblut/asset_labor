@@ -116,14 +116,20 @@ window.VedrasForestGround=(()=>{
   // center or component bbox. All forest patches share identical UV phase.
   g.setTransform(scale,0,0,scale,-left*scale,-top*scale);
   g.scale(tileSize/imgW,tileSize/imgH);
-  g.fillStyle=g.createPattern(image,'repeat');
+  // Forest texture is an independent repeating layer over the terrain.
+  // Repeating its raw non-tileable PNG can create hard vertical/horizontal
+  // lines inside a hex and at 512-unit chunk boundaries. The derived
+  // seamless copy has a wider wrap fade; source PNG remains unchanged.
+  const repeated=window.VedrasWaterTexture?.seamlessTile?.(image,
+   {centerStripe:false,edgeBand:32})||image;
+  g.fillStyle=g.createPattern(repeated,'repeat');
   g.fillRect(left*imgW/tileSize,top*imgH/tileSize,width*imgW/tileSize,height*imgH/tileSize);
   g.setTransform(1,0,0,1,0,0);
   g.globalCompositeOperation='destination-in';
   g.drawImage(softened,0,0);
   g.globalCompositeOperation='source-over';
   return {canvas:output,x:left,y:top,width,height,regions:groups.length,cells:all.length,
-   exteriorEdges:edges.length,scale,feather,textureOrigin:'world-0,0',mask:'region-union'};
+   exteriorEdges:edges.length,scale,feather,textureOrigin:'world-0,0',mask:'region-union',textureEdgePolicy:'seamless-ground-wrap-v1'};
  }
  return {key,pos,points,strength,eligible,regions,exteriorEdges,fillHexes,build};
 })();

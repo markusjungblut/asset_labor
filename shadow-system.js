@@ -72,7 +72,8 @@ window.VedrasShadows=(()=>{
   ctx.save();ctx.translate(p.x+offsetX,p.y+offsetY);
   ctx.scale(1,mountain?.37:.31);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,radius);
-  const rgba=a=>'rgba('+COLOR.r+','+COLOR.g+','+COLOR.b+','+Math.min(.88,a*k)+')';
+  const color=window.VedrasShadowTone?.colorRgb()||COLOR;
+   const rgba=a=>'rgba('+color.r+','+color.g+','+color.b+','+Math.min(.88,a*k)+')';
   gradient.addColorStop(0,rgba(mountain?.45:.42));
   gradient.addColorStop(.24,rgba(mountain?.30:.29));
   gradient.addColorStop(.68,rgba(mountain?.12:.105));
@@ -144,7 +145,12 @@ window.VedrasShadows=(()=>{
   const contactFade=(1-smoothstep(-soft*.08,soft*.70,contactDist))*
    smoothstep(-width*.05,width*.025,t);
   const cover=Math.max(.90*castFade,.56*contactFade);
-  return Math.min(.90,Math.max(0,s.opacity*global*cover));
+  const opacity=window.VedrasShadowTone?.opacity(s.opacity,.44)??s.opacity;
+  // Mountain alpha has a built-in .90 silhouette-coverage ceiling while
+  // ordinary sprite casts are full coverage. Equalization must normalize
+  // these two rendering families WITHOUT altering geometry or old balance=0.
+  const gain=window.VedrasShadowTone?.coverageGain?.(.90)??1;
+  return Math.min(.90,Math.max(0,opacity*global*cover*gain));
  }
  function paintMountain(ctx,origin,width,config,global=1){
   if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||global<=0)return null;
@@ -158,12 +164,13 @@ window.VedrasShadows=(()=>{
   const y1=Math.min(ctx.canvas?.height??Infinity,Math.ceil(Math.max(origin.y,shape.p2.y)+pad));
   if(x1<=x0||y1<=y0)return null;
   const raster=ctx.createImageData(x1-x0,y1-y0),d=raster.data;
+   const color=window.VedrasShadowTone?.colorRgb()||COLOR;
   let max=0,positive=0;
   for(let yy=0;yy<raster.height;yy++)for(let xx=0;xx<raster.width;xx++){
    const alpha=Math.round(mountainAlphaAt(x0+xx+.5,y0+yy+.5,shape,width,global)*255);
    if(alpha===0)continue;
    const i=(yy*raster.width+xx)*4;
-   d[i]=COLOR.r;d[i+1]=COLOR.g;d[i+2]=COLOR.b;d[i+3]=alpha;
+   d[i]=color.r;d[i+1]=color.g;d[i+2]=color.b;d[i+3]=alpha;
    if(alpha>max)max=alpha;
    positive++;
   }

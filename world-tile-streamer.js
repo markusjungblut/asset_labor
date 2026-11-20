@@ -880,7 +880,11 @@ window.VedrasWorldTiles=(()=>{
      ymax=Math.floor((c.y+R-0.01)/512);
     for(let tx=xmin;tx<=xmax;tx++)for(let ty=ymin;ty<=ymax;ty++){
      const item=byCore.get(tx+','+ty);
-     if(!item||item.packet.complete===false)return false;
+     // Do not unmask a low-resolution snapshot, another LOD, or stale
+     // tile as exact. Otherwise adjacent visible hexes expose square
+     // seams and hard-edged terrain preview instead of authored blends.
+     if(!item||item.dirty||item.tileLod!==lod||
+       item.packet.preview===true||item.packet.complete===false)return false;
      const layers=item.packet.layers;
      if(!layers.some(v=>v.layer==='ground'||v.layer==='terrain')||
       !layers.some(v=>v.layer==='scenery'||v.layer==='structures'))return false;

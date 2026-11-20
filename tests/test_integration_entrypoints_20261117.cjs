@@ -84,14 +84,14 @@ test('Standalone viewer does not load live editor/terrain authoring modules',()=
  assert.match(playback,/Ungültige Kartenkennung/);
 });
 
-test('Optional safety cache cannot be half-integrated or enabled by default',()=>{
+test('Safety cache defaults on only with a reversible explicit disable',()=>{
  const gameHas=playback.includes("params.get('fallbackAtlas')");
  const runtimeHas=runtime.includes('fallbackAtlasEnabled');
  assert.equal(gameHas,runtimeHas,
   'Viewer flag and RAM safety net must be ported together');
  if(gameHas){
-  assert.match(playback,/params\.get\('fallbackAtlas'\)\s*===\s*'1'/,
-   'Safety cache must require explicit opt-in before release approval');
+  assert.match(playback,/params\.get\('fallbackAtlas'\)\s*!==\s*'0'/,
+   'Safety cache must retain an explicit opt-out');
   assert.match(playback,/fallbackAtlas\s*,\s*streamingWorldCache/,
    'Viewer must pass the safety-cache option to runtime');
  }

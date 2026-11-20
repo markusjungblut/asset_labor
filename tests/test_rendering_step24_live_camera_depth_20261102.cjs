@@ -76,7 +76,9 @@ function sequences(draws){
 test('direct live camera never calls blurry zoom/drag preview',()=>{
  assert.doesNotMatch(game,/player\.beginZoomPreview\s*\(/);
  assert.doesNotMatch(game,/player\.endZoomPreview\s*\(/);
- assert.match(game,/setPose\(\{panX:p\.panX\+dx,panY:p\.panY\+dy\}/);
+ assert.match(game,/const pan=\{panX:p\.panX\+dx,panY:p\.panY\+dy\}/);
+ assert.match(game,/setPose\(pan,\{deferDpr:true\}\)/);
+ assert.match(game,/if\(!drag\)setPose\(\{\}\)/);
  assert.match(game,/const gestureDpr=Math\.min\(p\.dpr\|\|2,1\.25\)/);
  assert.match(game,/zoomSettler=setTimeout\(settleZoom,130\)/);
  assert.match(page,/frozen-map-runtime\.js/);
