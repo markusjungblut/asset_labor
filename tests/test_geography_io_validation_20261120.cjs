@@ -108,6 +108,8 @@ test('actual Asset-Labor importGeographyWorld accepts valid center crop and repo
  // The exporter owns the forest *absence* too. Every imported cell must
  // be pinned, otherwise VedrasForest generates an additional random grove.
  assert.equal(Object.keys(state.forest.overrides).length,37);
+ assert.equal(Object.keys(state.forest.geographyHexes).length,37,
+  'Geography pinning includes explicitly bare hexes so edge trees can spill without creating forests');
  const rawByPosition=new Map(valid.cells.map(c=>[c.q+','+c.r,c]));
  const forestSandbox={window:{}};
  vm.runInNewContext(fs.readFileSync(path.join(root,'forest.js'),'utf8'),forestSandbox);
