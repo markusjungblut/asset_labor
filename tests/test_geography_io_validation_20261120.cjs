@@ -105,6 +105,26 @@ test('actual Asset-Labor importGeographyWorld accepts valid center crop and repo
  assert.equal(context.worldCells.length,37);
  assert.equal(saved,1);assert.equal(redraw,1);
  assert.equal(state.geographySource.seed,valid.seed);
+ // The exporter owns the forest *absence* too. Every imported cell must
+ // be pinned, otherwise VedrasForest generates an additional random grove.
+ assert.equal(Object.keys(state.forest.overrides).length,37);
+ const rawByPosition=new Map(valid.cells.map(c=>[c.q+','+c.r,c]));
+ const forestSandbox={window:{}};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'forest.js'),'utf8'),forestSandbox);
+ const waterIds=new Set(['ocean','coastal_water','icy_ocean','stormy_ocean']);
+ const types={terrainTypes:G.TERRAIN_IDS.map(id=>({id,
+  materialClass:waterIds.has(id)?'water':'ground',
+  categoryId:'grass_pasture'}))};
+ const calculated=forestSandbox.window.VedrasForest.generate(context.worldCells,
+  types,state.forest,c=>c.terrainTypeId,c=>c.terrainTypeId);
+ for(const c of calculated){
+  const local=context.worldCells.find(cell=>cell.q===c.q&&cell.r===c.r);
+  const original=rawByPosition.get(local.worldQ+','+local.worldR);
+  assert.equal(state.forest.overrides[c.key],original.forestClass,
+   'importer must explicitly pin nonforest and forest cells');
+  assert.equal(c.forestClass,original.forestClass,
+   'renderer must not invent an extra grove on imported Geography');
+ }
  const previous=context.worldCells;
  const bad=G.generateWorld('small-world',{width:10,height:10});
  context.state.sceneSize=397;context.sceneRadius=()=>11;
