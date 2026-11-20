@@ -129,6 +129,15 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   assert.deepEqual(statisticsRestored,statistics);
   checks.push({event:'roundtrip',kind:'parameters,world,statistics',cells:world.cells.length,
    seed:world.seed,statsSamples:statistics.samples});
+  // Seeds are user-defined Unicode strings, not trustworthy filenames.
+  await page.evaluate(()=>{document.getElementById('worldSeed').value='Münster / Welt: 2026?';});
+  await page.locator('#generate').click();
+  const exotic=await exportJson('downloadWorld');
+  assert.equal(exotic.seed,'Münster / Welt: 2026?');
+  const safeName=checks.at(-1).name;
+  assert.match(safeName,/^vedras-welt-/);
+  assert.ok(!/[\/:?]/.test(safeName),'filenames must be portable: '+safeName);
+  checks.push({event:'safe-filename',filename:safeName});
   const opener=await browser.newPage();
   await opener.goto(origin+'/opener-test');
   const [popup]=await Promise.all([
