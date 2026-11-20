@@ -48,7 +48,7 @@ jobs:
           .ci-tools/node_modules/.bin/playwright install --with-deps firefox
       - name: Firefox – parameters/world/statistics download/import roundtrip and popup feedback
         env:
-          NODE_PATH: \${{ github.workspace }}/.ci-tools/node_modules
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_geography_io_roundtrip_20261120.cjs
       - uses: actions/upload-artifact@v4
