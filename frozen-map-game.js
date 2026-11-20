@@ -62,6 +62,8 @@
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
  // Experimental compact 1x background residency: off in normal sessions.
+ const loadTestRequested=params.get('gameLoad')==='1';
+ let gameLoadController=null;
  const fallbackAtlas=params.get('fallbackAtlas')!=='0'&&
   (viewerProfile.name==='desktop'||params.get('fallbackAtlas')==='1');
  // A/B: simulate the former full repaint until every visible tile is ready.
@@ -95,6 +97,7 @@
   ['optTileIndex','tileIndex',indexedTileSelection],
   ['optFogLayer','fogLayer',layeredFog],
   ['optFallbackAtlas','fallbackAtlas',fallbackAtlas],
+  ['optGameLoad','gameLoad',loadTestRequested],
   ['optGround4x','ground4x',groundDetailRequested],
   ['optScenery4x','scenery4x',originalSceneryRequested],
   ['optAdaptiveGround','groundDecode',adaptiveGroundDecode]
@@ -347,6 +350,25 @@
     ' Noch keine vollständigen Kacheln für diese Detailstufe.');
   output.title=output.textContent;
   player.draw();
+  // Entities, selection markers and HUD are animated on their own Canvas.
+  // The immutable static terrain atlas is not re-rendered each game frame.
+  if(loadTestRequested&&window.VedrasGameplayLoad){
+   try{
+    const layer=$('gameLoadOverlay'),hud=$('gameLoadHud');
+    layer.hidden=false;hud.hidden=false;
+    gameLoadController=window.VedrasGameplayLoad.create({
+     canvas:layer,viewCanvas:canvas,getPose:()=>player.getPose(),
+     unitCount:100,onMetrics:stats=>{
+      hud.textContent='Spieltest · '+stats.visible+'/100 sichtbare Figuren · '+
+       'p95 Frame-Abstand '+stats.p95FrameGapMs.toFixed(1)+' ms · '+
+       'p95 Einheitenzeichnung '+stats.p95DrawMs.toFixed(1)+' ms';
+     }
+    });
+    gameLoadController.start();
+   }catch(loadError){
+    output.textContent+=' · Spieltest-Overlay fehlgeschlagen: '+String(loadError?.message||loadError);
+   }
+  }
  }catch(error){fail(error);return;}
  const setPose=(next,{deferDpr=false}={})=>{
   const prior=player.getPose();
@@ -510,6 +532,7 @@
   new ResizeObserver(handleViewportResize).observe(canvas);
  else window.addEventListener('resize',handleViewportResize);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)player.draw();});
+ window.addEventListener('pagehide',()=>gameLoadController?.stop());
  const profileStatus=()=>({
   enabled:!!profiler,
   requested:profileRequested,
