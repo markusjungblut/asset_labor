@@ -7,6 +7,8 @@ on:
       - '.github/workflows/known-issues-regression.yml'
       - 'tests/automated_browser_real_forest_source_20261120.cjs'
       - 'tests/test_forest_floor_regions.cjs'
+      - 'tests/test_mountain_shadow_field.cjs'
+      - 'tests/test_sprite_shadow_editor_20261021.cjs'
   workflow_dispatch:
 
 permissions:
