@@ -229,6 +229,9 @@ window.VedrasNature=(()=>{
    const kind=meta.kind==='tree'?'tree':meta.kind==='shrub'?'shrub':meta.kind==='ground_cover'?'ground_cover':'other';
    const {dx,dy}=window.VedrasPolish.localOffset(seed,q,r,kind,index,j,state.visualPolish?.composition??1);
    if(!inside(dx,dy,margin))continue;
+   // Glades clear only an irregular pocket, not all trees in their hex.
+   // Retain a few edge trees and never plant their trunks in the opening.
+   if(meta.kind==='tree'&&window.VedrasForest.inGlade(forestByHex?.get(cellKey),dx,dy))continue;
    const x=p.x+dx,y=p.y+dy;
    if(blocksRiver(q,r,dx,dy,meta)||blocksRoad(q,r,dx,dy))continue;
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
