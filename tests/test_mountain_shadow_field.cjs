@@ -61,13 +61,27 @@ assert(Math.abs(B.sizeFactor({kind:'tree',family:'snow_dead_trees'})-.58*.5)<1e-
 assert(Math.abs(B.sizeFactor({kind:'special',family:'deadwood'})-.72*.7)<1e-10);
 assert.equal(B.placementScale({kind:'ground_cover'}),.84);
 assert.equal(B.placementScale({kind:'rock'}),.84);
-assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.6)<1e-10);
+// Living trees gained a deliberate 10% class size adjustment after the
+// v0.11.2 baseline. This is a placement contract, not shadow darkness.
+assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.6*1.10)<1e-10);
 assert(Math.abs(B.sizeFactor({kind:'shrub',sizeClass:'medium'})-.73*.84)<1e-10);
 assert(Math.abs(B.sizeFactor({kind:'cluster',family:'fallen_logs'})-.71*.7)<1e-10);
-assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest'}),5);
-assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest'}),8);
-assert.equal(F.treeTarget({suitability:1,forestClass:'light_forest'}),4);
-assert.equal(F.maxObjects({suitability:1,forestClass:'light_forest'}),7);
+// Earlier 5/8/4/7 expectations were written before configurable forest
+// modes. Check both current classic quotas and the modern dense/canopy modes.
+assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest',
+ forestMode:'classic',density:0}),5);
+assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest',
+ forestMode:'classic'}),11);
+assert.equal(F.treeTarget({suitability:1,forestClass:'light_forest',
+ forestMode:'classic',density:.5}),4);
+assert.equal(F.maxObjects({suitability:1,forestClass:'light_forest',
+ forestMode:'classic'}),7);
+assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest',
+ forestMode:'dense'}),10);
+assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest',
+ forestMode:'dense'}),27);
+assert.equal(F.maxObjects({suitability:1,forestClass:'dense_forest',
+ forestMode:'canopy'}),36);
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const editor=fs.readFileSync(path.join(root,'nature-ui.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');

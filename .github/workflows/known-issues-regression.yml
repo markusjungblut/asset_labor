@@ -1,0 +1,130 @@
+name: Vedras – Vollständige Regression früherer Kartenfehler
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/known-issues-regression.yml'
+      - 'tests/automated_browser_real_forest_source_20261120.cjs'
+      - 'tests/test_forest_floor_regions.cjs'
+      - 'tests/test_mountain_shadow_field.cjs'
+      - 'tests/test_sprite_shadow_editor_20261021.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: known-issues-regression-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-regression:
+    name: Unit-/Archiv-/Geografie-Regressionsmatrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.js
+            /*.html
+            /*.css
+            /server.py
+            /tests/*.cjs
+            /tests/fixtures/*
+            /scripts/*.mjs
+            /.github/workflows/*.yml
+            /assets/terrain/terrain_catalog.json
+            /assets/nature/nature_catalog.json
+            /assets/shadows/sprite_shadow_profiles.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Waldboden, Textur-Wrapping, Ladepfad und Wasser-Nähte
+        run: |
+          node --test tests/test_forest_floor_loaded_and_frozen_20261120.cjs tests/test_ground_texture_source_repeat_20261119.cjs tests/test_editor_zoom_and_auto_4x_20261119.cjs tests/test_river_ground_readiness_20261118.cjs tests/test_frozen_ground_seam_audit_20261118.cjs
+      - name: Schattenstärke, Objektklassen und 2×-/4×-Ableitungen
+        run: |
+          node --test tests/test_quality_ground_and_shadow_tone_20261117.cjs tests/test_frozen_scenery_refresh_20261117.cjs tests/test_sprite_shadow_editor_20261021.cjs tests/test_mountain_shadow_field.cjs
+      - name: 4×-Export, Archivkennung, Kartenöffnung und Viewer-LOD
+        run: |
+          node --test tests/test_frozen_4x_source_consistency_20261118.cjs tests/test_frozen_complete_visible_atlas_20261118.cjs tests/test_frozen_near_publication_20261118.cjs tests/test_rendering_step25ab_integrated_flags_20261117.cjs tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
+      - name: Geografie-Mix mit 26 Terrain-Typen und ≥200 Hochlandfeldern
+        run: |
+          node --test tests/test_geography_v2.cjs tests/test_geography_balanced_mix.cjs
+      - name: ZIP-Import/Export und GUI-Verträge
+        run: |
+          node --test tests/test_integrated_map_zip_contract_20261117.cjs tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs tests/test_asset_lab_ui_cleanup_20261112.cjs
+      - name: CI-Übersicht der getesteten und NICHT testbaren Aspekte
+        run: |
+          echo "### Bekannte Probleme – Regression auf main" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tests: Waldboden, Terrain-Wrapping, Ground-Kerne, Sprite-/Bergschatten, 2×/4×, Kartenarchiv, Geografie 2.1.2, ZIP, UI." >> "$GITHUB_STEP_SUMMARY"
+          echo "Nicht enthalten: die echten lokalen Firefox-IndexedDB-Karten-PNGs des Benutzers. GitHub kann keine Pixelprüfung dieser Dateien durchführen." >> "$GITHUB_STEP_SUMMARY"
+
+  firefox-pixel-regression:
+    name: Firefox – echte Waldboden-PNG plus Bild-/Shadow-/Viewer-Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.js
+            /*.html
+            /*.css
+            /server.py
+            /tests/*.cjs
+            /tests/fixtures/*
+            /assets/terrain/wald_03.png
+            /assets/terrain/terrain_catalog.json
+            /assets/shadows/sprite_shadow_profiles.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: vedras-playwright-firefox-${{ runner.os }}-1.57.0
+      - name: Pinned Firefox via Playwright
+        run: |
+          mkdir -p .ci-tools
+          npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
+          .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: ECHTE Waldboden-Quelle – maskierte Waldgebiete, 2×/4×-Pixel und Texturränder
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_real_forest_source_20261120.cjs
+      - name: Schatten-Pixeltest – Berg, Fels, Bodendecker bei 2× und 4×
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_shadow_balance_20261120.cjs
+      - name: Ground-Chunknaht – echte Canvas-Pixel und Archiv-Kernrandprüfung
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_frozen_edges_20261118.cjs
+      - name: Viewer – 120 Kacheln, Zoom, Pan, Fog, 1×/2×-Cache
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_frozen_map.cjs
+      - name: Editor – Schattenangleich erreichbar und UI funktional
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_asset_lab_ui_cleanup.cjs
+      - name: Firefox-Screenshots und Pixel-Audits bereitstellen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vedras-known-issues-pixel-audit
+          path: test-artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

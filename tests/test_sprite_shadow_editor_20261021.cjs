@@ -5,11 +5,16 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const win={addEventListener:(name,callback)=>{if(name==='DOMContentLoaded')win.initializer=callback;}};
+// The manual-polygon shadow module is now mandatory for validating the
+// real 254-profile catalog. Load it before the Sprite Shadow Editor.
+new Function('window',read('shadow-shapes.js'))(win);
 new Function('window',read('sprite-shadow-editor.js'))(win);
 const E=win.VedrasSpriteShadows;
 const initial=JSON.parse(read('assets/shadows/sprite_shadow_profiles.json'));
 assert.deepEqual(E.set(initial),initial);
-assert.equal(E.profile('assets/nature/Oak.png').angle,160);
+assert.equal(E.profile('assets/nature/Oak.png').angle,
+ initial.profiles['assets/nature/Oak.png']?.angle??initial.global.angle,
+ 'Unconfigured Oak uses authored global cast angle');
 assert(E.profile('assets/nature/Oak.png').angle>90&&E.profile('assets/nature/Oak.png').angle<270);
 const modified=E.get();
 modified.profiles['assets/nature/Baumstumpf_16.png']={
@@ -54,10 +59,10 @@ for(const id of ['spriteShadowLab','ssPreview','ssPrevious','ssNext','ssSearch',
  'ssGlobal_angle','ssGlobal_strength','ssSprite_offsetX','ssSprite_offsetY']){
  assert(html.includes('id="'+id+'"'),'missing functional shadow editor control: '+id);
 }
-assert(app.includes('window.VedrasSpriteShadows.draw(ctx,o'),
- 'shared shader must serve buildings and units');
-assert(app.includes('shared.draw(ctx,obj,p'),
- 'shared shader must serve Nature and fallen logs');
+assert(app.includes('(finalRendering?window.VedrasSpriteShadows.draw:window.VedrasSpriteShadows.drawCached||window.VedrasSpriteShadows.draw)(ctx,o,'),
+ 'shared shadow engine must serve buildings and units (with preview cache)');
+assert(app.includes('(finalRendering?shared.draw:shared.drawCached||shared.draw)(ctx,obj,p'),
+ 'shared shadow engine must serve Nature and fallen logs (with preview cache)');
 const start=app.indexOf('function mountainShadowSettings(o){');
 const end=app.indexOf('function sceneShadowStrength(){',start);
 const mountainConfig=app.slice(start,end);
