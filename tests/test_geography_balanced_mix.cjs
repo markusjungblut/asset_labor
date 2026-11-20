@@ -15,7 +15,10 @@ assert.equal(report.terrainTotal,26);
 assert.deepEqual(report.missing,[],'all normal terrains must spawn in calibrated preview');
 assert.equal(report.allGoalsMet,true,'mixed climate and terrain targets must pass');
 assert(report.biomes.grassland>report.biomes.cold);
-assert(world.stats.terrains.grassland>report.biomes.cold);
+assert((world.stats.terrains.highland||0)>=200,'at least 200 highland hexes');
+assert.equal(world.stats.terrains.highland,244,'calibrated reference highland count');
+assert.equal(report.highland,244);
+assert.equal(report.checks.highlandAtLeast200,true);
 assert(report.wetDryGap<=5,'wet/dry families must remain close');
 for(const id of ['desert','wasteland','rocky_badlands','badlands','clay_desert',
  'sandy_badlands','snowfields','icy_ocean'])
@@ -30,6 +33,22 @@ for(const id of ['ocean','savanna','grassland'])
   'mix should reduce '+id+' relative to stock defaults');
 assert(world.stats.terrains.moor+world.stats.terrains.marshland<
  baseline.stats.terrains.moor+baseline.stats.terrains.marshland);
+// User-uploaded v2.1.2 preset before the highland adjustment: 40 highland,
+// 2357 water and 1047 grassland terrain hexes (95 x 75, same seed).
+const userPresetBefore=G.generateWorld(p.seed,{...options,config:{
+ ...c,'water.fraction':0.23,'biomes.coldBoundary':0.31,
+ 'geology.highlandColdMargin':0}});
+assert.equal(userPresetBefore.stats.terrains.highland,40);
+assert.equal(userPresetBefore.stats.water,2357);
+assert.equal(userPresetBefore.stats.terrains.grassland,1047);
+assert(world.stats.terrains.highland>userPresetBefore.stats.terrains.highland);
+assert(world.stats.water<userPresetBefore.stats.water);
+assert(world.stats.terrains.grassland<userPresetBefore.stats.terrains.grassland);
+for(const id of ['ocean','coastal_water','icy_ocean','stormy_ocean'])
+ assert((world.stats.terrains[id]||0)<(userPresetBefore.stats.terrains[id]||0),
+  'each ocean variant should decrease: '+id);
+// Margin=0 retains previous highland rules for existing default parameters.
+assert.equal(G.defaultConfig()['geology.highlandColdMargin'],0);
 const fewerSnow=G.generateWorld(p.seed,{...options,
  config:{...c,'biomes.snowHumidity':0.60}});
 assert(world.stats.terrains.snowfields>fewerSnow.stats.terrains.snowfields);
