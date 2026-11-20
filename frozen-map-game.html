@@ -58,6 +58,7 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (bei 4× automatisch und auf 1,25× begrenzt; `fogLayer=0` schaltet sie für den Vergleich aus)</label>
 <label><input type="checkbox" id="optFallbackAtlas"> 1×-Sicherheitscache (automatisch aktiv; verhindert leere Kacheln und wiederholtes Laden)</label>
 <label><input type="checkbox" id="optGround4x"> <strong>Originalboden optional in 4×</strong> (standardmäßig 2×; 4× benötigt mehr RAM und Renderzeit)</label>
+<label><input type="checkbox" id="optScenery4x"> <strong>Original-Schatten und Objekte (4× A/B)</strong> – unveränderte Scenery-Quell-PNGs mit dem üblichen 2×-Schattenbild vergleichen; hoher RAM-Bedarf, nur bei echtem 4×-Atlas</label>
 <label><input type="checkbox" id="optAdaptiveGround"> Adaptive 4×-Dekodierung (automatisch aktiv; weniger RAM bei gleichem sichtbaren Detailbedarf)</label>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
@@ -73,8 +74,8 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119"></script>
 <script src="frozen-map-derived-2x.js?v=20261117-native-2x-scenery-linked"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
-<script src="frozen-map-ground-detail.js?v=20261117-adaptive-metadata"></script>
+<script src="frozen-map-ground-detail.js?v=20261120-original-scenery-ab"></script>
 <script src="frozen-map-seam-audit.js?v=20261120-ownership-diagnostic-v1"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1"></script>
-<script src="frozen-map-game.js?v=20261118-near-fallback-guard-v7&amp;edgePolicy=20261119"></script>
+<script src="frozen-map-game.js?v=20261120-original-scenery-ab"></script>
 </body></html>
