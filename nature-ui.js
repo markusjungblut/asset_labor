@@ -357,8 +357,34 @@ window.VedrasNature=(()=>{
    if(!neighborsByHex.has(k))neighborsByHex.set(k,[]);
    neighborsByHex.get(k).push(inst);
   }
-  let suitableCells=0,forestTrees=0,newBoulders=0;
+  let suitableCells=0,forestTrees=0,newBoulders=0,newWarmBoulders=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
+  // Reserve a warm boulder on scenes with at least three eligible warm
+  // hexes, so 36–54 cannot disappear simply because of an unlucky seed.
+  const warmAssets=candidates.filter(a=>B.isWarmBoulder(entryFor(a)));
+  const eligibleWarmSites=warmAssets.length?core.cells().filter(c=>{
+   const k=c.q+','+c.r;
+   return !clearings.has(k)&&!occupied.has(k)&&
+    F.maxObjects(forestByHex.get(k))>0&&
+    warmAssets.some(a=>eligible(entryFor(a),c.q,c.r,forestByHex));
+  }):[];
+  const alreadyWarm=all.some(n=>{
+   const a=assets.find(v=>v.path===n.assetPath);
+   return B.isWarmBoulder(entryFor(a));
+  });
+  if(eligibleWarmSites.length>=3&&!alreadyWarm){
+   const sites=eligibleWarmSites.slice().sort((a,b)=>
+    random(seed,a.q,a.r,1650)-random(seed,b.q,b.r,1650));
+   for(const c of sites){
+    const applicable=warmAssets.filter(a=>eligible(entryFor(a),c.q,c.r,forestByHex))
+     .sort((a,b)=>rank(a,c,1651)-rank(b,c,1651));
+    for(const a of applicable){
+     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+     if(inst){record(inst);newBoulders++;newWarmBoulders++;break;}
+    }
+    if(newWarmBoulders)break;
+   }
+  }
   for(const c of core.cells()){
    const k=c.q+','+c.r;
    if(clearings.has(k)||occupied.has(k))continue;
@@ -407,6 +433,19 @@ window.VedrasNature=(()=>{
     const a=assets.find(v=>v.path===n.assetPath);
     if(B.isCanopy(entryFor(a))){treeCount++;estimatedCover+=crownCoverage(a,n.scale||1);}
    }
+   // Eligible warm boulders receive a seeded placement attempt before the
+   // tree canopy fills object slots. Other regions retain the old rock pass.
+   const rockDraw=B.warmBoulderPool(boulders,entryFor,random(seed,c.q,c.r,1607));
+   if(rockDraw.warmCount&&count<objectCap&&random(seed,c.q,c.r,1601)<rockDraw.chance){
+    const first=Math.floor(random(seed,c.q,c.r,1602)*rockDraw.pool.length);
+    for(let j=0;j<rockDraw.pool.length;j++){
+     const a=rockDraw.pool[(first+j)%rockDraw.pool.length];
+     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+     if(inst){record(inst);count++;newBoulders++;
+      if(B.isWarmBoulder(entryFor(a)))newWarmBoulders++;
+      break;}
+    }
+   }
    // In canopy mode, continue planting until the rendered crown-size proxy
    // reaches the requested coverage (or the safe object cap is reached).
    const targetCover=mode==='canopy'&&f?.forestClass!=='none'?
@@ -427,7 +466,7 @@ window.VedrasNature=(()=>{
    }
    // Draw all currently imported boulder_NN variants via a stable choice.
    // Do not independently spawn only the first catalog entry.
-   if(boulders.length&&count<objectCap&&random(seed,c.q,c.r,1601)<
+   if(!rockDraw.warmCount&&boulders.length&&count<objectCap&&random(seed,c.q,c.r,1601)<
       Math.min(.32,Math.max(...boulders.map(a=>entryFor(a).placement.density))*1.15)){
     const first=Math.floor(random(seed,c.q,c.r,1602)*boulders.length);
     for(let j=0;j<boulders.length;j++){
@@ -471,7 +510,7 @@ window.VedrasNature=(()=>{
   const glades=forest.filter(c=>c.glade).length;
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
     edge+' Rand, '+glades+' Lichtungshexe.');
  }
 
