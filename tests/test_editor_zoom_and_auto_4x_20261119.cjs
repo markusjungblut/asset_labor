@@ -35,6 +35,7 @@ test('cold camera primes missing assigned water and unassigned biome textures',(
   axialPos:(q,r)=>({x:q*256,y:r*221}),
   hash:()=>0,key:(q,r)=>q+','+r,
   imageForBiome:()=>null,
+  visibleForestFloorAsset:()=>null, // unrelated woodland shared-source provider
   imagePool:{ensure:a=>{requests.push(a.path);return Promise.resolve();},
    protect:set=>protectedSets.push([...set])},
  };
