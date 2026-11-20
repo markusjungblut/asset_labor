@@ -201,6 +201,7 @@ function renderDistribution(){
  const pct=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1});
  const s=report.shares;
  const status='Terrain-Typen: '+report.terrainPresent+' / '+report.terrainTotal+
+  ' · Hochland '+report.highland+' Hexe (Ziel mindestens 200)'+
   ' · Grasland '+pct(s.grassland)+' % / kalte Regionen '+pct(s.cold)+' %'+
   ' · Feuchtgebiete '+pct(s.wetland)+' % / Trockengebiete '+pct(s.arid)+' %'+
   ' · '+(report.missing.length?'Nicht vorhanden: '+
