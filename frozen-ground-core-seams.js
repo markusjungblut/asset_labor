@@ -123,7 +123,7 @@ window.VedrasGroundCoreSeams=(()=>{
    throw Error('Ungültige Core-Naht-Probe');
   const set=cellsSet(worldCells),count=axis==='x'?a.height:a.width;
   let checked=0,alphaFailures=0,badJumps=0,excessSum=0,
-   jumpSum=0,baselineSum=0;
+   jumpSum=0,baselineSum=0,sharedStripeRows=0,stripeSum=0;
   for(let n=0;n<count;n+=Math.max(1,step)){
    const wxA=axis==='x'?worldA.x+size-.5/dx:
     worldA.x+(n+.5)/dx;
@@ -151,15 +151,35 @@ window.VedrasGroundCoreSeams=(()=>{
    const excess=Math.max(0,jump-baseline);
    jumpSum+=jump;baselineSum+=baseline;excessSum+=excess;
    if(excess>20&&jump>26)badJumps++;
+   // Equal-colored neighboring edge pixels can STILL form a bright or
+   // dark stripe if BOTH were baked with the same 1-2px fringe. Compare
+   // the interface to a deeper in-core reference, not to each other.
+   const depth=axis==='x'?Math.min(a.width-1,5):
+    Math.min(a.height-1,5);
+   if(depth>=3){
+    const dA=axis==='x'?iA-depth*4:iA-depth*a.width*4;
+    const dB=axis==='x'?iB+depth*4:iB+depth*b.width*4;
+    if(a.data[dA+3]>=250&&b.data[dB+3]>=250){
+     const light=(data,i)=>(data[i]+data[i+1]+data[i+2])/3;
+     const contrast=(light(a.data,iA)+light(b.data,iB)-
+      light(a.data,dA)-light(b.data,dB))/2;
+     stripeSum+=Math.abs(contrast);
+     if(Math.abs(contrast)>30)sharedStripeRows++;
+    }
+   }
   }
   const good=checked-alphaFailures;
   const alphaRate=pct(alphaFailures,checked),jumpRate=pct(badJumps,good),
+   sharedStripePct=pct(sharedStripeRows,good),
+   meanStripeContrast=good?+(stripeSum/good).toFixed(3):0,
    meanExcess=good?+(excessSum/good).toFixed(3):0;
   // Hard fail only on a substantial persistent line or missing terrain.
   // A natural one-pixel texture transition is not a 512-unit-wide seam.
   const failure=checked>0&&(alphaRate>0.25||
-   (good>=16&&jumpRate>12&&meanExcess>11));
+   (good>=16&&jumpRate>12&&meanExcess>11)||
+   (good>=16&&sharedStripePct>35&&meanStripeContrast>24));
   return {checked,alphaFailures,alphaRate,badJumps,jumpRate,
+   sharedStripeRows,sharedStripePct,meanStripeContrast,
    meanJump:good?+(jumpSum/good).toFixed(3):null,
    meanBaseline:good?+(baselineSum/good).toFixed(3):null,
    meanExcess,verdict:checked===0?'outside-authored-world':
@@ -193,10 +213,10 @@ window.VedrasGroundCoreSeams=(()=>{
     if(headers[0].w!==headers[1].w||
        headers[0].h!==headers[1].h)throw Error('Quellauflösungen weichen ab');
     const geom=sourceGeometry(headers[0].w,headers[0].h,pair.a,3);
-    const w=pair.axis==='x'?2:geom.x1-geom.x0;
-    const h=pair.axis==='y'?2:geom.y1-geom.y0;
-    const rectA={x:pair.axis==='x'?geom.x1-2:geom.x0,
-     y:pair.axis==='y'?geom.y1-2:geom.y0,w,h};
+    const w=pair.axis==='x'?6:geom.x1-geom.x0;
+    const h=pair.axis==='y'?6:geom.y1-geom.y0;
+    const rectA={x:pair.axis==='x'?geom.x1-6:geom.x0,
+     y:pair.axis==='y'?geom.y1-6:geom.y0,w,h};
     const rectB={x:geom.x0,y:geom.y0,w,h};
     first=await createImageBitmap(layers[0].png,
      rectA.x,rectA.y,rectA.w,rectA.h);
