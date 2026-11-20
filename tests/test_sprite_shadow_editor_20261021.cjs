@@ -12,7 +12,9 @@ new Function('window',read('sprite-shadow-editor.js'))(win);
 const E=win.VedrasSpriteShadows;
 const initial=JSON.parse(read('assets/shadows/sprite_shadow_profiles.json'));
 assert.deepEqual(E.set(initial),initial);
-assert.equal(E.profile('assets/nature/Oak.png').angle,160);
+assert.equal(E.profile('assets/nature/Oak.png').angle,
+ initial.profiles['assets/nature/Oak.png']?.angle??initial.global.angle,
+ 'Unconfigured Oak uses authored global cast angle');
 assert(E.profile('assets/nature/Oak.png').angle>90&&E.profile('assets/nature/Oak.png').angle<270);
 const modified=E.get();
 modified.profiles['assets/nature/Baumstumpf_16.png']={
