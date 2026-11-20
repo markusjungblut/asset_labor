@@ -51,10 +51,11 @@ setTimeout(()=>{console.error('Geography I/O test exceeded 150 seconds');process
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin='http://127.0.0.1:'+server.address().port;
- const {firefox}=require('playwright');
- const browser=await firefox.launch({headless:true});
+ let browser=null;
  const errors=[],checks=[];
  try{
+  const {firefox}=require('playwright');
+  browser=await firefox.launch({headless:true});
   const page=await browser.newPage({acceptDownloads:true,viewport:{width:1440,height:900}});
   page.on('pageerror',error=>errors.push(String(error)));
   page.on('dialog',async dialog=>dialog.accept());
@@ -177,6 +178,11 @@ setTimeout(()=>{console.error('Geography I/O test exceeded 150 seconds');process
    JSON.stringify({checks,passed:true,errors},null,2));
   console.log('PASS geography import/export roundtrip:',JSON.stringify(checks));
  }finally{
-  await browser.close();await new Promise(resolve=>server.close(resolve));
+  // Always shut down the HTTP listener even when Playwright fails BEFORE
+  // launching a browser; a leaked listener used to hang the CI job.
+  try{await browser?.close();}finally{
+   server.closeAllConnections();
+   await new Promise(resolve=>server.close(resolve));
+  }
  }
 })().catch(e=>{console.error(e);process.exitCode=1;});
