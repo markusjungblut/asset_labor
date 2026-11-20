@@ -67,7 +67,7 @@ broadBush.allowedTerrainCategories=['grass_pasture','warm_regions'];
 assert(!allowed(broadBush,'grassland'));
 assert(allowed(broadBush,'tundra'));
 // Original stones remain unchanged, including their snowfield exclusion.
-for(const number of [1,20,45]){
+for(const number of [1,20,55]){
  const filename='boulder_'+String(number).padStart(2,'0')+'.png';
  const info=E.classify({category:'nature',name:filename});
  assert(info&&info.group==='boulder');

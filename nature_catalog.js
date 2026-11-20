@@ -25,7 +25,7 @@ window.VedrasNatureCatalog=(()=>{
  const winterBoulder=meta=>meta?.family==='stones'&&
    /^boulder_(?:2[1-9]|3[0-5])$/.test(meta.id||'');
  const warmBoulder=meta=>meta?.family==='stones'&&
-   /^boulder_(?:3[6-9]|4[0-4])$/.test(meta.id||'');
+   /^boulder_(?:3[6-9]|4\d|5[0-4])$/.test(meta.id||'');
  const snowyBush=meta=>meta?.family==='snow_bushes'||
    /^snowy_bush(?:_\d+)?$/.test(meta?.id||'');
  // These are hard constraints independent of user-edited old category presets.
