@@ -1,0 +1,228 @@
+/* Deterministic 4x Ground border protection and read-only core seam gate.
+ * Saved tile gutters may be intentionally empty on the non-owned side:
+ * only the exclusive 512-world-unit cores are authoritative for publication.
+ * Original source artwork and existing archived PNGs are NEVER modified.
+ */
+'use strict';
+window.VedrasGroundCoreSeams=(()=>{
+ const HEX=256,R=HEX/Math.sqrt(3);
+ const pct=(n,d)=>d?+(n*100/d).toFixed(3):0;
+ const rgbDistance=(a,ai,b,bi)=>
+  (Math.abs(a[ai]-b[bi])+Math.abs(a[ai+1]-b[bi+1])+
+   Math.abs(a[ai+2]-b[bi+2]))/3;
+ function hexId(x,y){
+  const rf=y/(1.5*R),qf=x/HEX-rf/2;
+  let q=Math.round(qf),r=Math.round(rf),s=Math.round(-qf-rf);
+  const dq=Math.abs(q-qf),dr=Math.abs(r-rf),ds=Math.abs(s+qf+rf);
+  if(dq>dr&&dq>ds)q=-r-s;
+  else if(dr>ds)r=-q-s;
+  return q+','+r;
+ }
+ function cellsSet(cells){
+  return new Set((cells||[]).map(c=>c.q+','+c.r));
+ }
+ function sourceGeometry(width,height,tile,pad){
+  const span=tile.size+2*pad;
+  const dx=width/span,dy=height/span;
+  return {dx,dy,x0:Math.round(pad*dx),
+   x1:Math.round((tile.size+pad)*dx),
+   y0:Math.round(pad*dy),
+   y1:Math.round((tile.size+pad)*dy)};
+ }
+ function repairEdgeBands(canvas,{tile,pad=3,cells,width=3}={}){
+  if(!canvas?.getContext||!tile?.size||!Array.isArray(cells))
+   throw Error('Ground-Nahtreparatur: fehlende Weltgeometrie');
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx?.getImageData||!ctx?.putImageData)
+   throw Error('Ground-Nahtreparatur: Pixelzugriff nicht möglich');
+  const region=cellsSet(cells),g=sourceGeometry(canvas.width,canvas.height,tile,pad);
+  const band=Math.max(1,Math.min(6,Math.floor(width)));
+  let repaired=0,unresolved=0,examined=0;
+  // Read/write only tiny strips, not the entire ~14 MiB native 4x raster.
+  // Edge guards also cover the two outer gutter pixels used by bilinear
+  // sampling; exterior map pixels are left completely transparent.
+  function bandRect(x,y,w,h,side){
+   x=Math.max(0,x);y=Math.max(0,y);
+   w=Math.min(w,canvas.width-x);h=Math.min(h,canvas.height-y);
+   if(w<=0||h<=0)return;
+   const src=ctx.getImageData(x,y,w,h),data=src.data;
+   const isVertical=side==='left'||side==='right';
+   const count=isVertical?h:w;
+   for(let k=0;k<count;k++){
+    const px=isVertical?
+     (side==='left'?g.x0:g.x1-1):g.x0+k;
+    const py=isVertical?g.y0+k:
+     (side==='top'?g.y0:g.y1-1);
+    const wx=tile.x+(px+.5)/g.dx-pad;
+    const wy=tile.y+(py+.5)/g.dy-pad;
+    if(!region.has(hexId(wx,wy)))continue;
+    // Paint from an already opaque interior texel; never invent black
+    // terrain at the map boundary. Half-transparent interpolation artifacts
+    // are replaced only along internal Ground core joins.
+    let donor=-1;
+    for(let depth=band;depth<=band+5;depth++){
+     const tx=side==='left'?g.x0+depth:
+      side==='right'?g.x1-1-depth:px;
+     const ty=side==='top'?g.y0+depth:
+      side==='bottom'?g.y1-1-depth:py;
+     if(tx<0||tx>=canvas.width||ty<0||ty>=canvas.height)break;
+     const probe=ctx.getImageData(tx,ty,1,1).data;
+     if(probe[3]>=250){donor=probe;break;}
+    }
+    for(let z=0;z<band;z++){
+     const tx=side==='left'?g.x0-1-z:
+      side==='right'?g.x1+z:px;
+     const ty=side==='top'?g.y0-1-z:
+      side==='bottom'?g.y1+z:py;
+     if(tx<x||tx>=x+w||ty<y||ty>=y+h)continue;
+     const worldX=tile.x+(tx+.5)/g.dx-pad;
+     const worldY=tile.y+(ty+.5)/g.dy-pad;
+     if(!region.has(hexId(worldX,worldY)))continue;
+     examined++;
+     const i=((ty-y)*w+(tx-x))*4;
+     if(data[i+3]>=250)continue;
+     if(donor<0){unresolved++;continue;}
+     data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
+     data[i+3]=255;repaired++;
+    }
+    // The two innermost core pixels must also be opaque, but never
+    // replace valid fully opaque texture colors.
+    for(let z=0;z<band;z++){
+     const tx=isVertical?
+      (side==='left'?g.x0+z:g.x1-1-z):px;
+     const ty=isVertical?py:
+      (side==='top'?g.y0+z:g.y1-1-z);
+     if(tx<x||tx>=x+w||ty<y||ty>=y+h)continue;
+     if(!region.has(hexId(tile.x+(tx+.5)/g.dx-pad,
+      tile.y+(ty+.5)/g.dy-pad)))continue;
+     examined++;
+     const i=((ty-y)*w+(tx-x))*4;
+     if(data[i+3]>=250)continue;
+     if(donor<0){unresolved++;continue;}
+     if(data[i+3]<128){
+      data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
+     }
+     data[i+3]=255;repaired++;
+    }
+   }
+   ctx.putImageData(src,x,y);
+  }
+  // Vertical guards include full y-core; horizontal guards cover all x-core.
+  bandRect(g.x0-band,g.y0,band*2,Math.max(0,g.y1-g.y0),'left');
+  bandRect(g.x1-band,g.y0,band*2,Math.max(0,g.y1-g.y0),'right');
+  bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2,'top');
+  bandRect(g.x0,g.y1-band,Math.max(0,g.x1-g.x0),band*2,'bottom');
+  return {examined,repaired,unresolved,policy:'authored-core-only-v1'};
+ }
+ function measureCore(a,b,{axis,worldA,worldB,dx,dy,worldCells,
+  size=512,step=1}={}){
+  if(!['x','y'].includes(axis)||!a?.data||!b?.data||
+     a.width!==b.width||a.height!==b.height||
+     !Number.isFinite(dx)||dx<=0||!Number.isFinite(dy)||dy<=0)
+   throw Error('Ungültige Core-Naht-Probe');
+  const set=cellsSet(worldCells),count=axis==='x'?a.height:a.width;
+  let checked=0,alphaFailures=0,badJumps=0,excessSum=0,
+   jumpSum=0,baselineSum=0;
+  for(let n=0;n<count;n+=Math.max(1,step)){
+   const wxA=axis==='x'?worldA.x+size-.5/dx:
+    worldA.x+(n+.5)/dx;
+   const wyA=axis==='y'?worldA.y+size-.5/dy:
+    worldA.y+(n+.5)/dy;
+   const wxB=axis==='x'?worldB.x+.5/dx:
+    worldB.x+(n+.5)/dx;
+   const wyB=axis==='y'?worldB.y+.5/dy:
+    worldB.y+(n+.5)/dy;
+   if(!set.has(hexId(wxA,wyA))||!set.has(hexId(wxB,wyB)))
+    continue;
+   checked++;
+   const iA=axis==='x'?(n*a.width+a.width-1)*4:
+    ((a.height-1)*a.width+n)*4;
+   const jA=axis==='x'?iA-4:iA-a.width*4;
+   const iB=axis==='x'?n*b.width*4:n*4;
+   const jB=axis==='x'?iB+4:iB+b.width*4;
+   if(a.data[iA+3]<250||b.data[iB+3]<250||
+      a.data[jA+3]<250||b.data[jB+3]<250){
+    alphaFailures++;continue;
+   }
+   const jump=rgbDistance(a.data,iA,b.data,iB);
+   const baseline=(rgbDistance(a.data,iA,a.data,jA)+
+    rgbDistance(b.data,iB,b.data,jB))/2;
+   const excess=Math.max(0,jump-baseline);
+   jumpSum+=jump;baselineSum+=baseline;excessSum+=excess;
+   if(excess>20&&jump>26)badJumps++;
+  }
+  const good=checked-alphaFailures;
+  const alphaRate=pct(alphaFailures,checked),jumpRate=pct(badJumps,good),
+   meanExcess=good?+(excessSum/good).toFixed(3):0;
+  // Hard fail only on a substantial persistent line or missing terrain.
+  // A natural one-pixel texture transition is not a 512-unit-wide seam.
+  const failure=checked>0&&(alphaRate>0.25||
+   (good>=16&&jumpRate>12&&meanExcess>11));
+  return {checked,alphaFailures,alphaRate,badJumps,jumpRate,
+   meanJump:good?+(jumpSum/good).toFixed(3):null,
+   meanBaseline:good?+(baselineSum/good).toFixed(3):null,
+   meanExcess,verdict:checked===0?'outside-authored-world':
+    failure?'real-core-seam':'core-border-verified',failure};
+ }
+ async function auditSaved(scene,store,tiles,cells,{onProgress=()=>{}}={}){
+  if(!/^v1-[0-9a-f]{8}$/.test(scene)||!store?.get||
+   !Array.isArray(tiles)||!Array.isArray(cells))
+   throw Error('Ungültige 4×-Nahtprüfung');
+  const byPos=new Map(tiles.map(t=>[t.x+','+t.y,t]));
+  const pairs=[];
+  for(const t of tiles)for(const [offX,offY,axis] of
+   [[512,0,'x'],[0,512,'y']]){
+   const other=byPos.get((t.x+offX)+','+(t.y+offY));
+   if(other)pairs.push({a:t,b:other,axis});
+  }
+  const results=[];
+  for(const pair of pairs){
+   let first=null,second=null;
+   try{
+    const records=await Promise.all([pair.a,pair.b].map(t=>
+     store.get(scene+'|near|'+t.id)));
+    if(records.some(r=>!r?.layers))throw Error('Fehlende Nachbar-PNG');
+    const layers=records.map(r=>r.layers.find(x=>x.layer==='ground'));
+    if(layers.some(x=>!(x?.png instanceof Blob)||x.pad!==3))
+     throw Error('Ground-PNG/3er-Gutter fehlt');
+    const headers=await Promise.all(layers.map(async layer=>{
+     const bytes=new DataView(await layer.png.slice(0,24).arrayBuffer());
+     return {w:bytes.getUint32(16),h:bytes.getUint32(20)};
+    }));
+    if(headers[0].w!==headers[1].w||
+       headers[0].h!==headers[1].h)throw Error('Quellauflösungen weichen ab');
+    const geom=sourceGeometry(headers[0].w,headers[0].h,pair.a,3);
+    const w=pair.axis==='x'?2:geom.x1-geom.x0;
+    const h=pair.axis==='y'?2:geom.y1-geom.y0;
+    const rectA={x:pair.axis==='x'?geom.x1-2:geom.x0,
+     y:pair.axis==='y'?geom.y1-2:geom.y0,w,h};
+    const rectB={x:geom.x0,y:geom.y0,w,h};
+    first=await createImageBitmap(layers[0].png,
+     rectA.x,rectA.y,rectA.w,rectA.h);
+    second=await createImageBitmap(layers[1].png,
+     rectB.x,rectB.y,rectB.w,rectB.h);
+    function read(img){
+     const canvas=document.createElement('canvas');
+     canvas.width=img.width;canvas.height=img.height;
+     const g=canvas.getContext('2d',{willReadFrequently:true});
+     if(!g)throw Error('Read-only Pixelkontext fehlt');
+     g.drawImage(img,0,0);
+     return {data:g.getImageData(0,0,canvas.width,canvas.height).data,
+      width:canvas.width,height:canvas.height};
+    }
+    const metrics=measureCore(read(first),read(second),{
+     axis:pair.axis,worldA:pair.a,worldB:pair.b,
+     dx:geom.dx,dy:geom.dy,worldCells:cells});
+    results.push({pair:[pair.a.id,pair.b.id],...metrics});
+   }catch(e){
+    results.push({pair:[pair.a.id,pair.b.id],failure:true,
+     verdict:'unverifiable',error:String(e?.message||e)});
+   }finally{first?.close?.();second?.close?.();}
+   onProgress(results.length,pairs.length,results.at(-1));
+  }
+  return {scene,pairs:results,checked:results.length,
+   failures:results.filter(x=>x.failure),
+   complete:results.every(x=>!x.failure),policy:'owned-core-4x-v1'};
+ }
+ return {hexId,sourceGeometry,repairEdgeBands,measureCore,auditSaved};
+})();
