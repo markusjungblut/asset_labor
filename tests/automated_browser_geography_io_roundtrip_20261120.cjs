@@ -74,7 +74,17 @@ setTimeout(()=>{console.error('Geography I/O test exceeded 150 seconds');process
    return data;
   }
   async function importJson(id,raw,statusId,okText){
-   await page.locator('#'+id).setInputFiles({
+   // Do not bypass the user-facing import BUTTON. The previous green tests
+   // injected files into hidden inputs and could miss broken file pickers.
+   const buttons={configFile:'importConfig',worldFile:'importWorld',
+    distributionFile:'importDistribution'};
+   const button=buttons[id];assert.ok(button,'unknown file control '+id);
+   const [chooser]=await Promise.all([
+    page.waitForEvent('filechooser',{timeout:15000}),
+    page.locator('#'+button).click()
+   ]);
+   assert.equal(await chooser.element().then(el=>el.getAttribute('id')),id);
+   await chooser.setFiles({
     name:'import-test.json',mimeType:'application/json',
     buffer:Buffer.from(typeof raw==='string'?raw:JSON.stringify(raw),'utf8')
    });
