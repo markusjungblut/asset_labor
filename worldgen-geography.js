@@ -65,6 +65,7 @@
     ["Biomgrenzen","biomes.semiDesertMargin","Übergang Halbwüste zu Wüste",0.045,0,0.18,0.005,"Breite der Halbwüstenzone in ariden Regionen"],
     ["Boden-Untertypen","geology.grassSparseHumidity","Karges Weideland bis Feuchte",0.36,0.1,0.7,0.01,"Trockenere Grasregionen erzeugen karges Weideland"],
     ["Boden-Untertypen","geology.pastureSoil","Weideland nach Bodenwert",0.37,0,1,0.01,"Untertyp-Mischung innerhalb Grasregionen"],
+    ["Boden-Untertypen","geology.highlandColdMargin","Hochland in Kältegebieten",0,0,0.3,0.01,"Erweitert die Hochland-Zone in kühlere Bereiche der kalten Biomfamilie; 0 behält die alte Verteilung"],
     ["Boden-Untertypen","geology.highlandSoil","Hochland-Reliefschwelle",0.62,0.2,1,0.01,"Hochland-Bodentextur in markanten kühlen Reliefgebieten; weiterhin nur flat/hills/mountain"],
     ["Boden-Untertypen","geology.swampWarmBoundary","Sumpf ab Temperatur",0.64,0.3,0.8,0.01,"Niedrigere Werte ersetzen Moor und Marschland durch Sumpf"],
     ["Boden-Untertypen","geology.wetlandSoil","Moor/Marschland nach Bodenwert",0.50,0,1,0.01,"Steuert die Untertypen in gemäßigten Feuchtgebieten"],
@@ -201,9 +202,13 @@
       // The old fixed <.14 cutoff was unreachable with default climate (.57 ± .43).
       // Keep deep tundra tied to the configured boundary instead of a fixed,
       // practically inaccessible absolute temperature.
+      // Offer cold, pronounced uplands before snow/tundra classification.
+      // Margin 0 preserves the legacy rule (only local t >= coldBoundary).
+      if(reliefValue&&reliefValue.hill>c["geology.highlandSoil"]&&
+         t>=c["biomes.coldBoundary"]-c["geology.highlandColdMargin"])return "highland";
       if(t<c["biomes.coldBoundary"]-.04)return h>c["biomes.snowHumidity"]?"snowfields":"frozen_tundra";
       if(t<c["biomes.coldBoundary"])return h>.8?"snowfields":"tundra";
-      return reliefValue&&reliefValue.hill>c["geology.highlandSoil"]?"highland":"tundra";
+      return "tundra";
     }
     if(family==="wetland")return t>c["geology.swampWarmBoundary"]?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
     if(family==="jungle")return "jungle";
