@@ -158,7 +158,8 @@ window.VedrasFrozenMap=(()=>{
   const ctx=canvas.getContext('2d',{alpha:true});
   let effectiveEdgeInset=sourceEdgeInset;
   // Optional transparent viewport-size overlay; world stays on #game.
-  const fogCtx=fogCanvas?.getContext?.('2d',{alpha:true})||null;
+  const fogCtx=!window.VedrasCloudsDisabled?
+   (fogCanvas?.getContext?.('2d',{alpha:true})||null):null;
   let baseStamp=null,baseFrames=0,fogOnlyFrames=0,cloudRevision=0;
   let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
@@ -336,7 +337,9 @@ window.VedrasFrozenMap=(()=>{
   let hits=0,loads=0,paintMs=0,misses=0,failures=0,frame=0,decodedPixels=0,
    evictions=0,profileFrame=null;
   const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
-  const clouds=window.VedrasCloudArtwork?.create({
+  // Performance A/B: do not instantiate, decode, fade or composite clouds
+  // unless the hosting page explicitly opts in with ?clouds=1.
+  const clouds=!window.VedrasCloudsDisabled&&window.VedrasCloudArtwork?.create({
    onReady:()=>{cloudRevision++;cloudBackdropRaster=null;resetCloudAuto();repaint();}
   })||null;
   const decodePNG=decode||(async(blob,options)=>{
@@ -835,7 +838,8 @@ window.VedrasFrozenMap=(()=>{
       .map(c=>c.q+','+c.r));
      clouds.drawBase(g,extendedView,authoredFogSet);
     }else{
-     g.fillStyle='#bdced7';g.fillRect(0,0,extendedWidth,extendedHeight);
+     g.fillStyle=window.VedrasCloudsDisabled?'#17272b':'#bdced7';
+     g.fillRect(0,0,extendedWidth,extendedHeight);
     }
     const region=viewportPolicy?.screenBounds(extendedView,{
      marginWorld:viewportPolicy.MARGIN_WORLD});
@@ -1526,7 +1530,8 @@ window.VedrasFrozenMap=(()=>{
    else{
     const cloudStart=profileFrame?clock():0;
     if(clouds)drawCloudBackground(ctx,view,dpr);
-    else{ctx.fillStyle='#bfcbd7';ctx.fillRect(0,0,width,height);}
+    else{ctx.fillStyle=window.VedrasCloudsDisabled?'#17272b':'#bfcbd7';
+     ctx.fillRect(0,0,width,height);}
     if(profileFrame)profileFrame.cloudMs+=clock()-cloudStart;
     const worldCompositeStart=profileFrame?clock():0;
     if(!useLayerCache||!rasterPad||!paintOverview(ctx,view,tiles,dpr,tiles.length===visible.length)){

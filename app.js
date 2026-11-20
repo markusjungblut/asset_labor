@@ -3333,7 +3333,7 @@ function draw(){
  // Draw world-aligned cloud artwork DIRECTLY in the visible mapCanvas on
  // every frame, independently from the cached terrain/scenery rasters.
  // This is the single opaque backdrop for loaded and ungenerated world.
- if(!state.seamCheck&&worldTiles)
+ if(!window.VedrasCloudsDisabled&&!state.seamCheck&&worldTiles)
   worldTiles.drawCloudBackground(ctx,{width:W,height:H,zoom:state.zoom,
    panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
  let terrainElapsed=0,roadsElapsed=0;
@@ -3483,7 +3483,7 @@ function draw(){
   }
  }finally{spriteAtlas?.endFrame();if(clippedWorld)ctx.restore();}
  drawMountainFootprints();drawBounds();
- if(!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
+ if(!window.VedrasCloudsDisabled&&!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
   // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
   // arbitrary order. Apply the SAME cloud cover AFTER the final scenery pass,
   // revealing only hexes for which every intersecting tile is fully painted.

@@ -161,7 +161,7 @@ const run=async()=>{
    const worldPad=mode==='budgetedPad'?'1':'0';
    const worldBands=(mode==='sparseWorld'||mode==='fixedCloudSparse')?'1':'0';
    const url=origin+'/frozen-map-game.html?scene='+SCENE+
-    '&lod=near&perf=1'+
+    '&lod=near&perf=1&clouds='+(mode==='cloudsDisabled'?'0':'1')+
     (original?'&worldPad='+worldPad+'&worldBands='+worldBands:'')+
     (mode==='legacy'?'&prefetchGuard=0':'')+
     (mode==='noStream'?'&streamCache=0':'')+
@@ -189,7 +189,9 @@ const run=async()=>{
     window.__vedrasFrozenGameTest.stats().saved),COUNT);
    const layerStats=await page.evaluate(()=>
     window.__vedrasFrozenGameTest.stats().clouds);
-   assert.ok(layerStats&&layerStats.bases===4,
+   if(mode==='cloudsDisabled')
+    assert.equal(layerStats,null,'Cloud-off must not load cloud artwork');
+   else assert.ok(layerStats&&layerStats.bases===4,
     'Four authored synthetic cloud layers must load in real browser');
    const coldReport=await page.evaluate(()=>
     window.__vedrasFrozenGameTest.profileReport());
@@ -310,6 +312,7 @@ const run=async()=>{
   }
   const guarded=await loadMode('guarded');
   const modernDefault=await loadMode('modernDefault');
+  const cloudsDisabled=await loadMode('cloudsDisabled');
   const legacy=await loadMode('legacy');
   const noStream=await loadMode('noStream');
   const noCloudPad=await loadMode('noCloudPad');
@@ -326,6 +329,20 @@ const run=async()=>{
   // runner resource contention as a rendering failure. Report exact data.
   const fast=collected.results.guarded,ref=collected.results.legacy,
    modern=collected.results.modernDefault;
+  const disabled=collected.results.cloudsDisabled;
+  assert.equal(disabled.cold.cloudBuilds,0,
+   'Cloud-off must eliminate buffered cloud raster allocations');
+  assert.equal(disabled.cold.cloudFallbacks,0,
+   'Cloud-off must skip direct cloud fallback rendering');
+  assert.equal(disabled.cold.fogOverlayMiB,0,
+   'Cloud-off must not allocate an independent fog canvas');
+  assert.equal(disabled.cold.fogCells,0,
+   'Cloud-off must not calculate or submit fog-cell stamps');
+  assert.ok(disabled.panFrames>0&&disabled.p95DrawMs>=0);
+  collected.cloudsOff={p95DrawMs:disabled.p95DrawMs,
+   cloudBuilds:disabled.cold.cloudBuilds,
+   fogOverlayMiB:disabled.cold.fogOverlayMiB,
+   fogCells:disabled.cold.fogCells};
   assert.equal(fast.cold.worldPadAdaptive,false);
   assert.equal(fast.cold.sparseWorldBlit,false);
   assert.equal(modern.cold.worldPadAdaptive,true,
@@ -645,6 +662,7 @@ const run=async()=>{
   await sparseWorld.close();
   await budgetedPad.close();
   await modernDefault.close();
+  await cloudsDisabled.close();
   await layeredFog.close();
   await noWorldFast.close();
   await noFogCull.close();
@@ -772,7 +790,7 @@ const run=async()=>{
   // The user-visible opt-out controls must really navigate and switch
   // the corresponding read-only renderer policy, not merely look checked.
   const settingsPage=await ctx.newPage();
-  await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await settingsPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1&clouds=1');
   await settingsPage.waitForFunction(()=>window.__vedrasFrozenGameTest?.stats()?.saved===120);
   await settingsPage.locator('#performanceOptions > summary').click();
   for(const id of ['optWorldPad','optWorldBands','optTileIndex'])
@@ -808,7 +826,7 @@ const run=async()=>{
   // CI-only integration gate on the synthetic 120-tile atlas: the real
   // Firefox viewer must enable and disable resident 1x safely via its UI.
   const fallbackPage=await ctx.newPage();
-  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1&fallbackAtlas=0');
+  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1&fallbackAtlas=0&clouds=1');
   await fallbackPage.waitForFunction(n=>
    window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
   assert.equal(await fallbackPage.locator('#optFallbackAtlas').isChecked(),false);
