@@ -1750,8 +1750,9 @@ function drawForestFloor(){
   asset:[asset.path,asset.mtime,asset.imageRevision||0,
    asset.img.naturalWidth,asset.img.naturalHeight],
   size:textureSize,resolution:Math.round(resolution*10)/10,
-  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.jungle,c.baseBiome,c.ground,c.categoryId]),
-  version:'region-mask-glades-v2'
+  cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.gladeX,c.gladeY,
+   c.gladeRadius,c.edgeInfluence,c.manualClearing,c.jungle,c.baseBiome,c.ground,c.categoryId]),
+  version:'organic-forest-edge-glades-v3'
  });
  if(forestFloorRasterCache.signature!==signature){
   const start=performance.now();
@@ -1765,10 +1766,12 @@ function drawForestFloor(){
  window.__vedrasForestFloorRaster=raster;
  if(!raster?.canvas)return;
  ctx.save();
- // One complete map silhouette prevents the outward feather spilling onto
- // the background. Critically, there is NO per-forest-hex clipping/fade.
+ // Clip to actual non-snowy GROUND hexes, not just the scene outline.
+ // Organic forest fringes may enter adjacent open ground, never open water.
+ // This is a ground mask, NOT a per-forest-hex clip.
  ctx.beginPath();
- for(const c of worldCells){
+ for(const c of cells){
+  if(!c.ground||c.jungle||['snowfields','frozen_tundra'].includes(c.baseBiome))continue;
   const pts=hexPoints(c.q,c.r);ctx.moveTo(...pts[0]);
   for(let i=1;i<6;i++)ctx.lineTo(...pts[i]);
   ctx.closePath();
@@ -4210,7 +4213,7 @@ function frozenSceneKey({force4x=false}={}){
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
   'forest-floor-wrap-v1',
-  'forest-floor-required-and-camera-pinned-v2',
+  'organic-forest-fringes-and-glades-v3',
   // Strict source-core alpha stabilization and read-only seam publication
   // gate. Never reuse any already published pre-fix Ground PNGs.
   'ground-owned-core-seam-gate-v1',
@@ -5481,8 +5484,11 @@ function importGeographyWorld(world){
   }
   next.push(item);
   forestOverrides[key(q,r)]=source.forestClass;
+  // Imported 'none' is geographic open land: its class is fixed,
+  // but a few border trees may trail into it from neighboring woodland.
+  // Unlike a manually cleared hex, it accepts the weak forest-edge halo.
+  geographyHexes[key(q,r)]=true;
   if(source.forestClass!=='none'){
-   geographyHexes[key(q,r)]=true;
    // Preserve the numeric density as well as the broad forest class.
    if(Number.isFinite(source.forestDensity))
     densityOverrides[key(q,r)]=source.forestDensity;
