@@ -61,7 +61,9 @@ assert(Math.abs(B.sizeFactor({kind:'tree',family:'snow_dead_trees'})-.58*.5)<1e-
 assert(Math.abs(B.sizeFactor({kind:'special',family:'deadwood'})-.72*.7)<1e-10);
 assert.equal(B.placementScale({kind:'ground_cover'}),.84);
 assert.equal(B.placementScale({kind:'rock'}),.84);
-assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.6)<1e-10);
+// Living trees gained a deliberate 10% class size adjustment after the
+// v0.11.2 baseline. This is a placement contract, not shadow darkness.
+assert(Math.abs(B.sizeFactor({kind:'tree',sizeClass:'medium'})-.72*.6*1.10)<1e-10);
 assert(Math.abs(B.sizeFactor({kind:'shrub',sizeClass:'medium'})-.73*.84)<1e-10);
 assert(Math.abs(B.sizeFactor({kind:'cluster',family:'fallen_logs'})-.71*.7)<1e-10);
 assert.equal(F.treeTarget({suitability:1,forestClass:'dense_forest'}),5);
