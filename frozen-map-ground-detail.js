@@ -49,8 +49,8 @@ window.VedrasFrozenGroundDetail=(()=>{
  function createStore({standard,overview,original}={}){
   if(!standard?.get||!overview?.getVariant||!original?.get||!original?.keys)
    throw Error('4×-Bodenmodus benötigt vorhandene Karten-Reader');
-  let enabled=false;
-  const counters={reads:0,originalGrounds:0,missingOriginals:0,
+  let enabled=false,originalScenery=false;
+  const counters={reads:0,originalGrounds:0,originalSceneries:0,missingOriginals:0,
    probeSamples:0,probe4x:0,probeDensity:0,probeIssue:null};
   // Read only 3 representative records, not the whole 600MB atlas.
   // The actual get() still validates EACH source record before substitution.
@@ -88,6 +88,17 @@ window.VedrasFrozenGroundDetail=(()=>{
    if(!info.ready){
     counters.missingOriginals++;return standard.get(key);
    }
+   // A/B diagnostic: actual original source Scenery, never the derived
+   // 2x image. This is read-only and opt-in because it increases RAM.
+   // Shadow-only successors can already have native 2x Scenery; in that
+   // case no 4x quality is claimed and we retain the original as-is.
+   if(originalScenery){
+    counters.originalSceneries++;
+    return {...raw,groundDetailSource:'original-4x',
+     sceneryDetailSource:raw.sceneryNative2x?'original-native-2x':
+      'original-4x',groundSourcePixels:{
+      width:info.width,height:info.height,density:info.density}};
+   }
    const scenery=typeof standard.getSceneryMixed==='function'?
     await standard.getSceneryMixed(key,raw):await standard.get(key);
    const result=merge(raw,scenery);
@@ -106,7 +117,8 @@ window.VedrasFrozenGroundDetail=(()=>{
    getVariant:(key,variant)=>variant==='1x'?overview.getVariant(key,'1x'):get(key),
    keys:prefix=>standard.keys(prefix),
    setEnabled:value=>{enabled=value===true;},
-   stats:()=>({...counters,enabled})
+   setOriginalScenery:value=>{originalScenery=value===true;},
+   stats:()=>({...counters,enabled,originalScenery})
   };
  }
  return {merge,sourceGround,createStore};
