@@ -88,7 +88,7 @@ test('actual Asset-Labor importGeographyWorld accepts valid center crop and repo
    dispatchEvent:()=>{}},
   Event:class Event{constructor(name){this.type=name;}},
   $:id=>nodes[id]??(nodes[id]={}),
-  sceneRadius:()=>2,
+  sceneRadius:()=>3,
   key:(q,r)=>q+','+r,
   catalog:{terrainTypes:G.TERRAIN_IDS.map(id=>({id}))},
   worldCells:[],wetHex:()=>false,
@@ -114,7 +114,7 @@ test('actual Asset-Labor importGeographyWorld accepts valid center crop and repo
  assert.equal(saved,1);
  const unsupported=G.generateWorld('bad-terrain',{width:35,height:26});
  unsupported.cells.forEach(c=>{c.terrainId='__bad__';});
- context.state.sceneSize=37;context.sceneRadius=()=>2;
+ context.state.sceneSize=37;context.sceneRadius=()=>3;
  assert.equal(api(unsupported),false);
  assert.match(nodes.catalogMessage.textContent,/Terrain-ID fehlt/);
  assert.strictEqual(context.worldCells,previous);
