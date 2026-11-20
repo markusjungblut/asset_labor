@@ -482,7 +482,9 @@
   if(panSettler!==null)clearTimeout(panSettler);
   panSettler=setTimeout(()=>{
    panSettler=null;
-   if(!drag&&!pinch)setPose({});
+   if(!pinch){
+    if(!drag)setPose({});
+   }
   },150);
  };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
