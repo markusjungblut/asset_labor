@@ -497,7 +497,11 @@ async function bakeWorldTile(t,level,{signal}={}){
     cells:worldCells,width:3});
    if(checked.unresolved>Math.max(8,checked.examined*.001))
     throw Error('4×-Ground ist an der Kernkante unvollständig ('+
-     checked.unresolved+' Pixel in '+t.id+'). Die PNG wird nicht gespeichert.');
+     checked.unresolved+' Pixel in '+t.id+'). '+
+     (checked.unresolvedSamples?.length?'Erste Problemstellen: '+
+      checked.unresolvedSamples.map(p=>p.side+' Hex '+p.hex+
+       ' [Quellpixel '+p.sourceX+','+p.sourceY+']').join('; ')+'. ':'')+
+     'Die PNG wird nicht gespeichert.');
   }
   __bench?.record('tile.groundRoadsMs',performance.now()-__groundStart);
   // drawGround can schedule a newer LOD or a changed chunk revision. If its

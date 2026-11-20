@@ -239,3 +239,27 @@ test('shared fully opaque bright stripes fail even when both adjacent core RGB e
  assert.ok(m.sharedStripePct>95);
  assert.equal(m.verdict,'real-core-seam');
 });
+
+test('unresolved 4x core alpha reports bounded source/world coordinates instead of an opaque error',()=>{
+ const tile={x:496,y:0,size:16},pad=3,scale=4,
+  ww=(tile.size+2*pad)*scale,hh=75;
+ const raw=new Uint8ClampedArray(ww*hh*4); // no opaque donor available
+ const canvas={width:ww,height:hh,getContext:()=>({
+  getImageData(x,y,w,h){
+   const data=new Uint8ClampedArray(w*h*4);
+   for(let row=0;row<h;row++)
+    data.set(raw.slice(((y+row)*ww+x)*4,((y+row)*ww+x+w)*4),row*w*4);
+   return {width:w,height:h,data};
+  },
+  putImageData(){}
+ })};
+ const result=core.repairEdgeBands(canvas,{tile,pad,cells:[{q:2,r:0}],width:3});
+ assert(result.unresolved>0,'transparent interior cannot be fabricated into valid terrain');
+ assert(result.unresolvedSamples.length>0&&result.unresolvedSamples.length<=5);
+ assert(result.unresolvedSamples.every(p=>Number.isFinite(p.sourceX)&&
+  Number.isFinite(p.sourceY)&&Number.isFinite(p.worldX)&&
+  Number.isFinite(p.worldY)&&p.hex==='2,0'));
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.match(app,/checked\.unresolvedSamples\.map\(p=>p\.side/);
+ assert.match(app,/Die PNG wird nicht gespeichert/);
+});
