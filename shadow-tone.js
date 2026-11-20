@@ -45,5 +45,18 @@ window.VedrasShadowTone=(()=>{
   const strength=1-(1-current.balance)**2;
   return clamp(value+(Math.max(.52,target)-value)*strength,0,1);
  }
- return {defaults,clean,get,set,colorRgb,colorCss,opacity,attenuation,revision:()=>revision};
+ // Normalized sprite casts have a full-alpha silhouette. Mountain casts
+ // use a distance-field whose maximum coverage is .90, so without this
+ // correction even the 100% "Schattenangleich" slider leaves mountains
+ // approximately 10% weaker than other single-pass cast shadows.
+ // Blend the coverage correction with the same slider, preserving all
+ // historical shadows unchanged when balance=0.
+ function coverageGain(maxCoverage=1){
+  if(!Number.isFinite(maxCoverage)||maxCoverage<=0)return 1;
+  const peak=clamp(maxCoverage,.01,1);
+  const strength=1-(1-current.balance)**2;
+  return 1+(1/peak-1)*strength;
+ }
+ return {defaults,clean,get,set,colorRgb,colorCss,opacity,attenuation,
+  coverageGain,revision:()=>revision};
 })();
