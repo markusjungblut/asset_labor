@@ -214,3 +214,28 @@ test('full 4x export invokes mandatory owned-core checks and never rewrites exis
  assert.match(coreSource,/createImageBitmap\(layers\[1\]\.png,/);
  assert.doesNotMatch(coreSource,/store\.put\(|store\.delete\(|deleteDatabase\(/);
 });
+
+test('shared fully opaque bright stripes fail even when both adjacent core RGB edges agree',()=>{
+ const width=6,height=40,
+  mk=()=>({width,height,data:new Uint8ClampedArray(width*height*4)});
+ const a=mk(),b=mk();
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  const i=(y*width+x)*4;
+  for(const img of [a,b]){
+   img.data[i]=95;img.data[i+1]=115;img.data[i+2]=80;
+   img.data[i+3]=255;
+  }
+  if(x>=width-2){
+   a.data[i]=250;a.data[i+1]=250;a.data[i+2]=250;
+  }
+  if(x<2){
+   b.data[i]=250;b.data[i+1]=250;b.data[i+2]=250;
+  }
+ }
+ const m=core.measureCore(a,b,{axis:'x',worldA:{x:0,y:0},
+  worldB:{x:512,y:0},dx:4,dy:3.4,worldCells:[{q:2,r:0}]});
+ assert.equal(m.alphaFailures,0);
+ assert.equal(m.meanJump,0,'both owners paint the same defective white fringe');
+ assert.ok(m.sharedStripePct>95);
+ assert.equal(m.verdict,'real-core-seam');
+});
