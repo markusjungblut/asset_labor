@@ -5518,8 +5518,22 @@ function importGeographyWorld(world){
  return true;
 }
 window.addEventListener('message',event=>{
- if(event.origin!==location.origin||event.source!==geographyPopup||
-    event.data?.type!=='vedras-geography-preview')return;
+ if(event.origin!==location.origin||
+    event.data?.type!=='vedras-geography-preview'||!event.source)return;
+ // Refreshing Asset-Labor resets geographyPopup to null, even though the
+ // already-open Geography Lab retains window.opener. Accept that exact
+ // same-origin Geography Lab document; still require the user's confirm()
+ // before changing any world state.
+ let trusted=event.source===geographyPopup;
+ if(!trusted){
+  try{
+   const sourceUrl=new URL(event.source.location.href);
+   trusted=sourceUrl.origin===location.origin&&
+    sourceUrl.pathname.endsWith('/geography-lab.html');
+  }catch(_error){trusted=false;}
+ }
+ if(!trusted)return;
+ geographyPopup=event.source;
  let ok=false;
  try{ok=importGeographyWorld(event.data.world);}
  catch(error){$('catalogMessage').textContent='Geografie-Übernahme fehlgeschlagen: '+error.message;}
