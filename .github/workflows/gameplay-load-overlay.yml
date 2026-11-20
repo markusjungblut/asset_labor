@@ -1,0 +1,34 @@
+name: Viewer – Gameplay Overlay Load Probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frozen-map-game.js'
+      - 'frozen-map-game.html'
+      - 'frozen-map-game-load.js'
+      - 'tests/test_gameplay_load_overlay_20261120.cjs'
+      - '.github/workflows/gameplay-load-overlay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  overlay-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.js
+            /*.html
+            /tests/test_gameplay_load_overlay_20261120.cjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify separate animation layer, camera transform and p95 metrics
+        run: node --test tests/test_gameplay_load_overlay_20261120.cjs

@@ -16,7 +16,8 @@ const SCENE='v1-25c1f00d',COUNT=120;
 const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
- 'frozen-map-game.js','frozen-map-runtime.js','frozen-map-profiler.js',
+ 'frozen-map-game.js','frozen-map-game-load.js',
+ 'frozen-map-runtime.js','frozen-map-profiler.js',
  'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
  'frozen-map-world-blit.js',
  'frozen-map-derived-1x.js',
@@ -822,6 +823,35 @@ const run=async()=>{
   collected.visibleToggleAB=toggled;
   assert.equal(toggled.length,5);
   await settingsPage.close();
+  // Real Firefox: opt-in gameplay probe must render independently of map.
+  const gameplayPage=await ctx.newPage();
+  await gameplayPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+
+   '&lod=near&perf=1&gameLoad=1');
+  await gameplayPage.waitForFunction(()=>
+   window.__vedrasFrozenGameTest?.stats()?.saved===120 &&
+   document.querySelector('#gameLoadOverlay')?.width>0 &&
+   document.querySelector('#gameLoadHud')?.textContent.includes('p95'),
+   null,{timeout:30000});
+  const gameplay=await gameplayPage.evaluate(()=>{
+   const probe=window.__vedrasFrozenGameTest,report=probe.profileReport();
+   return {enabled:report.environment?.gameLoad?.enabled,
+    count:report.environment?.gameLoad?.metrics?.unitCount,
+    frames:report.environment?.gameLoad?.metrics?.frames,
+    sourceFailures:probe.stats().failures,tiles:probe.stats().saved,
+    pointerEvents:getComputedStyle(document.querySelector('#gameLoadOverlay')).pointerEvents,
+    fogAboveUnits:!!(document.querySelector('#gameLoadOverlay')
+     .compareDocumentPosition(document.querySelector('#fogOverlay'))&
+     Node.DOCUMENT_POSITION_FOLLOWING)};
+  });
+  assert.equal(gameplay.enabled,true);
+  assert.equal(gameplay.count,100);
+  assert(gameplay.frames>0);
+  assert.equal(gameplay.sourceFailures,0);
+  assert.equal(gameplay.tiles,120);
+  assert.equal(gameplay.pointerEvents,'none');
+  assert.equal(gameplay.fogAboveUnits,true);
+  collected.results.gameplayOverlay=gameplay;
+  await gameplayPage.close();
 
   // CI-only integration gate on the synthetic 120-tile atlas: the real
   // Firefox viewer must enable and disable resident 1x safely via its UI.
