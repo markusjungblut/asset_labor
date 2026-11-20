@@ -67,3 +67,55 @@ test('Asset-Labor source consumes the same validator and reports failed scene im
  assert.ok(html.includes('geography-io.js?v='));
  assert.ok(labHtml.includes('geography-io.js?v='));
 });
+
+test('actual Asset-Labor importGeographyWorld accepts valid center crop and reports rejection without scene mutation',()=>{
+ const source=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ const begin=source.indexOf('function importGeographyWorld(world){');
+ const end=source.indexOf("window.addEventListener('message',event=>{",begin);
+ assert.ok(begin>0&&end>begin);
+ const fn=source.slice(begin,end);
+ const output={};
+ const state={sceneSize:37,natureSeed:'test',relief:{enabled:false},
+  forest:{},river:false,hexTerrain:{},biomeTerrain:{},baseBiomeByHex:{}};
+ const nodes={catalogMessage:{textContent:''},riverToggle:{checked:false}};
+ let saved=0,redraw=0;
+ const context={
+  state,window:{VedrasGeography:G,confirm:()=>true,
+   VedrasForest:{defaults:()=>({}),valid:data=>data},
+   VedrasRivers:{normalizeRoutes:r=>r},
+   VedrasRelief:{valid:r=>r},
+   VedrasNature:{renderPlaced:()=>{}},
+   dispatchEvent:()=>{}},
+  Event:class Event{constructor(name){this.type=name;}},
+  $:id=>nodes[id]??(nodes[id]={}),
+  sceneRadius:()=>2,
+  key:(q,r)=>q+','+r,
+  catalog:{terrainTypes:G.TERRAIN_IDS.map(id=>({id}))},
+  worldCells:[],wetHex:()=>false,
+  syncReliefUI:()=>{},riverRasterCache:{clear:()=>{}},
+  invalidateTerrain:()=>{},setView:()=>{},applyZoom:()=>{},
+  suggestedSceneZoom:()=>1,persistScene:()=>{saved++},
+  requestDraw:()=>{redraw++},
+  localStorage:{}
+ };
+ const api=vm.runInNewContext(fn+'\nimportGeographyWorld;',context);
+ const valid=G.generateWorld('asset-lab-interchange',{
+  width:35,height:26,originQ:-13,originR:29,config:G.defaultConfig()});
+ assert.equal(api(valid),true,nodes.catalogMessage.textContent);
+ assert.equal(context.worldCells.length,37);
+ assert.equal(saved,1);assert.equal(redraw,1);
+ assert.equal(state.geographySource.seed,valid.seed);
+ const previous=context.worldCells;
+ const bad=G.generateWorld('small-world',{width:10,height:10});
+ context.state.sceneSize=397;context.sceneRadius=()=>11;
+ assert.equal(api(bad),false,'out-of-bounds scenes are rejected without changes');
+ assert.match(nodes.catalogMessage.textContent,/zu klein/);
+ assert.strictEqual(context.worldCells,previous,'failed import cannot replace the current scene');
+ assert.equal(saved,1);
+ const unsupported=G.generateWorld('bad-terrain',{width:35,height:26});
+ unsupported.cells.forEach(c=>{c.terrainId='__bad__';});
+ context.state.sceneSize=37;context.sceneRadius=()=>2;
+ assert.equal(api(unsupported),false);
+ assert.match(nodes.catalogMessage.textContent,/Terrain-ID fehlt/);
+ assert.strictEqual(context.worldCells,previous);
+});
