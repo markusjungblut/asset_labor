@@ -52,9 +52,41 @@ for(let n=17;n<=21;n++)exact('berg_'+n2(n)+'.png',moderate);
 for(let n=21;n<=35;n++)exact('boulder_'+n2(n)+'.png',cold);
 for(let n=36;n<=54;n++){
   const filename='boulder_'+n2(n)+'.png';
+  assert(fs.existsSync(path.join(dir,'assets/nature',filename)),
+   'uploaded warm boulder PNG missing from active branch: '+filename);
+  assert(nature.entries['nature/'+filename],
+   'uploaded warm boulder not registered in Nature catalog: '+filename);
   assert.equal(E.classify({category:'nature',name:filename}).group,'warm_boulder');
   exact(filename,hot);
 }
+// Warm boulder spawning and rendered scale share the same explicit 36–54 class.
+const balanceWin={};new Function('window',get('nature-balance.js'))(balanceWin);
+const B=balanceWin.VedrasNatureBalance;
+const warmMeta=make('boulder_45.png'),normalMeta=make('boulder_20.png'),
+ coldMeta=make('boulder_35.png');
+assert.equal(B.isWarmBoulder(warmMeta),true);
+assert.equal(B.isWarmBoulder(coldMeta),false);
+assert.equal(B.isWarmBoulder(normalMeta),false);
+assert.equal(B.sizeFactor(warmMeta),B.sizeFactor(normalMeta)*1.28,
+ 'warm boulders should render 28% larger than ordinary stones');
+assert.equal(B.placementScale(warmMeta),B.sizeFactor(warmMeta),
+ 'warm boulder collisions must scale with visual size');
+assert.equal(B.sizeFactor(coldMeta),B.sizeFactor(normalMeta),
+ 'winter and ordinary boulder sizes must remain unchanged');
+const savannaPool=Array.from({length:54},(_,i)=>({meta:make('boulder_'+n2(i+1)+'.png')}))
+ .filter(a=>eligible(a.meta,'savanna'));
+const warmDraw=B.warmBoulderPool(savannaPool,a=>a.meta,.1);
+assert.equal(warmDraw.pool.length,19,'all warm boulder variants prioritized');
+assert(warmDraw.pool.every(a=>B.isWarmBoulder(a.meta)));
+assert(warmDraw.chance>=.30,'warm spawn chance must be above previous 13.8%');
+const fallbackDraw=B.warmBoulderPool(savannaPool,a=>a.meta,.99);
+assert.equal(fallbackDraw.pool.length,savannaPool.length,
+ 'ordinary rocks remain possible in warm regions');
+const tundraPool=Array.from({length:54},(_,i)=>({meta:make('boulder_'+n2(i+1)+'.png')}))
+ .filter(a=>eligible(a.meta,'tundra'));
+const winterDraw=B.warmBoulderPool(tundraPool,a=>a.meta,.1);
+assert.equal(winterDraw.warmCount,0,'warm boulders never spawn in tundra');
+assert(Math.abs(winterDraw.chance-.138)<1e-10,'winter boulder chance unchanged');
 // Five newly supplied ice blocks accept both German/English file naming.
 for(let n=1;n<=5;n++){
  exact('Eisblock_'+n2(n)+'.png',['snowfields','frozen_tundra','tundra']);
@@ -77,6 +109,9 @@ assert(ui.includes("if(existing?.group==='ice_block')"),
  'explicit iceblock metadata must override older broad sprite-plan information');
 assert(ui.includes("const proposed=existing?.group==='ice_block'?"),
  'batch-import path must also prioritize no-highland ice rules');
+assert(ui.includes('B.warmBoulderPool(boulders,entryFor,'),'warm rocks selected ahead of all-region rocks');
+assert(ui.includes('eligibleWarmSites.length>=3'),'warm rock fallback on larger suitable maps');
+assert(ui.includes('newWarmBoulders'),'warm rock spawn count must be surfaced');
 assert(ui.includes('N.mountainAllowed(entryFor(a),terrain,terrainRegistry(),catalog)'),
  'automatic mountain spawning must honor terrain');
 assert(ui.includes('if(!startCell||!N.mountainAllowed'),
