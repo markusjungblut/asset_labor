@@ -487,6 +487,18 @@ async function bakeWorldTile(t,level,{signal}={}){
    __bench?.count('tile.groundReuseMisses');
    drawGround();drawRoads();
   }
+  // Guard ONLY true, native-4x offline output: preserve the original
+  // terrain alpha outside the authored map, but prevent transparent
+  // source-filter texels at the exclusive 512-unit core joins.
+  if(offline4x){
+   const guard=window.VedrasGroundCoreSeams;
+   if(!guard)throw Error('4×-Ground-Nahtschutz fehlt; Export gestoppt');
+   const checked=guard.repairEdgeBands(out,{tile:t,pad:groundPad,
+    cells:worldCells,width:3});
+   if(checked.unresolved>Math.max(8,checked.examined*.001))
+    throw Error('4×-Ground ist an der Kernkante unvollständig ('+
+     checked.unresolved+' Pixel in '+t.id+'). Die PNG wird nicht gespeichert.');
+  }
   __bench?.record('tile.groundRoadsMs',performance.now()-__groundStart);
   // drawGround can schedule a newer LOD or a changed chunk revision. If its
   // precise terrain core was not painted, discard this composite and retry
@@ -4155,6 +4167,9 @@ function frozenSceneKey({force4x=false}={}){
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
   'forest-floor-wrap-v1',
+  // Strict source-core alpha stabilization and read-only seam publication
+  // gate. Never reuse any already published pre-fix Ground PNGs.
+  'ground-owned-core-seam-gate-v1',
   (force4x||state.quality==='4')?'atlas-4x':'atlas-native',
   worldCells.map(c=>[c.q,c.r,c.biome,c.terrainTypeId,c.sceneWaterTerrain,
    c.reliefClass,c.hillProfile,c.hillStrength]),
@@ -4718,7 +4733,24 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   const audit=await frozenMap.verifyArchive(scene,'near',all,{require4x:true});
   failed=audit.missingIds.length+audit.invalidTiles.length+
    audit.extraIds.length;
-  const published=!run.cancel&&audit.complete;
+  // A successful PNG header audit alone cannot catch a transparent
+  // source-core join. Compare the two actual OWNER pixels on every
+  // internal 512-unit border (not their intentionally half-empty gutters).
+  let seamAudit={complete:false,pairs:[],failures:[]};
+  if(!run.cancel&&audit.complete){
+   const checker=window.VedrasGroundCoreSeams;
+   if(!checker)throw Error('Verbindliche Ground-Nahtprüfung fehlt');
+   frozenNotice('4×-PNG-Nahtprüfung: tatsächliche Ground-Kernkanten …');
+   seamAudit=await checker.auditSaved(scene,frozenMap.storage,all,worldCells,{
+    onProgress:(checked,total,last)=>{
+     if(checked===total||checked%12===0)
+      frozenNotice('Ground-Kernkanten geprüft: '+checked+'/'+total+
+       ' · '+(last.failure?'Nahtfehler an '+last.pair.join(' / '):
+        'Pixelprüfung läuft'));
+    }
+   });
+  }
+  const published=!run.cancel&&audit.complete&&seamAudit.complete;
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
    levels:['near'],pose:{...pose,dpr:4,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings(),
@@ -4728,16 +4760,21 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     ...audit.invalidTiles.map(v=>v.id)]});
   if(published){
    frozenNotice('FERTIG: '+scene+' · alle '+audit.expected+
-    ' Kacheln mit 4×-Ground und Scenery geprüft. '+
+    ' Kacheln mit 4×-Ground und Scenery geprüft · '+
+    seamAudit.checked+' Kernnähte pixelgeprüft. '+
     'Die fertige Near-Spielkarte kann jetzt geöffnet werden.');
   }else{
    const affected=[...audit.missingIds,
     ...audit.invalidTiles.map(v=>v.id+' ('+v.reason+')'),
-    ...audit.extraIds.map(id=>id+' (unerwartet)')];
+    ...audit.extraIds.map(id=>id+' (unerwartet)'),
+    ...seamAudit.failures.map(v=>v.pair.join(' / ')+' ('+v.verdict+')')];
    frozenNotice('UNVOLLSTÄNDIG: '+scene+' · '+audit.stored+'/'+
-    audit.expected+' Kacheln · '+failed+' fehlen oder sind ungültig'+
+    audit.expected+' Kacheln · '+failed+' fehlen oder sind ungültig · '+
+    seamAudit.failures.length+' tatsächliche Ground-Kernnähte auffällig'+
     (run.cancel?' · abgebrochen':'')+'. '+
-    '„Gesamte Karte vorbereiten“ erneut drücken, um fortzusetzen. '+
+    (seamAudit.failures.length?
+     'PNG-Archiv bleibt unverändert und wird NICHT veröffentlicht. ':
+     '„Gesamte Karte vorbereiten“ erneut drücken, um fortzusetzen. ')+
     'Chunks: '+affected.slice(0,12).join(', ')+
     (affected.length>12?' …':''));
   }
