@@ -67,6 +67,7 @@ function requestBuild(){
 }
 function showWorld(next,message){
  world=next;
+ $('downloadWorld').disabled=false;$('sendToLab').disabled=false;
  $('message').textContent=message;
  const signature=IO.signature(world,G);
   if(distributionKey!==signature){
@@ -83,6 +84,7 @@ function showWorld(next,message){
   selected=null;draw();updateStats();
 }
 function build(){
+ cancelBuild();
  try{
   const width=Number($('worldWidth').value),height=Number($('worldHeight').value);
   $('message').textContent="Welt wird berechnet …";
@@ -91,7 +93,17 @@ function build(){
    originQ:Number($('worldOriginQ').value),originR:Number($('worldOriginR').value)});
   showWorld(next,"Berechnet in "+Math.round(performance.now()-start)+
    " ms · "+next.version+" · Seed "+next.seed);
- }catch(error){$('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;}
+  return true;
+ }catch(error){
+  // Never let a stale earlier atlas be downloaded under new, invalid input.
+  world=null;distribution=null;$('downloadWorld').disabled=true;
+  $('sendToLab').disabled=true;$('exportDistribution').disabled=true;
+  $('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;
+  return false;
+ }
+}
+function currentWorld(){
+ return buildTimer!==null?build():!!world;
 }
 function applyImportedWorld(next,label){
  // An earlier delayed slider callback cannot overwrite an imported world.
@@ -257,7 +269,7 @@ function renderDistribution(){
    ' Landhexe). Mittelwerte passend zu den aktuellen Einstellungen.';
 }
 async function analyzeDistribution(){
- if(distributionRunning||!world)return;
+ if(distributionRunning||!currentWorld())return;
  const n=Number($('analysisSamples').value);
  if(!Number.isSafeInteger(n)||n<2||n>40){
   $('distributionStatus').textContent='Bitte 2 bis 40 Testwelten auswählen.';return;
@@ -328,7 +340,7 @@ $('applyBalancedMix').addEventListener('click',()=>{
 });
 $('analyzeDistribution').addEventListener('click',analyzeDistribution);
 $('exportDistribution').addEventListener('click',()=>{
- if(!distribution||!world)return;
+ if(!currentWorld()||!distribution)return;
  download('vedras-geografie-biome-statistik.json',{
   seedBase:world.seed,width:world.width,height:world.height,
   originQ:world.originQ,originR:world.originR,config:world.config,
@@ -343,7 +355,8 @@ $('exportConfig').addEventListener('click',()=>download('vedras-worldgen-paramet
  height:Number($('worldHeight').value),originQ:Number($('worldOriginQ').value),
   originR:Number($('worldOriginR').value),config}));
 $('downloadWorld').addEventListener('click',()=>{
- if(world)download('vedras-welt-'+world.seed+'.json',world);
+ if(!currentWorld())return;
+ download('vedras-welt-'+world.seed+'.json',world);
 });
 $('importConfig').addEventListener('click',()=>$('configFile').click());
 async function readSettingsWithConsent(raw){
@@ -397,7 +410,7 @@ window.addEventListener('message',event=>{
   'Übertragung nicht übernommen: ')+(event.data.message||'Keine Rückmeldung.');
 });
 $('sendToLab').addEventListener('click',()=>{
- if(!world)return;
+ if(!currentWorld())return;
  if(!window.opener||window.opener.closed){$('message').textContent=
   'Öffne das Geografie-Labor über den Knopf im Asset-Labor in einem neuen Tab.';return;}
  try{
