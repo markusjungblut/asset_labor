@@ -38,7 +38,9 @@ assert(glades.length>=5&&glades.length<cells.length*.2,
 assert(glades.some(c=>F.DIRS.some(([dq,dr])=>
  canopy.some(n=>n.glade&&n.key===F.key(c.q+dq,c.r+dr)))),
  'clearings are coherent neighboring patches');
-assert(glades.every(c=>F.treeTarget(c)===0));
+assert(glades.every(c=>F.treeTarget(c)>=3&&F.treeTarget(c)<=6),'glades retain sparse perimeter trees');
+assert(glades.every(c=>c.gladeRadius>=58&&c.gladeRadius<=76&&F.inGlade(c,c.gladeX,c.gladeY)),'glade center is a small local opening');
+assert(glades.every(c=>!F.inGlade(c,130,130)),'glade does not empty the entire hex');
 assert.equal(F.treeTarget(canopy.find(c=>c.key==='30,30')),0,
  'water never becomes forest');
 assert.deepEqual(canopy,generate({mode:'canopy'}),'determinism');
