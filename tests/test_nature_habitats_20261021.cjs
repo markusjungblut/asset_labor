@@ -52,6 +52,10 @@ for(let n=17;n<=21;n++)exact('berg_'+n2(n)+'.png',moderate);
 for(let n=21;n<=35;n++)exact('boulder_'+n2(n)+'.png',cold);
 for(let n=36;n<=54;n++){
   const filename='boulder_'+n2(n)+'.png';
+  assert(fs.existsSync(path.join(dir,'assets/nature',filename)),
+   'uploaded warm boulder PNG missing from active branch: '+filename);
+  assert(nature.entries['nature/'+filename],
+   'uploaded warm boulder not registered in Nature catalog: '+filename);
   assert.equal(E.classify({category:'nature',name:filename}).group,'warm_boulder');
   exact(filename,hot);
 }
