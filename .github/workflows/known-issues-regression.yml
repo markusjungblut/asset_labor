@@ -32,6 +32,7 @@ jobs:
             /*.js
             /*.html
             /*.css
+            /server.py
             /tests/*.cjs
             /tests/fixtures/*
             /scripts/*.mjs
@@ -76,6 +77,7 @@ jobs:
             /*.js
             /*.html
             /*.css
+            /server.py
             /tests/*.cjs
             /tests/fixtures/*
             /assets/terrain/wald_03.png
