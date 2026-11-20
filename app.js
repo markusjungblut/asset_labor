@@ -4824,7 +4824,7 @@ $('geographyImportFile').addEventListener('change',async event=>{
   if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
   const version=raw.generatorVersion||raw.version;
   if(version!==G.VERSION){
-   if(!['geography-v2.0.0','geography-v2.1.0'].includes(version)||
+   if(!['geography-v2.0.0','geography-v2.1.0','geography-v2.1.1'].includes(version)||
        !window.confirm('Gespeicherte Weltversion '+version+' wird mit '+G.VERSION+
        ' neu generiert. Die Landschaft kann sich dadurch ändern. Fortfahren?'))
     throw Error('Weltversion wird ohne ausdrückliche Zustimmung nicht konvertiert.');
