@@ -48,9 +48,13 @@ for(let n=16;n<=20;n++)
 // Mountain 14–16: snowfields ONLY. 17–21: moderate land/wetlands ONLY.
 for(let n=14;n<=16;n++)exact('berg_'+n2(n)+'.png',['snowfields']);
 for(let n=17;n<=21;n++)exact('berg_'+n2(n)+'.png',moderate);
-// Boulder 21–35 cold; 36–44 warm/arid; older 1–20 untouched.
+// Boulder 21–35 cold; 36–54 warm/arid (including future imports); older 1–20 untouched.
 for(let n=21;n<=35;n++)exact('boulder_'+n2(n)+'.png',cold);
-for(let n=36;n<=44;n++)exact('boulder_'+n2(n)+'.png',hot);
+for(let n=36;n<=54;n++){
+  const filename='boulder_'+n2(n)+'.png';
+  assert.equal(E.classify({category:'nature',name:filename}).group,'warm_boulder');
+  exact(filename,hot);
+}
 // Five newly supplied ice blocks accept both German/English file naming.
 for(let n=1;n<=5;n++){
  exact('Eisblock_'+n2(n)+'.png',['snowfields','frozen_tundra','tundra']);
