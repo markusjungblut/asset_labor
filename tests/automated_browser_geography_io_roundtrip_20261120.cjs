@@ -9,6 +9,9 @@ const root=path.resolve(__dirname,'..');
 const allowed=new Set(['geography-lab.html','geography-lab.js',
  'geography-lab-presets.js','geography-io.js','worldgen-geography.js']);
 const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
+const progress=s=>console.log('[Geography I/O]',s);
+// Report the last completed step instead of leaving an open CI worker.
+setTimeout(()=>{console.error('Geography I/O test exceeded 150 seconds');process.exit(1);},150000).unref();
 (async()=>{
  fs.mkdirSync(output,{recursive:true});
  const server=http.createServer((req,res)=>{
@@ -35,7 +38,16 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   if(!allowed.has(name)){res.writeHead(404);res.end('not found');return;}
   const type=name.endsWith('.html')?'text/html':'text/javascript';
   res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'no-store'});
-  fs.createReadStream(path.join(root,name)).pipe(res);
+  if(name==='geography-lab.html'){
+   // Keep the same real UI and runtime, but avoid generating the 95x75
+   // default map twice just to test the 35x26 JSON workflows.
+   const html=fs.readFileSync(path.join(root,name),'utf8')
+    .replace('id="worldWidth" type="number" min="10" max="240" value="95"',
+     'id="worldWidth" type="number" min="10" max="240" value="35"')
+    .replace('id="worldHeight" type="number" min="10" max="240" value="75"',
+     'id="worldHeight" type="number" min="10" max="240" value="26"');
+   res.end(html);
+  }else fs.createReadStream(path.join(root,name)).pipe(res);
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin='http://127.0.0.1:'+server.address().port;
@@ -46,6 +58,7 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   const page=await browser.newPage({acceptDownloads:true,viewport:{width:1440,height:900}});
   page.on('pageerror',error=>errors.push(String(error)));
   page.on('dialog',async dialog=>dialog.accept());
+  progress('Opening actual Geography Lab');
   await page.goto(origin+'/geography-lab.html',{waitUntil:'load'});
   await page.waitForFunction(()=>document.getElementById('message').textContent.includes('Berechnet in'));
   async function exportJson(id){
@@ -78,6 +91,7 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   await page.locator('#generate').click();
   await page.waitForFunction(()=>
    document.getElementById('message').textContent.includes('geography-roundtrip-20261120'));
+  progress('Parameter JSON export, change and import');
   const config=await exportJson('exportConfig');
   assert.equal(config.seed,'geography-roundtrip-20261120');
   assert.equal(config.generatorVersion,'geography-v2.1.2');
@@ -91,6 +105,7 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   assert.equal(await page.locator('#worldOriginQ').inputValue(),'-17');
   const recoveredConfig=await exportJson('exportConfig');
   assert.deepEqual(recoveredConfig,config,'Parameter download/upload must be lossless');
+  progress('World JSON export, import and exact roundtrip');
   const world=await exportJson('downloadWorld');
   assert.equal(world.version,'geography-v2.1.2');
   assert.equal(world.cells.length,35*26);
@@ -112,6 +127,7 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   assert.deepEqual(await exportJson('downloadWorld'),world);
   await importJson('configFile','{ not valid JSON','message','Parameterimport fehlgeschlagen');
   assert.equal(await page.locator('#worldSeed').inputValue(),world.seed);
+  progress('Statistics calculation, JSON export and import');
   await page.locator('#analysisSamples').fill('2');
   await page.locator('#analyzeDistribution').click();
   await page.waitForFunction(()=>!document.getElementById('exportDistribution').disabled,
@@ -138,6 +154,7 @@ const output=process.env.VEDRAS_CI_ARTIFACTS||path.join(root,'test-artifacts');
   assert.match(safeName,/^vedras-welt-/);
   assert.ok(!/[\/:?]/.test(safeName),'filenames must be portable: '+safeName);
   checks.push({event:'safe-filename',filename:safeName});
+  progress('PostMessage opener handoff with acceptance and rejection');
   const opener=await browser.newPage();
   await opener.goto(origin+'/opener-test');
   const [popup]=await Promise.all([
