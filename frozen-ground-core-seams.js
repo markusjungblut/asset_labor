@@ -66,8 +66,9 @@ window.VedrasGroundCoreSeams=(()=>{
      const ty=side==='top'?g.y0+depth:
       side==='bottom'?g.y1-1-depth:py;
      if(tx<0||tx>=canvas.width||ty<0||ty>=canvas.height)break;
-     const probe=ctx.getImageData(tx,ty,1,1).data;
-     if(probe[3]>=250){donor=probe;break;}
+     if(tx<x||tx>=x+w||ty<y||ty>=y+h)continue;
+     const d=((ty-y)*w+(tx-x))*4;
+     if(data[d+3]>=250){donor=data.subarray(d,d+4);break;}
     }
     for(let z=0;z<band;z++){
      const tx=side==='left'?g.x0-1-z:
@@ -108,10 +109,10 @@ window.VedrasGroundCoreSeams=(()=>{
    ctx.putImageData(src,x,y);
   }
   // Vertical guards include full y-core; horizontal guards cover all x-core.
-  bandRect(g.x0-band,g.y0,band*2,Math.max(0,g.y1-g.y0),'left');
-  bandRect(g.x1-band,g.y0,band*2,Math.max(0,g.y1-g.y0),'right');
-  bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2,'top');
-  bandRect(g.x0,g.y1-band,Math.max(0,g.x1-g.x0),band*2,'bottom');
+  bandRect(g.x0-band,g.y0,band*2+6,Math.max(0,g.y1-g.y0),'left');
+  bandRect(g.x1-band-6,g.y0,band*2+6,Math.max(0,g.y1-g.y0),'right');
+  bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2+6,'top');
+  bandRect(g.x0,g.y1-band-6,Math.max(0,g.x1-g.x0),band*2+6,'bottom');
   return {examined,repaired,unresolved,policy:'authored-core-only-v1'};
  }
  function measureCore(a,b,{axis,worldA,worldB,dx,dy,worldCells,
