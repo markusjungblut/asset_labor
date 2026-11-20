@@ -21,6 +21,7 @@ on:
       - 'tests/test_frozen_ground_seam_audit_20261118.cjs'
       - 'tests/test_frozen_complete_visible_atlas_20261118.cjs'
       - 'tests/test_frozen_near_publication_20261118.cjs'
+      - 'tests/test_clouds_temporarily_off_20261120.cjs'
       - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
@@ -42,6 +43,7 @@ on:
       - 'tests/test_frozen_ground_seam_audit_20261118.cjs'
       - 'tests/test_frozen_complete_visible_atlas_20261118.cjs'
       - 'tests/test_frozen_near_publication_20261118.cjs'
+      - 'tests/test_clouds_temporarily_off_20261120.cjs'
       - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
@@ -94,6 +96,7 @@ jobs:
             /tests/test_frozen_ground_seam_audit_20261118.cjs
             /tests/test_frozen_complete_visible_atlas_20261118.cjs
             /tests/test_frozen_near_publication_20261118.cjs
+            /tests/test_clouds_temporarily_off_20261120.cjs
             /tests/test_river_ground_readiness_20261118.cjs
       - name: Node 22
         uses: actions/setup-node@v4
@@ -111,6 +114,8 @@ jobs:
         run: node --test tests/test_frozen_complete_visible_atlas_20261118.cjs
       - name: Native 4x near atlas publication – exact tile and source PNG audit
         run: node --test tests/test_frozen_near_publication_20261118.cjs
+      - name: Cloud-off default – no artwork, Fog buffer or fallback cloud painting
+        run: node --test tests/test_clouds_temporarily_off_20261120.cjs
       - name: River-only immutable Ground source readiness contracts
         run: node --test tests/test_river_ground_readiness_20261118.cjs
       - name: Cache Playwright Firefox binary (short CI runtime)
