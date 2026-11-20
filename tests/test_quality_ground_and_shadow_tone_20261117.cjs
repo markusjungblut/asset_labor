@@ -261,7 +261,7 @@ test('fourfold camera gesture is a reversible 1.25x raster budget, not a PNG rew
  const game=read('frozen-map-game.js'),runtime=read('frozen-map-runtime.js');
  assert.match(game,/groundDetailActive\|\|viewerProfile\.name!=='desktop'/);
  assert.match(game,/pan\.dpr=1\.25;dragLowDprFrames\+\+/);
- assert.match(game,/if\(!drag\)setPose\(\{\}\); \/\/ restores bounded original 4x DPR/);
+ assert.match(game,/if\(!drag\)setPose\(\{\}\)/);
  assert.match(game,/fogDprCap:groundDetailRequested\?1\.25:Infinity/);
  assert.match(game,/groundDetailRequested&&params\.get\('fogLayer'\)!=='0'/);
  assert.match(runtime,/const overlayDpr=Math\.min\(dpr,cap\)/);
