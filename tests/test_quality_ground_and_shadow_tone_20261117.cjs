@@ -380,3 +380,60 @@ test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
  assert.match(runtime,/resizeWidth:Math\.max\(1,Math\.round\(p\.width\*scale\)\)/);
  assert.doesNotMatch(runtime,/deleteDatabase\(/);
 });
+
+test('tone equalizes mountain .90 raster coverage to full sprite-mask coverage without changing balance=0',()=>{
+ const window=moduleOf('shadow-tone.js');
+ const tone=window.VedrasShadowTone;
+ assert.equal(tone.coverageGain(.9),1);
+ tone.set({balance:1},{persist:false});
+ assert.ok(Math.abs(tone.coverageGain(.9)-1/.9)<1e-10);
+ assert.ok(Math.abs(tone.opacity(.2,.44)*.90*tone.coverageGain(.9)-
+  tone.opacity(.2,.4))<.000001,'mountain and sprite single-pass cast have identical target alpha');
+ const ctx={window,localStorage:{getItem:()=>null,setItem:()=>{}}};
+ vm.runInNewContext(read('shadow-system.js'),ctx);
+ const sh=ctx.window.VedrasShadows;
+ assert.match(read('shadow-system.js'),/coverageGain\?\.\(\.90\)/);
+ const shape=sh.mountainShape({x:0,y:0},200,
+  {opacity:.25,softness:1,length:1.2,angle:155});
+ const xy=shape.p1;
+ const active=sh.mountainAlphaAt(xy.x,xy.y,shape,200,1);
+ assert.ok(active>.3&&active<=.52,'mountain opacity is normalized but remains bounded');
+ tone.set({balance:0},{persist:false});
+ assert.equal(tone.coverageGain(.9),1);
+ assert.equal(tone.opacity(.25),.25);
+});
+test('original scenery A/B preserves immutable source shadows instead of 2x derivative',async()=>{
+ const api=moduleOf('frozen-map-ground-detail.js').VedrasFrozenGroundDetail;
+ const png=(w,h)=>{
+  const p=new Uint8Array(24);p.set([137,80,78,71,13,10,26,10]);
+  const view=new DataView(p.buffer);view.setUint32(16,w);view.setUint32(20,h);
+  return new Blob([p]);
+ };
+ const key='v1-f1a2b3c4|near|0,0';
+ const raw={key,revision:'same',tile:{size:512},
+  layers:[{layer:'ground',pad:3,png:png(2072,1761)},
+   {layer:'scenery',pad:128,png:png(3072,2611)}]};
+ const derived={...raw,layers:[{...raw.layers[0],png:png(1036,881)},
+  {...raw.layers[1],png:png(1536,1305)}]};
+ const source={async get(){return raw;},async keys(){return [key];}};
+ const standard={async get(){return derived;},
+  async getSceneryMixed(){return derived;},async keys(){return [key];}};
+ const store=api.createStore({standard,original:source,overview:{
+  async getVariant(){return derived;}
+ }});
+ store.setEnabled(true);
+ const mixed=await store.get(key);
+ assert.notStrictEqual(mixed.layers[1].png,raw.layers[1].png);
+ store.setOriginalScenery(true);
+ const full=await store.get(key);
+ assert.strictEqual(full.layers[1].png,raw.layers[1].png);
+ assert.equal(full.sceneryDetailSource,'original-4x');
+ assert.strictEqual(full.layers[0].png,raw.layers[0].png);
+ assert.equal(store.stats().originalSceneries,1);
+ assert.ok(!('put' in store),'source-and-derivative A/B is read-only');
+ const game=read('frozen-map-game.js'),html=read('frozen-map-game.html');
+ assert.match(game,/params\.get\('scenery4x'\)==='1'/);
+ assert.match(game,/setOriginalScenery\(originalSceneryActive\)/);
+ assert.match(game,/overview1x'\)!=='0'&&!originalSceneryRequested/);
+ assert.match(html,/id="optScenery4x"/);
+});
