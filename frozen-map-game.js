@@ -67,7 +67,7 @@
  // Diagnostic only until the Firefox pan/animation A/B is accepted.
  // The high-detail viewer should not repaint 4x terrain for each 850ms
  // cloud-fade frame. Keep manual fogLayer=0 as an explicit A/B escape hatch.
- const layeredFog=(params.get('fogLayer')==='1'||
+ const layeredFog=!window.VedrasCloudsDisabled&&(params.get('fogLayer')==='1'||
   (groundDetailRequested&&params.get('fogLayer')!=='0'))&&!!fogOverlay;
  if(fogOverlay)fogOverlay.hidden=!layeredFog;
  // A compact UI for the most relevant, reversible game-viewer switches.
@@ -283,7 +283,7 @@
      maxPixels:groundDetailActive?18000000:8000000,
      maxEdge:groundDetailActive?8192:4096}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
-  player.setClouds(manifest.clouds||{});
+  if(!window.VedrasCloudsDisabled)player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
   const status=await player.load(scene,lod,startPose,manifest.cells,{
     expectedTiles:manifest.expectedTiles
@@ -300,6 +300,7 @@
   if(raster)raster.textContent='Raster '+startPose.dpr.toFixed(1).replace('.0','')+'×';
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
+   (window.VedrasCloudsDisabled?'Wolken vorübergehend ausgeschaltet (keine Bilder/Fog-Fades). ':'')+
    (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
    (originalSceneryActive?
     'Original-Scenery-A/B: Schatten und Objekte direkt aus unveränderten Quell-PNGs; 1×-LOD deaktiviert. ':
