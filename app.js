@@ -5439,11 +5439,15 @@ let geographyPopup=null;
 $('openGeography').addEventListener('click',()=>{
  geographyPopup=window.open('geography-lab.html','vedras-geography-lab');
  if(geographyPopup)geographyPopup.focus();
+ else $('catalogMessage').textContent='Geografie-Labor konnte nicht geöffnet werden. Browser-Popupblocker prüfen.';
 });
 function importGeographyWorld(world){
  if(!world||world.version!==window.VedrasGeography?.VERSION||
     !Number.isSafeInteger(world.width)||!Number.isSafeInteger(world.height)||
-    world.width*world.height!==world.cells?.length||world.cells.length>60000)return;
+    world.width*world.height!==world.cells?.length||world.cells.length>60000){
+  $('catalogMessage').textContent='Geografie nicht übernommen: Ungültige oder veraltete Weltdatei.';
+  return false;
+ }
  const radius=sceneRadius(state.sceneSize),
   cq=(world.originQ??0)+Math.floor(world.width/2),
   cr=(world.originR??0)+Math.floor(world.height/2);
@@ -5452,11 +5456,16 @@ function importGeographyWorld(world){
  for(let r=-radius;r<=radius;r++)for(let q=-radius;q<=radius;q++){
   if(Math.abs(q+r)>radius)continue;
   const source=byPosition.get(key(q+cq,r+cr));
-  if(!source)return;
+  if(!source){
+   $('catalogMessage').textContent='Geografie nicht übernommen: Der '+world.width+
+    '×'+world.height+'-Weltausschnitt ist zu klein für die '+state.sceneSize+
+    '-Hex-Testszene. Größeren Weltausschnitt im Geografie-Labor exportieren.';
+   return false;
+  }
   const id=source.terrainId;
   if(!catalog.terrainTypes.some(t=>t.id===id)){
    $('catalogMessage').textContent='Geografie-Vorschau nicht übernommen: Terrain-ID fehlt im Katalog: '+id;
-   return;
+   return false;
   }
   const item={q,r,worldQ:source.q,worldR:source.r,biome:id,terrainTypeId:id,name:id,
    reliefClass:source.reliefClass,hillProfile:source.hillProfile,
@@ -5474,7 +5483,10 @@ function importGeographyWorld(world){
   if(source.baseBiome==='jungle')jungleHexes[key(q,r)]=true;
  }
  if(!window.confirm('Die aktuelle Testszene wird durch '+next.length+
-  ' geografisch generierte Hexfelder ersetzt. Platzierte Objekte, Wege und Flüsse in der Testszene werden zurückgesetzt. Die originale Grafikbibliothek und beide Asset-Kataloge bleiben unangetastet. Fortfahren?'))return;
+  ' geografisch generierte Hexfelder ersetzt. Platzierte Objekte, Wege und Flüsse in der Testszene werden zurückgesetzt. Die originale Grafikbibliothek und beide Asset-Kataloge bleiben unangetastet. Fortfahren?')){
+  $('catalogMessage').textContent='Geografie-Übernahme abgebrochen. Testszene unverändert.';
+  return false;
+ }
  worldCells=next;
  state.geographyScene={size:state.sceneSize,cells:next};
  state.geographySource={version:world.version,seed:world.seed,
@@ -5503,11 +5515,19 @@ function importGeographyWorld(world){
  $('catalogMessage').textContent='Geografie '+window.VedrasGeography.VERSION+' übernommen: '+next.length+' Hexe. Relief aus der Geografie aktiv: '+
   next.filter(c=>c.reliefClass==='hills').length+' Hügelhexe mit eigenen Profilen, '+
   next.filter(c=>c.reliefClass==='mountain').length+' Berghexe. Bodentexturen separat gecacht.';
+ return true;
 }
 window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==geographyPopup||
     event.data?.type!=='vedras-geography-preview')return;
- importGeographyWorld(event.data.world);
+ let ok=false;
+ try{ok=importGeographyWorld(event.data.world);}
+ catch(error){$('catalogMessage').textContent='Geografie-Übernahme fehlgeschlagen: '+error.message;}
+ try{event.source?.postMessage({
+  type:'vedras-geography-preview-result',
+  requestId:event.data.requestId,ok,
+  message:$('catalogMessage').textContent
+ },event.origin);}catch(_error){/* Popup may have been closed. */}
 });
 // Worldgen v2 exports use a DIFFERENT schema from vedras_scene.json.
 // Allow a saved preset OR precomputed world to be imported safely without
@@ -5518,24 +5538,15 @@ $('geographyImportFile').addEventListener('change',async event=>{
  if(!file)return;
  try{
   if(file.size>30000000)throw Error('Datei über 30 MB: Erzeuge zunächst eine kleinere Vorschau.');
-  const raw=JSON.parse(await file.text()),G=window.VedrasGeography;
-  if(!G)throw Error('Die gemeinsame Geografie-Engine wurde nicht geladen.');
+  const raw=await window.VedrasGeographyIO.parseFile(file),
+   G=window.VedrasGeography,IO=window.VedrasGeographyIO;
+  if(!G||!IO)throw Error('Geografie-Engine oder Dateiimport nicht geladen.');
   const version=raw.generatorVersion||raw.version;
-  if(version!==G.VERSION){
-   if(!['geography-v2.0.0','geography-v2.1.0','geography-v2.1.1'].includes(version)||
-       !window.confirm('Gespeicherte Weltversion '+version+' wird mit '+G.VERSION+
-       ' neu generiert. Die Landschaft kann sich dadurch ändern. Fortfahren?'))
-    throw Error('Weltversion wird ohne ausdrückliche Zustimmung nicht konvertiert.');
-  }
-  if(!raw.seed||!Number.isSafeInteger(Number(raw.width))||!Number.isSafeInteger(Number(raw.height)))
-   throw Error('Seed oder Kartengröße fehlt.');
-  // Regenerate from the saved, versioned parameters rather than trusting
-  // arbitrary terrain arrays or altering another saved gameplay world.
-  const generated=G.generateWorld(raw.seed,{
-   width:Number(raw.width),height:Number(raw.height),originQ:Number(raw.originQ??0),originR:Number(raw.originR??0),config:raw.config
-  });
-  if(Array.isArray(raw.cells)&&raw.cells.length!==generated.cells.length)
-   throw Error('Gespeicherte Weltdatei hat eine unerwartete Hexanzahl.');
+  const legacy=version!==G.VERSION&&IO.OLD_VERSIONS.includes(version);
+  if(legacy&&!window.confirm('Gespeicherte Weltversion '+version+
+   ' wird mit '+G.VERSION+' neu generiert. Die Landschaft kann sich dadurch ändern. Fortfahren?'))
+   throw Error('Konvertierung der alten Weltversion abgebrochen.');
+  const {world:generated}=IO.generate(raw,G,{allowLegacy:legacy});
   importGeographyWorld(generated);
  }catch(error){$('catalogMessage').textContent='Geografie-Import abgelehnt: '+error.message;}
  finally{event.target.value='';}

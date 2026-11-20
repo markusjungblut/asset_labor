@@ -1,0 +1,60 @@
+name: Geography Lab – JSON Import/Export Browser Regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'geography-io.js'
+      - 'geography-lab.js'
+      - 'geography-lab.html'
+      - 'app.js'
+      - 'index.html'
+      - 'tests/test_geography_io_validation_20261120.cjs'
+      - 'tests/automated_browser_geography_io_roundtrip_20261120.cjs'
+      - '.github/workflows/geography-io-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  geography-io:
+    name: Actual JSON downloads, imports and popup handoff in Firefox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.js
+            /*.html
+            /tests/test_geography_io_validation_20261120.cjs
+            /tests/automated_browser_geography_io_roundtrip_20261120.cjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate parameter/world/statistic schemas and Asset-Labor handoff
+        run: node --test tests/test_geography_io_validation_20261120.cjs
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: vedras-geography-firefox-1.57.0
+      - name: Install Firefox for real click/download and upload tests
+        run: |
+          mkdir -p .ci-tools
+          npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
+          .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Firefox – parameters/world/statistics download/import roundtrip and popup feedback
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_geography_io_roundtrip_20261120.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geography-io-regression
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
