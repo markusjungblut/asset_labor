@@ -107,6 +107,24 @@ const ROOT=path.join(__dirname,'..'),OUT=process.env.VEDRAS_CI_ARTIFACTS||
      vertical:lum(0,95),horizontal:lum(95,0),
      interior:lum(95,95),failures:report.failures};
    });
+   if(mode==='raw'){
+    // Real Firefox PNG crop + IndexedDB: two owners can agree on the same
+    // fully opaque WHITE fringe; the mandatory core audit must still fail.
+    const verified=await page.evaluate(async scene=>{
+     const tiles=[];
+     for(const y of [-1,0])for(const x of [-1,0])
+      tiles.push({id:x+','+y,x:x*512,y:y*512,size:512});
+     const store=window.VedrasFrozenMap.indexedStore();
+     const audit=await window.VedrasGroundCoreSeams.auditSaved(
+      scene,store,tiles,[{q:0,r:0}]);
+     return {checked:audit.checked,failures:audit.failures.length,
+      verdicts:audit.pairs.map(p=>p.verdict)};
+    },SCENE);
+    assert.equal(verified.checked,4);
+    assert.ok(verified.failures>=2,
+     'Shared fully opaque white source fringes must prevent 4x publication');
+    assert.ok(verified.verdicts.includes('real-core-seam'));
+   }
    await page.screenshot({path:path.join(OUT,'seam-'+mode+'.png')});
    assert.deepEqual(errors,[]);
    assert.equal(state.complete,true);
