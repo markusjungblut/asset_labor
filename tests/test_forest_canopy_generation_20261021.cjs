@@ -67,7 +67,7 @@ assert(nature.includes('neighborsByHex'));
 assert(nature.includes('occupied,state.forest.mode'));
 assert(floor.includes("sg.globalCompositeOperation='destination-out'")&&
  floor.includes('createRadialGradient'));
-assert(app.includes('c.glade,c.jungle'));
+assert(app.includes('c.glade,c.gladeX,c.gladeY'),'forest mask keys include glade offsets and radii');
 assert(app.includes('geographyHexes[key(q,r)]=true'));
 assert(ui.includes("config().mode=e.target.value;changed(true)"));
 for(const id of ['forestMode','forestCanopyCover','forestGladeRate'])
