@@ -12,6 +12,7 @@ on:
     paths:
       - 'frozen-map-*.js'
       - 'frozen-map-game.html'
+      - 'frozen-ground-core-seams.js'
       - 'cloud-artwork.js'
       - 'shadow-tone.js'
       - 'shadow-system.js'
@@ -31,6 +32,7 @@ on:
     paths:
       - 'frozen-map-*.js'
       - 'frozen-map-game.html'
+      - 'frozen-ground-core-seams.js'
       - 'cloud-artwork.js'
       - 'shadow-tone.js'
       - 'shadow-system.js'
@@ -73,6 +75,7 @@ jobs:
             /authored-world-contract.js
             /frozen-map-*.js
             /frozen-map-seam-audit.js
+            /frozen-ground-core-seams.js
             /frozen-map-game.html
             /cloud-artwork.js
             /shadow-tone.js
