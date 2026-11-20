@@ -91,7 +91,10 @@
   // under-covered samples inconclusive instead of accusing source PNGs.
   if(metrics.opaquePixelsCompared<256&&metrics.alphaMismatchPct<1)
    return 'insufficient-visible-ground';
-  if(metrics.alphaMismatchPct>2)return 'saved-neighbor-alpha-coverage-differs';
+  // An exclusive-core Ground tile deliberately clips its 3-unit gutter
+  // to its own 512-unit owner. Raw gutter alpha mismatch is not proof of
+  // a visible seam: only the two actual core edge pixel rows can decide.
+  if(metrics.alphaMismatchPct>2)return 'gutter-alpha-ownership-unverified';
   if(metrics.opaquePixelsCompared>=256&&metrics.opaqueDifferentPct>15)
    return 'saved-neighbor-visible-RGB-differs';
   if(metrics.opaquePixelsCompared<256)
@@ -185,14 +188,15 @@
   const valid=result.pairs.filter(x=>x.status==='compared');
   result.summary={compared:valid.length,total:pairs.length,
    likelySourceMismatch:valid.filter(x=>
-    x.interpretation==='saved-neighbor-visible-RGB-differs'||
-    x.interpretation==='saved-neighbor-alpha-coverage-differs').length,
+    x.interpretation==='saved-neighbor-visible-RGB-differs').length,
+   gutterAlphaCandidates:valid.filter(x=>
+    x.interpretation==='gutter-alpha-ownership-unverified').length,
    insufficientVisibleGround:valid.filter(x=>
     x.interpretation==='insufficient-visible-ground').length,
    bakedStripeCandidates:valid.filter(x=>
     x.interpretation==='possible-shared-baked-dark-stripe').length,
    warning:valid.length<pairs.length?'Not all chosen pairs were measurable':null,
-   verdict:'RGB from transparent PNG pixels is ignored for mismatch classification. Fully transparent borders are inconclusive. Source agreement still requires a composition A/B test.'};
+   verdict:'Raw gutter alpha can be intentionally split by 512-unit clip ownership. The owned-core pixel audit, not raw gutter coverage, determines a visible Ground seam.'};
   return result;
  }
  root.VedrasFrozenSeamAudit={audit,comparePixels,classify,PAIRS,pairsForView};
