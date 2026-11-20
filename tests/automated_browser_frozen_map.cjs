@@ -834,9 +834,9 @@ const run=async()=>{
    null,{timeout:30000});
   const gameplay=await gameplayPage.evaluate(()=>{
    const probe=window.__vedrasFrozenGameTest,report=probe.profileReport();
-   return {enabled:report.gameLoad?.enabled,
-    count:report.gameLoad?.metrics?.unitCount,
-    frames:report.gameLoad?.metrics?.frames,
+   return {enabled:report.environment?.gameLoad?.enabled,
+    count:report.environment?.gameLoad?.metrics?.unitCount,
+    frames:report.environment?.gameLoad?.metrics?.frames,
     sourceFailures:probe.stats().failures,tiles:probe.stats().saved,
     pointerEvents:getComputedStyle(document.querySelector('#gameLoadOverlay')).pointerEvents,
     fogAboveUnits:!!(document.querySelector('#gameLoadOverlay')
