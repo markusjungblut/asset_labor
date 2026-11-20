@@ -113,7 +113,9 @@ window.VedrasWorldTiles=(()=>{
     visiblePreviews,upgraded,tiles,
     recent:[...history.values()].slice(-max).reverse()};
   }
-  const clouds=window.VedrasCloudArtwork?.create({onReady:()=>{
+  // Temporarily disable cloud artwork and all expensive cloud composition.
+  // Only explicit ?clouds=1 in the hosting page enables the old path.
+  const clouds=!window.VedrasCloudsDisabled&&window.VedrasCloudArtwork?.create({onReady:()=>{
    onReady();
    // Notify the normal map renderer only when the prepared cloud bank
    // changes. Terrain, scenery and road caches remain untouched.
@@ -130,6 +132,7 @@ window.VedrasWorldTiles=(()=>{
    return clouds?.drawTransitions(context,view,edges)||0;
   }
   function coverUnready(context,view,cells,ready){
+   if(window.VedrasCloudsDisabled)return 0;
    if(!Array.isArray(cells)||typeof ready!=='function')return 0;
    if(clouds?.stats().bases)
     return clouds.drawUnready(context,view,cells,ready);
@@ -813,7 +816,7 @@ window.VedrasWorldTiles=(()=>{
    g.clearRect(0,0,view.width,view.height);
    // The cloud base conceals unrequested/unloaded map edges too.
    if(clouds)clouds.drawBase(g,view);
-   else cloudRect(0,0,view.width,view.height);
+   else if(!window.VedrasCloudsDisabled)cloudRect(0,0,view.width,view.height);
    // Draw terrain only inside known world HEX geometry, never a rectangular
    // green tile core outside the map. Unrepresented space stays cloudy.
    const proj=view.projectY||1,items=[];
@@ -967,7 +970,7 @@ window.VedrasWorldTiles=(()=>{
     g.save();drawKnownPath(45);
     try{drawDynamic(g,view);}finally{g.restore();}
    }
-   if(Array.isArray(fog)){
+   if(Array.isArray(fog)&&!window.VedrasCloudsDisabled){
     for(const c of fog)if(c.visibility==='explored')fogHex(c,view);
     // The cloud is ONLY removed once every image tile touching a visible
     // hex contains BOTH finished terrain and finished scenery. Testing only
