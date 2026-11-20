@@ -1,4 +1,4 @@
-/* Shared geography v2.1.1 – run: node tests/test_geography_v2.cjs */
+/* Shared geography v2.1.2 – run: node tests/test_geography_v2.cjs */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
@@ -6,7 +6,10 @@ const enginePath=fs.existsSync(path.join(root,'worldgen-geography.js'))
  ?path.join(root,'worldgen-geography.js')
  :path.join(root,'public/worldgen-geography.js');
 const G=require(enginePath),defaults=G.defaultConfig();
-assert.equal(G.VERSION,'geography-v2.1.1');
+assert.equal(G.VERSION,'geography-v2.1.2');
+assert.equal(defaults['geology.aridPatchMix'],0);
+assert.equal(defaults['biomes.snowHumidity'],0.60);
+assert.equal(defaults['geology.swampWarmBoundary'],0.64);
 assert(G.TERRAIN_IDS.includes('frozen_tundra')&&G.TERRAIN_IDS.includes('sandy_desert'));
 assert(!G.TERRAIN_IDS.includes('hilly_ground')&&!G.TERRAIN_IDS.includes('forest_floor'));
 assert.equal(defaults['geology.aridSandyDesert'],14);
