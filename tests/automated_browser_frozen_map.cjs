@@ -16,7 +16,8 @@ const SCENE='v1-25c1f00d',COUNT=120;
 const cloud=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+XcJkAAAAASUVORK5CYII=','base64');
 const files=new Set([
  'tests/fixtures/frozen-ci-seed.html','frozen-map-game.html',
- 'frozen-map-game.js','frozen-map-runtime.js','frozen-map-profiler.js',
+ 'frozen-map-game.js','frozen-map-game-load.js',
+ 'frozen-map-runtime.js','frozen-map-profiler.js',
  'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
  'frozen-map-world-blit.js',
  'frozen-map-derived-1x.js',
