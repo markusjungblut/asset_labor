@@ -1693,6 +1693,31 @@ function drawShorelines(){
  }
 }
 
+// Waldboden is a shared independent layer, not the base terrain of a
+// woodland hex. Select its source BEFORE it has been decoded/validated;
+// otherwise it can never enter the camera image queue (Jungle alone uses
+// this type as a base-material fallback).
+function forestFloorAsset(){
+ return assets.find(a=>isTerrain(a)&&typeOfAsset(a)==='forest_floor'&&
+  a.terrainCheck?.ok!==false)||null;
+}
+function forestFloorCells(){
+ return forestCells().map(c=>{
+  const type=catalog.terrainTypes.find(t=>t.id===c.baseBiome);
+  return {...c,categoryId:type?.categoryId,ground:type?.materialClass==='ground'};
+ });
+}
+function visibleForestFloorAsset(bounds){
+ const asset=forestFloorAsset();
+ if(!asset||!state.forest?.enabled)return null;
+ const around=HEX*1.5;
+ return forestFloorCells().some(c=>{
+  if(!window.VedrasForestGround.eligible(c))return false;
+  const p=axialPos(c.q,c.r);
+  return p.x>=bounds.minX-around&&p.x<=bounds.maxX+around&&
+   p.y>=bounds.minY-around&&p.y<=bounds.maxY+around;
+ })?asset:null;
+}
 // A forest is overlaid on its *original* ground, rather than replacing a moor,
 // meadow or highland biome with a generic forest-floor ecological type.
 // Forest floor is a WORLD-SPACE MATERIAL over a UNION of connected forest
@@ -1700,12 +1725,21 @@ function drawShorelines(){
 // separate from terrain, rivers and shoreline caches.
 let forestFloorRasterCache={signature:null,raster:null,buildMs:0};
 function drawForestFloor(){
- const asset=assets.find(a=>isTerrainValid(a)&&typeOfAsset(a)==='forest_floor'&&a.img?.naturalWidth>0);
- if(!asset){window.__vedrasForestFloorRaster=null;return;}
- const cells=forestCells().map(c=>{
-  const type=catalog.terrainTypes.find(t=>t.id===c.baseBiome);
-  return {...c,categoryId:type?.categoryId,ground:type?.materialClass==='ground'};
- });
+ const cells=forestFloorCells();
+ if(!cells.some(c=>window.VedrasForestGround.eligible(c))){
+  window.__vedrasForestFloorRaster=null;return;
+ }
+ const asset=forestFloorAsset();
+ if(!asset||!isTerrainValid(asset)||!asset.img?.naturalWidth){
+  window.__vedrasForestFloorRaster=null;
+  if(finalRendering)throw Error('4×-Waldboden fehlt oder ist ungültig: '+
+   (asset?.path||'keine forest_floor-Datei')+
+   '. Atlas wird nicht ohne Waldboden veröffentlicht.');
+  // Demand-load the actual material that normal forests need. The shared
+  // imagePool deduplicates repeated promises while the image is pending.
+  if(asset)imagePool.ensure(asset,10);
+  return;
+ }
  const textureSize=clamp(Number(state.materialScales[asset.path]||asset.meta?.textureWorldSize)||256,160,1536);
  // The original global forest-region UNION must remain seamless. On large
  // maps keep one fixed raster scale across camera zoom, so panning and
@@ -1713,7 +1747,8 @@ function drawForestFloor(){
  const resolution=finalRendering?1.4:Math.max(.45,Math.min(1.2,
   previewDensity()*lodProfile().forest)); // stable within each tier
  const signature=JSON.stringify({
-  asset:[asset.path,asset.mtime,asset.img.naturalWidth,asset.img.naturalHeight],
+  asset:[asset.path,asset.mtime,asset.imageRevision||0,
+   asset.img.naturalWidth,asset.img.naturalHeight],
   size:textureSize,resolution:Math.round(resolution*10)/10,
   cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.jungle,c.baseBiome,c.ground,c.categoryId]),
   version:'region-mask-glades-v2'
@@ -3187,6 +3222,14 @@ function protectCameraImagePool(){
  const a=fromScreen(-480,-480),b=fromScreen(W+480,H+480);
  const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
   minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y);
+ // Forest floor is NOT imageForBiome() on ordinary woodlands. Prime and
+ // pin its one shared asset explicitly so camera pruning cannot make it
+ // disappear while jungle fallback happens to keep its texture loaded.
+ const forestFloor=visibleForestFloorAsset({minX,maxX,minY,maxY});
+ if(forestFloor){
+  pinned.add(forestFloor.path);
+  if(!forestFloor.img?.naturalWidth)imagePool.ensure(forestFloor,10);
+ }
  for(const cell of worldCells){
   const pos=axialPos(cell.q,cell.r);
   if(pos.x<minX-HEX||pos.x>maxX+HEX||
@@ -4167,6 +4210,7 @@ function frozenSceneKey({force4x=false}={}){
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
   'forest-floor-wrap-v1',
+  'forest-floor-required-and-camera-pinned-v2',
   // Strict source-core alpha stabilization and read-only seam publication
   // gate. Never reuse any already published pre-fix Ground PNGs.
   'ground-owned-core-seam-gate-v1',
