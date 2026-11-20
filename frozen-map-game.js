@@ -32,6 +32,22 @@
  const adaptiveGroundDecode=groundDetailRequested&&
   params.get('groundDecode')!=='full';
  let groundDetailActive=false,originalSceneryActive=false;
+ // Device budgets are selected from viewport and touch capability, not UA
+ // strings. ?profile=mobile|tablet|desktop allows reproducible comparisons.
+ const viewerProfile=window.VedrasFrozenViewPolicy?.deviceProfile({
+  width:canvas.clientWidth||window.innerWidth||800,
+  height:canvas.clientHeight||window.innerHeight||600,
+  touch:(navigator.maxTouchPoints||0)>0&&
+   (window.matchMedia?.('(pointer: coarse)')?.matches??true),
+  memoryGB:navigator.deviceMemory,
+  override:params.get('profile')||'auto'
+ })||{name:'desktop',maxDecodedPixels:95000000,maxDpr:2,
+  maxPixels:8000000,maxEdge:4096,overviewEnterZoom:.6,overviewLeaveZoom:.72};
+ const displayBudget=()=>({
+  maxDpr:groundDetailActive&&viewerProfile.name==='desktop'?4:viewerProfile.maxDpr,
+  maxPixels:groundDetailActive&&viewerProfile.name==='desktop'?18000000:viewerProfile.maxPixels,
+  maxEdge:groundDetailActive&&viewerProfile.name==='desktop'?8192:viewerProfile.maxEdge
+ });
  const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
   standard:twoXStore,overview:oneXStore,
   original:window.VedrasFrozenMap.indexedStore()
@@ -46,7 +62,8 @@
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
  // Experimental compact 1x background residency: off in normal sessions.
- const fallbackAtlas=params.get('fallbackAtlas')!=='0';
+ const fallbackAtlas=params.get('fallbackAtlas')!=='0'&&
+  (viewerProfile.name==='desktop'||params.get('fallbackAtlas')==='1');
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -106,9 +123,12 @@
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
-  maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
+  maxDecodedPixels:Math.min(viewerProfile.maxDecodedPixels,
+   adaptiveGroundDecode?128000000:95000000),
   adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset,
-  overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
+  overview1x,overviewEnterZoom:viewerProfile.overviewEnterZoom,
+  overviewLeaveZoom:viewerProfile.overviewLeaveZoom,
+  largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
@@ -272,16 +292,16 @@
    // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
-   const gameDpr=Math.min(groundDetailActive?4:2,
-    Math.sqrt((groundDetailActive?18000000:8000000)/area),
-    (groundDetailActive?8192:4096)/edge);
+   const budget=displayBudget();
+   const gameDpr=Math.min(budget.maxDpr,
+    Math.sqrt(budget.maxPixels/area),budget.maxEdge/edge);
    startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
     window.VedrasFrozenViewPolicy.displayDpr({
      zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-     baseDpr:groundDetailActive?4:2,
-     maxDpr:groundDetailActive?4:2,
-     maxPixels:groundDetailActive?18000000:8000000,
-     maxEdge:groundDetailActive?8192:4096}):Math.max(1,gameDpr)};
+     baseDpr:budget.maxDpr,
+     maxDpr:budget.maxDpr,
+     maxPixels:budget.maxPixels,
+     maxEdge:budget.maxEdge}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   if(!window.VedrasCloudsDisabled)player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
@@ -316,7 +336,9 @@
    (sourceEdgeInset?'Quellpixel-Nahtschutz aktiv (?groundSeam=exclusive als A/B). ':'')+
    (status.completeVisibleAtlas?
     'Vollständiger lokaler Atlas: keine zusätzlichen Lade-Wolken beim Zoom. ':'')+
-   'Gespeicherte Karte '+scene+' · '+lod+' · '+
+   'Darstellungsprofil '+viewerProfile.name+' ('+
+   Math.round(viewerProfile.maxDecodedPixels/1000000)+' Mio. dekodierte Pixel maximal). '+
+   'Gespeicherte Karte '+scene+' · '+lod+' · '
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
    (manifest.expectedTiles!=null&&status.saved<manifest.expectedTiles?
@@ -331,13 +353,12 @@
   if(!prior)return;
   const view={...prior,...next};
   const policy=window.VedrasFrozenViewPolicy;
+  const budget=displayBudget();
   const outDpr=policy?policy.displayDpr({
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-   baseDpr:groundDetailActive?4:2,
-   maxDpr:groundDetailActive?4:2,
-   maxPixels:groundDetailActive?18000000:8000000,
-   maxEdge:groundDetailActive?8192:4096
-  }):Math.min(groundDetailActive?4:2,view.dpr||1);
+   baseDpr:budget.maxDpr,maxDpr:budget.maxDpr,
+   maxPixels:budget.maxPixels,maxEdge:budget.maxEdge
+  }):Math.min(budget.maxDpr,view.dpr||1);
   if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
