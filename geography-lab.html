@@ -18,6 +18,10 @@ details{border-top:1px solid #415062;padding:7px 0}summary{font-weight:700;curso
 figure{margin:12px 0;background:#0c1620;border:1px solid #3a5164;border-radius:10px;overflow:hidden}
 canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 #stats{font-size:13px;color:#bfd2df;line-height:1.6}
+.mix-panel{border:1px solid #375869;background:#1b2c38;border-radius:9px;padding:12px;margin:15px 0}
+.mix-panel p{margin:5px 0 10px}
+.mix-panel .mix-result{font-size:13px;line-height:1.6;color:#cadce9}
+.mix-panel .mix-result.incomplete{color:#f0c9a0}
 .distribution{border-top:1px solid #405568;margin:18px 0 12px;padding-top:14px}
 .distribution h3{font-size:14px;margin:16px 0 8px}
 .distribution .sample-control{font-size:12px;color:#c2d2df;max-width:160px}
@@ -52,6 +56,12 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <div id="message" role="status">Wird vorbereitet …</div>
 <figure><canvas id="worldMap" width="1200" height="750" aria-label="Prozedurale Hex-Weltkarte"></canvas></figure>
 <div id="stats"></div>
+<section class="mix-panel" aria-labelledby="mixTitle">
+<h2 id="mixTitle">Terrain-Mix · Vielfalt</h2>
+<p class="minor">Diese Voreinstellung wird beim Öffnen geladen. Bei der kalibrierten 95 × 75-Welt mindestens 200 Hochland-Hexe sowie vielfältigere Wüsten-Untertypen und mehr Schneefelder; weniger Ozeanvarianten und Grasland. Alle Terrain-Typen entstehen weiterhin durch Geografie-Regeln, nicht durch erzwungene Einzelplatzierungen. Bei anderen Seeds oder Kartengrößen kann die Verteilung abweichen.</p>
+<div class="actions"><button id="applyBalancedMix" type="button">Vielfalt-Mix erneut laden (inkl. Seed und Kartengröße)</button></div>
+<div id="mixReport" class="mix-result" role="status">Noch keine Verteilung berechnet.</div>
+</section>
 <section class="distribution" aria-labelledby="distributionTitle">
 <h2 id="distributionTitle">Biom- und Terrainverteilung</h2>
 <p class="minor">Aktuelle Hexzahlen für alle regulären, erzeugbaren Typen – einschließlich 0. Die Mittelwerte werden über unabhängig generierte Seeds mit denselben Parametern und derselben Ausschnittgröße berechnet. Testgelände und Wald-Overlays zählen nicht als Grundterrain.</p>
@@ -71,5 +81,5 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js?v=2.1.1"></script><script src="geography-lab.js?v=2.1.1"></script>
+<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-lab.js?v=2.1.2"></script>
 </body></html>

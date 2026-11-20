@@ -1,5 +1,5 @@
 'use strict';
-// Ensure Editor/Geography 2.1.1, standalone viewer and staged ZIP importer
+// Ensure Editor/Geography 2.1.2, standalone viewer and staged ZIP importer
 // remain compatible in a combined RC. No IndexedDB or original data opened.
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'..');
@@ -8,11 +8,11 @@ const editor=get('index.html'),viewer=get('frozen-map-game.html'),
  game=get('frozen-map-game.js'),runtime=get('frozen-map-runtime.js');
 const zipPage=get('static-map-import.html'),zipUI=get('static-map-import-ui.js'),
  importer=get('static-map-zip-importer.js'),inspector=get('static-map-zip-inspector.js');
-test('keep current Geography v2.1.1 plus approved UI cleanup',()=>{
- assert.match(editor,/worldgen-geography\.js\?v=2\.1\.1/);
- assert.match(editor,/app\.js\?v=[^"]*&amp;geography=2\.1\.1/);
+test('keep current Geography v2.1.2 plus approved UI cleanup',()=>{
+ assert.match(editor,/worldgen-geography\.js\?v=2\.1\.2/);
+ assert.match(editor,/app\.js\?v=[^"]*&amp;geography=2\.1\.2/);
  assert.match(editor,/ui-organizer\.js\?v=20261119-shadow-shortcut-v1/);
- assert.equal(require(path.join(root,'worldgen-geography.js')).VERSION,'geography-v2.1.1');
+ assert.equal(require(path.join(root,'worldgen-geography.js')).VERSION,'geography-v2.1.2');
 });
 test('restore entry remains separate and requires explicit positive consent',()=>{
  assert.doesNotMatch(editor,/static-map-import\.html/);

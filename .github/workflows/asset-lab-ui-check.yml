@@ -17,6 +17,7 @@ on:
       - tests/automated_browser_asset_lab_ui_cleanup.cjs
       - tests/test_integration_entrypoints_20261117.cjs
       - tests/test_geography_v2.cjs
+      - tests/test_geography_balanced_mix.cjs
       - worldgen-geography.js
       - geography-lab.js
       - tests/test_rendering_step25ab_integrated_flags_20261117.cjs
@@ -51,6 +52,7 @@ jobs:
             /tests/automated_browser_asset_lab_ui_cleanup.cjs
             /tests/test_integration_entrypoints_20261117.cjs
             /tests/test_geography_v2.cjs
+            /tests/test_geography_balanced_mix.cjs
             /tests/test_rendering_step25ab_integrated_flags_20261117.cjs
             /tests/test_frozen_4x_source_consistency_20261118.cjs
             /tests/test_editor_zoom_and_auto_4x_20261119.cjs
@@ -72,7 +74,7 @@ jobs:
       - name: Editor cold-water zoom sources and one-click final 4x scene
         run: node --test tests/test_editor_zoom_and_auto_4x_20261119.cjs tests/test_ground_texture_source_repeat_20261119.cjs tests/test_forest_floor_loaded_and_frozen_20261120.cjs
       - name: Verify current Geography v2.1.1 with existing shared-engine regression
-        run: node tests/test_geography_v2.cjs
+        run: node tests/test_geography_v2.cjs && node tests/test_geography_balanced_mix.cjs
       - name: Cache pinned Firefox binary
         uses: actions/cache@v4
         with:

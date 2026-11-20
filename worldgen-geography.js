@@ -6,7 +6,10 @@
  */
 (function (root) {
   "use strict";
-  const VERSION = "geography-v2.1.1";
+  const VERSION = "geography-v2.1.2";
+  // Preserve the v2.1.1 climate/terrain noise for unchanged parameters.
+  // New optional mix controls only affect newly generated preset worlds.
+  const NOISE_LINEAGE = "geography-v2.1.1";
   const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
   // Spawnable world terrain IDs. Test grounds, forest overlays and coast art
   // are intentionally omitted; zero-count IDs remain visible in statistics.
@@ -52,6 +55,7 @@
     ["Vegetation","forest.patchScale","Größe der Waldgruppen",8,2,30,1,"Räumlicher Zusammenhang lichter und dichter Wälder"],
     ["Vegetation","forest.denseThreshold","Schwelle dichter Wald",0.72,0.35,0.95,0.01,"Ab welcher regionalen Dichte ein Wald als dicht gilt"],
     ["Klima / Details","climate.coastalDecay","Feuchtereichweite der Küsten",3,1,20,0.5,"Entfernung, über die Gewässer die Landfeuchte beeinflussen"],
+    ["Biomgrenzen","biomes.snowHumidity","Schneefelder ab Feuchte",0.60,0.25,0.9,0.01,"Niedrigere Werte schaffen mehr Schneefelder statt gefrorener Tundra"],
     ["Biomgrenzen","biomes.coldBoundary","Grenze kalter Biome",0.29,0.1,0.48,0.01,"Kältebiome gegenüber gemäßigten Regionen"],
     ["Biomgrenzen","biomes.warmBoundary","Grenze der Savannen",0.66,0.45,0.85,0.01,"Warmregionen gegenüber Grasland"],
     ["Biomgrenzen","biomes.jungleWarmBoundary","Dschungel-Wärmegrenze",0.68,0.45,0.9,0.01,"Dschungel kann direkt an Wüste grenzen"],
@@ -61,8 +65,11 @@
     ["Biomgrenzen","biomes.semiDesertMargin","Übergang Halbwüste zu Wüste",0.045,0,0.18,0.005,"Breite der Halbwüstenzone in ariden Regionen"],
     ["Boden-Untertypen","geology.grassSparseHumidity","Karges Weideland bis Feuchte",0.36,0.1,0.7,0.01,"Trockenere Grasregionen erzeugen karges Weideland"],
     ["Boden-Untertypen","geology.pastureSoil","Weideland nach Bodenwert",0.37,0,1,0.01,"Untertyp-Mischung innerhalb Grasregionen"],
+    ["Boden-Untertypen","geology.highlandColdMargin","Hochland in Kältegebieten",0,0,0.3,0.01,"Erweitert die Hochland-Zone in kühlere Bereiche der kalten Biomfamilie; 0 behält die alte Verteilung"],
     ["Boden-Untertypen","geology.highlandSoil","Hochland-Reliefschwelle",0.62,0.2,1,0.01,"Hochland-Bodentextur in markanten kühlen Reliefgebieten; weiterhin nur flat/hills/mountain"],
+    ["Boden-Untertypen","geology.swampWarmBoundary","Sumpf ab Temperatur",0.64,0.3,0.8,0.01,"Niedrigere Werte ersetzen Moor und Marschland durch Sumpf"],
     ["Boden-Untertypen","geology.wetlandSoil","Moor/Marschland nach Bodenwert",0.50,0,1,0.01,"Steuert die Untertypen in gemäßigten Feuchtgebieten"],
+    ["Boden-Untertypen","geology.aridPatchMix","Vielfalt der Wüsten-Untertypen",0,0,1,0.05,"0 = bisheriges Bodenrauschen; 1 = gleichmäßig gewichtete, zusammenhängende geologische Teilregionen"],
     ["Boden-Untertypen","geology.aridRockyBadlands","Steinige Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridBadlands","Badlands Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
     ["Boden-Untertypen","geology.aridRockyDesert","Steinwüste Gewicht",11,0,100,1,"Relativer Anteil innerhalb trockener Wüstenregionen"],
@@ -166,10 +173,14 @@
     extraFeatures.push(def);
   }
   function neighbours(c,lookup){return DIRS.map(([dq,dr])=>lookup.get(key(c.q+dq,c.r+dr))).filter(Boolean);}
-  function terrainFrom(family,t,h,soil,c,reliefValue=null) {
+  function terrainFrom(family,t,h,soil,c,reliefValue=null,aridPatch=null) {
     if(family==="arid"){
       if(h>c["biomes.dryThreshold"]-c["biomes.semiDesertMargin"])return "semi_desert";
-      const s=clamp(soil+(c["geology.sandBias"]-.5)*.36);
+      // Soil noise clusters near the center and nearly excludes the first and
+      // last weighted types. Voronoi geology patches give every enabled type
+      // a real chance while preserving contiguous, irregular landscapes.
+      const sample=mix(soil,aridPatch===null?soil:aridPatch,c["geology.aridPatchMix"]);
+      const s=clamp(sample+(c["geology.sandBias"]-.5)*.36);
       return chooseWeighted(s,[
         ["rocky_badlands","geology.aridRockyBadlands"],
         ["badlands","geology.aridBadlands"],
@@ -191,11 +202,15 @@
       // The old fixed <.14 cutoff was unreachable with default climate (.57 ± .43).
       // Keep deep tundra tied to the configured boundary instead of a fixed,
       // practically inaccessible absolute temperature.
-      if(t<c["biomes.coldBoundary"]-.04)return h>.60?"snowfields":"frozen_tundra";
+      // Offer cold, pronounced uplands before snow/tundra classification.
+      // Margin 0 preserves the legacy rule (only local t >= coldBoundary).
+      if(reliefValue&&reliefValue.hill>c["geology.highlandSoil"]&&
+         t>=c["biomes.coldBoundary"]-c["geology.highlandColdMargin"])return "highland";
+      if(t<c["biomes.coldBoundary"]-.04)return h>c["biomes.snowHumidity"]?"snowfields":"frozen_tundra";
       if(t<c["biomes.coldBoundary"])return h>.8?"snowfields":"tundra";
-      return reliefValue&&reliefValue.hill>c["geology.highlandSoil"]?"highland":"tundra";
+      return "tundra";
     }
-    if(family==="wetland")return t>.64?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
+    if(family==="wetland")return t>c["geology.swampWarmBoundary"]?"swamp":t<.38?"moor":h>.85?"marshland":soil>c["geology.wetlandSoil"]?"moor":"marshland";
     if(family==="jungle")return "jungle";
     if(family==="savanna")return h<.33?"semi_desert":"savanna";
     return "grassland";
@@ -252,7 +267,8 @@
     if(!Number.isSafeInteger(originQ)||!Number.isSafeInteger(originR)||
        Math.abs(originQ)>1000000||Math.abs(originR)>1000000)
       throw RangeError("Ungültige Weltkoordinaten.");
-    const c=normalizeConfig(options.config),s=hashString(VERSION+":"+seed);
+    const c=normalizeConfig(options.config),s=hashString(NOISE_LINEAGE+":"+seed);
+    const aridRegionConfig={...c,"biomes.targetHexes":Math.max(5,c["geology.scale"]*1.5)};
     const cacheWater=new Map(),cacheRelief=new Map(),cacheField=new Map();
     const spot=(q,r)=>key(q,r);
     const temperature=(q,r)=>clamp(c["climate.temperature"]+
@@ -328,7 +344,12 @@
       const family=biomeFamily(biomeT,biomeH,c),
         soil=noise(s,q,r,c["geology.scale"],"soil"),
         landRelief=relief(q,r);
-      const result={t,h,center,family,soil,landRelief,
+      const aridCenter=family==="arid"&&c["geology.aridPatchMix"]>0?
+        region(s,q,r,aridRegionConfig):null;
+      const aridCoordinates=aridCenter?.id.split(",").map(Number);
+      const aridPatch=aridCoordinates?
+        unit(s,aridCoordinates[0],aridCoordinates[1],"arid-patch"):null;
+      const result={t,h,center,family,soil,landRelief,aridPatch,
         riverPotential:clamp(h*.68+landRelief.mass*.18+
           Math.min(distance,15)/30)};
       cacheField.set(k,result);return result;
@@ -359,7 +380,7 @@
         const cell={q,r,temperature:info?.t??temperature(q,r),
           humidity:info?.h??humidity(q,r),regionId:info?.center.id??"",
           baseBiome:info?.family??null,
-          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c,info.landRelief):surfaceClass,
+          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c,info.landRelief,info.aridPatch):surfaceClass,
           surfaceClass,reliefClass:mountain?"mountain":hills?"hills":"flat",
           hillProfile:hills?["rounded","steep","chain","plateau","ridge"][
             Math.floor(unit(s,Math.floor(q/3),Math.floor(r/3),"hill-style")*5)]:null,

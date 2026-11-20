@@ -1,9 +1,10 @@
 /* Parameter-driven geography workbench for the Asset-Labor. */
 (()=>{
 "use strict";
-const G=window.VedrasGeography,$=id=>document.getElementById(id);
-let config=G.defaultConfig(),world=null,selected=null,renderPending=false;
-const DISTRIBUTION_STORAGE_KEY="vedras-geography-distribution-v2.1.1";
+const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
+ $=id=>document.getElementById(id);
+let config=MIX.configFor(G),world=null,selected=null,renderPending=false;
+const DISTRIBUTION_STORAGE_KEY="vedras-geography-distribution-v2.1.2";
 let distribution=null,distributionKey=null,distributionRun=0,distributionRunning=false;
 const BIOME_NAMES={cold:"Kalte Regionen",grassland:"Grasland",savanna:"Savanne",
  arid:"Trockengebiete",wetland:"Feuchtgebiete",jungle:"Dschungel"};
@@ -196,6 +197,19 @@ function updateStats(){
 }
 function renderDistribution(){
  if(!world)return;
+ const report=MIX.inspect(world,G);
+ const pct=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1});
+ const s=report.shares;
+ const status='Terrain-Typen: '+report.terrainPresent+' / '+report.terrainTotal+
+  ' · Hochland '+report.highland+' Hexe (Ziel mindestens 200)'+
+  ' · Grasland '+pct(s.grassland)+' % / kalte Regionen '+pct(s.cold)+' %'+
+  ' · Feuchtgebiete '+pct(s.wetland)+' % / Trockengebiete '+pct(s.arid)+' %'+
+  ' · '+(report.missing.length?'Nicht vorhanden: '+
+   report.missing.map(id=>TERRAIN_NAMES[id]||id).join(', '):
+   'Alle regulären Terrain-Typen vorhanden')+
+  (report.allGoalsMet?' · Zielmix erreicht':' · Abweichungen zum Zielmix');
+ $('mixReport').textContent=status;
+ $('mixReport').className='mix-result'+(report.allGoalsMet?'':' incomplete');
  const number=n=>n.toLocaleString('de-DE',{maximumFractionDigits:1});
  const appendRows=(target,ids,counts,means,names)=>{
   const rows=$(target);rows.replaceChildren();
@@ -285,6 +299,16 @@ function download(name,data){
  a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('generate').addEventListener('click',build);
+$('applyBalancedMix').addEventListener('click',()=>{
+ config=MIX.configFor(G);
+ const preset=MIX.PRESET;
+ $('worldSeed').value=preset.seed;
+ $('worldWidth').value=preset.width;
+ $('worldHeight').value=preset.height;
+ $('worldOriginQ').value=preset.originQ;
+ $('worldOriginR').value=preset.originR;
+ buildControls();build();
+});
 $('analyzeDistribution').addEventListener('click',analyzeDistribution);
 $('exportDistribution').addEventListener('click',()=>{
  if(!distribution||!world)return;
@@ -311,7 +335,7 @@ $('configFile').addEventListener('change',async e=>{
   const obj=JSON.parse(await file.text());
   const version=obj.generatorVersion||obj.version;
   if(version!==G.VERSION){
-   if(!["geography-v2.0.0","geography-v2.1.0"].includes(version)||!window.confirm(
+   if(!["geography-v2.0.0","geography-v2.1.0","geography-v2.1.1"].includes(version)||!window.confirm(
      "Die gespeicherten Parameter stammen aus "+version+". Sie können in "+
      G.VERSION+" übernommen werden; die generierte Karte kann sich ändern. Fortfahren?"))
     throw Error("Alte Worldgen-Version nicht ohne Zustimmung übernommen.");
