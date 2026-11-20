@@ -25,6 +25,7 @@ on:
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/automated_browser_frozen_edges_20261118.cjs'
+      - 'tests/automated_browser_shadow_balance_20261120.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -45,6 +46,7 @@ on:
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
       - 'tests/automated_browser_frozen_edges_20261118.cjs'
+      - 'tests/automated_browser_shadow_balance_20261120.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -71,6 +73,7 @@ jobs:
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
             /tests/automated_browser_frozen_edges_20261118.cjs
+            /tests/automated_browser_shadow_balance_20261120.cjs
             /tests/fixtures/frozen-ci-seed.html
             /authored-world-contract.js
             /frozen-map-*.js
@@ -80,6 +83,8 @@ jobs:
             /cloud-artwork.js
             /shadow-tone.js
             /shadow-system.js
+            /shadow-shapes.js
+            /sprite-shadow-editor.js
             /render-quality-policy.js
             /world-tile-streamer.js
             /index.html
@@ -118,6 +123,12 @@ jobs:
           mkdir -p .ci-tools
           npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
           .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Real Firefox shadow tone, family and 2x/4x native pixel regression
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_shadow_balance_20261120.cjs
       - name: Real Firefox pixel test for baked edge seams and completed local atlas
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
