@@ -19092,6 +19092,556 @@
         "snow_patch",
         "cold_ground_cover"
       ]
+    },
+    "nature/boulder_45.png": {
+      "id": "boulder_45",
+      "description": "Findling 45 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_45.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_46.png": {
+      "id": "boulder_46",
+      "description": "Findling 46 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_46.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_47.png": {
+      "id": "boulder_47",
+      "description": "Findling 47 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_47.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_48.png": {
+      "id": "boulder_48",
+      "description": "Findling 48 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_48.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_49.png": {
+      "id": "boulder_49",
+      "description": "Findling 49 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_49.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_50.png": {
+      "id": "boulder_50",
+      "description": "Findling 50 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_50.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_51.png": {
+      "id": "boulder_51",
+      "description": "Findling 51 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_51.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_52.png": {
+      "id": "boulder_52",
+      "description": "Findling 52 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_52.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_53.png": {
+      "id": "boulder_53",
+      "description": "Findling 53 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_53.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_54.png": {
+      "id": "boulder_54",
+      "description": "Findling 54 – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
+      "sourceReference": "Bestandsdatei: boulder_54.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 52,
+      "scaleMin": 0.85,
+      "scaleMax": 1.15,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.24,
+        "offsetY": 0,
+        "widthScale": 0.7,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [
+        "cold_regions",
+        "grass_pasture",
+        "arid_regions",
+        "warm_regions",
+        "wetlands"
+      ],
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.12,
+        "minSpacing": 24,
+        "canCluster": true,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "existing",
+        "needs_art_review",
+        "needs_species_review",
+        "boulder"
+      ],
+      "targetHeight": 110
     }
   }
 }
