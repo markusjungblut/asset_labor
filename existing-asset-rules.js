@@ -77,7 +77,7 @@ window.VedrasExistingAssets = (() => {
   const boulder=/^boulder[_ -]?(\d+)$/.exec(base);
   if(boulder){
    const number=Number(boulder[1]),winter=number>=21&&number<=35,
-    hot=number>=36&&number<=44;
+    hot=number>=36&&number<=54;
    return {id:'boulder_'+String(number).padStart(2,'0'),
     name:(winter?'Kalter Findling ':hot?'Warmer Findling ':'Findling ')+number,
     family:'stones',kind:'rock',sizeClass:'large',
