@@ -2,8 +2,9 @@
 (()=>{
 "use strict";
 const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
- $=id=>document.getElementById(id);
-let config=MIX.configFor(G),world=null,selected=null,renderPending=false;
+ IO=window.VedrasGeographyIO,$=id=>document.getElementById(id);
+let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
+let handoffRequest=null,handoffSequence=0;
 const DISTRIBUTION_STORAGE_KEY="vedras-geography-distribution-v2.1.2";
 let distribution=null,distributionKey=null,distributionRun=0,distributionRunning=false;
 const BIOME_NAMES={cold:"Kalte Regionen",grassland:"Grasland",savanna:"Savanne",
@@ -57,21 +58,17 @@ function buildControls(){
   $('parameters').append(section);
  }
 }
-function requestBuild(){
- if(renderPending)return;renderPending=true;
- window.setTimeout(()=>{renderPending=false;build();},320);
+function cancelBuild(){
+ if(buildTimer!==null){window.clearTimeout(buildTimer);buildTimer=null;}
 }
-function build(){
- try{
-  const width=Number($('worldWidth').value),height=Number($('worldHeight').value);
-  $('message').textContent="Welt wird berechnet …";
-  const start=performance.now();
-  world=G.generateWorld($('worldSeed').value,{width,height,config,
-    originQ:Number($('worldOriginQ').value),originR:Number($('worldOriginR').value)});
-  $('message').textContent="Berechnet in "+Math.round(performance.now()-start)+
-    " ms · "+world.version+" · Seed "+world.seed;
-  const signature=JSON.stringify({version:G.VERSION,seed:world.seed,width:world.width,
-   height:world.height,originQ:world.originQ,originR:world.originR,config:world.config});
+function requestBuild(){
+ cancelBuild();
+ buildTimer=window.setTimeout(()=>{buildTimer=null;build();},320);
+}
+function showWorld(next,message){
+ world=next;
+ $('message').textContent=message;
+ const signature=IO.signature(world,G);
   if(distributionKey!==signature){
    ++distributionRun;
    distributionRunning=false;
@@ -84,7 +81,25 @@ function build(){
    }catch(_error){/* Browsers may disable local storage. */}
   }
   selected=null;draw();updateStats();
- }catch(error){$('message').textContent=error.message;}
+}
+function build(){
+ try{
+  const width=Number($('worldWidth').value),height=Number($('worldHeight').value);
+  $('message').textContent="Welt wird berechnet …";
+  const start=performance.now();
+  const next=G.generateWorld($('worldSeed').value,{width,height,config,
+   originQ:Number($('worldOriginQ').value),originR:Number($('worldOriginR').value)});
+  showWorld(next,"Berechnet in "+Math.round(performance.now()-start)+
+   " ms · "+next.version+" · Seed "+next.seed);
+ }catch(error){$('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;}
+}
+function applyImportedWorld(next,label){
+ // An earlier delayed slider callback cannot overwrite an imported world.
+ cancelBuild();config={...next.config};
+ $('worldSeed').value=next.seed;$('worldWidth').value=next.width;
+ $('worldHeight').value=next.height;
+ $('worldOriginQ').value=next.originQ;$('worldOriginR').value=next.originR;
+ buildControls();showWorld(next,label+' · '+next.version+' · Seed '+next.seed);
 }
 const colorFor=(cell,mode)=>{
  if(mode==="water")return cell.surfaceClass==="land"?"#829e71":COLORS[cell.surfaceClass];
@@ -294,9 +309,11 @@ $('worldMap').addEventListener('click',e=>{
   'Kein Hexfeld an dieser Position.';draw();
 });
 function download(name,data){
- const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
- const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;
- a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ try{
+  const info=IO.saveJSON(name,data);
+  $('message').textContent='Export bereitgestellt: '+info.filename+
+   ' ('+Math.ceil(info.bytes/1024)+' KiB).';
+ }catch(error){$('message').textContent='Export fehlgeschlagen: '+error.message;}
 }
 $('generate').addEventListener('click',build);
 $('applyBalancedMix').addEventListener('click',()=>{
@@ -320,7 +337,7 @@ $('exportDistribution').addEventListener('click',()=>{
 });
 $('viewMode').addEventListener('change',draw);
 for(const id of ['worldSeed','worldWidth','worldHeight','worldOriginQ','worldOriginR'])$(id).addEventListener('change',requestBuild);
-$('resetConfig').addEventListener('click',()=>{config=G.defaultConfig();buildControls();build();});
+$('resetConfig').addEventListener('click',()=>{cancelBuild();config=G.defaultConfig();buildControls();build();});
 $('exportConfig').addEventListener('click',()=>download('vedras-worldgen-parameter.json',
  {generatorVersion:G.VERSION,seed:$('worldSeed').value,width:Number($('worldWidth').value),
  height:Number($('worldHeight').value),originQ:Number($('worldOriginQ').value),
@@ -329,31 +346,69 @@ $('downloadWorld').addEventListener('click',()=>{
  if(world)download('vedras-welt-'+world.seed+'.json',world);
 });
 $('importConfig').addEventListener('click',()=>$('configFile').click());
+async function readSettingsWithConsent(raw){
+ const version=raw?.generatorVersion||raw?.version;
+ const legacy=version!==G.VERSION&&IO.OLD_VERSIONS.includes(version);
+ if(legacy&&!window.confirm('Die Welt stammt aus '+version+
+  '. Sie wird mit '+G.VERSION+' neu generiert; Landschaft und Verteilung können sich ändern. Fortfahren?'))
+  throw Error('Import der älteren Generatorversion abgebrochen.');
+ return {allowLegacy:legacy};
+}
 $('configFile').addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;
  try{
-  const obj=JSON.parse(await file.text());
-  const version=obj.generatorVersion||obj.version;
-  if(version!==G.VERSION){
-   if(!["geography-v2.0.0","geography-v2.1.0","geography-v2.1.1"].includes(version)||!window.confirm(
-     "Die gespeicherten Parameter stammen aus "+version+". Sie können in "+
-     G.VERSION+" übernommen werden; die generierte Karte kann sich ändern. Fortfahren?"))
-    throw Error("Alte Worldgen-Version nicht ohne Zustimmung übernommen.");
-  }
-  config=G.normalizeConfig(obj.config);
-  $('worldSeed').value=obj.seed;$('worldWidth').value=obj.width;
-  $('worldHeight').value=obj.height;
-  $('worldOriginQ').value=obj.originQ??0;$('worldOriginR').value=obj.originR??0;
-  buildControls();build();
- }catch(error){$('message').textContent="Import fehlgeschlagen: "+error.message;}
- finally{e.target.value="";}
+  const raw=await IO.parseFile(file),options=await readSettingsWithConsent(raw);
+  const {world:next}=IO.generate(raw,G,options);
+  applyImportedWorld(next,'Parameter erfolgreich importiert');
+ }catch(error){$('message').textContent='Parameterimport fehlgeschlagen: '+error.message;}
+ finally{e.target.value='';}
+});
+$('importWorld').addEventListener('click',()=>$('worldFile').click());
+$('worldFile').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  const raw=await IO.parseFile(file),options=await readSettingsWithConsent(raw);
+  const {world:next}=IO.generate(raw,G,{...options,requireWorld:true});
+  applyImportedWorld(next,'Welt erfolgreich importiert');
+ }catch(error){$('message').textContent='Weltimport fehlgeschlagen: '+error.message;}
+ finally{e.target.value='';}
+});
+$('importDistribution').addEventListener('click',()=>$('distributionFile').click());
+$('distributionFile').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  const raw=await IO.parseFile(file),data=IO.readStatistics(raw,world,G);
+  distribution=data;distributionKey=IO.signature(world,G);++distributionRun;
+  distributionRunning=false;$('analyzeDistribution').disabled=false;
+  try{localStorage.setItem(DISTRIBUTION_STORAGE_KEY,JSON.stringify({
+   signature:distributionKey,data:distribution}));}catch(_error){}
+  renderDistribution();
+  $('distributionStatus').textContent='Statistik erfolgreich importiert: '+
+   data.samples+' Testwelten für die aktuelle Welt.';
+ }catch(error){$('distributionStatus').textContent='Statistikimport fehlgeschlagen: '+error.message;}
+ finally{e.target.value='';}
+});
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==window.opener||
+  event.data?.type!=='vedras-geography-preview-result'||
+  !handoffRequest||event.data.requestId!==handoffRequest)return;
+ handoffRequest=null;
+ $('message').textContent=(event.data.ok?'Übertragung erfolgreich: ':
+  'Übertragung nicht übernommen: ')+(event.data.message||'Keine Rückmeldung.');
 });
 $('sendToLab').addEventListener('click',()=>{
  if(!world)return;
  if(!window.opener||window.opener.closed){$('message').textContent=
   'Öffne das Geografie-Labor über den Knopf im Asset-Labor in einem neuen Tab.';return;}
- window.opener.postMessage({type:'vedras-geography-preview',world},location.origin);
- $('message').textContent='Vorschau an Asset-Labor gesendet. Wechsel dorthin und bestätige die Testszene.';
+ try{
+  handoffRequest='geo-'+(++handoffSequence);
+  window.opener.postMessage({type:'vedras-geography-preview',
+   requestId:handoffRequest,world},location.origin);
+  $('message').textContent='An Asset-Labor gesendet. Übernahme muss dort bestätigt werden …';
+ }catch(error){
+  handoffRequest=null;
+  $('message').textContent='Übertragung fehlgeschlagen: '+error.message;
+ }
 });
 buildControls();build();
 })();
