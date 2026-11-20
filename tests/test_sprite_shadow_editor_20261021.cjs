@@ -59,10 +59,10 @@ for(const id of ['spriteShadowLab','ssPreview','ssPrevious','ssNext','ssSearch',
  'ssGlobal_angle','ssGlobal_strength','ssSprite_offsetX','ssSprite_offsetY']){
  assert(html.includes('id="'+id+'"'),'missing functional shadow editor control: '+id);
 }
-assert(app.includes('window.VedrasSpriteShadows.draw(ctx,o'),
- 'shared shader must serve buildings and units');
-assert(app.includes('shared.draw(ctx,obj,p'),
- 'shared shader must serve Nature and fallen logs');
+assert(app.includes('(finalRendering?window.VedrasSpriteShadows.draw:window.VedrasSpriteShadows.drawCached||window.VedrasSpriteShadows.draw)(ctx,o,'),
+ 'shared shadow engine must serve buildings and units (with preview cache)');
+assert(app.includes('(finalRendering?shared.draw:shared.drawCached||shared.draw)(ctx,obj,p'),
+ 'shared shadow engine must serve Nature and fallen logs (with preview cache)');
 const start=app.indexOf('function mountainShadowSettings(o){');
 const end=app.indexOf('function sceneShadowStrength(){',start);
 const mountainConfig=app.slice(start,end);
