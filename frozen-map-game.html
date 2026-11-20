@@ -29,6 +29,13 @@ canvas:active{cursor:grabbing}
 /* Opt-in overlay: world stays beneath the independently refreshed Fog. */
 #fogOverlay{position:absolute;inset:0;pointer-events:none;cursor:default}
 #fogOverlay[hidden]{display:none}
+/* Static world, fog and game entities are independent compositor layers. */
+#gameLoadOverlay{position:absolute;inset:0;pointer-events:none;cursor:default}
+#gameLoadOverlay[hidden]{display:none}
+#gameLoadHud{position:absolute;top:12px;left:12px;max-width:65%;
+ padding:8px 11px;border:1px solid #577e6c;border-radius:6px;
+ background:#14272cdd;color:#edf8ef;font:12px system-ui;pointer-events:none}
+#gameLoadHud[hidden]{display:none}
 /* Status is an OVERLAY-FREE, fixed-height strip: changing statistics must
    never resize the map canvas or force a new scene raster. */
 footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
@@ -57,13 +64,14 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optTileIndex"> Räumlicher Tile-Index (ab 400 Tiles)</label>
 <label><input type="checkbox" id="optFogLayer"> Separate Fog-Ebene (bei 4× automatisch und auf 1,25× begrenzt; `fogLayer=0` schaltet sie für den Vergleich aus)</label>
 <label><input type="checkbox" id="optFallbackAtlas"> 1×-Sicherheitscache (automatisch aktiv; verhindert leere Kacheln und wiederholtes Laden)</label>
+<label><input type="checkbox" id="optGameLoad"> Spieltest: 100 bewegliche Einheiten und HUD auf separater Ebene (nur Messung, keine Änderung der Karte)</label>
 <label><input type="checkbox" id="optGround4x"> <strong>Originalboden optional in 4×</strong> (standardmäßig 2×; 4× benötigt mehr RAM und Renderzeit)</label>
 <label><input type="checkbox" id="optScenery4x"> <strong>Original-Schatten und Objekte (4× A/B)</strong> – unveränderte Scenery-Quell-PNGs mit dem üblichen 2×-Schattenbild vergleichen; hoher RAM-Bedarf, nur bei echtem 4×-Atlas</label>
 <label><input type="checkbox" id="optAdaptiveGround"> Adaptive 4×-Dekodierung (automatisch aktiv; weniger RAM bei gleichem sichtbaren Detailbedarf)</label>
 <small>Wolken und Nebel-Animation sind vorübergehend deaktiviert, um Flackern und Renderlast zu reduzieren. Für technische Vergleiche: <code>?clouds=1</code>. Gespeicherte Kartenbilder bleiben unverändert.</small>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
-<main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
+<main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas><canvas id="gameLoadOverlay" aria-hidden="true" hidden></canvas><div id="gameLoadHud" hidden>Spieltest: Initialisierung …</div></main>
 <footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
 <span id="metrics">Keine Renderaufträge</span></footer>
 <script>/* Temporary preview default: no clouds, Fog fades or cloud PNG allocations.
@@ -81,5 +89,6 @@ window.VedrasCloudsDisabled=new URLSearchParams(location.search).get('clouds')!=
 <script src="frozen-map-ground-detail.js?v=20261120-original-scenery-ab"></script>
 <script src="frozen-map-seam-audit.js?v=20261120-ownership-diagnostic-v1"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1"></script>
-<script src="frozen-map-game.js?v=20261120-original-scenery-ab&amp;clouds=off-20261120&amp;mobile=1"></script>
+<script src="frozen-map-game-load.js?v=20261120-game-load-v1"></script>
+<script src="frozen-map-game.js?v=20261120-original-scenery-ab&amp;clouds=off-20261120&amp;mobile=1&amp;gameLoad=1"></script>
 </body></html>
