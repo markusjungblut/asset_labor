@@ -259,7 +259,7 @@ test('fourfold static Ground uses 1.25x fog and retains its base during dissolve
 });
 test('fourfold camera gesture is a reversible 1.25x raster budget, not a PNG rewrite',()=>{
  const game=read('frozen-map-game.js'),runtime=read('frozen-map-runtime.js');
- assert.match(game,/groundDetailActive&&!drag\.moved&&\(p\.dpr\|\|1\)>1\.25/);
+ assert.match(game,/groundDetailActive\|\|viewerProfile\.name!=='desktop'/);
  assert.match(game,/pan\.dpr=1\.25;dragLowDprFrames\+\+/);
  assert.match(game,/if\(!drag\)setPose\(\{\}\); \/\/ restores bounded original 4x DPR/);
  assert.match(game,/fogDprCap:groundDetailRequested\?1\.25:Infinity/);
@@ -374,7 +374,7 @@ test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
  const runtime=read('frozen-map-runtime.js'),
   page=read('frozen-map-game.js'),html=read('frozen-map-game.html');
  assert.match(page,/params\.get\('groundDecode'\)!=='full'/);
- assert.match(page,/maxDecodedPixels:adaptiveGroundDecode\?128000000:95000000/);
+ assert.match(page,/maxDecodedPixels:Math\.min\(viewerProfile\.maxDecodedPixels/);
  assert.match(html,/id="optAdaptiveGround"/);
  assert.match(runtime,/groundTierSwitches/);
  assert.match(runtime,/resizeWidth:Math\.max\(1,Math\.round\(p\.width\*scale\)\)/);
