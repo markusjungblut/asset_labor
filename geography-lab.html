@@ -41,7 +41,7 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 </style></head>
 <body>
 <header><div><h1>Vedras Reiche · Geografie-Labor</h1><div class="minor">Gemeinsame Worldgen v2 · konfigurierte Welt VOR Spielbeginn · keine Änderungen an bestehenden Spielwelten</div></div>
-<div class="actions"><button id="exportConfig">Parameter exportieren</button><button id="importConfig">Parameter importieren</button><input id="configFile" type="file" accept=".json,application/json" hidden><button id="resetConfig">Standardwerte</button></div></header>
+<div class="actions"><button id="exportConfig" type="button">Parameter exportieren</button><button id="importConfig" type="button">Parameter importieren</button><input id="configFile" type="file" accept=".json,application/json" hidden><button id="resetConfig" type="button">Standardwerte</button></div></header>
 <main>
 <aside><h2>Weltparameter</h2><div class="minor">Alle aktiven Generatorparameter erscheinen automatisch aus dem gemeinsamen Schema. Ein neuer Parameter einer späteren Erweiterung erhält hier ohne zusätzliche UI-Verkabelung seinen Regler.</div><div id="parameters"></div></aside>
 <section class="mainpanel">
@@ -69,6 +69,8 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <label class="sample-control">Anzahl Testwelten<input id="analysisSamples" type="number" min="2" max="40" value="8"></label>
 <button id="analyzeDistribution" type="button" class="primary">Mittelwerte berechnen</button>
 <button id="exportDistribution" type="button" disabled>Statistik als JSON exportieren</button>
+<button id="importDistribution" type="button">Statistik-JSON importieren</button>
+<input id="distributionFile" type="file" accept=".json,application/json" hidden>
 </div>
 <div id="distributionStatus" class="distribution-status" role="status">Noch keine Mehrfachanalyse berechnet.</div>
 <h3>Biomregionen – Anteil an Landhexen</h3>
@@ -77,9 +79,9 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <div class="table-scroll"><table><thead><tr><th>Terrain</th><th class="numeric">Aktuell</th><th class="numeric">Ø pro Welt</th><th class="numeric">Ø Anteil</th><th class="numeric">Welten mit Vorkommen</th></tr></thead><tbody id="terrainCounts"></tbody></table></div>
 </section>
 <div id="selected">Hexfeld anklicken, um die geografischen Werte und Besonderheiten zu prüfen.</div>
-<div class="actions"><button id="downloadWorld">Generierte Welt als JSON exportieren</button><button id="sendToLab">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
+<div class="actions"><button id="downloadWorld" type="button">Generierte Welt als JSON exportieren</button><button id="importWorld" type="button">Gespeicherte Welt-JSON importieren</button><input id="worldFile" type="file" accept=".json,application/json" hidden><button id="sendToLab" type="button">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-lab.js?v=2.1.2"></script>
+<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-io.js?v=20261120-io-v1"></script><script src="geography-lab.js?v=20261120-io-v1"></script>
 </body></html>
