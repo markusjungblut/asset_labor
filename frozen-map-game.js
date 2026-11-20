@@ -558,7 +558,9 @@
    viewportCss:{width:canvas.clientWidth,height:canvas.clientHeight},
    canvasBacking:{width:canvas.width,height:canvas.height},
    startup:{manifestReadMs,sceneRegisterMs},
-   runtime:player.report(),derived2x:twoXStore.stats(),
+   runtime:player.report(),deviceProfile:viewerProfile,
+   gameLoad:{enabled:loadTestRequested,metrics:gameLoadController?.report()||null},
+   derived2x:twoXStore.stats(),
    derived1x:oneXStore.stats(),groundDetail:groundDetailStore.stats(),
    groundProbe,groundDetailRequested,groundDetailActive,
    groundSeamPolicy:!exclusiveGroundSeams?'legacy-overlap':
