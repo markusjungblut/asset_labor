@@ -401,24 +401,62 @@
   const r=canvas.getBoundingClientRect();
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
+ // Pointer events support both desktop mouse drag and touch pinch-zoom.
+ // Keep the original anchored world point under the two-finger midpoint.
+ const touches=new Map();
+ let pinch=null;
+ const touchPos=e=>{
+  const rect=canvas.getBoundingClientRect();
+  return {x:e.clientX-rect.left,y:e.clientY-rect.top};
+ };
+ const pinchGeometry=()=>{
+  const p=[...touches.values()].slice(0,2);
+  if(p.length<2)return null;
+  return {midX:(p[0].x+p[1].x)/2,midY:(p[0].y+p[1].y)/2,
+   span:Math.max(12,Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y))};
+ };
  canvas.addEventListener('pointerdown',e=>{
   if(panSettler!==null){clearTimeout(panSettler);panSettler=null;}
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+  if(e.pointerType==='touch'){
+   touches.set(e.pointerId,touchPos(e));
+   if(touches.size===2){
+    const view=player.getPose(),origin=pinchGeometry();
+    if(view&&origin)pinch={origin,view};
+    drag=null;
+   }else if(touches.size>2)drag=null;
+   else drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+  }else drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'&&touches.has(e.pointerId)){
+   touches.set(e.pointerId,touchPos(e));
+   if(pinch&&touches.size>=2){
+    const current=pinchGeometry(),base=pinch.view,first=pinch.origin;
+    if(!current||!base)return;
+    if(profiler)profiler.input('zoom');
+    const zoom=Math.min(4,Math.max(.15,base.zoom*
+     current.span/first.span));
+    const px=(first.midX-canvas.clientWidth/2-base.panX)/base.zoom,
+     py=(first.midY-canvas.clientHeight/2-base.panY)/
+      (base.zoom*(base.projectY||.85));
+    setPose({zoom,
+     panX:current.midX-canvas.clientWidth/2-px*zoom,
+     panY:current.midY-canvas.clientHeight/2-py*zoom*(base.projectY||.85),
+     dpr:Math.min(base.dpr||1.25,1.25)},{deferDpr:true});
+    return;
+   }
+  }
   if(!drag||drag.id!==e.pointerId)return;
   const p=player.getPose();if(!p)return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(!dx&&!dy)return;
   if(profiler)profiler.input('pan');
   drag.x=e.clientX;drag.y=e.clientY;
-  // Full-detail 4x backing can reach 18 MP and bypass the world cache.
-  // During a drag, keep the real tile compositor at 1.25x so camera
-  // frames remain bounded. After release restore 4x exactly once.
-  // No PNGs are downgraded/re-encoded; the 4x source stays in RAM.
   const pan={panX:p.panX+dx,panY:p.panY+dy};
-  if(groundDetailActive&&!drag.moved&&(p.dpr||1)>1.25){
+  // Keep camera gestures inexpensive and restore final quality once.
+  if(!drag.moved&&(p.dpr||1)>1.25&&
+    (groundDetailActive||viewerProfile.name!=='desktop')){
    pan.dpr=1.25;dragLowDprFrames++;
    const raster=$('rasterQuality');
    if(raster)raster.textContent='Raster 1.25× (Bewegung)';
@@ -426,15 +464,25 @@
   drag.moved=true;
   setPose(pan,{deferDpr:true});
  });
- const finishPan=()=>{
-  if(!drag)return;
+ const finishPan=e=>{
+  if(e.pointerType==='touch'){
+   touches.delete(e.pointerId);
+   if(pinch){
+    if(touches.size<2){
+     pinch=null;drag=null;
+     setPose({}); // restore the profile's bounded final backing once
+    }
+    return;
+   }
+  }
+  if(!drag||drag.id!==e.pointerId)return;
   const moved=drag.moved;
   drag=null;
-  if(!moved||!groundDetailActive)return;
+  if(!moved)return;
   if(panSettler!==null)clearTimeout(panSettler);
   panSettler=setTimeout(()=>{
    panSettler=null;
-   if(!drag)setPose({}); // restores bounded original 4x DPR
+   if(!drag&&!pinch)setPose({});
   },150);
  };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
