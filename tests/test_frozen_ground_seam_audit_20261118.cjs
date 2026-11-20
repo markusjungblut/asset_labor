@@ -92,7 +92,7 @@ test('a missing alpha-covered side is detected without relying on hidden RGB',()
  }
  const m=api.comparePixels(a,b,24,32,'x');
  assert.equal(m.alphaMismatchPct,50);
- assert.equal(api.classify(m),'saved-neighbor-alpha-coverage-differs');
+ assert.equal(api.classify(m),'gutter-alpha-ownership-unverified');
 });
 test('exclusive device-snapped Ground cores share exact destination edges',()=>{
  const sandbox={window:{},Blob,console};
@@ -124,4 +124,92 @@ test('viewer enables exclusive Ground by default and keeps legacy A/B rollback',
  assert.match(game,/adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset/);
  assert.match(html,/20261118-near-archive-audit-v4/);
  assert.match(html,/20261118-viewport-audit-v3/);
+});
+
+
+const coreSource=fs.readFileSync(path.join(root,'frozen-ground-core-seams.js'),'utf8');
+const guardSandbox={window:{},Uint8ClampedArray,Blob,Math};
+vm.runInNewContext(coreSource,guardSandbox);
+const core=guardSandbox.window.VedrasGroundCoreSeams;
+function littleStrip({red=100,alpha=255,rows=32}={}){
+ const data=new Uint8ClampedArray(2*rows*4);
+ for(let i=0;i<data.length;i+=4){
+  data[i]=red;data[i+1]=red;data[i+2]=red;data[i+3]=alpha;
+ }
+ return {data,width:2,height:rows};
+}
+test('valid exclusive Ground cores do not inherit 50%-mismatched empty gutters',()=>{
+ const a=littleStrip(),b=littleStrip();
+ const m=core.measureCore(a,b,{axis:'x',worldA:{x:0,y:0},
+  worldB:{x:512,y:0},dx:4,dy:3.4,worldCells:[{q:2,r:0}]});
+ assert.equal(m.checked,32);
+ assert.equal(m.alphaFailures,0);
+ assert.equal(m.meanJump,0);
+ assert.equal(m.failure,false);
+ assert.equal(m.verdict,'core-border-verified');
+});
+test('real missing Ground-core alpha and a hard RGB seam prevent publication',()=>{
+ const a=littleStrip(),b=littleStrip();
+ b.data[3]=0;
+ let m=core.measureCore(a,b,{axis:'x',worldA:{x:0,y:0},
+  worldB:{x:512,y:0},dx:4,dy:3.4,worldCells:[{q:2,r:0}]});
+ assert.equal(m.alphaFailures,1);
+ assert.equal(m.verdict,'real-core-seam');
+ b.data[3]=255;
+ for(let i=0;i<b.data.length;i+=4){
+  b.data[i]=210;b.data[i+1]=210;b.data[i+2]=210;
+ }
+ m=core.measureCore(a,b,{axis:'x',worldA:{x:0,y:0},
+  worldB:{x:512,y:0},dx:4,dy:3.4,worldCells:[{q:2,r:0}]});
+ assert.ok(m.meanExcess>100);
+ assert.equal(m.verdict,'real-core-seam');
+});
+test('edge stabilization touches only authored core joins, leaving outside transparent',()=>{
+ const tile={x:496,y:0,size:16},pad=3,scale=4,
+  ww=(tile.size+2*pad)*scale,hh=75;
+ let data=new Uint8ClampedArray(ww*hh*4);
+ // Opaque source interior except two anti-aliased core edge columns.
+ const cx0=12,cx1=76,cy0=10,cy1=65;
+ for(let y=cy0;y<cy1;y++)for(let x=cx0+3;x<cx1-3;x++){
+  const i=(y*ww+x)*4;
+  data[i]=80;data[i+1]=115;data[i+2]=45;data[i+3]=255;
+ }
+ const ctx={
+  getImageData(x,y,w,h){
+   const pixels=new Uint8ClampedArray(w*h*4);
+   for(let row=0;row<h;row++){
+    const offset=((y+row)*ww+x)*4;
+    pixels.set(data.slice(offset,offset+w*4),row*w*4);
+   }
+   return {width:w,height:h,data:pixels};
+  },
+  putImageData(image,x,y){
+   for(let row=0;row<image.height;row++)
+    data.set(image.data.slice(row*image.width*4,(row+1)*image.width*4),
+     ((y+row)*ww+x)*4);
+  }
+ };
+ const canvas={width:ww,height:hh,getContext:()=>ctx};
+ const r=core.repairEdgeBands(canvas,{tile,pad,cells:[{q:2,r:0}],width:3});
+ assert.ok(r.repaired>0,'isolated transparent join texels were filled');
+ assert.equal(r.unresolved,0,'interior donor was available');
+ assert.equal(data[((cy0+10)*ww+cx0)*4+3],255);
+ assert.equal(data[((cy0+10)*ww+cx1-1)*4+3],255);
+ const original=core.repairEdgeBands(canvas,{tile,pad,cells:[],width:3});
+ assert.equal(original.repaired,0,'outside world cells must not be flattened');
+ assert.equal(data[3],0,'transparent canvas exterior must stay transparent');
+});
+test('full 4x export invokes mandatory owned-core checks and never rewrites existing archives',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const game=fs.readFileSync(path.join(root,'frozen-map-game.js'),'utf8');
+ assert.match(index,/frozen-ground-core-seams\.js\?v=/);
+ assert.match(app,/guard\.repairEdgeBands\(out,\{tile:t,pad:groundPad/);
+ assert.match(app,/seamAudit=await checker\.auditSaved\(scene,frozenMap\.storage,all,worldCells/);
+ assert.match(app,/audit\.complete&&seamAudit\.complete/);
+ assert.match(app,/ground-owned-core-seam-gate-v1/);
+ assert.match(game,/report\.core=await checker\.auditSaved\(/);
+ assert.match(coreSource,/createImageBitmap\(layers\[0\]\.png,/);
+ assert.match(coreSource,/createImageBitmap\(layers\[1\]\.png,/);
+ assert.doesNotMatch(coreSource,/store\.put\(|store\.delete\(|deleteDatabase\(/);
 });
