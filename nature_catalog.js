@@ -22,6 +22,20 @@ window.VedrasNatureCatalog=(()=>{
  }
  // Shared cold-region definition from the Terrain catalog.
  const COLD_BIOMES=['snowfields','frozen_tundra','tundra','highland'];
+ // Preserve ecological restrictions even when a locally edited/legacy catalog
+ // accidentally reclassifies the original PNG. The source is an actual
+ // uploaded filename, not a display name or a user-editable family label.
+ const sourceId=meta=>{
+  const source=String(meta?.sourceReference||'');
+  const match=source.match(/(?:^|[/\\:\s])((?:cactus|kaktus|cacti|sukkulent(?:e|en)?|boulder)[_ -]?\d{1,2})\.(?:png|webp|jpe?g|avif)(?:\s|$)/i);
+  return (match?.[1]||'').toLowerCase().replace(/[ -]/g,'_');
+ };
+ const ecologicalFamily=meta=>{
+  const source=sourceId(meta);
+  if(/^(?:cactus|kaktus|cacti)_?\d{1,2}$/.test(source))return 'cacti';
+  if(/^sukkulent(?:e|en)?_?\d{1,2}$/.test(source))return 'succulents';
+  return meta?.family;
+ };
  const winterBoulder=meta=>meta?.family==='stones'&&
    /^boulder_(?:2[1-9]|3[0-5])$/.test(meta.id||'');
  const warmBoulder=meta=>meta?.family==='stones'&&
@@ -36,7 +50,9 @@ window.VedrasNatureCatalog=(()=>{
  const STUMP_BIOMES=[...TEMPERATE_BIOMES,'savanna','jungle'];
  function strictHabitat(meta){
   if(!meta)return null;
-  const id=String(meta.id||'');
+  const id=String(meta.id||''),original=sourceId(meta);
+  if(/^boulder_(?:2[1-9]|3[0-5])$/.test(original))return COLD_BIOMES;
+  if(/^boulder_(?:3[6-9]|4\d|5[0-4])$/.test(original))return WARM_BIOMES;
   if(winterBoulder(meta)||snowyBush(meta)||
     (meta.family==='snow'&&/^snow_patch_\d+/i.test(id)))return COLD_BIOMES;
   if(warmBoulder(meta))return WARM_BIOMES;
@@ -55,7 +71,7 @@ window.VedrasNatureCatalog=(()=>{
   const registry=terrain?.terrainTypes||[];
   const tile=registry.find(t=>t.id===typeId);
   if(tile&&tile.materialClass!=='ground')return false;
-  const f=meta.family,t=typeId,neighbors=new Set(neighborTypes||[]);
+  const f=ecologicalFamily(meta),t=typeId,neighbors=new Set(neighborTypes||[]);
   const nearWater=[...neighbors].some(id=>registry.find(v=>v.id===id)?.materialClass==='water'||registry.find(v=>v.id===id)?.materialClass==='shoreline');
   const nearWarm=[...neighbors].some(id=>id==='jungle'||id==='savanna');
   const among=(...v)=>v.includes(t);
@@ -94,14 +110,14 @@ window.VedrasNatureCatalog=(()=>{
    if(!strict.includes(base))return false;
   }else if(meta.family==='stones'&&['snowfields','frozen_tundra'].includes(base))return false;
   const warm=['jungle','savanna'];
-  const forest=['light_forest','dense_forest'].includes(context.forestClass);
+  const forest=['light_forest','dense_forest'].includes(context.forestClass),family=ecologicalFamily(meta);
   const jungle=biome==='jungle';
   // An editor-drawn forest floor and a generic forest must never create a
   // tropical climate. A jungle overlay is only valid on warm base terrain.
   if(jungle&&!warm.includes(base))return false;
   if(meta.family==='palms'&&(!warm.includes(base)||wet.includes(base)||cold.includes(base)))return false;
   if(['jungle_trees','tropical_bushes'].includes(meta.family)&&!jungle)return false;
-  if(forest&&['cacti','succulents','dry_bushes'].includes(meta.family))return false;
+  if(forest&&['cacti','succulents','dry_bushes'].includes(family))return false;
   const allowed=effectiveTypes(meta,terrain,catalog);
   const listed=allowed.has(biome)||allowed.has(base)||
    (forest&&allowed.has('forest_floor')&&meta.family!=='palms');
