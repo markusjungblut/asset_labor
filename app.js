@@ -4580,8 +4580,17 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    const previous=await frozenMap.verifyArchive(scene,'near',all,{
     require4x:true});
    if(previous.complete){
+    // A legacy-complete manifest cannot bypass the new visual pixel gate.
+    // This is strictly read-only; a defective published atlas is NOT
+    // modified in place or mistaken for a safe new export.
+    const verifier=window.VedrasGroundCoreSeams;
+    if(!verifier)throw Error('Verbindliche Ground-Nahtprüfung fehlt');
+    const joins=await verifier.auditSaved(scene,frozenMap.storage,all,worldCells);
+    if(!joins.complete)throw Error('Bereits gespeicherte Spielkarte hat '+
+     joins.failures.length+' echte Ground-Kernnaht-Fehler. '+
+     'Die vorhandenen PNGs bleiben unangetastet.');
     frozenNotice('4×-Near-Atlas '+scene+' ist bereits vollständig geprüft ('+
-     all.length+' Kacheln).');
+     all.length+' Kacheln, '+joins.checked+' Ground-Kernkanten).');
     return;
    }
    throw Error('Ein bereits veröffentlichtes Archiv ist beschädigt: '+
