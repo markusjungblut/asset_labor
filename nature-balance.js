@@ -12,10 +12,21 @@ window.VedrasNatureBalance=(()=>{
  // Living Nature grows 20% from v0.11.2; dead standing trees, fallen
  // branches/logs and stumps preserve EXACTLY their v0.11.2 dimensions.
  const woodExceptions=new Set(['dead_trees','snow_dead_trees','fallen_logs','snow_fallen_logs','deadwood']);
+ const isWarmBoulder=meta=>!!meta&&meta.kind==='rock'&&meta.family==='stones'&&
+  /^boulder_(?:3[6-9]|4\d|5[0-4])$/.test(meta.id||'');
+ // Warm boulders are 28% larger on the map; original PNGs and generic rocks
+ // are unchanged. The collision footprint follows the same size factor.
+ const warmBoulderScale=.32;
+ const warmBoulderPool=(assets,metaOf,preferenceRoll)=>{
+  const warm=assets.filter(a=>isWarmBoulder(metaOf(a)));
+  const pool=warm.length&&preferenceRoll<.85?warm:assets;
+  const density=Math.max(0,...pool.map(a=>Number(metaOf(a)?.placement?.density)||0));
+  return {pool,warmCount:warm.length,chance:Math.min(.40,density*(warm.length?2.5:1.15))};
+ };
  const placementScale=meta=>{
   if(!meta||meta.kind==='mountain')return 1;
   const previous=meta.kind==='tree'?.5:.7;
-  if(meta.family==='stones'&&['rock','cluster'].includes(meta.kind))return previous*1.2*.25;
+  if(meta.family==='stones'&&['rock','cluster'].includes(meta.kind))return previous*1.2*(isWarmBoulder(meta)?warmBoulderScale:.25);
   return woodExceptions.has(meta.family)?previous:previous*1.2;
  };
  function sizeFactor(meta){
@@ -87,5 +98,5 @@ window.VedrasNatureBalance=(()=>{
   }
   return chosen;
  }
- return {sizeFactor,placementScale,isCanopy,isAccent,accentGroup,chanceMultiplier,accentLimits,reserveClearings,stable};
+ return {sizeFactor,placementScale,isWarmBoulder,warmBoulderPool,isCanopy,isAccent,accentGroup,chanceMultiplier,accentLimits,reserveClearings,stable};
 })();
