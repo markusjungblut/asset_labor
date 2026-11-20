@@ -96,13 +96,19 @@ window.VedrasGeographyIO=(()=>{
   return raw;
  }
  function saveJSON(name,raw){
-  if(!/^[a-zA-Z0-9_.-]+\.json$/.test(name))
+  if(typeof name!=='string'||!name.toLowerCase().endsWith('.json'))
    throw Error('Ungültiger Export-Dateiname.');
+  // A World Seed may contain spaces, umlauts, slashes or 256 characters.
+  // Keep the actual seed unchanged inside JSON, but always produce a
+  // filesystem-safe, bounded download filename.
+  const base=name.slice(0,-5).replace(/[^a-zA-Z0-9_.-]+/g,'_')
+   .replace(/^[._]+|[._]+$/g,'').slice(0,120)||'vedras-export';
+  const filename=base+'.json';
   const json=JSON.stringify(raw,null,2);
   if(typeof json!=='string')throw Error('Export konnte nicht serialisiert werden.');
   const blob=new Blob([json],{type:'application/json;charset=utf-8'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=name;
+  a.href=url;a.download=filename;
   // Firefox needs the download anchor inside the document for consistent
   // user-activated downloads; detached click() is not portable.
   document.body.appendChild(a);
@@ -110,7 +116,7 @@ window.VedrasGeographyIO=(()=>{
    a.remove();
    window.setTimeout(()=>URL.revokeObjectURL(url),15000);
   }
-  return {filename:name,bytes:blob.size};
+  return {filename,bytes:blob.size};
  }
  return {MAX_BYTES,OLD_VERSIONS,readSettings,generate,readStatistics,
   signature,parseFile,saveJSON};
