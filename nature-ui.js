@@ -6,7 +6,19 @@ window.VedrasNature=(()=>{
  let catalog=N.initial(),dirty=false,serverWritable=false,revision=0,saving=null,timer=null,selected=null;
  let pendingAutoImport=false,loadedFromServer=false;
  const message=s=>{$('nMessage').textContent=s;};
- const entryFor=a=>a?catalog.entries[a.relPath]||null:null;
+ // Use the REAL loaded PNG name for ecology-critical species even if a
+ // historic local Nature catalog has stale/missing sourceReference. This
+ // runtime view never rewrites the user's editable metadata or original PNG.
+ const entryFor=a=>{
+  const entry=a?catalog.entries[a.relPath]||null:null;
+  if(!entry||a.category!=='nature')return entry;
+  const physical=window.VedrasExistingAssets?.classify(a);
+  if(!(physical?.group==='warm_boulder'||physical?.group==='winter_boulder'||
+   ['cacti','succulents'].includes(physical?.family)))return entry;
+  const name=String(a.name||a.path?.split('/').pop()||'');
+  if(String(entry.sourceReference||'').endsWith(name))return entry;
+  return {...entry,sourceReference:'Bestandsdatei: '+name};
+ };
  function status(){ const values=Object.values(catalog.entries);if($('nSizeAudit'))$('nSizeAudit').textContent=`${values.filter(e=>e.kind!=='mountain'&&e.sizeMode==='class').length} von ${values.filter(e=>e.kind!=='mountain').length} vorhandenen nicht-Berg-Sprites verwenden bereits die normierte sichtbare Höhe. Bisherige manuelle Breiten bleiben erhalten.`; $('nCatalogState').textContent=`${Object.keys(catalog.entries).length} Sprites · ${Object.keys(catalog.presets||{}).length} Presets · ${dirty?(serverWritable?'Speichern offen':'Export nötig'):(serverWritable?'gespeichert':'nur lokal')}`;}
  const slug=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,55);
  function suggest(a){const m=(a?.meta?.assetType==='nature_sprite'&&a.meta.data)?a.meta.data:(a?.meta||{}),r={...N.template(),...m};r.id=N.idOK(m.id)?m.id:(slug(a.name.replace(/\.[^.]+$/,''))||'asset')+'_01';
