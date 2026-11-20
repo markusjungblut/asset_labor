@@ -5472,9 +5472,16 @@ function importGeographyWorld(world){
    hillStrength:Number.isFinite(source.hillStrength)?source.hillStrength:0.5,
    features:Array.isArray(source.features)?source.features:[],
    temperature:source.temperature,humidity:source.humidity};
+  // Worldgen is authoritative for EVERY hex, including explicitly bare
+  // ground. Without a 'none' override the editor invents new groves on
+  // non-forest geography hexes and overpaints them with forest-floor texture.
+  if(!['none','light_forest','dense_forest'].includes(source.forestClass)){
+   $('catalogMessage').textContent='Geografie nicht übernommen: Ungültige Waldklasse auf Hex '+source.q+','+source.r+'.';
+   return false;
+  }
   next.push(item);
-  if(source.forestClass==='light_forest'||source.forestClass==='dense_forest'){
-   forestOverrides[key(q,r)]=source.forestClass;
+  forestOverrides[key(q,r)]=source.forestClass;
+  if(source.forestClass!=='none'){
    geographyHexes[key(q,r)]=true;
    // Preserve the numeric density as well as the broad forest class.
    if(Number.isFinite(source.forestDensity))
