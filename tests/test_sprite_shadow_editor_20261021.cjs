@@ -5,6 +5,9 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const win={addEventListener:(name,callback)=>{if(name==='DOMContentLoaded')win.initializer=callback;}};
+// The manual-polygon shadow module is now mandatory for validating the
+// real 254-profile catalog. Load it before the Sprite Shadow Editor.
+new Function('window',read('shadow-shapes.js'))(win);
 new Function('window',read('sprite-shadow-editor.js'))(win);
 const E=win.VedrasSpriteShadows;
 const initial=JSON.parse(read('assets/shadows/sprite_shadow_profiles.json'));
