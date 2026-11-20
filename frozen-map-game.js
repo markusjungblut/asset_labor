@@ -488,8 +488,8 @@
    const previous=output.textContent;
    try{
     if(!window.VedrasFrozenSeamAudit)throw Error('Bodennaht-Prüfung fehlt');
-    // Compare the user's ACTUAL screen instead of five hardcoded, often
-    // distant tiles. Decode bounded stored neighbor pairs, never whole map.
+    // Inspect actual visible neighbor pairs; the core audit decodes only
+    // bounded source strips, never the complete archived map.
     const raw=window.VedrasFrozenMap.indexedStore();
     const store=window.VedrasFrozenMap.linkedStore(raw);
     const view={...player.getPose(),width:canvas.clientWidth,
@@ -504,15 +504,31 @@
      progress:(done,total)=>{output.textContent='Bodennaht-Prüfung '+
       done+' / '+total+' Quellkachel-Paare …';}
     });
+    // Gutter alpha can be absent on the *other* side of an exclusive
+    // 512-unit owner without causing any visible seam. Also inspect the
+    // actual owned RGB/alpha pixels on both sides of each line.
+    const checker=window.VedrasGroundCoreSeams;
+    if(!checker)throw Error('Core-Nahtprüfung fehlt');
+    const tileIds=[...new Set(pairs.flat())];
+    const tiles=tileIds.map(id=>{
+     const [cx,cy]=id.split(',').map(Number);
+     return {id,x:cx*512,y:cy*512,size:512};
+    });
+    report.core=await checker.auditSaved(scene,store,tiles,manifest.cells,{
+     onProgress:(done,total)=>{output.textContent=
+      'Tatsächliche Ground-Kernkanten: '+done+' / '+total+' …';}
+    });
     const file=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),
      url=URL.createObjectURL(file),link=document.createElement('a');
     link.href=url;link.download='vedras_bodennahte_'+scene+'.json';
     document.body.appendChild(link);link.click();link.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
-    output.textContent='Originalboden geprüft: '+report.summary.compared+
-     '/'+report.summary.total+' Kachelpaare; '+
-     report.summary.likelySourceMismatch+
-     ' mit deutlicher Quellabweichung. JSON erstellt; kein Atlas verändert.';
+    output.textContent='Originalboden geprüft: '+
+     report.core.checked+' sichtbare Kernkanten; '+
+     report.core.failures.length+' echte Kernnaht-Befunde. '+
+     report.summary.gutterAlphaCandidates+
+     ' Gutter-Alpha-Abweichungen sind nur diagnostisch. '+
+     'JSON erstellt; kein Atlas verändert.';
    }catch(error){
     output.textContent='Bodennaht-Prüfung fehlgeschlagen: '+
      String(error?.message||error);
