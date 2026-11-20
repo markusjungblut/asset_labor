@@ -69,7 +69,8 @@ window.VedrasForest=(()=>{
    const climate=suitability(types.get(intendedBiome),c,intendedBiome);
    return {q:c.q,r:c.r,key:k,baseBiome,biome:intendedBiome,biomeId:intendedBiome,jungle:isJungle,suitability:climate,
     forestClass:'none',baseDensity:0,edgeInfluence:0,density:0,source:'none',
-    forestMode:options.mode,canopyCoverage:0,glade:false};
+    forestMode:options.mode,canopyCoverage:0,glade:false,
+    gladeX:0,gladeY:0,gladeRadius:0,manualClearing:false};
   });
   const byKey=new Map(info.map(c=>[c.key,c]));
   const originalByKey=new Map(cells.map(c=>[key(c.q,c.r),c]));
@@ -98,15 +99,16 @@ window.VedrasForest=(()=>{
      else if(nearest===2&&variation<.44*c.suitability){forestClass='light_forest';source='grove';}
     }
     const override=options.overrides[c.key];
-    if(override){forestClass=override;source='manual';}
+    if(override){forestClass=override;source=options.geographyHexes[c.key]===true?'geography':'manual';}
     c.forestClass=forestClass;c.source=source;
+    c.manualClearing=override==='none'&&options.geographyHexes[c.key]!==true;
     const densityOverride=options.densityOverrides[c.key];
     c.baseDensity=Number.isFinite(densityOverride)&&forestClass!=='none'?densityOverride:(forestClass==='dense_forest'?1:forestClass==='light_forest'?.44:0);
    }
-   // One-ring halo: a core forest raises tree probability in neighboring, otherwise open hexes.
-   // Overrides of 'none' intentionally remain clear.
+   // Edge trees must spill into otherwise bare Geography hexes without
+   // changing any imported forestClass. Explicit MANUAL clearings remain empty.
    for(const c of info){
-    if(!c.suitability||options.overrides[c.key]==='none')continue;
+    if(!c.suitability||c.manualClearing)continue;
     const maxNeighbor=Math.max(0,...DIRS.map(([dq,dr])=>byKey.get(key(c.q+dq,c.r+dr))?.baseDensity||0));
     c.edgeInfluence=clamp(maxNeighbor*(c.baseDensity?0.18:0.48)*options.edgeStrength*c.suitability,0,.46);
     c.density=clamp(c.baseDensity+c.edgeInfluence,0,1);
@@ -140,16 +142,25 @@ window.VedrasForest=(()=>{
    }
   }
   for(const c of info){
+   if(c.glade){
+    // A glade is a small, shifted opening INSIDE a woodland hex, not a
+    // completely empty 256-wide hexagon. The ground renderer and tree
+    // placement read exactly the same deterministic geometry.
+    c.gladeX=Math.round((random(options.seed,c.q,c.r,2041)-.5)*52);
+    c.gladeY=Math.round((random(options.seed,c.q,c.r,2042)-.5)*40);
+    c.gladeRadius=58+Math.round(random(options.seed,c.q,c.r,2043)*18);
+   }
    const base=c.forestClass==='dense_forest'?1:
     c.forestClass==='light_forest'?.49:c.edgeInfluence>.08?.17:0;
-   c.canopyCoverage=c.glade?0:clamp(options.canopyCover*base*
-    (.64+.36*c.density)*c.suitability,0,.98);
+   c.canopyCoverage=clamp(options.canopyCover*base*
+    (.64+.36*c.density)*c.suitability*(c.glade?.24:1),0,.98);
   }
   return info;
  }
  function treeTarget(cell){
   if(!cell?.suitability)return 0;
-  if(cell.glade)return 0;
+  // Keep a few trees on the perimeter, leaving only the opening itself bare.
+  if(cell.glade)return Math.max(3,Math.min(6,Math.round(3+3*(cell.baseDensity||cell.density||0))));
   if(cell.forestMode==='classic'){
    if(cell.forestClass==='dense_forest')return 5+Math.round(2*cell.density);
    if(cell.forestClass==='light_forest')return 3+Math.round(2*cell.density);
@@ -164,7 +175,7 @@ window.VedrasForest=(()=>{
  }
  function maxObjects(cell){
   if(!cell?.suitability)return 0;
-  if(cell.glade)return 3;
+  if(cell.glade)return 12;
   if(cell.forestMode==='canopy'){
    if(cell.forestClass==='dense_forest')return 36;
    if(cell.forestClass==='light_forest')return 22;
@@ -179,10 +190,17 @@ window.VedrasForest=(()=>{
   if(cell.forestClass==='light_forest')return 7;
   return cell.edgeInfluence>.1?5:4;
  }
+ function inGlade(cell,dx,dy){
+  if(!cell?.glade)return false;
+  const radius=cell.gladeRadius||65;
+  const x=(dx-(cell.gladeX||0))/radius,
+   y=(dy-(cell.gladeY||0))/(radius*.9);
+  return x*x+y*y<.94*.94;
+ }
  function preferredFamily(family,cell){
   if(!cell?.jungle)return true;
   // Warm-savanna trees belong to savannas rather than closed jungle canopy.
   return !['savanna_trees','conifers','snow_conifers','deciduous_trees','dry_bushes'].includes(family);
  }
- return {DIRS,key,distance,defaults,valid,random,suitability,jungleAllowed,generate,treeTarget,maxObjects,preferredFamily};
+ return {DIRS,key,distance,defaults,valid,random,suitability,jungleAllowed,generate,treeTarget,maxObjects,inGlade,preferredFamily};
 })();

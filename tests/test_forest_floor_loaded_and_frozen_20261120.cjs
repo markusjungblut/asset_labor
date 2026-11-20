@@ -94,8 +94,8 @@ test('the native 4x exporter fails closed rather than omitting forest material',
  const invalid=harness({source:{...floor,terrainCheck:{ok:false}},
   finalRendering:true});
  assert.throws(()=>invalid.api.draw(),/4×-Waldboden fehlt oder ist ungültig/);
- assert.match(app,/forest-floor-required-and-camera-pinned-v2/,
+ assert.match(app,/organic-forest-fringes-and-glades-v3/,
   'new atlas identity must not reuse previously published missing forest PNGs');
  const index=read('index.html');
- assert.match(index,/app\.js\?v=20261120-forest-floor-pinning-v2/);
+ assert.match(index,/app\.js\?v=20261120-organic-v1/);
 });
