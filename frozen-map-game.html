@@ -60,22 +60,26 @@ footer{box-sizing:border-box;flex:0 0 36px;height:36px;min-height:36px;
 <label><input type="checkbox" id="optGround4x"> <strong>Originalboden optional in 4×</strong> (standardmäßig 2×; 4× benötigt mehr RAM und Renderzeit)</label>
 <label><input type="checkbox" id="optScenery4x"> <strong>Original-Schatten und Objekte (4× A/B)</strong> – unveränderte Scenery-Quell-PNGs mit dem üblichen 2×-Schattenbild vergleichen; hoher RAM-Bedarf, nur bei echtem 4×-Atlas</label>
 <label><input type="checkbox" id="optAdaptiveGround"> Adaptive 4×-Dekodierung (automatisch aktiv; weniger RAM bei gleichem sichtbaren Detailbedarf)</label>
+<small>Wolken und Nebel-Animation sind vorübergehend deaktiviert, um Flackern und Renderlast zu reduzieren. Für technische Vergleiche: <code>?clouds=1</code>. Gespeicherte Kartenbilder bleiben unverändert.</small>
 <small>Eine Änderung lädt die Ansicht neu. Die gespeicherten Kartenbilder werden nicht verändert.</small>
 </div></details></header>
 <main><canvas id="game" aria-label="Fertig vorberechnete Spielkarte"></canvas><canvas id="fogOverlay" aria-hidden="true" hidden></canvas></main>
 <footer><span id="message">Gespeicherte Spielkarte wird geladen …</span>
 <span id="metrics">Keine Renderaufträge</span></footer>
+<script>/* Temporary preview default: no clouds, Fog fades or cloud PNG allocations.
+  * Re-enable the legacy implementation only for controlled A/B ?clouds=1. */
+window.VedrasCloudsDisabled=new URLSearchParams(location.search).get('clouds')!=='1';</script>
 <script src="cloud-artwork.js?v=20261102-step22-true-alpha"></script>
 <script src="frozen-map-view-policy.js?v=20261117-detail-ground"></script>
 <script src="frozen-map-fog-viewport.js?v=20261103-step25h"></script>
 <script src="frozen-map-profiler.js?v=20261103-step25d-churn"></script>
 <script src="frozen-map-world-blit.js?v=20261109-step25o"></script>
  <script src="authored-world-contract.js?v=20261118-semantic-world-v1"></script>
-<script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119"></script>
+<script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119&amp;clouds=off-20261120"></script>
 <script src="frozen-map-derived-2x.js?v=20261117-native-2x-scenery-linked"></script>
 <script src="frozen-map-derived-1x.js?v=20261102-step25b"></script>
 <script src="frozen-map-ground-detail.js?v=20261120-original-scenery-ab"></script>
 <script src="frozen-map-seam-audit.js?v=20261120-ownership-diagnostic-v1"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1"></script>
-<script src="frozen-map-game.js?v=20261120-original-scenery-ab"></script>
+<script src="frozen-map-game.js?v=20261120-original-scenery-ab&amp;clouds=off-20261120"></script>
 </body></html>
