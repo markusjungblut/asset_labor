@@ -163,6 +163,17 @@
   button.setAttribute('aria-controls','drawer_'+id);
   shortcuts.append(button);
  }
+ // The shadow strength-equalization control is nested two disclosure
+ // layers deep. Give it a direct, non-rendering editor shortcut.
+ if($('shadowToneControls')&&$('drawer_spriteShadowLab')){
+  const balanceShortcut=document.createElement('button');
+  balanceShortcut.type='button';
+  balanceShortcut.textContent='Schattenangleich';
+  balanceShortcut.dataset.drawer='spriteShadowLab';
+  balanceShortcut.dataset.focus='shadowToneControls';
+  balanceShortcut.setAttribute('aria-controls','drawer_spriteShadowLab');
+  shortcuts.append(balanceShortcut);
+ }
  inspector.querySelector('.paneheader')?.after(shortcuts);
  function openDrawer(id){
   const drawer=$('drawer_'+id);
@@ -172,7 +183,14 @@
  }
  shortcuts.addEventListener('click',event=>{
   const button=event.target.closest('button[data-drawer]');
-  if(button)openDrawer(button.dataset.drawer);
+  if(!button)return;
+  openDrawer(button.dataset.drawer);
+  if(button.dataset.focus){
+   const target=$(button.dataset.focus);
+   const detail=target?.closest('details');
+   if(detail)detail.open=true;
+   target?.scrollIntoView({behavior:'smooth',block:'center'});
+  }
  });
  // A jump to the Nature panel must NOT implicitly redistribute sprites.
  // Actual editing remains a separate, clearly labelled authoring action.

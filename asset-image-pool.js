@@ -33,6 +33,7 @@ window.VedrasImagePool=(()=>{
   let active=0,activeUpgrades=0,queue=[],resources=new Map(),generation=0,protectedPaths=new Set();
   let stats={ready:0,failed:0,evicted:0,requests:0,decodedBytes:0,
    peakBytes:0,promoted:0,promotionFailures:0,deferredUpgrades:0,
+   retries:0,recoveredFailures:0,
    identicalRedecodes:0,sourceChanges:0};
   const size=img=>Math.max(0,(img?.naturalWidth||0)*(img?.naturalHeight||0)*4);
   function prune(force=false,headroom=0,ignoreAge=false){
@@ -97,6 +98,10 @@ window.VedrasImagePool=(()=>{
      if(successful){
       const source=prepare(r.asset,img);
       r.img=source;r.asset.img=source;r.bytes=size(source);r.lastUsed=now();
+      if(r.failedAttempts)stats.recoveredFailures++;
+      r.failedAttempts=0;r.nextRetryAt=0;
+      if(r.retryTimer&&typeof clearTimeout==='function')clearTimeout(r.retryTimer);
+      r.retryTimer=null;
       r.ready=true;r.failed=false;
       // A decoded-image eviction is not a material edit. Keep the semantic
       // revision stable when the same versioned URL produces the same raster
@@ -133,7 +138,25 @@ window.VedrasImagePool=(()=>{
       // Keep the old small image usable. A broken original is never a blank
       // frame or a reason to rebuild unrelated terrain chunks.
       stats.promotionFailures++;r.failedUpgrade=true;
-     }else{stats.failed++;r.failed=true;r.resolve(null);}
+     }else{
+      stats.failed++;r.failed=true;
+      r.failedAttempts=(r.failedAttempts||0)+1;
+      // A transient failed PNG used to be cached forever: every future
+      // ensure() returned the same already-resolved null promise. Retry
+      // with a bounded backoff, only for currently requested/protected art.
+      const delay=Math.min(60000,1500*2**Math.min(5,r.failedAttempts-1));
+      r.nextRetryAt=now()+delay;
+      r.resolve(null);
+      if(typeof setTimeout==='function'){
+       r.retryTimer=setTimeout(()=>{
+        r.retryTimer=null;
+        if(generation!==r.generation||
+           resources.get(r.asset.path)!==r)return;
+        if(protectedPaths.has(r.asset.path)||
+           now()-r.lastUsed<5000)ensure(r.asset,r.priority);
+       },delay);
+      }
+     }
      pump();
     };
     img.onload=()=>finish(!!img.naturalWidth);
@@ -146,6 +169,16 @@ window.VedrasImagePool=(()=>{
    let r=resources.get(asset.path);
    if(r){
     r.lastUsed=now();
+    if(r.failed&&!r.loading&&now()>=(r.nextRetryAt||0)){
+     if(r.retryTimer&&typeof clearTimeout==='function')
+      clearTimeout(r.retryTimer);
+     r.retryTimer=null;r.failed=false;r.generation=generation;
+     r.priority=Math.max(r.priority||0,priority);
+     r.order=stats.requests++;
+     r.promise=new Promise(resolve=>{r.resolve=resolve;});
+     stats.retries++;queue.push(r);pump();
+     return r.promise;
+    }
     if(r.ready){
      const longest=Math.max(r.img?.naturalWidth||r.img?.width||0,
       r.img?.naturalHeight||r.img?.height||0);
@@ -214,7 +247,11 @@ window.VedrasImagePool=(()=>{
    generation++;
    for(const r of queue)if(!r.upgrade)r.resolve(null);
    queue=[];
-   for(const r of resources.values())if(r.ready){r.asset.img=null;}
+   for(const r of resources.values()){
+    if(r.retryTimer&&typeof clearTimeout==='function')
+     clearTimeout(r.retryTimer);
+    if(r.ready)r.asset.img=null;
+   }
    resources.clear();stats.decodedBytes=0;
   }
   async function originals(assets){

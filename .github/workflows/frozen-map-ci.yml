@@ -12,9 +12,20 @@ on:
     paths:
       - 'frozen-map-*.js'
       - 'frozen-map-game.html'
+      - 'frozen-ground-core-seams.js'
       - 'cloud-artwork.js'
+      - 'shadow-tone.js'
+      - 'shadow-system.js'
+      - 'tests/test_quality_ground_and_shadow_tone_20261117.cjs'
+      - 'tests/test_frozen_scenery_refresh_20261117.cjs'
+      - 'tests/test_frozen_ground_seam_audit_20261118.cjs'
+      - 'tests/test_frozen_complete_visible_atlas_20261118.cjs'
+      - 'tests/test_frozen_near_publication_20261118.cjs'
+      - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_frozen_edges_20261118.cjs'
+      - 'tests/automated_browser_shadow_balance_20261120.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   push:
@@ -22,9 +33,20 @@ on:
     paths:
       - 'frozen-map-*.js'
       - 'frozen-map-game.html'
+      - 'frozen-ground-core-seams.js'
       - 'cloud-artwork.js'
+      - 'shadow-tone.js'
+      - 'shadow-system.js'
+      - 'tests/test_quality_ground_and_shadow_tone_20261117.cjs'
+      - 'tests/test_frozen_scenery_refresh_20261117.cjs'
+      - 'tests/test_frozen_ground_seam_audit_20261118.cjs'
+      - 'tests/test_frozen_complete_visible_atlas_20261118.cjs'
+      - 'tests/test_frozen_near_publication_20261118.cjs'
+      - 'tests/test_river_ground_readiness_20261118.cjs'
       - 'tests/test_rendering_step*.cjs'
       - 'tests/automated_browser_frozen_map.cjs'
+      - 'tests/automated_browser_frozen_edges_20261118.cjs'
+      - 'tests/automated_browser_shadow_balance_20261120.cjs'
       - 'tests/fixtures/frozen-ci-seed.html'
       - '.github/workflows/frozen-map-ci.yml'
   workflow_dispatch:
@@ -50,16 +72,47 @@ jobs:
             /.github/workflows/frozen-map-ci.yml
             /tests/test_rendering_step*.cjs
             /tests/automated_browser_frozen_map.cjs
+            /tests/automated_browser_frozen_edges_20261118.cjs
+            /tests/automated_browser_shadow_balance_20261120.cjs
             /tests/fixtures/frozen-ci-seed.html
+            /authored-world-contract.js
             /frozen-map-*.js
+            /frozen-map-seam-audit.js
+            /frozen-ground-core-seams.js
             /frozen-map-game.html
             /cloud-artwork.js
+            /shadow-tone.js
+            /shadow-system.js
+            /shadow-shapes.js
+            /sprite-shadow-editor.js
+            /render-quality-policy.js
+            /world-tile-streamer.js
+            /index.html
+            /app.js
+            /tests/test_quality_ground_and_shadow_tone_20261117.cjs
+            /tests/test_frozen_scenery_refresh_20261117.cjs
+            /tests/test_frozen_ground_seam_audit_20261118.cjs
+            /tests/test_frozen_complete_visible_atlas_20261118.cjs
+            /tests/test_frozen_near_publication_20261118.cjs
+            /tests/test_river_ground_readiness_20261118.cjs
       - name: Node 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Execute frozen renderer regressions (steps 21-25)
         run: node --test tests/test_rendering_step2[1-5]*.cjs
+      - name: Ground source quality and shadow-tone unit contracts
+        run: node --test tests/test_quality_ground_and_shadow_tone_20261117.cjs
+      - name: Linked Ground and scenery-only shadow refresh contracts
+        run: node --test tests/test_frozen_scenery_refresh_20261117.cjs
+      - name: Original Ground pixel-gutter seam audit contracts
+        run: node --test tests/test_frozen_ground_seam_audit_20261118.cjs
+      - name: Complete atlas zoom-Fog authorization regression
+        run: node --test tests/test_frozen_complete_visible_atlas_20261118.cjs
+      - name: Native 4x near atlas publication – exact tile and source PNG audit
+        run: node --test tests/test_frozen_near_publication_20261118.cjs
+      - name: River-only immutable Ground source readiness contracts
+        run: node --test tests/test_river_ground_readiness_20261118.cjs
       - name: Cache Playwright Firefox binary (short CI runtime)
         uses: actions/cache@v4
         with:
@@ -70,6 +123,18 @@ jobs:
           mkdir -p .ci-tools
           npm --prefix .ci-tools install --no-fund --no-audit --no-save playwright@1.57.0
           .ci-tools/node_modules/.bin/playwright install --with-deps firefox
+      - name: Real Firefox shadow tone, family and 2x/4x native pixel regression
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_shadow_balance_20261120.cjs
+      - name: Real Firefox pixel test for baked edge seams and completed local atlas
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_BROWSER: firefox
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_frozen_edges_20261118.cjs
       - name: Synthetic 120-WorldTile real Firefox test (pan, 1x/2x, fog, caches)
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules

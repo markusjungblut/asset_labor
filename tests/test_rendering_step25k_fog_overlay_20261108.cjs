@@ -141,13 +141,15 @@ test('zoom preview captures both opaque world and transparent overlay',async()=>
  f.player.draw();assert.ok(f.player.report().baseFrames>=2);
  f.player.stop();
 });
-test('HTML keeps pointer input on original canvas; new overlay requires explicit opt-in',()=>{
+test('HTML keeps pointer input on original canvas; 4x enables capped Fog except explicit opt-out',()=>{
  assert.match(html,/id="game"/);
  assert.match(html,/id="fogOverlay" aria-hidden="true" hidden/);
  assert.match(html,/#fogOverlay\{[^}]+pointer-events:none/);
  assert.match(game,/params\.get\('fogLayer'\)==='1'/);
  assert.match(game,/fogOverlay\.hidden=!layeredFog/);
- assert.match(runtime,/fogCtx\.clearRect\(0,0,dw,dh\)/);
+ assert.match(runtime,/fogCtx\.clearRect\(0,0,fw,fh\)/);
+ assert.match(runtime,/const overlayDpr=Math\.min\(dpr,cap\)/);
+ assert.match(game,/groundDetailRequested&&params\.get\('fogLayer'\)!=='0'/);
  assert.match(runtime,/baseStamp\.decodedRevision===decodedRevision/);
  assert.match(runtime,/baseStamp\.cloudRevision===cloudRevision/);
  assert.doesNotMatch(runtime,/deleteDatabase\(|bakeWorldTile\(/);

@@ -182,8 +182,24 @@ window.VedrasStaticMapZipInspector=(()=>{
   requireValue(typeof m.complete==='boolean'&&
    (!m.complete||(m.expectedTiles!==null&&m.expectedTiles===m.exportedTiles)),
    'Unvollständiges ZIP ist als vollständig markiert');
+  requireValue(m.groundSeamPolicy===undefined||m.groundSeamPolicy===null||
+   m.groundSeamPolicy==='exclusive',
+   'unbekannte Bodennaht-Richtlinie im Archiv');
   requireValue(Array.isArray(m.cells)&&m.cells.length<=LIMITS.cells,
    'Hex-Geometrie fehlt oder ist zu groß');
+  // Optional semantic data extends schema v1 without invalidating earlier
+  // image-only ZIPs. Do not trust unverified world coordinates on restore.
+  if(m.authoredWorld!==undefined){
+   const contract=window.VedrasAuthoredWorld;
+   requireValue(contract&&contract.validate(m.authoredWorld),
+    'ungültige editierbare Weltbeschreibung');
+   requireValue(m.authoredWorld.worldCells.length===m.cells.length,
+    'Hexwelt und Atlas-Geometrie haben unterschiedliche Zellzahlen');
+   const expected=new Set(m.cells.map(c=>c.q+','+c.r));
+   requireValue(expected.size===m.cells.length&&
+    m.authoredWorld.worldCells.every(c=>expected.has(c.q+','+c.r)),
+    'Hexwelt und Atlas-Geometrie stimmen nicht überein');
+  }
   const used=new Set(['manifest.json']),ids=new Set();
   for(const tile of m.tiles){
    requireValue(tile&&/^-?\d+,-?\d+$/.test(tile.id||'')&&

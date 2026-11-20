@@ -20,7 +20,9 @@ const files=new Set([
  'frozen-map-view-policy.js','frozen-map-fog-viewport.js',
  'frozen-map-world-blit.js',
  'frozen-map-derived-1x.js',
- 'frozen-map-derived-2x.js','cloud-artwork.js'
+ 'frozen-map-derived-2x.js','frozen-map-ground-detail.js',
+ 'frozen-map-seam-audit.js','frozen-ground-core-seams.js','cloud-artwork.js',
+ 'authored-world-contract.js'
 ]);
 const run=async()=>{
  fs.mkdirSync(OUTPUT,{recursive:true});
@@ -806,7 +808,7 @@ const run=async()=>{
   // CI-only integration gate on the synthetic 120-tile atlas: the real
   // Firefox viewer must enable and disable resident 1x safely via its UI.
   const fallbackPage=await ctx.newPage();
-  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1');
+  await fallbackPage.goto(origin+'/frozen-map-game.html?scene='+SCENE+'&lod=near&perf=1&fallbackAtlas=0');
   await fallbackPage.waitForFunction(n=>
    window.__vedrasFrozenGameTest?.stats()?.saved===n,COUNT,{timeout:25000});
   assert.equal(await fallbackPage.locator('#optFallbackAtlas').isChecked(),false);

@@ -85,7 +85,7 @@ window.VedrasStaticMapZipImporter=(()=>{
      marker.onerror=abort;
     });
    },
-   async publish(scene,token,manifest,count){
+   async publish(scene,token,manifest,count,authoredWorld=null){
     return transaction('readwrite',(os,done,abort)=>{
      const marker=os.get(pendingKey(scene));
      marker.onsuccess=()=>{
@@ -93,6 +93,9 @@ window.VedrasStaticMapZipImporter=(()=>{
       const size=os.count(range(scene));
       size.onsuccess=()=>{
        if(size.result!==count+1){abort();return;}
+       if(authoredWorld)os.add({key:prefix(scene)+'world',schema:SCHEMA,
+        sceneKey:scene,kind:'vedras-authored-world-v1',data:authoredWorld,
+        savedAt:new Date().toISOString()});
        os.add(manifest);
        os.delete(pendingKey(scene));
        done(true);
@@ -246,6 +249,7 @@ window.VedrasStaticMapZipImporter=(()=>{
    levels:[source.level],cells:parsed,pose,
    expectedTiles:source.expectedTiles,
    clouds,complete:source.complete,importedFromScene:source.scene,
+   groundSeamPolicy:source.groundSeamPolicy==='exclusive'?'exclusive':null,
    importedLocalPreviewOnly:true,savedAt:new Date().toISOString()};
  }
  function cropValid(c){
@@ -264,6 +268,10 @@ window.VedrasStaticMapZipImporter=(()=>{
    fail('ZIP ist unvollständig; Teilkartenimport muss gesondert bestätigt werden');
   // Validate all lightweight metadata BEFORE starting an IndexedDB write.
   const draft=mapManifest(source,'v1-00000000');
+  const authoredWorld=source.authoredWorld===undefined?null:
+   window.VedrasAuthoredWorld?.clone(source.authoredWorld);
+  if(source.authoredWorld!==undefined&&!authoredWorld)
+   fail('ungültige Weltbeschreibung oder fehlender Weltdaten-Vertrag');
   if(!source.tiles.every(t=>t.layers.some(l=>l.layer==='ground'||l.layer==='terrain')&&
    t.layers.some(l=>l.layer==='scenery'||l.layer==='structures')))
    fail('mindestens eine fertige Ground- und Scenery-Schicht pro Kachel erforderlich');
@@ -303,7 +311,9 @@ window.VedrasStaticMapZipImporter=(()=>{
     try{onProgress({done:i+1,total:source.tiles.length,scene});}catch(_){}
    }
    const manifest={...draft,key:prefix(scene)+'manifest',sceneKey:scene};
-   await db.publish(scene,token,manifest,source.tiles.length);
+   // Publish the verified semantic world AND geometry manifest in one
+   // transaction; incomplete imports remain invisible to saved-map browsers.
+   await db.publish(scene,token,manifest,source.tiles.length,authoredWorld);
    published=true;
    return {scene,sourceScene:source.scene,level:source.level,
     tiles:source.tiles.length,complete:source.complete,

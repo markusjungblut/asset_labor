@@ -113,7 +113,7 @@ test('overview1x=0 is an exact Step-25A reference without 1x reads',async()=>{
 });
 test('cache never rasterizes 1x and 2x of the same world tile together',()=>{
  assert.match(runtime,/const chosen=new Map\(\)/);
- assert.match(runtime,/if\(!previous\|\|entry\.variant===activeVariant\)/);
+ assert.match(runtime,/if\(!previous\|\|fidelity\(entry\)>fidelity\(decoded\.get\(previous\)\)\)/);
  assert.match(runtime,/const bufferKeys=\[\.\.\.chosen\.values\(\)\]\.sort\(\)/);
  assert.match(runtime,/return \(ta\.y-tb\.y\)\|\|\(ta\.x-tb\.x\)/);
 });

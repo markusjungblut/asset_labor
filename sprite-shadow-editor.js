@@ -67,11 +67,28 @@ window.VedrasSpriteShadows=(()=>{
     small=obj.natureMeta?.kind==='ground_cover';
   if(x.enabled===false||x.opacity<=0)return;
   const globalStrength=strength===null?current.global.strength:strength;
-  const alpha=clamp(globalStrength*x.opacity*(small?.28:1)*(family==='snow_fallen_logs'?.8:1),0,.95);
+  const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
+  const familyFactor=(small?.28:1)*(family==='snow_fallen_logs'?.8:1);
+  const alpha=clamp(globalStrength*opacity*
+   (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor),0,.95);
   if(alpha<=0)return;
   if(x.manual?.polygons?.length){
+   // Many boulders have manually drawn long casts but no contact
+   // footprint: unlike automatic shadows, their base looks ungrounded.
+   // Add a compact, shared contact for rocks ONLY. Preserve every
+   // authored polygon, its direction and the original sprite PNG.
+   if(obj?.natureMeta?.kind==='rock'&&x.contact>0){
+    const originX=p.x+width*x.offsetX,originY=p.y+width*x.offsetY;
+    ctx.save();ctx.globalCompositeOperation='source-over';
+    ctx.globalAlpha=Math.min(.48,alpha*.46);
+    ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
+    ctx.filter='blur('+Math.max(1,Math.min(8,x.softness))+'px)';
+    ctx.beginPath();ctx.ellipse(originX-width*.10,originY,
+     width*.23,Math.max(1,width*.075),0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+   }
    window.VedrasManualShadows.render(ctx,x.manual,p,width,alpha,Math.min(30,x.softness));
-   return; // manual footprints supersede generic contact/silhouette
+   return; // custom cast replaces generic silhouette, but not rock contact
   }
   const height=width*silhouette.aspect,ax=clamp(Number(anchor.x??.5),0,1),
     ay=clamp(Number(anchor.y??.96),0,1),rad=x.angle*Math.PI/180,
@@ -80,7 +97,7 @@ window.VedrasSpriteShadows=(()=>{
     blur=Math.min(30,x.softness);
   ctx.save();ctx.globalCompositeOperation='source-over';
   ctx.globalAlpha=clamp(alpha*(log?.65:.48),0,.94);
-  ctx.fillStyle='#203131';ctx.filter='blur('+Math.max(0,blur*.65)+'px)';
+  ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';ctx.filter='blur('+Math.max(0,blur*.65)+'px)';
   // Contact ellipse is long for logs, compact for trees and stones.
   const contactX=ox+castX*(log?.40:.22),contactY=oy+castY*(log?.36:.20);
   const rx=width*(log?.53:.24)*Math.max(.25,x.width)*(1+x.contact),
@@ -154,8 +171,11 @@ window.VedrasSpriteShadows=(()=>{
   const x=profile(obj.asset),family=obj.natureMeta?.family,
    log=family==='fallen_logs'||family==='snow_fallen_logs';
   const globalStrength=strength===null?current.global.strength:strength;
-  const alpha=globalStrength*x.opacity*(kind==='ground_cover'?.28:1)*
+  const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
+  const familyFactor=(kind==='ground_cover'?.28:1)*
    (family==='snow_fallen_logs'?.8:1);
+  const alpha=globalStrength*opacity*
+   (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor);
   if(x.enabled===false||!(alpha>0))return;
   // Hand-painted masks, very small objects, and unsupported canvases keep
   // the original exact renderer. No cached stamp can override manual art.
@@ -170,6 +190,7 @@ window.VedrasSpriteShadows=(()=>{
   // Engine.set() also flushes all cached bitmaps immediately.
   const id=JSON.stringify([imageId(silhouette),obj.asset?.path,
    nominal,anchor.x??.5,anchor.y??.96,globalStrength,
+   window.VedrasShadowTone?.revision?.()||0,
    family||'',kind||'',x.angle,x.opacity,x.length,x.width,x.softness,
    x.offsetX,x.offsetY,x.contact]);
   let raster=rasterCache.get(id);
@@ -292,7 +313,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    const cv=document.createElement('canvas');cv.width=256;
    cv.height=Math.max(8,Math.round(cv.width*aspect));
    const g=cv.getContext('2d');g.drawImage(img,b.sx,b.sy,b.sw,b.sh,0,0,cv.width,cv.height);
-   g.globalCompositeOperation='source-in';g.fillStyle='#203131';g.fillRect(0,0,cv.width,cv.height);
+   g.globalCompositeOperation='source-in';g.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';g.fillRect(0,0,cv.width,cv.height);
    shape={canvas:cv,aspect};
   }
   if(isMountainAsset(a)){
@@ -471,6 +492,31 @@ window.addEventListener('DOMContentLoaded',()=>{
   'mountainContactLength'])$(id)?.addEventListener('input',()=>{
    if(isMountainAsset(asset()))preview();
   });
+ // Tonal calibration is a local visual preview, deliberately separate from
+ // the versioned server-side sprite profile JSON. No PNGs or stored maps change.
+ const Tone=window.VedrasShadowTone;
+ if(Tone){
+  const ui=[['shadowToneBalance','shadowToneBalanceValue','balance']];
+  function refreshTone(){
+   const values=Tone.get();
+   for(const [slider,label,key] of ui){
+    if($(slider))$(slider).value=String(Math.round(values[key]*100));
+    if($(label))$(label).textContent=Math.round(values[key]*100)+' %';
+   }
+  }
+  for(const [slider,,key] of ui){
+   $(slider)?.addEventListener('input',()=>{
+    Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
+    refreshTone();refresh();core.requestDraw();
+   });
+   // Only invalidate the expensive WorldTile scenery once on release.
+   $(slider)?.addEventListener('change',()=>core.invalidateScenery?.());
+  }
+  $('shadowToneReset')?.addEventListener('click',()=>{
+   Tone.set(Tone.defaults());refreshTone();refresh();core.invalidateScenery?.();
+  });
+  refreshTone();
+ }
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.
  for(const id of ['shadowGlobalStrength','shadowGeneralStrength'])$(id)?.addEventListener('input',()=>{
   const value=Number($(id).value)/100;

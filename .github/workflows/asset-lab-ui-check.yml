@@ -8,6 +8,11 @@ on:
       - style.css
       - ui-organizer.js
       - app.js
+      - asset-image-pool.js
+      - tests/test_frozen_4x_source_consistency_20261118.cjs
+      - tests/test_editor_zoom_and_auto_4x_20261119.cjs
+      - tests/test_ground_texture_source_repeat_20261119.cjs
+      - tests/test_forest_floor_loaded_and_frozen_20261120.cjs
       - tests/test_asset_lab_ui_cleanup_20261112.cjs
       - tests/automated_browser_asset_lab_ui_cleanup.cjs
       - tests/test_integration_entrypoints_20261117.cjs
@@ -47,6 +52,13 @@ jobs:
             /tests/test_integration_entrypoints_20261117.cjs
             /tests/test_geography_v2.cjs
             /tests/test_rendering_step25ab_integrated_flags_20261117.cjs
+            /tests/test_frozen_4x_source_consistency_20261118.cjs
+            /tests/test_editor_zoom_and_auto_4x_20261119.cjs
+            /tests/test_ground_texture_source_repeat_20261119.cjs
+            /tests/test_forest_floor_loaded_and_frozen_20261120.cjs
+            /forest-ground.js
+            /tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
+            /scripts/rendering-step16a-audit.mjs
             /*.js
             /frozen-map-game.html
       - name: Node 22
@@ -55,6 +67,10 @@ jobs:
           node-version: '22'
       - name: Verify UI, editor-to-game integration, and opt-in cache defaults
         run: node --test tests/test_asset_lab_ui_cleanup_20261112.cjs tests/test_integration_entrypoints_20261117.cjs tests/test_rendering_step25ab_integrated_flags_20261117.cjs
+      - name: Frozen source consistency and transient asset-load recovery
+        run: node --test tests/test_frozen_4x_source_consistency_20261118.cjs tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
+      - name: Editor cold-water zoom sources and one-click final 4x scene
+        run: node --test tests/test_editor_zoom_and_auto_4x_20261119.cjs tests/test_ground_texture_source_repeat_20261119.cjs tests/test_forest_floor_loaded_and_frozen_20261120.cjs
       - name: Verify current Geography v2.1.1 with existing shared-engine regression
         run: node tests/test_geography_v2.cjs
       - name: Cache pinned Firefox binary
