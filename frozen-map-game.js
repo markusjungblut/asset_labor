@@ -27,10 +27,11 @@
  const twoXStore=window.VedrasFrozenDerived2x.createStore();
  const oneXStore=window.VedrasFrozenDerived1x.createStore({source:twoXStore});
  // Default play uses a bounded 2x frame. Native 4x remains opt-in only.
- const groundDetailRequested=params.get('ground4x')==='1';
+ const originalSceneryRequested=params.get('scenery4x')==='1';
+ const groundDetailRequested=params.get('ground4x')==='1'||originalSceneryRequested;
  const adaptiveGroundDecode=groundDetailRequested&&
   params.get('groundDecode')!=='full';
- let groundDetailActive=false;
+ let groundDetailActive=false,originalSceneryActive=false;
  const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
   standard:twoXStore,overview:oneXStore,
   original:window.VedrasFrozenMap.indexedStore()
@@ -78,6 +79,7 @@
   ['optFogLayer','fogLayer',layeredFog],
   ['optFallbackAtlas','fallbackAtlas',fallbackAtlas],
   ['optGround4x','ground4x',groundDetailRequested],
+  ['optScenery4x','scenery4x',originalSceneryRequested],
   ['optAdaptiveGround','groundDecode',adaptiveGroundDecode]
  ]){
   const checkbox=$(id);
@@ -242,7 +244,9 @@
   groundProbe=lod==='near'?await groundDetailStore.probe(scene,lod):null;
   const true4x=lod==='near'&&groundProbe?.available===true;
   groundDetailActive=groundDetailRequested&&true4x;
+  originalSceneryActive=groundDetailActive&&originalSceneryRequested;
   groundDetailStore.setEnabled(groundDetailActive);
+  groundDetailStore.setOriginalScenery(originalSceneryActive);
   twoXStore.setEnabled(true4x);
   const qualityOption=$('optGround4x');
   if(qualityOption){
@@ -251,7 +255,15 @@
     'Keine durchgängig nachgewiesenen 4×-Originalboden-PNGs. Manifest-DPR reicht nicht aus.':
     'Nachgewiesene originale 4×-Bodenkacheln verwenden';
   }
-  oneXStore.setEnabled(overview1x&&lod==='near');
+  // Disable 1x overview when comparing the original 4x shadow raster.
+  oneXStore.setEnabled(overview1x&&lod==='near'&&!originalSceneryActive);
+  const sceneryOption=$('optScenery4x');
+  if(sceneryOption){
+   sceneryOption.disabled=!true4x;
+   sceneryOption.title=true4x?
+    'A/B: unveränderte originale Schatten-PNGs, benötigt mehr RAM':
+    'Nur mit echten 4×-Quell-PNGs verfügbar';
+  }
   startPose=manifest.pose||{zoom:.81,panX:0,panY:0,dpr:1,projectY:.85};
   // The browser may have a different DPR than the authoring machine;
   // image tiles retain their stored pixel density, not new CPU raster jobs.
@@ -289,7 +301,9 @@
   output.textContent=(twoXStore.stats().enabled?
    '2×-Spielansicht: 4×-Quellkacheln werden beim ersten Besuch einmalig verkleinert und separat gespeichert. ':'')+
    (directRenderer?'Direktvergleich: keine Panorama-/Wolkenraster-Caches. ':'')+
-   (groundDetailActive?'4×-Originalboden durch PNG-Prüfung bestätigt; Objekte bleiben 2×. ': '')+
+   (originalSceneryActive?
+    'Original-Scenery-A/B: Schatten und Objekte direkt aus unveränderten Quell-PNGs; 1×-LOD deaktiviert. ':
+    groundDetailActive?'4×-Originalboden durch PNG-Prüfung bestätigt; Objekte bleiben 2×. ':'')+
    (groundDetailRequested&&!groundDetailActive?
     'Kein durchgängig echter 4×-Boden in den geprüften Quellkacheln; höheres Display-Raster würde keine Details erzeugen. ': '')+
    (groundProbe?'Originalboden-Referenz: '+groundProbe.original4x+'/'+
