@@ -146,7 +146,11 @@ window.VedrasShadows=(()=>{
    smoothstep(-width*.05,width*.025,t);
   const cover=Math.max(.90*castFade,.56*contactFade);
   const opacity=window.VedrasShadowTone?.opacity(s.opacity,.44)??s.opacity;
-   return Math.min(.90,Math.max(0,opacity*global*cover));
+  // Mountain alpha has a built-in .90 silhouette-coverage ceiling while
+  // ordinary sprite casts are full coverage. Equalization must normalize
+  // these two rendering families WITHOUT altering geometry or old balance=0.
+  const gain=window.VedrasShadowTone?.coverageGain?.(.90)??1;
+  return Math.min(.90,Math.max(0,opacity*global*cover*gain));
  }
  function paintMountain(ctx,origin,width,config,global=1){
   if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||global<=0)return null;
