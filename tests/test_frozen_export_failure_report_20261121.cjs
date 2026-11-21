@@ -27,7 +27,7 @@ test('invalid PNGs remain unpublishable; reports never modify or clear stored 4x
 });
 test('Firefox receives attached downloadable JSON with full tile reasons',()=>{
  assert(html.includes('id="frozenReportDownload"'));
- assert(html.includes('app.js?v=20261121-frozen-diagnostics-v1'));
+ assert(html.includes('app.js?v=20261120-organic-v1&amp;diagnostics=20261121'));
  assert(app.includes("document.body.appendChild(link);link.click();link.remove()"));
  assert(app.includes("link.download='vedras_4x_fehler_'+report.scene+'.json'"));
  assert(app.includes("window.__vedrasLastFrozenExportReport=null"));
