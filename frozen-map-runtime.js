@@ -143,7 +143,8 @@ window.VedrasFrozenMap=(()=>{
  // neighbor content and reveals the cloud background as rectangular lines.
  function create({canvas,fogCanvas=null,storage=indexedStore(),decode=null,encode=encodeImage,onStatus=()=>{},
     maxDecodedPixels=95000000,useLayerCache=true,profiler=null,
-    overview1x=false,largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
+    overview1x=false,overviewEnterZoom=.60,overviewLeaveZoom=.72,
+    largeViewportCache=true,prefetchGuard=true,streamingWorldCache=true,
     adaptiveCloudCache=true,autoCloudStrategy=true,fogViewportCull=true,
     worldCacheFastReuse=true,adaptiveWorldPad=true,
     sparseWorldBlit=true,indexedTileSelection=true,
@@ -229,8 +230,12 @@ window.VedrasFrozenMap=(()=>{
   };
   const desiredVariant=()=>{
    if(!overview1x||!storage.getVariant)return '2x';
-   if(activeVariant==='2x'&&pose?.zoom<=.60)activeVariant='1x';
-   else if(activeVariant==='1x'&&pose?.zoom>=.72)activeVariant='2x';
+   // Mobile may keep the cheaper 1x atlas for longer. Hysteresis avoids
+   // repeated 1x/2x storage decodes at a moving zoom threshold.
+   const enter=Math.max(.2,Math.min(2,Number(overviewEnterZoom)||.60));
+   const leave=Math.max(enter+.08,Number(overviewLeaveZoom)||.72);
+   if(activeVariant==='2x'&&pose?.zoom<=enter)activeVariant='1x';
+   else if(activeVariant==='1x'&&pose?.zoom>=leave)activeVariant='2x';
    return activeVariant;
   };
   const viewportPolicy=window.VedrasFrozenViewPolicy||null;

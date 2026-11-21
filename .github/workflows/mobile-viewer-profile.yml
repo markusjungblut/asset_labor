@@ -1,0 +1,37 @@
+name: Viewer – Mobile device profile and gesture contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frozen-map-game.js'
+      - 'frozen-map-runtime.js'
+      - 'frozen-map-view-policy.js'
+      - 'frozen-map-game.html'
+      - 'tests/test_mobile_viewer_profile_20261120.cjs'
+      - 'tests/test_quality_ground_and_shadow_tone_20261117.cjs'
+      - '.github/workflows/mobile-viewer-profile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*.js
+            /*.html
+            /tests/test_mobile_viewer_profile_20261120.cjs
+            /tests/test_rendering_step25ab_integrated_flags_20261117.cjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check memory limits, LOD hysteresis and touch gesture wiring
+        run: node --test tests/test_mobile_viewer_profile_20261120.cjs tests/test_rendering_step25ab_integrated_flags_20261117.cjs

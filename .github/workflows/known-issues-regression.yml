@@ -10,8 +10,11 @@ on:
       - 'tests/test_organic_forest_edges_glades_20261120.cjs'
       - 'tests/test_forest_canopy_generation_20261021.cjs'
       - 'forest.js'
+      - 'nature_catalog.js'
+      - 'tests/test_nature_source_guards_20261120.cjs'
       - 'forest-ground.js'
       - 'nature-ui.js'
+      - 'tests/test_nature_runtime_filename_gate_20261120.cjs'
       - 'index.html'
       - 'app.js'
       - 'tests/test_mountain_shadow_field.cjs'
@@ -58,10 +61,10 @@ jobs:
           node --test tests/test_quality_ground_and_shadow_tone_20261117.cjs tests/test_frozen_scenery_refresh_20261117.cjs tests/test_sprite_shadow_editor_20261021.cjs tests/test_mountain_shadow_field.cjs
       - name: 4×-Export, Archivkennung, Kartenöffnung und Viewer-LOD
         run: |
-          node --test tests/test_frozen_4x_source_consistency_20261118.cjs tests/test_frozen_complete_visible_atlas_20261118.cjs tests/test_frozen_near_publication_20261118.cjs tests/test_rendering_step25ab_integrated_flags_20261117.cjs tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
+          node --test tests/test_nature_source_guards_20261120.cjs tests/test_frozen_4x_source_consistency_20261118.cjs tests/test_frozen_complete_visible_atlas_20261118.cjs tests/test_frozen_near_publication_20261118.cjs tests/test_rendering_step25ab_integrated_flags_20261117.cjs tests/test_rendering_step16b_image_content_lifecycle_20261030.cjs
       - name: Geografie-Mix mit 26 Terrain-Typen und ≥200 Hochlandfeldern
         run: |
-          node --test tests/test_geography_v2.cjs tests/test_geography_balanced_mix.cjs
+          node --test tests/test_geography_v2.cjs tests/test_geography_balanced_mix.cjs tests/test_nature_runtime_filename_gate_20261120.cjs
       - name: ZIP-Import/Export und GUI-Verträge
         run: |
           node --test tests/test_integrated_map_zip_contract_20261117.cjs tests/test_static_map_zip_inspector_20261117.cjs tests/test_static_map_zip_importer_20261117.cjs tests/test_asset_lab_ui_cleanup_20261112.cjs

@@ -38,6 +38,18 @@ window.VedrasGroundCoreSeams=(()=>{
   const region=cellsSet(cells),g=sourceGeometry(canvas.width,canvas.height,tile,pad);
   const band=Math.max(1,Math.min(6,Math.floor(width)));
   let repaired=0,unresolved=0,examined=0;
+  // Only a few coordinates are retained: no full-size error bitmap, no
+  // history or changes to original PNG files.
+  const unresolvedSamples=[];
+  const recordUnresolved=(tx,ty,side)=>{
+   unresolved++;
+   if(unresolvedSamples.length>=5)return;
+   const wx=tile.x+(tx+.5)/g.dx-pad,
+    wy=tile.y+(ty+.5)/g.dy-pad;
+   unresolvedSamples.push({sourceX:tx,sourceY:ty,
+    worldX:Math.round(wx*100)/100,worldY:Math.round(wy*100)/100,
+    hex:hexId(wx,wy),side});
+  };
   // Read/write only tiny strips, not the entire ~14 MiB native 4x raster.
   // Edge guards also cover the two outer gutter pixels used by bilinear
   // sampling; exterior map pixels are left completely transparent.
@@ -82,7 +94,7 @@ window.VedrasGroundCoreSeams=(()=>{
      examined++;
      const i=((ty-y)*w+(tx-x))*4;
      if(data[i+3]>=250)continue;
-     if(donor<0){unresolved++;continue;}
+     if(donor<0){recordUnresolved(tx,ty,side);continue;}
      data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
      data[i+3]=255;repaired++;
     }
@@ -99,7 +111,7 @@ window.VedrasGroundCoreSeams=(()=>{
      examined++;
      const i=((ty-y)*w+(tx-x))*4;
      if(data[i+3]>=250)continue;
-     if(donor<0){unresolved++;continue;}
+     if(donor<0){recordUnresolved(tx,ty,side);continue;}
      if(data[i+3]<128){
       data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
      }
@@ -113,7 +125,8 @@ window.VedrasGroundCoreSeams=(()=>{
   bandRect(g.x1-band-6,g.y0,band*2+6,Math.max(0,g.y1-g.y0),'right');
   bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2+6,'top');
   bandRect(g.x0,g.y1-band-6,Math.max(0,g.x1-g.x0),band*2+6,'bottom');
-  return {examined,repaired,unresolved,policy:'authored-core-only-v1'};
+  return {examined,repaired,unresolved,unresolvedSamples,
+   policy:'authored-core-only-v1'};
  }
  function measureCore(a,b,{axis,worldA,worldB,dx,dy,worldCells,
   size=512,step=1}={}){

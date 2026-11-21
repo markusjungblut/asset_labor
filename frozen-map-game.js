@@ -32,6 +32,22 @@
  const adaptiveGroundDecode=groundDetailRequested&&
   params.get('groundDecode')!=='full';
  let groundDetailActive=false,originalSceneryActive=false;
+ // Device budgets are selected from viewport and touch capability, not UA
+ // strings. ?profile=mobile|tablet|desktop allows reproducible comparisons.
+ const viewerProfile=window.VedrasFrozenViewPolicy?.deviceProfile({
+  width:canvas.clientWidth||window.innerWidth||800,
+  height:canvas.clientHeight||window.innerHeight||600,
+  touch:(navigator.maxTouchPoints||0)>0&&
+   (window.matchMedia?.('(pointer: coarse)')?.matches??true),
+  memoryGB:navigator.deviceMemory,
+  override:params.get('profile')||'auto'
+ })||{name:'desktop',maxDecodedPixels:95000000,maxDpr:2,
+  maxPixels:8000000,maxEdge:4096,overviewEnterZoom:.6,overviewLeaveZoom:.72};
+ const displayBudget=()=>({
+  maxDpr:groundDetailActive&&viewerProfile.name==='desktop'?4:viewerProfile.maxDpr,
+  maxPixels:groundDetailActive&&viewerProfile.name==='desktop'?18000000:viewerProfile.maxPixels,
+  maxEdge:groundDetailActive&&viewerProfile.name==='desktop'?8192:viewerProfile.maxEdge
+ });
  const groundDetailStore=window.VedrasFrozenGroundDetail.createStore({
   standard:twoXStore,overview:oneXStore,
   original:window.VedrasFrozenMap.indexedStore()
@@ -46,7 +62,8 @@
  // Step25X: opt-in only pending real hardware A/B.
  const parallelLayerDecode=params.get('parallelDecode')==='1';
  // Experimental compact 1x background residency: off in normal sessions.
- const fallbackAtlas=params.get('fallbackAtlas')!=='0';
+ const fallbackAtlas=params.get('fallbackAtlas')!=='0'&&
+  (viewerProfile.name==='desktop'||params.get('fallbackAtlas')==='1');
  // A/B: simulate the former full repaint until every visible tile is ready.
  const streamingWorldCache=params.get('streamCache')!=='0';
  // Legacy soft-cloud raster A/B without changing world imagery or opacity.
@@ -106,9 +123,12 @@
  const player=window.VedrasFrozenMap.create({
   canvas,fogCanvas:layeredFog?fogOverlay:null,
   storage:groundDetailStore,useLayerCache:!directRenderer,profiler,
-  maxDecodedPixels:adaptiveGroundDecode?128000000:95000000,
+  maxDecodedPixels:Math.min(viewerProfile.maxDecodedPixels,
+   adaptiveGroundDecode?128000000:95000000),
   adaptiveGroundDecode,exclusiveGroundSeams,sourceEdgeInset,
-  overview1x,largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
+  overview1x,overviewEnterZoom:viewerProfile.overviewEnterZoom,
+  overviewLeaveZoom:viewerProfile.overviewLeaveZoom,
+  largeViewportCache,prefetchGuard,directionalPrefetch,lodRecency,
   visibleBorrow,parallelLayerDecode,fallbackAtlas,streamingWorldCache,
   adaptiveCloudCache,autoCloudStrategy,fogViewportCull,worldCacheFastReuse,
   adaptiveWorldPad,sparseWorldBlit,indexedTileSelection,
@@ -272,16 +292,16 @@
    // Neither stored archive pose.dpr=4 nor OS devicePixelRatio sets it.
    const area=Math.max(1,canvas.clientWidth*canvas.clientHeight);
    const edge=Math.max(1,canvas.clientWidth,canvas.clientHeight);
-   const gameDpr=Math.min(groundDetailActive?4:2,
-    Math.sqrt((groundDetailActive?18000000:8000000)/area),
-    (groundDetailActive?8192:4096)/edge);
+   const budget=displayBudget();
+   const gameDpr=Math.min(budget.maxDpr,
+    Math.sqrt(budget.maxPixels/area),budget.maxEdge/edge);
    startPose={...startPose,dpr:window.VedrasFrozenViewPolicy?
     window.VedrasFrozenViewPolicy.displayDpr({
      zoom:startPose.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-     baseDpr:groundDetailActive?4:2,
-     maxDpr:groundDetailActive?4:2,
-     maxPixels:groundDetailActive?18000000:8000000,
-     maxEdge:groundDetailActive?8192:4096}):Math.max(1,gameDpr)};
+     baseDpr:budget.maxDpr,
+     maxDpr:budget.maxDpr,
+     maxPixels:budget.maxPixels,
+     maxEdge:budget.maxEdge}):Math.max(1,gameDpr)};
   // Clouds are a separate read-only overlay, not a terrain/WorldTile bake.
   if(!window.VedrasCloudsDisabled)player.setClouds(manifest.clouds||{});
   const registerStarted=performance.now();
@@ -316,7 +336,9 @@
    (sourceEdgeInset?'Quellpixel-Nahtschutz aktiv (?groundSeam=exclusive als A/B). ':'')+
    (status.completeVisibleAtlas?
     'Vollständiger lokaler Atlas: keine zusätzlichen Lade-Wolken beim Zoom. ':'')+
-   'Gespeicherte Karte '+scene+' · '+lod+' · '+
+   'Darstellungsprofil '+viewerProfile.name+' ('+
+   Math.round(viewerProfile.maxDecodedPixels/1000000)+' Mio. dekodierte Pixel maximal). '+
+   'Gespeicherte Karte '+scene+' · '+lod+' · '
    status.saved+' / '+(manifest.expectedTiles??'?')+
    ' vollständig vorgerenderte Bildkacheln verfügbar.'+
    (manifest.expectedTiles!=null&&status.saved<manifest.expectedTiles?
@@ -331,13 +353,12 @@
   if(!prior)return;
   const view={...prior,...next};
   const policy=window.VedrasFrozenViewPolicy;
+  const budget=displayBudget();
   const outDpr=policy?policy.displayDpr({
    zoom:view.zoom,width:canvas.clientWidth,height:canvas.clientHeight,
-   baseDpr:groundDetailActive?4:2,
-   maxDpr:groundDetailActive?4:2,
-   maxPixels:groundDetailActive?18000000:8000000,
-   maxEdge:groundDetailActive?8192:4096
-  }):Math.min(groundDetailActive?4:2,view.dpr||1);
+   baseDpr:budget.maxDpr,maxDpr:budget.maxDpr,
+   maxPixels:budget.maxPixels,maxEdge:budget.maxEdge
+  }):Math.min(budget.maxDpr,view.dpr||1);
   if(!deferDpr&&Math.abs(outDpr-(view.dpr||1))>.015){
    next={...next,dpr:outDpr};
    const raster=$('rasterQuality');
@@ -380,24 +401,62 @@
   const r=canvas.getBoundingClientRect();
   onZoom(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
  },{passive:false});
+ // Pointer events support both desktop mouse drag and touch pinch-zoom.
+ // Keep the original anchored world point under the two-finger midpoint.
+ const touches=new Map();
+ let pinch=null;
+ const touchPos=e=>{
+  const rect=canvas.getBoundingClientRect();
+  return {x:e.clientX-rect.left,y:e.clientY-rect.top};
+ };
+ const pinchGeometry=()=>{
+  const p=[...touches.values()].slice(0,2);
+  if(p.length<2)return null;
+  return {midX:(p[0].x+p[1].x)/2,midY:(p[0].y+p[1].y)/2,
+   span:Math.max(12,Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y))};
+ };
  canvas.addEventListener('pointerdown',e=>{
   if(panSettler!==null){clearTimeout(panSettler);panSettler=null;}
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+  if(e.pointerType==='touch'){
+   touches.set(e.pointerId,touchPos(e));
+   if(touches.size===2){
+    const view=player.getPose(),origin=pinchGeometry();
+    if(view&&origin)pinch={origin,view};
+    drag=null;
+   }else if(touches.size>2)drag=null;
+   else drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
+  }else drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};
   canvas.setPointerCapture?.(e.pointerId);
  });
  canvas.addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'&&touches.has(e.pointerId)){
+   touches.set(e.pointerId,touchPos(e));
+   if(pinch&&touches.size>=2){
+    const current=pinchGeometry(),base=pinch.view,first=pinch.origin;
+    if(!current||!base)return;
+    if(profiler)profiler.input('zoom');
+    const zoom=Math.min(4,Math.max(.15,base.zoom*
+     current.span/first.span));
+    const px=(first.midX-canvas.clientWidth/2-base.panX)/base.zoom,
+     py=(first.midY-canvas.clientHeight/2-base.panY)/
+      (base.zoom*(base.projectY||.85));
+    setPose({zoom,
+     panX:current.midX-canvas.clientWidth/2-px*zoom,
+     panY:current.midY-canvas.clientHeight/2-py*zoom*(base.projectY||.85),
+     dpr:Math.min(base.dpr||1.25,1.25)},{deferDpr:true});
+    return;
+   }
+  }
   if(!drag||drag.id!==e.pointerId)return;
   const p=player.getPose();if(!p)return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
   if(!dx&&!dy)return;
   if(profiler)profiler.input('pan');
   drag.x=e.clientX;drag.y=e.clientY;
-  // Full-detail 4x backing can reach 18 MP and bypass the world cache.
-  // During a drag, keep the real tile compositor at 1.25x so camera
-  // frames remain bounded. After release restore 4x exactly once.
-  // No PNGs are downgraded/re-encoded; the 4x source stays in RAM.
   const pan={panX:p.panX+dx,panY:p.panY+dy};
-  if(groundDetailActive&&!drag.moved&&(p.dpr||1)>1.25){
+  // Keep camera gestures inexpensive and restore final quality once.
+  if(!drag.moved&&(p.dpr||1)>1.25&&
+    (groundDetailActive||viewerProfile.name!=='desktop')){
    pan.dpr=1.25;dragLowDprFrames++;
    const raster=$('rasterQuality');
    if(raster)raster.textContent='Raster 1.25× (Bewegung)';
@@ -405,15 +464,27 @@
   drag.moved=true;
   setPose(pan,{deferDpr:true});
  });
- const finishPan=()=>{
-  if(!drag)return;
+ const finishPan=e=>{
+  if(e.pointerType==='touch'){
+   touches.delete(e.pointerId);
+   if(pinch){
+    if(touches.size<2){
+     pinch=null;drag=null;
+     setPose({}); // restore the profile's bounded final backing once
+    }
+    return;
+   }
+  }
+  if(!drag||drag.id!==e.pointerId)return;
   const moved=drag.moved;
   drag=null;
-  if(!moved||!groundDetailActive)return;
+  if(!moved)return;
   if(panSettler!==null)clearTimeout(panSettler);
   panSettler=setTimeout(()=>{
    panSettler=null;
-   if(!drag)setPose({}); // restores bounded original 4x DPR
+   if(!pinch){
+    if(!drag)setPose({});
+   }
   },150);
  };
  for(const evt of ['pointerup','pointercancel','lostpointercapture'])
