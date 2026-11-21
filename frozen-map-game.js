@@ -5,7 +5,8 @@
  const $=id=>document.getElementById(id),
   params=new URLSearchParams(location.search),
   requestedScene=params.get('scene'),requestedLevel=params.get('lod');
- let scene=requestedScene,shadowSuccessorSource=null;
+ let scene=requestedScene,shadowSuccessorSource=null,shadowPreviewChosen=false;
+ const previewIncomplete=params.get('previewIncomplete')==='1';
  const output=$('message'),metrics=$('metrics'),zoomLabel=$('zoom');
  const benchmark=$('atlasBenchmark');
  if(benchmark&&scene)benchmark.href='frozen-map-benchmark.html?scene='+encodeURIComponent(scene);
@@ -218,19 +219,37 @@
   // to the immutable successor. Existing saved links open corrected
   // shadows without additional switches. ?original=1 bypasses the alias.
   if(params.get('original')!=='1'){
-   let preferred=null;
-   try{preferred=localStorage.getItem('vedras-frozen-shadow-current:'+scene);}
-   catch{}
-   if(preferred&&/^v1-[0-9a-f]{8}$/.test(preferred)&&preferred!==scene){
+   // Never redirect a normal game to an incomplete image atlas. An
+   // explicitly requested incomplete preview may, however, show corrected
+   // scenery for all currently existing original Ground chunks.
+   const candidates=[];
+   try{
+    candidates.push({scene:localStorage.getItem(
+     'vedras-frozen-shadow-current:'+scene),preview:false});
+    if(previewIncomplete)candidates.push({scene:localStorage.getItem(
+     'vedras-frozen-shadow-preview:'+scene),preview:true});
+   }catch{}
+   for(const candidate of candidates){
+    const preferred=candidate.scene;
+    if(!preferred||!/^v1-[0-9a-f]{8}$/.test(preferred)||
+       preferred===scene)continue;
     try{
      const successor=await player.loadManifest(preferred);
      const count=successor.expectedTiles;
-     if(successor.sceneryBaseScene===scene&&successor.shadowTone&&
-        Number.isSafeInteger(count)&&count>0&&
-        (await groundDetailStore.keys(preferred+'|near|')).length===count){
-      shadowSuccessorSource=scene;scene=preferred;
+     if(successor.sceneryBaseScene!==scene||!successor.shadowTone||
+        !Number.isSafeInteger(count)||count<=0)continue;
+     const tiles=await groundDetailStore.keys(preferred+'|near|');
+     const fullyPublished=!candidate.preview&&
+      successor.generationStatus!=='building'&&tiles.length===count;
+     const previewReady=previewIncomplete&&candidate.preview&&
+      successor.generationStatus==='building'&&tiles.length>0&&
+      tiles.length===(
+       await groundDetailStore.keys(scene+'|near|')).length;
+     if(fullyPublished||previewReady){
+      shadowSuccessorSource=scene;shadowPreviewChosen=previewReady;
+      scene=preferred;break;
      }
-    }catch{/* The original immutable atlas remains a safe fallback. */}
+    }catch{/* Keep the original saved map if the successor is unusable. */}
    }
   }
   const manifest=await player.loadManifest(scene);
@@ -245,7 +264,6 @@
   manifestReadMs=performance.now()-manifestReadStarted;
   if(benchmark)benchmark.href='frozen-map-benchmark.html?scene='+
    encodeURIComponent(scene);
-  const previewIncomplete=params.get('previewIncomplete')==='1';
   // Explicit near must NEVER fall through to a saved far/1x atlas.
   if(requestedLevel&&!manifest.levels.includes(requestedLevel))
    throw Error('Die angeforderte Detailstufe '+requestedLevel+
@@ -330,8 +348,11 @@
    (groundProbe?'Originalboden-Referenz: '+groundProbe.original4x+'/'+
     groundProbe.sampled+' geprüfte 4×-Kacheln · kleinste Quelle '+
     groundProbe.minDensity.toFixed(2)+'×. ':'')+
-   (shadowSuccessorSource?'Korrigierte Schatten automatisch geladen (Original '+
-    shadowSuccessorSource+' mit ?original=1 erreichbar). ':
+   (shadowSuccessorSource?(
+    shadowPreviewChosen?'Aktualisierte Schattenvorschau aus '+shadowSuccessorSource+
+     ' geladen (noch unvollständig; Original mit ?original=1 erreichbar). ':
+    'Korrigierte Schatten automatisch geladen (Original '+
+     shadowSuccessorSource+' mit ?original=1 erreichbar). '):
     'Schatten in gespeicherten PNGs sind eingebrannt; ein Editorregler allein ändert sie nicht. ')+
    (sourceEdgeInset?'Quellpixel-Nahtschutz aktiv (?groundSeam=exclusive als A/B). ':'')+
    (status.completeVisibleAtlas?

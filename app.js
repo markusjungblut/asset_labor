@@ -4458,6 +4458,31 @@ function bakeFrozenSceneryOnly(tile){
  }
  return {...packWorldTileScenery(cv,'near'),pad};
 }
+// Only source image KERNELS that really exist may be refreshed. Keep the
+// expected target grid unchanged so that partially captured maps remain
+// explicitly incomplete and can be resumed after missing Ground is fixed.
+function frozenSceneryCoverage(sourceKeys,all,manifest){
+ const known=new Set(all.map(t=>t.id));
+ const prefix=manifest.sceneKey+'|near|';
+ if(!all.length||!sourceKeys.length||
+   (manifest.expectedTiles!=null&&manifest.expectedTiles!==all.length)||
+   sourceKeys.some(k=>!k.startsWith(prefix)||
+     !known.has(k.slice(prefix.length))))
+  throw Error('Quellkarte hat ein anderes Chunk-Raster oder keine verwendbaren 4×-Kacheln.');
+ const sourceIds=new Set(sourceKeys.map(k=>k.slice(prefix.length)));
+ if(sourceIds.size!==sourceKeys.length)
+  throw Error('Doppelte 4×-Quellkacheln im Schatten-Refresh.');
+ return {expected:all.length,available:sourceIds.size,
+  missingIds:all.filter(t=>!sourceIds.has(t.id)).map(t=>t.id),
+  sourcePublished:sourceIds.size===all.length&&
+   manifest.generationStatus!=='building'};
+}
+$('frozenShadowPreview').addEventListener('click',()=>{
+ const scene=$('frozenShadowPreview').dataset.scene;
+ if(!/^v1-[0-9a-f]{8}$/.test(scene||''))return;
+ window.open('frozen-map-game.html?scene='+encodeURIComponent(scene)+
+  '&lod=near&previewIncomplete=1','_blank','noopener');
+});
 $('frozenReshade').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  const source=String($('frozenScenerySource')?.value||'').trim(),
@@ -4476,7 +4501,8 @@ $('frozenReshade').addEventListener('click',async()=>{
   frozenNotice('Quell- und Zielkennung sind gleich. Es wird niemals eine Originalkarte überschrieben.');
   return;
  }
- const button=$('frozenReshade');
+ const button=$('frozenReshade'),preview=$('frozenShadowPreview');
+ preview.hidden=true;preview.dataset.scene='';
  button.disabled=true;
  try{
   const sourceManifest=await frozenMap.loadManifest(source);
@@ -4499,21 +4525,24 @@ $('frozenReshade').addEventListener('click',async()=>{
    width:Math.max(...xs)-Math.min(...xs)+margin*2,
    height:Math.max(...ys)-Math.min(...ys)+margin*2
   },worldCells,512),lookup=new Map(all.map(t=>[t.id,t]));
-  if(!sourceKeys.length||sourceKeys.length!==all.length||
-     sourceKeys.some(key=>!lookup.has(key.split('|').at(-1))))
-   throw Error('Quellkarte unvollständig oder Chunk-Raster passt nicht. Kein Ground wird ersetzt.');
+  const coverage=frozenSceneryCoverage(sourceKeys,all,sourceManifest);
   const tone=window.VedrasShadowTone?.get?.()||{lift:0,balance:0};
   const existing=await frozenMap.storage.get(target+'|manifest');
   if(existing&&(existing.sceneryBaseScene!==source||
      existing.shadowTone?.lift!==tone.lift||
-     existing.shadowTone?.balance!==tone.balance))
-   throw Error('Zielkarte existiert mit anderen Basis-/Schatteneinstellungen');
+     existing.shadowTone?.balance!==tone.balance||
+     existing.expectedTiles!==coverage.expected))
+   throw Error('Zielkarte existiert mit anderen Basis-/Schatteneinstellungen oder Chunk-Raster');
   await frozenMap.saveAuthoredWorld(target,authoredSceneSnapshot());
-  if(!existing)await frozenMap.saveManifest(target,{
+  const manifestFields={
    cells:current,levels:['near'],pose:sourceManifest.pose,
-   expectedTiles:sourceKeys.length,clouds:sourceManifest.clouds,
+   expectedTiles:coverage.expected,clouds:sourceManifest.clouds,
    sceneryBaseScene:source,shadowTone:tone,
-   groundSeamPolicy:sourceManifest.groundSeamPolicy,appendOnly:true
+   groundSeamPolicy:sourceManifest.groundSeamPolicy
+  };
+  if(!existing)await frozenMap.saveManifest(target,{
+   ...manifestFields,generationStatus:'building',verifiedTiles:0,
+   missingTileIds:coverage.missingIds,appendOnly:true
   });
   // Each committed overlay is independently resumable, and original
   // 4x Ground stays stored ONLY in the source scene's record.
@@ -4538,7 +4567,13 @@ $('frozenReshade').addEventListener('click',async()=>{
     }
     const id=sourceKey.split('|').at(-1),tile=lookup.get(id);
     const targetKey=window.VedrasFrozenMap.makeKey(target,'near',id);
-    if(known.has(targetKey)){skipped++;visited++;continue;}
+    if(known.has(targetKey)){
+     const prior=await frozenMap.storage.get(targetKey);
+     if(prior?.groundRefKey!==sourceKey||
+       prior.derivedFormat!=='scenery-refresh-v1')
+      throw Error('Vorhandene Schattenkachel hat andere Bodenquelle: '+id);
+     skipped++;visited++;continue;
+    }
     const old=await frozenMap.storage.get(sourceKey);
     if(old?.groundRefKey||old?.tile?.id!==id||
        old.tile.x!==tile.x||old.tile.y!==tile.y||
@@ -4569,9 +4604,15 @@ $('frozenReshade').addEventListener('click',async()=>{
     await new Promise(resolve=>setTimeout(resolve,0));
    }
    const completed=(await frozenMap.storage.keys(target+'|near|')).length;
-   if(!run.cancel&&!failed&&completed===sourceKeys.length){
-    // Publish only a complete new scene; the original 4x atlas stays
-    // untouched. Opening the old scene now selects the corrected version.
+   const fullyRefreshed=!run.cancel&&!failed&&
+    completed===coverage.expected&&coverage.sourcePublished;
+   if(fullyRefreshed){
+    // Only a full, verified source may publish its successor as complete.
+    if(existing?.generationStatus!=='complete')
+     await frozenMap.saveManifest(target,{
+      ...manifestFields,generationStatus:'complete',verifiedTiles:completed,
+      missingTileIds:[]
+     });
     try{
      localStorage.setItem('vedras-frozen-shadow-current:'+source,target);
      frozenNotice('Schattenkarte '+target+' vollständig ('+completed+
@@ -4583,9 +4624,29 @@ $('frozenReshade').addEventListener('click',async()=>{
       '?scene='+target+'&lod=near öffnen.');
     }
    }else{
-    frozenNotice('Schattenkarte noch UNVOLLSTÄNDIG: '+completed+'/'+
-     sourceKeys.length+' · '+failed+' fehlende. Fortsetzen möglich; '+
-     'bisherige Karte '+source+' bleibt aktiv und unverändert.');
+    // An incomplete original (e.g. 98/120) can yield a 98/120 shadow
+    // preview. It MUST NOT receive the published 'current' alias.
+    const savedIds=new Set((await frozenMap.storage.keys(target+'|near|'))
+     .map(k=>k.slice((target+'|near|').length)));
+    const stillMissing=all.filter(t=>!savedIds.has(t.id)).map(t=>t.id);
+    if(existing?.generationStatus!=='complete')
+     await frozenMap.saveManifest(target,{
+      ...manifestFields,generationStatus:'building',verifiedTiles:completed,
+      missingTileIds:stillMissing
+     });
+    const previewReady=!run.cancel&&!failed&&
+     completed===coverage.available&&completed>0;
+    if(previewReady){
+     preview.dataset.scene=target;preview.hidden=false;
+     try{localStorage.setItem('vedras-frozen-shadow-preview:'+source,target);}
+     catch{}
+    }
+    frozenNotice('Schattenkarte UNVOLLSTÄNDIG: '+target+' · '+completed+'/'+
+     coverage.expected+' Kacheln. '+coverage.missingIds.length+
+     ' Original-Ground-Kacheln fehlen weiterhin. '+
+     (previewReady?'Aktualisierte Schattenvorschau jetzt öffnen. ':
+      'Schatten-Refresh fortsetzen, sobald Quellen bereit sind. ')+
+     'Die originale Karte '+source+' wurde nicht verändert.');
    }
   }finally{
    state.zoom=oldZoom;updateTerrainLod(oldZoom);

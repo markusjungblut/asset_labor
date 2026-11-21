@@ -357,10 +357,11 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <details id="frozenSceneryRefreshPanel"><summary>Schatten der fertigen Spielkarte aktualisieren (Boden wiederverwenden)</summary>
 <p class="muted">Erzeugt eine NEUE Spielkartenkennung. Nur Objekt- und Schatten-PNGs werden neu berechnet; die Original-4×-Bodenkacheln bleiben an ihrem bisherigen Speicherort. Der Vorgang ist abbrechbar und fortsetzbar.</p>
 <label for="frozenScenerySource">Vorhandene Quell-Spielkarte</label>
-<input id="frozenScenerySource" type="text" value="v1-0374527a" pattern="v1-[0-9a-f]{8}" spellcheck="false">
+<input id="frozenScenerySource" type="text" placeholder="v1-xxxxxxxx" pattern="v1-[0-9a-f]{8}" spellcheck="false">
 <label class="checkbox"><input id="frozenSceneryConfirm" type="checkbox"> Ich habe bestätigt, dass seit der Quellkarte nur die Schatteneinstellungen geändert wurden – keine Gelände-, Küsten-, Straßen-, Objekt- oder Asset-Zuordnungen.</label>
 <button type="button" id="frozenReshade" class="button outline block">Neue Spielkarte mit aktualisierten Schatten erzeugen</button>
-<p class="muted">Die geometrische Übereinstimmung wird zusätzlich geprüft. Ältere Spielkarten haben jedoch keinen vollständigen Ground-Fingerprint; deshalb ist diese Bestätigung erforderlich. Die neue Karte bleibt unvollständig, bis alle neuen Objektkacheln erzeugt sind.</p>
+<button type="button" id="frozenShadowPreview" class="button outline block" hidden>Aktualisierte Schattenvorschau öffnen (unvollständige Spielkarte)</button>
+<p class="muted">Auch eine unvollständige Quellkarte (z. B. 98/120 Kacheln) lässt sich für ihre bereits gespeicherten Kacheln mit neuen Schatten versehen. Dabei entsteht eine neue, weiterhin unvollständige Schattenvorschau. Fehlender Boden wird nicht erfunden; die fertige Version wird erst bei vollständiger Quellkarte veröffentlicht. Die geometrische Übereinstimmung wird geprüft. Ältere Spielkarten haben keinen vollständigen Ground-Fingerprint; deshalb ist die Bestätigung erforderlich.</p>
 </details>
 <button type="button" id="frozenCancel" class="button outline block" hidden>Vorbereitung abbrechen</button>
 <button type="button" id="frozenPlay" class="button outline block">Spielkarten-Test starten</button>
@@ -390,5 +391,5 @@ window.VedrasCloudsDisabled=new URLSearchParams(location.search).get('clouds')!=
 <script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1"></script>
 <script src="world-tile-streamer.js?v=0.22.6&amp;fix=exact-lod-20261117&amp;clouds=off-20261120"></script>
-<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=20261120-organic-v1&amp;diagnostics=20261121&amp;geography=2.1.2&amp;geographyIO=20261120&amp;clouds=off-20261120"></script><script src="nature-ui.js?v=20261121-desert-trees-v1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=20261119-shadow-shortcut-v1"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=20261120-organic-v1&amp;diagnostics=20261121&amp;shadows=partial-20261121&amp;geography=2.1.2&amp;geographyIO=20261120&amp;clouds=off-20261120"></script><script src="nature-ui.js?v=20261121-desert-trees-v1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=20261119-shadow-shortcut-v1"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
