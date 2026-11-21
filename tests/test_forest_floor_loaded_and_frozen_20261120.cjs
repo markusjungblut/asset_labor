@@ -97,5 +97,5 @@ test('the native 4x exporter fails closed rather than omitting forest material',
  assert.match(app,/organic-forest-fringes-and-glades-v3/,
   'new atlas identity must not reuse previously published missing forest PNGs');
  const index=read('index.html');
- assert.match(index,/app\.js\?v=20261120-organic-v1/);
+ assert.match(index,/app\.js\?v=20261121-frozen-diagnostics-v1/);
 });
