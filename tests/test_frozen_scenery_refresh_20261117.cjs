@@ -175,20 +175,73 @@ test('portable ZIP of a linked scene embeds both complete image layers',async()=
 test('only a fully completed shadow-scene becomes automatic playback choice',()=>{
  const editor=read('app.js'),viewer=read('frozen-map-game.js'),
   html=read('frozen-map-game.html');
- assert.match(editor,
-  /if\(!run\.cancel&&!failed&&completed===sourceKeys\.length\)/);
- assert.match(editor,
-  /localStorage\.setItem\('vedras-frozen-shadow-current:'\+source,target\)/);
- assert.match(editor,/Schattenkarte noch UNVOLLSTÄNDIG/);
+ assert.match(editor,/const fullyRefreshed=!run\.cancel&&!failed&&/);
+ assert.match(editor,/completed===coverage\.expected&&coverage\.sourcePublished/);
+ assert.match(editor,/localStorage\.setItem\('vedras-frozen-shadow-current:'\+source,target\)/);
+ assert.match(editor,/localStorage\.setItem\('vedras-frozen-shadow-preview:'\+source,target\)/);
+ assert.match(editor,/Schattenkarte UNVOLLSTÄNDIG/);
  assert.match(viewer,/params\.get\('original'\)!=='1'/);
- assert.match(viewer,
-  /localStorage\.getItem\('vedras-frozen-shadow-current:'\+scene\)/);
- assert.match(viewer,/successor\.sceneryBaseScene===scene&&successor\.shadowTone/);
- assert.match(viewer,
-  /groundDetailStore\.keys\(preferred\+'\|near\|'\)\)\.length===count/);
- assert.match(viewer,/shadowSuccessorSource=scene;scene=preferred/);
+ assert.match(viewer,/vedras-frozen-shadow-current:/);
+ assert.match(viewer,/vedras-frozen-shadow-preview:/);
+ assert.match(viewer,/previewIncomplete&&candidate\.preview/);
+ assert.match(viewer,/tiles\.length===count/);
+ assert.match(viewer,/shadowSuccessorSource=scene;shadowPreviewChosen=previewReady/);
  assert.match(viewer,/params\.get\('ground4x'\)==='1'/);
  assert.match(viewer,/params\.get\('fallbackAtlas'\)!=='0'/);
  assert.match(html,/frozen-map-game\.js\?v=20261120-original-scenery-ab/);
  assert.doesNotMatch(editor,/deleteDatabase\(|indexedDB\.deleteDatabase\(/);
+});
+
+test('a 98/120 partial Ground archive yields a safe 98-tile shadow preview',async()=>{
+ const editor=read('app.js');
+ const first=editor.indexOf('function frozenSceneryCoverage(');
+ const last=editor.indexOf("$('frozenShadowPreview').addEventListener",first);
+ assert(first>0&&last>first,'exercise the actual coverage gate');
+ const coverage=vm.runInNewContext(editor.slice(first,last)+'\nfrozenSceneryCoverage;',{});
+ const source='v1-0f902ecd',target='v1-abcdef12',
+  all=Array.from({length:120},(_,i)=>({id:i+',0',x:i*512,y:0,size:512}));
+ const sourceKeys=all.slice(0,98).map(t=>source+'|near|'+t.id);
+ const c=coverage(sourceKeys,all,{
+  sceneKey:source,expectedTiles:120,generationStatus:'building'});
+ assert.equal(c.available,98);
+ assert.equal(c.expected,120);
+ assert.equal(c.missingIds.length,22);
+ assert.equal(c.sourcePublished,false);
+ assert.throws(()=>coverage([source+'|near|bad'],all,{
+  sceneKey:source,expectedTiles:120}),/Chunk-Raster/);
+ assert.throws(()=>coverage(sourceKeys,all,{
+  sceneKey:source,expectedTiles:98}),/Chunk-Raster/);
+ const full=coverage(all.map(t=>source+'|near|'+t.id),all,{
+  sceneKey:source,expectedTiles:120,generationStatus:'complete'});
+ assert.equal(full.sourcePublished,true);
+ const unverified=coverage(all.map(t=>source+'|near|'+t.id),all,{
+  sceneKey:source,expectedTiles:120,generationStatus:'building'});
+ assert.equal(unverified.sourcePublished,false,
+  'full tile count must not publish unverified original');
+
+ const api=runtime(),raw=api.memoryStore(),storage=api.linkedStore(raw);
+ const player=api.create({canvas:{getContext:()=>({})},storage,
+  encode:async()=>new Blob(['balanced shadow PNG'])});
+ const cells=[{q:0,r:0,x:0,y:0,radius:52,visibility:'visible'}];
+ await player.saveManifest(target,{cells,levels:['near'],expectedTiles:120,
+  generationStatus:'building',verifiedTiles:0,
+  missingTileIds:c.missingIds,sceneryBaseScene:source,
+  shadowTone:{lift:0,balance:.9},appendOnly:true});
+ for(const t of all.slice(0,2)){
+  const key=source+'|near|'+t.id;
+  await raw.put({key,sceneKey:source,level:'near',tile:t,revision:'r',
+   layers:[{layer:'ground',pad:3,png:fourXGround()},
+    {layer:'scenery',png:new Blob(['old shadows'])}]});
+  assert.equal((await player.captureScenery(target,key,t,
+   {image:{width:200,height:200}})).saved,1);
+  const old=await storage.get(key),linked=await storage.get(target+'|near|'+t.id);
+  assert.equal(old.layers[1].png.size,11,'original scenery is immutable');
+  assert.equal(linked.groundRefKey,key);
+  assert.equal(linked.layers[1].png.size,19);
+ }
+ const manifest=await player.loadManifest(target);
+ assert.equal(manifest.expectedTiles,120);
+ assert.equal(manifest.generationStatus,'building');
+ assert.equal((await storage.keys(target+'|near|')).length,2);
+ assert.equal((await storage.keys(source+'|near|')).length,2);
 });
