@@ -78,5 +78,5 @@ assert(app.includes('let forestFloorRasterCache='),'region mask caches across dr
 assert(app.includes('textureSize,resolution,maxPixels:finalRendering?2600000:1300000,feather:23'),'one feather for region');
 assert(!app.includes('forestFloorStamps'),'legacy radial per-hex overlay is removed');
 assert(html.includes('forest-ground.js?v=20261120-organic-v1'),'new script loads on client');
-assert(html.indexOf('forest-ground.js?v=20261120-organic-v1')<html.indexOf('app.js?v=20261121-frozen-diagnostics-v1'),'region renderer loads before app');
+assert(html.indexOf('forest-ground.js?v=20261120-organic-v1')<html.indexOf('app.js?v=20261120-organic-v1'),'region renderer loads before app');
 console.log('PASS: connected forest union has no inner bank, shared world UV phase, outer-only feather, and module load order.');
