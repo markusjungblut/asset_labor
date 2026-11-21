@@ -4603,6 +4603,16 @@ $('frozenReshade').addEventListener('click',async()=>{
  finally{button.disabled=false;}
 });
 
+// A per-tile report remains separate from the immutable archived PNGs.
+$('frozenReportDownload').addEventListener('click',()=>{
+ const report=window.__vedrasLastFrozenExportReport;
+ if(!report)return;
+ const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],
+  {type:'application/json'})),link=document.createElement('a');
+ link.href=url;link.download='vedras_4x_fehler_'+report.scene+'.json';
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),15000);
+});
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  if(state.view!=='map'||state.mode==='far'){
@@ -4665,6 +4675,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
  }
+ window.__vedrasLastFrozenExportReport=null;
+ $('frozenReportDownload').hidden=true;
  const run={cancel:false,quality:quality4?'4':null,offlineOnly:false};
  frozenTour=run;lockFrozenTourEditor(true);
  const button=$('frozenCaptureAll');button.disabled=true;
@@ -4674,7 +4686,17 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  let restoreFrozenSources=null;
  // A failed tile is placed at the END of the queue exactly once. Other
  // source assets get a chance to finish loading before its second attempt.
- const workQueue=all.slice(),retriedIds=new Set(),pixelIssues=new Map();
+ const workQueue=all.slice(),retriedIds=new Set(),pixelIssues=new Map(),
+  blocked=new Map();
+ const noteBlocked=(tile,phase,reason,details=null)=>{
+  blocked.set(tile.id,{id:tile.id,phase,reason:String(reason||'unbekannt'),
+   waitingAssets:(details?.waitingAssets||[]).slice(0,4),
+   missingOptionalAssets:(details?.missingOptionalAssets||[]).slice(0,4),
+   terrainVersion:details?.terrainVersion??null,
+   paintedVersion:details?.paintedVersion??null,
+   shorelineReason:details?.shorelineReason??null,
+   riverReason:details?.riverReason??null});
+ };
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   if(fastInteracting)endFastCamera(true);
@@ -4735,11 +4757,15 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      if(state.river&&state.riverBanks)riverChunks.prime(bounds,opts);
      if(state.roadShown)roadChunks.prime(bounds,opts);
      const diagnostic={};
-     if(!tileArtworkStatus(tile,diagnostic,true))
+     if(!tileArtworkStatus(tile,diagnostic,true)){
+      noteBlocked(tile,'quellvorbereitung',
+       diagnostic.reason||diagnostic.shorelineReason||
+       diagnostic.riverReason||'nicht bereit',diagnostic);
       for(const path of diagnostic.waitingAssets||[]){
        const asset=assetByPath.get(path);
        if(asset)imagePool.ensure(asset,10);
       }
+     }
      const now=performance.now();
      if(now-(run.lastNoticeAt||0)>1800){
       run.lastNoticeAt=now;
@@ -4756,7 +4782,11 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     }
     let ready=[];
     if(quality4){
-     if(!tileArtworkStatus(tile,null,true))continue;
+     const readiness={};
+     if(!tileArtworkStatus(tile,readiness,true)){
+      noteBlocked(tile,'renderfreigabe',readiness.reason,readiness);
+      continue;
+     }
      // Separate editor-only full-resolution source. WorldTile's normal
      // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
      let exact;
@@ -4768,11 +4798,15 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
       // immutable PNGs. Retry this specific tile at the END of the tour;
       // never save or publish a failed Ground image.
       pixelIssues.set(tile.id,reason);
+      noteBlocked(tile,'ground-pixelpruefung',reason);
       frozenNotice('4×-Pixelprüfung: Quellkachel '+tile.id+
        ' fehlerhaft · wird separat erneut versucht. '+reason);
       break;
      }
-     if(!exact?.complete||run.cancel)continue;
+     if(!exact?.complete||run.cancel){
+      if(!run.cancel)noteBlocked(tile,'bake','Boden/Objekte noch nicht vollständig berechnet');
+      continue;
+     }
      const ground=exact.layers?.find(l=>l.layer==='ground');
      if(!ground||ground.image.width<
        (tile.size+2*WORLD_TILE_GUTTER)*4-.5)
@@ -4787,7 +4821,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     if(result.saved+result.skipped!==1)
      throw Error('Falsche Anzahl gespeicherter 4×-Kacheln: '+tile.id);
     knownFrozenTiles.add(fileKey);
-    totalSaved+=result.saved;pixelIssues.delete(tile.id);found=true;break;
+    totalSaved+=result.saved;
+    pixelIssues.delete(tile.id);blocked.delete(tile.id);found=true;break;
    }
    if(!found){
     if(!retriedIds.has(tile.id)&&!run.cancel){
