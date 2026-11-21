@@ -87,6 +87,34 @@ const tundraPool=Array.from({length:54},(_,i)=>({meta:make('boulder_'+n2(i+1)+'.
 const winterDraw=B.warmBoulderPool(tundraPool,a=>a.meta,.1);
 assert.equal(winterDraw.warmCount,0,'warm boulders never spawn in tundra');
 assert(Math.abs(winterDraw.chance-.138)<1e-10,'winter boulder chance unchanged');
+
+// All ten arid biomes now support *occasional* palms and Schirmakazien.
+const desertBiomes=["rocky_desert","sandy_desert","clay_desert","badlands","wasteland","semi_desert","sandy_rocky_desert","sandy_badlands","rocky_badlands","desert"];
+assert.deepEqual([...N.DESERT_BIOMES],desertBiomes);
+const palms=Object.entries(nature.entries).filter(([name,m])=>m.family==='palms');
+const acacias=Object.entries(nature.entries).filter(([name,m])=>N.isAcacia(m));
+assert.equal(palms.length,11);assert.equal(acacias.length,3);
+for(const [name,m] of [...palms,...acacias]){
+ assert(m.placement.density>0,name+' must remain spawnable');
+ for(const biome of desertBiomes)assert(eligible(m,biome),name+' missing desert '+biome);
+ for(const biome of ['grassland','pasture','moor','swamp','highland','tundra','snowfields'])
+  assert(!eligible(m,biome),name+' escaped into '+biome);
+ assert(eligible(m,'savanna'),name+' must remain in savanna');
+}
+for(const [name,m] of palms)assert(eligible(m,'jungle'),name+' must remain in jungle');
+for(const [name,m] of acacias)assert(!eligible(m,'jungle'),name+' is not a jungle tree');
+for(const filename of ['affenbrotbaum1.png','Marula1.png']){
+ const m=nature.entries['nature/'+filename];
+ assert(!eligible(m,'sandy_desert'),filename+' must retain limited habitat');
+ assert(eligible(m,'semi_desert'),filename+' retains original semi-desert habitat');
+}
+for(const name of ['palme_01.png','schirmakazie1.png']){
+ const info=E.classify({category:'nature',name});
+ const future=E.metadata(info,N.template(),name);
+ for(const biome of desertBiomes)
+  assert(N.canPlace(future,{baseBiome:biome,biome,forestClass:'none'},terrain,nature),
+   name+' import must support '+biome);
+}
 // Five newly supplied ice blocks accept both German/English file naming.
 for(let n=1;n<=5;n++){
  exact('Eisblock_'+n2(n)+'.png',['snowfields','frozen_tundra','tundra']);
@@ -105,6 +133,12 @@ assert(!eligible(old,'snowfields'));
 const oldMountain=make('berg_01.png');
 assert(eligible(oldMountain,'snowfields'),'existing cold mountain rules survive');
 const ui=get('nature-ui.js');
+assert(ui.includes("desertTrees.length&&count<objectCap&&random(seed,c.q,c.r,1751)<.065"),
+ 'rare desert placement must not require a forest tree quota');
+assert(ui.includes("const familyPools=random(seed,c.q,c.r,1752)<.5"),
+ 'palms and Schirmakazien should each have a seeded spawn opportunity');
+assert(ui.includes('newDesertPalms')&&ui.includes('newDesertAcacias'),
+ 'UI must count generated desert trees');
 assert(ui.includes("if(existing?.group==='ice_block')"),
  'explicit iceblock metadata must override older broad sprite-plan information');
 assert(ui.includes("const proposed=existing?.group==='ice_block'?"),

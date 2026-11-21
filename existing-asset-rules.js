@@ -53,7 +53,7 @@ window.VedrasExistingAssets = (() => {
   herbs:[['grass_pasture','warm_regions','arid_regions'],.24,23],
   // Palmen sind warme Landvegetation. Moor/Sumpf/Marschland dürfen ohne
   // ausdrückliches tropisches Biom keine Palmen aus dieser Familie tragen.
-  palms:[['warm_regions'],.13,96],
+  palms:[['warm_regions','arid_regions'],.13,96],
   dry_bushes:[['arid_regions','warm_regions','grass_pasture'],.19,45],
   jungle_trees:[['warm_regions'],.06,132],
   riparian_trees:[['wetlands'],.12,114],
@@ -173,8 +173,10 @@ window.VedrasExistingAssets = (() => {
   const warmBiomes=['savanna','jungle','rocky_desert','sandy_desert',
    'clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert',
    'sandy_badlands','rocky_badlands','desert'];
+  const desertBiomes=['rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'];
+  const acacia=info.family==='savanna_trees'&&/^existing_schirmakazie_?\d+$/.test(info.id||'');
   const temperateBiomes=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
-  const specialTypes=info.group==='winter_boulder'?winterBiomes:
+  const specialTypes=acacia?['savanna',...desertBiomes]:info.group==='winter_boulder'?winterBiomes:
    info.group==='warm_boulder'?warmBiomes:
    info.group==='temperate_stump'?
      ['grassland','pasture','sparse_pasture','savanna','jungle','moor','marshland','swamp']:
