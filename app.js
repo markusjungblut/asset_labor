@@ -4865,6 +4865,35 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    groundSeamPolicy:'exclusive',verifiedTiles:audit.stored,
    missingTileIds:[...audit.missingIds,
     ...audit.invalidTiles.map(v=>v.id)]});
+  // Build diagnostic evidence only after the immutable archive audit.
+  // A zero seam-failure count is NOT a successful seam audit when tiles
+  // are missing: auditSaved() was intentionally skipped in that case.
+  const missingDetails=audit.missingIds.map(id=>blocked.get(id)||
+   {id,phase:'nicht erfasst',reason:'Keine detaillierte Ursache aufgezeichnet'});
+  const invalidDetails=audit.invalidTiles.map(entry=>
+   {id:entry.id,phase:'archivpruefung',reason:entry.reason});
+  const counts=new Map();
+  for(const entry of [...missingDetails,...invalidDetails]){
+   const name=entry.phase+' / '+entry.reason;
+   counts.set(name,(counts.get(name)||0)+1);
+  }
+  const reasonGroups=[...counts].map(([reason,count])=>({reason,count}))
+   .sort((a,b)=>b.count-a.count);
+  window.__vedrasLastFrozenExportReport={
+   schema:'vedras-frozen-export-diagnostics-v1',
+   scene,expected:audit.expected,stored:audit.stored,published,
+   seamAuditExecuted:!!audit.complete&&!run.cancel,
+   seamFailures:seamAudit.failures,
+   missing:missingDetails,invalid:invalidDetails,
+   extraIds:audit.extraIds,
+   reasonGroups,
+   terrainChunkStatus:terrainChunks.stats(),
+   shorelineChunkStatus:shorelineChunks.stats(),
+   riverChunkStatus:riverChunks.stats()
+  };
+  $('frozenReportDownload').hidden=published;
+  if(!published)console.warn('Vedras 4×-Exportdiagnose:',
+   window.__vedrasLastFrozenExportReport);
   if(published){
    frozenNotice('FERTIG: '+scene+' · alle '+audit.expected+
     ' Kacheln mit 4×-Ground und Scenery geprüft · '+
@@ -4878,11 +4907,11 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     ...seamAudit.failures.map(v=>v.pair.join(' / ')+' ('+v.verdict+')')];
    frozenNotice('UNVOLLSTÄNDIG: '+scene+' · '+audit.stored+'/'+
     audit.expected+' Kacheln · '+failed+' fehlen oder sind ungültig · '+
-    seamAudit.failures.length+' tatsächliche Ground-Kernnähte auffällig'+
+    (audit.complete?seamAudit.failures.length+
+     ' Ground-Kernnähte auffällig':'Ground-Kernnähte NICHT geprüft (Archiv unvollständig)')+
     (run.cancel?' · abgebrochen':'')+'. '+
-    (seamAudit.failures.length?
-     'PNG-Archiv bleibt unverändert und wird NICHT veröffentlicht. ':
-     '„Gesamte Karte vorbereiten“ erneut drücken, um fortzusetzen. ')+
+    'Ursachen: '+reasonGroups.slice(0,4).map(g=>g.count+'× '+g.reason).join('; ')+
+    '. Details: „4×-Fehlerbericht herunterladen“. '+
     'Chunks: '+affected.slice(0,12).join(', ')+
     (affected.length>12?' …':''));
   }
