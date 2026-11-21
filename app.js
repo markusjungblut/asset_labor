@@ -4871,7 +4871,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   const missingDetails=audit.missingIds.map(id=>blocked.get(id)||
    {id,phase:'nicht erfasst',reason:'Keine detaillierte Ursache aufgezeichnet'});
   const invalidDetails=audit.invalidTiles.map(entry=>
-   {id:entry.id,phase:'archivpruefung',reason:entry.reason});
+   ({id:entry.id,phase:'archivpruefung',reason:entry.reason}));
   const counts=new Map();
   for(const entry of [...missingDetails,...invalidDetails]){
    const name=entry.phase+' / '+entry.reason;
