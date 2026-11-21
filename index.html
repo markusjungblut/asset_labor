@@ -367,6 +367,7 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <button type="button" id="frozenStandalone" class="button outline block">Fertige Spielkarte ohne Asset-Labor öffnen</button>
 <button type="button" id="frozenExport" class="button outline block">Fertige Karte als ZIP-Bildatlas exportieren</button>
 <button type="button" id="frozenExit" class="button outline block" hidden>Zum Asset-Labor zurück</button>
+<button type="button" id="frozenReportDownload" class="button outline block" hidden>4×-Fehlerbericht herunterladen (JSON)</button>
 <div id="frozenStatus" class="infobox" role="status">Noch keine Spielkarten-Kacheln eingefroren. Die gesamte Karte kann schrittweise in mehreren Blickbereichen erfasst werden.</div>
 <p class="muted">Teststand: Browserlokale IndexedDB-Bildkacheln. Die Ganzkarten-Vorbereitung durchläuft alle belegten 512er Welt-Chunks einmalig; sie kann bei fehlerhaften Quellen unvollständig enden und lässt sich erneut ausführen. Der Bildatlas wird zusätzlich als transportables ZIP mit Manifest exportiert. Bei unvollständiger Vorbereitung enthält das Manifest ausdrücklich complete:false. Laufende Einheiten, Sichtbarkeit und interaktive Effekte bleiben eigenständige spätere Spiel-Layer.</p>
 </details>
@@ -389,5 +390,5 @@ window.VedrasCloudsDisabled=new URLSearchParams(location.search).get('clouds')!=
 <script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1"></script>
 <script src="world-tile-streamer.js?v=0.22.6&amp;fix=exact-lod-20261117&amp;clouds=off-20261120"></script>
-<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=20261120-organic-v1&amp;geography=2.1.2&amp;geographyIO=20261120&amp;clouds=off-20261120"></script><script src="nature-ui.js?v=20261121-desert-trees-v1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=20261119-shadow-shortcut-v1"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
+<script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=20261120-organic-v1&amp;diagnostics=20261121&amp;geography=2.1.2&amp;geographyIO=20261120&amp;clouds=off-20261120"></script><script src="nature-ui.js?v=20261121-desert-trees-v1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=20261119-shadow-shortcut-v1"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
