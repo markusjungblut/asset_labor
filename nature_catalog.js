@@ -46,6 +46,10 @@ window.VedrasNatureCatalog=(()=>{
  const WARM_BIOMES=['savanna','jungle','rocky_desert','sandy_desert','clay_desert',
    'badlands','wasteland','semi_desert','sandy_rocky_desert',
    'sandy_badlands','rocky_badlands','desert'];
+ // Only palms and Schirmakazien broaden to all arid landscapes.
+ const DESERT_BIOMES=['rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'];
+ const isAcacia=meta=>meta?.family==='savanna_trees'&&
+  /^existing_schirmakazie_?\d+$/.test(String(meta.id||''));
  const TEMPERATE_BIOMES=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
  const STUMP_BIOMES=[...TEMPERATE_BIOMES,'savanna','jungle'];
  function strictHabitat(meta){
@@ -78,9 +82,9 @@ window.VedrasNatureCatalog=(()=>{
   const restricted=strictHabitat(meta);
   if(restricted)return restricted.includes(t);
   if(f==='mangroves')return among('swamp','marshland')&&(nearWater||nearWarm);
-  if(f==='palms')return among('jungle','savanna','tropical_coast');
+  if(f==='palms')return among('jungle','savanna','tropical_coast')||DESERT_BIOMES.includes(t);
   if(f==='jungle_trees'||f==='tropical_bushes')return among('jungle');
-  if(f==='savanna_trees')return among('savanna','semi_desert');
+  if(f==='savanna_trees')return among('savanna','semi_desert')||(isAcacia(meta)&&DESERT_BIOMES.includes(t));
   if(f==='cacti')return among('rocky_desert','sandy_desert','clay_desert','desert','semi_desert','sandy_rocky_desert','savanna');
   if(f==='succulents')return among('savanna','semi_desert','rocky_desert','sandy_desert','sandy_rocky_desert','badlands','desert');
   if(f==='ferns')return among('forest_floor','grassland','pasture','moor','swamp','marshland','jungle');
@@ -115,7 +119,7 @@ window.VedrasNatureCatalog=(()=>{
   // An editor-drawn forest floor and a generic forest must never create a
   // tropical climate. A jungle overlay is only valid on warm base terrain.
   if(jungle&&!warm.includes(base))return false;
-  if(meta.family==='palms'&&(!warm.includes(base)||wet.includes(base)||cold.includes(base)))return false;
+  if(meta.family==='palms'&&(![...warm,...DESERT_BIOMES].includes(base)||wet.includes(base)||cold.includes(base)))return false;
   if(['jungle_trees','tropical_bushes'].includes(meta.family)&&!jungle)return false;
   if(forest&&['cacti','succulents','dry_bushes'].includes(family))return false;
   const allowed=effectiveTypes(meta,terrain,catalog);
@@ -184,5 +188,5 @@ window.VedrasNatureCatalog=(()=>{
   return err;
  }
  return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,
-  habitatOK,canPlace,mountainAllowed,strictHabitat,rules};
+  habitatOK,canPlace,mountainAllowed,strictHabitat,rules,DESERT_BIOMES,isAcacia};
 })();

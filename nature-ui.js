@@ -372,7 +372,7 @@ window.VedrasNature=(()=>{
    if(!neighborsByHex.has(k))neighborsByHex.set(k,[]);
    neighborsByHex.get(k).push(inst);
   }
-  let suitableCells=0,forestTrees=0,newBoulders=0,newWarmBoulders=0;
+  let suitableCells=0,forestTrees=0,newBoulders=0,newWarmBoulders=0,newDesertPalms=0,newDesertAcacias=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
   // Reserve a warm boulder on scenes with at least three eligible warm
   // hexes, so 36–54 cannot disappear simply because of an unlucky seed.
@@ -420,7 +420,16 @@ window.VedrasNature=(()=>{
     // trotz dichter Waldklasse nicht so häufig wie gewöhnliche Bäume gezogen.
     return rank(a,c,301)/Math.max(.04,p.density*Math.min(1,p.weight));
    };
-   const trees=possible.filter(a=>B.isCanopy(entryFor(a))).sort((a,b)=>treePriority(a)-treePriority(b));
+   const isDesert=N.DESERT_BIOMES.includes(core.baseBiomeOf(c));
+   // Sparse desert trees are separate from forest canopy quotas.
+   const desertTrees=isDesert?possible.filter(a=>{
+    const m=entryFor(a);
+    return B.isCanopy(m)&&(m.family==='palms'||N.isAcacia(m));
+   }).sort((a,b)=>a.relPath.localeCompare(b.relPath)):[];
+   const trees=possible.filter(a=>{
+    const m=entryFor(a);
+    return B.isCanopy(m)&&!(isDesert&&(m.family==='palms'||N.isAcacia(m)));
+   }).sort((a,b)=>treePriority(a)-treePriority(b));
    // Standing dead trees are accents, NOT living canopy quota trees.
    const boulders=possible.filter(a=>isBoulder(entryFor(a)))
     .sort((a,b)=>a.relPath.localeCompare(b.relPath));
@@ -459,6 +468,25 @@ window.VedrasNature=(()=>{
      if(inst){record(inst);count++;newBoulders++;
       if(B.isWarmBoulder(entryFor(a)))newWarmBoulders++;
       break;}
+    }
+   }
+   // A single deterministic 6.5% opportunity per desert hex, not per PNG.
+   // Keep palms/acacias occasional even where the forestry mode is dense.
+   if(desertTrees.length&&count<objectCap&&random(seed,c.q,c.r,1751)<.065){
+    const palms=desertTrees.filter(a=>entryFor(a).family==='palms');
+    const acacias=desertTrees.filter(a=>N.isAcacia(entryFor(a)));
+    const familyPools=random(seed,c.q,c.r,1752)<.5?[palms,acacias]:[acacias,palms];
+    let added=false;
+    for(const pool of familyPools){
+     if(!pool.length||added)continue;
+     const first=Math.floor(random(seed,c.q,c.r,1753)*pool.length);
+     for(let j=0;j<pool.length;j++){
+      const a=pool[(first+j)%pool.length];
+      const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+      if(inst){record(inst);count++;added=true;
+       if(entryFor(a).family==='palms')newDesertPalms++;else newDesertAcacias++;
+       break;}
+     }
     }
    }
    // In canopy mode, continue planting until the rendered crown-size proxy
@@ -525,7 +553,7 @@ window.VedrasNature=(()=>{
   const glades=forest.filter(c=>c.glade).length;
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Wüstenpalmen '+newDesertPalms+' · Wüstenakazien '+newDesertAcacias+' · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
     edge+' Rand, '+glades+' Lichtungshexe.');
  }
 

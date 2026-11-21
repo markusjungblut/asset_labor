@@ -4603,6 +4603,16 @@ $('frozenReshade').addEventListener('click',async()=>{
  finally{button.disabled=false;}
 });
 
+// A per-tile report remains separate from the immutable archived PNGs.
+$('frozenReportDownload').addEventListener('click',()=>{
+ const report=window.__vedrasLastFrozenExportReport;
+ if(!report)return;
+ const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],
+  {type:'application/json'})),link=document.createElement('a');
+ link.href=url;link.download='vedras_4x_fehler_'+report.scene+'.json';
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),15000);
+});
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  if(state.view!=='map'||state.mode==='far'){
@@ -4665,6 +4675,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   frozenNotice('Spielkarten-Manifest konnte nicht gespeichert werden: '+
    String(error?.message||error));return;
  }
+ window.__vedrasLastFrozenExportReport=null;
+ $('frozenReportDownload').hidden=true;
  const run={cancel:false,quality:quality4?'4':null,offlineOnly:false};
  frozenTour=run;lockFrozenTourEditor(true);
  const button=$('frozenCaptureAll');button.disabled=true;
@@ -4674,7 +4686,17 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  let restoreFrozenSources=null;
  // A failed tile is placed at the END of the queue exactly once. Other
  // source assets get a chance to finish loading before its second attempt.
- const workQueue=all.slice(),retriedIds=new Set(),pixelIssues=new Map();
+ const workQueue=all.slice(),retriedIds=new Set(),pixelIssues=new Map(),
+  blocked=new Map();
+ const noteBlocked=(tile,phase,reason,details=null)=>{
+  blocked.set(tile.id,{id:tile.id,phase,reason:String(reason||'unbekannt'),
+   waitingAssets:(details?.waitingAssets||[]).slice(0,4),
+   missingOptionalAssets:(details?.missingOptionalAssets||[]).slice(0,4),
+   terrainVersion:details?.terrainVersion??null,
+   paintedVersion:details?.paintedVersion??null,
+   shorelineReason:details?.shorelineReason??null,
+   riverReason:details?.riverReason??null});
+ };
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
   if(fastInteracting)endFastCamera(true);
@@ -4735,11 +4757,15 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      if(state.river&&state.riverBanks)riverChunks.prime(bounds,opts);
      if(state.roadShown)roadChunks.prime(bounds,opts);
      const diagnostic={};
-     if(!tileArtworkStatus(tile,diagnostic,true))
+     if(!tileArtworkStatus(tile,diagnostic,true)){
+      noteBlocked(tile,'quellvorbereitung',
+       diagnostic.reason||diagnostic.shorelineReason||
+       diagnostic.riverReason||'nicht bereit',diagnostic);
       for(const path of diagnostic.waitingAssets||[]){
        const asset=assetByPath.get(path);
        if(asset)imagePool.ensure(asset,10);
       }
+     }
      const now=performance.now();
      if(now-(run.lastNoticeAt||0)>1800){
       run.lastNoticeAt=now;
@@ -4756,7 +4782,11 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     }
     let ready=[];
     if(quality4){
-     if(!tileArtworkStatus(tile,null,true))continue;
+     const readiness={};
+     if(!tileArtworkStatus(tile,readiness,true)){
+      noteBlocked(tile,'renderfreigabe',readiness.reason,readiness);
+      continue;
+     }
      // Separate editor-only full-resolution source. WorldTile's normal
      // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
      let exact;
@@ -4768,11 +4798,15 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
       // immutable PNGs. Retry this specific tile at the END of the tour;
       // never save or publish a failed Ground image.
       pixelIssues.set(tile.id,reason);
+      noteBlocked(tile,'ground-pixelpruefung',reason);
       frozenNotice('4×-Pixelprüfung: Quellkachel '+tile.id+
        ' fehlerhaft · wird separat erneut versucht. '+reason);
       break;
      }
-     if(!exact?.complete||run.cancel)continue;
+     if(!exact?.complete||run.cancel){
+      if(!run.cancel)noteBlocked(tile,'bake','Boden/Objekte noch nicht vollständig berechnet');
+      continue;
+     }
      const ground=exact.layers?.find(l=>l.layer==='ground');
      if(!ground||ground.image.width<
        (tile.size+2*WORLD_TILE_GUTTER)*4-.5)
@@ -4787,7 +4821,8 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     if(result.saved+result.skipped!==1)
      throw Error('Falsche Anzahl gespeicherter 4×-Kacheln: '+tile.id);
     knownFrozenTiles.add(fileKey);
-    totalSaved+=result.saved;pixelIssues.delete(tile.id);found=true;break;
+    totalSaved+=result.saved;
+    pixelIssues.delete(tile.id);blocked.delete(tile.id);found=true;break;
    }
    if(!found){
     if(!retriedIds.has(tile.id)&&!run.cancel){
@@ -4830,6 +4865,35 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    groundSeamPolicy:'exclusive',verifiedTiles:audit.stored,
    missingTileIds:[...audit.missingIds,
     ...audit.invalidTiles.map(v=>v.id)]});
+  // Build diagnostic evidence only after the immutable archive audit.
+  // A zero seam-failure count is NOT a successful seam audit when tiles
+  // are missing: auditSaved() was intentionally skipped in that case.
+  const missingDetails=audit.missingIds.map(id=>blocked.get(id)||
+   {id,phase:'nicht erfasst',reason:'Keine detaillierte Ursache aufgezeichnet'});
+  const invalidDetails=audit.invalidTiles.map(entry=>
+   ({id:entry.id,phase:'archivpruefung',reason:entry.reason}));
+  const counts=new Map();
+  for(const entry of [...missingDetails,...invalidDetails]){
+   const name=entry.phase+' / '+entry.reason;
+   counts.set(name,(counts.get(name)||0)+1);
+  }
+  const reasonGroups=[...counts].map(([reason,count])=>({reason,count}))
+   .sort((a,b)=>b.count-a.count);
+  window.__vedrasLastFrozenExportReport={
+   schema:'vedras-frozen-export-diagnostics-v1',
+   scene,expected:audit.expected,stored:audit.stored,published,
+   seamAuditExecuted:!!audit.complete&&!run.cancel,
+   seamFailures:seamAudit.failures,
+   missing:missingDetails,invalid:invalidDetails,
+   extraIds:audit.extraIds,
+   reasonGroups,
+   terrainChunkStatus:terrainChunks.stats(),
+   shorelineChunkStatus:shorelineChunks.stats(),
+   riverChunkStatus:riverChunks.stats()
+  };
+  $('frozenReportDownload').hidden=published;
+  if(!published)console.warn('Vedras 4×-Exportdiagnose:',
+   window.__vedrasLastFrozenExportReport);
   if(published){
    frozenNotice('FERTIG: '+scene+' · alle '+audit.expected+
     ' Kacheln mit 4×-Ground und Scenery geprüft · '+
@@ -4843,11 +4907,11 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     ...seamAudit.failures.map(v=>v.pair.join(' / ')+' ('+v.verdict+')')];
    frozenNotice('UNVOLLSTÄNDIG: '+scene+' · '+audit.stored+'/'+
     audit.expected+' Kacheln · '+failed+' fehlen oder sind ungültig · '+
-    seamAudit.failures.length+' tatsächliche Ground-Kernnähte auffällig'+
+    (audit.complete?seamAudit.failures.length+
+     ' Ground-Kernnähte auffällig':'Ground-Kernnähte NICHT geprüft (Archiv unvollständig)')+
     (run.cancel?' · abgebrochen':'')+'. '+
-    (seamAudit.failures.length?
-     'PNG-Archiv bleibt unverändert und wird NICHT veröffentlicht. ':
-     '„Gesamte Karte vorbereiten“ erneut drücken, um fortzusetzen. ')+
+    'Ursachen: '+reasonGroups.slice(0,4).map(g=>g.count+'× '+g.reason).join('; ')+
+    '. Details: „4×-Fehlerbericht herunterladen“. '+
     'Chunks: '+affected.slice(0,12).join(', ')+
     (affected.length>12?' …':''));
   }
