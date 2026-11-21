@@ -4125,7 +4125,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4186,7 +4187,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4247,7 +4249,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4308,7 +4311,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4369,7 +4373,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4430,7 +4435,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4491,7 +4497,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4552,7 +4559,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4613,7 +4621,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4674,7 +4683,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4735,7 +4745,8 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [
-        "warm_regions"
+        "warm_regions",
+        "arid_regions"
       ],
       "allowedTerrainTypes": [
         "semi_desert"
@@ -4797,7 +4808,16 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "savanna",
-        "semi_desert"
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -4847,7 +4867,16 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "savanna",
-        "semi_desert"
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -4897,7 +4926,16 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "savanna",
-        "semi_desert"
+        "semi_desert",
+        "rocky_desert",
+        "sandy_desert",
+        "clay_desert",
+        "badlands",
+        "wasteland",
+        "sandy_rocky_desert",
+        "sandy_badlands",
+        "rocky_badlands",
+        "desert"
       ],
       "excludedTerrainTypes": [],
       "placement": {
