@@ -442,19 +442,27 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    autotile:window.VedrasAutotile,catalogApi:window.VedrasCatalog,
    reliefAdapter:window.VedrasLargeMapBakeGroundRelief,
    reliefApi:window.VedrasRelief,
+   shorelineAdapter:window.VedrasLargeMapBakeShoreline,
+   shorelineApi:window.VedrasShoreline,
+   riversApi:window.VedrasRivers,
   });
   const withRelief=!!$('materialPreviewRelief').checked;
+  const withShoreline=!!$('materialPreviewShoreline').checked;
   report.textContent='Originalmaterial'+(withRelief?' und Geografie-Hügelrelief':'')+
+   (withShoreline?' plus sechs Original-Ufer-PNGs':'')+
    ' für Kachel '+tileId+' werden mit den bestehenden Bildrenderern zusammengesetzt …';
-  const result=await renderer.renderTile(tileId,{withRelief});
+  const result=await renderer.renderTile(tileId,{withRelief,withShoreline});
   if(sourceWorld!==world)throw Error('Welt wurde während des Renderns geändert; kein veraltetes PNG exportiert.');
-  if(result.complete||result.readyForViewer||
-     result.stage!==(withRelief?'material-relief-preview':'material-only-preview'))
+  const expectedStage=withShoreline?
+   (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
+   (withRelief?'material-relief-preview':'material-only-preview');
+  if(result.complete||result.readyForViewer||result.stage!==expectedStage)
    throw Error('Terrainprobe darf nicht als fertige Spielkarte publiziert werden.');
   const blobUrl=URL.createObjectURL(result.png);
   const link=document.createElement('a');
   link.href=blobUrl;
   link.download='vedras-'+(withRelief?'material-relief':'material')+
+   (withShoreline?'-ufer':'')+
    'probe-'+result.tile.id.replace(',','_')+'.png';
   document.body.appendChild(link);
   try{link.click();}finally{
@@ -466,8 +474,12 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    Math.ceil(result.png.size/1024)+' KiB'+
    (withRelief?' · Geografie-Hügelquellen: '+result.reliefHillSources:
     ' · Relief nicht aktiviert')+
-   '. UNVOLLSTÄNDIG: '+(withRelief?'ohne ':'ohne Relief, ')+
-   'Ufergrafiken, Flüsse, Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
+   (withShoreline?' · Original-Ufersegmente: '+result.shorelineSegments+
+    ' · Original-Ufer-PNGs: '+result.shorelineAssets.length+
+    ' · zurückgestellte Flussmündungen: '+result.riverMouthPortalsDeferred:'')+
+   '. UNVOLLSTÄNDIG: '+(withRelief?'':'ohne Relief, ')+
+   (withShoreline?'':'ohne Ufergrafiken, ')+
+   'ohne Flusswasser, Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
  }catch(error){
   report.textContent='Materialprobe nicht exportiert: '+String(error?.message||error);
  }finally{button.disabled=false;}
