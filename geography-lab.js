@@ -445,15 +445,19 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    shorelineAdapter:window.VedrasLargeMapBakeShoreline,
    shorelineApi:window.VedrasShoreline,
    riversApi:window.VedrasRivers,
+   riverAdapter:window.VedrasLargeMapBakeRivers,
+   riverBanksApi:window.VedrasRiverBanks,
   });
   const withRelief=!!$('materialPreviewRelief').checked;
   const withShoreline=!!$('materialPreviewShoreline').checked;
+  const withRivers=!!$('materialPreviewRivers').checked;
   report.textContent='Originalmaterial'+(withRelief?' und Geografie-Hügelrelief':'')+
    (withShoreline?' plus sechs Original-Ufer-PNGs':'')+
+   (withRivers?' plus Flusswasser/Uferwände':'')+
    ' für Kachel '+tileId+' werden mit den bestehenden Bildrenderern zusammengesetzt …';
-  const result=await renderer.renderTile(tileId,{withRelief,withShoreline});
+  const result=await renderer.renderTile(tileId,{withRelief,withShoreline,withRivers});
   if(sourceWorld!==world)throw Error('Welt wurde während des Renderns geändert; kein veraltetes PNG exportiert.');
-  const expectedStage=withShoreline?
+  const expectedStage=withRivers?'original-river-ground-preview':withShoreline?
    (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
    (withRelief?'material-relief-preview':'material-only-preview');
   if(result.complete||result.readyForViewer||result.stage!==expectedStage)
@@ -462,7 +466,7 @@ $('materialPreviewBake').addEventListener('click',async()=>{
   const link=document.createElement('a');
   link.href=blobUrl;
   link.download='vedras-'+(withRelief?'material-relief':'material')+
-   (withShoreline?'-ufer':'')+
+   (withShoreline?'-ufer':'')+(withRivers?'-fluss':'')+
    'probe-'+result.tile.id.replace(',','_')+'.png';
   document.body.appendChild(link);
   try{link.click();}finally{
@@ -476,10 +480,15 @@ $('materialPreviewBake').addEventListener('click',async()=>{
     ' · Relief nicht aktiviert')+
    (withShoreline?' · Original-Ufersegmente: '+result.shorelineSegments+
     ' · Original-Ufer-PNGs: '+result.shorelineAssets.length+
-    ' · zurückgestellte Flussmündungen: '+result.riverMouthPortalsDeferred:'')+
+    ' · zurückgestellte Flussmündungen: '+result.riverMouthPortalsDeferred+
+    ' · geöffnete Flussmündungen: '+result.riverMouthPortalsOpened:'')+
+   (withRivers?' · Original-Flussläufe: '+result.riverRoutesRendered+
+    ' · Uferwandschichten: '+result.riverBankLayers+
+    ' · Flusswasser-Texturen: '+result.riverWaterTextures.length:'')+
    '. UNVOLLSTÄNDIG: '+(withRelief?'':'ohne Relief, ')+
    (withShoreline?'':'ohne Ufergrafiken, ')+
-   'ohne Flusswasser, Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
+   (withRivers?'':'ohne Flusswasser, ')+
+   'ohne Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
  }catch(error){
   report.textContent='Materialprobe nicht exportiert: '+String(error?.message||error);
  }finally{button.disabled=false;}
