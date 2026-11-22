@@ -5,6 +5,7 @@ const G=require('../worldgen-geography.js');
 const P=require('../large-map-bake-plan.js');
 const S=require('../large-map-bake-source.js');
 const Export=require('../large-map-bake-export.js');
+const Runner=require('../large-map-bake-runner.js');
 const zipSandbox={window:{},TextEncoder,TextDecoder,Blob,Uint8Array,DataView};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../frozen-map-package.js'),'utf8'),zipSandbox);
 const zip=zipSandbox.window.VedrasFrozenMapPackage;
@@ -19,8 +20,8 @@ function setup(sectorSize=4){
   const e=expected(tile.id);
   records.set(e.key,{schema:'vedras-large-map-bake-receipt-v1',
    key:e.key,revision:'source-r9',layers:[
-    {layer:'ground',png:bytes,pad:3,sha256:'a'.repeat(64),width:2072,height:1759},
-    {layer:'scenery',png:bytes,pad:128,sha256:'b'.repeat(64),width:1536,height:1306}
+    {layer:'ground',png:bytes,pad:3,sha256:'a'.repeat(64),...Runner.dimensions('ground','near-4x')},
+    {layer:'scenery',png:bytes,pad:128,sha256:'b'.repeat(64),...Runner.dimensions('scenery','near-4x')}
    ]});
  }
  let verifications=0;
