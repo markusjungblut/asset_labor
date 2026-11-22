@@ -132,7 +132,11 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const east=forest.build(extended,image,{...opts,
     bounds:{x:384,y:-128,width:768,height:768}});
    const forestAt=(r,x,y)=>{
-    const px=Math.floor((x-r.x)*r.scale),py=Math.floor((y-r.y)*r.scale);
+    // Compare the SAME global texel, not a rounded local world distance.
+    // Fractional origin from global 1.4x alignment can make the latter
+    // differ by one texel because of IEEE-754 rounding (e.g. x=535).
+    const px=Math.floor(x*r.scale)-Math.round(r.x*r.scale),
+     py=Math.floor(y*r.scale)-Math.round(r.y*r.scale);
     return Array.from(r.canvas.getContext('2d',{willReadFrequently:true})
      .getImageData(px,py,1,1).data);
    };
