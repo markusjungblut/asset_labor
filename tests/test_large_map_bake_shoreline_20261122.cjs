@@ -82,6 +82,32 @@ test('original six-sided shoreline renderer uses actual side PNGs and never temp
  assert(result.assetsUsed.every(p=>/^assets\/shorelines\/shore_v105_edge_0[1-6]\.png$/.test(p)));
  assert(result.canvas.realArt);
 });
+test('original coast opens actual river mouth only when textured water is enabled',async()=>{
+ const w=world(),plan=Plan.plan(w),src=Source.create(w,plan,{planner:Plan});
+ const portal=rivers.mouthPortals(w.riverPaths.map(hexes=>({hexes})),w.cells,wet,32)[0];
+ assert(portal,'the 95x75 world has a river mouth');
+ const tile=plan.tiles.find(t=>portal.x>=t.x&&portal.x<t.x+512&&
+  portal.y>=t.y&&portal.y<t.y+512);
+ assert(tile,'mouth lies within an occupied 512-world-unit tile');
+ const context=src.contextFor(tile.id,{sourceHalo:Coast.SOURCE_HALO});
+ const calls=[];
+ const fake={segments:originals.segments,build:(cells,isWet,images,opts)=>{
+  calls.push(opts.mouthPortals);
+  return {canvas:{},x:opts.bounds.x,y:opts.bounds.y,
+   width:opts.bounds.width,height:opts.bounds.height,missing:0};
+ }};
+ const bridge=Coast.create({world:w,catalog,shoreline:fake,rivers,
+  loadImage:async()=>({img:{naturalWidth:512,naturalHeight:512}})});
+ const closed=await bridge.render(context),opened=await bridge.render(context,{withRiverWater:true});
+ assert.equal(calls.length,2);
+ assert.equal(calls[0].length,0);
+ assert(calls[1].some(x=>x.x===portal.x&&x.y===portal.y));
+ assert.equal(closed.openedMouthPortals||0,0);
+ assert(opened.openedMouthPortals>=1);
+ assert.equal(opened.deferredMouthPortals,0);
+ assert.equal(opened.complete,false);
+ assert.equal(opened.readyForViewer,false);
+});
 test('missing originals or failed shoreline build block PNG creation, no generated coastline fallback',async()=>{
  const w=world(),plan=Plan.plan(w),source=Source.create(w,plan,{planner:Plan}),
  ctx=shoreTile(w,plan,source);
