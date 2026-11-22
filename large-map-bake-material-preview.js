@@ -121,6 +121,8 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
  shorelineAdapter=root.VedrasLargeMapBakeShoreline,
  shorelineApi=root.VedrasShoreline,
  riversApi=root.VedrasRivers,
+ riverAdapter=root.VedrasLargeMapBakeRivers,
+ riverBanksApi=root.VedrasRiverBanks,
  catalog,assets,loadImage=imageLoader(),canvasFactory=
   ()=>root.document.createElement('canvas')}={}){
  if(typeof autotile?.build!=='function'||
@@ -137,15 +139,20 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   return c1==='water'&&c2==='water'?'soft_water':
    c1==='ground'&&c2==='ground'?'soft_ground':'shoreline_required';
  }
- let shoreRenderer=null;
- async function renderTile(tileId,{withRelief=false,withShoreline=false}={}){
+ let shoreRenderer=null,riverRenderer=null;
+ async function renderTile(tileId,{withRelief=false,withShoreline=false,
+  withRivers=false}={}){
   if(withRelief&&(!reliefAdapter?.apply||!reliefApi?.make))
    throw Error('Gemeinsamer 2.5D-Relief-Renderer wurde nicht geladen.');
   if(withShoreline&&(!shorelineAdapter?.create||!shorelineApi?.build||
      !riversApi?.mouthPortals))
    throw Error('Original-Uferrenderer und Flussmündungsprüfung fehlen.');
+  if(withRivers&&(!riverAdapter?.create||!riverBanksApi?.prepare||
+     !riversApi?.render))
+   throw Error('Original-Flusswasser und Uferwand-Renderer fehlen.');
   const halo=Math.max(withRelief?(reliefAdapter.SOURCE_HALO||0):0,
-   withShoreline?(shorelineAdapter.SOURCE_HALO||0):0);
+   withShoreline?(shorelineAdapter.SOURCE_HALO||0):0,
+   withRivers?(riverAdapter.SOURCE_HALO||0):0);
   const ctxData=source.contextFor(tileId,halo?{sourceHalo:halo}:{});
   const assignments=ctxData.cells.map(cell=>[cell,pick(cell,groups)]);
   const needed=[...new Map(assignments.map(([,a])=>[a.path,a])).values()];
@@ -191,9 +198,16 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
     world,catalog,shoreline:shorelineApi,rivers:riversApi,loadImage
    });
   }
-  const shore=withShoreline?await shoreRenderer.render(ctxData):null;
+  const shore=withShoreline?await shoreRenderer.render(ctxData,
+   {withRiverWater:withRivers}):null;
   if(shore?.canvas)
    g.drawImage(shore.canvas,shore.x,shore.y,shore.width,shore.height);
+  if(withRivers&&!riverRenderer)riverRenderer=riverAdapter.create({
+   world,catalog,groups,loadImage,pick,
+   rivers:riversApi,banks:riverBanksApi,relief:reliefApi
+  });
+  const river=withRivers?await riverRenderer.render(ctxData,g,
+   {reliefOptions:withRelief?raised.options:null}):null;
   if(typeof output.toBlob!=='function'&&typeof output.convertToBlob!=='function')
    throw Error('Originalmaterial-Raster kann nicht als PNG kodiert werden.');
   const png=output.convertToBlob?
@@ -202,21 +216,27 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
     v=>v?resolve(v):reject(Error('PNG-Kodierung fehlgeschlagen.')),'image/png'));
   if(!(png instanceof Blob)||png.size<45)
    throw Error('Materialvorschau enthält keine gültige PNG-Datei.');
-  const stage=withShoreline?
-   (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
-   (withRelief?'material-relief-preview':'material-only-preview');
+  const stage=withRivers?'original-river-ground-preview':
+   (withShoreline?
+    (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
+    (withRelief?'material-relief-preview':'material-only-preview'));
   return {stage,complete:false,rasterized:true,readyForViewer:false,
    reliefHillSources:raised?.hillHexes||0,
    shorelineSegments:shore?.segmentCount||0,
    shorelineAssets:shore?.assetsUsed||[],
    riverMouthPortalsDeferred:shore?.deferredMouthPortals||0,
+   riverMouthPortalsOpened:shore?.openedMouthPortals||0,
+   riverRoutesRendered:river?.riverCount||0,
+   riverBankLayers:river?.bankCount||0,
+   riverWaterTextures:river?.texturePaths||[],
    tile:{...t},source:ctxData.source,sourceCount:ctxData.sourceCount,
    assetPaths:needed.map(a=>a.path),
    width:output.width,height:output.height,png,
    omitted:[
     ...(withRelief?[]:['relief']),
     ...(withShoreline?[]:['shorelines']),
-    'rivers','forest','scenery','shadows'
+    ...(withRivers?[]:['rivers']),
+    'forest','scenery','shadows'
    ]};
  }
  return {renderTile,tileCount:source.tileCount,
