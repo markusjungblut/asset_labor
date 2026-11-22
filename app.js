@@ -2606,8 +2606,12 @@ function genericObjects(view=null){
  }
  // No roots/feet may stand on an existing road. Old dynamic demo flora and
  // imported scenes obey this visual gate too; overhanging crowns are fine.
- const roads=visibleRoadEdges();
+ const roads=visibleRoadEdges(),walls=visibleWallEdges();
  return objs.filter(o=>{
+  // The wall belongs to a shared hex edge. Hide only the root of a tree
+  // growing through that line; do not destroy saved Nature placement.
+  if(o.type==='nature'&&window.VedrasWalls.blocksPoint(o.x,o.y,walls,22))
+   return false;
   if(o.type!=='mountain'&&window.VedrasRoads.blocksPoint(o.x,o.y,roads,
    o.type==='building'?Math.min(72,(o.w||160)*.38):7,HEX))return false;
   return o.type!=='nature'||!window.VedrasRivers.blocksPoint(o.x,o.y,
