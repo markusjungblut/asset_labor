@@ -44,7 +44,7 @@ test('obsolete disabled quality and redundant one-click scene size are removed',
 test('organization preserves authoring controls and separates diagnostics',()=>{
  assert.doesNotThrow(()=>new Function(organizer));
  assert.match(organizer,/const groups=\[/);
- assert.match(organizer,/drawers:\['terrainTests','reliefPanel','shorelinePanel','riverPanel','roadPanel'\]/);
+ assert.match(organizer,/drawers:\['terrainTests','reliefPanel','shorelinePanel','riverPanel','roadPanel','wallPanel'\]/);
  assert.match(organizer,/parallel/gi.test(organizer)?/Renderer-Standardwerte & Diagnose/:/Renderer-Standardwerte & Diagnose/);
  assert.match(organizer,/WebGL2-Vergleiche \(standardmäßig aus\)/);
  assert.match(organizer,/Diagnose & ältere A\/B-Vergleiche/);
