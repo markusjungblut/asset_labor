@@ -353,6 +353,13 @@ Der generische Schatten-Editor verändert keine Bergschatten mehr; nur die globa
 <p class="muted">Nur vollständig fertige Bildkacheln speichern. Im Test werden weder Terrain-Mischungen noch Küsten, Schatten oder Weltkacheln neu berechnet. Der gespeicherte Bereich kann ohne neue Renderaufträge bewegt und gezoomt werden.</p>
 <button type="button" id="frozenCapture" class="button outline block">Fertige sichtbare Bildkacheln einfrieren</button>
 <button type="button" id="frozenCaptureAll" class="button primary block">Gesamte Spielkarte vorbereiten · 4× automatisch</button>
+<details><summary>Großkarten-Baker: echte Renderer-Referenzkachel prüfen (experimentell)</summary>
+<p class="muted">Rendert aus der bereits vorbereiteten kleinen Editor-Szene genau eine Kachel mit dem Original-Renderer und lädt Ground und Scenery als geprüfte PNGs herunter. Testqualität: Near 2,5×/1,9×, noch nicht die finale 4×-Großkarte. Kein neuer Weltzustand, kein automatischer Atlasexport.</p>
+<label for="referenceTileId">WorldTile-ID (x,y)</label>
+<input id="referenceTileId" type="text" value="0,0" spellcheck="false">
+<button type="button" id="referenceTileBake" class="button outline block">Original-Renderer-Probekachel als PNG exportieren</button>
+<div id="referenceTileBakeStatus" role="status" class="infobox">Nur lokale Testszene: Quellmaterialien müssen vorbereitet sein.</div>
+</details>
 <p class="muted">Ein Klick genügt: Der Export verwendet automatisch die echte 4×-Qualität, prüft alle Kacheln und stellt danach die bisherige Editorqualität wieder her. Eine separate 4×-Einstellung ist nicht erforderlich.</p>
 <details id="frozenSceneryRefreshPanel"><summary>Schatten der fertigen Spielkarte aktualisieren (Boden wiederverwenden)</summary>
 <p class="muted">Erzeugt eine NEUE Spielkartenkennung. Nur Objekt- und Schatten-PNGs werden neu berechnet; die Original-4×-Bodenkacheln bleiben an ihrem bisherigen Speicherort. Der Vorgang ist abbrechbar und fortsetzbar.</p>
@@ -390,6 +397,7 @@ window.VedrasCloudsDisabled=new URLSearchParams(location.search).get('clouds')!=
 <script src="authored-world-contract.js?v=20261118-semantic-world-v1"></script>
 <script src="frozen-map-runtime.js?v=20261118-near-archive-audit-v4&amp;edgePolicy=20261119&amp;linkedAudit=20261122"></script>
 <script src="frozen-ground-core-seams.js?v=20261120-owned-core-gate-v1&amp;hexTip=20261122"></script>
+<script src="large-map-bake-runner.js?v=20261122-native-near-probe"></script>
 <script src="world-tile-streamer.js?v=0.22.6&amp;fix=exact-lod-20261117&amp;clouds=off-20261120"></script>
 <script src="world-tile-ground-reuse.js?v=0.1.0"></script><script src="app.js?v=20261120-organic-v1&amp;diagnostics=20261121&amp;shadows=partial-20261121&amp;edgeCore=20261122&amp;localPreview=20261122&amp;geography=2.1.2&amp;geographyIO=20261120&amp;clouds=off-20261120"></script><script src="nature-ui.js?v=20261121-desert-trees-v1"></script><script src="road-ui.js?v=0.28.0"></script><script src="ui-organizer.js?v=20261119-shadow-shortcut-v1"></script><script src="forest-ui.js?v=0.36.0"></script><script src="river-ui.js?v=0.15.0"></script><script src="flora-workspace.js?v=0.13.0"></script>
 </body></html>
