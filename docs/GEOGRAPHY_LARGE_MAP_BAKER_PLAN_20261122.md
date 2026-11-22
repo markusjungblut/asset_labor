@@ -275,6 +275,50 @@ Welt erstellen, unten **„Echtes Terrainmaterial-PNG testen
 Die bisherige Editor-Testszene, IndexedDB und bereits
 gespeicherte Spielkarten bleiben unverändert.
 
+## Phase 2.2 – Sektorarchiv aus geprüften Bildkacheln
+
+`large-map-bake-export.js` kann nach der noch ausstehenden
+vollständigen 4×-Renderstufe die **tatsächlich gespeicherten**
+Ground-/Scenery-Paare über `VedrasLargeMapBakeRunner.validateReceipt()`
+nochmals prüfen und kleine **ZIP32-Sektorarchive** erzeugen.
+Es benutzt die bestehende ZIP-Routine
+`VedrasFrozenMapPackage.zipEntries()` (CRC32/STORE).
+Standardmäßig umfasst ein Sektor **16 Bildkacheln**,
+maximal 32, mit einem Sicherheitsbudget von 512 MiB pro ZIP.
+
+- Jeder Sektor trägt Rasterdateien und ein `manifest.json`
+  mit WorldTile-ID, Bilddimensionen, PNG-SHA-256,
+  Renderer-/Assetversion, dem eigenen Anteil der
+  **originalen geografischen Hexdaten** und berührten
+  Flussrouten. Hexe werden genau einem Sektor anhand ihres
+  globalen 512er-Owners zugeordnet, nicht per Editor-Zentrum.
+- Der `audit()`-Durchlauf unterscheidet vorhandene, fehlende
+  und hash-ungültige PNG-Paare. Ein Sektor mit auch nur
+  einer fehlenden/korrupten Kachel wird nicht exportiert.
+  Testbar ohne Editor oder große Bildarchive.
+- `exportCollectionIndex()` erstellt nur nach
+  vollständigem Receipt-Audit einen geografischen Index mit
+  Original-Seed, Konfiguration, gesamter semantischer
+  Welt sowie der erwarteten Sektorliste. Er behauptet
+  ausdrücklich **nicht**, dass alle Sektor-ZIPs schon
+  erstellt oder heruntergeladen wurden.
+- Formatkennungen:
+  `vedras-geography-bake-sector-v1` und
+  `vedras-geography-bake-collection-v1`.
+  Auch geprüfte Sektoren tragen **`readyForViewer:false`**.
+  Ein Sektor-Importer und der zugehörige Laufzeit-
+  Streaming-Index für den bestehenden Frozen-Viewer
+  sind **noch nicht implementiert**.
+- Die Funktion arbeitet nur **lesend** auf dem separaten
+  experimentellen Receipt-Speicher. Keine Änderung
+  vorhandener Frozen-Map-ZIPs, IndexedDB-Rekords,
+  Original-Szene oder des Asset-Katalogs.
+
+Für die 95×75-Referenzwelt wären bei 1.678 Kacheln
+**105 Sektoren** à maximal 16 Kacheln vorgesehen.
+Dies ist eine **geplante** Anzahl – noch keine
+tatsächlich erstellten Kartenbilder.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
