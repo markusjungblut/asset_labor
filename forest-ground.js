@@ -104,20 +104,49 @@ window.VedrasForestGround=(()=>{
  function build(cells,image,options={}){
   const groups=regions(cells);
   if(!groups.length||!image?.naturalWidth)return null;
-  const all=groups.flat(),verts=all.flatMap(points);
+  const all=groups.flat();
   const feather=Math.max(8,Math.min(40,Number(options.feather)||24)),pad=Math.ceil(feather*3+3);
-  const left=Math.floor(Math.min(...verts.map(p=>p.x))-pad),top=Math.floor(Math.min(...verts.map(p=>p.y))-pad);
-  const right=Math.ceil(Math.max(...verts.map(p=>p.x))+pad),bottom=Math.ceil(Math.max(...verts.map(p=>p.y))+pad);
-  const width=right-left,height=bottom-top;
   const maxPixels=Math.max(400000,Number(options.maxPixels)||2600000);
-  const scale=Math.max(.35,Math.min(Number(options.resolution)||1.25,Math.sqrt(maxPixels/(width*height))));
-  const pw=Math.max(1,Math.ceil(width*scale)),ph=Math.max(1,Math.ceil(height*scale));
+  let left,top,right,bottom,scale,pw,ph;
+  if(options.bounds){
+   // Experimental large-map raster: use all original halo-region cells,
+   // but limit pixels to a tile-local window on a shared world pixel lattice.
+   const b=options.bounds;
+   if(![b.x,b.y,b.width,b.height].every(Number.isFinite)||
+      b.width<=0||b.height<=0||b.width>2048||b.height>2048)
+    throw Error('Forest-floor WorldTile bounds are invalid.');
+   const limit=Math.sqrt(maxPixels/((b.width+2*pad+2)*(b.height+2*pad+2)));
+   scale=Math.max(.35,Math.min(Number(options.resolution)||1.25,limit));
+   const lx=Math.floor((b.x-pad)*scale),ty=Math.floor((b.y-pad)*scale);
+   const rx=Math.ceil((b.x+b.width+pad)*scale),
+    by=Math.ceil((b.y+b.height+pad)*scale);
+   left=lx/scale;top=ty/scale;right=rx/scale;bottom=by/scale;
+   pw=Math.max(1,rx-lx);ph=Math.max(1,by-ty);
+  }else{
+   // The editor still uses the unchanged whole-region bounds/mask math.
+   const verts=all.flatMap(points);
+   left=Math.floor(Math.min(...verts.map(p=>p.x))-pad);
+   top=Math.floor(Math.min(...verts.map(p=>p.y))-pad);
+   right=Math.ceil(Math.max(...verts.map(p=>p.x))+pad);
+   bottom=Math.ceil(Math.max(...verts.map(p=>p.y))+pad);
+   scale=Math.max(.35,Math.min(Number(options.resolution)||1.25,
+    Math.sqrt(maxPixels/((right-left)*(bottom-top)))));
+   pw=Math.max(1,Math.ceil((right-left)*scale));
+   ph=Math.max(1,Math.ceil((bottom-top)*scale));
+  }
+  const width=right-left,height=bottom-top;
   const make=()=>{const canvas=document.createElement('canvas');canvas.width=pw;canvas.height=ph;return canvas;};
   const mask=make(),mg=mask.getContext('2d');
   mg.setTransform(scale,0,0,scale,-left*scale,-top*scale);
   const grid=new Map((cells||[]).map(c=>[key(c),c])),edges=[];
   for(const group of groups){
-   const opacity=group.reduce((v,c)=>v+strength(c),0)/group.length;
+   const regional=group.reduce((v,c)=>v+strength(c),0)/group.length;
+   const inherited=typeof options.regionOpacityOf==='function'?
+    options.regionOpacityOf(group[0]):undefined;
+   if(inherited!==undefined&&(!Number.isFinite(inherited)||
+      inherited<0||inherited>1))
+    throw Error('Forest-floor global region opacity is invalid.');
+   const opacity=inherited??regional;
    mg.fillStyle='rgba(255,255,255,'+opacity.toFixed(4)+')';
    const boundary=exteriorEdges(group);
    fillHexes(mg,group,boundary,grid);
