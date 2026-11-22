@@ -230,7 +230,7 @@ test('twelve authored SVG variants exist and preserve canonical foot anchors',()
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-authored-art-and-joins-v3'));
+ assert(html.includes('walls.js?v=20261123-painted-palisade-v4'));
  assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
 });
 
