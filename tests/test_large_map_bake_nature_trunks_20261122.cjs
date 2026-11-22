@@ -57,7 +57,8 @@ test('7,125 original-asset tree trunks are positioned without releasing an atlas
   const m=catalog.entries[i.assetPath.slice(7)];
   return W.VedrasNatureBalance.isCanopy(m)&&
    Number.isFinite(i.dx)&&Number.isFinite(i.dy)&&
-   Trunks.inside(i.dx,i.dy,m.placement.edgeMargin+.02);
+   // Exported coordinates are rounded to 0.01 world units; allow that rounding at the hex boundary.
+   Trunks.inside(i.dx,i.dy,m.placement.edgeMargin-.02);
  }));
  const cores=new Set(opts.mountainPlan.instances.flatMap(m=>
   W.VedrasMountains.occupied(m)));
