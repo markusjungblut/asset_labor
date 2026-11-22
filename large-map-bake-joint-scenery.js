@@ -124,7 +124,14 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
     transition:core?76:60,height:avg});
   }
  }
- // Relief.at() validates with a 60-pad limit in the native renderer.\n // Select pads for each global sprite foot, NOT by tile, so cross-seam\n // sampling and distant mountain flattening remain consistent.\n const footHeight=item=>{\n  const local=pads.filter(p=>Math.hypot(p.x-item.p.x,p.y-item.p.y)<p.radius+p.transition);\n  if(local.length>60)throw Error("Mehr als 60 Bergfundamente überlagern einen Spritefuß.");\n  return relief.at(item.p.x,item.p.y,{...base,pads:local});\n };
+ // Relief.at() validates with a 60-pad limit in the native renderer.
+ // Select pads for each global sprite foot, NOT by tile, so cross-seam
+ // sampling and distant mountain flattening remain consistent.
+ const footHeight=item=>{
+  const local=pads.filter(p=>Math.hypot(p.x-item.p.x,p.y-item.p.y)<p.radius+p.transition);
+  if(local.length>60)throw Error("Mehr als 60 Bergfundamente überlagern einen Spritefuß.");
+  return relief.at(item.p.x,item.p.y,{...base,pads:local});
+ };
  const boundsCache=new WeakMap(),alphaCache=new WeakMap();
  function crop(img){
   if(boundsCache.has(img))return boundsCache.get(img);
