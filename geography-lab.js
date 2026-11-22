@@ -3,6 +3,7 @@
 "use strict";
 const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  IO=window.VedrasGeographyIO,BAKE=window.VedrasLargeMapBakePlan,
+ MATERIAL=window.VedrasLargeMapMaterialPreview,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
 let handoffRequest=null,handoffSequence=0;
@@ -70,6 +71,8 @@ function showWorld(next,message){
  world=next;
  $('largeBakeReport').textContent=
   'Noch kein Renderplan für diese Welt erstellt. Keine PNGs erzeugt.';
+ $('materialPreviewReport').textContent=
+  'Neue Welt: noch kein echtes Terrainmaterial-PNG erstellt.';
  $('downloadWorld').disabled=false;$('sendToLab').disabled=false;
  $('message').textContent=message;
  const signature=IO.signature(world,G);
@@ -102,6 +105,7 @@ function build(){
   world=null;distribution=null;$('downloadWorld').disabled=true;
   $('sendToLab').disabled=true;$('exportDistribution').disabled=true;
   $('largeBakeReport').textContent='Kein Renderplan: Weltberechnung fehlgeschlagen.';
+  $('materialPreviewReport').textContent='Kein PNG: Weltberechnung fehlgeschlagen.';
   $('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;
   return false;
  }
@@ -385,6 +389,51 @@ $('planLargeMap').addEventListener('click',()=>{
  }catch(error){
   $('largeBakeReport').textContent='Renderplanung fehlgeschlagen: '+error.message;
  }
+});
+$('materialPreviewBake').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('materialPreviewBake'),report=$('materialPreviewReport');
+ if(button.disabled)return;
+ button.disabled=true;
+ const sourceWorld=world;
+ try{
+  if(!MATERIAL||!BAKE||!window.VedrasLargeMapBakeSource||
+     !window.VedrasAutotile)
+   throw Error('Gemeinsamer AutoTile-Renderer oder Großkarten-Kachelquellen fehlen.');
+  report.textContent='Echte Terraintexturen und Katalog werden vom lokalen Asset-Labor geladen …';
+  const plan=BAKE.plan(sourceWorld),rawId=String($('materialPreviewTileId').value||'').trim();
+  const tileId=rawId||plan.tiles[Math.floor(plan.tiles.length/2)]?.id;
+  if(!plan.tiles.some(tile=>tile.id===tileId))
+   throw Error('WorldTile-ID liegt nicht in diesem geografischen Ausschnitt. Renderplan prüfen.');
+  const {catalog,assets}=await MATERIAL.loadCatalog();
+  if(sourceWorld!==world)throw Error('Welt wurde während des Materialtests geändert; kein veraltetes PNG exportiert.');
+  const renderer=MATERIAL.create({
+   world:sourceWorld,plan,catalog,assets,
+   planner:BAKE,sourceAdapter:window.VedrasLargeMapBakeSource,
+   autotile:window.VedrasAutotile,catalogApi:window.VedrasCatalog,
+  });
+  report.textContent='Echtes Originalmaterial für Kachel '+tileId+
+   ' wird mit dem bestehenden Autotile-Bildrenderer zusammengesetzt …';
+  const result=await renderer.renderTile(tileId);
+  if(sourceWorld!==world)throw Error('Welt wurde während des Renderns geändert; kein veraltetes PNG exportiert.');
+  if(result.complete||result.readyForViewer||result.stage!=='material-only-preview')
+   throw Error('Materialprobe darf nicht als fertige Spielkarte publiziert werden.');
+  const blobUrl=URL.createObjectURL(result.png);
+  const link=document.createElement('a');
+  link.href=blobUrl;
+  link.download='vedras-materialprobe-'+result.tile.id.replace(',','_')+'.png';
+  document.body.appendChild(link);
+  try{link.click();}finally{
+   link.remove();setTimeout(()=>URL.revokeObjectURL(blobUrl),15000);
+  }
+  report.textContent='Original-Terrainmaterial-PNG exportiert: '+result.tile.id+
+   ' · '+result.sourceCount+' Quellhexe · '+result.assetPaths.length+
+   ' Originaltexturen · '+result.width+'×'+result.height+' Pixel · '+
+   Math.ceil(result.png.size/1024)+' KiB. UNVOLLSTÄNDIG: ohne Relief, '+
+   'Ufergrafiken, Flüsse, Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
+ }catch(error){
+  report.textContent='Materialprobe nicht exportiert: '+String(error?.message||error);
+ }finally{button.disabled=false;}
 });
 $('importConfig').addEventListener('click',()=>$('configFile').click());
 async function readSettingsWithConsent(raw){
