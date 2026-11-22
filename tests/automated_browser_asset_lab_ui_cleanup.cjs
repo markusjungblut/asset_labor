@@ -71,8 +71,8 @@ const organizer=fs.readFileSync(path.join(root,'ui-organizer.js'),'utf8');
   assert.deepEqual(result.groups.map(x=>x.id),
    ['tools_terrain','tools_nature','tools_view','tools_test']);
   assert.equal(result.nav.length,7);
-  assert.ok(result.nav.some(x=>x.label==='Schattenangleich'),
-   'Shadow strength equalization must be directly discoverable');
+  assert.ok(result.nav.some(x=>x.label==='Schatten-Grauton'),
+   'Unified shadow gray control must be directly discoverable');
   for(const x of result.nav)assert.ok(result.ids.includes(x.controls));
   assert.equal(new Set(result.ids).size,result.ids.length);
   for(const id of expectedIds)assert.ok(result.ids.includes(id),
