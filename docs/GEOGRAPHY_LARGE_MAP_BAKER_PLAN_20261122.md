@@ -368,6 +368,66 @@ Terrain-/Wasser-Maske, originale
 `VedrasRelief.make()`-Reihenfolge und
 korrekte `complete:false`-Ausgabe.
 
+## Phase 2.4 – Originale sechsseitige Ufergrafiken (Fortsetzung)
+
+**Neu:** Die direkte Ground-Probe kann die sechs vorhandenen
+`assets/shorelines/shore_v105_edge_01.png` bis
+`shore_v105_edge_06.png` über den **bestehenden**
+`VedrasShoreline.segments()/build()`-Compositor ausgeben.
+Dazu gibt es den Schalter **„Original-Ufergrafiken“** in
+`geography-lab.html`.
+
+- `large-map-bake-shoreline.js` bestimmt Ufergrenzen allein aus
+  echten axialen Land-/Wasser-Nachbarn. Er nutzt ausschließlich
+  die `materialClass: water`-Werte des aktuellen Terrainkatalogs,
+  keine eigens erfundenen Farbflächen oder gezeichneten
+  Ersatzlinien. Benötigte Original-PNG-Seiten werden dekodiert
+  und geprüft. Fehlt eine einzige für die Kachel benötigte
+  Seite, **bricht der Export mit Fehlermeldung ab**.
+- Für Sprites, die über die 512er-WorldTile hinausragen,
+  steht ein **768er Source-Halo** zur Verfügung (der
+  reguläre Ground-Plan behält 470, Relief 1.280).
+  Die originale Ufer-Rasterdichte ist 1,5× und wird
+  in die bestehende 2,5×-Near-Ground-Kachel
+  nach Gelände und optionalem erhöhten Land gemischt.
+  Die Kachelposition bleibt absolut; keine
+  lokal rezentrierten Q/R-Koordinaten.
+- Die **vollen Flussrouten** der geografischen Welt
+  werden vorab mit `VedrasRivers.valid()` geprüft.
+  Die originalen Mündungspositionen kommen aus
+  `VedrasRivers.mouthPortals()` auf der kompletten Welt,
+  nicht aus gekappten Tile-Routen.
+  Beim jetzigen Küsten-Test werden Mündungsöffnungen
+  bewusst **noch nicht aus den Ufergrafiken ausgeschnitten**,
+  da das echte Flusswasser in der Probe noch nicht gezeichnet
+  wird. So fehlen an Küsten keine Bildteile. Die
+  Mündungspositionen bleiben als
+  `riverMouthPortalsDeferred` dokumentiert und müssen
+  im späteren Original-Fluss-Layer mit Uferöffnung
+  gemeinsam aktiviert werden.
+- `large-map-bake-material-preview.js` stellt jetzt vier
+  kombinierbare Teil-Proben bereit: Material,
+  Material+Relief, Material+Küste, Material+Relief+Küste.
+  Die letzten beiden heißen
+  `material-shoreline-preview` bzw.
+  `material-relief-shoreline-preview`.
+  Alle bleiben **`complete:false`** und
+  **`readyForViewer:false`**; der endgültige 4×-
+  Bake-Runner akzeptiert sie ausdrücklich nicht.
+- Neue Tests `tests/test_large_map_bake_shoreline_20261122.cjs`
+  prüfen Referenzwelt, gültige Flüsse, globale Mündungen,
+  Original-Seitenauswahl, notwendige Quellgrafiken,
+  Fehlerfälle, UI-Verkabelung und Nicht-Fertig-Markierung.
+  Es gibt noch **keinen abgenommenen Pixelvergleich**
+  mit einer exportierten 397-Hex-Editor-Küstenkarte.
+
+**Nächster Bauabschnitt:** das bestehende Flusswasser und
+die Flussufer als eine gemeinsame Ground-Stufe mit
+Mündungsöffnungen in der Küste zeichnen;
+danach Waldboden, Natur, Berge, Schatten/Scenery und
+tatsächliche 4×-Quellqualität. Der echte
+Firefox-Großkarten-Bildtest ist separat erforderlich.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
