@@ -65,7 +65,7 @@ test('mountain distance field has the same peak, or independent authored intensi
   assert.ok(Math.abs(peak-Tone.targetAlpha('sprite'))<1e-9,
    'mountain must ignore old .21 opacity and .1 global strength');
  }
- Tone.set({gray:100,mountains:false,balance:0},{persist:false});
+ Tone.set({gray:100,mountains:false,balance:1},{persist:false});
  assert.equal(Tone.targetAlpha('mountain'),null);
  assert.deepEqual(JSON.parse(JSON.stringify(Tone.colorRgb('mountain'))),
   {r:32,g:49,b:49});
