@@ -746,6 +746,24 @@ window.VedrasWorldTiles=(()=>{
    }
    return keep;
   }
+  // The source gutter can be transparent even when the already baked
+  // 512-world-unit terrain CORE is opaque. At high zoom Canvas2D linear
+  // filtering samples half a texel outside an exact source crop, blending
+  // in transparent gutter and producing a straight seam at each join.
+  // Inset source coordinates one native texel. Destination geometry stays
+  // unchanged and shared device-pixel-snapped edges remain exactly aligned.
+  // No alteration to the PNG, world UV phase, authoring or archived maps.
+  function coreSourceCrop(image,pad,tileSize){
+   if(!image||!(image.width>0&&image.height>0)||
+      !(pad>0&&tileSize>0))return null;
+   const ratio=pad/(tileSize+pad*2),
+    width=image.width*(1-2*ratio),height=image.height*(1-2*ratio);
+   const insetX=Math.min(1,Math.max(0,width/8)),
+    insetY=Math.min(1,Math.max(0,height/8));
+   return {x:image.width*ratio+insetX,
+    y:image.height*ratio+insetY,
+    w:width-2*insetX,h:height-2*insetY};
+  }
   function drawImage(image,x,y,w,h,view,source=null){
    const x0=clamp(x,0,view.width),x1=clamp(x+w,0,view.width),
     y0=clamp(y,0,view.height),y1=clamp(y+h,0,view.height);
@@ -925,10 +943,7 @@ window.VedrasWorldTiles=(()=>{
       const core=layer==='ground'||layer==='terrain';
       // Capture extra neighboring SOURCE pixels, but render only the
       // exclusive snapped 512-world-unit terrain core.
-      const ratio=pad?pad/(obj.t.size+pad*2):0;
-      const source=core&&pad?{x:asset.image.width*ratio,
-       y:asset.image.height*ratio,w:asset.image.width*(1-2*ratio),
-       h:asset.image.height*(1-2*ratio)}:null;
+      const source=core?coreSourceCrop(asset.image,pad,obj.t.size):null;
       let area;
       if(core)area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,
        view,source);
@@ -1040,5 +1055,5 @@ window.VedrasWorldTiles=(()=>{
     coverUnready,chooseLod,invalidate,invalidateTiles,reconcileGroundRevisions,
     needsSeed,stats,diagnostics,terrainReady};
  }
- return {create};
+ return {create,coreSourceCrop};
 })();
