@@ -73,6 +73,8 @@ function showWorld(next,message){
   'Noch kein Renderplan für diese Welt erstellt. Keine PNGs erzeugt.';
  $('materialPreviewReport').textContent=
   'Neue Welt: noch kein echtes Terrainmaterial-PNG erstellt.';
+ $('materialCatalogReport').textContent=
+  'Material-Vollständigkeit dieser Welt noch nicht geprüft.';
  $('downloadWorld').disabled=false;$('sendToLab').disabled=false;
  $('message').textContent=message;
  const signature=IO.signature(world,G);
@@ -106,6 +108,7 @@ function build(){
   $('sendToLab').disabled=true;$('exportDistribution').disabled=true;
   $('largeBakeReport').textContent='Kein Renderplan: Weltberechnung fehlgeschlagen.';
   $('materialPreviewReport').textContent='Kein PNG: Weltberechnung fehlgeschlagen.';
+  $('materialCatalogReport').textContent='Material-Check nicht möglich: Weltberechnung fehlgeschlagen.';
   $('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;
   return false;
  }
@@ -389,6 +392,32 @@ $('planLargeMap').addEventListener('click',()=>{
  }catch(error){
   $('largeBakeReport').textContent='Renderplanung fehlgeschlagen: '+error.message;
  }
+});
+$('auditMaterialCatalog').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('auditMaterialCatalog'),report=$('materialCatalogReport');
+ if(button.disabled)return;
+ button.disabled=true;
+ const sourceWorld=world;
+ try{
+  if(!MATERIAL?.loadCatalog||!MATERIAL?.auditWorld)
+   throw Error('Material-Katalogprüfer nicht geladen.');
+  report.textContent='Live-Originalmaterialien werden ohne Änderung am Katalog geprüft …';
+  const {catalog,assets}=await MATERIAL.loadCatalog();
+  if(sourceWorld!==world)
+   throw Error('Welt wurde während des Katalogchecks geändert.');
+  const audit=MATERIAL.auditWorld(sourceWorld,catalog,assets);
+  report.textContent='Material-Check: '+audit.coveredHexes.toLocaleString('de-DE')+
+   ' / '+audit.worldHexes.toLocaleString('de-DE')+' Hexe mit Material'+
+   (audit.missing.length?' · FEHLEND: '+audit.missing.map(x=>
+    x.terrainId+' ('+x.hexes+' Hexe)').join(', '):
+    ' · keine fehlenden Grundmaterialien')+
+   (audit.fallbacks.length?' · explizite Ersatzregel: '+audit.fallbacks.map(x=>
+    x.terrainId+' → '+x.uses+' ('+x.hexes+' Hexe)').join(', '):'')+
+   '. Dies prüft ausschließlich Grundmaterialien; vollständige 4×-Bildschichten fehlen.';
+ }catch(error){
+  report.textContent='Material-Check fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{
  if(!currentWorld())return;
