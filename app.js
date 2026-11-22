@@ -4988,7 +4988,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      knownFrozenTiles.add(fileKey);
      totalSaved++;processed++;
      frozenNotice('4×-Randkachel '+tile.id+
-      ': keine Hexfläche, transparenter Platzhalter gespeichert · '+
+      ': transparenter Boden, benachbarte Berg-/Natur-Sprites und Schatten geprüft · '+
       totalSaved+' neue PNG-Pakete.');
      continue;
     }
