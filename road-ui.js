@@ -70,6 +70,8 @@
  $('roadPaint').addEventListener('click',()=>{
   state.roadPaintMode=!state.roadPaintMode;
   state.roadPaintOrigin=state.roadPaintMode?state.selected:null;
+  if(state.roadPaintMode){state.wallPaintMode=false;state.wallPaintOrigin=null;
+   window.dispatchEvent(new Event('vedras:wall-changed'));}
   render();core.requestDraw();
  });
  $('roadRemoveLast').addEventListener('click',()=>{
