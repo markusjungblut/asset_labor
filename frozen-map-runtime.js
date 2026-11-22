@@ -1832,7 +1832,7 @@ window.VedrasFrozenMap=(()=>{
      const linkedValid=!linked||(
       record.derivedFormat==='scenery-refresh-v1'&&level==='near'&&
       record.groundRefKey!==key&&
-      /^v1-[0-9a-f]{8}\\|near\\|/.test(record.groundRefKey)&&
+      /^v1-[0-9a-f]{8}\|near\|/.test(record.groundRefKey)&&
       record.groundRefKey.endsWith('|'+id));
      if(!record||record.sceneKey!==scene||record.level!==level||
         record.tile?.id!==id||record.tile.x!==tile.x||
