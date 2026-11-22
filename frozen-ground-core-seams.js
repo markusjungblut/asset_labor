@@ -37,7 +37,7 @@ window.VedrasGroundCoreSeams=(()=>{
    throw Error('Ground-Nahtreparatur: Pixelzugriff nicht möglich');
   const region=cellsSet(cells),g=sourceGeometry(canvas.width,canvas.height,tile,pad);
   const band=Math.max(1,Math.min(6,Math.floor(width)));
-  let repaired=0,unresolved=0,examined=0;
+  let repaired=0,nearTipRepaired=0,unresolved=0,examined=0;
   // Only a few coordinates are retained: no full-size error bitmap, no
   // history or changes to original PNG files.
   const unresolvedSamples=[];
@@ -58,7 +58,35 @@ window.VedrasGroundCoreSeams=(()=>{
    w=Math.min(w,canvas.width-x);h=Math.min(h,canvas.height-y);
    if(w<=0||h<=0)return;
    const src=ctx.getImageData(x,y,w,h),data=src.data;
+   // Repair donors must be ORIGINAL terrain. Reading newly copied pixels
+   // would cascade across a genuinely missing 4x Ground region.
+   const original=new Uint8ClampedArray(data);
    const isVertical=side==='left'||side==='right';
+   // The 0.5–1x terrain source can miss opaque texels at a narrow HEX TIP.
+   // A straight inward search at the same row finds nothing, although
+   // real, opaque pixels exist a few rows up/down inside the SAME hex.
+   // Search no farther than 24 native-4x pixels (~6 world units) and only
+   // within the owned core. Never paint an absent/outside-world hex.
+   const tipDonor=(px,py,hex)=>{
+    const maxDistance=24,sign=side==='left'||side==='top'?1:-1;
+    for(let radius=1;radius<=maxDistance;radius++)
+     for(let inward=0;inward<=radius;inward++){
+      const tangent=radius-inward;
+      for(const tSign of tangent===0?[1]:[-1,1]){
+       const cx=isVertical?px+sign*inward:px+tSign*tangent;
+       const cy=isVertical?py+tSign*tangent:py+sign*inward;
+       if(cx<x||cx>=x+w||cy<y||cy>=y+h||
+          cx<g.x0||cx>=g.x1||cy<g.y0||cy>=g.y1)continue;
+       const i=((cy-y)*w+(cx-x))*4;
+       if(original[i+3]<250)continue;
+       const wx=tile.x+(cx+.5)/g.dx-pad,
+        wy=tile.y+(cy+.5)/g.dy-pad;
+       if(hexId(wx,wy)!==hex)continue;
+       return original.subarray(i,i+4);
+      }
+     }
+    return null;
+   };
    const count=isVertical?h:w;
    for(let k=0;k<count;k++){
     const px=isVertical?
@@ -67,7 +95,8 @@ window.VedrasGroundCoreSeams=(()=>{
      (side==='top'?g.y0:g.y1-1);
     const wx=tile.x+(px+.5)/g.dx-pad;
     const wy=tile.y+(py+.5)/g.dy-pad;
-    if(!region.has(hexId(wx,wy)))continue;
+    const edgeHex=hexId(wx,wy);
+    if(!region.has(edgeHex))continue;
     // Paint from an already opaque interior texel; never invent black
     // terrain at the map boundary. Half-transparent interpolation artifacts
     // are replaced only along internal Ground core joins.
@@ -80,7 +109,7 @@ window.VedrasGroundCoreSeams=(()=>{
      if(tx<0||tx>=canvas.width||ty<0||ty>=canvas.height)break;
      if(tx<x||tx>=x+w||ty<y||ty>=y+h)continue;
      const d=((ty-y)*w+(tx-x))*4;
-     if(data[d+3]>=250){donor=data.subarray(d,d+4);break;}
+     if(original[d+3]>=250){donor=original.subarray(d,d+4);break;}
     }
     for(let z=0;z<band;z++){
      const tx=side==='left'?g.x0-1-z:
@@ -94,8 +123,13 @@ window.VedrasGroundCoreSeams=(()=>{
      examined++;
      const i=((ty-y)*w+(tx-x))*4;
      if(data[i+3]>=250)continue;
-     if(donor<0){recordUnresolved(tx,ty,side);continue;}
-     data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
+     let chosen=donor;
+     if(chosen<0){
+      chosen=tipDonor(tx,ty,hexId(worldX,worldY));
+      if(chosen)nearTipRepaired++;
+     }
+     if(!chosen){recordUnresolved(tx,ty,side);continue;}
+     data[i]=chosen[0];data[i+1]=chosen[1];data[i+2]=chosen[2];
      data[i+3]=255;repaired++;
     }
     // The two innermost core pixels must also be opaque, but never
@@ -111,9 +145,16 @@ window.VedrasGroundCoreSeams=(()=>{
      examined++;
      const i=((ty-y)*w+(tx-x))*4;
      if(data[i+3]>=250)continue;
-     if(donor<0){recordUnresolved(tx,ty,side);continue;}
+     let chosen=donor;
+     if(chosen<0){
+      chosen=tipDonor(tx,ty,hexId(
+       tile.x+(tx+.5)/g.dx-pad,
+       tile.y+(ty+.5)/g.dy-pad));
+      if(chosen)nearTipRepaired++;
+     }
+     if(!chosen){recordUnresolved(tx,ty,side);continue;}
      if(data[i+3]<128){
-      data[i]=donor[0];data[i+1]=donor[1];data[i+2]=donor[2];
+      data[i]=chosen[0];data[i+1]=chosen[1];data[i+2]=chosen[2];
      }
      data[i+3]=255;repaired++;
     }
@@ -121,11 +162,14 @@ window.VedrasGroundCoreSeams=(()=>{
    ctx.putImageData(src,x,y);
   }
   // Vertical guards include full y-core; horizontal guards cover all x-core.
-  bandRect(g.x0-band,g.y0,band*2+6,Math.max(0,g.y1-g.y0),'left');
-  bandRect(g.x1-band-6,g.y0,band*2+6,Math.max(0,g.y1-g.y0),'right');
-  bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2+6,'top');
-  bandRect(g.x0,g.y1-band-6,Math.max(0,g.x1-g.x0),band*2+6,'bottom');
-  return {examined,repaired,unresolved,unresolvedSamples,
+  const reach=24;
+  bandRect(g.x0-band,g.y0,band*2+6+reach,Math.max(0,g.y1-g.y0),'left');
+  bandRect(g.x1-band-6-reach,g.y0,band*2+6+reach,
+   Math.max(0,g.y1-g.y0),'right');
+  bandRect(g.x0,g.y0-band,Math.max(0,g.x1-g.x0),band*2+6+reach,'top');
+  bandRect(g.x0,g.y1-band-6-reach,Math.max(0,g.x1-g.x0),
+   band*2+6+reach,'bottom');
+  return {examined,repaired,nearTipRepaired,unresolved,unresolvedSamples,
    policy:'authored-core-only-v1'};
  }
  function measureCore(a,b,{axis,worldA,worldB,dx,dy,worldCells,
