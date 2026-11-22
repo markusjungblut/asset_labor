@@ -4331,6 +4331,10 @@ function frozenSceneKey({force4x=false}={}){
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
+  // Critical: never reuse already stored bad old mountain/source-owned
+  // scenery archives. This new fingerprint forces a new read-only scene
+  // without touching any earlier saved tiles or their IndexedDB records.
+  'scenery-global-composition-exclusive-core-v2',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
