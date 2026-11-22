@@ -18,6 +18,7 @@ test('95x75 variety world has a reproducible full-tile plan (not PNGs)',()=>{
  assert.deepEqual(a,b);
  assert.equal(JSON.stringify(w),before,'planning cannot mutate world');
  assert.equal(a.source.cells,7125);
+ assert.deepEqual(a.source.config,w.config);
  assert.equal(a.tileCount,1678);
  assert.equal(a.schema,'vedras-geography-bake-plan-v1');
  assert.equal(a.stage,'plan-only');
@@ -75,6 +76,19 @@ test('reject corrupt / sparse / re-ordered geography and fake completed plans',(
  assert.throws(()=>P.batches(good,129));
  assert.throws(()=>P.validatePlan({...good,readyForViewer:true}));
  assert.throws(()=>P.validatePlan({...good,tiles:[good.tiles[0],good.tiles[0]],tileCount:2}));
+});
+test('geography laboratory offers honest plan-only export and loads its dependency',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../geography-lab.html'),'utf8');
+ const js=fs.readFileSync(path.join(__dirname,'../geography-lab.js'),'utf8');
+ assert.match(html,/id="planLargeMap"/);
+ assert.match(html,/id="largeBakeBatchSize"/);
+ assert.match(html,/Renderplan erstellen und als JSON exportieren/);
+ const planner=html.indexOf('src="large-map-bake-plan.js'),
+  controller=html.indexOf('src="geography-lab.js');
+ assert(planner>=0&&controller>planner);
+ assert.match(js,/BAKE\.plan\(world\)/);
+ assert.match(js,/BAKE\.batches\(plan,batchSize\)/);
+ assert.match(js,/0 PNGs erstellt/);
 });
 test('large rectangular coordinate grid is planned without monolithic raster allocations',()=>{
  // Synthetic semantic world isolates planner scaling from expensive
