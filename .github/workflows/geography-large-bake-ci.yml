@@ -1,0 +1,43 @@
+name: Geography Large-Map Bake – Focused Node Contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'large-map-bake-*.js'
+      - 'tests/test_large_map_bake_*.cjs'
+      - '.github/workflows/geography-large-bake-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-receipts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Minimal source checkout without image atlases
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /worldgen-geography.js
+            /geography-lab-presets.js
+            /geography-lab.html
+            /geography-lab.js
+            /chunks.js
+            /large-map-bake-plan.js
+            /large-map-bake-source.js
+            /large-map-bake-runner.js
+            /tests/test_large_map_bake_plan_20261122.cjs
+            /tests/test_large_map_bake_source_20261122.cjs
+            /tests/test_large_map_bake_runner_20261122.cjs
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Planner, real renderer neighbor parity and PNG receipts
+        run: |
+          node --test tests/test_large_map_bake_plan_20261122.cjs tests/test_large_map_bake_source_20261122.cjs tests/test_large_map_bake_runner_20261122.cjs
