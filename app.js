@@ -1756,7 +1756,7 @@ function drawForestFloor(){
   size:textureSize,resolution:Math.round(resolution*10)/10,
   cells:cells.map(c=>[c.q,c.r,c.forestClass,c.glade,c.gladeX,c.gladeY,
    c.gladeRadius,c.edgeInfluence,c.manualClearing,c.jungle,c.baseBiome,c.ground,c.categoryId]),
-  version:'organic-forest-edge-glades-v3'
+  version:'organic-forest-edge-glades-soft-snow-v4'
  });
  if(forestFloorRasterCache.signature!==signature){
   const start=performance.now();
@@ -1770,12 +1770,13 @@ function drawForestFloor(){
  window.__vedrasForestFloorRaster=raster;
  if(!raster?.canvas)return;
  ctx.save();
- // Clip to actual non-snowy GROUND hexes, not just the scene outline.
- // Organic forest fringes may enter adjacent open ground, never open water.
- // This is a ground mask, NOT a per-forest-hex clip.
+ // Clip only to the OUTER authored world silhouette. Do NOT clip to
+ // non-snowy hexes here: doing so turns a beautifully feathered forest
+ // mask back into a straight snow/forest HEX boundary. The cached forest
+ // raster itself applies an antialiased world-space subtraction for snow,
+ // frozen tundra, water, and jungle.
  ctx.beginPath();
  for(const c of cells){
-  if(!c.ground||c.jungle||['snowfields','frozen_tundra'].includes(c.baseBiome))continue;
   const pts=hexPoints(c.q,c.r);ctx.moveTo(...pts[0]);
   for(let i=1;i<6;i++)ctx.lineTo(...pts[i]);
   ctx.closePath();
@@ -4217,7 +4218,7 @@ function frozenSceneKey({force4x=false}={}){
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
   'forest-floor-wrap-v1',
-  'organic-forest-fringes-and-glades-v3',
+  'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
   // gate. Never reuse any already published pre-fix Ground PNGs.
   'ground-owned-core-seam-gate-v1',
@@ -5935,8 +5936,7 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
   scenery:staticScenery.stats(),background:backgroundScene.stats()}),
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
  invalidateScenery:()=>{invalidateSpriteLayout(null,{preserveCamera:true});requestDraw();},
- persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
-$('referenceTileBake').addEventListener('click',async()=>{
+ persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};$('referenceTileBake').addEventListener('click',async()=>{
  const button=$('referenceTileBake'),message=$('referenceTileBakeStatus');
  if(button.disabled)return;
  button.disabled=true;

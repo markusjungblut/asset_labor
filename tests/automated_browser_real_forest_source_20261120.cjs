@@ -18,7 +18,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   const errors=[];
   page.on('pageerror',e=>errors.push(String(e)));
   await page.goto('about:blank');
-  for(const src of ['water-texture.js','forest-ground.js'])
+  for(const src of ['water-texture.js','forest-ground.js','world-tile-streamer.js'])
    await page.addScriptTag({content:fs.readFileSync(path.join(ROOT,src),'utf8')});
   const result=await page.evaluate(async base64=>{
    const image=new Image();
@@ -77,12 +77,53 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
      document.body.appendChild(region.canvas);
     }
    }
+   // Native browser pixel proof for the independent long-standing terrain
+   // CHUNK seam: no terrain biomes, forest masks or texture changes involved.
+   const source=document.createElement('canvas');
+   source.width=104;source.height=104;
+   const sourceCtx=source.getContext('2d');
+   sourceCtx.fillStyle='#456e37';
+   sourceCtx.fillRect(2,2,100,100);
+   function drawCrop(box){
+    const dest=document.createElement('canvas');
+    dest.width=400;dest.height=400;
+    const destCtx=dest.getContext('2d',{willReadFrequently:true});
+    destCtx.imageSmoothingEnabled=true;
+    destCtx.drawImage(source,box.x,box.y,box.w,box.h,
+     0,0,dest.width,dest.height);
+    const alphas=[];
+    for(const [x,y] of [[0,0],[399,0],[0,399],[399,399],[1,200],[398,200]])
+     alphas.push(destCtx.getImageData(x,y,1,1).data[3]);
+    return alphas;
+   }
+   const coreCrop=window.VedrasWorldTiles.coreSourceCrop(source,2,100);
+   const oldCrop={x:2,y:2,w:100,h:100};
+   const corePixelProof={
+    old:drawCrop(oldCrop),
+    guarded:drawCrop(coreCrop),
+    sourceCrop:coreCrop
+   };
    const notForest=forest.build([{...cells[0],jungle:true}],image,{
     resolution:1.25,textureSize:256
    });
+   const snowBoundary=forest.build([cells[0],{
+    ...field(1,0,'none'),baseBiome:'snowfields',
+    categoryId:'cold_regions',ground:true
+   }],image,{resolution:1.5,textureSize:256,feather:23,
+    maxPixels:4500000});
+   const snowPixels=snowBoundary.canvas.getContext('2d',{
+    willReadFrequently:true});
+   const atSnowX=x=>{
+    const px=Math.round((x-snowBoundary.x)*snowBoundary.scale),
+     py=Math.round((0-snowBoundary.y)*snowBoundary.scale);
+    return snowPixels.getImageData(px,py,1,1).data[3];
+   };
+   const snowFade=[102,118,128,145,170].map(x=>({
+    worldX:x,alpha:atSnowX(x)
+   }));
    return {source:{width:W,height:H,bytesApprox:base64.length*.75},
     wrapping:{beforeEdge,afterEdge,changedSource},
-    outputs,jungleOverlay:notForest!==null};
+    outputs,jungleOverlay:notForest!==null,snowFade,corePixelProof};
   },png.toString('base64'));
   assert.ok(result.source.width>=40&&result.source.height>=40);
   assert.equal(result.wrapping.changedSource,0,'Source PNG is immutable');
@@ -90,8 +131,23 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    'Real forest repeat edges must not worsen');
   assert.ok(result.wrapping.afterEdge<=1.25,
    'Opposite source-edge texels must repeat without a hard line');
+  const oldAlpha=result.corePixelProof.old,
+   guardedAlpha=result.corePixelProof.guarded;
+  assert(guardedAlpha.every(a=>a>=250),
+   'real Firefox: every core-edge sample must stay opaque when gutter is transparent: '+
+   JSON.stringify(result.corePixelProof));
+  assert(guardedAlpha.every((a,i)=>a>=oldAlpha[i]),
+   'Guard must never introduce more alpha loss than the original sampling');
   assert.equal(result.jungleOverlay,false,
    'Jungle must not use the ordinary woodland overlay');
+  const fade=result.snowFade.map(p=>p.alpha);
+  assert.ok(fade[0]>fade[2]&&fade[2]>fade[3]&&fade[3]>=fade[4],
+   'Snow-border forest alpha should fade across, not stop at the hex edge: '+
+    JSON.stringify(result.snowFade));
+  assert.ok(fade[2]>5,
+   'The forest underlay must not be hard-clipped at the snow hex border: '+
+    JSON.stringify(result.snowFade));
+  assert.ok(fade[4]<24,'Snow interior must stay free of ordinary woodland underlay');
   for(const out of result.outputs){
    assert.equal(out.regionCount,1,'Adjacent woodland is a single masked region');
    assert.equal(out.cellCount,2);

@@ -144,6 +144,33 @@ window.VedrasForestGround=(()=>{
   sg.filter='blur('+(feather*scale).toFixed(2)+'px)';
   sg.drawImage(mask,0,0);
   sg.filter='none';
+  // The editor formerly clipped this already-blurred mask to every
+  // non-snow hex using a hard Canvas path. At snow/forest contacts that
+  // reintroduced the exact 256-unit HEX side and erased the soft blend.
+  // Subtract excluded terrain here with a WORLD-SPACE feather instead.
+  // All excluded polygons are one union fill, so adjacent snowy/wet hexes
+  // cannot create interior seams. This affects only the visual overlay,
+  // never the underlying biome, forestClass, or normal terrain blend.
+  const excluded=(cells||[]).filter(c=>c.ground===false||c.jungle||
+   ['snowfields','frozen_tundra'].includes(c.baseBiome));
+  if(excluded.length){
+   sg.save();
+   sg.globalCompositeOperation='destination-out';
+   sg.setTransform(scale,0,0,scale,-left*scale,-top*scale);
+   sg.filter='blur('+(Math.max(12,Math.min(28,feather))*scale).toFixed(2)+'px)';
+   sg.fillStyle='#000';
+   sg.beginPath();
+   for(const c of excluded){
+    const polygon=points(c);
+    sg.moveTo(polygon[0].x,polygon[0].y);
+    for(let i=1;i<polygon.length;i++)
+     sg.lineTo(polygon[i].x,polygon[i].y);
+    sg.closePath();
+   }
+   sg.fill();
+   sg.filter='none';
+   sg.restore();
+  }
   // Forest glades have soft, irregularly positioned openings in the unified
   // forest-floor mask. Never erase an entire hex polygon: there must be no
   // hexagonal seams around small clearings or among neighboring forest cells.
@@ -188,7 +215,7 @@ window.VedrasForestGround=(()=>{
   g.drawImage(softened,0,0);
   g.globalCompositeOperation='source-over';
   return {canvas:output,x:left,y:top,width,height,regions:groups.length,cells:all.length,
-   exteriorEdges:edges.length,scale,feather,textureOrigin:'world-0,0',mask:'organic-region-union-v3',textureEdgePolicy:'seamless-ground-wrap-v1'};
+   exteriorEdges:edges.length,scale,feather,textureOrigin:'world-0,0',mask:'organic-region-union-soft-biome-v4',textureEdgePolicy:'seamless-ground-wrap-v1'};
  }
  return {key,pos,points,strength,eligible,regions,exteriorEdges,fillHexes,build};
 })();
