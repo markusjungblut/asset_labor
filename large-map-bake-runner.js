@@ -33,9 +33,14 @@ async function sha256(blob){
  return hexHash(await subtle.digest('SHA-256',await blob.arrayBuffer()));
 }
 async function pngInfo(blob){
- if(!(blob instanceof Blob)||blob.size<24||blob.size>MAX_PNG)
+ if(!(blob instanceof Blob)||blob.size<45||blob.size>MAX_PNG)
   throw Error('Unzulässiger oder fehlender PNG-Blob.');
  const head=new Uint8Array(await blob.slice(0,24).arrayBuffer());
+ // A truncated Blob can have a plausible IHDR; require the standard IEND.
+ const trailer=new Uint8Array(await blob.slice(-12).arrayBuffer());
+ if([0,0,0,0,73,69,78,68,174,66,96,130]
+   .some((v,i)=>trailer[i]!==v))
+  throw Error('PNG-Endmarker fehlt oder Datei ist abgeschnitten.');
  const signature=[137,80,78,71,13,10,26,10];
  if(signature.some((x,i)=>head[i]!==x))throw Error('Ungültige PNG-Signatur.');
  const v=new DataView(head.buffer,head.byteOffset,head.byteLength);
