@@ -26,6 +26,23 @@ test('a frozen scenery core recomposes ALL intersecting mountain, tree and shado
  assert(nature.includes("if(meta.kind==='tree'&&(cell.reliefClass==='mountain'"),
   'do not generate future tree roots on mountain geography');
 });
+test('empty terrain rim tiles still bake incoming mountain silhouettes and shadows',()=>{
+ const begin=app.indexOf('async function frozenEmptyNative4xTile(tile){');
+ const end=app.indexOf("$('frozenCaptureAll').addEventListener",begin);
+ assert(begin>0&&end>begin,'the empty-ground rim must have a scenery renderer');
+ const rim=app.slice(begin,end);
+ assert(rim.includes('drawMapObjects({includeUnits:false});'),
+  'do not replace the mountain overhang with a transparent scenery placeholder');
+ assert(rim.includes('await imagePool.ensure(asset,11)'),
+  'a cold mountain source must finish loading before publishing rim scenery');
+ assert(rim.includes("coreOnly:true"),
+  'empty-ground rim and regular scenery use the identical exclusive core');
+ assert(rim.includes("'no-authored-ground-with-scenery-v2'"));
+ assert(!rim.includes("'no-authored-hex-in-core-v1'"),
+  'old empty placeholders must not masquerade as complete source scenery');
+ assert(app.includes("'scenery-global-composition-exclusive-core-v2'"),
+  'new export must use a fresh immutable atlas key, not old broken tiles');
+});
 test('viewer/core compositors clip only new core-owned scenery, not old archives',()=>{
  assert(tile.includes("coreOnly:layer.coreOnly===true"));
  assert(tile.includes("if(asset.coreOnly&&!core){"));
