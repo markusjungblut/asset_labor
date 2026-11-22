@@ -87,7 +87,7 @@ test('floor mask develops organic bulbs only toward suitable fringe, not manual 
  const yes=renderer(),image={naturalWidth:512,naturalHeight:512};
  const out=yes.M.build(input,image,{resolution:1,textureSize:256});
  assert.equal(out.cells,1,'only the core forest is counted');
- assert.equal(out.mask,'organic-region-union-v3');
+ assert.equal(out.mask,'organic-region-union-soft-biome-v4');
  assert(yes.canvases[0].ops.some(x=>x[0]==='arc'),'organic extension across boundary');
  const blocked=renderer();
  blocked.M.build([input[0],floor(1,0,'none',0,true)],image,{resolution:1});
