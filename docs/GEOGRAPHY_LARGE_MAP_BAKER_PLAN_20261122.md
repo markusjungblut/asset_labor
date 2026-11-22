@@ -428,6 +428,58 @@ danach Waldboden, Natur, Berge, Schatten/Scenery und
 tatsächliche 4×-Quellqualität. Der echte
 Firefox-Großkarten-Bildtest ist separat erforderlich.
 
+## Phase 2.5 – Originales Flusswasser und Flussufer
+
+**Neu:** Die direkte Kachelprobe ruft nun die zwei **bestehenden**
+Asset-Labor-Renderer `VedrasRivers.render()` für texturiertes
+Flusswasser und `VedrasRiverBanks.prepare()/render()` für die
+polygonal geformten Uferwände auf. Kein neu erfundener
+Flussmaler. Aktivierung im Geografielabor über
+**„Original-Flusswasser und Flussufer“**.
+
+- `large-map-bake-rivers.js` validiert sämtliche geografischen
+  Flussrouten **gegen ihre vollständigen absoluten Q/R-Wege**
+  und berechnet ihre realen Kantenkurven und Mündungen **einmal
+  pro Welt**, nicht aus lokal abgeschnittenen Flussabschnitten.
+  Pro WorldTile werden nur geometrisch relevante Flüsse und
+  die dazu benötigten Original-Wassertexturen geladen. Fehlt
+  eine Original-Wassertextur, wird die Probekachel verweigert;
+  der vorhandene Farb-Fallback in `VedrasRivers.render()`
+  wird dadurch im direkten Export nicht benutzt.
+- Der Uferbank-Renderer zeichnet **zuerst** seine
+  transparenten Uferwände; danach zeichnet
+  `VedrasRivers.render()` das texturierte Flusswasser,
+  entsprechend dem Editor. Der 1.280er Source-Halo
+  und optional die bestehende `VedrasRelief.at()`-
+  Höhenprojektion kommen ohne Szenenzentrierung aus.
+- `large-map-bake-shoreline.js` öffnet die Original-Ufergrafiken
+  bei den vollständig berechneten Flussmündungen **erst
+  dann**, wenn gleichzeitig die originale Flusswasser-
+  Zeichenstufe aktiv ist. Ohne Flusswasser bleiben Ufer
+  geschlossen; Löcher im Strand werden vermieden.
+- Neue Ergebnisstufe `original-river-ground-preview`,
+  stets `complete:false` und `readyForViewer:false`,
+  mit sichtbaren Zählern für Original-Flussläufe,
+  Uferwandschichten, Wassertexturen und geöffnete
+  Mündungen. **Noch keine vollständige Spielkarte.**
+- Tests `tests/test_large_map_bake_rivers_20261122.cjs`
+  überprüfen die zehn realen Flussrouten, absolute
+  Kurven, Auswahl, Zeichenreihenfolge, Asset-Gates,
+  Fehlerfälle und UI-/Modulverkabelung.
+
+**Grenzen:** Der originale `VedrasRivers.render()`-Pfad
+erzeugt vorerst die Rasterquelle für die **gesamte
+betroffene Flussroute**. Für eine einzelne Near-Kachel
+wird nur der sichtbare Ausschnitt in den Kachel-Canvas
+gezeichnet, aber lange Flussrouten können damit
+wiederholt berechnet werden. Vor dem vollständigen
+7.125-Hex-Durchlauf braucht es einen begrenzten,
+weltkoordinatenstabilen Rastercache oder echtes
+geometrieerhaltendes Tile-Clipping und eine
+Pixel-/Naht-Abnahme im Browser. Ferner fehlen
+Waldboden, Natur-/Bergobjekte, Schatten,
+die finale 4×-Quelldichte und Sektorimport.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
