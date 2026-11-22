@@ -2,7 +2,8 @@
 (()=>{
 "use strict";
 const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
- IO=window.VedrasGeographyIO,$=id=>document.getElementById(id);
+ IO=window.VedrasGeographyIO,BAKE=window.VedrasLargeMapBakePlan,
+ $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
 let handoffRequest=null,handoffSequence=0;
 const DISTRIBUTION_STORAGE_KEY="vedras-geography-distribution-v2.1.2";
@@ -67,6 +68,8 @@ function requestBuild(){
 }
 function showWorld(next,message){
  world=next;
+ $('largeBakeReport').textContent=
+  'Noch kein Renderplan für diese Welt erstellt. Keine PNGs erzeugt.';
  $('downloadWorld').disabled=false;$('sendToLab').disabled=false;
  $('message').textContent=message;
  const signature=IO.signature(world,G);
@@ -357,6 +360,30 @@ $('exportConfig').addEventListener('click',()=>download('vedras-worldgen-paramet
 $('downloadWorld').addEventListener('click',()=>{
  if(!currentWorld())return;
  download('vedras-welt-'+world.seed+'.json',world);
+});
+$('planLargeMap').addEventListener('click',()=>{
+ if(!currentWorld())return;
+ try{
+  if(!BAKE)throw Error('Großkarten-Planer wurde nicht geladen.');
+  const batchSize=Number($('largeBakeBatchSize').value);
+  // No expensive atlas/PNG generation: plan only, wholly read-only.
+  const plan=BAKE.plan(world);
+  const count=BAKE.batches(plan,batchSize).length;
+  const filename='vedras-renderplan-'+world.seed+'.json';
+  const result=IO.saveJSON(filename,{
+   ...plan,scheduling:{batchSize,batchCount:count}
+  });
+  $('largeBakeReport').textContent=
+   plan.source.cells.toLocaleString('de-DE')+' Hexfelder · '+
+   plan.tileCount.toLocaleString('de-DE')+' WorldTiles à 512 · '+
+   count.toLocaleString('de-DE')+' Renderpakete · '+
+   'Status: nur Planung; 0 PNGs erstellt · '+
+   'JSON: '+result.filename;
+  $('message').textContent='Renderplanung exportiert ('+
+   Math.ceil(result.bytes/1024)+' KiB). Für fertige Spielkarten fehlt noch die Raster-Bake-Stufe.';
+ }catch(error){
+  $('largeBakeReport').textContent='Renderplanung fehlgeschlagen: '+error.message;
+ }
 });
 $('importConfig').addEventListener('click',()=>$('configFile').click());
 async function readSettingsWithConsent(raw){
