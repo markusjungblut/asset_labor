@@ -17,6 +17,8 @@ on:
       - 'tests/test_nature_runtime_filename_gate_20261120.cjs'
       - 'index.html'
       - 'app.js'
+      - 'frozen-ground-core-seams.js'
+      - 'tests/test_frozen_ground_seam_audit_20261118.cjs'
       - 'tests/test_frozen_export_failure_report_20261121.cjs'
       - 'tests/test_mountain_shadow_field.cjs'
       - 'tests/test_sprite_shadow_editor_20261021.cjs'

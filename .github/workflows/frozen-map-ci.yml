@@ -81,6 +81,7 @@ jobs:
             /frozen-map-*.js
             /frozen-map-seam-audit.js
             /frozen-ground-core-seams.js
+            /chunks.js
             /frozen-map-game.html
             /cloud-artwork.js
             /shadow-tone.js

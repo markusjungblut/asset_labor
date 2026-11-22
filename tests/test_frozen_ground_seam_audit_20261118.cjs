@@ -263,3 +263,129 @@ test('unresolved 4x core alpha reports bounded source/world coordinates instead 
  assert.match(app,/checked\.unresolvedSamples\.map\(p=>p\.side/);
  assert.match(app,/Die PNG wird nicht gespeichert/);
 });
+test('real 397-hex outer tip positions receive only nearby same-hex 4x terrain',()=>{
+ // Reported native errors: -5,-3 right / 4,-3 left around pixel y=208,
+ // plus the lower perimeter -5,2 and 4,2. The terrain source is coarser
+ // than the 4x output; a pointed hex may have no donor at the SAME row.
+ const scenarios=[
+  {tile:{id:'-5,-3',x:-2560,y:-1536,size:512},
+   hex:'-5,-6',px:2060,py:208,side:'right'},
+  {tile:{id:'4,-3',x:2048,y:-1536,size:512},
+   hex:'11,-6',px:11,py:208,side:'left'},
+  {tile:{id:'-5,2',x:-2560,y:1024,size:512},
+   hex:'-11,6',px:2060,py:1550,side:'right'},
+  {tile:{id:'4,2',x:2048,y:1024,size:512},
+   hex:'5,6',px:11,py:1478,side:'left'}
+ ];
+ for(const {tile,hex,px,py,side} of scenarios){
+  const pad=3,width=(tile.size+2*pad)*4,
+   height=Math.round((tile.size+2*pad)*.85*4);
+  const geometry=core.sourceGeometry(width,height,tile,pad);
+  const [q,r]=hex.split(',').map(Number);
+  const override=new Map();
+  const pixel=(x,y)=>{
+   const saved=override.get(x+','+y);
+   if(saved)return saved;
+   const wx=tile.x+(x+.5)/geometry.dx-pad,
+    wy=tile.y+(y+.5)/geometry.dy-pad;
+   const inside=core.hexId(wx,wy)===hex;
+   // A low-res Voronoi source can lose a narrow horizontal strip right
+   // where a pointed hex crosses the vertical 512-unit tile boundary.
+   const aliased=inside&&Math.abs(y-py)<=2&&
+    Math.abs(x-px)<=30;
+   return [70,108,49,inside&&!aliased?255:0];
+  };
+  const ctx={
+   getImageData(x,y,w,h){
+    const data=new Uint8ClampedArray(w*h*4);
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++)
+     data.set(pixel(x+i,y+j),(j*w+i)*4);
+    return {width:w,height:h,data};
+   },
+   putImageData(src,x,y){
+    for(let j=0;j<src.height;j++)for(let i=0;i<src.width;i++){
+     const idx=(j*src.width+i)*4;
+     override.set((x+i)+','+(y+j),
+      Array.from(src.data.subarray(idx,idx+4)));
+    }
+   }
+  };
+  const canvas={width,height,getContext:()=>ctx};
+  assert.equal(pixel(px,py)[3],0,'test source has a genuine aliased gap');
+  const result=core.repairEdgeBands(canvas,{tile,pad,
+   cells:[{q,r}],width:3});
+  assert.equal(pixel(px,py)[3],255,
+   '4x pixel '+px+','+py+' at '+tile.id+' must find same-hex vertical donor');
+  assert(result.nearTipRepaired>0,'2D tip sampling was actually necessary at '+tile.id);
+  assert.equal(result.unresolved,0,
+   'small aliased tip should be repaired, not abort atlas for '+tile.id);
+  assert.equal(pixel(35,35)[3],0,
+   'outer world stays transparent; never flood missing landscape');
+ }
+});
+
+test('397-hex 120-tile archive retains eight genuine transparent halo-only owners',()=>{
+ const cells=[];
+ for(let r=-11;r<=11;r++)for(let q=-11;q<=11;q++)
+  if(Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r))<=11)
+   cells.push({q,r});
+ const chunkSandbox={window:{}};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'chunks.js'),'utf8'),
+  chunkSandbox);
+ const chunks=chunkSandbox.window.VedrasChunks,
+  pos=cells.map(chunks.worldPos),xs=pos.map(x=>x.x),ys=pos.map(x=>x.y),
+  margin=256*1.5;
+ const tiles=chunks.visible({
+  x:Math.min(...xs)-margin,y:Math.min(...ys)-margin,
+  width:Math.max(...xs)-Math.min(...xs)+2*margin,
+  height:Math.max(...ys)-Math.min(...ys)+2*margin
+ },cells,512);
+ assert.equal(tiles.length,120);
+ const empty=Array.from(tiles).filter(tile=>!core.hasAuthoredArea(tile,cells))
+  .map(t=>t.id).sort();
+ assert.deepEqual(empty,[
+  '-4,-6','-4,5','-5,-4','-5,3','3,-6','3,5','4,-4','4,3'
+ ]);
+ for(const id of ['-5,-3','4,-3','-5,2','4,2',
+  '-1,-6','0,-6','-1,5','0,5']){
+  const tile=tiles.find(t=>t.id===id);
+  assert(tile&&core.hasAuthoredArea(tile,cells),
+   'never replace genuinely visible terrain with empty PNG '+id);
+ }
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert(app.includes('function frozenEmptyNative4xTile(tile)'));
+ assert(app.includes('guard.hasAuthoredArea(tile,worldCells)'));
+ assert(app.includes('knownFrozenTiles.add(fileKey);'));
+ assert(app.includes("'ground-owned-core-seam-gate-v1'"),
+  'do not silently invalidate the existing user 98/120 scene key');
+});
+test('halo-only placeholders have valid native-4x transparent Ground and native-2x Scenery',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
+  from=app.indexOf('function frozenEmptyNative4xTile(tile)'),
+  to=app.indexOf("$('frozenCaptureAll').addEventListener",from);
+ assert(from>0&&to>from);
+ const canvases=[],document={createElement(name){
+  assert.equal(name,'canvas');
+  const canvas={width:0,height:0,getContext:()=>({})};
+  canvases.push(canvas);return canvas;
+ }};
+ const factory=vm.runInNewContext(app.slice(from,to)+
+  '\nfrozenEmptyNative4xTile;',{
+  document,WORLD_TILE_GUTTER:3,PROJECT_Y:.85});
+ const tile={id:'-4,-6',x:-2048,y:-3072,size:512};
+ const result=factory(tile);
+ assert.equal(result.complete,true);
+ assert.equal(result.level,'near');
+ assert.equal(result.revision,'no-authored-hex-in-core-v1');
+ assert.equal(result.layers[0].layer,'ground');
+ assert.equal(result.layers[0].pad,3);
+ assert.equal(result.layers[0].image.width,2072);
+ assert.equal(result.layers[0].image.height,1761);
+ assert.equal(result.layers[1].layer,'scenery');
+ assert.equal(result.layers[1].pad,128);
+ assert.equal(result.layers[1].image.width,1536);
+ assert.equal(result.layers[1].image.height,1306);
+ assert.equal(canvases.length,2);
+ assert(!app.slice(from,to).includes('fillRect('),
+  'empty world tiles may never invent a synthetic ground color');
+});

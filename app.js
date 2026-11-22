@@ -4674,6 +4674,26 @@ $('frozenReportDownload').addEventListener('click',()=>{
  document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),15000);
 });
+// Eight halo-only Chunk IDs on the canonical 397-hex map do not overlap
+// any authored HEX polygon. Preserve the historic 120-ID archive geometry
+// and create fully transparent 4x/2x packets for these *empty* owners.
+// Never use this path for a tile intersecting even a tiny real hex sliver.
+function frozenEmptyNative4xTile(tile){
+ const ground=document.createElement('canvas'),
+  scenery=document.createElement('canvas'),groundPad=WORLD_TILE_GUTTER,
+  sceneryPad=128;
+ ground.width=Math.round((tile.size+2*groundPad)*4);
+ ground.height=Math.round((tile.size+2*groundPad)*PROJECT_Y*4);
+ scenery.width=Math.round((tile.size+2*sceneryPad)*2);
+ scenery.height=Math.round((tile.size+2*sceneryPad)*PROJECT_Y*2);
+ if(!ground.getContext('2d',{alpha:true})||
+    !scenery.getContext('2d',{alpha:true}))
+  throw Error('Transparenter 4×-Randchunk nicht darstellbar: '+tile.id);
+ return {complete:true,revision:'no-authored-hex-in-core-v1',
+  tile:{...tile},level:'near',dirty:false,preview:false,
+  layers:[{layer:'ground',image:ground,pad:groundPad},
+   {layer:'scenery',image:scenery,pad:sceneryPad}]};
+}
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
  if(state.view!=='map'||state.mode==='far'){
@@ -4790,6 +4810,25 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    const fileKey=window.VedrasFrozenMap.makeKey(scene,lod,tile.id);
    if(knownFrozenTiles.has(fileKey)){
     already++;processed++;continue;
+   }
+   if(quality4){
+    const guard=window.VedrasGroundCoreSeams;
+    if(!guard?.hasAuthoredArea)
+     throw Error('Exakte Hexflächen-Prüfung für 4×-Randkacheln fehlt');
+    if(!guard.hasAuthoredArea(tile,worldCells)){
+     // Empty halo-only candidates have NO authored terrain. A transparent
+     // genuine-4x PNG preserves the old 120-tile ID and allows resuming
+     // the 98 existing immutable chunks without a new scene fingerprint.
+     const result=await frozenMap.capture(scene,[frozenEmptyNative4xTile(tile)]);
+     if(result.saved!==1||result.rejected)
+      throw Error('Leerer Randchunk nicht sicher gespeichert: '+tile.id);
+     knownFrozenTiles.add(fileKey);
+     totalSaved++;processed++;
+     frozenNotice('4×-Randkachel '+tile.id+
+      ': keine Hexfläche, transparenter Platzhalter gespeichert · '+
+      totalSaved+' neue PNG-Pakete.');
+     continue;
+    }
    }
    if(!quality4){
     state.panX=-(tile.x+tile.size/2)*state.zoom;
