@@ -39,10 +39,12 @@ function create({world,catalog,groups,loadImage,pick,
   const geometry=rivers.sections(route,routeCells,wet);
   if(!geometry.length)throw Error('Flussroute '+i+' enthält keine Renderer-Segmente.');
   const course=rivers.coursePoints(geometry,route,width);
-  const extent={
-   minX:Math.min(...course.map(p=>p.x)),maxX:Math.max(...course.map(p=>p.x)),
-   minY:Math.min(...course.map(p=>p.y)),maxY:Math.max(...course.map(p=>p.y))
-  };
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const p of course){
+   minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);
+   minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);
+  }
+  const extent={minX,maxX,minY,maxY};
   const [mouthQ,mouthR]=route.hexes.at(-1),mouth=indexed.get(key(mouthQ,mouthR));
   if(!mouth||!wet(mouth))throw Error('Flussmündung ohne Original-Wasserterrain.');
   return {index:i,route,routeCells,extent,mouth};
@@ -85,7 +87,8 @@ function create({world,catalog,groups,loadImage,pick,
    // Route geometry must remain complete even when a source crosses a tile.
    for(const cell of item.routeCells)baseCells.set(key(cell.q,cell.r),cell);
   }
-  const bankCells=[...baseCells.values()];
+  const bankCells=[...baseCells.values()].map(c=>
+   c.forestClass==='none'?{...c,forestClass:null}:c);
   // Draw banks first, textured original water after. This is the exact
   // ordering used in app.js drawRoadsImpl().
   const prepared=banks.prepare(active.map(x=>x.route),bankCells,wet,{
