@@ -55,7 +55,7 @@ test('worker, on-screen editor and frozen atlas all use new derived ground sampl
 });
 test('equalization control has a direct shortcut without mutating the map',()=>{
  const ui=read('ui-organizer.js'),html=read('index.html');
- assert.match(ui,/balanceShortcut\.textContent='Schattenangleich'/);
+ assert.match(ui,/balanceShortcut\.textContent='Schatten-Grauton'/);
  assert.match(ui,/balanceShortcut\.dataset\.focus='shadowToneControls'/);
  assert.match(ui,/if\(detail\)detail\.open=true/);
  assert.match(html,/id="shadowToneBalance"/);
