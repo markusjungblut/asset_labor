@@ -72,7 +72,21 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const d=W.shadowVector('stone',.90,{angle:160});
    const shadowColor=[...h.getImageData(
     Math.round(xy.x+d.x*.5),Math.round(xy.y+d.y*.5),1,1).data];
+   // Real painted Palisade v4: two cropped edges meet only through the
+   // distinct hand-painted corner post, never through a polygon proxy.
+   const timber=pair.map(e=>({...e,kind:'palisade'}));
+   const timberNode=W.junctions(timber).find(n=>n.degree===2);
+   const tcan=document.createElement('canvas');tcan.width=490;tcan.height=400;
+   const tc=tcan.getContext('2d',{willReadFrequently:true});
+   for(const e of timber)W.draw(tc,e,project,.90);
+   W.drawJoin(tc,timberNode,project,.90);
+   const xyT=project(timberNode.x,timberNode.y);
+   const timberPx=(x,y)=>[...tc.getImageData(Math.round(x),Math.round(y),1,1).data];
+   const timberCore=timberPx(xyT.x,xyT.y-34);
+   const timberFoot=timberPx(xyT.x,xyT.y-3);
+   const timberBelow=timberPx(xyT.x,xyT.y+5);
    return {ok,info,connected,atFoot,shadowColor,counts:joined.map(n=>n.degree),
+    timberCore,timberFoot,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
   assert.deepEqual(errors,[]);
@@ -83,7 +97,13 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
   assert(result.shadowColor[3]<170,'the shadow cap never adds full darkness');
+  assert(result.timberCore[3]>235,
+   'real painted corner post closes the daylight gap between both timber edges');
+  assert(result.timberFoot[3]>100,
+   'painted corner post remains visible at the ground-level shared vertex');
+  assert(result.timberBelow[3]<12,
+   'no palisade point may protrude below its shared ground anchor');
   await page.screenshot({path:path.join(OUT,'wall-art-v3-all-directions.png')});
-  process.stdout.write('Twelve wall artwork SVGs and connected shadow/joint Firefox PASS\n');
+  process.stdout.write('Six painted palisades, two painted posts, six stone SVGs and corner shadows Firefox PASS\n');
  }finally{await browser.close();server.close();}
 })().catch(e=>{process.stderr.write(String(e.stack||e)+'\n');process.exitCode=1;});
