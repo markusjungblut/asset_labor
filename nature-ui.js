@@ -274,7 +274,11 @@ window.VedrasNature=(()=>{
  // never from generic tree-placement chances. Existing manual peaks survive.
  function autoGeoMountains(seed,assets){
   const wanted=core.cells().filter(c=>c.reliefClass==='mountain'||c.biome==='mountain');
-  const candidates=assets.filter(a=>a.category==='nature'&&a.img?.naturalWidth&&entryFor(a)?.kind==='mountain');
+  // Geography placement depends on the Nature metadata, NOT on whether a
+  // mountain PNG happens to be decoded in the lazy image pool already.
+  // Visible generated instances are queued for decoding by the normal
+  // primeVisibleSpriteAssets() pass after populate() requests a redraw.
+  const candidates=assets.filter(a=>a.category==='nature'&&entryFor(a)?.kind==='mountain');
   state.mountainInstances=(state.mountainInstances||[]).filter(m=>m.source!=='generated');
   if(!wanted.length||!candidates.length)return {placed:0,wanted:wanted.length};
   const lookup=new Map(wanted.map(c=>[c.q+','+c.r,c])),seen=new Set(),groups=[];
