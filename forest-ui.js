@@ -12,6 +12,11 @@ window.VedrasForestUI=(()=>{
   $('forestMode').value=f.mode;
   $('forestCanopyCover').value=String(Math.round(f.canopyCover*100));
   $('forestCanopyValue').textContent=Math.round(f.canopyCover*100)+' %';
+  $('forestCanopyVariation').value=String(Math.round(f.canopyVariation*100));
+  $('forestCanopyVariationValue').textContent='±'+Math.round(f.canopyVariation*100)+' Prozentpunkte';
+  $('forestCanopyVariation').disabled=f.mode==='classic';
+  $('forestOpenTreeChance').value=String(Math.round(f.openTreeChance*100));
+  $('forestOpenTreeChanceValue').textContent=Math.round(f.openTreeChance*100)+' %';
   $('forestGladeRate').value=String(Math.round(f.gladeRate*100));
   $('forestGladeValue').textContent=Math.round(f.gladeRate*100)+' %';
   $('forestGladeRate').disabled=f.mode!=='canopy';
@@ -52,6 +57,18 @@ window.VedrasForestUI=(()=>{
  });
  $('forestCanopyCover').addEventListener('change',e=>{
   config().canopyCover=Number(e.target.value)/100;changed(true);
+ });
+ $('forestCanopyVariation').addEventListener('input',e=>{
+  $('forestCanopyVariationValue').textContent='±'+e.target.value+' Prozentpunkte';
+ });
+ $('forestCanopyVariation').addEventListener('change',e=>{
+  config().canopyVariation=Number(e.target.value)/100;changed(true);
+ });
+ $('forestOpenTreeChance').addEventListener('input',e=>{
+  $('forestOpenTreeChanceValue').textContent=e.target.value+' %';
+ });
+ $('forestOpenTreeChance').addEventListener('change',e=>{
+  config().openTreeChance=Number(e.target.value)/100;changed(true);
  });
  $('forestGladeRate').addEventListener('input',e=>{
   $('forestGladeValue').textContent=e.target.value+' %';
