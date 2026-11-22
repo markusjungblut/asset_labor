@@ -65,7 +65,7 @@ const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
    for(const gray of [0,50,100])for(const scale of [2,4])
     for(const kind of ['rock','ground_cover','automatic'])
      samples.push(render(gray,scale,kind));
-   Tone.set({...Tone.get(),gray:100,mountains:false,balance:0},
+   Tone.set({...Tone.get(),gray:100,mountains:false,balance:1},
     {persist:false});
    const offCanvas=document.createElement('canvas');
    offCanvas.width=600;offCanvas.height=420;
