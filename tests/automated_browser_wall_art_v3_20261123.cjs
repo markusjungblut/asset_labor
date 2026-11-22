@@ -15,10 +15,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
-  if(!/^\/assets\/walls\/(palisade|stone)\/edge_dir[0-5]\.svg$/.test(name)){
-   res.writeHead(404);return res.end('missing');
-  }
-  res.writeHead(200,{'Content-Type':'image/svg+xml'});
+  const svg=/^\/assets\/walls\/stone\/edge_dir[0-5]\.svg$/.test(name);
+  const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
+  if(!svg&&!webp){res.writeHead(404);return res.end('missing');}
+  res.writeHead(200,{'Content-Type':svg?'image/svg+xml':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -32,7 +32,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   const result=await page.evaluate(async()=>{
    const W=window.VedrasWalls,T=window.VedrasShadowTone;
    const ok=await W.artworkReady();
-   if(!ok)throw Error('Not all twelve SVG wall direction variants loaded');
+   if(!ok)throw Error('Not all six painted palisades, two post images and six stone SVGs loaded');
    const info=W.artworkInfo();
    const canvas=document.createElement('canvas');
    canvas.width=1200;canvas.height=730;
@@ -78,6 +78,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.deepEqual(errors,[]);
   assert.equal(result.ok,true);
   assert.equal(result.info.loaded,12);
+  assert.equal(result.info.postsLoaded,2,'real painted corner and end posts must decode');
   assert(result.connected[3]>235,'joint must seal daylight in the middle of the wall');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
