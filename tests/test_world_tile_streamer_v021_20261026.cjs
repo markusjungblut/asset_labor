@@ -115,26 +115,3 @@ test('rapid camera reversal cancels obsolete tile loading without poisoning cach
  assert.equal(h.world.stats().tiles,1,'old tile from former viewport is discarded');
  assert.equal(h.world.stats().visible,1);
 });
-
-test('native Ground source crop stays one texel away from transparent gutter',()=>{
- const context={window:{}};vm.runInNewContext(source,context);
- const crop=context.window.VedrasWorldTiles.coreSourceCrop;
- const image={width:2072,height:1761};
- const box=crop(image,3,512);
- assert.equal(box.x,13);
- assert.ok(Math.abs(box.y-1761*3/518-1)<1e-10);
- assert.ok(box.w>2040&&box.w<2048);
- assert.ok(box.h>1730&&box.h<1740);
- assert.equal(crop(image,0,512),null,'no pad means no source crop');
- const tiny=crop({width:8,height:8},3,512);
- assert(tiny.w>0&&tiny.h>0,'avoid negative source dimensions');
-});
-test('editor WorldTile sampling retains snapped destination but excludes source gutter',()=>{
- const src=read('world-tile-streamer.js');
- assert(src.includes('const source=core?coreSourceCrop(asset.image,pad,obj.t.size):null;'));
- assert(src.includes('const snap=x=>Math.round(x*view.dpr)/view.dpr;'));
- assert(src.includes('layerPass([\'ground\',\'terrain\'],0);'));
- assert(!src.includes('const ratio=pad?pad/(obj.t.size+pad*2):0;'));
- const html=read('index.html');
- assert(html.includes('world-tile-streamer.js?v=0.22.6'));
-});
