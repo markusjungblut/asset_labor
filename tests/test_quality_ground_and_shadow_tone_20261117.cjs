@@ -80,15 +80,16 @@ test('core inset removes suspect source-border pixels without erasing neighbors'
  assert.doesNotMatch(read('frozen-map-runtime.js'),/globalCompositeOperation='copy'/);
  assert.ok(read('frozen-map-game.js').includes("params.get('groundSeam')!=='exclusive'"));
 });
-test('shadow tone defaults preserve historical color and relative alpha',()=>{
+test('absolute shadow tone defaults start weak and retain only legacy balance helpers',()=>{
  const win=moduleOf('shadow-tone.js'),tone=win.VedrasShadowTone;
- assert.equal(tone.colorCss(),'rgb(32,49,49)');
+ assert.equal(tone.colorCss(),'rgb(0,0,0)');
  assert.equal(tone.opacity(.27),.27);
  assert.equal(tone.attenuation(.28),.28);
  assert.equal(tone.opacity(0),0);
+ assert.equal(tone.targetAlpha(),.12);
  assert.equal(tone.revision(),0);
  tone.set({lift:1,balance:1},{persist:false});
- assert.equal(tone.colorCss(),'rgb(32,49,49)');
+ assert.equal(tone.colorCss(),'rgb(0,0,0)');
  assert.equal(tone.opacity(.27),.52);
  assert.equal(tone.attenuation(.28),1,
   '100% normalization must also equalize the family .28 multiplier');
@@ -106,12 +107,12 @@ test('tone affects mountain alpha and RGB while preserving origin geometry',()=>
  const shape=sh.mountainShape({x:100,y:100},120,{opacity:.20,angle:155});
  const x=shape.p1.x,y=shape.p1.y;
  const before=sh.mountainAlphaAt(x,y,shape,120,.8);
- tone.set({lift:.8,balance:1},{persist:false});
+ tone.set({gray:100,mountains:true},{persist:false});
  const after=sh.mountainAlphaAt(x,y,shape,120,.8);
  assert.ok(after>before,'strength harmonization must lift a weak mountain shadow');
  assert.equal(shape.p1.x,shape.p1.x);
  assert.ok(sh.COLOR.r===32,'legacy fallback color remains unchanged');
- assert.equal(tone.colorRgb().r,32);
+ assert.equal(tone.colorRgb().r,0);
 });
 test('viewer switch and authoring tone are not writes to the frozen archive',()=>{
  const game=read('frozen-map-game.js'),html=read('frozen-map-game.html'),
@@ -123,7 +124,8 @@ test('viewer switch and authoring tone are not writes to the frozen archive',()=
  assert.match(html,/id="optGround4x"/);
  assert.match(html,/frozen-map-ground-detail\.js\?v=/);
  assert.doesNotMatch(editor,/id="shadowToneLift"/);
- assert.match(editor,/id="shadowToneBalance"/);
+ assert.match(editor,/id="shadowGrayLevel"/);
+ assert.match(editor,/id="shadowGrayMountains"/);
  assert.match(app,/VedrasShadowTone\?\.get\?\.\(\)\|\|null/);
  assert.doesNotMatch(read('frozen-map-ground-detail.js'),
   /deleteDatabase\(|\.put\(|\.clear\(|'readwrite'/);
@@ -381,26 +383,29 @@ test('adaptive original-ground decoder is opt-in and non-mutating',()=>{
  assert.doesNotMatch(runtime,/deleteDatabase\(/);
 });
 
-test('tone equalizes mountain .90 raster coverage to full sprite-mask coverage without changing balance=0',()=>{
- const window=moduleOf('shadow-tone.js');
- const tone=window.VedrasShadowTone;
- assert.equal(tone.coverageGain(.9),1);
- tone.set({balance:1},{persist:false});
- assert.ok(Math.abs(tone.coverageGain(.9)-1/.9)<1e-10);
- assert.ok(Math.abs(tone.opacity(.2,.44)*.90*tone.coverageGain(.9)-
-  tone.opacity(.2,.4))<.000001,'mountain and sprite single-pass cast have identical target alpha');
+test('one shadow slider drives weak-to-black casts and mountain opt-out',()=>{
+ const window=moduleOf('shadow-tone.js'),tone=window.VedrasShadowTone;
  const ctx={window,localStorage:{getItem:()=>null,setItem:()=>{}}};
  vm.runInNewContext(read('shadow-system.js'),ctx);
- const sh=ctx.window.VedrasShadows;
- assert.match(read('shadow-system.js'),/coverageGain\?\.\(\.90\)/);
+ const sh=window.VedrasShadows;
  const shape=sh.mountainShape({x:0,y:0},200,
   {opacity:.25,softness:1,length:1.2,angle:155});
  const xy=shape.p1;
- const active=sh.mountainAlphaAt(xy.x,xy.y,shape,200,1);
- assert.ok(active>.3&&active<=.52,'mountain opacity is normalized but remains bounded');
- tone.set({balance:0},{persist:false});
- assert.equal(tone.coverageGain(.9),1);
- assert.equal(tone.opacity(.25),.25);
+ const before=sh.mountainAlphaAt(xy.x,xy.y,shape,200,.68);
+ assert.ok(before>0&&before<.15,'0 must be visible but weak');
+ tone.set({gray:100,mountains:true},{persist:false});
+ assert.equal(tone.targetAlpha('sprite'),1);
+ assert.equal(tone.targetAlpha('mountain'),1);
+ assert.equal(tone.colorCss(),'rgb(0,0,0)');
+ assert.equal(tone.colorRgb('mountain').r,0);
+ const black=sh.mountainAlphaAt(xy.x,xy.y,shape,200,.68);
+ assert.ok(black>.95,'mountain full core becomes opaque black');
+ tone.set({gray:100,mountains:false},{persist:false});
+ assert.equal(tone.targetAlpha('mountain'),null);
+ assert.equal(tone.colorRgb('mountain').r,32);
+ const independent=sh.mountainAlphaAt(xy.x,xy.y,shape,200,.68);
+ assert.ok(independent<black*.5,'mountain opt-out restores authored strength');
+ assert.equal(shape.p1.x,xy.x);
 });
 test('original scenery A/B preserves immutable source shadows instead of 2x derivative',async()=>{
  const api=moduleOf('frozen-map-ground-detail.js').VedrasFrozenGroundDetail;
