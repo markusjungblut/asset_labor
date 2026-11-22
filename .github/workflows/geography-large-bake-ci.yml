@@ -35,6 +35,12 @@ jobs:
             /large-map-bake-shoreline.js
             /large-map-bake-rivers.js
             /large-map-bake-forest-floor.js
+            /large-map-bake-scenery-source.js
+            /large-map-bake-mountain-png.js
+            /mountain.js
+            /nature_catalog.js
+            /assets/nature/nature_catalog.json
+            /assets/terrain/terrain_catalog.json
             /forest.js
             /forest-ground.js
             /river-banks.js
@@ -64,10 +70,11 @@ jobs:
             /tests/test_large_map_bake_rivers_20261122.cjs
             /tests/test_large_map_river_raster_window_20261122.cjs
             /tests/test_large_map_bake_forest_floor_20261122.cjs
+            /tests/test_large_map_scenery_source_20261122.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Planner, real renderer neighbor parity and PNG receipts
         run: |
-          node --test tests/test_large_map_bake_*.cjs tests/test_large_map_reference_probe_20261122.cjs tests/test_large_map_material_preview_20261122.cjs tests/test_large_map_ground_relief_20261122.cjs tests/test_large_map_bake_shoreline_20261122.cjs tests/test_large_map_bake_rivers_20261122.cjs tests/test_large_map_river_raster_window_20261122.cjs tests/test_large_map_bake_forest_floor_20261122.cjs
+          node --test tests/test_large_map_bake_*.cjs tests/test_large_map_reference_probe_20261122.cjs tests/test_large_map_material_preview_20261122.cjs tests/test_large_map_ground_relief_20261122.cjs tests/test_large_map_bake_shoreline_20261122.cjs tests/test_large_map_bake_rivers_20261122.cjs tests/test_large_map_river_raster_window_20261122.cjs tests/test_large_map_bake_forest_floor_20261122.cjs tests/test_large_map_scenery_source_20261122.cjs

@@ -40,6 +40,9 @@ function create(options={}) {
      Number.isFinite(meta.logicalWidth) && meta.logicalWidth>0)
     variants.push({asset,meta});
  }
+ // /api/assets is lexically ordered; normalize mocks/alternate API listings
+ // before the original seeded pick to keep full-world placement deterministic.
+ variants.sort((a,b)=>a.asset.path.localeCompare(b.asset.path,'en'));
  const pools=new Map();
  for(const t of terrainCatalog.terrainTypes)
   pools.set(t.id,variants.filter(v=>rules.mountainAllowed(
@@ -99,7 +102,11 @@ function create(options={}) {
   }
  }
  return {schema:SCHEMA,stage:"original-mountain-placement-preflight",
-  seed,worldHexes:world.cells.length,mountainHexes:wanted.length,
+  seed,worldSource:{version:world.version,seed:world.seed,
+   width:world.width,height:world.height,
+   originQ:world.originQ,originR:world.originR},
+  natureCatalogRevision:natureCatalog.revision??null,
+  worldHexes:world.cells.length,mountainHexes:wanted.length,
   mountainRegions:components.length,sourceVariants:variants.length,
   placed:placed.length,instances:placed,unmatched,artStatuses:statuses,
   requiresOriginalPngDecoding:true,requiresPixelOverlapCheck:true,

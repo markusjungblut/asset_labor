@@ -545,6 +545,53 @@ große 4×-Quellauflösung, Nature-/Mountain-/Shadow-
 Scenery, speicherschonender 7.125-Hex-Langlauf
 und Sektor-Import in den Spielviewer.
 
+## Phase 2.7 – Weltweiter Original-Bergplatzierungsplan und PNG-Teilprobe
+
+`large-map-bake-scenery-source.js` berechnet die
+Gebirgskomponenten auf den **absoluten geografischen
+Q/R-Koordinaten**. Die Platzierung verwendet
+`VedrasMountains.candidate()` und
+`VedrasNatureCatalog.mountainAllowed()`,
+die originale `autoGeoMountains`-Seedmischung (12345)
+sowie ausschließlich tatsächlich gelistete
+Originalgrafiken aus dem Live-Nature-Katalog.
+
+Die derzeitige Referenzwelt enthält **346
+geografische Berghexe**, gruppiert in **sieben**
+Gebirgsregionen. Auf Grundlage der aktuell
+vorliegenden **21 Original-Berggrafiken**
+werden **275 Platzierungen** geplant; 71 Hexe bleiben
+wegen Habitat-/Kollisionsregeln unbelegt.
+Diese Zahlen sind ein **Plaungsergebnis**, kein
+versprochenes vollständiges Gebirge.
+**Alle 21 Quellen tragen derzeit
+`artStatus:'candidate'`**.
+
+`large-map-bake-mountain-png.js` erzeugt daneben
+aus dekodierten Original-Berg-PNGs eine **separate
+transparente Scenery-Testkachel**. Der Ausschnitt
+wird an globalen Weltkoordinaten ausgerichtet;
+sichtbare Alpha-Bounds und die vorhandene
+`0.965`/ `0.012`-Spriteperspektive des Editors
+werden verwendet. Das Geografielabor bietet
+zwei neue Aktionen: **Original-Bergplatzierungen
+prüfen** und **Original-Berg-Scenery-PNG testen**.
+Die Probe kann zusammen mit einer Ground-PNG
+sichtgeprüft werden, ist aber **nicht** als
+fertige Scenery integrierbar.
+
+Der Testpfad ist streng von produktiven Atlas-Kacheln
+isoliert: `rasterized:false` im Platzierungsplan,
+`complete:false`/`readyForViewer:false` in
+beiden Ausgabeformen. **Noch nicht eingebunden:**
+visuell verifizierte Berg-Silhouettenkollisionen,
+klassische Nature-Baum-/Strauchverteilung,
+Flächenreservierung für Berge, originale
+Nature-/Bergschatten, Terrain-Flattening,
+Pixelgleichheit zur 397-Hex-Editor-Tour,
+vollständige echte 4×-Scenery sowie das
+statische Viewer-Sektorformat.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen

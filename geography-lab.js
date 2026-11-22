@@ -4,6 +4,8 @@
 const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  IO=window.VedrasGeographyIO,BAKE=window.VedrasLargeMapBakePlan,
  MATERIAL=window.VedrasLargeMapMaterialPreview,
+ SCENERY=window.VedrasLargeMapScenerySource,
+ MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
 let handoffRequest=null,handoffSequence=0;
@@ -417,6 +419,85 @@ $('auditMaterialCatalog').addEventListener('click',async()=>{
    '. Dies prüft ausschließlich Grundmaterialien; vollständige 4×-Bildschichten fehlen.';
  }catch(error){
   report.textContent='Material-Check fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+async function mountainPreflight(worldAtStart){
+ if(!SCENERY?.create||!SCENERY?.loadNatureCatalog||
+    !window.VedrasNatureCatalog||!window.VedrasMountains||
+    !MATERIAL?.loadCatalog||!BAKE?.plan)
+  throw Error('Original-Bergkatalog oder Scenery-Regeln sind nicht geladen.');
+ const [{catalog,assets},natureCatalog]=await Promise.all([
+  MATERIAL.loadCatalog(),SCENERY.loadNatureCatalog()
+ ]);
+ if(worldAtStart!==world)
+  throw Error('Geografiewelt hat sich während des Bergchecks geändert.');
+ const plan=BAKE.plan(worldAtStart);
+ const scenery=SCENERY.create({
+  world:worldAtStart,terrainCatalog:catalog,natureCatalog,assets,
+  mountains:window.VedrasMountains,rules:window.VedrasNatureCatalog,
+  seed:12345
+ });
+ if(scenery.readyForViewer||scenery.rasterized||scenery.complete)
+  throw Error('Unfertige Scenery darf nicht als fertiger Atlas gelten.');
+ return {plan,scenery,assets};
+}
+$('auditMountainScenery').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('auditMountainScenery'),report=$('mountainSceneryReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  report.textContent='Original-Berg-PNGs und geografische Habitatregeln werden geprüft …';
+  const {scenery}=await mountainPreflight(current);
+  report.textContent='Bergquelle: '+scenery.mountainHexes+' Berghexe in '+
+   scenery.mountainRegions+' Regionen · '+scenery.placed+
+   ' geplante Original-Berg-Sprites aus '+scenery.sourceVariants+
+   ' Varianten · '+scenery.unmatched.length+' nicht belegte Berghexe'+
+   (scenery.artStatuses.candidate?' · NICHT FREIGEGEBEN: '+
+    scenery.artStatuses.candidate+' Platzierungen mit candidate-Grafiken':'')+
+   '. Noch ohne geprüfte PNG-Silhouetten, Bäume und Schatten. Kein fertiger Atlas.';
+ }catch(error){
+  report.textContent='Bergprüfung fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('previewMountainScenery').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('previewMountainScenery'),report=$('mountainSceneryReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!MOUNTAINPNG?.create||!MATERIAL?.imageLoader)
+   throw Error('Echte Berg-PNG-Rendertechnik fehlt.');
+  report.textContent='Geografische Bergregionen werden mit Originalgrafiken geplant …';
+  const {plan,scenery,assets}=await mountainPreflight(current);
+  const preview=MOUNTAINPNG.create({plan,sceneryPlan:scenery,assets,
+   loadImage:MATERIAL.imageLoader()});
+  const requested=String($('materialPreviewTileId').value||'').trim();
+  const id=requested||preview.defaultTile();
+  if(!plan.tiles.some(t=>t.id===id))
+   throw Error('Die angegebene WorldTile-ID ist nicht im Geografieplan.');
+  report.textContent='Original-Berg-PNGs für Kachel '+id+
+   ' werden als separate transparente Scenery-Probe erzeugt …';
+  const sample=await preview.renderTile(id);
+  if(current!==world)throw Error('Geografiewelt hat sich während des Renderns geändert.');
+  if(sample.stage!=='original-mountain-scenery-preview'||
+     sample.complete||sample.readyForViewer)
+   throw Error('Teil-Scenery darf nicht als fertiger Atlas exportiert werden.');
+  const url=URL.createObjectURL(sample.png),a=document.createElement('a');
+  a.href=url;a.download='vedras-berg-scenery-probe-'+id.replace(',','_')+'.png';
+  document.body.appendChild(a);
+  try{a.click();}finally{
+   a.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
+  }
+  report.textContent='Original-Berg-Scenery-Probe exportiert: '+id+
+   ' · '+sample.drawn+' gezeichnete Bergsprites · '+
+   sample.originalPngs+' originale PNG-Varianten · '+
+   sample.width+'×'+sample.height+' Pixel. UNVOLLSTÄNDIG: '+
+   'alle Nature-Bäume, Originalschatten, Bergabstand nach echter Silhouette'+
+   ' und 4×-Scenery fehlen. '+scenery.artStatuses.candidate+
+   ' Bergplatzierungen beruhen auf noch ungeprüften candidate-Grafiken.';
+ }catch(error){
+  report.textContent='Original-Bergprobe fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{
