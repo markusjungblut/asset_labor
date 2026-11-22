@@ -9,6 +9,25 @@ window.VedrasWorldTiles=(()=>{
  const clock=()=>typeof performance!=='undefined'?performance.now():Date.now();
  const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
  const finite=Number.isFinite;
+  // The source gutter can be transparent even when the already baked
+  // 512-world-unit terrain CORE is opaque. At high zoom Canvas2D linear
+  // filtering samples half a texel outside an exact source crop, blending
+  // in transparent gutter and producing a straight seam at each join.
+  // Inset source coordinates one native texel. Destination geometry stays
+  // unchanged and shared device-pixel-snapped edges remain exactly aligned.
+  // No alteration to the PNG, world UV phase, authoring or archived maps.
+  function coreSourceCrop(image,pad,tileSize){
+   if(!image||!(image.width>0&&image.height>0)||
+      !(pad>0&&tileSize>0))return null;
+   const ratio=pad/(tileSize+pad*2),
+    width=image.width*(1-2*ratio),height=image.height*(1-2*ratio);
+   const insetX=Math.min(1,Math.max(0,width/8)),
+    insetY=Math.min(1,Math.max(0,height/8));
+   return {x:image.width*ratio+insetX,
+    y:image.height*ratio+insetY,
+    w:width-2*insetX,h:height-2*insetY};
+  }
+
  // Shared scene-wide raster-density contract, unchanged from v0.22.
  const density=window.VedrasAdaptiveLOD?.worldDensity||
   {far:.85,mid:1.5,near:2.5};
@@ -745,24 +764,6 @@ window.VedrasWorldTiles=(()=>{
     if(shown)keep.add(key(t,shown.tileLod));
    }
    return keep;
-  }
-  // The source gutter can be transparent even when the already baked
-  // 512-world-unit terrain CORE is opaque. At high zoom Canvas2D linear
-  // filtering samples half a texel outside an exact source crop, blending
-  // in transparent gutter and producing a straight seam at each join.
-  // Inset source coordinates one native texel. Destination geometry stays
-  // unchanged and shared device-pixel-snapped edges remain exactly aligned.
-  // No alteration to the PNG, world UV phase, authoring or archived maps.
-  function coreSourceCrop(image,pad,tileSize){
-   if(!image||!(image.width>0&&image.height>0)||
-      !(pad>0&&tileSize>0))return null;
-   const ratio=pad/(tileSize+pad*2),
-    width=image.width*(1-2*ratio),height=image.height*(1-2*ratio);
-   const insetX=Math.min(1,Math.max(0,width/8)),
-    insetY=Math.min(1,Math.max(0,height/8));
-   return {x:image.width*ratio+insetX,
-    y:image.height*ratio+insetY,
-    w:width-2*insetX,h:height-2*insetY};
   }
   function drawImage(image,x,y,w,h,view,source=null){
    const x0=clamp(x,0,view.width),x1=clamp(x+w,0,view.width),
