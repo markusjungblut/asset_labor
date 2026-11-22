@@ -497,29 +497,36 @@ window.addEventListener('DOMContentLoaded',()=>{
   'mountainContactLength'])$(id)?.addEventListener('input',()=>{
    if(isMountainAsset(asset()))preview();
   });
- // Tonal calibration is a local visual preview, deliberately separate from
- // the versioned server-side sprite profile JSON. No PNGs or stored maps change.
+ // Shared absolute grayscale is a local VISUAL override, independent
+ // from the versioned sprite profile JSON and the original source art.
  const Tone=window.VedrasShadowTone;
  if(Tone){
-  const ui=[['shadowToneBalance','shadowToneBalanceValue','balance']];
+  const level=$('shadowGrayLevel'),mountains=$('shadowGrayMountains');
   function refreshTone(){
-   const values=Tone.get();
-   for(const [slider,label,key] of ui){
-    if($(slider))$(slider).value=String(Math.round(values[key]*100));
-    if($(label))$(label).textContent=Math.round(values[key]*100)+' %';
-   }
+   const values=Tone.get(),v=Math.round(values.gray);
+   if(level)level.value=String(v);
+   if($('shadowGrayLevelValue'))
+    $('shadowGrayLevelValue').textContent=v+' / 100 · '+
+     (v===100?'schwarz':v===0?'schwach':'einheitlich');
+   if(mountains)mountains.checked=values.mountains;
   }
-  for(const [slider,,key] of ui){
-   $(slider)?.addEventListener('input',()=>{
-    Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
-    refreshTone();refresh();core.requestDraw();
-   });
-   // Only invalidate the expensive WorldTile scenery once on release.
-   $(slider)?.addEventListener('change',()=>core.invalidateScenery?.());
+  function updateTone(changes){
+   Tone.set({...Tone.get(),...changes});
+   refreshTone();refresh();core.requestDraw();
   }
-  $('shadowToneReset')?.addEventListener('click',()=>{
-   Tone.set(Tone.defaults());refreshTone();refresh();core.invalidateScenery?.();
+  if(level){
+   level.addEventListener('input',()=>updateTone({gray:Number(level.value)}));
+   // Re-render expensive WorldTile scenery once on pointer release.
+   level.addEventListener('change',()=>core.invalidateScenery?.());
+  }
+  mountains?.addEventListener('change',()=>{
+   updateTone({mountains:mountains.checked});core.invalidateScenery?.();
   });
+  $('shadowToneReset')?.addEventListener('click',()=>{
+   Tone.set({...Tone.get(),gray:0,mountains:true});
+   refreshTone();refresh();core.invalidateScenery?.();
+  });
+  window.addEventListener('vedras:shadow-tone-changed',refreshTone);
   refreshTone();
  }
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.
