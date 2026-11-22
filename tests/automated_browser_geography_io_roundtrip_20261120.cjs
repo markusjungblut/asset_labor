@@ -162,6 +162,11 @@ setTimeout(()=>{console.error('Geography I/O test exceeded 150 seconds');process
    opener.waitForEvent('popup',{timeout:30000}),opener.locator('#open').click()
   ]);
   await popup.waitForSelector('#sendToLab');
+  // The button is parsed before the final script attaches its click handler.
+  // Ensure geography-lab.js completed its initial build before clicking.
+  await popup.waitForFunction(()=>
+   document.getElementById('message')?.textContent.includes('Berechnet in'),
+   null,{timeout:30000});
   await popup.locator('#sendToLab').click();
   await popup.waitForFunction(()=>
    document.getElementById('message').textContent.includes('Übertragung erfolgreich'),
