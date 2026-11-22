@@ -233,8 +233,8 @@ test('all six corner combinations resolve a single canonical joined node',()=>{
 
 test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
  const app=source('app.js'),html=source('index.html'),ui=source('wall-ui.js');
- assert(app.includes("o.type==='wall'?300"));
- assert(app.includes("if(o.type!=='wall'&&!o.asset?.img?.naturalWidth)return false"));
+ assert(app.includes("(o.type==='wall'||o.type==='wall-joint')?300"));
+ assert(app.includes("if(o.type!=='wall'&&o.type!=='wall-joint'&&!o.asset?.img?.naturalWidth)return false"));
  assert(app.includes('visible.push({type:\'wall\',wallEdge,'),
   'walls are indexed as depth-sorted scene objects, not global overlay');
  assert(app.includes('if(obj.type===\'wall\')'));
