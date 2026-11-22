@@ -99,7 +99,8 @@ test('original mountains and trees are drawn in ONE 2.5x transparent world tile'
  assert(a.needsFullEditorImageParity);
  assert(a.needsFullNaturePopulation);
  assert.equal(x.loads.length,2);
- const rendered=x.paints.filter(p=>p.length===9&&\n  !(p[7]===64&&p[8]===64));
+ const rendered=x.paints.filter(p=>p.length===9&&
+  !(p[7]===64&&p[8]===64));
  assert.equal(rendered.length,2);
  // The editor renders an occluded tree before its mountain, not deleted.
  assert.equal(rendered[0][0].name,treePath);
