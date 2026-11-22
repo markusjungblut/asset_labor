@@ -280,7 +280,7 @@ window.VedrasNature=(()=>{
   // primeVisibleSpriteAssets() pass after populate() requests a redraw.
   const candidates=assets.filter(a=>a.category==='nature'&&entryFor(a)?.kind==='mountain');
   state.mountainInstances=(state.mountainInstances||[]).filter(m=>m.source!=='generated');
-  if(!wanted.length||!candidates.length)return {placed:0,wanted:wanted.length};
+  if(!wanted.length||!candidates.length)return {placed:0,wanted:wanted.length,available:candidates.length,noCompatible:candidates.length?0:wanted.length,blocked:0,requested:0};
   const lookup=new Map(wanted.map(c=>[c.q+','+c.r,c])),seen=new Set(),groups=[];
   for(const first of wanted){
    const k=first.q+','+first.r;if(seen.has(k))continue;
@@ -299,13 +299,14 @@ window.VedrasNature=(()=>{
   const scene={cells:core.cells(),mountains:state.mountainInstances,
    nature:(state.natureInstances||[]).filter(n=>n.source==='manual'),
    objects:state.hexObject||{}};
-  let placed=0;
+  let placed=0,noCompatible=0,blocked=0;
   groups.forEach((group,index)=>{
    for(const c of group){
     const terrain=core.baseBiomeOf(c);
     const pool=candidates.filter(a=>
      N.mountainAllowed(entryFor(a),terrain,terrainRegistry(),catalog));
-    if(!pool.length)continue;
+    if(!pool.length){noCompatible++;continue;}
+    let accepted=false;
     const start=Math.floor(random(seed,c.q,c.r,2002)*pool.length);
     for(let j=0;j<pool.length;j++){
      const a=pool[(start+j)%pool.length],meta=entryFor(a);
@@ -322,11 +323,26 @@ window.VedrasNature=(()=>{
       assetPath:a.path,assetId:meta.id,q:c.q,r:c.r,
       radius:cfg.radius,coreRadius:0,mode:'chain',chainId:'geography_'+index,
       source:'generated',...encodeInstanceShadow(shadow)});
-     placed++;break;
+     placed++;accepted=true;break;
     }
+    if(!accepted)blocked++;
    }
   });
-  return {placed,wanted:wanted.length};
+  // Queue ONLY the mountain variants the geography actually selected.
+  // This is independent of the camera position and avoids decoding every
+  // catalogued mountain PNG. The pool's onReady path rebuilds scenery.
+  const byPath=new Map(candidates.map(a=>[a.path,a]));
+  const used=new Set(state.mountainInstances.filter(m=>m.source==='generated').map(m=>m.assetPath));
+  let requested=0;
+  for(const path of used){
+   const asset=byPath.get(path);
+   if(!asset||asset.img?.naturalWidth||typeof core.ensureAsset!=='function')continue;
+   requested++;
+   try{core.ensureAsset(asset)?.catch?.(()=>{});}
+   catch(_error){/* Failed loads remain visible in the image-pool diagnostics. */}
+  }
+  return {placed,wanted:wanted.length,available:candidates.length,
+   noCompatible,blocked,requested};
  }
  const isBoulder=meta=>!!meta&&meta.kind==='rock'&&
   (meta.family==='stones'||/^boulder[_-]?\d+$/i.test(meta.id||''));
@@ -555,9 +571,13 @@ window.VedrasNature=(()=>{
   const dense=forest.filter(c=>c.forestClass==='dense_forest').length,light=forest.filter(c=>c.forestClass==='light_forest').length;
   const edge=forest.filter(c=>c.forestClass==='none'&&c.edgeInfluence>.05).length;
   const glades=forest.filter(c=>c.glade).length;
-  if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen.');
-  else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite.');
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Wüstenpalmen '+newDesertPalms+' · Wüstenakazien '+newDesertAcacias+' · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
+  const mountainSummary='Berge '+generatedMountains.placed+'/'+generatedMountains.wanted+
+   (generatedMountains.noCompatible?' · '+generatedMountains.noCompatible+' ohne zulässige Berggrafik':'')+
+   (generatedMountains.blocked?' · '+generatedMountains.blocked+' wegen Abstand/Belegung ausgelassen':'')+
+   (generatedMountains.requested?' · '+generatedMountains.requested+' ausgewählte Berg-PNGs werden geladen':'');
+  if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen. · '+mountainSummary);
+  else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite. · '+mountainSummary);
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · '+mountainSummary+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Wüstenpalmen '+newDesertPalms+' · Wüstenakazien '+newDesertAcacias+' · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
     edge+' Rand, '+glades+' Lichtungshexe.');
  }
 
