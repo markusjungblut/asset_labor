@@ -139,6 +139,66 @@ deterministisches Ergebnis, exakt die Tile-Mengen/WorldPos aus
 geänderter Seed, verfälschte Zellen, 57.600 synthetische Zellen,
 ungültige Batches, explizite Nicht-Fertig-Markierung.
 
+## Phase 2 – begonnene Implementierung (Fortsetzung 22.11.2026)
+
+**Erledigte, additive Vorarbeiten auf demselben Branch:**
+
+- `large-map-bake-source.js` baut aus Welt und geprüftem Renderplan einen
+  kachelweisen, nach 512er-Räumen indexierten **BakingContext**.
+  `contextFor(tileId)` liefert die **originalen absoluten Q/R-Werte**
+  samt Terrain, Relief, Features, allen berührten Flussrouten (nicht
+  unbemerkt abgeschnitten), Owner-by-Anchor-Zellen und dem 470er-Source-Halo.
+  Die Quelldaten werden beim Übergang vom geografischen Weltobjekt gelöst.
+  **1.678/1.678 Kacheln** stimmen hinsichtlich der Nachbar-Hex-Auswahl
+  mit `chunks.js.neighbors(...,470)` überein; durchschnittlich rund
+  **33 relevante Hexe pro Kachel**.
+- `large-map-bake-runner.js` bildet die asynchrone Pipeline
+  `contextFor → renderer.renderTile → PNG-Format-/Dimensionsprüfung →
+  SHA-256 → store.add`. Zwei Qualitätsprofile sind festgelegt:
+  `native-near` (Ground 2,5× / Scenery 1,9×) für den
+  Referenztest und `near-4x` (Ground 4× / Scenery 2×) wie im
+  bestehenden Offline-Editor. Der Runner akzeptiert **nur Ground+Scenery,
+  vollständig, nicht dirty/Preview**, mit passenden Padding- und
+  optionalen Scenery-Crop-Metadaten.
+- Für Resume wird jeder bestehende Receipt einschließlich beider
+  **tatsächlich gespeicherten PNG-Blobs und ihrer SHA-256** erneut geprüft.
+  Veränderte Quelle/Renderer-/Katalogversion erhalten neue
+  Schlüssel; korrupte Einträge blockieren den Job, werden niemals
+  überschrieben. Abbruch lässt erfolgreiche Einzelkacheln stehen.
+  `all-tiles-verified` bedeutet **nicht** bereits
+  `readyForViewer:true`: die anschließende Atlas-/Semantik-Publikation
+  ist weiterhin separat erforderlich.
+- `large-map-bake-storage.js` verwendet ausschließlich die **neue
+  `vedras-large-map-bake-v1`-IndexedDB** mit atomarem `add()`.
+  Die produktive Datenbank `vedras-frozen-world-v1` wird nicht
+  geöffnet oder verändert. Noch kein automatisches Aufräumen.
+- Der bestehende Renderer in `app.js` erhält einen ausschließlich
+  **optional aufrufbaren Near-Probelauf**. `bakeWorldTile` kann nun mit
+  `forceSource:true` den möglicherweise veralteten Screenshot-Pfad
+  überspringen und tatsächlich `drawGround`, `drawRoads`
+  und `drawMapObjects` ausführen; Default bleibt unverändert.
+  Unter **Spielkarten-Test → Großkarten-Baker: Referenzkachel**
+  kann eine bereits vorbereitete Kachel per Tile-ID gerendert werden.
+  Der neue Runner prüft beide PNGs und das vorhandene
+  `frozen-map-package.js` exportiert sie gemeinsam in einem
+  **reinen Referenz-ZIP**. Es ist **kein importierbares Spielkarten-ZIP**.
+  Kein Rendern und keine Speicherung erfolgt automatisch.
+- Getrennte `node --test`-Suiten überprüfen Quellenparität,
+  Negativfälle, 57.600 synthetische Zellen, vollständige PNG-
+  Bildabmessungen, Revisions-/SHA-Prüfung, Resume/Abbruch und den
+  isolierten Browser-Store. Das optionale UI ist zusätzlich per
+  Vertrags-/Quelltest verdrahtet. Eine eigene schlanke
+  GitHub-Actions-CI benötigt keine Bitmap-Atlanten.
+
+**Noch offen:** Echter Firefox-Referenzkacheltest mit den
+vollständigen Asset-Labor-Grafikquellen; 4×-Pixelvergleich gegen die
+bestehende 397-Hex-Offline-Tour; ein **vollständig unabhängiger,
+nicht editorgebundener Raster-Adapter** für die BakingContexts;
+Job-/Fortschritts-UI und finaler Karten-/ZIP-Publisher für 7.125 Hexe.
+Der schon implementierte Runner akzeptiert einen echten
+`renderer.renderTile(context)`-Callback, doch der endgültige
+Großwelt-Adapter ist **noch nicht verdrahtet**.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
