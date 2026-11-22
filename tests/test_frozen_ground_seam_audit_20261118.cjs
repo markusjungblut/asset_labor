@@ -359,7 +359,7 @@ test('397-hex 120-tile archive retains eight genuine transparent halo-only owner
  assert(app.includes("'ground-owned-core-seam-gate-v1'"),
   'do not silently invalidate the existing user 98/120 scene key');
 });
-test('halo-only placeholders have valid native-4x transparent Ground and native-2x Scenery',()=>{
+test('halo-only rim keeps transparent 4x Ground but can bake non-empty Scenery',async()=>{
  const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
   from=app.indexOf('function frozenEmptyNative4xTile(tile)'),
   to=app.indexOf("$('frozenCaptureAll').addEventListener",from);
@@ -371,21 +371,25 @@ test('halo-only placeholders have valid native-4x transparent Ground and native-
  }};
  const factory=vm.runInNewContext(app.slice(from,to)+
   '\nfrozenEmptyNative4xTile;',{
-  document,WORLD_TILE_GUTTER:3,PROJECT_Y:.85});
+  document,WORLD_TILE_GUTTER:3,PROJECT_Y:.85,
+  state:{objects:false}});
  const tile={id:'-4,-6',x:-2048,y:-3072,size:512};
- const result=factory(tile);
+ const result=await factory(tile);
  assert.equal(result.complete,true);
  assert.equal(result.level,'near');
- assert.equal(result.revision,'no-authored-hex-in-core-v1');
+ assert.equal(result.revision,'no-authored-ground-with-scenery-v2');
  assert.equal(result.layers[0].layer,'ground');
  assert.equal(result.layers[0].pad,3);
  assert.equal(result.layers[0].image.width,2072);
  assert.equal(result.layers[0].image.height,1761);
  assert.equal(result.layers[1].layer,'scenery');
  assert.equal(result.layers[1].pad,128);
+ assert.equal(result.layers[1].coreOnly,true,'the empty rim owns only its core pixels');
  assert.equal(result.layers[1].image.width,1536);
  assert.equal(result.layers[1].image.height,1306);
  assert.equal(canvases.length,2);
  assert(!app.slice(from,to).includes('fillRect('),
-  'empty world tiles may never invent a synthetic ground color');
+  'an empty terrain tile must never invent synthetic ground color');
+ assert(app.slice(from,to).includes('drawMapObjects({includeUnits:false});'),
+  'when a mountain extends from a neighbor, its picture and cast must be drawn');
 });
