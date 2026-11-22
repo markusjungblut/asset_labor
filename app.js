@@ -376,7 +376,7 @@ function packWorldTileScenery(source,level){
   return {image:source};
  }
 }
-async function bakeWorldTile(t,level,{signal}={}){
+async function bakeWorldTile(t,level,{signal,forceSource=false}={}){
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
  const __trace=window.VedrasStep15Trace,__tileTrace=__trace?.enabled();
  let __outcome='unknown',__snapshotReason='not-evaluated';
@@ -405,7 +405,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // During the explicit offline 4x atlas export, snapshots made for normal
  // camera LODs (near=2.5 px/world-unit) are NOT a 4x source.
  const offline4x=frozenTour?.quality==='4'&&level==='near';
- const reuseSnapshot=!offline4x&&snapshotReady&&
+ const reuseSnapshot=!forceSource&&!offline4x&&snapshotReady&&
   worldTileSnapshotsSharp(ground,scenery,level);
  const a=reuseSnapshot?snapshotTile(ground,t,level,WORLD_TILE_GUTTER):null,
   b=reuseSnapshot?snapshotTile(scenery,t,level):null;
@@ -5772,8 +5772,46 @@ window.addEventListener('vedras:cloud-assets-ready',()=>{
  // Only the background snapshots are stale; terrain chunks are untouched.
  backgroundScene.clear();requestDraw();
 });
+// Diagnostic only: run the ORIGINAL Asset-Labor renderer on one prepared
+// tile and return genuine encoded PNGs. This is not the future large-world
+// renderer: the editor still owns its small scene and its image caches.
+// No background tour, no database write, no original scene replacement.
+async function bakeReferenceNearTile(tileId){
+ if(frozenTour||frozenMapMode||state.view!=='map'||state.mode==='far'||
+    $('fogPreview')?.checked)
+  throw Error('Referenz-Rendern nur in der normalen Kartenansicht ohne Offline-Tour und Fog-Demo.');
+ const match=/^(-?\d+),(-?\d+)$/.exec(tileId);
+ if(!match)throw Error('Kachel-ID muss im Format x,y vorliegen.');
+ const cx=Number(match[1]),cy=Number(match[2]);
+ if(!Number.isSafeInteger(cx)||!Number.isSafeInteger(cy)||
+    Math.abs(cx)>100000||Math.abs(cy)>100000)
+  throw Error('Unzulässige Renderkachel-Koordinate.');
+ const tile=window.VedrasChunks.tile(cx,cy);
+ // The source must overlap authored Hex geometry; never fabricate missing
+ // scenery/terrain beyond the editor scene or claim a transparent test as art.
+ const occupied=worldCells.some(c=>{
+  const p=window.VedrasChunks.worldPos(c);
+  return p.x>=tile.x-150&&p.x<tile.x+tile.size+150&&
+   p.y>=tile.y-150&&p.y<tile.y+tile.size+150;
+ });
+ if(!occupied)throw Error('Diese Kachel liegt nicht in der aktuellen Editor-Testszene.');
+ const details={};
+ if(!tileArtworkStatus(tile,details,true))
+  return {status:'not-ready',tile,reason:details.reason||'Quellen fehlen',
+   details:{reason:details.reason,waitingAssets:details.waitingAssets||[]}};
+ if(!window.VedrasLargeMapBakeRunner)
+  throw Error('PNG-Prüfmodul für die Großkarten-Probe fehlt.');
+ const raw=await bakeWorldTile(tile,'near',{forceSource:true});
+ if(!raw?.complete)
+  return {status:'not-ready',tile,reason:'Originalrenderer hat keine vollständige Kachel geliefert.'};
+ const layers=await window.VedrasLargeMapBakeRunner.checkPacket(raw,'native-near');
+ return {status:'verified-native-near',tile,sourceRevision:raw.revision,
+  layers,bytes:layers.reduce((n,x)=>n+x.byteSize,0),
+  note:'2.5x Ground / 1.9x Scenery; kein echter 4x-Gesamtkarten-Atlas'};
+}
 window.VedrasAssetLabor={frozenMapTest:()=>({
- ...frozenMap?.report(),mode:frozenMapMode,scene:frozenSceneKey()}),shadowSprites:{
+ ...frozenMap?.report(),mode:frozenMapMode,scene:frozenSceneKey()}),
+ bakeReferenceNearTile,shadowSprites:{
  bounds:visibleBounds,silhouette:shadowSilhouette,
  // The editor preview resolves the same mountain settings as the map.
  mountainSettingsForAsset:(asset)=>{
