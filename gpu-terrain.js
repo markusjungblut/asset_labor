@@ -25,8 +25,12 @@ window.VedrasGpuTerrain=(()=>{
    if(!gl)throw Error('WebGL2 nicht verfügbar');
    const vs=shader(gl,gl.VERTEX_SHADER,
     '#version 300 es\nprecision highp float;\nlayout(location=0) in vec2 a_px;\nlayout(location=1) in vec2 a_uv;\nuniform vec2 u_size;\nout vec2 v_uv;\nvoid main(){v_uv=a_uv;gl_Position=vec4((a_px/u_size)*vec2(2.,-2.)+vec2(-1.,1.),0.,1.);}');
+   // World-aligned terrain UVs use fractional chunk halos. On WebGL2 the
+   // minimum mediump UV precision can quantize 1–2 texels at large textures,
+   // producing permanent vertical/horizontal lines exactly at chunk cores.
+   // Fragment highp is mandatory in WebGL2; keep UV precision end to end.
    const fs=shader(gl,gl.FRAGMENT_SHADER,
-    '#version 300 es\nprecision mediump float;\nin vec2 v_uv;\nuniform sampler2D u_texture;\nout vec4 color;\nvoid main(){color=texture(u_texture,v_uv);}');
+    '#version 300 es\nprecision highp float;\nin highp vec2 v_uv;\nuniform sampler2D u_texture;\nout vec4 color;\nvoid main(){color=texture(u_texture,v_uv);}');
    program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);
    gl.linkProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);
    if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
