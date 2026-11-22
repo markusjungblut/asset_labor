@@ -64,7 +64,7 @@ window.VedrasShadows=(()=>{
  }
  function contact(ctx,p,width,kind='nature',strength=1,shape={}){
   if(!(width>0)||(strength<=0&&
-   window.VedrasShadowTone?.targetAlpha?.(kind==='mountain'?'mountain':'sprite')===null))return;
+   window.VedrasShadowTone?.targetAlpha?.(kind==='mountain'?'mountain':'sprite')==null))return;
   const mountain=kind==='mountain',k=clamp(strength,0,2);
   const s=mountain?settings(shape):shape;
   const contactScale=number(s.contact,1,.35,2.5);
