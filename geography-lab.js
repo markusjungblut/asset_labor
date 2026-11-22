@@ -440,25 +440,33 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    world:sourceWorld,plan,catalog,assets,
    planner:BAKE,sourceAdapter:window.VedrasLargeMapBakeSource,
    autotile:window.VedrasAutotile,catalogApi:window.VedrasCatalog,
+   reliefAdapter:window.VedrasLargeMapBakeGroundRelief,
+   reliefApi:window.VedrasRelief,
   });
-  report.textContent='Echtes Originalmaterial für Kachel '+tileId+
-   ' wird mit dem bestehenden Autotile-Bildrenderer zusammengesetzt …';
-  const result=await renderer.renderTile(tileId);
+  const withRelief=!!$('materialPreviewRelief').checked;
+  report.textContent='Originalmaterial'+(withRelief?' und Geografie-Hügelrelief':'')+
+   ' für Kachel '+tileId+' werden mit den bestehenden Bildrenderern zusammengesetzt …';
+  const result=await renderer.renderTile(tileId,{withRelief});
   if(sourceWorld!==world)throw Error('Welt wurde während des Renderns geändert; kein veraltetes PNG exportiert.');
-  if(result.complete||result.readyForViewer||result.stage!=='material-only-preview')
-   throw Error('Materialprobe darf nicht als fertige Spielkarte publiziert werden.');
+  if(result.complete||result.readyForViewer||
+     result.stage!==(withRelief?'material-relief-preview':'material-only-preview'))
+   throw Error('Terrainprobe darf nicht als fertige Spielkarte publiziert werden.');
   const blobUrl=URL.createObjectURL(result.png);
   const link=document.createElement('a');
   link.href=blobUrl;
-  link.download='vedras-materialprobe-'+result.tile.id.replace(',','_')+'.png';
+  link.download='vedras-'+(withRelief?'material-relief':'material')+
+   'probe-'+result.tile.id.replace(',','_')+'.png';
   document.body.appendChild(link);
   try{link.click();}finally{
    link.remove();setTimeout(()=>URL.revokeObjectURL(blobUrl),15000);
   }
-  report.textContent='Original-Terrainmaterial-PNG exportiert: '+result.tile.id+
+  report.textContent='Original-Ground-Probe exportiert: '+result.tile.id+
    ' · '+result.sourceCount+' Quellhexe · '+result.assetPaths.length+
    ' Originaltexturen · '+result.width+'×'+result.height+' Pixel · '+
-   Math.ceil(result.png.size/1024)+' KiB. UNVOLLSTÄNDIG: ohne Relief, '+
+   Math.ceil(result.png.size/1024)+' KiB'+
+   (withRelief?' · Geografie-Hügelquellen: '+result.reliefHillSources:
+    ' · Relief nicht aktiviert')+
+   '. UNVOLLSTÄNDIG: '+(withRelief?'ohne ':'ohne Relief, ')+
    'Ufergrafiken, Flüsse, Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
  }catch(error){
   report.textContent='Materialprobe nicht exportiert: '+String(error?.message||error);
