@@ -65,13 +65,50 @@ const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
    for(const gray of [0,50,100])for(const scale of [2,4])
     for(const kind of ['rock','ground_cover','automatic'])
      samples.push(render(gray,scale,kind));
+   function overlapCheck(gray,scale){
+    Tone.set({gray,mountains:true},{persist:false});
+    const settings=Sprites.defaults();
+    settings.global.strength=1;settings.global.opacity=.2;
+    settings.profiles={'assets/nature/overlap.png':{
+     opacity:.2,contact:0,softness:0,
+     manual:{mode:'polygons',polygons:[
+      [[-.3,-.35],[.3,-.35],[.3,-.05],[-.3,-.05]]
+     ]}
+    }};
+    Sprites.set(settings);
+    function sample(count){
+     const layer=document.createElement('canvas');
+     layer.width=280*scale;layer.height=180*scale;
+     const c=layer.getContext('2d',{alpha:true});
+     c.scale(scale,scale);
+     Tone.withMaskPass(()=>{
+      for(let i=0;i<count;i++)
+       Sprites.draw(c,{asset:{path:'assets/nature/overlap.png'},
+        natureMeta:{kind:'rock',family:'broadleaf'}},
+        {x:135,y:95},85,mask,{x:.5,y:.96},1);
+     });
+     const out=document.createElement('canvas');
+     out.width=layer.width;out.height=layer.height;
+     const g=out.getContext('2d',{alpha:true,willReadFrequently:true});
+     g.globalAlpha=Tone.targetAlpha('sprite');
+     g.drawImage(layer,0,0);
+     const pixels=g.getImageData(0,0,out.width,out.height).data;
+     let peak=0;
+     for(let i=3;i<pixels.length;i+=4)peak=Math.max(peak,pixels[i]);
+     return peak;
+    }
+    return {gray,scale,one:sample(1),two:sample(2),four:sample(4)};
+   }
+   const overlaps=[];
+   for(const gray of [0,50,100])for(const scale of [2,4])
+    overlaps.push(overlapCheck(gray,scale));
    Tone.set({...Tone.get(),gray:100,mountains:false,balance:1},
     {persist:false});
    const offCanvas=document.createElement('canvas');
    offCanvas.width=600;offCanvas.height=420;
    const optOut=Mountains.paintMountain(offCanvas.getContext('2d'),
     {x:270,y:250},180,{opacity:.22,softness:2,angle:155,length:1.1},1);
-   return {samples,optOut:{peak:optOut?.maxAlpha,
+   return {samples,overlaps,optOut:{peak:optOut?.maxAlpha,
     color:Tone.colorRgb('mountain')},
     spriteColor:Tone.colorRgb('sprite')};
   });
@@ -97,6 +134,15 @@ const BROWSER=process.env.VEDRAS_CI_BROWSER||'firefox';
     const a=two.find(s=>s.kind===k),b=four.find(s=>s.kind===k);
     assert.ok(Math.abs(a.castAlpha-b.castAlpha)<=3,'2x/4x shadow difference '+k);
    }
+  }
+  for(const o of result.overlaps){
+   const target=Math.round(255*(.12+.88*o.gray/100));
+   assert.ok(Math.abs(o.one-target)<=5,
+    'a single ordinary shadow reaches configured tone');
+   assert.ok(Math.abs(o.two-o.one)<=1,
+    'two overlapping ordinary shadows must not darken');
+   assert.ok(Math.abs(o.four-o.one)<=1,
+    'four overlapping ordinary shadows must not darken');
   }
   assert.ok(result.optOut.peak>0&&result.optOut.peak<115,
    'Unchecked mountains keep their original authored weak opacity');

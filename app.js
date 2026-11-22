@@ -2866,6 +2866,38 @@ function primeVisibleSpriteAssets(){
  window.__vedrasSpriteDemand={authored,paths:paths.size,ready,missing,
   requested,enabled:state.objects};
 }
+// Merge ordinary casts/contact shadows BEFORE applying the selected gray.
+// This caps any number of overlapping tree, building, unit and hand-drawn
+// ground shadows at one common opacity. Mountains are painted separately.
+const normalShadowUnionCanvas=document.createElement('canvas');
+function paintUnifiedNormalShadows(paint){
+ const original=ctx,tone=window.VedrasShadowTone;
+ if(typeof tone?.withMaskPass!=='function'||
+  !original?.canvas||typeof original.getTransform!=='function')return paint();
+ const pw=original.canvas.width,ph=original.canvas.height;
+ if(!(pw>0&&ph>0))return paint();
+ if(normalShadowUnionCanvas.width!==pw)normalShadowUnionCanvas.width=pw;
+ if(normalShadowUnionCanvas.height!==ph)normalShadowUnionCanvas.height=ph;
+ const mask=normalShadowUnionCanvas.getContext('2d',{alpha:true});
+ if(!mask)return paint();
+ mask.save();mask.setTransform(1,0,0,1,0,0);mask.clearRect(0,0,pw,ph);
+ mask.globalAlpha=1;mask.globalCompositeOperation='source-over';mask.filter='none';
+ mask.setTransform(original.getTransform());
+ try{
+  ctx=mask;
+  tone.withMaskPass(paint);
+ }finally{
+  ctx=original;
+  mask.restore();
+ }
+ original.save();
+ original.setTransform(1,0,0,1,0,0);
+ original.globalCompositeOperation='source-over';
+ original.globalAlpha=tone.targetAlpha('sprite');
+ original.filter='none';
+ original.drawImage(normalShadowUnionCanvas,0,0);
+ original.restore();
+}
 function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}){
  if(!state.objects){
   window.__vedrasObjectProfile={visible:0,total:0,layoutMs:0,occlusionMs:0,
@@ -2935,6 +2967,9 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    else window.__vedrasObjectProfile=profile;
    return;
   }
+  // Warm cached frames have no moving units; skip the entire full-size
+  // alpha mask instead of clearing it needlessly on every pan frame.
+  if(objs.some(o=>o.type!=='mountain'))paintUnifiedNormalShadows(()=>{
   for(const o of objs){
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
@@ -2978,6 +3013,7 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
     }
    }
   }
+  });
   profile.shadowPassMs=performance.now()-shadowStart;
   // Real sprites are sorted by projected ground foot AFTER the shadow layer.
   const spriteStart=performance.now();
@@ -3449,6 +3485,11 @@ function draw(){
   // cached scene in Canvas mode; they must stay direct in GPU overlay mode,
   // because a higher-z-order GPU canvas would otherwise cover them.
   const blockers=[];
+  // A separately composited moving-unit shadow would darken the already
+  // cached tree shadow beneath it. Use one direct unified pass whenever
+  // moving units are on screen; the fast static cache remains available
+  // when no units are visible.
+  if(visibleDynamicUnits())blockers.push('Einheiten: gemeinsame Schattenmaske');
   if(finalRendering)blockers.push('Final-PNG-Export');
   if(!state.objects)blockers.push('Objekte ausgeblendet');
   if(state.view!=='map')blockers.push('andere Kartenansicht');
