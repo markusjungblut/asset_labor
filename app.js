@@ -3483,6 +3483,11 @@ function draw(){
   // cached scene in Canvas mode; they must stay direct in GPU overlay mode,
   // because a higher-z-order GPU canvas would otherwise cover them.
   const blockers=[];
+  // A separately composited moving-unit shadow would darken the already
+  // cached tree shadow beneath it. Use one direct unified pass whenever
+  // moving units are on screen; the fast static cache remains available
+  // when no units are visible.
+  if(visibleDynamicUnits())blockers.push('Einheiten: gemeinsame Schattenmaske');
   if(finalRendering)blockers.push('Final-PNG-Export');
   if(!state.objects)blockers.push('Objekte ausgeblendet');
   if(state.view!=='map')blockers.push('andere Kartenansicht');
