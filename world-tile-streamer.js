@@ -511,7 +511,8 @@ window.VedrasWorldTiles=(()=>{
      crop={x:c.x,y:c.y,fullWidth:c.fullWidth,fullHeight:c.fullHeight};
     }
     normalized.push({layer:layer.layer,image:layer.image,owned:!!layer.owned,
-      pad:finite(layer.pad)?clamp(layer.pad,0,512):0,crop});
+      pad:finite(layer.pad)?clamp(layer.pad,0,512):0,crop,
+      coreOnly:layer.coreOnly===true});
    }
    // An unpainted shoreline, an absent terrain core, or an incomplete
    // scenery layer may NEVER be stored as a visually ready preview.
@@ -946,6 +947,9 @@ window.VedrasWorldTiles=(()=>{
       // exclusive snapped 512-world-unit terrain core.
       const source=core?coreSourceCrop(asset.image,pad,obj.t.size):null;
       let area;
+      if(asset.coreOnly&&!core){
+       g.save();g.beginPath();g.rect(obj.dx,obj.dy,obj.dw,obj.dh);g.clip();
+      }
       if(core)area=drawImage(asset.image,obj.dx,obj.dy,obj.dw,obj.dh,
        view,source);
       else{
@@ -965,6 +969,7 @@ window.VedrasWorldTiles=(()=>{
          fullH*asset.image.height/c.fullHeight,view);
        }else area=drawImage(asset.image,fullX,fullY,fullW,fullH,view);
       }
+      if(asset.coreOnly&&!core)g.restore();
       if(area){draws++;if(layer==='ground'||layer==='terrain')
        covered+=area;}
      }
