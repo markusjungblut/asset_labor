@@ -25,7 +25,7 @@ const near=(a,b)=>dist(a,b)<1e-6;
 const makeContext=()=>{
  const ops=[],ctx={ops};
  for(const fn of ['save','restore','beginPath','moveTo','lineTo',
-  'closePath','stroke','fill','fillRect']){
+  'closePath','stroke','fill','fillRect','arc']){
   ctx[fn]=(...args)=>ops.push({fn,args,fillStyle:ctx.fillStyle});
  }
  return ctx;
@@ -173,6 +173,61 @@ test('wall casting uses default sprite sun angle (left) and can follow edits',()
  const wood=makeContext();
  assert.equal(W.draw(wood,{...wall,kind:'palisade'},project,.75),true);
  assert(wood.ops.filter(x=>x.fn==='fill').length>2);
+});
+
+
+test('twelve authored SVG variants exist and preserve canonical foot anchors',()=>{
+ const meta=W.wallArtMeta;
+ for(const kind of ['palisade','stone'])for(let dir=0;dir<6;dir++){
+  const file=path.join(root,'assets','walls',kind,'edge_dir'+dir+'.svg');
+  const svg=fs.readFileSync(file,'utf8');
+  assert.match(svg,/^<\?xml[^]*<svg[\s\S]+<\/svg>\s*$/);
+  assert.match(svg,/viewBox="/);
+  assert(svg.includes('hex edge direction '+dir));
+  assert(svg.includes('polygon'),'real painted polygons, not a placeholder link');
+  const [width,height,anchorX,anchorY]=meta[kind][dir];
+  assert(width>20&&height>120);
+  assert(anchorX>=0&&anchorX<=width&&anchorY>=0&&anchorY<=height);
+  const opening=svg.match(/<svg[^>]+>/)?.[0]||'';
+  assert(opening.includes('width="'+width+'"')&&
+   opening.includes('height="'+height+'"'),
+   'sprite metadata must exactly match SVG raster dimensions');
+  assert(kind==='stone'?svg.includes('ashlar'):svg.includes('timber'),
+   'each family has distinct authored material geometry');
+ }
+ const app=source('app.js'),html=source('index.html');
+ assert(app.includes('window.VedrasWalls.junctions(edges)'));
+ assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
+ assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
+ assert(html.includes('walls.js?v=20261123-authored-art-and-joins-v3'));
+ assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
+});
+
+test('all six corner combinations resolve a single canonical joined node',()=>{
+ const edges=R.DIRS.map(([q,r])=>({a:[0,0],b:[q,r],kind:'stone'}));
+ const nodes=W.junctions(edges);
+ assert.equal(nodes.filter(n=>n.degree===2).length,6,
+  'each corner connects two different neighboring edge directions');
+ assert.equal(nodes.filter(n=>n.degree===1).length,6);
+ assert.equal(nodes.length,12);
+ const first=edges[0],next=edges[1];
+ const pair=W.junctions([first,next]);
+ assert.equal(pair.filter(n=>n.degree===2).length,1);
+ const reversed=W.junctions([{a:first.b,b:first.a,kind:'stone'},next]);
+ assert.deepEqual(plain(pair.map(x=>({id:x.id,degree:x.degree}))),
+  plain(reversed.map(x=>({id:x.id,degree:x.degree}))));
+ const mixed=W.junctions([first,{...next,kind:'palisade'}]);
+ assert.equal(mixed.find(n=>n.degree===2).kind,'stone',
+  'mixed stone/timber joints use a stone grounding pier');
+ const node=pair.find(n=>n.degree===2);
+ for(const zoom of [.5,1,2,4]){
+  const c=makeContext(),sh=makeContext();
+  const project=(x,y)=>({x:x,y:y*.85});
+  assert(W.drawJoin(c,node,project,zoom));
+  assert(W.drawJoinShadow(sh,node,project,zoom,{angle:160,length:1.05}));
+  assert(c.ops.some(op=>op.fn==='fill'),'join fills opaque corner geometry');
+  assert(sh.ops.some(op=>op.fn==='fill'),'join fills missing shadow pixel seam');
+ }
 });
 
 test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
