@@ -516,7 +516,7 @@ window.addEventListener('DOMContentLoaded',()=>{
      node.title='Der globale Grauton-Regler bestimmt die Deckkraft.';}
    }
    for(const id of ['ssGlobal_strength','shadowGeneralStrength',
-    'shadowGlobalStrength']){
+    'shadowGlobalStrength','mountainCastOpacity']){
     const node=$(id);if(node){node.disabled=values.mountains;
      node.title=values.mountains?
       'Von der globalen Grauton-Vorgabe übersteuert.':
