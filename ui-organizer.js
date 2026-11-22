@@ -168,7 +168,7 @@
  if($('shadowToneControls')&&$('drawer_spriteShadowLab')){
   const balanceShortcut=document.createElement('button');
   balanceShortcut.type='button';
-  balanceShortcut.textContent='Schattenangleich';
+  balanceShortcut.textContent='Schatten-Grauton';
   balanceShortcut.dataset.drawer='spriteShadowLab';
   balanceShortcut.dataset.focus='shadowToneControls';
   balanceShortcut.setAttribute('aria-controls','drawer_spriteShadowLab');
