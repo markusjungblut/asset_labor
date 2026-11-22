@@ -13,6 +13,8 @@ on:
       - 'tests/automated_browser_geography_io_roundtrip_20261120.cjs'
       - 'tests/automated_browser_geography_tree_png_20261123.cjs'
       - 'large-map-bake-tree-png.js'
+      - 'large-map-bake-joint-scenery.js'
+      - 'tests/automated_browser_geography_joint_scenery_20261123.cjs'
       - '.github/workflows/geography-io-regression.yml'
   workflow_dispatch:
 
@@ -35,8 +37,11 @@ jobs:
             /tests/test_geography_io_validation_20261120.cjs
             /tests/automated_browser_geography_io_roundtrip_20261120.cjs
             /tests/automated_browser_geography_tree_png_20261123.cjs
+            /tests/automated_browser_geography_joint_scenery_20261123.cjs
             /assets/nature/nature_catalog.json
             /assets/nature/birke1.png
+            /assets/nature/berg_01.png
+            /assets/terrain/terrain_catalog.json
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -60,6 +65,10 @@ jobs:
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
         run: node tests/automated_browser_geography_tree_png_20261123.cjs
+      - name: Firefox – real original tree+mountain joint Scenery and adjacent pixel seam
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+        run: node tests/automated_browser_geography_joint_scenery_20261123.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,0 +1,136 @@
+'use strict';
+/* Real Firefox proof: original birch AND mountain PNG in ONE joined 2.5x
+ * world tile. Overlapping strips across adjacent WorldTiles must have
+ * identical RGBA pixels. This does not claim editor 4x or shadows parity.
+ */
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
+const Geo=require('../worldgen-geography.js');
+const Plan=require('../large-map-bake-plan.js');
+const root=path.resolve(__dirname,'..');
+const names=['assets/nature/birke1.png','assets/nature/berg_01.png'];
+const nature=JSON.parse(fs.readFileSync(path.join(root,
+ 'assets/nature/nature_catalog.json'),'utf8'));
+const terrain=JSON.parse(fs.readFileSync(path.join(root,
+ 'assets/terrain/terrain_catalog.json'),'utf8'));
+for(const file of names)assert(fs.statSync(path.join(root,file)).size>20000,
+ 'Original PNG is missing: '+file);
+const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
+ 'polish.js','mountain.js','relief.js','autotile.js',
+ 'large-map-bake-ground-relief.js','large-map-bake-plan.js',
+ 'large-map-bake-joint-scenery.js']);
+const world=Geo.generateWorld('original-tree-mountain-png-proof',
+ {width:10,height:10});
+const plan=Plan.plan(world);
+(async()=>{
+ const server=http.createServer((req,res)=>{
+  const filename=decodeURIComponent((req.url||'/').split('?')[0])
+   .replace(/^\//,'');
+  if(filename==='test'){
+   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
+   res.end('<!doctype html><title>Joint Nature Scenery pixel test</title>');return;
+  }
+  if(!allowed.has(filename)){res.writeHead(404);res.end('not found');return;}
+  res.writeHead(200,{'Content-Type':filename.endsWith('.png')?
+   'image/png':'text/javascript','Cache-Control':'no-store'});
+  fs.createReadStream(path.join(root,filename)).pipe(res);
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ let browser=null;
+ try{
+  const {firefox}=require('playwright');
+  browser=await firefox.launch({headless:true});
+  const page=await browser.newPage();
+  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  const origin='http://127.0.0.1:'+server.address().port;
+  await page.goto(origin+'/test',{waitUntil:'load'});
+  for(const file of ['sprite-planner.js','nature-balance.js','polish.js',
+   'mountain.js','relief.js','autotile.js','large-map-bake-plan.js',
+   'large-map-bake-ground-relief.js','large-map-bake-joint-scenery.js'])
+   await page.addScriptTag({url:origin+'/'+file});
+  const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
+   const [tree,mount]=names;
+   const imageByPath=new Map();
+   for(const p of names){
+    const img=new Image();img.src='/'+p;await img.decode();
+    imageByPath.set(p,img);
+   }
+   const source={version:world.version,seed:world.seed,width:world.width,
+    height:world.height,originQ:world.originQ,originR:world.originR};
+   const revision=nature.revision??null;
+   const treePlan={schema:'vedras-geography-tree-trunk-plan-v1',
+    complete:false,readyForViewer:false,rasterized:false,
+    requiresTreeShadows:true,worldHexes:world.cells.length,
+    worldSource:source,natureCatalogRevision:revision,seed:12345,
+    instances:[{q:3,r:0,dx:-115,dy:70,assetPath:tree,
+     assetId:nature.entries[tree.slice(7)].id,scale:1,
+     source:'geography-original-tree-trunk-preview'}]};
+   const mountainPlan={schema:'vedras-geography-scenery-source-v1',
+    complete:false,readyForViewer:false,rasterized:false,
+    worldHexes:world.cells.length,worldSource:source,
+    natureCatalogRevision:revision,seed:12345,
+    instances:[{q:2,r:0,assetPath:mount,
+     assetId:nature.entries[mount.slice(7)].id,
+     width:nature.entries[mount.slice(7)].logicalWidth,
+     mode:'chain',chainId:'geography_0',coreRadius:0,radius:1,
+     source:'geography-scenery-preview'}]};
+   const assets=names.map(p=>({path:p,relPath:p.slice(7),category:'nature'}));
+   const renderer=window.VedrasLargeMapJointScenery.create({
+    world,plan,treePlan,mountainPlan,terrainCatalog:terrain,
+    natureCatalog:nature,assets,
+    loadImage:async a=>({img:imageByPath.get(a.path)})
+   });
+   const a=await renderer.renderTile('0,0');
+   const b=await renderer.renderTile('1,0');
+   const decode=async blob=>{
+    const bitmap=await createImageBitmap(blob);
+    const canvas=document.createElement('canvas');
+    canvas.width=bitmap.width;canvas.height=bitmap.height;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(bitmap,0,0);bitmap.close();return ctx;
+   };
+   const left=await decode(a.png),right=await decode(b.png);
+   const w=640,h=1632,L=left.getImageData(1280,0,w,h).data,
+    R=right.getImageData(0,0,w,h).data;
+   let different=0,opaque=0,transparent=0;
+   for(let i=0;i<L.length;i+=4){
+    opaque+=L[i+3]>0?1:0;
+    transparent+=L[i+3]===0?1:0;
+    if(L[i]!==R[i]||L[i+1]!==R[i+1]||
+     L[i+2]!==R[i+2]||L[i+3]!==R[i+3])different++;
+   }
+   return {stages:[a.stage,b.stage],
+    sizes:[a.png.size,b.png.size],
+    draws:[a.drawnTrees+a.drawnMountains,
+     b.drawnTrees+b.drawnMountains],
+    trees:[a.drawnTrees,b.drawnTrees],
+    mountains:[a.drawnMountains,b.drawnMountains],
+    occludedPairs:[a.occludedTreeMountainPairs,b.occludedTreeMountainPairs],
+    flattenPads:[a.mountainFlattenPads,b.mountainFlattenPads],
+    different,opaque,transparent,
+    ready:[a.readyForViewer,b.readyForViewer],
+    complete:[a.complete,b.complete],
+    projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
+  },{world,plan,nature,terrain,names});
+  assert.deepEqual(errors,[]);
+  assert.deepEqual(result.stages,[
+   'original-tree-mountain-combined-preview',
+   'original-tree-mountain-combined-preview']);
+  assert.deepEqual(result.trees,[1,1]);
+  assert.deepEqual(result.mountains,[1,1]);
+  assert.deepEqual(result.draws,[2,2]);
+  assert.deepEqual(result.ready,[false,false]);
+  assert.deepEqual(result.complete,[false,false]);
+  assert(result.sizes.every(x=>x>1000));
+  assert(result.opaque>500,'both original sprites must contribute visible pixels');
+  assert(result.transparent>500);
+  assert.equal(result.different,0,'adjacent joint original PNG sample lattices differ');
+  assert.deepEqual(result.projection,[2.5,2.125]);
+  console.log('PASS real joint Nature tree+mountain 2.5x pixel seam',JSON.stringify(result));
+ }finally{
+  try{await browser?.close();}finally{
+   server.closeAllConnections();
+   await new Promise(resolve=>server.close(resolve));
+  }
+ }
+})().catch(error=>{console.error(error);process.exitCode=1;});

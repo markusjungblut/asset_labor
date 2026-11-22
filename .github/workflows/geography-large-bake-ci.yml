@@ -42,6 +42,7 @@ jobs:
             /large-map-bake-nature-trunks.js
             /large-map-bake-tree-png.js
             /large-map-bake-canopy-audit.js
+            /large-map-bake-joint-scenery.js
             /sprite-planner.js
             /roads.js
             /nature-balance.js
@@ -85,6 +86,7 @@ jobs:
             /tests/test_large_map_bake_nature_trunks_20261122.cjs
             /tests/test_large_map_bake_tree_png_20261122.cjs
             /tests/test_large_map_bake_canopy_audit_20261123.cjs
+            /tests/test_large_map_bake_joint_scenery_20261123.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4
         with:

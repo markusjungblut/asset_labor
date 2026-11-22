@@ -8,6 +8,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
  TREEPNG=window.VedrasLargeMapTreePNG,
  CANOPY=window.VedrasLargeMapCanopyAudit,
+ JOINT=window.VedrasLargeMapJointScenery,
  NATURE=window.VedrasLargeMapNatureSource,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
@@ -693,6 +694,71 @@ $('auditCanopyProxy').addEventListener('click',async()=>{
    'Bergverdeckung, Schatten und vollständige Nature-Reihenfolge fehlen.';
  }catch(error){
   report.textContent='Kronendeckungsaudit fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('previewJointScenery').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('previewJointScenery'),report=$('jointSceneryReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!JOINT?.create||!NATURE?.create||
+    !window.VedrasLargeMapNatureTrunks?.create||
+    !window.VedrasLargeMapBakeForestFloor?.create||
+    !window.VedrasLargeMapBakeGroundRelief?.createOptions||
+    !window.VedrasRelief?.at||!MATERIAL?.imageLoader)
+   throw Error('Gemeinsamer Original-Scenery-/Relief-Renderer nicht vollständig geladen.');
+  report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
+  const {plan,scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
+  const forestSource=window.VedrasLargeMapBakeForestFloor.create({
+   world:current,catalog,groups:{byType:new Map()},
+   loadImage:async()=>{throw Error('Scenery-Probe lädt kein Ersatz-Waldbodenmaterial.');}
+  });
+  const forestCells=forestSource.forestCells;
+  const siteAudit=NATURE.create({world:current,terrainCatalog:catalog,
+   natureCatalog,assets,forestCells,mountainPlan:scenery,seed:12345});
+  const trunks=window.VedrasLargeMapNatureTrunks.create({
+   world:current,terrainCatalog:catalog,natureCatalog,assets,forestCells,
+   mountainPlan:scenery,siteAudit,seed:12345
+  });
+  if(current!==world)throw Error('Welt während der Scenery-Platzierung geändert.');
+  const renderer=JOINT.create({
+   world:current,plan,treePlan:trunks,mountainPlan:scenery,
+   terrainCatalog:catalog,natureCatalog,assets,
+   loadImage:MATERIAL.imageLoader()
+  });
+  const requested=String($('materialPreviewTileId').value||'').trim();
+  const id=requested||renderer.defaultTile();
+  if(!plan.tiles.some(t=>t.id===id))
+   throw Error('WorldTile-ID liegt nicht im autoritativen geografischen Renderplan.');
+  report.textContent='Original-Baum- und Berg-PNGs mit kontinuierlichem geografischem Relief für '+id+' werden dekodiert …';
+  const sample=await renderer.renderTile(id);
+  if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
+  if(sample.stage!=='original-tree-mountain-combined-preview'||
+    !sample.rasterized||sample.complete||sample.readyForViewer||
+    !sample.needsGroundAndSpriteShadows||!sample.needsFullEditorImageParity)
+   throw Error('Unvollständige gemeinsame Scenery ist kein fertiger Kartenatlas.');
+  const url=URL.createObjectURL(sample.png);
+  const link=document.createElement('a');
+  link.href=url;link.download='vedras-baum-berg-scenery-probe-'+
+   id.replace(',','_')+'.png';
+  document.body.appendChild(link);
+  try{link.click();}finally{
+   link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
+  }
+  report.textContent='Gemeinsame Original-Scenery-Probe '+id+': '+
+   sample.drawnTrees+' gezeichnete Bäume · '+sample.drawnMountains+
+   ' Berge · '+sample.originalPngs+' dekodierte Originalgrafiken · '+
+   sample.occludedTreeMountainPairs+' erkannte Baum-Berg-Verdeckungen ('+
+   sample.testedTreeMountainOcclusions+' getestete Paare) · '+
+   sample.mountainFlattenPads+' globale Bergfundament-Pads · '+
+   sample.width+'×'+sample.height+' px (2,5×) · '+
+   Math.ceil(sample.png.size/1024)+' KiB. KEIN fertiger Kartenatlas: '+
+   'Nature-Vollpopulation, Schatten, Findlinge, Sträucher, 4×-Renderer, '+
+   'visuelle Editor-Parität und Berg-Berg-Silhouettenprüfung fehlen.';
+ }catch(error){
+  report.textContent='Gemeinsame Original-Scenery-Probe fehlgeschlagen: '+
+   String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{
