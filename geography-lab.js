@@ -7,6 +7,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  SCENERY=window.VedrasLargeMapScenerySource,
  MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
  TREEPNG=window.VedrasLargeMapTreePNG,
+ CANOPY=window.VedrasLargeMapCanopyAudit,
  NATURE=window.VedrasLargeMapNatureSource,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
@@ -637,6 +638,61 @@ $('previewTreeScenery').addEventListener('click',async()=>{
    'Die 2,5×-PNG ist ausschließlich eine transparente Testschicht.';
  }catch(error){
   report.textContent='Original-Baum-PNG-Probe fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('auditCanopyProxy').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('auditCanopyProxy'),report=$('canopyAuditReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!CANOPY?.create||!NATURE?.create||!window.VedrasLargeMapNatureTrunks?.create||
+   !MATERIAL?.imageLoader||!window.VedrasSpritePlanner?.visualWidth)
+   throw Error('Originale Kronen-/Baumquellen oder Alpha-Bildberechnung fehlen.');
+  report.textContent='Original-Baumkronendeckung wird aus realen PNG-Bildgrößen und Editor-Proxy geprüft …';
+  const {plan,scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
+  const forestSource=window.VedrasLargeMapBakeForestFloor.create({
+   world:current,catalog,groups:{byType:new Map()},
+   loadImage:async()=>{throw Error('Kronendeckungsaudit rendert kein Waldmaterial.');}
+  });
+  const forestCells=forestSource.forestCells;
+  const siteAudit=NATURE.create({world:current,terrainCatalog:catalog,
+   natureCatalog,assets,forestCells,mountainPlan:scenery,seed:12345});
+  const treePlan=window.VedrasLargeMapNatureTrunks.create({
+   world:current,terrainCatalog:catalog,natureCatalog,
+   assets,forestCells,mountainPlan:scenery,siteAudit,seed:12345
+  });
+  if(current!==world)throw Error('Geografiewelt während des Kronenaudits verändert.');
+  const auditor=CANOPY.create({
+   plan,treePlan,siteAudit,forestCells,natureCatalog,assets,
+   loadImage:MATERIAL.imageLoader()
+  });
+  const requested=String($('materialPreviewTileId').value||'').trim();
+  const id=requested||auditor.defaultTile();
+  if(!plan.tiles.some(t=>t.id===id))
+   throw Error('WorldTile-ID liegt nicht im geografischen Renderplan.');
+  report.textContent='Originale Baum-PNGs für die lokale Deckungsprüfung '+id+' werden dekodiert …';
+  const audit=await auditor.auditTile(id);
+  if(current!==world)throw Error('Geografiewelt während des Kronenaudits verändert.');
+  if(audit.stage!=='original-editor-canopy-proxy-only'||
+   audit.rasterized||audit.complete||audit.readyForViewer||
+   audit.actualCrownPixelsMeasured||
+   !audit.needsEditorFullPopulationParity)
+   throw Error('Das Kronenaudit darf niemals als fertig gerenderter Atlas gelten.');
+  const s=audit.statistics;
+  report.textContent='Kronendeckungs-Proxy (Editorregel) für '+id+': '+
+   s.sites+' geprüfte Hexe · '+s.placedTrees+'/'+s.treeQuota+
+   ' ursprüngliche Baumslots · '+s.underQuotaSites+' Hexe unter Baumquote · '+
+   s.underCanopySites+' Hexe unter gewünschtem Kronen-Proxy · '+
+   s.uncoveredProxyGap.toFixed(3)+' aufsummierte Proxy-Lücke · '+
+   s.overObjectCapSites+' Hexe über Objektlimit · '+audit.originalPngs+
+   ' dekodierte originale Baum-PNG-Varianten. '+
+   'Dieser Kronendeckungs-Proxy ist wie im Originaleditor 0,72×Bildbreite²/Hexfläche, '+
+   'KEINE echte Pixel-Kronenfläche. KEIN fertiger Kartenatlas: '+
+   'zusätzliche Baumpässe, priorisierte Findlinge, physische Kronenüberlappungen, '+
+   'Bergverdeckung, Schatten und vollständige Nature-Reihenfolge fehlen.';
+ }catch(error){
+  report.textContent='Kronendeckungsaudit fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{
