@@ -208,6 +208,59 @@ Der schon implementierte Runner akzeptiert einen echten
 `renderer.renderTile(context)`-Callback, doch der endgültige
 Großwelt-Adapter ist **noch nicht verdrahtet**.
 
+## Phase 2.1 – Direkter Originalmaterial-Test im Geografielabor
+
+**Neu auf dem Branch (22.11.2026):**
+
+- `large-map-bake-material-preview.js` nutzt **direkt**
+  `VedrasAutotile.build()` aus `autotile.js`; das ist dieselbe
+  bildbasierte Terrainmaterial-Mischtechnik wie beim Editor und
+  im `terrain-worker.js` (nicht die farbige Geografie-Vorschau).
+- Das Geografielabor enthält jetzt die Schaltfläche
+  **„Echtes Terrainmaterial-PNG testen (unvollständig)“** und
+  optional eine WorldTile-ID. Ohne ID wird die mittlere belegte
+  Kachel aus dem 512er-Renderplan benutzt. Der Export ist eine
+  einzelne tatsächlich generierte PNG, keine bloße JSON-Planung.
+- Der Material-Renderer fordert **schreibgeschützt**
+  `GET /api/terrain-catalog` und `GET /api/assets` vom
+  lokalen Asset-Labor-Server an. Er wählt unter den dort
+  *wirklich zugeordneten* Bodenvarianten mit demselben
+  absoluten `hash(q,r,11)` wie `app.js`; nur für Dschungel
+  gilt die bereits im Editor vorhandene Waldboden-Ersatzregel.
+  Fehlende Terrainmaterialien oder kaputte Bilder werden
+  **nicht** durch Grasland/Flachfarben ersetzt.
+- Nur die benötigten Texturen der angefragten Kachel werden
+  dekodiert. `VedrasAutotile.build()` erzeugt den
+  Materialausschnitt auf 512er-Weltkachel mit 128 Einheiten
+  Quellpadding; die 2,5×-PNG ist auf die bestehende
+  0,85-Y-Projektion und das 3er-Ground-Gutter ausgerichtet.
+  Bilddimension **1295 × 1101 Pixel**.
+- Die Ergebnisdaten tragen zwingend
+  `stage:"material-only-preview"`, `complete:false` und
+  `readyForViewer:false`; die Probekachel kann **nicht**
+  in die vollständigen Bake-Receipts des Runners oder den
+  Spielkartenviewer gelangen. Dies ist ein belastbarer Test
+  des **ersten tatsächlichen Renderabschnitts ohne den Editor**,
+  nicht der fertigen Spielkarte.
+- Noch **nicht** im direkten Materialtest: Relief,
+  Küstengrafiken, Flüsse und Flussufer, Walddecke,
+  Berge/Natur/Schatten sowie 4×-Vollqualität. Insbesondere
+  eine andere Bodenvariante oder eine manuelle
+  Editorkatalog-Zuweisung kann die Bildgleichheit beeinflussen;
+  die erste Abnahme testet zunächst Materialquellen, Renderzeit,
+  Pixelkoordinaten und sichtbare Teilkachelgrenzen.
+- Tests `tests/test_large_map_material_preview_20261122.cjs`
+  prüfen Echtkatalog-Zuweisung, Seed-/Koordinatenwahl,
+  Autotile-Aufruf, projizierte Pixelgröße, Incomplete-Flag,
+  Negativfälle und Skript-/UI-Verkabelung.
+
+**Bedienung:** Asset-Labor lokal über `START_WINDOWS.bat`
+starten, `/geography-lab.html` im selben Origin öffnen,
+Welt erstellen, unten **„Echtes Terrainmaterial-PNG testen
+(unvollständig)“** wählen und das exportierte PNG prüfen.
+Die bisherige Editor-Testszene, IndexedDB und bereits
+gespeicherte Spielkarten bleiben unverändert.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
