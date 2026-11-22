@@ -45,7 +45,8 @@ window.VedrasShadows=(()=>{
   return {x:m.a*x+m.c*y+width*ox,y:m.b*x+m.d*y+width*oy};
  }
  function cast(ctx,silhouette,p,width,height,anchor,reach,kind,alpha,softness,shape={}){
-  if(!silhouette?.canvas||width<=0||height<=0||alpha<=0)return;
+  if(!silhouette?.canvas||width<=0||height<=0||
+   (alpha<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')===null))return;
   const matrix=projection(kind,reach,shape),ax=clamp(Number(anchor?.x??.5),0,1),
    ay=clamp(Number(anchor?.y??.96),0,1);
   const offsetX=kind==='mountain'?(shape.originX??defaults.originX):shape.originX??0;
@@ -62,7 +63,8 @@ window.VedrasShadows=(()=>{
   ctx.restore();
  }
  function contact(ctx,p,width,kind='nature',strength=1,shape={}){
-  if(!(width>0)||strength<=0)return;
+  if(!(width>0)||(strength<=0&&
+   window.VedrasShadowTone?.targetAlpha?.(kind==='mountain'?'mountain':'sprite')===null))return;
   const mountain=kind==='mountain',k=clamp(strength,0,2);
   const s=mountain?settings(shape):shape;
   const contactScale=number(s.contact,1,.35,2.5);
