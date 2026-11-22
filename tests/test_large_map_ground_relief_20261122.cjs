@@ -18,6 +18,7 @@ const types=G.TERRAIN_IDS.map(id=>({id,materialClass:
  /^(?:ocean|coastal_water|icy_ocean|stormy_ocean)$/.test(id)?'water':'ground'}));
 const pos=c=>({x:256*(c.q+c.r/2),y:1.5*(256/Math.sqrt(3))*c.r});
 const autotile={
+ draw:()=>{},
  DIRS:[[1,-1],[1,0],[0,1],[-1,1],[-1,0],[0,-1]],
  hexAt:(x,y)=>{
   const rf=y/(1.5*(256/Math.sqrt(3))),qf=x/256-rf/2;
