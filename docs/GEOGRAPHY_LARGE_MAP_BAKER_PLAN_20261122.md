@@ -592,6 +592,29 @@ Pixelgleichheit zur 397-Hex-Editor-Tour,
 vollständige echte 4×-Scenery sowie das
 statische Viewer-Sektorformat.
 
+## Phase 2.8a – Weltweiter Original-Nature-Baumstandort-Audit
+
+Der nächste kleine Schritt nach Phase 2.7 prüft **Originalbaumquellen**
+und die **geografische Habitateignung** vor jeder tatsächlichen Platzierung.
+`large-map-bake-nature-source.js` verwendet die unveränderten Originalregeln
+`VedrasNatureCatalog.canPlace/effectiveTypes`,
+`VedrasForest.treeTarget/maxObjects/preferredFamily`,
+`VedrasNatureBalance.reserveClearings/isCanopy`,
+`VedrasPolish.patch` und `VedrasMountains.occupied`.
+Die autoritativen geografischen Waldklassen und originalen Nature-PNG-Dateien
+bleiben Voraussetzung. Einzige neue Grenze: **maximal 10.000 Hexe** für diese
+vorläufige Quotenprüfung, da die editorseitige globale Reservierung noch nicht
+für größere Welten optimiert wurde.
+
+Im Geografielabor: **„Original-Baumstandorte prüfen (unvollständig)”**.
+Die Ausgabe zählt geeignete Baumquellen, theoretische Zielquoten,
+fehlende Quellen, reservierte Bauflächen und Berge.
+**Noch keine tatsächlich platzierten Bäume:** lokale `localOffset`-Versuche,
+Stammabstände, Fluss-/Straßen-Sperren, die übrige Nature-Verteilung,
+Originalschatten, Silhouetten- und Editor-Pixelvergleich folgen.
+`rasterized:false`, `complete:false`, `readyForViewer:false`;
+kein Schreibzugriff auf bestehende Atlanten oder Editordaten.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen

@@ -6,6 +6,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  MATERIAL=window.VedrasLargeMapMaterialPreview,
  SCENERY=window.VedrasLargeMapScenerySource,
  MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
+ NATURE=window.VedrasLargeMapNatureSource,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
 let handoffRequest=null,handoffSequence=0;
@@ -439,7 +440,7 @@ async function mountainPreflight(worldAtStart){
  });
  if(scenery.readyForViewer||scenery.rasterized||scenery.complete)
   throw Error('Unfertige Scenery darf nicht als fertiger Atlas gelten.');
- return {plan,scenery,assets};
+ return {plan,scenery,assets,catalog,natureCatalog};
 }
 $('auditMountainScenery').addEventListener('click',async()=>{
  if(!currentWorld())return;
@@ -498,6 +499,41 @@ $('previewMountainScenery').addEventListener('click',async()=>{
    ' Bergplatzierungen beruhen auf noch ungeprüften candidate-Grafiken.';
  }catch(error){
   report.textContent='Original-Bergprobe fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('auditNatureTreeSites').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('auditNatureTreeSites'),report=$('natureTreeReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!NATURE?.create||!window.VedrasLargeMapBakeForestFloor?.create||
+    !window.VedrasNatureBalance||!window.VedrasExistingAssets||!window.VedrasPolish)
+   throw Error('Original-Nature-/Waldregeln fehlen.');
+  report.textContent='Habitate, globale Waldklassen und Bergkerne werden geprüft …';
+  const {scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
+  const forestSource=window.VedrasLargeMapBakeForestFloor.create({
+   world:current,catalog,groups:{byType:new Map()},
+   loadImage:async()=>{throw Error('Nature-Standortprüfung rendert keine PNGs.');}
+  });
+  const audit=NATURE.create({world:current,terrainCatalog:catalog,
+   natureCatalog,assets,forestCells:forestSource.forestCells,
+   mountainPlan:scenery,seed:12345});
+  if(current!==world)throw Error('Geografiewelt hat sich während der Nature-Prüfung geändert.');
+  if(audit.complete||audit.readyForViewer||audit.rasterized||
+    !audit.requiresTrunkPlacement)
+   throw Error('Baumstandorte sind fälschlich als fertiger Atlas markiert.');
+  report.textContent='Original-Baumquellen: '+audit.physicalTreeVariants+
+   ' physisch gelistete Baumvarianten ('+(audit.artStatuses.candidate||0)+
+   ' candidate) · '+audit.candidateHexes+' Habitat-Hexe · '+
+   audit.demandHexes+' Zielquoten-Hexe ('+audit.treeQuota+
+   ' theoretische Baumslots) · '+audit.unservedHexes+
+   ' Hexe ohne passende Quelle · '+audit.mountainCoreHexes+
+   ' geschützte Bergkernhexe · '+audit.reservedBuildHexes+
+   ' Bau-/Freiflächen. KEINE fertigen Baumpositionen, Sträucher, Schatten oder PNGs; '+
+   'Stammabstand, Fluss-/Straßensperren und 4×-Pixelparität fehlen.';
+ }catch(error){
+  report.textContent='Nature-Standortprüfung fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{

@@ -37,6 +37,10 @@ jobs:
             /large-map-bake-forest-floor.js
             /large-map-bake-scenery-source.js
             /large-map-bake-mountain-png.js
+            /large-map-bake-nature-source.js
+            /nature-balance.js
+            /existing-asset-rules.js
+            /polish.js
             /mountain.js
             /nature_catalog.js
             /assets/nature/nature_catalog.json
@@ -71,6 +75,7 @@ jobs:
             /tests/test_large_map_river_raster_window_20261122.cjs
             /tests/test_large_map_bake_forest_floor_20261122.cjs
             /tests/test_large_map_scenery_source_20261122.cjs
+            /tests/test_large_map_bake_nature_source_20261122.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4
         with:
