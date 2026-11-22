@@ -1823,12 +1823,22 @@ window.VedrasFrozenMap=(()=>{
     const key=makeKey(scene,level,id);
     if(!found.has(key)){missingIds.push(id);continue;}
     try{
+     // A scenery-only shadow refresh references an immutable original
+     // Ground tile. linkedStore.get() resolves and validates that source,
+     // returning a complete Ground+Scenery view without duplicating 4x PNG.
+     // These 98 inherited image tiles must not be mislabeled as corrupt.
      const record=await storage.get(key);
+     const linked=!!record?.groundRefKey;
+     const linkedValid=!linked||(
+      record.derivedFormat==='scenery-refresh-v1'&&level==='near'&&
+      record.groundRefKey!==key&&
+      /^v1-[0-9a-f]{8}\\|near\\|/.test(record.groundRefKey)&&
+      record.groundRefKey.endsWith('|'+id));
      if(!record||record.sceneKey!==scene||record.level!==level||
         record.tile?.id!==id||record.tile.x!==tile.x||
         record.tile.y!==tile.y||record.tile.size!==tile.size||
         typeof record.revision!=='string'||!Array.isArray(record.layers)||
-        record.groundRefKey){
+        !linkedValid){
       invalidTiles.push({id,reason:'record-geometry-or-revision'});continue;
      }
      const ground=record.layers.find(x=>['ground','terrain'].includes(x.layer)),
