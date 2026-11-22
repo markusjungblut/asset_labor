@@ -2470,7 +2470,7 @@ function drawMountainShadows(objects){
  const mts=objects.filter(o=>o.type==='mountain');
  const strength=sceneShadowStrength();
  if(!mts.length||(strength<=0&&
-  window.VedrasShadowTone?.targetAlpha?.('mountain')===null)){
+  window.VedrasShadowTone?.targetAlpha?.('mountain')==null)){
   window.__vedrasMountainShadowStats={count:mts.length,maxAlpha:0,positiveCount:0,cacheHits:0,cacheMisses:0};
   return;
  }
@@ -2736,7 +2736,7 @@ function fallenLogShadowGeometry(obj,p){
 }
 function drawFallenLogShadow(obj,p){
  const strength=sceneShadowStrength();
- if(strength<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')===null)return;
+ if(strength<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')==null)return;
  const geometry=fallenLogShadowGeometry(obj,p);
  if(!(geometry.width>0))return;
  const silhouette=shadowSilhouette(obj.asset.img);
