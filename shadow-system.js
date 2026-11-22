@@ -46,7 +46,7 @@ window.VedrasShadows=(()=>{
  }
  function cast(ctx,silhouette,p,width,height,anchor,reach,kind,alpha,softness,shape={}){
   if(!silhouette?.canvas||width<=0||height<=0||
-   (alpha<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')===null))return;
+   (alpha<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')==null))return;
   const matrix=projection(kind,reach,shape),ax=clamp(Number(anchor?.x??.5),0,1),
    ay=clamp(Number(anchor?.y??.96),0,1);
   const offsetX=kind==='mountain'?(shape.originX??defaults.originX):shape.originX??0;
@@ -75,7 +75,7 @@ window.VedrasShadows=(()=>{
   ctx.scale(1,mountain?.37:.31);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,radius);
   const color=window.VedrasShadowTone?.colorRgb(mountain?'mountain':'sprite')||COLOR;
-  const tonal=window.VedrasShadowTone?.targetAlpha?.(mountain?'mountain':'sprite');
+  const tonal=window.VedrasShadowTone?.targetAlpha?.(mountain?'mountain':'sprite')??null;
   const rgba=a=>'rgba('+color.r+','+color.g+','+color.b+','+
    (tonal===null?Math.min(.88,a*k):Math.min(1,tonal*a))+')';
   gradient.addColorStop(0,rgba(tonal===null?(mountain?.45:.42):1));
@@ -129,7 +129,7 @@ window.VedrasShadows=(()=>{
  // enlarging the footprint cannot create a lobe on the mountain's right.
  function mountainAlphaAt(x,y,shape,width,global=1){
   const {s,origin,dir,normal,length,radius}=shape;
-  const target=window.VedrasShadowTone?.targetAlpha?.('mountain');
+  const target=window.VedrasShadowTone?.targetAlpha?.('mountain')??null;
   if(!Number.isFinite(x+y)||width<=0||(global<=0&&target===null)||s.opacity<=0)return 0;
   if(x>origin.x+width*.045)return 0;
   const dx=x-origin.x,dy=y-origin.y,t=dx*dir.x+dy*dir.y,
@@ -160,7 +160,7 @@ window.VedrasShadows=(()=>{
  }
  function paintMountain(ctx,origin,width,config,global=1){
   if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||
-   (global<=0&&window.VedrasShadowTone?.targetAlpha?.('mountain')===null))return null;
+   (global<=0&&window.VedrasShadowTone?.targetAlpha?.('mountain')==null))return null;
   const shape=mountainShape(origin,width,config);
   if(shape.s.opacity<=0)return null;
   const r=Math.max(...shape.radius,width*shape.s.contactWidth);
