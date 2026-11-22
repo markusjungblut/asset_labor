@@ -92,6 +92,8 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <button id="materialPreviewBake" type="button">Echtes Terrainmaterial-PNG testen (unvollständig)</button>
 </div>
 <div id="materialPreviewReport" class="distribution-status" role="status">Materialtest benötigt den lokalen Asset-Labor-Server und den aktuellen Terrainkatalog. Keine vollständigen Spielkarten-PNGs.</div>
+<div class="actions"><button id="auditMaterialCatalog" type="button">Originalmaterialien für gesamte Welt prüfen</button></div>
+<div id="materialCatalogReport" class="distribution-status" role="status">Material-Vollständigkeit noch nicht geprüft.</div>
 </section>
 <div class="actions"><button id="downloadWorld" type="button">Generierte Welt als JSON exportieren</button><button id="importWorld" type="button">Gespeicherte Welt-JSON importieren</button><input id="worldFile" type="file" accept=".json,application/json" hidden><button id="sendToLab" type="button">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
