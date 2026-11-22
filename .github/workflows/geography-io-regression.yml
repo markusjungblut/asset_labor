@@ -11,6 +11,8 @@ on:
       - 'index.html'
       - 'tests/test_geography_io_validation_20261120.cjs'
       - 'tests/automated_browser_geography_io_roundtrip_20261120.cjs'
+      - 'tests/automated_browser_geography_tree_png_20261123.cjs'
+      - 'large-map-bake-tree-png.js'
       - '.github/workflows/geography-io-regression.yml'
   workflow_dispatch:
 
@@ -32,6 +34,9 @@ jobs:
             /*.html
             /tests/test_geography_io_validation_20261120.cjs
             /tests/automated_browser_geography_io_roundtrip_20261120.cjs
+            /tests/automated_browser_geography_tree_png_20261123.cjs
+            /assets/nature/nature_catalog.json
+            /assets/nature/birke1.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -51,6 +56,10 @@ jobs:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_geography_io_roundtrip_20261120.cjs
+      - name: Firefox – actual original birch PNG and adjacent WorldTile pixel seam
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+        run: node tests/automated_browser_geography_tree_png_20261123.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

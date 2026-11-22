@@ -6,6 +6,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  MATERIAL=window.VedrasLargeMapMaterialPreview,
  SCENERY=window.VedrasLargeMapScenerySource,
  MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
+ TREEPNG=window.VedrasLargeMapTreePNG,
  NATURE=window.VedrasLargeMapNatureSource,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
@@ -578,6 +579,64 @@ $('planNatureTrunks').addEventListener('click',async()=>{
    'Sträucher, Findlinge, Schatten und Editor-Gesamtparität fehlen.';
  }catch(error){
   report.textContent='Baumstammplanung fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('previewTreeScenery').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('previewTreeScenery'),report=$('treeSceneryReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!TREEPNG?.create||!window.VedrasLargeMapNatureTrunks?.create||
+     !NATURE?.create||!MATERIAL?.imageLoader||
+     !window.VedrasSpritePlanner?.visualWidth)
+   throw Error('Original-Nature-PNG- oder Baumplatzierungsregeln fehlen.');
+  report.textContent='Globale Originalbaumstandorte und Baumkronen für die Scenery-Probe werden vorbereitet …';
+  const {plan,scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
+  const forestSource=window.VedrasLargeMapBakeForestFloor.create({
+   world:current,catalog,groups:{byType:new Map()},
+   loadImage:async()=>{throw Error('Baum-Scenery lädt kein Ersatz-Waldboden-PNG.');}
+  });
+  const forestCells=forestSource.forestCells;
+  const siteAudit=NATURE.create({world:current,terrainCatalog:catalog,
+   natureCatalog,assets,forestCells,mountainPlan:scenery,seed:12345});
+  const trunks=window.VedrasLargeMapNatureTrunks.create({
+   world:current,terrainCatalog:catalog,natureCatalog,assets,forestCells,
+   mountainPlan:scenery,siteAudit,seed:12345
+  });
+  if(current!==world)throw Error('Geografiewelt während der Baumplanung verändert.');
+  const renderer=TREEPNG.create({plan,treePlan:trunks,
+   natureCatalog,assets,loadImage:MATERIAL.imageLoader()});
+  const requested=String($('materialPreviewTileId').value||'').trim();
+  const id=requested||renderer.defaultTile();
+  if(!plan.tiles.some(t=>t.id===id))
+   throw Error('WorldTile-ID liegt nicht im geografischen Renderplan.');
+  report.textContent='Originale Baum-PNGs für Kachel '+id+
+   ' werden separat und transparent gerendert …';
+  const sample=await renderer.renderTile(id);
+  if(current!==world)throw Error('Geografiewelt während des Renderns verändert.');
+  if(sample.stage!=='original-tree-scenery-png-preview'||
+    !sample.rasterized||sample.complete||sample.readyForViewer||
+    !sample.requiresEditorVisualParity||!sample.requiresShadows)
+   throw Error('Unvollständige Baum-Scenery darf kein fertiger Atlas sein.');
+  const blobURL=URL.createObjectURL(sample.png),link=document.createElement('a');
+  link.href=blobURL;link.download='vedras-originalbaum-scenery-probe-'+
+   id.replace(',','_')+'.png';
+  document.body.appendChild(link);
+  try{link.click();}finally{
+   link.remove();setTimeout(()=>URL.revokeObjectURL(blobURL),15000);
+  }
+  report.textContent='Original-Baum-PNG-Probe '+id+': '+sample.drawn+
+   ' gezeichnete Bäume · '+sample.originalPngs+
+   ' dekodierte Originalvarianten · '+sample.width+'×'+sample.height+
+   ' Pixel (2,5× mit globalem Pixelgitter) · '+
+   Math.ceil(sample.png.size/1024)+' KiB · '+
+   trunks.stats.placedTrees+' globale Baumstammpositionen. '+
+   'KEIN fertiger Kartenatlas: Kronendeckung/Editor-Vollparität, '+
+   'Sträucher, Findlinge, Bergkombination, Nature-/Bergschatten und 4×-Scenery fehlen. '+
+   'Die 2,5×-PNG ist ausschließlich eine transparente Testschicht.';
+ }catch(error){
+  report.textContent='Original-Baum-PNG-Probe fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('materialPreviewBake').addEventListener('click',async()=>{
