@@ -92,12 +92,20 @@ const plan=Plan.plan(world);
    const left=await decode(a.png),right=await decode(b.png);
    const w=640,h=1632,L=left.getImageData(1280,0,w,h).data,
     R=right.getImageData(0,0,w,h).data;
-   let different=0,opaque=0,transparent=0;
+   let different=0,opaque=0,transparent=0,maxDelta=0;
+   const mismatchSamples=[];
    for(let i=0;i<L.length;i+=4){
     opaque+=L[i+3]>0?1:0;
     transparent+=L[i+3]===0?1:0;
     if(L[i]!==R[i]||L[i+1]!==R[i+1]||
-     L[i+2]!==R[i+2]||L[i+3]!==R[i+3])different++;
+     L[i+2]!==R[i+2]||L[i+3]!==R[i+3]){
+     different++;
+     maxDelta=Math.max(maxDelta,...[0,1,2,3].map(ch=>Math.abs(L[i+ch]-R[i+ch])));
+     if(mismatchSamples.length<8)mismatchSamples.push({
+      x:(i/4)%w,y:Math.floor((i/4)/w),
+      left:[...L.slice(i,i+4)],right:[...R.slice(i,i+4)]
+     });
+    }
    }
    return {stages:[a.stage,b.stage],
     sizes:[a.png.size,b.png.size],
@@ -107,11 +115,12 @@ const plan=Plan.plan(world);
     mountains:[a.drawnMountains,b.drawnMountains],
     occludedPairs:[a.occludedTreeMountainPairs,b.occludedTreeMountainPairs],
     flattenPads:[a.mountainFlattenPads,b.mountainFlattenPads],
-    different,opaque,transparent,
+    different,opaque,transparent,maxDelta,mismatchSamples,
     ready:[a.readyForViewer,b.readyForViewer],
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
   },{world,plan,nature,terrain,names});
+  console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
    'original-tree-mountain-combined-preview',
