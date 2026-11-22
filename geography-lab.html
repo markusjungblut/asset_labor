@@ -79,9 +79,18 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <div class="table-scroll"><table><thead><tr><th>Terrain</th><th class="numeric">Aktuell</th><th class="numeric">Ø pro Welt</th><th class="numeric">Ø Anteil</th><th class="numeric">Welten mit Vorkommen</th></tr></thead><tbody id="terrainCounts"></tbody></table></div>
 </section>
 <div id="selected">Hexfeld anklicken, um die geografischen Werte und Besonderheiten zu prüfen.</div>
+<section class="mix-panel" aria-labelledby="largeBakeTitle">
+<h2 id="largeBakeTitle">Großkarten-Export · Vorbereitung</h2>
+<p class="minor">Phase 1: Berechnet aus der gesamten geografischen Karte die 512-Welteinheiten-Renderkacheln und Renderpakete. Der Plan ist reproduzierbar und unabhängig von der kleinen Asset-Labor-Testszene. Er enthält noch keine PNG-Grafiken und ist deshalb ausdrücklich keine fertige Spielkarte.</p>
+<div class="actions">
+<label>Bildkacheln je Renderpaket<input id="largeBakeBatchSize" type="number" min="1" max="128" value="16"></label>
+<button id="planLargeMap" type="button">Renderplan erstellen und als JSON exportieren</button>
+</div>
+<div id="largeBakeReport" class="distribution-status" role="status">Noch kein Renderplan erstellt. Vorhandene Spielkarten werden nicht verändert.</div>
+</section>
 <div class="actions"><button id="downloadWorld" type="button">Generierte Welt als JSON exportieren</button><button id="importWorld" type="button">Gespeicherte Welt-JSON importieren</button><input id="worldFile" type="file" accept=".json,application/json" hidden><button id="sendToLab" type="button">Kartenausschnitt an geöffnetes Asset-Labor senden</button></div>
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-io.js?v=20261120-io-v1"></script><script src="geography-lab.js?v=20261120-io-v1"></script>
+<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-io.js?v=20261120-io-v1"></script><script src="large-map-bake-plan.js?v=20261122-p1"></script><script src="geography-lab.js?v=20261122-large-bake-plan"></script>
 </body></html>
