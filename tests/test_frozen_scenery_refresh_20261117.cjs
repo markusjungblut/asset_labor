@@ -245,3 +245,55 @@ test('a 98/120 partial Ground archive yields a safe 98-tile shadow preview',asyn
  assert.equal((await storage.keys(target+'|near|')).length,2);
  assert.equal((await storage.keys(source+'|near|')).length,2);
 });
+
+test('118/120 mixed archive: 98 linked shadow Ground tiles + 20 native tiles are valid for local preview',async()=>{
+ const api=runtime(),raw=api.memoryStore(),storage=api.linkedStore(raw);
+ const source='v1-2bbd1a6d',target='v1-dcaeb82e',
+  tiles=Array.from({length:120},(_,i)=>({
+   id:(i-60)+',0',x:(i-60)*512,y:0,size:512
+  }));
+ const png=(w,h)=>fourXGround(w,h);
+ for(const tile of tiles.slice(0,98)){
+  const sourceKey=api.makeKey(source,'near',tile.id);
+  await raw.put({key:sourceKey,sceneKey:source,level:'near',tile,
+   revision:'original-source-r1',
+   layers:[{layer:'ground',pad:3,png:png(2072,1761)},
+    {layer:'scenery',pad:128,png:png(1536,1306)}]});
+  await raw.put({key:api.makeKey(target,'near',tile.id),
+   sceneKey:target,level:'near',tile,revision:'original-source-r1',
+   derivedFormat:'scenery-refresh-v1',
+   groundRefKey:sourceKey,sceneryNative2x:true,
+   layers:[{layer:'scenery',pad:128,png:png(1536,1306)}]});
+ }
+ for(const tile of tiles.slice(98,118)){
+  await raw.put({key:api.makeKey(target,'near',tile.id),
+   sceneKey:target,level:'near',tile,revision:'native-r1',
+   layers:[{layer:'ground',pad:3,png:png(2072,1761)},
+    {layer:'scenery',pad:128,png:png(1536,1306)}]});
+ }
+ const reader=api.create({canvas:{getContext:()=>({})},storage});
+ const audited=await reader.verifyArchive(target,'near',tiles,{require4x:true});
+ assert.equal(audited.expected,120);
+ assert.equal(audited.stored,118);
+ assert.equal(audited.missingIds.length,2);
+ assert.deepEqual(audited.invalidTiles,[],
+  'linked original Ground is verified, not mislabeled as corrupt');
+ assert.equal(audited.complete,false,
+  'do not publish the map while any outer tile is missing');
+ const archivedOriginal=await raw.get(api.makeKey(source,'near',tiles[0].id));
+ assert.equal(archivedOriginal.layers.length,2,'original PNGs untouched');
+ await raw.clearPrefix(source+'|near|');
+ const broken=await reader.verifyArchive(target,'near',tiles,{require4x:true});
+ assert.equal(broken.invalidTiles.length,98,
+  'broken linked Ground still fails closed');
+});
+test('local test viewer can play a sound but incomplete atlas; publication gate stays strict',()=>{
+ const app=read('app.js'),viewer=read('frozen-map-game.js');
+ assert(app.includes('quality.invalidTiles.length||quality.extraIds.length'));
+ assert(app.includes('const quality=await frozenMap.verifyArchive('));
+ assert(app.includes("'&lod='+encodeURIComponent(lod)+'&previewIncomplete=1'"));
+ assert(app.includes("'&lod=near&previewIncomplete=1'"));
+ assert(app.includes('const published=!run.cancel&&audit.complete&&seamAudit.complete'));
+ assert(viewer.includes("params.get('previewIncomplete')==='1'"));
+ assert(viewer.includes("if(manifest.generationStatus==='building'&&!previewIncomplete)"));
+});
