@@ -361,7 +361,7 @@ test('397-hex 120-tile archive retains eight genuine transparent halo-only owner
 });
 test('halo-only rim keeps transparent 4x Ground but can bake non-empty Scenery',async()=>{
  const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
-  from=app.indexOf('function frozenEmptyNative4xTile(tile)'),
+  from=app.indexOf('async function frozenEmptyNative4xTile(tile)'),
   to=app.indexOf("$('frozenCaptureAll').addEventListener",from);
  assert(from>0&&to>from);
  const canvases=[],document={createElement(name){
