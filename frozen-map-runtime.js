@@ -1700,7 +1700,16 @@ window.VedrasFrozenMap=(()=>{
      missingTileIds.filter(x=>typeof x==='string').slice(0,500):[],
     sceneryBaseScene:typeof sceneryBaseScene==='string'?sceneryBaseScene:null,
     groundSeamPolicy:groundSeamPolicy==='exclusive'?'exclusive':null,
-    shadowTone:shadowTone?{lift:Number(shadowTone.lift),balance:Number(shadowTone.balance)}:null,
+    // The editable scene fingerprint already includes all tone settings.
+    // Preserve the NEW absolute gray/mountain switch in the immutable
+    // manifest too; otherwise shadow-only 4x revisions lose their identity.
+    shadowTone:shadowTone?{
+     lift:Number(shadowTone.lift),
+     balance:Number(shadowTone.balance),
+     gray:Number.isFinite(Number(shadowTone.gray))?
+      Math.max(0,Math.min(100,Number(shadowTone.gray))):0,
+     mountains:shadowTone.mountains!==false
+    }:null,
     clouds:cloudData?{seed:String(cloudData.seed||'vedras-local-preview'),
      assets:(Array.isArray(cloudData.assets)?cloudData.assets:[]).slice(0,4).map(a=>({path:String(a.path||'')}))}:null,
     savedAt:new Date().toISOString()};
