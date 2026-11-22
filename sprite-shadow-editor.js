@@ -507,8 +507,21 @@ window.addEventListener('DOMContentLoaded',()=>{
    if(level)level.value=String(v);
    if($('shadowGrayLevelValue'))
     $('shadowGrayLevelValue').textContent=v+' / 100 · '+
-     (v===100?'schwarz':v===0?'schwach':'einheitlich');
+     Math.round(12+v*.88)+' % Schwarzdeckung';
    if(mountains)mountains.checked=values.mountains;
+   // The gray override is AUTHORITATIVE. Do not leave old opacity
+   // sliders apparently functional when they are intentionally bypassed.
+   for(const id of ['ssGlobal_opacity','ssSprite_opacity']){
+    const node=$(id);if(node){node.disabled=true;
+     node.title='Der globale Grauton-Regler bestimmt die Deckkraft.';}
+   }
+   for(const id of ['ssGlobal_strength','shadowGeneralStrength',
+    'shadowGlobalStrength']){
+    const node=$(id);if(node){node.disabled=values.mountains;
+     node.title=values.mountains?
+      'Von der globalen Grauton-Vorgabe übersteuert.':
+      'Nur für Bergschatten ohne Grauton-Override.';}
+   }
   }
   function updateTone(changes){
    Tone.set({...Tone.get(),...changes});
