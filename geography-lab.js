@@ -101,6 +101,7 @@ function build(){
   // Never let a stale earlier atlas be downloaded under new, invalid input.
   world=null;distribution=null;$('downloadWorld').disabled=true;
   $('sendToLab').disabled=true;$('exportDistribution').disabled=true;
+  $('largeBakeReport').textContent='Kein Renderplan: Weltberechnung fehlgeschlagen.';
   $('message').textContent="Weltberechnung fehlgeschlagen: "+error.message;
   return false;
  }
