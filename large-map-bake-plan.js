@@ -86,7 +86,9 @@ function plan(world){
   schema:SCHEMA,stage:'plan-only',rasterized:false,readyForViewer:false,
   source:{version:world.version,seed:world.seed,width:world.width,
    height:world.height,originQ:world.originQ,originR:world.originR,
-   cells:world.cells.length,fingerprint:sourceFingerprint},
+   // Enables later offline reconstruction, then fingerprint comparison.
+   config:{...world.config},cells:world.cells.length,
+   fingerprint:sourceFingerprint},
   target:{format:'vedras-static-game-map',lod:'near',
    requiredLayers:['ground','scenery'],rasterFormat:'png'},
   grid:{projection:PROJECTION,tileSize:TILE_SIZE,
@@ -97,7 +99,9 @@ function plan(world){
 function validatePlan(p){
  if(!plain(p)||p.schema!==SCHEMA||p.stage!=='plan-only'||
     p.rasterized!==false||p.readyForViewer!==false||
-    !plain(p.source)||!plain(p.grid)||p.grid.tileSize!==TILE_SIZE||
+    !plain(p.source)||!plain(p.source.config)||
+    typeof p.source.fingerprint!=='string'||!plain(p.grid)||
+    p.grid.tileSize!==TILE_SIZE||
     p.grid.projection!==PROJECTION||p.grid.sourceHalo!==SOURCE_HALO||
     !Array.isArray(p.tiles)||!integer(p.tileCount)||
     p.tileCount!==p.tiles.length||p.tileCount<1||
