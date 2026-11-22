@@ -176,6 +176,37 @@ test('wall casting uses default sprite sun angle (left) and can follow edits',()
 });
 
 
+test('painted palisade v4 has six real raster edges and independent painted posts',()=>{
+ const raster=W.palisadeRasterMeta;
+ assert.equal(raster.length,6);
+ const expected=[[128,139,0,72.369],[58,210,29,68.5],
+  [128,139,128,71.816],[128,139,128,134.631],
+  [58,210,29,194.131],[128,139,0,135.184]];
+ assert.deepEqual(plain(raster),expected);
+ for(let dir=0;dir<6;dir++){
+  const filename=path.join(root,'assets','walls','palisade','edge_dir'+dir+'.webp');
+  const bytes=fs.readFileSync(filename);
+  assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+  assert.equal(bytes.subarray(8,12).toString(),'WEBP');
+  assert(bytes.length>8000,'hand-painted source cannot be a CSS-vector proxy');
+  const [w,h,ax,ay]=raster[dir];
+  assert(w>20&&h>110&&ax>=0&&ax<=w&&ay>0&&ay<=h,
+   'world-unit image bounds and canonical shared-edge anchor: '+dir);
+ }
+ for(const name of ['corner_post','end_post']){
+  const bytes=fs.readFileSync(path.join(root,'assets','walls','palisade',name+'.webp'));
+  assert.equal(bytes.subarray(8,12).toString(),'WEBP');
+  assert(bytes.length>8000,'junction artwork must be a real painting');
+ }
+ const js=source('walls.js'),index=source('index.html');
+ assert(js.includes("kind==='palisade'?'.webp':'.svg'"));
+ assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp'"));
+ assert(js.includes("const end=node.degree===1"));
+ assert(index.includes('walls.js?v=20261123-painted-palisade-v4'),
+  'browser needs to invalidate cached proxy art');
+ const app=source('app.js');
+ assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
+});
 test('twelve authored SVG variants exist and preserve canonical foot anchors',()=>{
  const meta=W.wallArtMeta;
  for(const kind of ['palisade','stone'])for(let dir=0;dir<6;dir++){
