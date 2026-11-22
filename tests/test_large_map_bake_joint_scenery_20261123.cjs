@@ -105,8 +105,8 @@ test('original mountains and trees are drawn in ONE 2.5x transparent world tile'
  // The editor renders an occluded tree before its mountain, not deleted.
  assert.equal(rendered[0][0].name,treePath);
  assert.equal(rendered[1][0].name,mountPath);
- assert.equal(x.perspectives[0][0],2.5);
- assert.equal(x.perspectives[0][3],2.125);
+ assert.deepEqual(x.perspectives[0],[1,0,0,1,0,0]);
+ assert.equal(x.perspectives.filter(t=>t[0]===2.5&&t[3]===2.125).length,2);
  assert(x.heights.some(o=>o.pads.length===1));
 });
 test('adjacent tiles use EXACT same world-space 2.5x sample lattice',async()=>{
@@ -122,8 +122,11 @@ test('adjacent tiles use EXACT same world-space 2.5x sample lattice',async()=>{
  assert.equal(right.drawnMountains,1);
  assert.equal(left.occludedTreeMountainPairs,right.occludedTreeMountainPairs);
  const tx=x.perspectives;
- assert.equal(tx[1][4]-tx[0][4],-1280);
- assert.equal(tx[1][5]-tx[0][5],0);
+ assert.equal(tx.length,6);
+ assert.deepEqual(tx[0],[1,0,0,1,0,0]);
+ assert.deepEqual(tx[3],[1,0,0,1,0,0]);
+ assert.deepEqual(tx.slice(1,3),tx.slice(4,6),
+  'Sprite source pixels must keep an identical GLOBAL pixel origin');
 });
 test('world mismatch, completed source and invalid original asset fail closed',()=>{
  assert.throws(()=>mocked({world:{...world,seed:'different'}}),
