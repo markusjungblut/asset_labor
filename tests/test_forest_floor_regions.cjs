@@ -38,11 +38,12 @@ const document={createElement(type){
   ops,filter:'none',globalCompositeOperation:'source-over',fillStyle:'',
   setTransform(...args){ops.push(['matrix',...args]);},
   scale(...args){ops.push(['scale',...args]);},
+  save(){ops.push(['save']);},restore(){ops.push(['restore']);},
   beginPath(){ops.push(['begin']);},
   moveTo(...args){ops.push(['move',...args]);},
   lineTo(...args){ops.push(['line',...args]);},
   closePath(){ops.push(['close']);},
-  fill(){ops.push(['fill',this.fillStyle]);},
+  fill(){ops.push(['fill',this.fillStyle,this.globalCompositeOperation]);},
   createPattern(img,repeat){ops.push(['pattern',repeat]);return {img,repeat};},
   fillRect(...args){ops.push(['fillRect',...args]);},
   drawImage(...args){ops.push(['drawImage',this.filter,this.globalCompositeOperation]);}
@@ -59,13 +60,16 @@ assert.equal(raster.cells,3);
 assert.equal(raster.regions,2);
 assert.equal(raster.exteriorEdges,16,'inner forest-to-forest border is excluded');
 assert.equal(raster.textureOrigin,'world-0,0');
-assert.equal(raster.mask,'organic-region-union-v3');
+assert.equal(raster.mask,'organic-region-union-soft-biome-v4');
 assert.equal(canvases.length,3,'one shared union mask, one filtered result, one world texture');
 const maskOps=canvases[0].ops;
 assert.equal(maskOps.filter(o=>o[0]==='fill').length,2,
  'mask is filled ONCE PER REGION, never once per hex');
 assert.equal(maskOps.filter(o=>o[0]==='move').length,3,'union path contains each hex');
 assert.equal(canvases[1].ops.filter(o=>o[0]==='drawImage').length,1,'blurred mask is computed once');
+assert(canvases[1].ops.some(o=>o[0]==='fill'&&o[2]==='destination-out'),
+ 'snow/water/jungle must be removed from unified forest mask with a softened world-space subtraction');
+
 const textureOps=canvases[2].ops;
 assert.equal(textureOps.filter(o=>o[0]==='pattern').length,1,'one repeating material covers all hexes');
 assert(textureOps.some(o=>o[0]==='matrix'&&o[4]!==0),'UV coordinates tied to world offset');
