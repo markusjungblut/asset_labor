@@ -323,3 +323,69 @@ test('real 397-hex outer tip positions receive only nearby same-hex 4x terrain',
    'outer world stays transparent; never flood missing landscape');
  }
 });
+
+test('397-hex 120-tile archive retains eight genuine transparent halo-only owners',()=>{
+ const cells=[];
+ for(let r=-11;r<=11;r++)for(let q=-11;q<=11;q++)
+  if(Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r))<=11)
+   cells.push({q,r});
+ const chunkSandbox={window:{}};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'chunks.js'),'utf8'),
+  chunkSandbox);
+ const chunks=chunkSandbox.window.VedrasChunks,
+  pos=cells.map(chunks.worldPos),xs=pos.map(x=>x.x),ys=pos.map(x=>x.y),
+  margin=256*1.5;
+ const tiles=chunks.visible({
+  x:Math.min(...xs)-margin,y:Math.min(...ys)-margin,
+  width:Math.max(...xs)-Math.min(...xs)+2*margin,
+  height:Math.max(...ys)-Math.min(...ys)+2*margin
+ },cells,512);
+ assert.equal(tiles.length,120);
+ const empty=tiles.filter(tile=>!core.hasAuthoredArea(tile,cells))
+  .map(t=>t.id).sort();
+ assert.deepEqual(empty,[
+  '-4,-6','-4,5','-5,-4','-5,3','3,-6','3,5','4,-4','4,3'
+ ]);
+ for(const id of ['-5,-3','4,-3','-5,2','4,2',
+  '-1,-6','0,-6','-1,5','0,5']){
+  const tile=tiles.find(t=>t.id===id);
+  assert(tile&&core.hasAuthoredArea(tile,cells),
+   'never replace genuinely visible terrain with empty PNG '+id);
+ }
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert(app.includes('function frozenEmptyNative4xTile(tile)'));
+ assert(app.includes('guard.hasAuthoredArea(tile,worldCells)'));
+ assert(app.includes('knownFrozenTiles.add(fileKey);'));
+ assert(app.includes("'ground-owned-core-seam-gate-v1'"),
+  'do not silently invalidate the existing user 98/120 scene key');
+});
+test('halo-only placeholders have valid native-4x transparent Ground and native-2x Scenery',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8'),
+  from=app.indexOf('function frozenEmptyNative4xTile(tile)'),
+  to=app.indexOf("$('frozenCaptureAll').addEventListener",from);
+ assert(from>0&&to>from);
+ const canvases=[],document={createElement(name){
+  assert.equal(name,'canvas');
+  const canvas={width:0,height:0,getContext:()=>({})};
+  canvases.push(canvas);return canvas;
+ }};
+ const factory=vm.runInNewContext(app.slice(from,to)+
+  '\nfrozenEmptyNative4xTile;',{
+  document,WORLD_TILE_GUTTER:3,PROJECT_Y:.85});
+ const tile={id:'-4,-6',x:-2048,y:-3072,size:512};
+ const result=factory(tile);
+ assert.equal(result.complete,true);
+ assert.equal(result.level,'near');
+ assert.equal(result.revision,'no-authored-hex-in-core-v1');
+ assert.equal(result.layers[0].layer,'ground');
+ assert.equal(result.layers[0].pad,3);
+ assert.equal(result.layers[0].image.width,2072);
+ assert.equal(result.layers[0].image.height,1761);
+ assert.equal(result.layers[1].layer,'scenery');
+ assert.equal(result.layers[1].pad,128);
+ assert.equal(result.layers[1].image.width,1536);
+ assert.equal(result.layers[1].image.height,1306);
+ assert.equal(canvases.length,2);
+ assert(!app.slice(from,to).includes('fillRect('),
+  'empty world tiles may never invent a synthetic ground color');
+});
