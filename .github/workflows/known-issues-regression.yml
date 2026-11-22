@@ -13,6 +13,8 @@ on:
       - 'nature_catalog.js'
       - 'tests/test_nature_source_guards_20261120.cjs'
       - 'forest-ground.js'
+      - 'gpu-terrain.js'
+      - 'tests/test_gpu_terrain_image_pool_20261023.cjs'
       - 'nature-ui.js'
       - 'tests/test_nature_runtime_filename_gate_20261120.cjs'
       - 'index.html'
@@ -58,7 +60,7 @@ jobs:
           node-version: '22'
       - name: Waldboden, Textur-Wrapping, Ladepfad und Wasser-Nähte
         run: |
-          node --test tests/test_forest_floor_loaded_and_frozen_20261120.cjs tests/test_forest_floor_regions.cjs tests/test_organic_forest_edges_glades_20261120.cjs tests/test_forest_canopy_generation_20261021.cjs tests/test_ground_texture_source_repeat_20261119.cjs tests/test_editor_zoom_and_auto_4x_20261119.cjs tests/test_river_ground_readiness_20261118.cjs tests/test_frozen_ground_seam_audit_20261118.cjs
+          node --test tests/test_gpu_terrain_image_pool_20261023.cjs tests/test_forest_floor_loaded_and_frozen_20261120.cjs tests/test_forest_floor_regions.cjs tests/test_organic_forest_edges_glades_20261120.cjs tests/test_forest_canopy_generation_20261021.cjs tests/test_ground_texture_source_repeat_20261119.cjs tests/test_editor_zoom_and_auto_4x_20261119.cjs tests/test_river_ground_readiness_20261118.cjs tests/test_frozen_ground_seam_audit_20261118.cjs
       - name: Schattenstärke, Objektklassen und 2×-/4×-Ableitungen
         run: |
           node --test tests/test_quality_ground_and_shadow_tone_20261117.cjs tests/test_frozen_scenery_refresh_20261117.cjs tests/test_sprite_shadow_editor_20261021.cjs tests/test_mountain_shadow_field.cjs
