@@ -64,7 +64,7 @@ function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainP
   for(const k of mountains.occupied(m))if(cells.has(k))blocked.add(k);
  }
  const isGround=c=>terrain.get(c.terrainId)?.materialClass==="ground";
- const reserved=balance.reserveClearings(world.cells,woods,seed,isGround,blocked,"canopy");
+ const reserved=balance.reserveClearings(world.cells,forestCells,seed,isGround,blocked,"canopy");
  const statuses={},sites=[];
  for(const v of variants)statuses[v.meta.artStatus||"unknown"]=
   (statuses[v.meta.artStatus||"unknown"]||0)+1;
