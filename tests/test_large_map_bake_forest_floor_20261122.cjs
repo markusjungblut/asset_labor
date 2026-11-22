@@ -24,6 +24,19 @@ const newBridge=(world,floor=Floor,more={})=>Bridge.create({
  loadImage:async a=>({...a,img:{naturalWidth:512,naturalHeight:512}}),
  ...more
 });
+function firstVisibleForestTile(plan,source,bridge){
+ return plan.tiles.find(t=>{
+  const ctx=source.contextFor(t.id,{sourceHalo:768});
+  const left=t.x-128-245,right=t.x+512+128+245,
+   top=t.y-128-245,bottom=t.y+512+128+245;
+  return ctx.cells.some(c=>{
+   const original=bridge.cellById.get(c.q+','+c.r);
+   if(!Floor.eligible(original))return false;
+   const x=256*(c.q+c.r/2),y=1.5*(256/Math.sqrt(3))*c.r;
+   return x>=left&&x<=right&&y>=top&&y<=bottom;
+  });
+ });
+}
 test('all geographic forest classes and original world glades stay stable',()=>{
  const w=reference(),b=newBridge(w);
  assert.equal(b.forestCells.length,7125);
@@ -66,10 +79,7 @@ test('bounded original forest mask receives full-world opacity and real original
    scale:1.4,mask:'original',textureOrigin:'world-0,0'};
  }};
  const b=newBridge(w,floor);
- const tile=p.tiles.find(t=>{
-  const x=s.contextFor(t.id,{sourceHalo:768});
-  return x.cells.some(c=>Floor.eligible(b.cellById.get(c.q+','+c.r)));
- });
+ const tile=firstVisibleForestTile(p,s,b);
  assert(tile);
  const ctx=s.contextFor(tile.id,{sourceHalo:768}),out=await b.render(ctx);
  assert.equal(out.stage,'original-forest-floor-preview');
@@ -87,10 +97,7 @@ test('bounded original forest mask receives full-world opacity and real original
 test('missing material, invalid class and insufficient halo cannot silently produce PNG',async()=>{
  const w=reference(),p=Plan.plan(w),s=Source.create(w,p,{planner:Plan});
  const b=newBridge(w,Floor,{groups:{byType:new Map()}});
- const tile=p.tiles.find(t=>{
-  const ctx=s.contextFor(t.id,{sourceHalo:768});
-  return ctx.cells.some(c=>Floor.eligible(b.cellById.get(c.q+','+c.r)));
- });
+ const tile=firstVisibleForestTile(p,s,b);
  assert(tile);
  await assert.rejects(()=>b.render(s.contextFor(tile.id,{sourceHalo:768})),/Waldboden fehlt/);
  await assert.rejects(()=>b.render(s.contextFor(tile.id)),/768er/);
