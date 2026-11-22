@@ -319,6 +319,55 @@ Für die 95×75-Referenzwelt wären bei 1.678 Kacheln
 Dies ist eine **geplante** Anzahl – noch keine
 tatsächlich erstellten Kartenbilder.
 
+## Phase 2.3 – Originales geografisches 2,5D-Relief (22.11.2026)
+
+**Neu:** Die direkte Kachelprobe des Geografielabors kann optional
+die **Hügelgeometrie aus dem vorhandenen
+`VedrasRelief.make()`** zeichnen. Aktivierung über
+„Hügelrelief mit Originalrenderer“ bei der Material-PNG-Probe.
+
+- `large-map-bake-ground-relief.js` berechnet dieselben
+  geografischen Hügelparameter aus `reliefClass='hills'`,
+  `hillProfile`, `hillStrength`, absoluten Q/R und dem
+  Default-Reliefseed 43781. Die Küsten-Landmaske nutzt
+  die `VedrasAutotile.hexAt()`-Zuordnung und die
+  `materialClass='water'`-Deklarationen aus dem
+  aktuellen Terrainkatalog. Wie im normalen
+  `drawGround()` werden **Wasser-Layer zuerst flach** und
+  der 2,5D-**Land-Layer danach erhöht** ausgegeben.
+  Andere Grafikfunktionen werden nicht nachgebaut.
+- Weil `geoHeight()` Hügel in einem Umkreis bis zu drei
+  Hex-Schritten berücksichtigt, erweitert
+  `large-map-bake-source.js` auf Wunsch den
+  Quell-Halo pro Tile von 470 auf **1.280 Welteinheiten**.
+  Die reguläre Planungs-/Grundterrain-Geometrie,
+  die default-470er-Chunks und ihre Keys bleiben
+  unverändert. Der Zusatzbereich ist auf maximal
+  2.048 Einheiten beschränkt.
+- Die Benutzeroberfläche exportiert entweder die
+  bisherige **`material-only-preview`** oder die neue
+  **`material-relief-preview`**. Beide sind
+  `complete:false`, `readyForViewer:false`.
+  Nur der Quellbereich der aktiven Kachel wird benötigt.
+- **Wichtig:** Hier handelt es sich weiterhin um eine
+  **Ground-Probe mit 2,5×-Materialauflösung und
+  1295×1101 Ausgabepixeln**, nicht um eine fertige
+  4×-Ground-/Scenery-Kachel. Die originale
+  `VedrasAutotile.build()`-Rasterdichte ist
+  auf höchstens 3× und begrenzte Pixelbudgets
+  ausgelegt; ein späteres einfaches Hochskalieren
+  auf 4× wäre kein echter 4×-Quellrender.
+  Ungeprüft sind die exakte Pixelparität zur
+  Offline-Editor-Tour, Uferartwork, Flussufer/
+  Flusswasser, Waldboden, Natur, Bergobjekte,
+  Schatten und Sektorimport im Viewer.
+
+**Neue Tests:** 1.280er-Neighbor-Parität mit
+`chunks.js`, unveränderte Default-Quellen,
+Terrain-/Wasser-Maske, originale
+`VedrasRelief.make()`-Reihenfolge und
+korrekte `complete:false`-Ausgabe.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen
