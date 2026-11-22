@@ -276,7 +276,7 @@ test('118/120 mixed archive: 98 linked shadow Ground tiles + 20 native tiles are
  assert.equal(audited.expected,120);
  assert.equal(audited.stored,118);
  assert.equal(audited.missingIds.length,2);
- assert.deepEqual(audited.invalidTiles,[],
+ assert.equal(audited.invalidTiles.length,0,
   'linked original Ground is verified, not mislabeled as corrupt');
  assert.equal(audited.complete,false,
   'do not publish the map while any outer tile is missing');
