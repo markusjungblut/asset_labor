@@ -18,6 +18,11 @@ on:
       - '.github/workflows/geography-io-regression.yml'
   workflow_dispatch:
 
+# Cancel outdated PR test runs when a newer diagnostic commit arrives.
+concurrency:
+  group: geography-io-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
