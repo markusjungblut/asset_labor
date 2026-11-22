@@ -2485,7 +2485,12 @@ function drawMountainShadows(objects){
   // allocating/readback of W*H for every mountain on every frame.
   const cast={owner:o,canvas:local.canvas,
    x:origin.x+local.left/local.factor,y:origin.y+local.top/local.factor,
-   width:local.canvas.width/local.factor,height:local.canvas.height/local.factor};
+   width:local.canvas.width/local.factor,height:local.canvas.height/local.factor,
+   // Same directional field as the ground raster, in screen coordinates.
+   // Sampling it at a receiver's FOOT is much cheaper than reading shadow
+   // pixels for thousands of trees and avoids falsely shading tall crowns.
+   shape:window.VedrasShadows.mountainShape(origin,width,cfg),
+   modelWidth:width,strength,peakAlpha:local.peakAlpha};
   ctx.drawImage(cast.canvas,cast.x,cast.y,cast.width,cast.height);
   mountainCastsForFrame.push(cast);
   maxAlpha=Math.max(maxAlpha,local.peakAlpha);
@@ -2627,13 +2632,29 @@ function protectsSouthwestLargeSprite(receiver,caster){
  if(!a||!b)return false;
  return Number(a[1])===Number(b[1])-1&&Number(a[2])===Number(b[2])+1;
 }
-// Only shade sprites intersecting a mountain shadow. The owner still never
-// receives its OWN cast. The exception is applied per source/receiver pair,
-// so an unrelated distant mountain's shadow continues to work.
+// A cast may overlap an elevated tree crown in screen space while the trunk
+// stands on SUNLIT ground in front of it. Only the shadow at the receiver's
+// actual GROUND ANCHOR decides whether a sprite can receive the cast.
+// The same procedural field drives both the ground raster and this test;
+// it adds no canvas readback, extra sprites, or per-frame shadow textures.
+function mountainShadowReachesFoot(cast,receiver){
+ if(!cast?.shape||!(cast.modelWidth>0))return false;
+ const foot=toScreen(receiver.x,receiver.y);
+ const opacity=window.VedrasShadows.mountainAlphaAt(
+  foot.x,foot.y,cast.shape,cast.modelWidth,cast.strength);
+ // Ignore a practically invisible blur fringe, scaled to the current
+ // mountain intensity. The ground cast itself is never modified.
+ const threshold=Math.max(1/255,(cast.peakAlpha/255)*.08);
+ return opacity>threshold;
+}
+// The owner's own cast and the original SW large-object exception remain
+// excluded. Rectangular sprite overlap is a cheap preliminary check ONLY;
+// a crown entering a cast cannot shade a sprite rooted outside its footprint.
 function spriteMountainCasts(obj,left,top,width,height){
  return mountainCastsForFrame.filter(c=>c.owner!==obj&&
   !protectsSouthwestLargeSprite(obj,c.owner)&&
-  c.x<left+width&&c.x+c.width>left&&c.y<top+height&&c.y+c.height>top);
+  c.x<left+width&&c.x+c.width>left&&c.y<top+height&&c.y+c.height>top&&
+  mountainShadowReachesFoot(c,obj));
 }
 // Reuse one scratch canvas instead of allocating textures for each tree.
 // 'source-atop' restricts the cast strictly to visible sprite pixels.
