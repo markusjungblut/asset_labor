@@ -56,6 +56,33 @@ function pick(cell,groups){
   throw Error('Kein zugeordnetes Originalmaterial im Live-Katalog für Terrain '+typeId);
  return choices[hash(cell.q,cell.r)%choices.length];
 }
+function auditWorld(world,catalog,listing){
+ if(!world||!Array.isArray(world.cells)||!world.cells.length)
+  throw Error('Für den Material-Check fehlt die generierte Geografiewelt.');
+ const groups=assetGroups(catalog,listing),counts=new Map();
+ for(const cell of world.cells)
+  counts.set(cell.terrainId,(counts.get(cell.terrainId)||0)+1);
+ const missing=[],covered=[],fallbacks=[];
+ for(const [terrainId,hexes] of [...counts].sort((a,b)=>a[0].localeCompare(b[0]))){
+  const direct=groups.byType.get(terrainId)||[];
+  const jungleFallback=terrainId==='jungle'&&!direct.length?
+   groups.byType.get('forest_floor')||[]:[];
+  if(direct.length){
+   covered.push({terrainId,hexes,variants:direct.length});
+  }else if(jungleFallback.length){
+   fallbacks.push({terrainId,hexes,uses:'forest_floor',
+    variants:jungleFallback.length});
+  }else{
+   missing.push({terrainId,hexes,reason:'Kein zugeordnetes Material im Live-Katalog'});
+  }
+ }
+ return {stage:'material-catalog-preflight',readyForMaterialPreview:missing.length===0,
+  readyForFinishedGameMap:false,worldHexes:world.cells.length,
+  coveredHexes:covered.reduce((n,x)=>n+x.hexes,0)+
+   fallbacks.reduce((n,x)=>n+x.hexes,0),
+  missingHexes:missing.reduce((n,x)=>n+x.hexes,0),
+  covered,fallbacks,missing};
+}
 async function loadCatalog({fetcher=root.fetch?.bind(root)}={}){
  if(typeof fetcher!=='function')throw Error('Lokaler Asset-Labor-Server fehlt.');
  const [c,a]=await Promise.all([
@@ -156,7 +183,7 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   availableTypes:[...groups.byType.keys()].sort(),
   previewOnly:true};
 }
-const api={SCALE,PROJECT_Y,SIZE,PAD,hash,assetGroups,pick,loadCatalog,
+const api={SCALE,PROJECT_Y,SIZE,PAD,hash,assetGroups,pick,auditWorld,loadCatalog,
  imageLoader,create};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.VedrasLargeMapMaterialPreview=api;
