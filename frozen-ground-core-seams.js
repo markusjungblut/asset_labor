@@ -29,6 +29,52 @@ window.VedrasGroundCoreSeams=(()=>{
    y0:Math.round(pad*dy),
    y1:Math.round((tile.size+pad)*dy)};
  }
+ // Exact convex-hex/512x512-square intersection. VedrasChunks.visible()
+ // intentionally includes an ample 150-unit halo around hex centres for
+ // prefetch; on a 397-cell map eight outer candidates have NO authored
+ // polygon at all. Keep the existing 120-chunk archive grid and encode
+ // these as transparent image tiles, never as fabricated ground.
+ function hasAuthoredArea(tile,cells){
+  if(!tile||![tile.x,tile.y,tile.size].every(Number.isFinite)||
+     !(tile.size>0)||!Array.isArray(cells))
+   throw Error('Ungültige Weltgeometrie für leeren Rand-Chunk');
+  const left=tile.x,right=tile.x+tile.size,
+   top=tile.y,bottom=tile.y+tile.size;
+  const faces=[[0,left,1],[0,right,-1],[1,top,1],[1,bottom,-1]];
+  for(const cell of cells){
+   const cx=HEX*(cell.q+cell.r/2),cy=1.5*R*cell.r;
+   if(cx+HEX/2<=left||cx-HEX/2>=right||
+      cy+R<=top||cy-R>=bottom)continue;
+   let polygon=Array.from({length:6},(_,i)=>{
+    const theta=-Math.PI/2+i*Math.PI/3;
+    return [cx+R*Math.cos(theta),cy+R*Math.sin(theta)];
+   });
+   for(const [axis,bound,sign] of faces){
+    const clipped=[];
+    for(let i=0;i<polygon.length;i++){
+     const a=polygon[i],b=polygon[(i+1)%polygon.length],
+      da=(a[axis]-bound)*sign,db=(b[axis]-bound)*sign,
+      insideA=da>=0,insideB=db>=0;
+     if(insideA)clipped.push(a);
+     if(insideA!==insideB){
+      const t=da/(da-db);
+      clipped.push([a[0]+t*(b[0]-a[0]),
+       a[1]+t*(b[1]-a[1])]);
+     }
+    }
+    polygon=clipped;
+    if(polygon.length<3)break;
+   }
+   if(polygon.length<3)continue;
+   let signed=0;
+   for(let i=0;i<polygon.length;i++){
+    const a=polygon[i],b=polygon[(i+1)%polygon.length];
+    signed+=a[0]*b[1]-b[0]*a[1];
+   }
+   if(Math.abs(signed)>.000002)return true;
+  }
+  return false;
+ }
  function repairEdgeBands(canvas,{tile,pad=3,cells,width=3}={}){
   if(!canvas?.getContext||!tile?.size||!Array.isArray(cells))
    throw Error('Ground-Nahtreparatur: fehlende Weltgeometrie');
@@ -302,5 +348,5 @@ window.VedrasGroundCoreSeams=(()=>{
    failures:results.filter(x=>x.failure),
    complete:results.every(x=>!x.failure),policy:'owned-core-4x-v1'};
  }
- return {hexId,sourceGeometry,repairEdgeBands,measureCore,auditSaved};
+ return {hexId,sourceGeometry,hasAuthoredArea,repairEdgeBands,measureCore,auditSaved};
 })();
