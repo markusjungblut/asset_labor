@@ -80,9 +80,24 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const notForest=forest.build([{...cells[0],jungle:true}],image,{
     resolution:1.25,textureSize:256
    });
+   const snowBoundary=forest.build([cells[0],{
+    ...field(1,0,'none'),baseBiome:'snowfields',
+    categoryId:'cold_regions',ground:true
+   }],image,{resolution:1.5,textureSize:256,feather:23,
+    maxPixels:4500000});
+   const snowPixels=snowBoundary.canvas.getContext('2d',{
+    willReadFrequently:true});
+   const atSnowX=x=>{
+    const px=Math.round((x-snowBoundary.x)*snowBoundary.scale),
+     py=Math.round((0-snowBoundary.y)*snowBoundary.scale);
+    return snowPixels.getImageData(px,py,1,1).data[3];
+   };
+   const snowFade=[102,118,128,145,170].map(x=>({
+    worldX:x,alpha:atSnowX(x)
+   }));
    return {source:{width:W,height:H,bytesApprox:base64.length*.75},
     wrapping:{beforeEdge,afterEdge,changedSource},
-    outputs,jungleOverlay:notForest!==null};
+    outputs,jungleOverlay:notForest!==null,snowFade};
   },png.toString('base64'));
   assert.ok(result.source.width>=40&&result.source.height>=40);
   assert.equal(result.wrapping.changedSource,0,'Source PNG is immutable');
@@ -92,6 +107,14 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    'Opposite source-edge texels must repeat without a hard line');
   assert.equal(result.jungleOverlay,false,
    'Jungle must not use the ordinary woodland overlay');
+  const fade=result.snowFade.map(p=>p.alpha);
+  assert.ok(fade[0]>fade[2]&&fade[2]>fade[3]&&fade[3]>=fade[4],
+   'Snow-border forest alpha should fade across, not stop at the hex edge: '+
+    JSON.stringify(result.snowFade));
+  assert.ok(fade[2]>5,
+   'The forest underlay must not be hard-clipped at the snow hex border: '+
+    JSON.stringify(result.snowFade));
+  assert.ok(fade[4]<24,'Snow interior must stay free of ordinary woodland underlay');
   for(const out of result.outputs){
    assert.equal(out.regionCount,1,'Adjacent woodland is a single masked region');
    assert.equal(out.cellCount,2);
