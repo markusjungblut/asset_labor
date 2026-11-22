@@ -54,6 +54,6 @@ test('separate IndexedDB is lazy, append-only and cannot replace original atlas'
  await assert.rejects(()=>store.add({...record,layers:['tampered']}),/ConstraintError/);
  assert.deepEqual((await store.get(key)).layers,[]);
  assert.equal(db.values.size,1);
- await assert.rejects(()=>store.get('scene|manifest'),/Schlüssel/);
+ await assert.rejects(()=>store.get('scene|manifest'),/[Ss]chlüssel/);
  await assert.rejects(()=>store.add({key:'something-else'}),/Receipt/);
 });
