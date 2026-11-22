@@ -160,6 +160,11 @@ window.VedrasWalls=(()=>{
   poly(ctx,[p.frontA,p.frontB,cast(p.frontB),cast(p.frontA)]);
   poly(ctx,[p.backA,p.backB,cast(p.backB),cast(p.backA)]);
   poly(ctx,[p.frontA,p.frontB,p.backB,p.backA]);
+  // Retain a continuous grounding stroke at the true shared edge.
+  // It closes subpixel cracks between adjacent segments in the mask.
+  ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
+  ctx.lineWidth=Math.max(2,7*zoom);ctx.strokeStyle=ctx.fillStyle;
+  ctx.lineCap='round';ctx.stroke();
   ctx.restore();
   return true;
  }
