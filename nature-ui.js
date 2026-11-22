@@ -151,6 +151,10 @@ window.VedrasNature=(()=>{
  function eligible(meta,q,r,forestByHex=null){
   const cell=core.cells().find(c=>c.q===q&&c.r===r);
   if(!cell||!meta||meta.kind==='mountain')return false;
+  // New trees cannot root on mountain geography; shrubs and ground-cover
+  // remain allowed, subject to the normal biome/sprite catalog permissions.
+  if(meta.kind==='tree'&&(cell.reliefClass==='mountain'||cell.biome==='mountain'))
+   return false;
   const forest=forestByHex?.get(q+','+r)||core.forestCells().find(c=>c.key===q+','+r);
   return N.canPlace(meta,{
    baseBiome:core.baseBiomeOf(cell),biome:core.effectiveBiome(cell),

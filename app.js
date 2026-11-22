@@ -234,21 +234,22 @@ function tileArtworkStatus(t,details=null,allowPrepared=false){
  // genericObjects() silently DROPS undecoded sprites. Checking its output
  // could therefore consider a half-loaded scene complete, then forever
  // cache absent trees. Instead inspect the authored anchors directly.
- const xmin=t.x-320,xmax=t.x+t.size+320,
-  ymin=t.y-320,ymax=t.y+t.size+320;
  const paths=new Set();
- const inside=(x,y)=>x>=xmin&&x<=xmax&&y>=ymin&&y<=ymax;
+ const inside=(x,y,halo)=>x>=t.x-halo&&x<=t.x+t.size+halo&&
+  y>=t.y-halo&&y<=t.y+t.size+halo;
+ // Include sprite bodies and ground shadows that originate outside the
+ // tile's anchor region, so a partial decode can never be published as final.
  for(const n of state.natureInstances||[]){
   const p=axialPos(n.q,n.r);
-  if(inside(p.x+(n.dx||0),p.y+(n.dy||0)))paths.add(n.assetPath);
+  if(inside(p.x+(n.dx||0),p.y+(n.dy||0),550))paths.add(n.assetPath);
  }
  for(const m of state.mountainInstances||[]){
   const p=axialPos(m.q,m.r);
-  if(inside(p.x,p.y))paths.add(m.assetPath);
+  if(inside(p.x,p.y,1450))paths.add(m.assetPath);
  }
  for(const [k,o] of Object.entries(state.hexObject||{})){
   const [q,r]=k.split(',').map(Number),p=axialPos(q,r);
-  if(inside(p.x,p.y))paths.add(o?.path);
+  if(inside(p.x,p.y,740))paths.add(o?.path);
  }
  let ready=true;
  for(const path of paths){
@@ -305,7 +306,7 @@ function seedReadyWorldTiles(){
   const sceneryLayer=preview?{image:b}:packWorldTileScenery(b,lod);
   worldTiles.seed(t,lod,{complete:true,revision:sourceVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-   {layer:'scenery',...sceneryLayer}],preview,sourceDensity});
+   {layer:'scenery',...sceneryLayer,coreOnly:true}],preview,sourceDensity});
  }
 }
 function snapshotTile(s,t,level,pad=0){
@@ -428,7 +429,7 @@ async function bakeWorldTile(t,level,{signal}={}){
   const sceneryLayer=packWorldTileScenery(b,level);
   return {complete:true,revision:sourceGroundVersion,
    layers:[{layer:'ground',image:a,pad:WORLD_TILE_GUTTER},
-    {layer:'scenery',...sceneryLayer}]};
+    {layer:'scenery',...sceneryLayer,coreOnly:true}]};
  }
  // The fallback must have a finished raster before painting to its own canvas.
  if(!tileArtworkStatus(t,null,true)){
@@ -517,8 +518,9 @@ async function bakeWorldTile(t,level,{signal}={}){
   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
   try{
    const __sceneryStart=performance.now();
-   drawMapObjects({includeUnits:false,
-    anchorBounds:{x:t.x,y:t.y,width:t.size,height:t.size}});
+   // Recompose every nearby object in its TRUE shared world-depth order.
+   // Anchor-owned tiles cut mountain sprites and their leftward casts.
+   drawMapObjects({includeUnits:false});
    __bench?.record('tile.sceneryMs',performance.now()-__sceneryStart);
   }finally{spriteAtlas?.endFrame();}
  }finally{
@@ -538,7 +540,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  const sceneryLayer=packWorldTileScenery(overlay,level);
  return {complete:true,revision:sourceGroundVersion,
   layers:[{layer:'ground',image:out,pad:groundPad},
-   {layer:'scenery',...sceneryLayer,pad}]};
+   {layer:'scenery',...sceneryLayer,pad,coreOnly:true}]};
 
  }catch(error){
   // Keep the original exception/retry behavior. Record the concrete failure
@@ -2851,7 +2853,10 @@ function mountainCoversBase(plant,mountain){
 // Build once per scene edit/asset load, never once per camera frame. The
 // relief-adjusted world-space foot is constant until that layout changes.
 function buildSpriteLayout(){
- const visible=genericObjects().filter(o=>o.asset?.img?.naturalWidth);
+ const alpine=new Set(worldCells.filter(c=>
+  c.reliefClass==='mountain'||c.biome==='mountain').map(c=>key(c.q,c.r)));
+ const visible=genericObjects().filter(o=>o.asset?.img?.naturalWidth&&
+  !(o.type==='nature'&&o.natureMeta?.kind==='tree'&&alpine.has(o.cell)));
  if(state.wallShown!==false)for(const wallEdge of visibleWallEdges()){
   const center=window.VedrasWalls.midpoint(wallEdge);
   if(center)visible.push({type:'wall',wallEdge,
@@ -2863,7 +2868,7 @@ function buildSpriteLayout(){
  });
 }
 function spriteIndexMargin(o){
- return o.type==='mountain'?Math.max(400,o.w||0):
+ return o.type==='mountain'?Math.max(800,(o.w||0)*2.4):
   o.type==='wall'?300:
   o.type==='nature'?Math.max(320,o.w||0):480;
 }
@@ -2966,7 +2971,7 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
  const prepared=objectLayoutCache.query(view,buildSpriteLayout,spriteInViewport,spriteIndexMargin);
  // Depth order is still evaluated each frame; source positions and expensive
  // river/road placement/relief operations are not.
- const objs=prepared.objects.filter(o=>
+ let objs=prepared.objects.filter(o=>
    (onlyUnits?o.type==='unit':includeUnits||o.type!=='unit')&&
    (!anchorBounds||(o.x>=anchorBounds.x&&
     o.x<anchorBounds.x+anchorBounds.width&&
@@ -2996,6 +3001,10 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    o.coveredByMountains=new Set(mountains.filter(m=>mountainCoversBase(o,m)));
    o.occludedByMountain=o.coveredByMountains.size>0;
   }
+  // Trees with feet INSIDE the actual opaque mountain face are hidden;
+  // shrubs and ground cover remain. Saved placements are NOT destroyed.
+  objs=objs.filter(o=>o.type!=='nature'||o.natureMeta?.kind!=='tree'||
+   !o.occludedByMountain);
   const sortStart=performance.now();
   profile.occlusionMs=sortStart-occlusionStart;
   objs.sort((a,b)=>{
@@ -3026,7 +3035,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
   if(objs.some(o=>o.type!=='mountain'))paintUnifiedNormalShadows(()=>{
   for(const o of objs){
    const p=toScreen(o.x,o.y);
-   if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
+   const halo=Math.max(450,spriteIndexMargin(o)*state.zoom);
+   if(p.x<-halo||p.x>W+halo||p.y<-halo||p.y>H+halo||o.type==='mountain')continue;
    profile.shadowCandidates++;
    if(o.type==='unit')profile.dynamicShadows++;
    else profile.staticShadows++;
@@ -3077,7 +3087,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
   const spriteStart=performance.now();
   for(const o of objs){
    const p=toScreen(o.x,o.y);
-   if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450)continue;
+   const halo=Math.max(450,spriteIndexMargin(o)*state.zoom);
+   if(p.x<-halo||p.x>W+halo||p.y<-halo||p.y>H+halo)continue;
    drawSprite(onlyUnits?{...o,noMountainCast:true}:o);profile.drawnSprites++;
    if(o.type==='unit')profile.dynamicSprites++;
    else profile.staticSprites++;
@@ -4320,6 +4331,10 @@ function frozenSceneKey({force4x=false}={}){
   // Separate genuine 4x archives from the former 0.85/1.5/2.5 native LODs.
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
+  // Critical: never reuse already stored bad old mountain/source-owned
+  // scenery archives. This new fingerprint forces a new read-only scene
+  // without touching any earlier saved tiles or their IndexedDB records.
+  'scenery-global-composition-exclusive-core-v2',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
@@ -4780,11 +4795,11 @@ $('frozenReportDownload').addEventListener('click',()=>{
  document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),15000);
 });
-// Eight halo-only Chunk IDs on the canonical 397-hex map do not overlap
-// any authored HEX polygon. Preserve the historic 120-ID archive geometry
-// and create fully transparent 4x/2x packets for these *empty* owners.
-// Never use this path for a tile intersecting even a tiny real hex sliver.
-function frozenEmptyNative4xTile(tile){
+// The canonical 397-hex archive has halo-only tiles without an authored
+// terrain polygon. Their GROUND must remain transparent; their SCENERY may
+// NOT: a tall mountain, foreground tree or leftward shadow can extend into
+// this tile from an adjacent owned hex.
+async function frozenEmptyNative4xTile(tile){
  const ground=document.createElement('canvas'),
   scenery=document.createElement('canvas'),groundPad=WORLD_TILE_GUTTER,
   sceneryPad=128;
@@ -4792,13 +4807,55 @@ function frozenEmptyNative4xTile(tile){
  ground.height=Math.round((tile.size+2*groundPad)*PROJECT_Y*4);
  scenery.width=Math.round((tile.size+2*sceneryPad)*2);
  scenery.height=Math.round((tile.size+2*sceneryPad)*PROJECT_Y*2);
- if(!ground.getContext('2d',{alpha:true})||
-    !scenery.getContext('2d',{alpha:true}))
+ const g=scenery.getContext('2d',{alpha:true});
+ if(!ground.getContext('2d',{alpha:true})||!g)
   throw Error('Transparenter 4×-Randchunk nicht darstellbar: '+tile.id);
- return {complete:true,revision:'no-authored-hex-in-core-v1',
+ if(state.objects){
+  const inside=(x,y,halo)=>x>=tile.x-halo&&x<=tile.x+tile.size+halo&&
+   y>=tile.y-halo&&y<=tile.y+tile.size+halo;
+  const paths=new Set();
+  for(const m of state.mountainInstances||[]){
+   const p=axialPos(m.q,m.r);
+   if(inside(p.x,p.y,1450))paths.add(m.assetPath);
+  }
+  for(const n of state.natureInstances||[]){
+   const p=axialPos(n.q,n.r);
+   if(inside(p.x+(n.dx||0),p.y+(n.dy||0),550))paths.add(n.assetPath);
+  }
+  for(const [k,o] of Object.entries(state.hexObject||{})){
+   const [q,r]=k.split(',').map(Number),p=axialPos(q,r);
+   if(inside(p.x,p.y,740))paths.add(o?.path);
+  }
+  // Unlike a terrain-bearing tile, this source has no terrain core that
+  // tileArtworkStatus() can certify. Explicitly demand its scenery sources
+  // before freezing; never mark half-loaded mountain silhouettes complete.
+  await Promise.all([...paths].filter(Boolean).map(async path=>{
+   const asset=assetByPath.get(path);
+   if(!asset)return;
+   if(!asset.img?.naturalWidth)await imagePool.ensure(asset,11);
+   if(!asset.img?.naturalWidth)
+    throw Error('Randkachel '+tile.id+': Scenery-Quelle nicht bereit: '+path);
+  }));
+  const z=state.zoom,extent=tile.size+2*sceneryPad,
+   old={ctx,W,H,panX:state.panX,panY:state.panY,dpr:state.dpr};
+  try{
+   ctx=g;W=extent*z;H=extent*z*PROJECT_Y;
+   state.dpr=scenery.width/W;
+   state.panX=-W/2-(tile.x-sceneryPad)*z;
+   state.panY=-H/2-(tile.y-sceneryPad)*z*PROJECT_Y;
+   g.setTransform(state.dpr,0,0,state.dpr,0,0);
+   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
+   try{drawMapObjects({includeUnits:false});}
+   finally{spriteAtlas?.endFrame();}
+  }finally{
+   ctx=old.ctx;W=old.W;H=old.H;
+   state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;
+  }
+ }
+ return {complete:true,revision:'no-authored-ground-with-scenery-v2',
   tile:{...tile},level:'near',dirty:false,preview:false,
   layers:[{layer:'ground',image:ground,pad:groundPad},
-   {layer:'scenery',image:scenery,pad:sceneryPad}]};
+   {layer:'scenery',image:scenery,pad:sceneryPad,coreOnly:true}]};
 }
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
@@ -4931,7 +4988,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      knownFrozenTiles.add(fileKey);
      totalSaved++;processed++;
      frozenNotice('4×-Randkachel '+tile.id+
-      ': keine Hexfläche, transparenter Platzhalter gespeichert · '+
+      ': transparenter Boden, benachbarte Berg-/Natur-Sprites und Schatten geprüft · '+
       totalSaved+' neue PNG-Pakete.');
      continue;
     }
