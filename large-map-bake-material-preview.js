@@ -116,6 +116,8 @@ function imageLoader({makeImage=()=>new root.Image()}={}){
 function create({world,plan,planner=root.VedrasLargeMapBakePlan,
  sourceAdapter=root.VedrasLargeMapBakeSource,
  autotile=root.VedrasAutotile,catalogApi=root.VedrasCatalog,
+ reliefAdapter=root.VedrasLargeMapBakeGroundRelief,
+ reliefApi=root.VedrasRelief,
  catalog,assets,loadImage=imageLoader(),canvasFactory=
   ()=>root.document.createElement('canvas')}={}){
  if(typeof autotile?.build!=='function'||
@@ -132,8 +134,11 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   return c1==='water'&&c2==='water'?'soft_water':
    c1==='ground'&&c2==='ground'?'soft_ground':'shoreline_required';
  }
- async function renderTile(tileId){
-  const ctxData=source.contextFor(tileId);
+ async function renderTile(tileId,{withRelief=false}={}){
+  if(withRelief&&(!reliefAdapter?.apply||!reliefApi?.make))
+   throw Error('Gemeinsamer 2.5D-Relief-Renderer wurde nicht geladen.');
+  const ctxData=source.contextFor(tileId,withRelief?
+   {sourceHalo:reliefAdapter.SOURCE_HALO}:{});
   const assignments=ctxData.cells.map(cell=>[cell,pick(cell,groups)]);
   const needed=[...new Map(assignments.map(([,a])=>[a.path,a])).values()];
   // Only selected source assets for THIS tile are decoded. 60k-world
@@ -163,7 +168,16 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   if(!g)throw Error('Kachel-Canvas ist nicht verfügbar.');
   g.setTransform(SCALE,0,0,SCALE*PROJECT_Y,
    -(t.x-PAD)*SCALE,-(t.y-PAD)*SCALE*PROJECT_Y);
-  g.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);
+  const raised=withRelief?reliefAdapter.apply({
+   context:ctxData,raster,types:[...groups.types.values()],
+   relief:reliefApi,autotile
+  }):null;
+  if(raised){
+   // This is the editor's material-water/raised-land ordering. Never
+   // paint the opaque unraised all-terrain raster after the hill layer.
+   autotile.draw(g,raised.water);
+   autotile.draw(g,raised.land);
+  }else g.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);
   if(typeof output.toBlob!=='function'&&typeof output.convertToBlob!=='function')
    throw Error('Originalmaterial-Raster kann nicht als PNG kodiert werden.');
   const png=output.convertToBlob?
@@ -172,12 +186,15 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
     v=>v?resolve(v):reject(Error('PNG-Kodierung fehlgeschlagen.')),'image/png'));
   if(!(png instanceof Blob)||png.size<45)
    throw Error('Materialvorschau enthält keine gültige PNG-Datei.');
-  return {stage:'material-only-preview',complete:false,
-   rasterized:true,readyForViewer:false,
+  return {stage:withRelief?'material-relief-preview':'material-only-preview',
+   complete:false,rasterized:true,readyForViewer:false,
+   reliefHillSources:raised?.hillHexes||0,
    tile:{...t},source:ctxData.source,sourceCount:ctxData.sourceCount,
    assetPaths:needed.map(a=>a.path),
    width:output.width,height:output.height,png,
-   omitted:['relief','shorelines','rivers','forest','scenery','shadows']};
+   omitted:withRelief?
+    ['shorelines','rivers','forest','scenery','shadows']:
+    ['relief','shorelines','rivers','forest','scenery','shadows']};
  }
  return {renderTile,tileCount:source.tileCount,
   availableTypes:[...groups.byType.keys()].sort(),
