@@ -49,7 +49,7 @@ function create({world,catalog,shoreline=root.VedrasShoreline,
   return {bounds,segments,requiredSides,nearCount:near.length,
    nearbyMouths,sourceHalo:context.sourceHalo};
  }
- async function render(context){
+ async function render(context,{withRiverWater=false}={}){
   const preparation=prepare(context);
   if(!preparation.nearCount)return {
    stage:'original-shoreline-preview',canvas:null,
@@ -71,8 +71,8 @@ function create({world,catalog,shoreline=root.VedrasShoreline,
   const raster=shoreline.build(context.cells,wet,images,{
    mode:'art',resolution:SHORE_DENSITY,
    bounds:preparation.bounds,segments:preparation.segments,
-   // Important: NOT until river artwork is drawn in the same output.
-   mouthPortals:[]
+   // Open the coast only when original textured river water is drawn.
+   mouthPortals:withRiverWater?preparation.nearbyMouths:[]
   });
   if(raster?.missing||!raster?.canvas)
    throw Error('Der gemeinsame Original-Uferrenderer konnte nicht vollständig zeichnen.');
@@ -80,7 +80,8 @@ function create({world,catalog,shoreline=root.VedrasShoreline,
    canvas:raster.canvas,x:raster.x,y:raster.y,
    width:raster.width,height:raster.height,
    segmentCount:preparation.nearCount,assetsUsed,
-   deferredMouthPortals:preparation.nearbyMouths.length,
+   deferredMouthPortals:withRiverWater?0:preparation.nearbyMouths.length,
+   openedMouthPortals:withRiverWater?preparation.nearbyMouths.length:0,
    mouthPortalsReadyForFutureRiverLayer:preparation.nearbyMouths,
    complete:false,readyForViewer:false};
  }
