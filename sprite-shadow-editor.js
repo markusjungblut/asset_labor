@@ -69,8 +69,12 @@ window.VedrasSpriteShadows=(()=>{
   const globalStrength=strength===null?current.global.strength:strength;
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
   const familyFactor=(small?.28:1)*(family==='snow_fallen_logs'?.8:1);
-  const alpha=clamp(globalStrength*opacity*
+  const legacyAlpha=clamp(globalStrength*opacity*
    (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor),0,.95);
+  // Authored opacity still allows disabling a cast, but it no longer
+  // multiplies the common visible tone of manual/auto/ground-cover shadows.
+  const tonal=window.VedrasShadowTone?.targetAlpha?.('sprite');
+  const alpha=tonal??legacyAlpha;
   if(alpha<=0)return;
   if(x.manual?.polygons?.length){
    // Many boulders have manually drawn long casts but no contact
@@ -80,7 +84,7 @@ window.VedrasSpriteShadows=(()=>{
    if(obj?.natureMeta?.kind==='rock'&&x.contact>0){
     const originX=p.x+width*x.offsetX,originY=p.y+width*x.offsetY;
     ctx.save();ctx.globalCompositeOperation='source-over';
-    ctx.globalAlpha=Math.min(.48,alpha*.46);
+    ctx.globalAlpha=tonal??Math.min(.48,alpha*.46);
     ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
     ctx.filter='blur('+Math.max(1,Math.min(8,x.softness))+'px)';
     ctx.beginPath();ctx.ellipse(originX-width*.10,originY,
@@ -96,7 +100,7 @@ window.VedrasSpriteShadows=(()=>{
     ox=p.x+width*x.offsetX,oy=p.y+width*x.offsetY,
     blur=Math.min(30,x.softness);
   ctx.save();ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=clamp(alpha*(log?.65:.48),0,.94);
+  ctx.globalAlpha=tonal??clamp(alpha*(log?.65:.48),0,.94);
   ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';ctx.filter='blur('+Math.max(0,blur*.65)+'px)';
   // Contact ellipse is long for logs, compact for trees and stones.
   const contactX=ox+castX*(log?.40:.22),contactY=oy+castY*(log?.36:.20);
@@ -174,7 +178,8 @@ window.VedrasSpriteShadows=(()=>{
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
   const familyFactor=(kind==='ground_cover'?.28:1)*
    (family==='snow_fallen_logs'?.8:1);
-  const alpha=globalStrength*opacity*
+  const alpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??
+   globalStrength*opacity*
    (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor);
   if(x.enabled===false||!(alpha>0))return;
   // Hand-painted masks, very small objects, and unsupported canvases keep
