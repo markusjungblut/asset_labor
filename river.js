@@ -209,15 +209,42 @@ window.VedrasRivers=(()=>{
   const groundY=typeof options.groundY==='function'?options.groundY:null;
   const course=coursePoints(segments,route,width);
   const projected=course.map(p=>({x:p.x,y:groundY?groundY(p.x,p.y):p.y}));
-  const pad=width+20,x=Math.floor(Math.min(...projected.map(p=>p.x))-pad);
-  const y=Math.floor(Math.min(...projected.map(p=>p.y))-pad);
-  const xmax=Math.ceil(Math.max(...projected.map(p=>p.x))+pad),ymax=Math.ceil(Math.max(...projected.map(p=>p.y))+pad);
-  const dw=xmax-x,dh=ymax-y;
+  const pad=width+20;
+  let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
+  for(const p of projected){
+   left=Math.min(left,p.x);top=Math.min(top,p.y);
+   right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);
+  }
+  let x=Math.floor(left-pad),y=Math.floor(top-pad);
+  let xmax=Math.ceil(right+pad),ymax=Math.ceil(bottom+pad);
+  // Optional *raster* window. The full route/corner/mouth geometry above
+  // remains untouched; only PNG pixels outside this WorldTile are omitted.
+  // The normal editor never passes bounds and keeps its original output.
+  const clip=options.bounds;
+  if(clip){
+   if(![clip.x,clip.y,clip.width,clip.height].every(Number.isFinite)||
+      clip.width<=0||clip.height<=0||clip.width>4096||clip.height>4096)
+    throw Error('Ungültiger geographischer Fluss-Rasterbereich.');
+   x=Math.max(x,Math.floor(clip.x));
+   y=Math.max(y,Math.floor(clip.y));
+   xmax=Math.min(xmax,Math.ceil(clip.x+clip.width));
+   ymax=Math.min(ymax,Math.ceil(clip.y+clip.height));
+   if(xmax<=x||ymax<=y)return null;
+  }
+  let dw=xmax-x,dh=ymax-y;
   // Visual LOD only changes sampling density; exact world-space course,
   // silhouette, river width and mouth projection remain untouched.
   const detailScale=Math.max(.5,Math.min(1,Number(options.detailScale)||1));
-  const scale=Math.min(1.55*detailScale,2500/Math.max(dw,dh)),
-   canvas=document.createElement('canvas');
+  const scale=Math.min(1.55*detailScale,2500/Math.max(dw,dh));
+  if(clip){
+   // Shared GLOBAL pixel lattice across adjacent 512-unit WorldTiles.
+   // Otherwise their independently rounded origins create water seams.
+   const leftPx=Math.floor(x*scale),topPx=Math.floor(y*scale);
+   const rightPx=Math.ceil(xmax*scale),bottomPx=Math.ceil(ymax*scale);
+   x=leftPx/scale;y=topPx/scale;
+   dw=(rightPx-leftPx)/scale;dh=(bottomPx-topPx)/scale;
+  }
+  const canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.ceil(dw*scale));canvas.height=Math.max(1,Math.ceil(dh*scale));
   const g=canvas.getContext('2d',{willReadFrequently:true});
   const mask=maskData(projected,width,x,y,scale,canvas.width,canvas.height);
