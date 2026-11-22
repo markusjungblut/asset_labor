@@ -2967,7 +2967,9 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    else window.__vedrasObjectProfile=profile;
    return;
   }
-  paintUnifiedNormalShadows(()=>{
+  // Warm cached frames have no moving units; skip the entire full-size
+  // alpha mask instead of clearing it needlessly on every pan frame.
+  if(objs.some(o=>o.type!=='mountain'))paintUnifiedNormalShadows(()=>{
   for(const o of objs){
    const p=toScreen(o.x,o.y);
    if(p.x<-450||p.x>W+450||p.y<-450||p.y>H+450||o.type==='mountain')continue;
