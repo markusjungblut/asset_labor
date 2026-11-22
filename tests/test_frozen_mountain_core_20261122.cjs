@@ -34,6 +34,8 @@ test('viewer/core compositors clip only new core-owned scenery, not old archives
  assert(viewer.includes("g.rect(x,y,w,h);g.clip()"));
  assert(viewer.includes("if(!allMapVisible)clipCells(45)"),
   'fully visible test worlds preserve tall sprite overhang at outer rim');
+ assert(viewer.includes("plan=sparseWorldBlit&&!allMapVisible&&worldBlitPlanner?"),
+  'sparse hex-only blit must not cut mountains on a fully visible map');
  assert(viewer.includes("coreOnly:layer.coreOnly===true,png:await encode(layer.image)"),
   'exported PNG record must retain core ownership');
  assert(viewer.includes("coreOnly:sceneryLayer.coreOnly===true,png"),
