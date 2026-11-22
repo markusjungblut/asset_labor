@@ -89,7 +89,8 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <div id="largeBakeReport" class="distribution-status" role="status">Noch kein Renderplan erstellt. Vorhandene Spielkarten werden nicht verändert.</div>
 <div class="toolbar" style="margin-top:14px">
 <label>WorldTile-ID (cx,cy; leer = mittlere Kachel)<input id="materialPreviewTileId" type="text" placeholder="z. B. 0,0"></label>
-<button id="materialPreviewBake" type="button">Echtes Terrainmaterial-PNG testen (unvollständig)</button>
+<label><input id="materialPreviewRelief" type="checkbox" checked> Hügelrelief mit Originalrenderer (erweiterter Quellbereich)</label>
+<button id="materialPreviewBake" type="button">Original-Terrain/Relief-PNG testen (unvollständig)</button>
 </div>
 <div id="materialPreviewReport" class="distribution-status" role="status">Materialtest benötigt den lokalen Asset-Labor-Server und den aktuellen Terrainkatalog. Keine vollständigen Spielkarten-PNGs.</div>
 <div class="actions"><button id="auditMaterialCatalog" type="button">Originalmaterialien für gesamte Welt prüfen</button></div>
@@ -99,5 +100,5 @@ canvas{display:block;width:100%;height:auto;max-height:71vh;cursor:crosshair}
 <p class="minor">Kartenexport enthält Seed, Generatorversion, Parameter, Hexdaten, Flussrouten und Fundorte. Die Anwendung im Asset-Labor ersetzt ausschließlich die aktuelle Testszene nach Bestätigung; originale PNGs und Asset-Kataloge bleiben unverändert. Der Worldgen-Wechsel im produktiven Gameplay erfolgt nicht automatisch.</p>
 </section>
 </main>
-<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-io.js?v=20261120-io-v1"></script><script src="catalog.js?v=0.18.0"></script><script src="water-texture.js?v=20261119-forest-seamless-v2"></script><script src="autotile.js?v=20261119-ground-wrap-v1"></script><script src="large-map-bake-plan.js?v=20261122-p1"></script><script src="large-map-bake-source.js?v=20261122-p2"></script><script src="large-map-bake-material-preview.js?v=20261122-material-p1"></script><script src="geography-lab.js?v=20261122-large-bake-material-p1"></script>
+<script src="worldgen-geography.js?v=2.1.2"></script><script src="geography-lab-presets.js?v=2.1.2"></script><script src="geography-io.js?v=20261120-io-v1"></script><script src="catalog.js?v=0.18.0"></script><script src="water-texture.js?v=20261119-forest-seamless-v2"></script><script src="autotile.js?v=20261119-ground-wrap-v1"></script><script src="large-map-bake-plan.js?v=20261122-p1"></script><script src="large-map-bake-source.js?v=20261122-p2"></script><script src="relief.js?v=20261122-geography-bake-ground"></script><script src="large-map-bake-ground-relief.js?v=20261122-p2-ground"></script><script src="large-map-bake-material-preview.js?v=20261122-material-relief-p2"></script><script src="geography-lab.js?v=20261122-large-bake-material-p1"></script>
 </body></html>
