@@ -208,8 +208,9 @@ test('all six corner combinations resolve a single canonical joined node',()=>{
  const nodes=W.junctions(edges);
  assert.equal(nodes.filter(n=>n.degree===2).length,6,
   'each corner connects two different neighboring edge directions');
- assert.equal(nodes.filter(n=>n.degree===1).length,6);
- assert.equal(nodes.length,12);
+ assert.equal(nodes.filter(n=>n.degree===1).length,0,
+  'the six sides of a closed hex have no open endpoints');
+ assert.equal(nodes.length,6);
  const first=edges[0],next=edges[1];
  const pair=W.junctions([first,next]);
  assert.equal(pair.filter(n=>n.degree===2).length,1);
