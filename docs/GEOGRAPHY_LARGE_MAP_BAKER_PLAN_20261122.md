@@ -152,6 +152,15 @@ ungültige Batches, explizite Nicht-Fertig-Markierung.
   **1.678/1.678 Kacheln** stimmen hinsichtlich der Nachbar-Hex-Auswahl
   mit `chunks.js.neighbors(...,470)` überein; durchschnittlich rund
   **33 relevante Hexe pro Kachel**.
+- `large-map-bake-authoring.js` übersetzt jeden kachelbezogenen
+  BakingContext in das **vorhandene Asset-Labor-Authoringformat**
+  (`q/r`, `worldQ/worldR`, `biome`, `terrainTypeId`,
+  `hillProfile`, Relief, Waldklasse/-dichte,
+  `geographyHexes`, Junglegebiete und Owner-by-Anchor-Zellen).
+  Die geografischen **absoluten Koordinaten bleiben erhalten**.
+  Flüsse werden als volle Routen mitgegeben, nicht anhand des
+  lokalen Source-Halos zerstückelt. Dieser reine Adapter
+  wählt noch **keine** Terrain-PNGs oder dekorativen Sprites aus.
 - `large-map-bake-runner.js` bildet die asynchrone Pipeline
   `contextFor → renderer.renderTile → PNG-Format-/Dimensionsprüfung →
   SHA-256 → store.add`. Zwei Qualitätsprofile sind festgelegt:
