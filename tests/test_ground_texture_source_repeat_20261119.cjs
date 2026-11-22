@@ -58,7 +58,8 @@ test('equalization control has a direct shortcut without mutating the map',()=>{
  assert.match(ui,/balanceShortcut\.textContent='Schatten-Grauton'/);
  assert.match(ui,/balanceShortcut\.dataset\.focus='shadowToneControls'/);
  assert.match(ui,/if\(detail\)detail\.open=true/);
- assert.match(html,/id="shadowToneBalance"/);
+ assert.match(html,/id="shadowGrayLevel"/);
+ assert.match(html,/id="shadowGrayMountains"/);
 });
 
 test('hand-painted rock cast keeps manual art and gains the missing compact contact',()=>{
