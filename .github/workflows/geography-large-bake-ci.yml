@@ -31,6 +31,8 @@ jobs:
             /large-map-bake-plan.js
             /large-map-bake-source.js
             /large-map-bake-authoring.js
+            /large-map-bake-ground-relief.js
+            /relief.js
             /large-map-bake-material-preview.js
             /large-map-bake-runner.js
             /large-map-bake-storage.js
@@ -49,10 +51,11 @@ jobs:
             /tests/test_large_map_bake_export_20261122.cjs
             /tests/test_large_map_reference_probe_20261122.cjs
             /tests/test_large_map_material_preview_20261122.cjs
+            /tests/test_large_map_ground_relief_20261122.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Planner, real renderer neighbor parity and PNG receipts
         run: |
-          node --test tests/test_large_map_bake_*.cjs tests/test_large_map_reference_probe_20261122.cjs tests/test_large_map_material_preview_20261122.cjs
+          node --test tests/test_large_map_bake_*.cjs tests/test_large_map_reference_probe_20261122.cjs tests/test_large_map_material_preview_20261122.cjs tests/test_large_map_ground_relief_20261122.cjs
