@@ -153,12 +153,10 @@ window.VedrasShadows=(()=>{
   // Retain the original mountain distance-field silhouette and softness,
   // but normalize its .90-coverage peak to the exact shared black target.
   if(target!==null)return clamp(target*cover/.90,0,1);
-  const opacity=window.VedrasShadowTone?.opacity(s.opacity,.44)??s.opacity;
-  // Mountain alpha has a built-in .90 silhouette-coverage ceiling while
-  // ordinary sprite casts are full coverage. Equalization must normalize
-  // these two rendering families WITHOUT altering geometry or old balance=0.
-  const gain=window.VedrasShadowTone?.coverageGain?.(.90)??1;
-  return Math.min(.90,Math.max(0,opacity*global*cover*gain));
+  // Explicit mountain opt-out must use EXACTLY the authored mountain
+  // opacity and historical scene strength, not the old equalization slider
+  // (which could still be persisted as 100% and silently brighten mountains).
+  return clamp(s.opacity*global*cover,0,.90);
  }
  function paintMountain(ctx,origin,width,config,global=1){
   if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||
