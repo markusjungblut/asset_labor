@@ -4335,6 +4335,7 @@ function frozenSceneKey({force4x=false}={}){
   // scenery archives. This new fingerprint forces a new read-only scene
   // without touching any earlier saved tiles or their IndexedDB records.
   'scenery-global-composition-exclusive-core-v2',
+  'wall-material-silhouette-v2',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
