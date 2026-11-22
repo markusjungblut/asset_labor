@@ -26,7 +26,7 @@ const makeContext=()=>{
  const ops=[],ctx={ops};
  for(const fn of ['save','restore','beginPath','moveTo','lineTo',
   'closePath','stroke','fill','fillRect']){
-  ctx[fn]=(...args)=>ops.push({fn,args});
+  ctx[fn]=(...args)=>ops.push({fn,args,fillStyle:ctx.fillStyle});
  }
  return ctx;
 };
@@ -105,6 +105,53 @@ test('wall construction hides only ground roots crossing its line',()=>{
  assert.equal(W.blocksPoint(0,0,[edge],22),false);
  assert.equal(W.blocksPoint(mid.x+26,mid.y,[edge],22),false);
  assert.equal(W.blocksPoint(mid.x+10,mid.y,[edge],22),true);
+});
+test('wall visual v2 keeps identical NW/NE height, thicker stone and centered footprints',()=>{
+ assert.equal(W.heightFor('stone'),62,'stone should no longer tower over the palisade');
+ assert.equal(W.heightFor('stone'),W.heightFor('palisade'),
+  'palisade and masonry share the same vertical wall height');
+ assert.equal(W.widthFor('stone'),24);
+ assert.equal(W.widthFor('palisade'),11);
+ const project=(x,y)=>({x:x*.8+22,y:y*.85-12});
+ for(const [dq,dr] of R.DIRS){
+  const a={q:0,r:0},b={q:dq,r:dr};
+  const e={a:[a.q,a.r],b:[b.q,b.r]};
+  const stone=W.footprint({...e,kind:'stone'},project,1);
+  const timber=W.footprint({...e,kind:'palisade'},project,1);
+  assert(stone&&timber,'every direction has a wall footprint');
+  for(const p of [stone,timber]){
+   assert(Math.abs((p.frontA.x+p.backA.x)/2-p.a.x)<1e-8);
+   assert(Math.abs((p.frontA.y+p.backA.y)/2-p.a.y)<1e-8);
+   assert(Math.abs((p.frontB.x+p.backB.x)/2-p.b.x)<1e-8);
+   assert(Math.abs((p.frontB.y+p.backB.y)/2-p.b.y)<1e-8);
+   assert(p.depth.y>=-1e-9,'all back faces point toward screen front, including NW');
+   assert.equal(p.height,62,'a different hex direction must not change height');
+  }
+  assert(stone.thickness>timber.thickness*2,
+   'broad masonry extends into both neighboring hexes');
+  const shadowStone=W.shadowVector('stone',1,{angle:160});
+  const shadowTimber=W.shadowVector('palisade',1,{angle:160});
+  assert.equal(shadowStone.height,shadowTimber.height,
+   'equal wall heights produce the same standardized shadow reach');
+  assert.equal(shadowStone.x,shadowTimber.x);
+ }
+});
+test('wall visual v2 paints separated wooden posts and ashlar courses',()=>{
+ const p=(x,y)=>({x:x*.8,y:y*.85});
+ const edge={a:[0,0],b:[1,0]};
+ const wood=makeContext(),stone=makeContext();
+ assert(W.draw(wood,{...edge,kind:'palisade'},p,1));
+ assert(W.draw(stone,{...edge,kind:'stone'},p,1));
+ assert(wood.ops.filter(op=>op.fn==='fill').length>=18,
+  'timber wall should contain multiple distinct posts, not one smooth slab');
+ assert(wood.ops.some(op=>op.fn==='fill'&&op.fillStyle==='#be9467'),
+  'visible individual pointed timber heads');
+ assert(stone.ops.some(op=>op.fn==='fill'&&op.fillStyle==='#bfc4c1'),
+  'masonry needs a light-gray body');
+ assert(stone.ops.some(op=>op.fn==='fill'&&op.fillStyle==='#e0e2dc'),
+  'masonry needs a lighter broad top face');
+ assert(stone.ops.filter(op=>op.fn==='stroke').length>=16,
+  'ashlar blocks need explicit horizontal courses and staggered joints');
 });
 test('wall casting uses default sprite sun angle (left) and can follow edits',()=>{
  const orig=W.shadowVector('stone',1,{angle:160,length:1.05});
