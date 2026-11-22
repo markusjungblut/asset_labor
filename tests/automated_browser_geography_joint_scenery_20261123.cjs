@@ -18,7 +18,7 @@ for(const file of names)assert(fs.statSync(path.join(root,file)).size>20000,
 const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'polish.js','mountain.js','relief.js','autotile.js',
  'large-map-bake-ground-relief.js','large-map-bake-plan.js',
- 'large-map-bake-joint-scenery.js']);
+ 'large-map-bake-joint-scenery.js','large-map-bake-scenery-seam.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
  {width:10,height:10});
 const plan=Plan.plan(world);
@@ -46,7 +46,8 @@ const plan=Plan.plan(world);
   await page.goto(origin+'/test',{waitUntil:'load'});
   for(const file of ['sprite-planner.js','nature-balance.js','polish.js',
    'mountain.js','relief.js','autotile.js','large-map-bake-plan.js',
-   'large-map-bake-ground-relief.js','large-map-bake-joint-scenery.js'])
+   'large-map-bake-ground-relief.js','large-map-bake-joint-scenery.js',
+   'large-map-bake-scenery-seam.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
    const [tree,mount]=names;
@@ -82,6 +83,11 @@ const plan=Plan.plan(world);
    });
    const a=await renderer.renderTile('0,0');
    const b=await renderer.renderTile('1,0');
+   const verifier=window.VedrasJointScenerySeam.create({plan,renderer:{
+    previewOnly:true,defaultTile:()=> '0,0',
+    renderTile:async id=>id==='0,0'?a:b
+   }});
+   const pixelProof=await verifier.verifyPair('0,0','right');
    const decode=async blob=>{
     const bitmap=await createImageBitmap(blob);
     const canvas=document.createElement('canvas');
@@ -116,6 +122,8 @@ const plan=Plan.plan(world);
     occludedPairs:[a.occludedTreeMountainPairs,b.occludedTreeMountainPairs],
     flattenPads:[a.mountainFlattenPads,b.mountainFlattenPads],
     different,opaque,transparent,maxDelta,mismatchSamples,
+    pixelProof:{passed:pixelProof.passesPixelIdentity,
+     different:pixelProof.differingPixels,painted:pixelProof.paintedPixels},
     ready:[a.readyForViewer,b.readyForViewer],
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
@@ -134,6 +142,9 @@ const plan=Plan.plan(world);
   assert(result.opaque>500,'both original sprites must contribute visible pixels');
   assert(result.transparent>500);
   assert.equal(result.different,0,'adjacent joint original PNG sample lattices differ');
+  assert.equal(result.pixelProof.passed,true);
+  assert.equal(result.pixelProof.different,0);
+  assert(result.pixelProof.painted>500);
   assert.deepEqual(result.projection,[2.5,2.125]);
   console.log('PASS real joint Nature tree+mountain 2.5x pixel seam',JSON.stringify(result));
  }finally{

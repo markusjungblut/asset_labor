@@ -9,6 +9,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  TREEPNG=window.VedrasLargeMapTreePNG,
  CANOPY=window.VedrasLargeMapCanopyAudit,
  JOINT=window.VedrasLargeMapJointScenery,
+ SEAM=window.VedrasJointScenerySeam,
  NATURE=window.VedrasLargeMapNatureSource,
  $=id=>document.getElementById(id);
 let config=MIX.configFor(G),world=null,selected=null,buildTimer=null;
@@ -696,19 +697,13 @@ $('auditCanopyProxy').addEventListener('click',async()=>{
   report.textContent='Kronendeckungsaudit fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
-$('previewJointScenery').addEventListener('click',async()=>{
- if(!currentWorld())return;
- const button=$('previewJointScenery'),report=$('jointSceneryReport');
- if(button.disabled)return;button.disabled=true;
- const current=world;
- try{
+async function makeJointSceneryPreview(current){
   if(!JOINT?.create||!NATURE?.create||
     !window.VedrasLargeMapNatureTrunks?.create||
     !window.VedrasLargeMapBakeForestFloor?.create||
     !window.VedrasLargeMapBakeGroundRelief?.createOptions||
     !window.VedrasRelief?.at||!MATERIAL?.imageLoader)
    throw Error('Gemeinsamer Original-Scenery-/Relief-Renderer nicht vollständig geladen.');
-  report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
   const {plan,scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
   const forestSource=window.VedrasLargeMapBakeForestFloor.create({
    world:current,catalog,groups:{byType:new Map()},
@@ -727,6 +722,16 @@ $('previewJointScenery').addEventListener('click',async()=>{
    terrainCatalog:catalog,natureCatalog,assets,
    loadImage:MATERIAL.imageLoader()
   });
+  return {plan,renderer};
+}
+$('previewJointScenery').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('previewJointScenery'),report=$('jointSceneryReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
+  const {plan,renderer}=await makeJointSceneryPreview(current);
   const requested=String($('materialPreviewTileId').value||'').trim();
   const id=requested||renderer.defaultTile();
   if(!plan.tiles.some(t=>t.id===id))
@@ -758,6 +763,56 @@ $('previewJointScenery').addEventListener('click',async()=>{
    'visuelle Editor-Parität und Berg-Berg-Silhouettenprüfung fehlen.';
  }catch(error){
   report.textContent='Gemeinsame Original-Scenery-Probe fehlgeschlagen: '+
+   String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('verifyJointSeam').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('verifyJointSeam'),report=$('jointSeamReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!SEAM?.create)throw Error('Original-Pixelnahtprüfer nicht geladen.');
+  report.textContent='Globalen Originalbaum-/Berg-Scenery-Renderer für benachbarte WorldTiles vorbereiten …';
+  const {plan,renderer}=await makeJointSceneryPreview(current);
+  const verifier=SEAM.create({plan,renderer});
+  const requested=String($('materialPreviewTileId').value||'').trim();
+  let pair=verifier.defaultPair();
+  if(requested){
+   const tile=plan.tiles.find(t=>t.id===requested);
+   if(!tile)throw Error('WorldTile-ID liegt nicht im geografischen Renderplan.');
+   const byId=new Set(plan.tiles.map(t=>t.id));
+   const right=(tile.x/512+1)+','+(tile.y/512);
+   const down=(tile.x/512)+','+(tile.y/512+1);
+   const left=(tile.x/512-1)+','+(tile.y/512);
+   const up=(tile.x/512)+','+(tile.y/512-1);
+   if(byId.has(right))pair={id:requested,direction:'right'};
+   else if(byId.has(down))pair={id:requested,direction:'down'};
+   else if(byId.has(left))pair={id:left,direction:'right'};
+   else if(byId.has(up))pair={id:up,direction:'down'};
+   else throw Error('Kein direkt benachbartes WorldTile vorhanden.');
+  }
+  if(!pair)throw Error('Zwei benachbarte Kacheln für den Pixelnahttest fehlen.');
+  const id=pair.id,direction=pair.direction;
+  report.textContent='Zwei originale transparente WorldTiles dekodieren und Pixel für Pixel vergleichen …';
+  const result=await verifier.verifyPair(id,direction);
+  if(current!==world)throw Error('Geografiewelt während der Pixelnahtprüfung geändert.');
+  if(result.complete||result.readyForViewer||result.rasterized)
+   throw Error('Eine Pixelnahtprobe darf kein fertiger Atlas sein.');
+  report.textContent=(result.passesPixelIdentity?
+   'PIXELNAHT BESTANDEN: ':'PIXELNAHT NICHT BESTANDEN: ')+
+   result.tileId+' → '+result.neighborTileId+' ('+result.direction+') · '+
+   result.testedPixels.toLocaleString('de-DE')+' RGBA-Pixel geprüft · '+
+   result.paintedPixels.toLocaleString('de-DE')+' Pixel mit tatsächlicher Scenery · '+
+   result.differingPixels.toLocaleString('de-DE')+' unterschiedliche Pixel · '+
+   'maximale Kanaldifferenz '+result.maxChannelDifference+
+   (result.paintedPixels===0?' · keine bemalte gemeinsame Fläche: keine positive Nahtbestätigung':'')+
+   (result.firstDifferences.length?' · erste Abweichung bei x='+
+    result.firstDifferences[0].x+', y='+result.firstDifferences[0].y:'')+
+   '. Auch bei bestandener Naht: KEIN fertiger Kartenatlas; '+
+   'Editor-Bildparität, Nature-Vollpopulation, Schatten und 4× bleiben offen.';
+ }catch(error){
+  report.textContent='Original-Pixelnahtprüfung fehlgeschlagen: '+
    String(error?.message||error);
  }finally{button.disabled=false;}
 });
