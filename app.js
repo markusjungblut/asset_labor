@@ -4795,11 +4795,11 @@ $('frozenReportDownload').addEventListener('click',()=>{
  document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),15000);
 });
-// Eight halo-only Chunk IDs on the canonical 397-hex map do not overlap
-// any authored HEX polygon. Preserve the historic 120-ID archive geometry
-// and create fully transparent 4x/2x packets for these *empty* owners.
-// Never use this path for a tile intersecting even a tiny real hex sliver.
-function frozenEmptyNative4xTile(tile){
+// The canonical 397-hex archive has halo-only tiles without an authored
+// terrain polygon. Their GROUND must remain transparent; their SCENERY may
+// NOT: a tall mountain, foreground tree or leftward shadow can extend into
+// this tile from an adjacent owned hex.
+async function frozenEmptyNative4xTile(tile){
  const ground=document.createElement('canvas'),
   scenery=document.createElement('canvas'),groundPad=WORLD_TILE_GUTTER,
   sceneryPad=128;
@@ -4807,13 +4807,55 @@ function frozenEmptyNative4xTile(tile){
  ground.height=Math.round((tile.size+2*groundPad)*PROJECT_Y*4);
  scenery.width=Math.round((tile.size+2*sceneryPad)*2);
  scenery.height=Math.round((tile.size+2*sceneryPad)*PROJECT_Y*2);
- if(!ground.getContext('2d',{alpha:true})||
-    !scenery.getContext('2d',{alpha:true}))
+ const g=scenery.getContext('2d',{alpha:true});
+ if(!ground.getContext('2d',{alpha:true})||!g)
   throw Error('Transparenter 4×-Randchunk nicht darstellbar: '+tile.id);
- return {complete:true,revision:'no-authored-hex-in-core-v1',
+ if(state.objects){
+  const inside=(x,y,halo)=>x>=tile.x-halo&&x<=tile.x+tile.size+halo&&
+   y>=tile.y-halo&&y<=tile.y+tile.size+halo;
+  const paths=new Set();
+  for(const m of state.mountainInstances||[]){
+   const p=axialPos(m.q,m.r);
+   if(inside(p.x,p.y,1450))paths.add(m.assetPath);
+  }
+  for(const n of state.natureInstances||[]){
+   const p=axialPos(n.q,n.r);
+   if(inside(p.x+(n.dx||0),p.y+(n.dy||0),550))paths.add(n.assetPath);
+  }
+  for(const [k,o] of Object.entries(state.hexObject||{})){
+   const [q,r]=k.split(',').map(Number),p=axialPos(q,r);
+   if(inside(p.x,p.y,740))paths.add(o?.path);
+  }
+  // Unlike a terrain-bearing tile, this source has no terrain core that
+  // tileArtworkStatus() can certify. Explicitly demand its scenery sources
+  // before freezing; never mark half-loaded mountain silhouettes complete.
+  await Promise.all([...paths].filter(Boolean).map(async path=>{
+   const asset=assetByPath.get(path);
+   if(!asset)return;
+   if(!asset.img?.naturalWidth)await imagePool.ensure(asset,11);
+   if(!asset.img?.naturalWidth)
+    throw Error('Randkachel '+tile.id+': Scenery-Quelle nicht bereit: '+path);
+  }));
+  const z=state.zoom,extent=tile.size+2*sceneryPad,
+   old={ctx,W,H,panX:state.panX,panY:state.panY,dpr:state.dpr};
+  try{
+   ctx=g;W=extent*z;H=extent*z*PROJECT_Y;
+   state.dpr=scenery.width/W;
+   state.panX=-W/2-(tile.x-sceneryPad)*z;
+   state.panY=-H/2-(tile.y-sceneryPad)*z*PROJECT_Y;
+   g.setTransform(state.dpr,0,0,state.dpr,0,0);
+   spriteAtlas?.beginFrame();window.VedrasSpriteShadows?.beginFrame?.();
+   try{drawMapObjects({includeUnits:false});}
+   finally{spriteAtlas?.endFrame();}
+  }finally{
+   ctx=old.ctx;W=old.W;H=old.H;
+   state.panX=old.panX;state.panY=old.panY;state.dpr=old.dpr;
+  }
+ }
+ return {complete:true,revision:'no-authored-ground-with-scenery-v2',
   tile:{...tile},level:'near',dirty:false,preview:false,
   layers:[{layer:'ground',image:ground,pad:groundPad},
-   {layer:'scenery',image:scenery,pad:sceneryPad}]};
+   {layer:'scenery',image:scenery,pad:sceneryPad,coreOnly:true}]};
 }
 $('frozenCaptureAll').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
