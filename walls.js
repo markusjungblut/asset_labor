@@ -168,7 +168,143 @@ window.VedrasWalls=(()=>{
   ctx.restore();
   return true;
  }
+
+ // Direction-specific, authored SVG material art. Each SVG has its own
+ // precisely measured transparent bounds and a known footpoint at side.a.
+ // Never rotate a 2.5D sprite (which would tilt its upright timber posts).
+ // A missing image retains the existing Canvas fallback for older browsers.
+ const wallArtMeta={
+  palisade:[[150,160,11,86],[28,216,14,82],[150,160,139,86],
+   [150,160,139,148],[28,216,14,208],[150,160,11,148]],
+  stone:[[156,167,14,89],[40,216,20,82],[156,167,142,89],
+   [156,167,142,152],[40,216,20,208],[156,167,14,152]]
+ };
+ const wallArt=new Map();
+ let artworkPromise=null;
+ function artworkReady(){
+  if(typeof Image==='undefined')return Promise.resolve(false);
+  if(artworkPromise)return artworkPromise;
+  const pending=[];
+  for(const kind of kinds)for(let side=0;side<6;side++){
+   const name=kind+':'+side,image=new Image();
+   wallArt.set(name,image);
+   pending.push(new Promise(resolve=>{
+    image.onload=()=>resolve(true);
+    image.onerror=()=>resolve(false);
+    image.src='assets/walls/'+kind+'/edge_dir'+side+'.svg';
+   }));
+  }
+  artworkPromise=Promise.all(pending).then(results=>{
+   if(typeof window.dispatchEvent==='function'&&typeof Event!=='undefined')
+    window.dispatchEvent(new Event('vedras:wall-art-ready'));
+   return results.every(Boolean);
+  });
+  return artworkPromise;
+ }
+ function artworkInfo(){return {count:wallArt.size,
+  loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
+  total:12};}
+ function drawArtwork(ctx,edge,project,zoom){
+  if(typeof Image==='undefined')return false;
+  if(!artworkPromise)artworkReady();
+  const g=geometry(edge);if(!g)return false;
+  const img=wallArt.get(edge.kind+':'+g.side);
+  if(!img?.naturalWidth)return false;
+  const [w,h,ax,ay]=wallArtMeta[edge.kind][g.side];
+  const origin=project(g.a.x,g.a.y);
+  ctx.save();ctx.globalAlpha=1;ctx.filter='none';
+  ctx.globalCompositeOperation='source-over';
+  ctx.drawImage(img,origin.x-ax*zoom,origin.y-ay*zoom,w*zoom,h*zoom);
+  ctx.restore();
+  return true;
+ }
+ // Three wall segments at most can touch one hex vertex. The same canonical
+ // node is shared by both hex owners and all six orientation combinations.
+ // A small volume/corner graphic at each node seals every direction pair
+ // without storing the exponential number of full wall combinations.
+ function junctions(edges){
+  const map=new Map();
+  for(const e of edges||[]){
+   const g=geometry(e);if(!g)continue;
+   for(const [p,other] of [[g.a,g.b],[g.b,g.a]]){
+    const id=Math.round(p.x*1e5)+','+Math.round(p.y*1e5);
+    let node=map.get(id);
+    if(!node){node={id,x:p.x,y:p.y,incident:[],kinds:[],degree:0};
+     map.set(id,node);}
+    node.incident.push({kind:e.kind,angle:Math.atan2(other.y-p.y,other.x-p.x)});
+    if(!node.kinds.includes(e.kind))node.kinds.push(e.kind);
+   }
+  }
+  return [...map.values()].map(n=>({...n,
+   degree:n.incident.length,kind:n.kinds.includes('stone')?'stone':'palisade'}))
+   .sort((a,b)=>a.y-b.y||a.x-b.x);
+ }
+ function drawJoin(ctx,node,project,zoom=1){
+  if(!node||!node.degree)return false;
+  const p=project(node.x,node.y),stone=node.kind==='stone',
+   h=heightFor(node.kind)*zoom,w=(stone?14:8.5)*zoom;
+  const top=p.y-h;
+  ctx.save();ctx.globalAlpha=1;ctx.filter='none';
+  ctx.globalCompositeOperation='source-over';
+  // Broad base and full-height pier/post overlap adjacent direction sprites.
+  // Every visible bottom edge lies on the ground, with no lower spikes.
+  if(stone){
+   ctx.fillStyle='#554f43';poly(ctx,[
+    {x:p.x-w*1.08,y:p.y},{x:p.x+w*1.08,y:p.y},
+    {x:p.x+w*1.08,y:top},{x:p.x-w*1.08,y:top}]);
+   ctx.fillStyle='#90806c';poly(ctx,[
+    {x:p.x-w*.94,y:p.y},{x:p.x+w*.30,y:p.y},
+    {x:p.x+w*.30,y:top},{x:p.x-w*.94,y:top}]);
+   ctx.fillStyle='#bcac91';poly(ctx,[
+    {x:p.x-w*.94,y:top},{x:p.x+w*.30,y:top},
+    {x:p.x+w,y:top-4*zoom},{x:p.x-w*.2,y:top-4*zoom}]);
+   ctx.strokeStyle='#4d493f';ctx.lineWidth=1.15*zoom;
+   for(let i=1;i<4;i++){
+    const y=p.y-h*i/4;
+    ctx.beginPath();ctx.moveTo(p.x-w,y);ctx.lineTo(p.x+w,y);ctx.stroke();
+   }
+   ctx.strokeStyle='#ddd0b6';ctx.lineWidth=1.3*zoom;
+   ctx.beginPath();ctx.moveTo(p.x-w*.92,top);
+   ctx.lineTo(p.x+w*.3,top);ctx.stroke();
+  }else{
+   ctx.fillStyle='#4b3423';poly(ctx,[
+    {x:p.x-w,y:p.y},{x:p.x+w,y:p.y},
+    {x:p.x+w,top},{x:p.x-w,top}]);
+   ctx.fillStyle='#976137';poly(ctx,[
+    {x:p.x-w*.85,y:p.y},{x:p.x+w*.15,y:p.y},
+    {x:p.x+w*.15,y:top},{x:p.x-w*.85,y:top}]);
+   ctx.fillStyle='#b77e49';poly(ctx,[
+    {x:p.x-w,y:top},{x:p.x+w,y:top},
+    {x:p.x, y:top-8*zoom}]);
+   ctx.strokeStyle='#d6a369';ctx.lineWidth=1.35*zoom;
+   ctx.beginPath();ctx.moveTo(p.x-w*.46,p.y-5*zoom);
+   ctx.lineTo(p.x-w*.46,top+5*zoom);ctx.stroke();
+  }
+  ctx.restore();
+  return true;
+ }
+ function drawJoinShadow(ctx,node,project,zoom=1,global={}){
+  if(!node||!node.degree)return false;
+  const p=project(node.x,node.y),d=shadowVector(node.kind,zoom,global);
+  const sx=Number(global.offsetX??-.07)*d.height;
+  const sy=Number(global.offsetY??.025)*d.height;
+  const moved={x:p.x+d.x+sx,y:p.y+d.y+sy};
+  const r=(node.kind==='stone'?17:11)*zoom;
+  const tone=window.VedrasShadowTone;
+  ctx.save();ctx.globalAlpha=tone?.targetAlpha?.('sprite')??.40;
+  ctx.fillStyle=tone?.colorCss?.()||'#203131';
+  ctx.filter='blur('+Math.min(12,Math.max(1,
+   (Number(global.softness)||6)*zoom*.65))+'px)';
+  poly(ctx,[{x:p.x-r,y:p.y-r*.48},{x:p.x+r,y:p.y-r*.48},
+   {x:moved.x+r,y:moved.y-r*.48},{x:moved.x-r,y:moved.y-r*.48}]);
+  ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(moved.x,moved.y,r*.8,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  return true;
+ }
+
  function draw(ctx,edge,project,zoom=1){
+  if(drawArtwork(ctx,edge,project,zoom))return true;
   const p=footprint(edge,project,zoom);if(!p)return false;
   const {frontA,frontB,backA,backB,depth,height:h}=p;
   const frontTopA=lift(frontA,h),frontTopB=lift(frontB,h);
@@ -269,5 +405,6 @@ window.VedrasWalls=(()=>{
   return true;
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
-  occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow};
+  occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
+  artworkReady,artworkInfo,wallArtMeta,junctions,drawJoin,drawJoinShadow};
 })();
