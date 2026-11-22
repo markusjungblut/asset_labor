@@ -525,7 +525,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   function updateTone(changes){
    Tone.set({...Tone.get(),...changes});
-   refreshTone();refresh();core.requestDraw();
+   // Keep the single-sprite Canvas preview responsive while dragging.
+   // The large authored map rebuilds once after release/change below.
+   refreshTone();refresh();
   }
   if(level){
    level.addEventListener('input',()=>updateTone({gray:Number(level.value)}));
