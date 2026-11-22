@@ -109,7 +109,7 @@ test('UI wires original river and shoreline modules in order, never claims a fin
  assert(indices.every((x,i)=>i===0||x>indices[i-1]));
  assert.match(html,/id="materialPreviewShoreline"/);
  assert.match(js,/shorelineAdapter:window\.VedrasLargeMapBakeShoreline/);
- assert.match(js,/renderer\.renderTile\(tileId,\{withRelief,withShoreline\}\)/);
+ assert.match(js,/renderer\.renderTile\(tileId,\{withRelief,withShoreline,withRivers\}\)/);
  assert.match(js,/zurückgestellte Flussmündungen/);
  assert.match(js,/UNVOLLSTÄNDIG/);
 });
