@@ -341,7 +341,7 @@ test('397-hex 120-tile archive retains eight genuine transparent halo-only owner
   height:Math.max(...ys)-Math.min(...ys)+2*margin
  },cells,512);
  assert.equal(tiles.length,120);
- const empty=tiles.filter(tile=>!core.hasAuthoredArea(tile,cells))
+ const empty=Array.from(tiles).filter(tile=>!core.hasAuthoredArea(tile,cells))
   .map(t=>t.id).sort();
  assert.deepEqual(empty,[
   '-4,-6','-4,5','-5,-4','-5,3','3,-6','3,5','4,-4','4,3'
