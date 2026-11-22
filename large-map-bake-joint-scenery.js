@@ -258,20 +258,42 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
   output.width=Math.round((SIZE+2*PAD)*SCALE);
   output.height=Math.round((SIZE+2*PAD)*SCALE*PROJECT_Y);
   const ctx=output.getContext("2d",{alpha:true});
-  if(!ctx?.setTransform||!ctx?.drawImage||!ctx?.transform)
+  if(!ctx?.setTransform||!ctx?.drawImage)
    throw Error("Gemeinsame transparente Scenery-Canvas2D fehlt.");
-  ctx.setTransform(SCALE,0,0,SCALE*PROJECT_Y,
-   -(tile.x-PAD)*SCALE,-(tile.y-PAD)*SCALE*PROJECT_Y);
+  // Canonical global-pixel sprite scratch: Firefox/Chromium may otherwise
+  // resample a large alpha PNG differently depending on the destination
+  // tile's Canvas origin, even if translations differ by exactly 1280px.
+  // Paint each sprite once on an integer-anchored GLOBAL sample lattice,
+  // then composite its pixels at an integer offset into each WorldTile.
+  // A single bounded scratch canvas is reused; no world-sized atlas buffer.
+  ctx.setTransform(1,0,0,1,0,0);
+  const scratch=canvasFactory();
+  const outputGX=Math.round((tile.x-PAD)*SCALE),
+   outputGY=Math.round((tile.y-PAD)*SCALE*PROJECT_Y);
   for(const obj of sorted){
    const {item,img,g}=obj;
-   ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
-   ctx.filter=polish.natureFilter(item.meta,naturePolish);
-   ctx.translate(item.p.x,g.y);
-   ctx.transform(1,0,.012,.965,0,0);
-   ctx.translate(-item.p.x,-g.y);
-   ctx.drawImage(img,g.b.sx,g.b.sy,g.b.sw,g.b.sh,
+   const gx=Math.floor(g.box.left*SCALE),
+    gy=Math.floor(g.box.top*SCALE*PROJECT_Y),
+    rx=Math.ceil(g.box.right*SCALE),
+    ry=Math.ceil(g.box.bottom*SCALE*PROJECT_Y);
+   if(rx<=gx||ry<=gy||rx-gx>2600||ry-gy>2400)
+    throw Error("Kanonsches Sprite-Pixelraster überschreitet den Arbeitsspeicherrahmen.");
+   scratch.width=rx-gx;scratch.height=ry-gy;
+   const sc=scratch.getContext("2d",{alpha:true});
+   if(!sc?.setTransform||!sc?.drawImage||!sc?.transform)
+    throw Error("Original-Sprite-Raster-Canvas2D fehlt.");
+   sc.setTransform(SCALE,0,0,SCALE*PROJECT_Y,-gx,-gy);
+   sc.save();sc.globalAlpha=1;sc.globalCompositeOperation="source-over";
+   sc.filter=polish.natureFilter(item.meta,naturePolish);
+   sc.translate(item.p.x,g.y);
+   sc.transform(1,0,.012,.965,0,0);
+   sc.translate(-item.p.x,-g.y);
+   sc.drawImage(img,g.b.sx,g.b.sy,g.b.sw,g.b.sh,
     g.left,g.top,g.width,g.height);
-   ctx.restore();
+   sc.restore();
+   // One-to-one pixel copy at an integer offset: identical source pixels
+   // for overlapping tiles, even with transparent mountain/tree layering.
+   ctx.drawImage(scratch,gx-outputGX,gy-outputGY);
   }
   let png;
   if(typeof output.convertToBlob==="function")
