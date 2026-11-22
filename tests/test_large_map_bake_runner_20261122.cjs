@@ -61,8 +61,9 @@ test('genuine PNG images have the exact dimensions of existing 4x/2x Asset-Labor
  assert.deepEqual({width:g.width,height:g.height},R.dimensions('ground','near-4x'));
  assert.deepEqual({width:s.width,height:s.height},R.dimensions('scenery','near-4x'));
  assert.equal((await R.checkPacket(fresh(),'near-4x',{digest})).length,2);
- await assert.rejects(()=>R.pngInfo(new Blob([await ground.arrayBuffer()].slice(0,1))));
- await assert.rejects(()=>R.pngInfo(new Blob([Buffer.from(await ground.arrayBuffer()).subarray(0,30)])),/PNG/);
+ const bytes=Buffer.from(await ground.arrayBuffer());
+ await assert.rejects(()=>R.pngInfo(new Blob([bytes.subarray(0,1)])),/PNG/);
+ await assert.rejects(()=>R.pngInfo(new Blob([bytes.subarray(0,30)])),/PNG/);
 });
 test('partial render resumes strictly from verified, append-only PNG receipts',async()=>{
  const {world,plan}=setup(),db=store();
