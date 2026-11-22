@@ -2469,7 +2469,8 @@ function drawMountainShadows(objects){
  mountainCastsForFrame=[];
  const mts=objects.filter(o=>o.type==='mountain');
  const strength=sceneShadowStrength();
- if(!mts.length||strength<=0){
+ if(!mts.length||(strength<=0&&
+  window.VedrasShadowTone?.targetAlpha?.('mountain')===null)){
   window.__vedrasMountainShadowStats={count:mts.length,maxAlpha:0,positiveCount:0,cacheHits:0,cacheMisses:0};
   return;
  }
@@ -2712,7 +2713,8 @@ function drawNatureShadow(sh,obj,p){
  // Respect separately authored shadow artwork, but strengthen its terrain
  // integration. A generic shadow image is supplementary, never the only
  // contact/cast layer.
- ctx.save();ctx.globalAlpha=.65*sceneShadowStrength();
+ ctx.save();ctx.globalAlpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??
+  .65*sceneShadowStrength();
  ctx.drawImage(sh.img,b.sx,b.sy,b.sw,b.sh,centerX-sw*.5,centerY-hh*.5,sw,hh);
  ctx.restore();
  if(state.natureShadowDebug){ctx.save();ctx.strokeStyle='#f9ef9a';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#ef79b6';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(centerX,centerY);ctx.stroke();ctx.restore();}
@@ -2734,7 +2736,7 @@ function fallenLogShadowGeometry(obj,p){
 }
 function drawFallenLogShadow(obj,p){
  const strength=sceneShadowStrength();
- if(strength<=0)return;
+ if(strength<=0&&window.VedrasShadowTone?.targetAlpha?.('sprite')===null)return;
  const geometry=fallenLogShadowGeometry(obj,p);
  if(!(geometry.width>0))return;
  const silhouette=shadowSilhouette(obj.asset.img);
@@ -2743,7 +2745,8 @@ function drawFallenLogShadow(obj,p){
  const height=geometry.width*silhouette.aspect;
  ctx.save();
  ctx.globalCompositeOperation='source-over';
- ctx.globalAlpha=Math.min(.8,geometry.opacity*strength);
+ ctx.globalAlpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??
+  Math.min(.8,geometry.opacity*strength);
  ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
  ctx.filter='blur('+geometry.blur+'px)';
  // Long, continuous ground contact over the full log instead of a dot.
@@ -2969,7 +2972,8 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
     else{
      const ww=o.w*state.zoom,hh=ww*sh.img.naturalHeight/sh.img.naturalWidth;
      const anchor=sh.meta?.anchor||{x:.5,y:.5};
-     ctx.save();ctx.globalAlpha=sceneShadowStrength()*.65;
+     ctx.save();ctx.globalAlpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??
+      sceneShadowStrength()*.65;
      ctx.drawImage(sh.img,p.x-ww*anchor.x,p.y-hh*anchor.y,ww,hh);ctx.restore();
     }
    }
@@ -4532,6 +4536,8 @@ $('frozenReshade').addEventListener('click',async()=>{
   if(existing&&(existing.sceneryBaseScene!==source||
      existing.shadowTone?.lift!==tone.lift||
      existing.shadowTone?.balance!==tone.balance||
+     existing.shadowTone?.gray!==tone.gray||
+     existing.shadowTone?.mountains!==tone.mountains||
      existing.expectedTiles!==coverage.expected))
    throw Error('Zielkarte existiert mit anderen Basis-/Schatteneinstellungen oder Chunk-Raster');
   await frozenMap.saveAuthoredWorld(target,authoredSceneSnapshot());
@@ -5411,8 +5417,10 @@ function applyAuthoredEditorScene(scene){
   $('edgeWidth').value=String(state.edgeWidth);$('edgeWidthText').textContent=String(state.edgeWidth);$('waterSamplingMode').value=state.waterSampling;
   $('edgeIrregularity').value=String(state.edgeIrregularity);$('irregularityText').textContent=String(state.edgeIrregularity);$('cornerBlendToggle').checked=state.cornerBlend;
   $('shorelineToggle').checked=state.shoreline.enabled!==false;$('shorelineMode').value=state.shoreline.mode||'art';$('shorelineWidth').value=String(state.shoreline.width||34);$('shorelineWidthText').textContent=String(state.shoreline.width||34);$('shorelineOuter').value=String(state.shoreline.outer||10);$('shorelineOuterText').textContent=String(state.shoreline.outer||10);
-  if(scene.schemaVersion===3&&scene.shadowTone)
+  if(scene.schemaVersion===3&&scene.shadowTone){
    window.VedrasShadowTone?.set(scene.shadowTone);
+   window.dispatchEvent(new Event('vedras:shadow-tone-changed'));
+  }
   persistScene();invalidateTerrain();requestDraw();setView('map');
   const drawableRivers=window.VedrasRivers.normalizeRoutes(state.riverPaths,worldCells,wetHex).length;
   const inactiveRivers=state.riverPaths.length-drawableRivers;
