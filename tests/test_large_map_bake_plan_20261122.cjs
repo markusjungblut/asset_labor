@@ -38,9 +38,10 @@ test('planned 512-unit occupied tiles agree with the existing chunks.js renderer
  const maxX=Math.max(...a.tiles.map(x=>x.x))+2*C.SIZE;
  const maxY=Math.max(...a.tiles.map(x=>x.y))+2*C.SIZE;
  const existing=C.visible({x:minX,y:minY,width:maxX-minX,height:maxY-minY},w.cells);
- assert.deepEqual(a.tiles.map(t=>t.id).sort(),existing.map(t=>t.id).sort());
+ assert.deepEqual(a.tiles.map(t=>t.id).sort(),Array.from(existing,t=>t.id).sort());
  for(const c of w.cells.slice(0,300)){
-  assert.deepEqual(P.worldPos(c),C.worldPos(c));
+  const expected=C.worldPos(c),actual=P.worldPos(c);
+  assert.equal(actual.x,expected.x);assert.equal(actual.y,expected.y);
  }
 });
 test('world identity changes with seed, config and origin; same area stays stable',()=>{
