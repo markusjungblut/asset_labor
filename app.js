@@ -4218,7 +4218,7 @@ function frozenSceneKey({force4x=false}={}){
   // A low-density image must never silently satisfy a later 4x tour.
   'game-map-export-renderer-v7-ground-wrap-v1',
   'forest-floor-wrap-v1',
-  'organic-forest-fringes-and-glades-v3',
+  'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
   // gate. Never reuse any already published pre-fix Ground PNGs.
   'ground-owned-core-seam-gate-v1',
