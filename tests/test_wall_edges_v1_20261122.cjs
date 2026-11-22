@@ -97,6 +97,15 @@ test('mountains, water and actual river EDGE geometry are never wall sites',()=>
   'a nearby river must not block all six sides of a land hex');
 });
 
+test('wall construction hides only ground roots crossing its line',()=>{
+ const edge={a:[0,0],b:[1,0],kind:'stone'};
+ const mid=W.midpoint(edge);
+ assert.equal(W.blocksPoint(mid.x,mid.y,[edge],22),true);
+ assert.equal(W.blocksPoint(mid.x,mid.y+150,[edge],22),false);
+ assert.equal(W.blocksPoint(0,0,[edge],22),false);
+ assert.equal(W.blocksPoint(mid.x+26,mid.y,[edge],22),false);
+ assert.equal(W.blocksPoint(mid.x+10,mid.y,[edge],22),true);
+});
 test('wall casting uses default sprite sun angle (left) and can follow edits',()=>{
  const orig=W.shadowVector('stone',1,{angle:160,length:1.05});
  assert(orig.x<0&&orig.y>0,'sprite angle 160 casts left and slightly down');
@@ -127,6 +136,8 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   'walls are indexed as depth-sorted scene objects, not global overlay');
  assert(app.includes('if(obj.type===\'wall\')'));
  assert(app.includes('window.VedrasWalls.drawShadow(ctx,o.wallEdge'));
+ assert(app.includes('window.VedrasWalls.blocksPoint(o.x,o.y,walls,22)'));
+
  assert(app.includes('window.VedrasSpriteShadows?.get?.().global'),
   'no independent wall sun vector');
  assert(app.includes('paintUnifiedNormalShadows(()=>{'),
