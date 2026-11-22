@@ -77,6 +77,16 @@ test('woodland renderer draws overlay after decode, dense and light remain eligi
  assert.ok(realForest.strength({...dense,categoryId:'grass_pasture'})>
   realForest.strength({...light,categoryId:'grass_pasture'}));
 });
+test('the editor may not restore hard snow HEX clipping after the softened mask',()=>{
+ const body=production.slice(production.indexOf('function drawForestFloor(){'));
+ assert(body.includes('const pts=hexPoints(c.q,c.r)'));
+ assert(!body.includes("if(!c.ground||c.jungle||['snowfields','frozen_tundra'].includes(c.baseBiome))continue"),
+  'editor must not clip the blurred forest floor back to non-snowy polygons');
+ assert.match(read('forest-ground.js'),/const excluded=\(cells\|\|\[\]\)\.filter/);
+ assert.match(read('forest-ground.js'),/sg\.globalCompositeOperation='destination-out'/);
+ assert.match(read('forest-ground.js'),/sg\.filter='blur\('/);
+});
+
 test('jungle never receives ordinary woodland overlay, and disabled woods remain clear',()=>{
  const jungle={...dense,jungle:true,baseBiome:'jungle'};
  const z=harness({cells:[jungle],source:{...floor,img:null}});
