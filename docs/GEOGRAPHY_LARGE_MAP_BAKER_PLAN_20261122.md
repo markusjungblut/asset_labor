@@ -496,6 +496,55 @@ der Gesamt-Canvas-/RAM-Zeit. Ferner fehlen
 Waldboden, Natur-/Bergobjekte, Schatten,
 die finale 4×-Quelldichte und Sektorimport.
 
+## Phase 2.6 – Originaler Waldboden aus globalen Waldregionen
+
+Die direkte Geografie-Kachelprobe verwendet jetzt
+`VedrasForest.generate()` und
+`VedrasForestGround.build()` für echte, originaltexturierte
+Waldbodenmasken. Keine zweite Wald-Malroutine.
+
+- Die 7.125 Waldklassen des Referenz-Weltgenerators bleiben
+  authoritativ, einschließlich der Klasse `none`. Bei
+  vollständigen Geo-Overrides ist die synthetische Grove-
+  Ausbreitung unnötig; `coverage:0` überspringt sie,
+  während Original-Logik für Randbäume, Dichte und global
+  deterministische Lichtungen weiterhin läuft.
+- Die ganze Welt wird **einmal** für Waldregionen,
+  Lichtungen und gemeinsame Regionsdeckkraft ausgewertet.
+  Kachelweise Builds verwenden diesen globalen Deckkraftwert,
+  damit ein großer Wald nicht je WorldTile anders transparent ist.
+  Dschungel, Schnee und gefrorene Tundra werden wie im
+  bisherigen Editor von der normalen Waldbodenmaske ausgenommen.
+- `forest-ground.js` bekommt ausschließlich für neue Aufrufer
+  zwei **optionale** Parameter `bounds` (global
+  ausgerichtete Rasterpixelschnitte) und
+  `regionOpacityOf` (globale Regionsdeckkraft).
+  Bei beiden nicht gesetzten Parametern bleibt der
+  alte Editorpfad unverändert. Das Raster ist auf
+  **768×768 Welteinheiten plus weiches Maskenpadding**
+  und 1,4× Detaildichte begrenzt, nicht auf 60.000
+  Hexfelder in einem riesigen Canvas.
+- Die reale Ground-Zeichenfolge ist nun Terrain,
+  optionales Relief, **Original-Waldboden**,
+  Küsten und danach Flussufer/-wasser. Genau wie
+  im Editor wird das Waldüberlagerungsbild nur
+  auf die **äußere Welt-Silhouette** beschnitten,
+  nicht auf harte Schnee-/Waldgrenzen.
+- Neues Geography-Lab-UI: Checkbox **Original-Waldboden**.
+  Die `original-forest-ground-preview` bleibt
+  `complete:false` und `readyForViewer:false` –
+  weiterhin fehlen Nature-/Scenery-Objekte,
+  Berge und Schatten.
+- Tests: reine Geography-Adapter- und
+  Originalrenderer-Verträge sowie erweiterter
+  echter Firefox-Pixeltest auf die Nachbar-WorldTile-
+  Texturübergänge mit `wald_03.png`.
+
+**Noch offen:** pixelgenaue 37/397-Hex-Referenz,
+große 4×-Quellauflösung, Nature-/Mountain-/Shadow-
+Scenery, speicherschonender 7.125-Hex-Langlauf
+und Sektor-Import in den Spielviewer.
+
 ## Phase 2 – Renderer-Adapter, erster echter Grafiktest
 
 1. Einen **Offscreen-Raster-Adapter** aus den vorhandenen

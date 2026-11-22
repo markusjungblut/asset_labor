@@ -121,7 +121,29 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const snowFade=[102,118,128,145,170].map(x=>({
     worldX:x,alpha:atSnowX(x)
    }));
-   return {source:{width:W,height:H,bytesApprox:base64.length*.75},
+   // Real Firefox pixel comparison across two overlapping 512-unit tile
+   // windows, retaining the SAME world UV and region alpha.
+   const extended=[field(1,0,'dense_forest'),field(2,0,'dense_forest'),
+    field(3,0,'light_forest'),field(4,0,'none')];
+   const opts={resolution:1.4,textureSize:256,maxPixels:2600000,
+    feather:23,regionOpacityOf:()=>.72};
+   const west=forest.build(extended,image,{...opts,
+    bounds:{x:-128,y:-128,width:768,height:768}});
+   const east=forest.build(extended,image,{...opts,
+    bounds:{x:384,y:-128,width:768,height:768}});
+   const forestAt=(r,x,y)=>{
+    const px=Math.floor((x-r.x)*r.scale),py=Math.floor((y-r.y)*r.scale);
+    return Array.from(r.canvas.getContext('2d',{willReadFrequently:true})
+     .getImageData(px,py,1,1).data);
+   };
+   const forestTileSeam=[490,505,512,520,535].map(x=>{
+    const a=forestAt(west,x,0),b=forestAt(east,x,0);
+    return {x,maxDiff:Math.max(...a.map((v,i)=>Math.abs(v-b[i])))};
+   });
+   return {forestTileSeam,forestWindows:[west,east].map(r=>({
+    width:r.canvas.width,height:r.canvas.height,
+    scale:r.scale,origin:r.textureOrigin})),
+    source:{width:W,height:H,bytesApprox:base64.length*.75},
     wrapping:{beforeEdge,afterEdge,changedSource},
     outputs,jungleOverlay:notForest!==null,snowFade,corePixelProof};
   },png.toString('base64'));
@@ -140,6 +162,16 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    'Guard must never introduce more alpha loss than the original sampling');
   assert.equal(result.jungleOverlay,false,
    'Jungle must not use the ordinary woodland overlay');
+  for(const window of result.forestWindows){
+   assert(window.width<1500&&window.height<1500,
+    'bounded forest PNG source exceeded tile pixel budget');
+   assert.equal(window.scale,1.4);
+   assert.equal(window.origin,'world-0,0');
+  }
+  for(const point of result.forestTileSeam)
+   assert(point.maxDiff<=18,
+    'real Firefox: two neighboring forest tile sources have different pixels: '+
+    JSON.stringify(point));
   const fade=result.snowFade.map(p=>p.alpha);
   assert.ok(fade[0]>fade[2]&&fade[2]>fade[3]&&fade[3]>=fade[4],
    'Snow-border forest alpha should fade across, not stop at the hex edge: '+

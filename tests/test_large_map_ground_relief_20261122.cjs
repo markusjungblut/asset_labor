@@ -148,7 +148,7 @@ test('Geography-Lab loads shared original relief before experimental direct PNG 
   'large-map-bake-material-preview.js','geography-lab.js'];
  const pos=order.map(x=>html.indexOf('src="'+x));
  assert(pos.every(x=>x>0));assert(pos.every((x,i)=>i===0||x>pos[i-1]));
- assert.match(lab,/renderer\.renderTile\(tileId,\{withRelief,withShoreline,withRivers\}\)/);
+ assert.match(lab,/renderer\.renderTile\(tileId,\{withRelief,withShoreline,withRivers,withForest\}\)/);
  assert.match(lab,/material-relief-preview/);
  assert.match(lab,/UNVOLLSTÄNDIG/);
 });

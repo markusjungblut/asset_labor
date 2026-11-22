@@ -447,17 +447,23 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    riversApi:window.VedrasRivers,
    riverAdapter:window.VedrasLargeMapBakeRivers,
    riverBanksApi:window.VedrasRiverBanks,
+   forestAdapter:window.VedrasLargeMapBakeForestFloor,
+   forestApi:window.VedrasForest,
+   forestFloorApi:window.VedrasForestGround,
   });
   const withRelief=!!$('materialPreviewRelief').checked;
   const withShoreline=!!$('materialPreviewShoreline').checked;
   const withRivers=!!$('materialPreviewRivers').checked;
+  const withForest=!!$('materialPreviewForest').checked;
   report.textContent='Originalmaterial'+(withRelief?' und Geografie-Hügelrelief':'')+
    (withShoreline?' plus sechs Original-Ufer-PNGs':'')+
    (withRivers?' plus Flusswasser/Uferwände':'')+
+   (withForest?' plus Waldboden':'')+
    ' für Kachel '+tileId+' werden mit den bestehenden Bildrenderern zusammengesetzt …';
-  const result=await renderer.renderTile(tileId,{withRelief,withShoreline,withRivers});
+  const result=await renderer.renderTile(tileId,{withRelief,withShoreline,withRivers,withForest});
   if(sourceWorld!==world)throw Error('Welt wurde während des Renderns geändert; kein veraltetes PNG exportiert.');
-  const expectedStage=withRivers?'original-river-ground-preview':withShoreline?
+  const expectedStage=withRivers?'original-river-ground-preview':
+   withForest?'original-forest-ground-preview':withShoreline?
    (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
    (withRelief?'material-relief-preview':'material-only-preview');
   if(result.complete||result.readyForViewer||result.stage!==expectedStage)
@@ -467,6 +473,7 @@ $('materialPreviewBake').addEventListener('click',async()=>{
   link.href=blobUrl;
   link.download='vedras-'+(withRelief?'material-relief':'material')+
    (withShoreline?'-ufer':'')+(withRivers?'-fluss':'')+
+   (withForest?'-wald':'')+
    'probe-'+result.tile.id.replace(',','_')+'.png';
   document.body.appendChild(link);
   try{link.click();}finally{
@@ -485,10 +492,15 @@ $('materialPreviewBake').addEventListener('click',async()=>{
    (withRivers?' · Original-Flussläufe: '+result.riverRoutesRendered+
     ' · Uferwandschichten: '+result.riverBankLayers+
     ' · Flusswasser-Texturen: '+result.riverWaterTextures.length:'')+
+   (withForest?' · Original-Waldboden: '+result.forestFloorHexes+
+    ' Quellhexe, '+result.forestFloorRegions+' Regionen'+
+    ' · Lichtungen: '+result.forestFloorGlades+
+    ' · Original-Waldboden-PNGs: '+result.forestFloorAssets.length:'')+
    '. UNVOLLSTÄNDIG: '+(withRelief?'':'ohne Relief, ')+
    (withShoreline?'':'ohne Ufergrafiken, ')+
    (withRivers?'':'ohne Flusswasser, ')+
-   'ohne Wald, Scenery und Schatten. Kein fertiger Kartenatlas.';
+   (withForest?'':'ohne Waldboden, ')+
+   'ohne Nature-Scenery und Schatten. Kein fertiger Kartenatlas.';
  }catch(error){
   report.textContent='Materialprobe nicht exportiert: '+String(error?.message||error);
  }finally{button.disabled=false;}

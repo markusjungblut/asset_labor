@@ -103,7 +103,7 @@ test('geography-Lab loads original water texture, banks and new tile bridge in o
  assert(html.includes('id="materialPreviewRivers"'));
  assert.match(js,/riverAdapter:window\.VedrasLargeMapBakeRivers/);
  assert.match(js,/riverBanksApi:window\.VedrasRiverBanks/);
- assert.match(js,/renderer\.renderTile\(tileId,\{withRelief,withShoreline,withRivers\}\)/);
+ assert.match(js,/renderer\.renderTile\(tileId,\{withRelief,withShoreline,withRivers,withForest\}\)/);
  assert.match(js,/materialPreviewRivers/);
  assert.match(js,/UNVOLLSTÄNDIG/);
 });
