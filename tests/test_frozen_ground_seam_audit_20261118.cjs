@@ -263,3 +263,63 @@ test('unresolved 4x core alpha reports bounded source/world coordinates instead 
  assert.match(app,/checked\.unresolvedSamples\.map\(p=>p\.side/);
  assert.match(app,/Die PNG wird nicht gespeichert/);
 });
+test('real 397-hex outer tip positions receive only nearby same-hex 4x terrain',()=>{
+ // Reported native errors: -5,-3 right / 4,-3 left around pixel y=208,
+ // plus the lower perimeter -5,2 and 4,2. The terrain source is coarser
+ // than the 4x output; a pointed hex may have no donor at the SAME row.
+ const scenarios=[
+  {tile:{id:'-5,-3',x:-2560,y:-1536,size:512},
+   hex:'-5,-6',px:2060,py:208,side:'right'},
+  {tile:{id:'4,-3',x:2048,y:-1536,size:512},
+   hex:'11,-6',px:11,py:208,side:'left'},
+  {tile:{id:'-5,2',x:-2560,y:1024,size:512},
+   hex:'-11,6',px:2060,py:1550,side:'right'},
+  {tile:{id:'4,2',x:2048,y:1024,size:512},
+   hex:'5,6',px:11,py:1478,side:'left'}
+ ];
+ for(const {tile,hex,px,py,side} of scenarios){
+  const pad=3,width=(tile.size+2*pad)*4,
+   height=Math.round((tile.size+2*pad)*.85*4);
+  const geometry=core.sourceGeometry(width,height,tile,pad);
+  const [q,r]=hex.split(',').map(Number);
+  const override=new Map();
+  const pixel=(x,y)=>{
+   const saved=override.get(x+','+y);
+   if(saved)return saved;
+   const wx=tile.x+(x+.5)/geometry.dx-pad,
+    wy=tile.y+(y+.5)/geometry.dy-pad;
+   const inside=core.hexId(wx,wy)===hex;
+   // A low-res Voronoi source can lose a narrow horizontal strip right
+   // where a pointed hex crosses the vertical 512-unit tile boundary.
+   const aliased=inside&&Math.abs(y-py)<=2&&
+    Math.abs(x-px)<=30;
+   return [70,108,49,inside&&!aliased?255:0];
+  };
+  const ctx={
+   getImageData(x,y,w,h){
+    const data=new Uint8ClampedArray(w*h*4);
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++)
+     data.set(pixel(x+i,y+j),(j*w+i)*4);
+    return {width:w,height:h,data};
+   },
+   putImageData(src,x,y){
+    for(let j=0;j<src.height;j++)for(let i=0;i<src.width;i++){
+     const idx=(j*src.width+i)*4;
+     override.set((x+i)+','+(y+j),
+      Array.from(src.data.subarray(idx,idx+4)));
+    }
+   }
+  };
+  const canvas={width,height,getContext:()=>ctx};
+  assert.equal(pixel(px,py)[3],0,'test source has a genuine aliased gap');
+  const result=core.repairEdgeBands(canvas,{tile,pad,
+   cells:[{q,r}],width:3});
+  assert.equal(pixel(px,py)[3],255,
+   '4x pixel '+px+','+py+' at '+tile.id+' must find same-hex vertical donor');
+  assert(result.nearTipRepaired>0,'2D tip sampling was actually necessary at '+tile.id);
+  assert.equal(result.unresolved,0,
+   'small aliased tip should be repaired, not abort atlas for '+tile.id);
+  assert.equal(pixel(35,35)[3],0,
+   'outer world stays transparent; never flood missing landscape');
+ }
+});
