@@ -98,8 +98,7 @@ test('independent tiles include the same cross-seam tree; missing original PNG i
  const result=await renderer.renderTile('0,0');
  assert.equal(result.nearby,1);
  assert.equal(result.drawn,1);
- const {renderer:empty}=create({assets:[]});
- assert.throws(()=>empty.renderTile('0,0'),/physische Originalgrafik/);
+ assert.throws(()=>create({assets:[]}),/physische Originalgrafik/);
  const {renderer:broken}=create({loadImage:async()=>{throw Error('PNG not found');}});
  await assert.rejects(broken.renderTile('1,0'),/PNG not found/);
  const {renderer:transparent}=create({canvasFactory:()=>{
