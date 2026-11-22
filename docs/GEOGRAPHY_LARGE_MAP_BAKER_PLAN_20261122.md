@@ -242,6 +242,20 @@ Großwelt-Adapter ist **noch nicht verdrahtet**.
   Spielkartenviewer gelangen. Dies ist ein belastbarer Test
   des **ersten tatsächlichen Renderabschnitts ohne den Editor**,
   nicht der fertigen Spielkarte.
+- **Neu: Vollständigkeits-Check des Live-Terrain-Katalogs** im
+  Geografielabor („Originalmaterialien für gesamte Welt prüfen“).
+  Er betrachtet jeden der tatsächlich vorkommenden Terrain-Typen und
+  meldet fehlende Typen mitsamt Anzahl ihrer Hexfelder. Er ist eine
+  Vorprüfung **nur für Grundmaterialien**, keine Garantie für einen
+  fertigen 4×-Atlas.
+  Im zuletzt geprüften `assets/terrain/terrain_catalog.json` auf
+  `main` fehlen direkte Zuweisungen für `sandy_desert` und
+  `jungle`. Für `jungle` ist die bestehende, ausdrücklich
+  zulässige `forest_floor`-Ersatzregel hinterlegt; dagegen sind
+  die **131 `sandy_desert`-Hexe** im kalibrierten 95×75-Mix
+  tatsächlich **blockiert**. Ohne neue originale Sandwüsten-Textur
+  und bewusste Katalog-Zuordnung darf der finale Bake nicht
+  erfolgreich melden. Das Audit ändert **keine** Zuweisungen.
 - Noch **nicht** im direkten Materialtest: Relief,
   Küstengrafiken, Flüsse und Flussufer, Walddecke,
   Berge/Natur/Schatten sowie 4×-Vollqualität. Insbesondere
