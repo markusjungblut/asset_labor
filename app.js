@@ -378,6 +378,12 @@ function packWorldTileScenery(source,level){
  }
 }
 async function bakeWorldTile(t,level,{signal}={}){
+ // Do not publish a finished tile while vector wall artwork is still
+ // decoding (or missing). Fallback shapes are editor-only.
+ if(state.wallShown!==false&&state.wallEdges?.length){
+  const ready=await window.VedrasWalls.artworkReady();
+  if(!ready)throw Error('Mauer-Grafiken fehlen: 12 SVG-Richtungsdateien prüfen.');
+ }
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
  const __trace=window.VedrasStep15Trace,__tileTrace=__trace?.enabled();
  let __outcome='unknown',__snapshotReason='not-evaluated';
@@ -2691,6 +2697,11 @@ function objectPerspective(context,p){
 }
 let benchmarkAtlasMode='auto'; // auto / on / off; no persisted editor changes
 function drawSprite(obj){
+ if(obj.type==='wall-joint'){
+  window.VedrasWalls.drawJoin(ctx,obj.wallJoin,
+   (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom);
+  return;
+ }
  if(obj.type==='wall'){
   window.VedrasWalls.draw(ctx,obj.wallEdge,
    (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom);
@@ -2857,10 +2868,18 @@ function buildSpriteLayout(){
   c.reliefClass==='mountain'||c.biome==='mountain').map(c=>key(c.q,c.r)));
  const visible=genericObjects().filter(o=>o.asset?.img?.naturalWidth&&
   !(o.type==='nature'&&o.natureMeta?.kind==='tree'&&alpine.has(o.cell)));
- if(state.wallShown!==false)for(const wallEdge of visibleWallEdges()){
-  const center=window.VedrasWalls.midpoint(wallEdge);
-  if(center)visible.push({type:'wall',wallEdge,
-   x:center.x,y:center.y,w:HEX/Math.sqrt(3)});
+ if(state.wallShown!==false){
+  const edges=visibleWallEdges();
+  for(const wallEdge of edges){
+   const center=window.VedrasWalls.midpoint(wallEdge);
+   if(center)visible.push({type:'wall',wallEdge,
+    x:center.x,y:center.y,w:HEX/Math.sqrt(3)});
+  }
+  // One junction per actual hex VERTEX: two connected sides no longer
+  // create triangular daylight gaps, including opposite NW/NE orientations.
+  // It is a depth-sorted object with its own footprint and shadow.
+  for(const wallJoin of window.VedrasWalls.junctions(edges))
+   visible.push({type:'wall-joint',wallJoin,x:wallJoin.x,y:wallJoin.y,w:40});
  }
  return visible.map(o=>{
   const groundY=o.y;
@@ -2869,12 +2888,12 @@ function buildSpriteLayout(){
 }
 function spriteIndexMargin(o){
  return o.type==='mountain'?Math.max(800,(o.w||0)*2.4):
-  o.type==='wall'?300:
+  (o.type==='wall'||o.type==='wall-joint')?300:
   o.type==='nature'?Math.max(320,o.w||0):480;
 }
 function spriteInViewport(o,view){
  // Image-pool LRU can evict decoded sources without changing scene geometry.
- if(o.type!=='wall'&&!o.asset?.img?.naturalWidth)return false;
+ if(o.type!=='wall'&&o.type!=='wall-joint'&&!o.asset?.img?.naturalWidth)return false;
  // The spatial grid includes the same overhang margin used by final culling.
  const margin=spriteIndexMargin(o);
  const groundY=o.groundY;
@@ -3040,7 +3059,11 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    profile.shadowCandidates++;
    if(o.type==='unit')profile.dynamicShadows++;
    else profile.staticShadows++;
-   if(o.type==='wall')
+   if(o.type==='wall-joint')
+    window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin,
+     (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom,
+     window.VedrasSpriteShadows?.get?.().global||{});
+   else if(o.type==='wall')
     window.VedrasWalls.drawShadow(ctx,o.wallEdge,
      (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom,
      window.VedrasSpriteShadows?.get?.().global||{});
@@ -4336,6 +4359,7 @@ function frozenSceneKey({force4x=false}={}){
   // without touching any earlier saved tiles or their IndexedDB records.
   'scenery-global-composition-exclusive-core-v2',
   'wall-material-silhouette-v2',
+  'authored-wall-directional-svg-corner-nodes-v3',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
@@ -4801,6 +4825,10 @@ $('frozenReportDownload').addEventListener('click',()=>{
 // NOT: a tall mountain, foreground tree or leftward shadow can extend into
 // this tile from an adjacent owned hex.
 async function frozenEmptyNative4xTile(tile){
+ if(state.wallShown!==false&&state.wallEdges?.length){
+  const ready=await window.VedrasWalls.artworkReady();
+  if(!ready)throw Error('Mauer-Grafiken fehlen im Randkachel-Export.');
+ }
  const ground=document.createElement('canvas'),
   scenery=document.createElement('canvas'),groundPad=WORLD_TILE_GUTTER,
   sceneryPad=128;

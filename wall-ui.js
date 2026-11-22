@@ -76,6 +76,11 @@
  });
  window.addEventListener('vedras:hex-selected',render);
  window.addEventListener('vedras:wall-changed',render);
+ // Load/decode all twelve direction images asynchronously. A late asset
+ // completion must invalidate the cached static scene, not just its sidebar.
+ window.addEventListener('vedras:wall-art-ready',()=>{
+  core.invalidateScenery();render();
+ });
  window.addEventListener('vedras:river-changed',render);
  window.addEventListener('vedras:assets-loaded',render);
  render();
