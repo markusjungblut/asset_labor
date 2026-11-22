@@ -87,6 +87,20 @@ window.VedrasWalls=(()=>{
   const g=geometry(edge);
   return g?{x:(g.a.x+g.b.x)*.5,y:(g.a.y+g.b.y)*.5}:null;
  }
+ // Non-destructive scenery clearance: only natural GROUND anchors directly
+ // touching a wall segment are hidden. Overhanging canopies remain valid and
+ // return instantly if the wall is removed; no mutation of the tree catalog.
+ function blocksPoint(x,y,edges,padding=18){
+  if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+  const radius=Math.max(2,Math.min(64,Number(padding)||18));
+  for(const edge of edges||[]){
+   const g=geometry(edge);if(!g)continue;
+   const dx=g.b.x-g.a.x,dy=g.b.y-g.a.y,denom=dx*dx+dy*dy;
+   const t=denom>0?Math.max(0,Math.min(1,((x-g.a.x)*dx+(y-g.a.y)*dy)/denom)):0;
+   if(Math.hypot(x-g.a.x-t*dx,y-g.a.y-t*dy)<radius)return true;
+  }
+  return false;
+ }
  function heightFor(kind){return kind==='palisade'?62:78;}
  function projected(edge,project){
   const g=geometry(edge);if(!g)return null;
@@ -184,5 +198,5 @@ window.VedrasWalls=(()=>{
   ctx.restore();return true;
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
-  occupiedRiverEdges,geometry,midpoint,heightFor,shadowVector,draw,drawShadow};
+  occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,shadowVector,draw,drawShadow};
 })();
