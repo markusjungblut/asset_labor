@@ -49,7 +49,7 @@ function create(world,plan,{planner=root.VedrasLargeMapBakePlan}={}){
    routeByCell.get(k).add(i);
   }
  }
- function contextFor(tileId){
+ function contextFor(tileId,{sourceHalo=plan.grid.sourceHalo}={}){
   const [tx,ty]=parseTile(tileId),id=coord(tx,ty);
   const tile=tiles.get(id);
   if(!tile||tile.x!==tx*TILE_SIZE||tile.y!==ty*TILE_SIZE)
@@ -57,9 +57,12 @@ function create(world,plan,{planner=root.VedrasLargeMapBakePlan}={}){
   // Existing chunks.js neighbors(tile,cells,470) includes cell centers
   // in [tile.x-470, tile.x+512+470]. Do not build boundaries by
   // subtracting originQ/R or by slicing the generator's 2-D array.
-  const halo=plan.grid.sourceHalo;
-  if(!Number.isFinite(halo)||halo<470)
-   throw Error('Renderquell-Halo unterschreitet den bestehenden Editorvertrag.');
+  const halo=sourceHalo;
+  // The editor ground/forest/river pass needs 470; geographic 2.5D hills
+  // can influence pixels from up to three axial steps away. Keep both
+  // ranges explicit and bounded, without changing source identifiers.
+  if(!Number.isSafeInteger(halo)||halo<plan.grid.sourceHalo||halo>2048)
+   throw Error('Renderquell-Halo außerhalb des bestätigten Bereichs.');
   const left=tile.x-halo,right=tile.x+tile.size+halo;
   const top=tile.y-halo,bottom=tile.y+tile.size+halo;
   const minBX=Math.floor(left/TILE_SIZE),maxBX=Math.floor(right/TILE_SIZE);
