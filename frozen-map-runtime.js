@@ -1295,7 +1295,7 @@ window.VedrasFrozenMap=(()=>{
    }
    if(profileFrame)profileFrame.worldPrepareMs+=clock()-prepareStart;
    const m=overviewRaster,planStart=profileFrame?clock():0,
-    plan=sparseWorldBlit&&worldBlitPlanner?
+    plan=sparseWorldBlit&&!allMapVisible&&worldBlitPlanner?
      worldBlitPlanner(view,cells,dpr):null;
    if(profileFrame)profileFrame.worldPrepareMs+=clock()-planStart;
    const blitStart=profileFrame?clock():0;
