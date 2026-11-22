@@ -27,6 +27,7 @@ jobs:
             /geography-lab-presets.js
             /geography-lab.html
             /geography-lab.js
+            /.github/workflows/geography-large-bake-ci.yml
             /chunks.js
             /large-map-bake-plan.js
             /large-map-bake-source.js
