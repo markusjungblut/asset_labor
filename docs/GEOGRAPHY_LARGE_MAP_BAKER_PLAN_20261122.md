@@ -467,16 +467,32 @@ Flussmaler. Aktivierung im Geografielabor über
   Kurven, Auswahl, Zeichenreihenfolge, Asset-Gates,
   Fehlerfälle und UI-/Modulverkabelung.
 
-**Grenzen:** Der originale `VedrasRivers.render()`-Pfad
-erzeugt vorerst die Rasterquelle für die **gesamte
-betroffene Flussroute**. Für eine einzelne Near-Kachel
-wird nur der sichtbare Ausschnitt in den Kachel-Canvas
-gezeichnet, aber lange Flussrouten können damit
-wiederholt berechnet werden. Vor dem vollständigen
-7.125-Hex-Durchlauf braucht es einen begrenzten,
-weltkoordinatenstabilen Rastercache oder echtes
-geometrieerhaltendes Tile-Clipping und eine
-Pixel-/Naht-Abnahme im Browser. Ferner fehlen
+**Performance-Fortsetzung:** `river.js` erhält eine
+**optionale `render(...,{bounds})`-Schnittstelle**.
+Sie berechnet weiterhin die **vollständige, identische
+Fluss-/Ecken-/Mündungsgeometrie**, beschränkt aber
+Canvas, Masken, Bilddaten und Originalwasser-Texturing
+auf die benötigte WorldTile-Region (mit 128er Padding).
+Die Pixelursprünge sind auf ein **globales
+Weltkoordinatenraster** ausgerichtet, um sichtbare
+Nahtverschiebungen zu verhindern. Ohne `bounds`
+bleibt der alte Editor-Aufruf unverändert. Die neue
+Kachelquelle selektiert darüber hinaus die
+tatsächlich vorbeiführenden Kurvensegmente statt
+jedes Tile innerhalb einer riesigen Fluss-Bounding-Box
+zu rendern. Ein separater Node-Test prüft
+vollständige Routen-/Mündungsparität, begrenzte
+Canvasgröße, identisches Pixelraster zweier
+benachbarter Ausschnitte und frühe Rückgabe bei
+leeren Bereichen.
+
+**Offene Risiken:** Die Originalroute wird weiterhin
+je relevanter WorldTile geometrisch verarbeitet und
+Uferfarben werden im lokalen Kontext abgetastet.
+Eine echte Pixel-/Naht-Abnahme im Firefox mit
+Originalwasser-PNG ist **noch nicht durchgeführt**.
+Längere Vollwelten erfordern Benchmark/Limitierung
+der Gesamt-Canvas-/RAM-Zeit. Ferner fehlen
 Waldboden, Natur-/Bergobjekte, Schatten,
 die finale 4×-Quelldichte und Sektorimport.
 
