@@ -33,6 +33,7 @@ on:
       - 'walls.js'
       - 'wall-ui.js'
       - 'tests/test_wall_edges_v1_20261122.cjs'
+      - 'tests/automated_browser_walls_v1_20261122.cjs'
       - 'frozen-map-runtime.js'
       - 'tests/test_sprite_shadow_editor_20261021.cjs'
   workflow_dispatch:
@@ -131,6 +132,11 @@ jobs:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_shadow_balance_20261120.cjs
+      - name: Mauern – sechs Hexkanten und standardisierte 2×-/4×-Schatten
+        env:
+          NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
+          VEDRAS_CI_ARTIFACTS: test-artifacts
+        run: node tests/automated_browser_walls_v1_20261122.cjs
       - name: Ground-Chunknaht – echte Canvas-Pixel und Archiv-Kernrandprüfung
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules

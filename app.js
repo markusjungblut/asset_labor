@@ -2366,7 +2366,8 @@ function visibleRoadEdges(){
 }
 // Wall prototypes share the river's canonical hex-edge coordinates.
 function wallEnvironment(){
- return window.VedrasWalls.context(worldCells,wetHex,riverRoutes());
+ return window.VedrasWalls.context(worldCells,wetHex,
+  window.VedrasRivers.normalizeRoutes(state.riverPaths,worldCells,wetHex));
 }
 function visibleWallEdges(){
  return window.VedrasWalls.normalize(state.wallEdges,wallEnvironment());
