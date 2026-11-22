@@ -30,12 +30,14 @@ jobs:
             /chunks.js
             /large-map-bake-plan.js
             /large-map-bake-source.js
+            /large-map-bake-authoring.js
             /large-map-bake-runner.js
             /large-map-bake-storage.js
             /app.js
             /index.html
             /tests/test_large_map_bake_plan_20261122.cjs
             /tests/test_large_map_bake_source_20261122.cjs
+            /tests/test_large_map_bake_authoring_20261122.cjs
             /tests/test_large_map_bake_runner_20261122.cjs
             /tests/test_large_map_bake_storage_20261122.cjs
             /tests/test_large_map_reference_probe_20261122.cjs
