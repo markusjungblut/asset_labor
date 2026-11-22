@@ -165,7 +165,7 @@ window.VedrasFrozenMap=(()=>{
   let fogLayerActive=false,basePaintWasLayered=false;
   let active=false,sceneKey='',level='mid',pose=null,cells=[],available=new Set();
    let completeVisibleAtlas=false;
-  let tileRecords=[],authorizedClipCells=[];
+  let tileRecords=[],authorizedClipCells=[],allMapVisible=false;
   // Read-only metadata index; PNG blobs remain exclusively in IndexedDB.
   // Small scenes keep the original Set scan (no extra allocations/sorts).
   const MIN_INDEX_TILES=400;
@@ -455,7 +455,7 @@ window.VedrasFrozenMap=(()=>{
    worldBlitDevicePixels=0;worldBlitFullDevicePixels=0;
    worldBlitLastRectCount=0;worldBlitLastFraction=1;
    cloudBackdropRaster=null;resetCloudAuto();
-   tileColumns=null;tileRecords=[];authorizedClipCells=[];
+   tileColumns=null;tileRecords=[];authorizedClipCells=[];allMapVisible=false;
     tileIndexEntries=0;tileIndexQueries=0;
    tileIndexCandidateChecks=0;tileLegacyCandidateChecks=0;
    fogUnreadyCandidates=0;fogUnreadySubmitted=0;
@@ -1099,7 +1099,11 @@ window.VedrasFrozenMap=(()=>{
    if(profileFrame)profileFrame.groundMs+=clock()-groundStarted;
    // Tree crowns and cast shadows extend beyond the owning 512-unit core.
    const sceneryClipStart=profileFrame?clock():0;
-   g.save();clipCells(45);
+   g.save();
+   // Full public test maps have NO hidden hexes. Do not cut tall mountains
+   // and leftward shadows at the old 45-world-unit map silhouette halo.
+   // Partial/fog-authorized maps retain the exact conservative clip.
+   if(!allMapVisible)clipCells(45);
    if(profileFrame)profileFrame.maskMs+=clock()-sceneryClipStart;
    const sceneryStarted=profileFrame?clock():0;
    for(const t of list)for(let i=0;i<t.entry.record.layers.length;i++){
@@ -1110,10 +1114,17 @@ window.VedrasFrozenMap=(()=>{
      fx=x-pad*view.zoom,fy=y-pad*view.zoom*proj,
      fw=w+pad*2*view.zoom,fh=h+pad*2*view.zoom*proj;
     const c=layer.crop;
+    // Canonical scenery was already composed with every sprite in correct
+    // global depth. Each tile contributes exactly its OWN 512-unit core.
+    // Neighbor halos provide samples during baking, never an extra overlay.
+    if(layer.coreOnly===true){
+     g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
+    }
     if(c)g.drawImage(image,fx+fw*c.x/c.fullWidth,
      fy+fh*c.y/c.fullHeight,fw*image.width/c.fullWidth,
      fh*image.height/c.fullHeight);
     else g.drawImage(image,fx,fy,fw,fh);
+    if(layer.coreOnly===true)g.restore();
    }
    g.restore();
    if(profileFrame){
@@ -1656,6 +1667,7 @@ window.VedrasFrozenMap=(()=>{
    if(!['mid','near','far'].includes(selectedLevel))throw Error('Ungültiges Karten-LOD');
    active=false;clearDecoded();sceneKey=scene;level=selectedLevel;
    pose={...initialPose};cells=knownCells.map(c=>({...c}));
+    allMapVisible=cells.length>0&&cells.every(c=>c.visibility==='visible');
     authorizedClipCells=cells.filter(c=>
      c.visibility==='visible'||c.visibility==='explored');
    authoredVisibleById=new Map(cells.filter(c=>c.visibility==='visible')
@@ -1784,7 +1796,7 @@ window.VedrasFrozenMap=(()=>{
     const layers=[];
     for(const layer of packet.layers)layers.push({
      layer:layer.layer,pad:layer.pad||0,crop:layer.crop||null,
-     png:await encode(layer.image)
+     coreOnly:layer.coreOnly===true,png:await encode(layer.image)
     });
     const record={key,sceneKey:scene,level:packet.level,
      tile:{...packet.tile},revision:packet.revision,layers};
@@ -1927,7 +1939,7 @@ window.VedrasFrozenMap=(()=>{
     groundRefKey:sourceKey,derivedFormat:'scenery-refresh-v1',
     sceneryNative2x:true,layers:[{
      layer:'scenery',pad:sceneryLayer.pad??128,
-     crop:sceneryLayer.crop||null,png
+     crop:sceneryLayer.crop||null,coreOnly:sceneryLayer.coreOnly===true,png
     }]};
    // Recheck before commit. An interrupted bake resumes by skipping
    // completed targets; no original source key is ever overwritten.
