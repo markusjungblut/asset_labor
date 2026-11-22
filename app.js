@@ -5066,8 +5066,8 @@ $('frozenWorldView').addEventListener('click',()=>{
   frozenNotice('Gültige gespeicherte Kartenkennung eingeben.');return;
  }
  // Synchronous user interaction: no worker, no bake and no popup blocker.
- window.open('frozen-map-game.html?scene='+encodeURIComponent(id)+'&lod=near',
-  '_blank','noopener');
+ window.open('frozen-map-game.html?scene='+encodeURIComponent(id)+
+  '&lod=near&previewIncomplete=1','_blank','noopener');
 });
 $('frozenWorldOpen').addEventListener('click',async()=>{
  if(!frozenMap||frozenTour||frozenMapMode)return;
@@ -5092,10 +5092,10 @@ $('frozenStandalone').addEventListener('click',()=>{
  // handler; browsers block window.open after an awaited IndexedDB lookup.
  // The isolated viewer itself checks the manifest and tile availability.
  const url='frozen-map-game.html?scene='+encodeURIComponent(scene)+
-  '&lod='+encodeURIComponent(lod);
+  '&lod='+encodeURIComponent(lod)+'&previewIncomplete=1';
  window.open(url,'_blank','noopener');
- frozenNotice('Eigenständigen Spielkarten-Test in neuem Tab geöffnet. '+
-  'Der Kartenviewer meldet fehlende oder unvollständige Bildkacheln selbst.');
+ frozenNotice('Lokale Spielkarten-Vorschau geöffnet, auch bei fehlenden Randkacheln. '+
+  'Der vollständige Atlas bleibt als separater Veröffentlichungsstatus erhalten.');
 });
 $('frozenPlay').addEventListener('click',async()=>{
  if(!frozenMap||frozenMapMode||frozenTour)return;
@@ -5105,9 +5105,26 @@ $('frozenPlay').addEventListener('click',async()=>{
  const button=$('frozenPlay');button.disabled=true;
  try{
   const scene=frozenFinalSceneKey(),manifest=await frozenMap.loadManifest(scene);
-  if(manifest.generationStatus==='building')
-   throw Error('Near-Spielkarte noch unvollständig. '+
-    'Gesamte Karte erneut vorbereiten und fehlende Chunks nachholen.');
+  // Local gameplay profiling must not require every outer-world tile.
+  // Still reject any invalid stored Ground/Scenery (including broken links).
+  if(manifest.generationStatus==='building'){
+   const pts=worldCells.map(c=>window.VedrasChunks.worldPos(c)),
+    xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),edge=HEX*1.5;
+   const expected=window.VedrasChunks.visible({
+    x:Math.min(...xs)-edge,y:Math.min(...ys)-edge,
+    width:Math.max(...xs)-Math.min(...xs)+2*edge,
+    height:Math.max(...ys)-Math.min(...ys)+2*edge
+   },worldCells,512);
+   const quality=await frozenMap.verifyArchive(scene,'near',expected,{
+    require4x:true});
+   if(quality.invalidTiles.length||quality.extraIds.length||quality.stored===0)
+    throw Error('Gespeicherte Spielkacheln sind ungültig. '+
+     'Fehlende Außenränder allein verhindern den lokalen Spieltest nicht. '+
+     'Details im 4×-Fehlerbericht prüfen.');
+   frozenNotice('Spielkarten-Vorschau: '+quality.stored+'/'+
+    quality.expected+' echte 4×-Kacheln. '+quality.missingIds.length+
+    ' fehlende Teile bleiben erkennbar und unveröffentlicht.');
+  }
   const level=manifest.levels.includes('near')?'near':
     manifest.levels.includes(worldTiles?.stats().lod)?worldTiles.stats().lod:
     manifest.levels[0];
