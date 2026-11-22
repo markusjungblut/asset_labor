@@ -19,7 +19,7 @@ window.VedrasShadowTone=(()=>{
   if(typeof raw?.mountains==='boolean')result.mountains=raw.mountains;
   return result;
  }
- let current=defaults(),revision=0;
+ let current=defaults(),revision=0,maskPassDepth=0;
  try{current=clean(JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(_){}
  function set(raw,{persist=true}={}){
   const next=clean(raw);
@@ -30,6 +30,14 @@ window.VedrasShadowTone=(()=>{
   return get();
  }
  const get=()=>({...current});
+ // Draw every ordinary cast into a fully opaque union first, then apply
+ // the user's selected opacity exactly once to the complete ground mask.
+ function withMaskPass(paint){
+  if(typeof paint!=='function')throw TypeError('Shadow mask callback required');
+  maskPassDepth++;
+  try{return paint();}finally{maskPassDepth--;}
+ }
+ const inMaskPass=()=>maskPassDepth>0;
  // The normalized target is the FINAL opacity. Do not multiply it by the
  // historical global strength, the authored sprite opacity, the vegetation
  // family attenuation, or the mountain's 0.90 coverage ceiling.
@@ -37,6 +45,8 @@ window.VedrasShadowTone=(()=>{
  // automatic or mountain cast when the shared override is active.
  function targetAlpha(kind='sprite'){
   if(kind==='mountain'&&!current.mountains)return null;
+  // Mountain shades are independent of the ordinary mask.
+  if(kind!=='mountain'&&inMaskPass())return 1;
   return clamp(.12+.88*current.gray/100,.12,1);
  }
  function colorRgb(kind='sprite'){
@@ -65,5 +75,5 @@ window.VedrasShadowTone=(()=>{
   return 1+(1/peak-1)*strength;
  }
  return {defaults,clean,get,set,targetAlpha,colorRgb,colorCss,opacity,
-  attenuation,coverageGain,revision:()=>revision};
+  attenuation,coverageGain,withMaskPass,inMaskPass,revision:()=>revision};
 })();

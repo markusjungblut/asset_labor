@@ -196,6 +196,7 @@ window.VedrasSpriteShadows=(()=>{
   const id=JSON.stringify([imageId(silhouette),obj.asset?.path,
    nominal,anchor.x??.5,anchor.y??.96,globalStrength,
    window.VedrasShadowTone?.revision?.()||0,
+   window.VedrasShadowTone?.inMaskPass?.()===true,
    family||'',kind||'',x.angle,x.opacity,x.length,x.width,x.softness,
    x.offsetX,x.offsetY,x.contact]);
   let raster=rasterCache.get(id);

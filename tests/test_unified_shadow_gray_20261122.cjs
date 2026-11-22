@@ -56,6 +56,31 @@ test('common gray overrides manually drawn and automatic cast alpha across famil
    }
  }
 });
+test('ordinary shadow pass is opaque while mountains remain independently configured',()=>{
+ for(const gray of [0,50,100]){
+  Tone.set({gray,mountains:true},{persist:false});
+  const expected=Tone.targetAlpha('sprite');
+  assert.equal(Tone.withMaskPass(()=>Tone.targetAlpha('sprite')),1);
+  assert.equal(Tone.targetAlpha('sprite'),expected);
+  assert.equal(Tone.withMaskPass(()=>Tone.targetAlpha('mountain')),expected,
+   'mountain strength must remain outside the ordinary mask');
+  Tone.set({gray,mountains:false},{persist:false});
+  assert.equal(Tone.withMaskPass(()=>Tone.targetAlpha('mountain')),null,
+   'mountain opt-out must remain independent of ordinary union');
+ }
+ assert.throws(()=>Tone.withMaskPass(()=>{throw Error('intentional');}),/intentional/);
+ assert.equal(Tone.inMaskPass(),false,'mask state restored after error');
+ const app=read('app.js'),editor=read('sprite-shadow-editor.js');
+ assert.ok(app.includes('paintUnifiedNormalShadows(()=>{'),
+  'all ordinary shadow families must enter the shared layer');
+ assert.ok(app.includes("original.globalAlpha=tone.targetAlpha('sprite')"),
+  'common opacity must be applied only to the final layer');
+ assert.ok(app.indexOf('drawMountainShadows(objs);')<
+  app.indexOf('paintUnifiedNormalShadows(()=>{'),
+  'mountains must stay independent of the normal union');
+ assert.ok(editor.includes('window.VedrasShadowTone?.inMaskPass?.()===true'),
+  'cached normal stamps must not reuse non-mask opacity');
+});
 test('mountain distance field has the same peak, or independent authored intensity',()=>{
  const shape=Mountains.mountainShape({x:160,y:100},150,
   {angle:155,opacity:.21,softness:1});
