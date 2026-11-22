@@ -127,7 +127,7 @@ test('geography lab actually loads shared render modules in order and labels par
  assert(indices.every((n,i)=>i===0||n>indices[i-1]));
  assert.match(js,/MATERIAL\.loadCatalog\(\)/);
  assert.match(js,/MATERIAL\.auditWorld\(sourceWorld,catalog,assets\)/);
- assert.match(js,/renderer\.renderTile\(tileId\)/);
+ assert.match(js,/renderer\.renderTile\(tileId,\{withRelief\}\)/);
  assert.match(js,/result\.complete\|\|result\.readyForViewer/);
  assert.match(js,/UNVOLLSTÄNDIG/);
 });
