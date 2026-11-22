@@ -536,6 +536,50 @@ $('auditNatureTreeSites').addEventListener('click',async()=>{
   report.textContent='Nature-Standortprüfung fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
 });
+$('planNatureTrunks').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('planNatureTrunks'),report=$('natureTrunkReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  const T=window.VedrasLargeMapNatureTrunks;
+  if(!T?.create||!NATURE?.create||!window.VedrasLargeMapBakeForestFloor?.create||
+    !window.VedrasRivers?.blocksPoint||!window.VedrasRoads?.blocksPoint)
+   throw Error('Original-Baum-/Fluss-/Straßenregeln fehlen.');
+  report.textContent='ORIGINAL-BAUMSTÄMME: globale Habitate, Lichtungen, Flüsse und Stammabstände werden geprüft …';
+  const {scenery,assets,catalog,natureCatalog}=await mountainPreflight(current);
+  const forestSource=window.VedrasLargeMapBakeForestFloor.create({
+   world:current,catalog,groups:{byType:new Map()},
+   loadImage:async()=>{throw Error('Stammplanung rendert keine PNGs.');}
+  });
+  const forestCells=forestSource.forestCells,siteAudit=NATURE.create({
+   world:current,terrainCatalog:catalog,natureCatalog,assets,
+   forestCells,mountainPlan:scenery,seed:12345
+  });
+  const plan=T.create({world:current,terrainCatalog:catalog,natureCatalog,
+   assets,forestCells,mountainPlan:scenery,siteAudit,seed:12345});
+  if(current!==world)throw Error('Geografiewelt hat sich während der Stammplanung geändert.');
+  if(plan.complete||plan.readyForViewer||plan.rasterized||
+    !plan.requiresOriginalPngDecoding||!plan.requiresPixelCrownCoverage)
+   throw Error('Unvollständige Stammpositionen dürfen kein freigegebener Atlas sein.');
+  const file=IO.saveJSON('vedras-originalbaum-stammplan-v1.json',plan);
+  report.textContent='ORIGINAL-BAUMSTÄMME: '+plan.stats.placedTrees+
+   ' deterministische Baumanker aus '+plan.originalTreeVariants+
+   ' Originalvarianten · '+plan.stats.targetTreeSlots+
+   ' auditierte Wald-/Randbaumslots · '+plan.stats.failedTreeSlots+
+   ' nicht platzierte Slots · '+plan.stats.rejectedRiver+
+   ' Flusskonflikte · '+plan.stats.rejectedRoad+
+   ' Straßenkonflikte · '+plan.stats.rejectedSpacing+
+   ' Stammabstandskonflikte · '+plan.riverRoutes+
+   ' geografische Flussrouten · '+plan.roadEdges+
+   ' Straßenkanten (0 = keine Straße definiert) · '+plan.mountainCoreHexes+
+   ' geschützte Bergkerne · JSON: '+file.filename+
+   '. KEIN fertiger Kartenatlas: Original-PNGs, Kronendeckung, '+
+   'Sträucher, Findlinge, Schatten und Editor-Gesamtparität fehlen.';
+ }catch(error){
+  report.textContent='Baumstammplanung fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
 $('materialPreviewBake').addEventListener('click',async()=>{
  if(!currentWorld())return;
  const button=$('materialPreviewBake'),report=$('materialPreviewReport');

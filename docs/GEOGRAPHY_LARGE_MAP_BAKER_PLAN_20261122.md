@@ -682,3 +682,12 @@ Renderzeitversprechen oder fertiger 7.125-Hex-Atlas in Phase 1.
 Die erste Priorität ist **ein realistischer, vollständig prüfbarer
 7.125-Hex-Bake mit derselben Grafikqualität wie der bestehende
 Renderer**, nicht das schnellste ungetestete Einmalbild.
+
+### Phase 2.8b – deterministische Original-Baumstämme (22.11.2026)
+
+- `large-map-bake-nature-trunks.js` erzeugt **reale Q/R-basierte Stammanker** mit `dx`, `dy`, `scale` und physischem Original-Assetpfad. Voraussetzung sind der unveränderte Nature-Standort-Audit und derselbe Bergplan. Baumarten und Standorte werden auf einen stabilen globalen Durchlauf sortiert.
+- Der reine Baumdurchlauf ruft `VedrasPolish.localOffset` (72 Versuche), `VedrasForest.inGlade`, `VedrasNatureCatalog.canPlace`, `VedrasNatureBalance.placementScale` für Stammabstände innerhalb eines 2-Hex-Halos, `VedrasRivers.blocksPoint` für vollständige geografische Flussrouten und `VedrasRoads.blocksPoint` für vorhandene Straßen auf. Bergkerne und `reserveClearings` sind ausgeschlossen. Keine erfundenen Ersatzgrafiken.
+- Im Geografielabor kann **„Original-Baumstämme platzieren und JSON exportieren (unvollständig)“** reale Anker, Ablehnungszähler und Qualitäts-Gates als JSON ausgeben. Die Generatorgeografie enthält **keine Straßen**: Der Report weist daher 0 Straßenkanten aus, das Original-Straßengate prüft sie bei späterer vorhandener Eingabe dennoch.
+- **Paritätsgrenze:** Dies ist nur die erste Baumstamm-Passage, **nicht** das vollständige `nature-ui.populate()`. Zuvor gesetzte Findlinge, Schnee, Akzente, Sträucher und von tatsächlich dekodierten PNG-Kronen abhängige Zusatzbelegung werden noch nicht übernommen. Eine vollständige Instanzgleichheit zum Editor wird nicht behauptet.
+- Stets `rasterized:false`, `complete:false`, `readyForViewer:false`; keinerlei Änderungen an vorhandenen Karten, Originalgrafiken oder dem Spielviewer.
+- **Phase 2.8c:** Original-Baum-PNGs dekodieren, transparente Scenery-Teil-PNGs mit Pixelüberhang rendern, die visuelle Stamm-/Kronenparität gegen den Editor prüfen; anschließend weitere Nature-Typen und Schatten.
