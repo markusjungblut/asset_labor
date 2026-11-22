@@ -47,7 +47,7 @@ function create({world,catalog,groups,loadImage,pick,
   const extent={minX,maxX,minY,maxY};
   const [mouthQ,mouthR]=route.hexes.at(-1),mouth=indexed.get(key(mouthQ,mouthR));
   if(!mouth||!wet(mouth))throw Error('Flussmündung ohne Original-Wasserterrain.');
-  return {index:i,route,routeCells,extent,mouth};
+  return {index:i,route,routeCells,extent,course,mouth};
  });
  function visible(context){
   const t=context?.tile;
@@ -58,8 +58,19 @@ function create({world,catalog,groups,loadImage,pick,
    top=t.y-HALF_WORLD_PAD-NEAR_MARGIN;
   const right=t.x+t.size+HALF_WORLD_PAD+NEAR_MARGIN,
    bottom=t.y+t.size+HALF_WORLD_PAD+NEAR_MARGIN;
-  return routes.filter(x=>x.extent.maxX>=left&&x.extent.minX<=right&&
-   x.extent.maxY>=top&&x.extent.minY<=bottom);
+  return routes.filter(item=>{
+   if(item.extent.maxX<left||item.extent.minX>right||
+      item.extent.maxY<top||item.extent.minY>bottom)return false;
+   // Winding routes can have enormous bounding rectangles. Selecting by
+   // the actual polyline avoids blank full-route work inside that rectangle.
+   return item.course.some((point,i)=>{
+    const previous=item.course[Math.max(0,i-1)];
+    return Math.max(previous.x,point.x)>=left&&
+     Math.min(previous.x,point.x)<=right&&
+     Math.max(previous.y,point.y)>=top&&
+     Math.min(previous.y,point.y)<=bottom;
+   });
+  });
  }
  async function render(context,ctx,{reliefOptions=null}={}){
   if(typeof ctx?.drawImage!=='function')
@@ -109,10 +120,10 @@ function create({world,catalog,groups,loadImage,pick,
   for(const item of active){
    const water=assets.get(item.index);
    const result=rivers.render(ctx,item.route,item.routeCells,wet,
-    water.img,{width,groundY,detailScale:1});
-   if(!result?.canvas)
-    throw Error('Original-Flusswasser wurde nicht vollständig gerendert: '+item.index);
-   count++;
+    water.img,{width,groundY,detailScale:1,bounds});
+   // A route may pass near the tile without entering its clipped bitmap.
+   // Empty local raster is not a corrupt *full* river route.
+   if(result?.canvas)count++;
   }
   return {stage:'original-river-preview',riverCount:count,
    bankCount:renderedBank?.canvas?1:0,
