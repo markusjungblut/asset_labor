@@ -5936,3 +5936,40 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
  invalidateScenery:()=>{invalidateSpriteLayout(null,{preserveCamera:true});requestDraw();},
  persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
+$('referenceTileBake').addEventListener('click',async()=>{
+ const button=$('referenceTileBake'),message=$('referenceTileBakeStatus');
+ if(button.disabled)return;
+ button.disabled=true;
+ try{
+  message.textContent='Original-Renderer: vorbereitete Ground- und Scenery-Kachel prüfen …';
+  const result=await bakeReferenceNearTile(String($('referenceTileId').value).trim());
+  if(result.status!=='verified-native-near'){
+   message.textContent='Probekachel noch nicht fertig: '+result.reason+
+    '. Karte/Quellgrafiken zuerst vorbereiten, danach erneut prüfen.';
+   return;
+  }
+  if(!window.VedrasFrozenMapPackage?.zipEntries)
+   throw Error('ZIP-Exporter nicht geladen.');
+  const metadata={schema:'vedras-renderer-reference-v1',tile:result.tile,
+   quality:'native-near',sourceRevision:result.sourceRevision,
+   note:'Zwei echte Editor-Render-PNGs; KEIN fertiger Atlas, kein Geography-Großkartenexport.',
+   layers:result.layers.map(({png,...data})=>data)};
+  const bundle=await window.VedrasFrozenMapPackage.zipEntries([
+   {name:'reference.json',blob:new Blob([JSON.stringify(metadata,null,2)],
+    {type:'application/json'})},
+   {name:'reference/ground.png',blob:result.layers[0].png},
+   {name:'reference/scenery.png',blob:result.layers[1].png}
+  ]);
+  const url=URL.createObjectURL(bundle),link=document.createElement('a');
+  link.href=url;link.download='vedras-renderprobe-'+result.tile.id.replace(',','_')+'.zip';
+  document.body.appendChild(link);
+  try{link.click();}finally{
+   link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
+  }
+  message.textContent='Echte Near-Probekachel '+result.tile.id+' exportiert: '+
+   result.layers.map(x=>x.layer+' '+x.width+'×'+x.height).join(' / ')+
+   ' · SHA-256 geprüft · nur Referenzbilder, keine fertige 4×-Spielkarte.';
+ }catch(error){
+  message.textContent='Probekachel nicht exportiert: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
