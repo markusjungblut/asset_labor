@@ -56,7 +56,7 @@ window.VedrasShadows=(()=>{
   // defines the source silhouette. Trim everything below the contact row.
   ctx.beginPath();ctx.rect(-width*ax,-height*ay,width,height*ay);ctx.clip();
   ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=clamp(alpha,0,.97);
+  ctx.globalAlpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??clamp(alpha,0,.97);
   ctx.filter='blur('+Math.max(0,Number(softness)||0)+'px)';
   ctx.drawImage(silhouette.canvas,-width*ax,-height*ay,width,height);
   ctx.restore();
@@ -72,11 +72,13 @@ window.VedrasShadows=(()=>{
   ctx.save();ctx.translate(p.x+offsetX,p.y+offsetY);
   ctx.scale(1,mountain?.37:.31);
   const gradient=ctx.createRadialGradient(0,0,0,0,0,radius);
-  const color=window.VedrasShadowTone?.colorRgb()||COLOR;
-   const rgba=a=>'rgba('+color.r+','+color.g+','+color.b+','+Math.min(.88,a*k)+')';
-  gradient.addColorStop(0,rgba(mountain?.45:.42));
-  gradient.addColorStop(.24,rgba(mountain?.30:.29));
-  gradient.addColorStop(.68,rgba(mountain?.12:.105));
+  const color=window.VedrasShadowTone?.colorRgb(mountain?'mountain':'sprite')||COLOR;
+  const tonal=window.VedrasShadowTone?.targetAlpha?.(mountain?'mountain':'sprite');
+  const rgba=a=>'rgba('+color.r+','+color.g+','+color.b+','+
+   (tonal===null?Math.min(.88,a*k):Math.min(1,tonal*a))+')';
+  gradient.addColorStop(0,rgba(tonal===null?(mountain?.45:.42):1));
+  gradient.addColorStop(.24,rgba(tonal===null?(mountain?.30:.29):.70));
+  gradient.addColorStop(.68,rgba(tonal===null?(mountain?.12:.105):.28));
   gradient.addColorStop(1,rgba(0));
   ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(0,0,radius,0,Math.PI*2);ctx.fill();
   ctx.restore();
@@ -125,7 +127,8 @@ window.VedrasShadows=(()=>{
  // enlarging the footprint cannot create a lobe on the mountain's right.
  function mountainAlphaAt(x,y,shape,width,global=1){
   const {s,origin,dir,normal,length,radius}=shape;
-  if(!Number.isFinite(x+y)||width<=0||global<=0||s.opacity<=0)return 0;
+  const target=window.VedrasShadowTone?.targetAlpha?.('mountain');
+  if(!Number.isFinite(x+y)||width<=0||(global<=0&&target===null)||s.opacity<=0)return 0;
   if(x>origin.x+width*.045)return 0;
   const dx=x-origin.x,dy=y-origin.y,t=dx*dir.x+dy*dir.y,
     lateral=dx*normal.x+dy*normal.y,soft=Math.max(1,s.softness);
@@ -145,6 +148,9 @@ window.VedrasShadows=(()=>{
   const contactFade=(1-smoothstep(-soft*.08,soft*.70,contactDist))*
    smoothstep(-width*.05,width*.025,t);
   const cover=Math.max(.90*castFade,.56*contactFade);
+  // Retain the original mountain distance-field silhouette and softness,
+  // but normalize its .90-coverage peak to the exact shared black target.
+  if(target!==null)return clamp(target*cover/.90,0,1);
   const opacity=window.VedrasShadowTone?.opacity(s.opacity,.44)??s.opacity;
   // Mountain alpha has a built-in .90 silhouette-coverage ceiling while
   // ordinary sprite casts are full coverage. Equalization must normalize
@@ -153,7 +159,8 @@ window.VedrasShadows=(()=>{
   return Math.min(.90,Math.max(0,opacity*global*cover*gain));
  }
  function paintMountain(ctx,origin,width,config,global=1){
-  if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||global<=0)return null;
+  if(!ctx?.createImageData||!ctx.putImageData||!(width>0)||
+   (global<=0&&window.VedrasShadowTone?.targetAlpha?.('mountain')===null))return null;
   const shape=mountainShape(origin,width,config);
   if(shape.s.opacity<=0)return null;
   const r=Math.max(...shape.radius,width*shape.s.contactWidth);
@@ -164,7 +171,7 @@ window.VedrasShadows=(()=>{
   const y1=Math.min(ctx.canvas?.height??Infinity,Math.ceil(Math.max(origin.y,shape.p2.y)+pad));
   if(x1<=x0||y1<=y0)return null;
   const raster=ctx.createImageData(x1-x0,y1-y0),d=raster.data;
-   const color=window.VedrasShadowTone?.colorRgb()||COLOR;
+   const color=window.VedrasShadowTone?.colorRgb('mountain')||COLOR;
   let max=0,positive=0;
   for(let yy=0;yy<raster.height;yy++)for(let xx=0;xx<raster.width;xx++){
    const alpha=Math.round(mountainAlphaAt(x0+xx+.5,y0+yy+.5,shape,width,global)*255);
