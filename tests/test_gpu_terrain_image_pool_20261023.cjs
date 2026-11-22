@@ -81,7 +81,7 @@ function fakeGL(){
   TEXTURE0:22,RGBA:23,UNSIGNED_BYTE:24,TRIANGLE_STRIP:25,
   MAX_TEXTURE_SIZE:26,COLOR_BUFFER_BIT:27
  };
- const record={uploads:[],vertices:[],draws:0,pixelStore:[]};
+ const record={uploads:[],vertices:[],draws:0,pixelStore:[],shaders:[]};
  for(const name of ['createShader','createProgram','createVertexArray','createBuffer',
   'createTexture','getUniformLocation'])gl[name]=()=>({});
  for(const name of ['shaderSource','compileShader','attachShader','linkProgram',
@@ -90,6 +90,7 @@ function fakeGL(){
   'enable','disable','blendFunc','pixelStorei','texParameteri','uniform2f',
   'viewport','clearColor','clear','activeTexture','bindTexture','deleteTexture'])
  gl[name]=()=>{};
+ gl.shaderSource=(shader,source)=>record.shaders.push(source);
  gl.pixelStorei=(...args)=>record.pixelStore.push(args);
  gl.getShaderParameter=()=>true;gl.getProgramParameter=()=>true;
  gl.getParameter=()=>8192;
@@ -124,6 +125,9 @@ test('WebGL2 compositor submits camera-snapped geometry and reuses GPU tile text
  assert.ok(record.pixelStore.some(([flag,value])=>flag===gl.UNPACK_FLIP_Y_WEBGL&&value===false),
   'Worker ImageBitmap ignores UNPACK_FLIP_Y_WEBGL; all sources must upload unflipped');
  assert.equal(gpu.stats().textureCount,1);
+ assert(record.shaders.some(source=>source.includes('precision highp float;')&&
+  source.includes('in highp vec2 v_uv;')),
+  '4x GPU fragment interpolation must not quantize UVs at chunk edges');
 });
 test('GPU feature falls back cleanly when WebGL2 is unavailable',()=>{
  const sandbox={window:{}};vm.runInNewContext(read('gpu-terrain.js'),sandbox);
@@ -147,4 +151,26 @@ test('actual editor is wired with nonblocking image loading, live GPU controls a
  assert.match(css,/#canvasOuter>#gpuCanvas/);
  assert.match(html,/asset-image-pool\.js\?v=/);
  assert.match(html,/gpu-terrain\.js\?v=/);
+});
+
+test('WebGL2 terrain chunks meet at identical integer device pixels under fractional zoom',()=>{
+ const {gl,record}=fakeGL(),canvas={width:0,height:0,style:{},
+  addEventListener(){},getContext:kind=>kind==='webgl2'?gl:null};
+ const env={window:{}};vm.runInNewContext(read('gpu-terrain.js'),env);
+ const gpu=env.window.VedrasGpuTerrain.create(canvas);
+ const view={width:2600,height:1800,dpr:1.75,zoom:1.983,
+  projectY:.85,originX:316.235,originY:427.41};
+ assert(gpu.begin(view));
+ const a={x:-128,y:-128,width:768,height:768,
+  canvas:{width:1184,height:1184}};
+ const b={x:384,y:-128,width:768,height:768,
+  canvas:{width:1184,height:1184}};
+ assert(gpu.draw(a,{x:0,y:0,size:512}));
+ assert(gpu.draw(b,{x:512,y:0,size:512}));
+ gpu.end();
+ const left=record.vertices[0],right=record.vertices[1];
+ assert.equal(left[4],right[0],'one vertical world boundary maps to exactly one snapped GPU coordinate');
+ assert.equal(left[13],right[9],'same top-to-bottom range must be identical at tile join');
+ assert(record.shaders.some(src=>src.includes('precision highp float;')),
+  'WebGL2 must keep full UV sub-texel precision along neighboring cores');
 });
