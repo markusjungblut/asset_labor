@@ -123,6 +123,9 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
  riversApi=root.VedrasRivers,
  riverAdapter=root.VedrasLargeMapBakeRivers,
  riverBanksApi=root.VedrasRiverBanks,
+ forestAdapter=root.VedrasLargeMapBakeForestFloor,
+ forestApi=root.VedrasForest,
+ forestFloorApi=root.VedrasForestGround,
  catalog,assets,loadImage=imageLoader(),canvasFactory=
   ()=>root.document.createElement('canvas')}={}){
  if(typeof autotile?.build!=='function'||
@@ -139,9 +142,9 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   return c1==='water'&&c2==='water'?'soft_water':
    c1==='ground'&&c2==='ground'?'soft_ground':'shoreline_required';
  }
- let shoreRenderer=null,riverRenderer=null;
+ let shoreRenderer=null,riverRenderer=null,forestRenderer=null;
  async function renderTile(tileId,{withRelief=false,withShoreline=false,
-  withRivers=false}={}){
+  withRivers=false,withForest=false}={}){
   if(withRelief&&(!reliefAdapter?.apply||!reliefApi?.make))
    throw Error('Gemeinsamer 2.5D-Relief-Renderer wurde nicht geladen.');
   if(withShoreline&&(!shorelineAdapter?.create||!shorelineApi?.build||
@@ -150,9 +153,13 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   if(withRivers&&(!riverAdapter?.create||!riverBanksApi?.prepare||
      !riversApi?.render))
    throw Error('Original-Flusswasser und Uferwand-Renderer fehlen.');
+  if(withForest&&(!forestAdapter?.create||!forestApi?.generate||
+     !forestFloorApi?.build||!forestFloorApi?.points))
+   throw Error('Original-Wald-/Waldbodenrenderer fehlen.');
   const halo=Math.max(withRelief?(reliefAdapter.SOURCE_HALO||0):0,
    withShoreline?(shorelineAdapter.SOURCE_HALO||0):0,
-   withRivers?(riverAdapter.SOURCE_HALO||0):0);
+   withRivers?(riverAdapter.SOURCE_HALO||0):0,
+   withForest?(forestAdapter.SOURCE_HALO||0):0);
   const ctxData=source.contextFor(tileId,halo?{sourceHalo:halo}:{});
   const assignments=ctxData.cells.map(cell=>[cell,pick(cell,groups)]);
   const needed=[...new Map(assignments.map(([,a])=>[a.path,a])).values()];
@@ -193,6 +200,25 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
    autotile.draw(g,raised.water);
    autotile.draw(g,raised.land);
   }else g.drawImage(raster.canvas,raster.x,raster.y,raster.width,raster.height);
+  // Identical editor order: terrain, elevated land, forest floor, coast,
+  // river banks and water. Do not clip the soft forest-to-snow boundary.
+  if(withForest&&!forestRenderer)forestRenderer=forestAdapter.create({
+   world,catalog,groups,loadImage,forest:forestApi,floor:forestFloorApi
+  });
+  const forest=withForest?await forestRenderer.render(ctxData):null;
+  if(forest?.canvas){
+   g.save();g.beginPath();
+   // Clip only to the outer authored world silhouette, as the editor.
+   for(const cell of ctxData.cells){
+    const pts=forestFloorApi.points(cell);
+    g.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++)g.lineTo(pts[i].x,pts[i].y);
+    g.closePath();
+   }
+   g.clip();
+   g.drawImage(forest.canvas,forest.x,forest.y,forest.width,forest.height);
+   g.restore();
+  }
   if(withShoreline){
    if(!shoreRenderer)shoreRenderer=shorelineAdapter.create({
     world,catalog,shoreline:shorelineApi,rivers:riversApi,loadImage
@@ -217,6 +243,7 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
   if(!(png instanceof Blob)||png.size<45)
    throw Error('Materialvorschau enthält keine gültige PNG-Datei.');
   const stage=withRivers?'original-river-ground-preview':
+   withForest?'original-forest-ground-preview':
    (withShoreline?
     (withRelief?'material-relief-shoreline-preview':'material-shoreline-preview'):
     (withRelief?'material-relief-preview':'material-only-preview'));
@@ -229,6 +256,10 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
    riverRoutesRendered:river?.riverCount||0,
    riverBankLayers:river?.bankCount||0,
    riverWaterTextures:river?.texturePaths||[],
+   forestFloorHexes:forest?.forestHexes||0,
+   forestFloorRegions:forest?.regions||0,
+   forestFloorGlades:forest?.glades||0,
+   forestFloorAssets:forest?.assetPath?[forest.assetPath]:[],
    tile:{...t},source:ctxData.source,sourceCount:ctxData.sourceCount,
    assetPaths:needed.map(a=>a.path),
    width:output.width,height:output.height,png,
@@ -236,7 +267,8 @@ function create({world,plan,planner=root.VedrasLargeMapBakePlan,
     ...(withRelief?[]:['relief']),
     ...(withShoreline?[]:['shorelines']),
     ...(withRivers?[]:['rivers']),
-    'forest','scenery','shadows'
+    ...(withForest?[]:['forest']),
+    'scenery','shadows'
    ]};
  }
  return {renderTile,tileCount:source.tileCount,
