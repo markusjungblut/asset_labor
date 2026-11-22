@@ -82,6 +82,26 @@ test('direct geographic 512-tile uses the existing autotile compositor with real
  assert(result.omitted.includes('rivers'));
  await assert.rejects(()=>renderer.renderTile('999,999'),/Weltplan/);
 });
+test('world-wide coverage reports missing materials instead of silently substituting them',()=>{
+ const w=G.generateWorld('audit',{width:20,height:15});
+ const {catalog,assets}=fixtures();
+ const full=Preview.auditWorld(w,catalog,assets);
+ assert.equal(full.stage,'material-catalog-preflight');
+ assert.equal(full.readyForMaterialPreview,true);
+ assert.equal(full.readyForFinishedGameMap,false);
+ assert.equal(full.worldHexes,w.cells.length);
+ assert.equal(full.missingHexes,0);
+ const wanted=new Set(['sandy_desert','grassland']);
+ const missingCatalog={...catalog,assets:Object.fromEntries(
+  Object.entries(catalog.assets).filter(([,value])=>!wanted.has(value.terrainTypeId))
+ )};
+ const blocked=Preview.auditWorld(w,missingCatalog,assets);
+ const affected=w.cells.filter(c=>wanted.has(c.terrainId)).length;
+ assert.equal(blocked.readyForMaterialPreview,affected===0);
+ assert.equal(blocked.missingHexes,affected);
+ assert.equal(blocked.coveredHexes+blocked.missingHexes,w.cells.length);
+ assert(blocked.missing.every(x=>x.hexes>0));
+});
 test('no source catalog/texture or renderer produces no falsely finished game tile',async()=>{
  const world=G.generateWorld('reject-material',{width:10,height:10}),
   plan=P.plan(world),tile=plan.tiles[0],{catalog,assets}=fixtures();
@@ -98,7 +118,7 @@ test('no source catalog/texture or renderer produces no falsely finished game ti
 test('geography lab actually loads shared render modules in order and labels partial output',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../geography-lab.html'),'utf8'),
   js=fs.readFileSync(path.join(__dirname,'../geography-lab.js'),'utf8');
- for(const id of ['materialPreviewTileId','materialPreviewBake','materialPreviewReport'])
+ for(const id of ['materialPreviewTileId','materialPreviewBake','materialPreviewReport','auditMaterialCatalog','materialCatalogReport'])
   assert(html.includes('id="'+id+'"'));
  const modules=['water-texture.js','autotile.js','large-map-bake-plan.js',
   'large-map-bake-source.js','large-map-bake-material-preview.js','geography-lab.js'];
@@ -106,6 +126,7 @@ test('geography lab actually loads shared render modules in order and labels par
  assert(indices.every(n=>n>0));
  assert(indices.every((n,i)=>i===0||n>indices[i-1]));
  assert.match(js,/MATERIAL\.loadCatalog\(\)/);
+ assert.match(js,/MATERIAL\.auditWorld\(sourceWorld,catalog,assets\)/);
  assert.match(js,/renderer\.renderTile\(tileId\)/);
  assert.match(js,/result\.complete\|\|result\.readyForViewer/);
  assert.match(js,/UNVOLLSTÄNDIG/);
