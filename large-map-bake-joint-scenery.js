@@ -284,7 +284,11 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
  }
  async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
   authoredShadowScene=null,previewMountainReceivers=false,
-  previewEditorProjection=false,captureEditorCompositeReference=false}={}){
+  previewEditorProjection=false,captureEditorCompositeReference=false,
+  captureAlphaAB=false}={}){
+  if(typeof captureAlphaAB!=="boolean"||
+   (captureAlphaAB&&!captureEditorCompositeReference))
+   throw Error("Alpha-A/B braucht eine begrenzte explizite Original-Editor-Referenz.");
   if(typeof captureEditorCompositeReference!=="boolean"||
    (captureEditorCompositeReference&&!previewEditorProjection))
    throw Error("Diagnostische Editor-Komposition nur im expliziten Referenzmodus.");
@@ -435,6 +439,12 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     spriteAlphaMasks:[],
     spriteAlphaMaskBytes:0,
     background,
+    // Only in bounded diagnostic A/B mode: keep pre-sprite original
+    // Canvas RGBA and global scratch RGBA, never write them to viewer PNGs.
+    alphaAB:captureAlphaAB?{
+     background:ctx.getImageData(0,0,output.width,output.height).data,
+     sprites:[],bytes:0,complete:false,readyForViewer:false
+    }:null,
     sampleX:Math.round((tile.x-PAD)*SCALE),
     sampleY:Math.round((tile.y-PAD)*SCALE*PROJECT_Y),
     editorShadowReceivers:previewMountainReceivers,
@@ -540,6 +550,16 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
      path:item.inst.assetPath,cell:item.inst.q+","+item.inst.r,
      x:gx,y:gy,width,height,bits
     });
+    const ab=editorCompositeReference.alphaAB;
+    if(ab){
+     if(ab.bytes+rgba.byteLength>48000000)
+      throw Error("Alpha-A/B Referenz überschreitet 48 MB Original-Scratch-Budget.");
+     ab.bytes+=rgba.byteLength;
+     ab.sprites.push({
+      ordinal:item.ordinal,x:gx,y:gy,width,height,
+      rgba,originalNaturePath:item.inst.assetPath
+     });
+    }
    }
    // One-to-one pixel copy at an integer offset: identical source pixels
    // for overlapping tiles, even with transparent mountain/tree layering.
