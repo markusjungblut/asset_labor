@@ -179,6 +179,15 @@ window.VedrasWalls=(()=>{
   stone:[[156,167,14,89],[40,216,20,82],[156,167,142,89],
    [156,167,142,152],[40,216,20,208],[156,167,14,152]]
  };
+ // These are genuine hand-painted transparent raster assets, authored from
+ // the same physical Hex-vertex anchor as the legacy direction SVGs.
+ // Edges end 10.5 world units short of both vertices. A separate post,
+ // painted with the same material, owns each corner or open end.
+ const palisadeRasterMeta=[
+  [128,139,0,72.369],[58,210,29,68.5],[128,139,128,71.816],
+  [128,139,128,134.631],[58,210,29,194.131],[128,139,0,135.184]
+ ];
+ const palisadeJoinArt=new Map();
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
@@ -191,7 +200,16 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/'+kind+'/edge_dir'+side+'.svg';
+    image.src='assets/walls/'+kind+'/edge_dir'+side+
+     (kind==='palisade'?'.webp':'.svg');
+   }));
+  }
+  for(const name of ['corner_post','end_post']){
+   const image=new Image();palisadeJoinArt.set(name,image);
+   pending.push(new Promise(resolve=>{
+    image.onload=()=>resolve(true);
+    image.onerror=()=>resolve(false);
+    image.src='assets/walls/palisade/'+name+'.webp';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{
@@ -203,14 +221,17 @@ window.VedrasWalls=(()=>{
  }
  function artworkInfo(){return {count:wallArt.size,
   loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
-  total:12};}
+  total:12,
+  postsLoaded:[...palisadeJoinArt.values()].filter(i=>i.naturalWidth>0).length,
+  postsTotal:2};}
  function drawArtwork(ctx,edge,project,zoom){
   if(typeof Image==='undefined')return false;
   if(!artworkPromise)artworkReady();
   const g=geometry(edge);if(!g)return false;
   const img=wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
-  const [w,h,ax,ay]=wallArtMeta[edge.kind][g.side];
+  const [w,h,ax,ay]=(edge.kind==='palisade'?
+   palisadeRasterMeta:wallArtMeta[edge.kind])[g.side];
   const origin=project(g.a.x,g.a.y);
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
   ctx.globalCompositeOperation='source-over';
@@ -241,6 +262,28 @@ window.VedrasWalls=(()=>{
  }
  function drawJoin(ctx,node,project,zoom=1){
   if(!node||!node.degree)return false;
+  if(node.kind==='palisade'&&typeof Image!=='undefined'){
+   if(!artworkPromise)artworkReady();
+   const end=node.degree===1;
+   const image=palisadeJoinArt.get(end?'end_post':'corner_post');
+   if(image?.naturalWidth){
+    const p=project(node.x,node.y),w=(end?25:30)*zoom,
+     h=(end?79:82)*zoom;
+    // At the top of a pointed hex two adjacent edges descend from the
+    // corner. Their painted bases end BELOW that vertex because the edges
+    // have a small deliberate inset. Extend only the painted post's base
+    // down to those two real edge feet; no open green triangle remains.
+    // Opposite/bottom-facing vertices need no extension. The post tip's
+    // absolute screen height stays unchanged for all six orientations.
+    const descents=(node.incident||[]).map(part=>
+     Math.sin(part.angle)*10.5*.85);
+    const extension=Math.max(0,...descents)*zoom;
+    ctx.save();ctx.globalAlpha=1;ctx.filter='none';
+    ctx.globalCompositeOperation='source-over';
+    ctx.drawImage(image,p.x-w/2,p.y-h,w,h+extension);
+    ctx.restore();return true;
+   }
+  }
   const p=project(node.x,node.y),stone=node.kind==='stone',
    h=heightFor(node.kind)*zoom,w=(stone?14:8.5)*zoom;
   const top=p.y-h;
@@ -289,7 +332,7 @@ window.VedrasWalls=(()=>{
   const sx=Number(global.offsetX??-.07)*d.height;
   const sy=Number(global.offsetY??.025)*d.height;
   const moved={x:p.x+d.x+sx,y:p.y+d.y+sy};
-  const r=(node.kind==='stone'?17:11)*zoom;
+  const r=(node.kind==='stone'?17:16)*zoom;
   const tone=window.VedrasShadowTone;
   ctx.save();ctx.globalAlpha=tone?.targetAlpha?.('sprite')??.40;
   ctx.fillStyle=tone?.colorCss?.()||'#203131';
@@ -406,5 +449,5 @@ window.VedrasWalls=(()=>{
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
-  artworkReady,artworkInfo,wallArtMeta,junctions,drawJoin,drawJoinShadow};
+  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,junctions,drawJoin,drawJoinShadow};
 })();

@@ -4360,6 +4360,7 @@ function frozenSceneKey({force4x=false}={}){
   'scenery-global-composition-exclusive-core-v2',
   'wall-material-silhouette-v2',
   'authored-wall-directional-svg-corner-nodes-v3',
+  'palisade-painted-webp-edge-inset-and-posts-v4',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
