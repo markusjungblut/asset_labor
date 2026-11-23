@@ -94,8 +94,14 @@ def finish(im,dir_or_name):
     # Pasting with alpha leaves premultiplied RGB, restore for PNG.
     nz=aa>0
     arr[nz]*=255/aa[nz,None]
-    arr=np.clip(arr,0,255).astype("uint8")
-    out=Image.fromarray(np.dstack([arr,aa.astype("uint8")]),"RGBA")
+    # Unpremultiplication can amplify near-transparent RGB to almost white.
+    # The browser detected three bright 15+-alpha fringe pixels in v6.
+    # Keep the same natural mineral range as the fully opaque source and
+    # darken translucent edge RGB to prevent JPEG-like glowing mats.
+    arr=np.clip(arr,0,211)
+    arr[aa<249]=np.minimum(arr[aa<249],170)
+    aa[aa<14]=0
+    out=Image.fromarray(np.dstack([arr.astype("uint8"),aa.astype("uint8")]),"RGBA")
     out.save(OUT/(dir_or_name+".png"),optimize=True)
     return out
 def jitter(rng,base,delta=13):
