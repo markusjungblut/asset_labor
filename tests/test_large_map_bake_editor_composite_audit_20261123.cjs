@@ -60,7 +60,8 @@ test('invalid images, bounds, histogram sizes and implicit color conversions fai
 });
 test('Firefox source-derived multi-object audit keeps release gates and true neighbor seam',()=>{
  const t=fs.readFileSync(path.join(__dirname,'automated_browser_geography_joint_scenery_20261123.cjs'),'utf8');
- assert(t.includes('VedrasEditorCompositeAudit.paired'));
+ assert(t.includes('const RGBA=window.VedrasEditorCompositeAudit'));
+ assert(t.includes('RGBA.paired({width:1920,height:1632'));
  assert(t.includes('EDITOR_COMPOSITE_RGBA_AUDIT'));
  assert(t.includes('result.compositeSeams.withShadow.different,0'));
  const io=fs.readFileSync(path.join(__dirname,'../.github/workflows/geography-io-regression.yml'),'utf8');
