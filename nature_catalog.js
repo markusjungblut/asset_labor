@@ -27,7 +27,7 @@ window.VedrasNatureCatalog=(()=>{
  // uploaded filename, not a display name or a user-editable family label.
  const sourceId=meta=>{
   const source=String(meta?.sourceReference||'');
-  const match=source.match(/(?:^|[/\\:\s])((?:cactus|kaktus|cacti|sukkulent(?:e|en)?|boulder)[_ -]?\d{1,2})\.(?:png|webp|jpe?g|avif)(?:\s|$)/i);
+  const match=source.match(/(?:^|[/\\:\s])((?:cactus|kaktus|cacti|sukkulent(?:e|en)?|boulder|dry[_ -]?patch)[_ -]?\d{1,2})\.(?:png|webp|jpe?g|avif)(?:\s|$)/i);
   return (match?.[1]||'').toLowerCase().replace(/[ -]/g,'_');
  };
  const ecologicalFamily=meta=>{
@@ -50,11 +50,20 @@ window.VedrasNatureCatalog=(()=>{
  const DESERT_BIOMES=['rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'];
  const isAcacia=meta=>meta?.family==='savanna_trees'&&
   /^existing_schirmakazie_?\d+$/.test(String(meta.id||''));
+ // Dry-patch ground decals: no wetlands, forest, cold or water tiles.
+ const DRY_PATCH_BIOMES=['sparse_pasture','pasture','grassland','savanna','dry_ground','rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'];
+ const isDryPatch=meta=>/^dry_patch_(?:0[1-9]|1[0-5])$/.test(String(meta?.id||''))&&
+  meta?.kind==='ground_cover';
+ // Spawn density is an overall per-hex rate, never a rate per PNG variant.
+ const dryPatchChance=biome=>biome==='sparse_pasture'?.32:
+  biome==='pasture'?.06:biome==='grassland'?.04:
+  DRY_PATCH_BIOMES.includes(biome)?.07:0;
  const TEMPERATE_BIOMES=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
  const STUMP_BIOMES=[...TEMPERATE_BIOMES,'savanna','jungle'];
  function strictHabitat(meta){
   if(!meta)return null;
   const id=String(meta.id||''),original=sourceId(meta);
+  if(/^dry_patch_(?:0[1-9]|1[0-5])$/.test(original)||isDryPatch(meta))return DRY_PATCH_BIOMES;
   if(/^boulder_(?:2[1-9]|3[0-5])$/.test(original))return COLD_BIOMES;
   if(/^boulder_(?:3[6-9]|4\d|5[0-4])$/.test(original))return WARM_BIOMES;
   if(winterBoulder(meta)||snowyBush(meta)||
@@ -95,6 +104,7 @@ window.VedrasNatureCatalog=(()=>{
    among('grassland','pasture')&&(nearWater||[...neighbors].some(id=>['moor','swamp','marshland'].includes(id)));
   const snow=/(?:snow|schnee|verschneit|winter)/i.test([meta.id,meta.description,...(meta.tags||[])].join(' '));
   if(among('snowfields','frozen_tundra')&&!snow)return false;
+  if(f==='dry_patches')return DRY_PATCH_BIOMES.includes(t);
   if(f==='dry_bushes')return !among('jungle','moor','swamp','marshland','tundra','highland');
   if(f==='herbs')return !among('jungle','swamp','marshland','ocean','snowfields','frozen_tundra');
   if(f==='flowering_bushes'||f==='temperate_bushes'||f==='heath')return !among('jungle','rocky_desert','sandy_desert','clay_desert');
@@ -188,5 +198,6 @@ window.VedrasNatureCatalog=(()=>{
   return err;
  }
  return {idOK,validPath,kinds,sizes,shadows,initial,template,validate,effectiveTypes,
-  habitatOK,canPlace,mountainAllowed,strictHabitat,rules,DESERT_BIOMES,isAcacia};
+  habitatOK,canPlace,mountainAllowed,strictHabitat,rules,DESERT_BIOMES,isAcacia,
+  DRY_PATCH_BIOMES,isDryPatch,dryPatchChance};
 })();
