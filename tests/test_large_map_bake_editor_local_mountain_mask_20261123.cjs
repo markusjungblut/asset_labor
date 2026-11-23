@@ -68,3 +68,47 @@ test('real source and browser fixture include independent original shadowLocalMa
  assert(renderer.includes('previewEditorLocalMountainMask=false'));
  assert(renderer.includes('needsFullEditorImageParity:true'));
 });
+
+test('2.8v three original source widths keep exact capped raster and fractional placement',()=>{
+ const a=mock();
+ const measurements=[
+  [480,.6,288,7,{x:1021.375,y:1100.625}],
+  [900,320/900,320,22,{x:1317.25,y:1188.875}],
+  [1280,.25,320,33,{x:1904.625,y:923.375}]
+ ];
+ for(const [width,factor,rasterWidth,softness,origin] of measurements){
+  const mask=L.raster({width,settings:{softness,contactWidth:.16},
+   strength:1.12,shadows:a.sh,canvasFactory:a.canvasFactory});
+  assert.equal(mask.factor,factor);
+  assert.equal(mask.rasterWidth,rasterWidth);
+  const rect=L.cast({raster:mask,origin});
+  assert.equal(rect.x,origin.x+mask.left/mask.factor);
+  assert.equal(rect.y,origin.y+mask.top/mask.factor);
+  const box=L.globalBox({cast:rect});
+  assert(box.left<=rect.x&&box.top<=rect.y);
+  assert(box.left+box.width>=rect.x+rect.width);
+  assert(box.top+box.height>=rect.y+rect.height);
+  assert.equal(mask.readyForViewer,false);
+  assert.equal(rect.readyForViewer,false);
+ }
+});
+test('2.8v source-derived exported styles and two real tiled seam directions are hard CI gates',()=>{
+ const root=path.join(__dirname,'..');
+ const browser=fs.readFileSync(path.join(__dirname,
+  'automated_browser_geography_joint_scenery_20261123.cjs'),'utf8');
+ const joint=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
+ const adapter=fs.readFileSync(path.join(root,
+  'large-map-bake-original-mountain-shadows.js'),'utf8');
+ assert(browser.includes('phase28v_original_mountain_mask_variants.json'));
+ assert(browser.includes("originalStyleEngine.resolve("));
+ assert(browser.includes("const styleExport={...authoredExport"));
+ assert(browser.includes("['0,1',variedLocalDown]"));
+ assert(browser.includes("seamCheck(pixelCanvas(variedLocalLeft),"));
+ assert(browser.includes("seamCheck(acrossLeft,acrossDown,'down')"));
+ assert(browser.includes("assert.equal(variants.eligibleForReview,true"));
+ assert(browser.includes("sourceRGBAChanged===0&&s.placementError===0"));
+ assert(joint.includes('previewEditorLocalMountainMask=false'));
+ assert(joint.includes('needsFullEditorImageParity:true'));
+ assert(adapter.includes('editorLocalMask=false'));
+ assert(!adapter.includes('editorLocalMask=true,'));
+});

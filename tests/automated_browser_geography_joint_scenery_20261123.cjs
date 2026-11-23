@@ -1341,6 +1341,12 @@ const plan=Plan.plan(world);
   assert.equal(variants.variedComparisons.length,2);
   assert(variants.variedComparisons.every(x=>x.maskBetter),
    'Real authored style ground must get closer with the original cached local mask');
+  // The independent REAL authored multi-mountain fixture is now a strict
+  // positive regression, not a report that may silently worsen later.
+  assert.equal(variants.eligibleForReview,true,
+   '2.8v must improve both real styled scenes and preserve BOTH tile seams');
+  assert(variants.variedComparisons.every(x=>x.compositorBetter),
+   'Editor-authored source must improve the complete original-PNG composite');
   assert.equal(variants.complete,false);
   assert.equal(variants.readyForViewer,false);
   if(variants.eligibleForReview)
