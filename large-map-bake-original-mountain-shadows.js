@@ -22,6 +22,7 @@ function bounds(sh,origin,width,cfg){
 function paint({objects,output,tile,canvasFactory,
  shadows=root.VedrasShadows,tone=root.VedrasShadowTone,
  spriteShadows=root.VedrasSpriteShadows,
+ authoredScene=null,styleBridge=root.VedrasLargeMapAuthoredMountainShadows,
  scale=2.5,projectY=.85,pad=128,size=512}={}){
  const profile=spriteShadows?.get?.();
  if(!Array.isArray(objects)||objects.length>MAX_MOUNTAINS||
@@ -35,13 +36,18 @@ function paint({objects,output,tile,canvasFactory,
   typeof tone?.targetAlpha!=="function"||
   !profile?.global||!profile?.profiles||
   !Object.keys(profile.profiles).length||
-  !(scale>0&&projectY>0&&pad>=0&&size>0))
+  !(scale>0&&projectY>0&&pad>=0&&size>0)||
+  (authoredScene!==null&&
+   (typeof styleBridge?.valid!=="function"||
+    !styleBridge.valid(authoredScene)||
+    typeof styleBridge.resolve!=="function")))
   throw Error("Original-Bergschatten benötigen die Editor-Engine und echte Schattenprofile.");
  const ctx=output.getContext("2d",{alpha:true});
  if(!ctx?.drawImage||!ctx?.setTransform)
   throw Error("Original-Bergschatten benötigen ein vollständiges Canvas2D.");
- const settings=shadows.settings(); // Authored editor defaults, NEVER sprite presets
- const strength=shadows.globalStrength(profile.global.strength);
+ const defaultSettings=shadows.settings();
+ const strength=shadows.globalStrength(authoredScene?
+  authoredScene.shadowGlobal:profile.global.strength);
  const outputX=Math.round((tile.x-pad)*scale),
   outputY=Math.round((tile.y-pad)*scale*projectY);
  const maxOffset=(pad+1250)*scale; // matches joint candidate halo
@@ -78,6 +84,8 @@ function paint({objects,output,tile,canvasFactory,
    anchor=obj.item.meta.anchor||{x:.5,y:.67};
   if(!(width>0&&aspect>0)||!Number.isFinite(width*aspect))
    throw Error("Ungültige originale Berg-PNG-Geometrie.");
+  const settings=authoredScene?
+   styleBridge.resolve(authoredScene,obj.item.inst,shadows):defaultSettings;
   const p={x:obj.item.p.x*scale,y:g.y*scale*projectY},
    foot=alphaFoot(obj,anchor),
    origin=shadows.mountainOrigin(p,width,width*aspect,anchor,settings,foot);
@@ -116,7 +124,12 @@ function paint({objects,output,tile,canvasFactory,
  }
  return {schema:SCHEMA,source:"native-VedrasShadows-paintMountain",
   drawn,onlyShadow,nonzeroPixels,maxAlpha,
-  defaultEditorSettings:true,needsAuthoredSceneOverrides:true,
+  defaultEditorSettings:authoredScene===null,
+  authoredEditorScene:authoredScene!==null,
+  authoredInstanceMatch:authoredScene?.instanceMatchComplete??false,
+  authoredSceneMountains:authoredScene?.instancesInScene??0,
+  needsAuthoredSceneOverrides:authoredScene===null||
+   !authoredScene.instanceMatchComplete,
   needsMountainSpriteReceiverParity:true,needsOriginalGroundIntegration:true,
   complete:false,readyForViewer:false};
 }

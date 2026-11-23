@@ -282,7 +282,10 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   }
   return plan.tiles[0]?.id||null;
  }
- async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false}={}){
+ async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
+  authoredShadowScene=null}={}){
+  if(authoredShadowScene!==null&&!previewMountainShadows)
+   throw Error("Exportierte Editor-Bergprofile benötigen aktive Bergschatten.");
   if(previewMountainShadows&&!previewSpriteShadows)
    throw Error("Original-Bergschatten brauchen die gemeinsame Original-Sprite-Schattenprobe.");
   const tile=byTile.get(id);
@@ -341,6 +344,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     throw Error("Natives Bergschatten-Modul nicht geladen.");
    mountainShadowResult=root.VedrasLargeMapOriginalMountainShadows.paint({
     objects:[...mount,...shadowOnlyMountains],output,tile,canvasFactory,
+    authoredScene:authoredShadowScene,
     scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
    });
   }
@@ -414,8 +418,12 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    drawnShadowOnlyMountains:mountainShadowResult?.onlyShadow||0,
    originalMountainShadowPositivePixels:mountainShadowResult?.nonzeroPixels||0,
    originalMountainShadowMaxAlpha:mountainShadowResult?.maxAlpha||0,
+   authoredMountainScene:mountainShadowResult?.authoredEditorScene||false,
+   authoredMountainInstanceMatch:mountainShadowResult?.authoredInstanceMatch||false,
+   authoredMountainSceneInstances:mountainShadowResult?.authoredSceneMountains||0,
    needsOriginalMountainShadows:!previewMountainShadows,
-   needsMountainShadowScenePresetParity:true,
+   needsMountainShadowScenePresetParity:mountainShadowResult?
+    mountainShadowResult.needsAuthoredSceneOverrides:true,
    needsMountainSpriteReceiverParity:true,
    testedOtherMountainOcclusions:(ordinary.length+snow.length+accents.length)*mount.length,
    occludedOtherMountainPairs:occludedOther,

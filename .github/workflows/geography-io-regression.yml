@@ -19,6 +19,7 @@ on:
       - 'large-map-bake-nature-accents.js'
       - 'large-map-bake-original-sprite-shadows.js'
       - 'large-map-bake-original-mountain-shadows.js'
+      - 'large-map-bake-authored-mountain-shadows.js'
       - 'large-map-bake-scenery-seam.js'
       - 'tests/automated_browser_geography_joint_scenery_20261123.cjs'
       - '.github/workflows/geography-io-regression.yml'
