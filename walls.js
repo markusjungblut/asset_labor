@@ -206,7 +206,7 @@ window.VedrasWalls=(()=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
     image.src='assets/walls/'+kind+'/edge_dir'+side+
-     (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg');
+     (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg?v=20261123-crenellated-stone-v1');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -313,6 +313,34 @@ window.VedrasWalls=(()=>{
    ctx.strokeStyle='#ddd0b6';ctx.lineWidth=1.3*zoom;
    ctx.beginPath();ctx.moveTo(p.x-w*.92,top);
    ctx.lineTo(p.x+w*.3,top);ctx.stroke();
+   // Crenellated corner/end pier. Its 9-unit merlons align with the
+   // directional stone artwork, while the shared vertex remains the sole
+   // footprint anchor for all six directions and mixed wall connections.
+   ctx.fillStyle='#736a5d';
+   poly(ctx,[{x:p.x-w*1.13,y:top},{x:p.x+w*1.13,y:top},
+    {x:p.x+w*1.13,y:top-3*zoom},{x:p.x-w*1.13,y:top-3*zoom}]);
+   ctx.fillStyle='#c4b69e';
+   poly(ctx,[{x:p.x-w*1.18,y:top-3*zoom},{x:p.x+w*.75,y:top-3*zoom},
+    {x:p.x+w*1.15,y:top-6*zoom},{x:p.x-w*.78,y:top-6*zoom}]);
+   for(const t of [-.70,0,.70]){
+    const x=p.x+w*t,side=3.5*zoom,y=top-3*zoom,z=y-7.5*zoom;
+    ctx.fillStyle=t===0?'#b9ab96':'#a49884';
+    poly(ctx,[{x:x-side,y:y},{x:x+side,y:y},
+     {x:x+side,y:z},{x:x-side,y:z}]);
+    ctx.fillStyle='#e2d3bc';
+    poly(ctx,[{x:x-side,y:z},{x:x+side,y:z},
+     {x:x+side+2*zoom,y:z-2*zoom},{x:x-side+2*zoom,y:z-2*zoom}]);
+    ctx.strokeStyle='#6d6458';ctx.lineWidth=.85*zoom;
+    ctx.strokeRect?.(x-side,y-7.5*zoom,side*2,7.5*zoom);
+   }
+   // A recessed defensive slit, avoiding a single flat stone rectangle.
+   ctx.fillStyle='#4c4c46';
+   poly(ctx,[{x:p.x-w*.14,y:top+14*zoom},
+    {x:p.x+w*.10,y:top+14*zoom},{x:p.x+w*.08,y:top+34*zoom},
+    {x:p.x-w*.12,y:top+34*zoom}]);
+   ctx.strokeStyle='#c9b9a2';ctx.lineWidth=1.1*zoom;
+   ctx.beginPath();ctx.moveTo(p.x-w*.18,top+14*zoom);
+   ctx.lineTo(p.x-w*.18,top+34*zoom);ctx.stroke();
   }else{
    ctx.fillStyle='#4b3423';poly(ctx,[
     {x:p.x-w,y:p.y},{x:p.x+w,y:p.y},
