@@ -755,6 +755,7 @@ async function makeJointSceneryPreview(current){
   if(!JOINT?.create||!NATURE?.create||
     !window.VedrasLargeMapWarmBoulders?.create||
     !window.VedrasLargeMapLateNature?.create||
+    !window.VedrasLargeMapNatureAccents?.create||
     !window.VedrasLargeMapNatureTrunks?.create||
     !window.VedrasLargeMapBakeForestFloor?.create||
     !window.VedrasLargeMapBakeGroundRelief?.createOptions||
@@ -781,14 +782,19 @@ async function makeJointSceneryPreview(current){
    mountainPlan:scenery,siteAudit,warmPlan:boulders,treePlan:trunks,
    seed:12345
   });
+  const accents=window.VedrasLargeMapNatureAccents.create({
+   world:current,terrainCatalog:catalog,natureCatalog,assets,forestCells,
+   mountainPlan:scenery,siteAudit,warmPlan:boulders,treePlan:trunks,
+   latePlan:late,seed:12345
+  });
   if(current!==world)throw Error('Welt während der Scenery-Platzierung geändert.');
   const renderer=JOINT.create({
    world:current,plan,treePlan:trunks,mountainPlan:scenery,
-   boulderPlan:boulders,latePlan:late,
+   boulderPlan:boulders,latePlan:late,accentPlan:accents,
    terrainCatalog:catalog,natureCatalog,assets,
    loadImage:MATERIAL.imageLoader()
   });
-  return {plan,renderer,boulders,trunks,late};
+  return {plan,renderer,boulders,trunks,late,accents};
 }
 $('previewJointScenery').addEventListener('click',async()=>{
  if(!currentWorld())return;
@@ -797,7 +803,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
  const current=world;
  try{
   report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
-  const {plan,renderer,boulders,late}=await makeJointSceneryPreview(current);
+  const {plan,renderer,boulders,late,accents}=await makeJointSceneryPreview(current);
   const requested=String($('materialPreviewTileId').value||'').trim();
   const id=requested||renderer.defaultTile();
   if(!plan.tiles.some(t=>t.id===id))
@@ -823,7 +829,12 @@ $('previewJointScenery').addEventListener('click',async()=>{
    boulders.instances.length+' global geplant, davon '+
    boulders.statistics.guaranteedWarmPlaced+' garantierter Vorlauf) · '+
    sample.drawnOrdinaryBoulders+' gewöhnliche Findlinge · '+
-   sample.drawnSnowPatches+' Schneeflächen (global '+
+   sample.drawnSnowPatches+' Schneeflächen · '+
+   sample.drawnAccents+' Sträucher/Totholz/Akzente (global '+
+   accents.instances.length+' geplant, davon '+
+   accents.stats.placedDeadTrees+' stehende tote Bäume / '+
+   accents.stats.placedFallenLogs+' liegende Stämme) · '+
+   'Schnee-/Steinvorlauf global '+
    late.stats.placedOrdinaryBoulders+' gewöhnliche Findlinge / '+
    late.stats.placedSnowPatches+' Schneeflächen geplant) · '+
    sample.originalPngs+' dekodierte Originalgrafiken · '+

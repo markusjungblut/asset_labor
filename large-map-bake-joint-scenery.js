@@ -15,7 +15,7 @@ const validPath=p=>typeof p==="string"&&
  /^assets\/nature\/[\p{L}\p{N}_.-]+\.png$/iu.test(p)&&!p.includes("..");
 const sameSource=(a,b)=>!!a&&!!b&&
  ["version","seed","width","height","originQ","originR"].every(k=>a[k]===b[k]);
-function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null,terrainCatalog,natureCatalog,
+function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null,accentPlan=null,terrainCatalog,natureCatalog,
  assets,loadImage,canvasFactory=()=>root.document.createElement("canvas"),
  planner=root.VedrasLargeMapBakePlan,
  groundRelief=root.VedrasLargeMapBakeGroundRelief,
@@ -60,9 +60,23 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    latePlan.natureCatalogRevision!==(natureCatalog?.revision??null)||
    latePlan.earlierWarmBoulders!==boulderPlan.instances.length||
    latePlan.earlierTrees!==treePlan.instances.length))||
+  (accentPlan&&(
+   !latePlan||accentPlan.schema!=="vedras-geography-nature-accents-v1"||
+   accentPlan.stage!=="original-shrubs-deadwood-and-accents-after-snow"||
+   accentPlan.rasterized!==false||accentPlan.complete!==false||
+   accentPlan.readyForViewer!==false||
+   !Array.isArray(accentPlan.instances)||
+   accentPlan.worldHexes!==plan.source?.cells||
+   !sameSource(accentPlan.worldSource,plan.source)||
+   accentPlan.seed!==treePlan.seed||
+   accentPlan.natureCatalogRevision!==(natureCatalog?.revision??null)||
+   accentPlan.earlierWarmBoulders!==boulderPlan.instances.length||
+   accentPlan.earlierTrees!==treePlan.instances.length||
+   accentPlan.earlierRocksAndSnow!==latePlan.instances.length))||
   treePlan.instances.length+mountainPlan.instances.length+
    (boulderPlan?.instances.length||0)+
-   (latePlan?.instances.length||0)>MAX_INSTANCES||
+   (latePlan?.instances.length||0)+
+   (accentPlan?.instances.length||0)>MAX_INSTANCES||
   treePlan.worldHexes!==plan.source?.cells||
   mountainPlan.worldHexes!==plan.source?.cells||
   !sameSource(treePlan.worldSource,plan.source)||
@@ -108,10 +122,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
        /^boulder[_-]?\d+$/i.test(meta.id||""))&&!balance.isWarmBoulder(meta)):
      type==="snow"?!(
       meta.kind==="ground_cover"&&meta.family==="snow"):
+     type==="accent"?!(
+      (["shrub","cluster","ground_cover","special"].includes(meta.kind)||
+       (meta.kind==="tree"&&!balance.isCanopy(meta)))&&meta.family!=="snow"):
      meta.kind!=="mountain"))
    throw Error("Scenery-Asset widerspricht dem Original-Naturekatalog.");
   const p=pos(inst);
-  if(type==="tree"||type==="rock"||type==="late-rock"||type==="snow"){
+  if(type==="tree"||type==="rock"||type==="late-rock"||type==="snow"||type==="accent"){
    if(!Number.isFinite(inst.dx)||!Number.isFinite(inst.dy)||
      Math.abs(inst.dx)>160||Math.abs(inst.dy)>160||
      !Number.isFinite(inst.scale)||inst.scale<=0||
@@ -119,9 +136,11 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
      inst.source!==(type==="tree"?
       "geography-original-tree-trunk-preview":
       type==="rock"?"geography-original-warm-boulder-prepass":
+      type==="accent"?"geography-original-late-accents":
       "geography-original-late-rock-snow")||
      (type==="late-rock"&&inst.kind!=="rock")||
-     (type==="snow"&&inst.kind!=="snow"))
+     (type==="snow"&&inst.kind!=="snow")||
+     (type==="accent"&&inst.kind!==meta.kind))
     throw Error("Original-Nature-Stammanker oder Skalierung ungültig.");
    p.x+=inst.dx;p.y+=inst.dy;
   }else if(!Number.isFinite(inst.width)||inst.width<=0||
@@ -140,6 +159,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
  for(const t of treePlan.instances)register(t,"tree");
  for(const n of latePlan?.instances||[])
   register(n,n.kind==="rock"?"late-rock":n.kind==="snow"?"snow":"invalid");
+ for(const n of accentPlan?.instances||[])register(n,"accent");
  // Exactly the same continuous geography relief source as the native ground
  // adapter, but with the editor's additional flattened mountain chain pads.
  // Full world cells are used to make relief independent of the requested tile.
@@ -285,9 +305,10 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    trees=placed.filter(x=>x.item.type==="tree"),
    rocks=placed.filter(x=>x.item.type==="rock"),
    ordinary=placed.filter(x=>x.item.type==="late-rock"),
-   snow=placed.filter(x=>x.item.type==="snow");
+   snow=placed.filter(x=>x.item.type==="snow"),
+   accents=placed.filter(x=>x.item.type==="accent");
   let occluded=0,occludedRocks=0,occludedOther=0;
-  for(const plant of [...trees,...rocks,...ordinary,...snow])
+  for(const plant of [...trees,...rocks,...ordinary,...snow,...accents])
    for(const m of mount)if(occludes(plant,m)){
     plant.coveredByMountains.add(m);
     if(plant.item.type==="tree")occluded++;
@@ -356,7 +377,8 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    drawnTrees:trees.length,drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
    drawnOrdinaryBoulders:ordinary.length,drawnSnowPatches:snow.length,
-   testedOtherMountainOcclusions:(ordinary.length+snow.length)*mount.length,
+   drawnAccents:accents.length,
+   testedOtherMountainOcclusions:(ordinary.length+snow.length+accents.length)*mount.length,
    occludedOtherMountainPairs:occludedOther,
    testedTreeMountainOcclusions:trees.length*mount.length,
    occludedTreeMountainPairs:occluded,
@@ -368,7 +390,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    needsFullEditorImageParity:true,needsPhysicalMountainOverlapAudit:true,
    needsFullNaturePopulation:true,needsPriorBoulderPass:!boulderPlan,
    needsOtherBoulderPass:!latePlan,needsSnowPass:!latePlan,
-   needsShrubsAndSnow:!latePlan,needsShrubsAndAccents:true,
+   needsShrubsAndSnow:!latePlan,needsShrubsAndAccents:!accentPlan,
    needsGroundAndSpriteShadows:true,
    needsFinal4x:true,transparent:true,rasterized:true,
    complete:false,readyForViewer:false};

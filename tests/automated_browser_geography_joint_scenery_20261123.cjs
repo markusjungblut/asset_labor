@@ -10,7 +10,8 @@ const Plan=require('../large-map-bake-plan.js');
 const root=path.resolve(__dirname,'..');
 const names=['assets/nature/birke1.png','assets/nature/berg_01.png',
  'assets/nature/boulder_36.png','assets/nature/boulder_01.png',
- 'assets/nature/snow_patch_01.png'];
+ 'assets/nature/snow_patch_01.png','assets/nature/bush_01.png',
+ 'assets/nature/fallen_log_01.png'];
 const nature=JSON.parse(fs.readFileSync(path.join(root,
  'assets/nature/nature_catalog.json'),'utf8'));
 const terrain=JSON.parse(fs.readFileSync(path.join(root,
@@ -52,7 +53,7 @@ const plan=Plan.plan(world);
    'large-map-bake-scenery-seam.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
-   const [tree,mount,rock,ordinary,snow]=names;
+   const [tree,mount,rock,ordinary,snow,bush,log]=names;
    const imageByPath=new Map();
    for(const p of names){
     const img=new Image();img.src='/'+p;await img.decode();
@@ -100,9 +101,25 @@ const plan=Plan.plan(world);
       assetId:nature.entries[snow.slice(7)].id,scale:1,
       kind:'snow',source:'geography-original-late-rock-snow'}
     ]};
+   const accentPlan={schema:'vedras-geography-nature-accents-v1',
+    stage:'original-shrubs-deadwood-and-accents-after-snow',
+    complete:false,readyForViewer:false,rasterized:false,
+    worldHexes:world.cells.length,worldSource:source,
+    natureCatalogRevision:revision,seed:12345,
+    earlierWarmBoulders:1,earlierTrees:1,earlierRocksAndSnow:2,
+    instances:[
+     {q:2,r:1,dx:-92,dy:45,assetPath:bush,
+      assetId:nature.entries[bush.slice(7)].id,scale:1,
+      kind:nature.entries[bush.slice(7)].kind,
+      source:'geography-original-late-accents'},
+     {q:2,r:1,dx:-115,dy:65,assetPath:log,
+      assetId:nature.entries[log.slice(7)].id,scale:1,
+      kind:nature.entries[log.slice(7)].kind,
+      source:'geography-original-late-accents'}
+    ]};
    const assets=names.map(p=>({path:p,relPath:p.slice(7),category:'nature'}));
    const renderer=window.VedrasLargeMapJointScenery.create({
-    world,plan,treePlan,mountainPlan,boulderPlan,latePlan,
+    world,plan,treePlan,mountainPlan,boulderPlan,latePlan,accentPlan,
     terrainCatalog:terrain,
     natureCatalog:nature,assets,
     loadImage:async a=>({img:imageByPath.get(a.path)})
@@ -142,11 +159,13 @@ const plan=Plan.plan(world);
    return {stages:[a.stage,b.stage],
     sizes:[a.png.size,b.png.size],
     draws:[a.drawnTrees+a.drawnMountains+a.drawnWarmBoulders+
-     a.drawnOrdinaryBoulders+a.drawnSnowPatches,
+     a.drawnOrdinaryBoulders+a.drawnSnowPatches+a.drawnAccents,
      b.drawnTrees+b.drawnMountains+b.drawnWarmBoulders+
-     b.drawnOrdinaryBoulders+b.drawnSnowPatches],
+     b.drawnOrdinaryBoulders+b.drawnSnowPatches+b.drawnAccents],
     ordinaryRocks:[a.drawnOrdinaryBoulders,b.drawnOrdinaryBoulders],
     snowPatches:[a.drawnSnowPatches,b.drawnSnowPatches],
+    accents:[a.drawnAccents,b.drawnAccents],
+    pendingAccents:[a.needsShrubsAndAccents,b.needsShrubsAndAccents],
     missingSnow:[a.needsSnowPass,b.needsSnowPass],
     rocks:[a.drawnWarmBoulders,b.drawnWarmBoulders],
     lateRocks:[a.needsOtherBoulderPass,b.needsOtherBoulderPass],
@@ -173,7 +192,9 @@ const plan=Plan.plan(world);
   assert.deepEqual(result.snowPatches,[1,1]);
   assert.deepEqual(result.lateRocks,[false,false]);
   assert.deepEqual(result.missingSnow,[false,false]);
-  assert.deepEqual(result.draws,[5,5]);
+  assert.deepEqual(result.accents,[2,2]);
+  assert.deepEqual(result.pendingAccents,[false,false]);
+  assert.deepEqual(result.draws,[7,7]);
   assert.deepEqual(result.ready,[false,false]);
   assert.deepEqual(result.complete,[false,false]);
   assert(result.sizes.every(x=>x>1000));
