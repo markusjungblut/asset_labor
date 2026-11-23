@@ -46,6 +46,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-authored-mountain-shadows.js',
  'large-map-bake-mountain-receivers.js',
  'large-map-bake-editor-reference-sprite.js',
+ 'large-map-bake-editor-composite-audit.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -82,7 +83,8 @@ const plan=Plan.plan(world);
    'large-map-bake-authored-mountain-shadows.js',
    'large-map-bake-original-mountain-shadows.js',
    'large-map-bake-mountain-receivers.js',
-   'large-map-bake-editor-reference-sprite.js'])
+   'large-map-bake-editor-reference-sprite.js',
+   'large-map-bake-editor-composite-audit.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource})=>{
    const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
@@ -462,6 +464,86 @@ const plan=Plan.plan(world);
    const compositeWithShadows=[
     compareFrames(raw(compositeShadow0),nativeShade0.ctx),
     compareFrames(raw(compositeShadow1),nativeShade1.ctx)];
+   // Analyze ORIGINAL pre-encode canvases by RGBA channel, transparency
+   // bucket, delta magnitude and the shadow-only transition on each pixel.
+   const RGBA=window.VedrasEditorCompositeAudit;
+   if(!RGBA?.paired)throw Error('Independent RGBA parity auditor not loaded.');
+   const rgbaOf=ctx=>ctx.getImageData(0,0,1920,1632).data;
+   const compositeAudits=[
+    RGBA.paired({width:1920,height:1632,
+     worldBare:rgbaOf(raw(compositeBare0)),
+     editorBare:rgbaOf(nativeBare0.ctx),
+     worldShaded:rgbaOf(raw(compositeShadow0)),
+     editorShaded:rgbaOf(nativeShade0.ctx)}),
+    RGBA.paired({width:1920,height:1632,
+     worldBare:rgbaOf(raw(compositeBare1)),
+     editorBare:rgbaOf(nativeBare1.ctx),
+     worldShaded:rgbaOf(raw(compositeShadow1)),
+     editorShaded:rgbaOf(nativeShade1.ctx)})
+   ];
+   const auditDigest=compositeAudits.map(r=>({
+    tileWidth:r.width,tileHeight:r.height,
+    parity:r.parityPassed,
+    bare:{
+     different:r.bare.different,
+     channels:r.bare.channels,
+     rgbOnly:r.bare.differentRGBOnly,
+     alphaOnly:r.bare.differentAlphaOnly,
+     both:r.bare.differentRGBAndAlpha,
+     delta:r.bare.maxDeltaBins,
+     opacity:r.bare.alphaBins,
+     bounds:r.bare.bbox
+    },
+    shaded:{
+     different:r.shaded.different,
+     channels:r.shaded.channels,
+     rgbOnly:r.shaded.differentRGBOnly,
+     alphaOnly:r.shaded.differentAlphaOnly,
+     both:r.shaded.differentRGBAndAlpha,
+     delta:r.shaded.maxDeltaBins,
+     opacity:r.shaded.alphaBins,
+     bounds:r.shaded.bbox
+    },
+    transitions:{
+     introduced:r.transitions.introduced,
+     resolved:r.transitions.resolved,
+     persistent:r.transitions.persistent,
+     newOnShadowTouched:r.transitions.shadedMismatchOnTouched,
+     persistentOnShadowUntouched:r.transitions.shadedMismatchOnUntouched,
+     worldTouched:r.transitions.worldShadeTouched,
+     editorTouched:r.transitions.editorShadeTouched,
+     bothTouched:r.transitions.shadeTouchedBoth,
+     worldOnly:r.transitions.shadeTouchedWorldOnly,
+     editorOnly:r.transitions.shadeTouchedEditorOnly
+    }
+   }));
+   // Read-only four-panel 32x16 pixel density receipt. The heatmap is
+   // merely a CI visualization; it cannot alter source sprite output.
+   const heatmapCanvas=document.createElement('canvas');
+   heatmapCanvas.width=680;heatmapCanvas.height=400;
+   const hm=heatmapCanvas.getContext('2d');
+   hm.fillStyle='#101923';hm.fillRect(0,0,680,400);
+   hm.font='12px monospace';hm.textBaseline='top';
+   const panels=[
+    {x:12,y:12,name:'Bare 0,0',cells:compositeAudits[0].bare.heatmap.counts},
+    {x:348,y:12,name:'Bare 1,0',cells:compositeAudits[1].bare.heatmap.counts},
+    {x:12,y:208,name:'Shaded 0,0',cells:compositeAudits[0].shaded.heatmap.counts},
+    {x:348,y:208,name:'Shaded 1,0',cells:compositeAudits[1].shaded.heatmap.counts}
+   ];
+   for(const panel of panels){
+    hm.fillStyle='#dce7f1';hm.fillText(panel.name,panel.x,panel.y);
+    const max=Math.max(1,...panel.cells);
+    for(let j=0;j<16;j++)for(let i=0;i<32;i++){
+     const v=panel.cells[j*32+i],t=Math.sqrt(v/max);
+     const red=Math.round(30+225*t),green=Math.round(34+65*t),
+      blue=Math.round(55+20*t);
+     hm.fillStyle='rgb('+red+','+green+','+blue+')';
+     hm.fillRect(panel.x+i*10,panel.y+24+j*10,10,10);
+    }
+   }
+   const editorRGBAHeatmapPng=heatmapCanvas.toDataURL('image/png');
+   if(!editorRGBAHeatmapPng.startsWith('data:image/png;base64,'))
+    throw Error('Editor RGBA diagnostic heatmap PNG was not encoded.');
    const compositePixelParityPassed=compositeNoShadows.every(x=>x.different===0)&&
     compositeWithShadows.every(x=>x.different===0);
    const compositeSeams={
@@ -489,6 +571,7 @@ const plan=Plan.plan(world);
    console.log('EDITOR_COMPOSITE_DIAGNOSTIC',JSON.stringify({
     bare:compositeNoShadows,shadows:compositeWithShadows,
     parity:compositePixelParityPassed,
+    rgba:auditDigest,
     seams:compositeSeams,occlusion:compositeOcclusion,
     receivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers]
@@ -577,7 +660,9 @@ const plan=Plan.plan(world);
     mountainChangedPixels,authoredChangedPixels,
     receiverChangedPixels,
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
-    compositePixelParityPassed,
+    compositePixelParityPassed,compositeRGBA:auditDigest,
+    editorRGBAHeatmapPng,
+    compositeAuditFullReport:compositeAudits,
     compositeNeedsFullEditorParity:[
      compositeBare0.needsFullEditorImageParity,
      compositeShadow0.needsFullEditorImageParity],
@@ -633,7 +718,21 @@ const plan=Plan.plan(world);
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
   },{world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource});
+  // Persist the tested heatmap and full machine-readable metrics in the
+  // existing short-lived CI artifact. Do not print base64 into workflow logs.
+  const rgbaDir=path.join(root,process.env.VEDRAS_CI_ARTIFACTS||'test-artifacts');
+  fs.mkdirSync(rgbaDir,{recursive:true});
+  assert(result.editorRGBAHeatmapPng.startsWith('data:image/png;base64,'));
+  fs.writeFileSync(path.join(rgbaDir,'phase28r_editor_composite_rgba_heatmap.png'),
+   Buffer.from(result.editorRGBAHeatmapPng.slice('data:image/png;base64,'.length),'base64'));
+  fs.writeFileSync(path.join(rgbaDir,'phase28r_editor_composite_rgba_report.json'),
+   JSON.stringify({schema:'vedras-geography-phase28r-rgba-report',
+    source:'app.js independent source + original PNG pre-encode canvases',
+    result:result.compositeAuditFullReport},null,2));
+  delete result.editorRGBAHeatmapPng;
+  delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
+  console.log('EDITOR_COMPOSITE_RGBA_AUDIT',JSON.stringify(result.compositeRGBA));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
    'original-mountain-sprite-shadow-scenery-preview',
@@ -662,6 +761,29 @@ const plan=Plan.plan(world);
   assert.equal(result.compositeSeams.noShadow.different,0);
   assert(result.compositeSeams.withShadow.passed,true);
   assert.equal(result.compositeSeams.withShadow.different,0);
+  assert.equal(result.compositeRGBA.length,2);
+  for(let i=0;i<2;i++){
+   const a=result.compositeRGBA[i];
+   assert.equal(a.tileWidth,1920);
+   assert.equal(a.tileHeight,1632);
+   assert.equal(a.bare.different,result.compositeNoShadows[i].different);
+   assert.equal(a.shaded.different,result.compositeWithShadows[i].different);
+   assert.equal(Object.values(a.bare.delta).reduce((x,y)=>x+y,0),
+    a.bare.different);
+   assert.equal(Object.values(a.shaded.opacity).reduce((x,y)=>x+y,0),
+    a.shaded.different);
+   assert.equal(a.bare.rgbOnly+a.bare.alphaOnly+a.bare.both,
+    a.bare.different);
+   assert.equal(a.shaded.rgbOnly+a.shaded.alphaOnly+a.shaded.both,
+    a.shaded.different);
+   assert.equal(a.transitions.introduced+a.transitions.persistent,
+    a.shaded.different);
+   assert.equal(a.transitions.resolved+a.transitions.persistent,
+    a.bare.different);
+   assert(a.transitions.worldTouched>100);
+   assert(a.transitions.editorTouched>100);
+   assert.equal(a.parity,false);
+  }
   assert(result.compositeNoShadows.every(x=>x.painted>10000));
   assert(result.compositeWithShadows.every(x=>x.painted>10000));
   // A whole-scene editor pixel-equivalence GATE does not yet exist:

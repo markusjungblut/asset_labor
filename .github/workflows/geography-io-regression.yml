@@ -21,6 +21,8 @@ on:
       - 'large-map-bake-original-mountain-shadows.js'
       - 'large-map-bake-mountain-receivers.js'
       - 'large-map-bake-editor-reference-sprite.js'
+      - 'large-map-bake-editor-composite-audit.js'
+      - 'tests/test_large_map_bake_editor_composite_audit_20261123.cjs'
       - 'tests/automated_browser_geography_editor_parity_20261123.cjs'
       - 'large-map-bake-authored-mountain-shadows.js'
       - 'large-map-bake-scenery-seam.js'
