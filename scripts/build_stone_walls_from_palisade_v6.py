@@ -8,7 +8,9 @@ No HTML/CSS rotation; no JPEG/keyed-white masks. Transparent RGBA throughout.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-import math, random, json, hashlib
+import math, random, json, hashlib, io, subprocess
+from PIL import ImageFilter
+import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"assets/walls/stone/v6"
@@ -29,6 +31,30 @@ WALL_HEIGHT=62
 MERLON_HEIGHT=11
 WIDTH=24  # matches walls.js widthFor('stone') exactly
 SEED=97026
+# Restore the authentic PAINTED masonry material of the original v4 art.
+# The old images are texture/color references ONLY: outlines, alpha, slopes,
+# anchors and silhouettes are all authored anew from canonical hex geometry.
+MATERIAL_COMMIT="e5cc1090d"
+def painted_material():
+    try:
+        data=subprocess.check_output(
+            ["git","show",MATERIAL_COMMIT+":assets/walls/stone/edge_dir0.png"],
+            stderr=subprocess.DEVNULL)
+        source=Image.open(io.BytesIO(data)).convert("RGBA")
+        # Interior of painted stonework: exclude transparent surroundings,
+        # crenellation tips and grass/soil at the bottom.
+        crop=source.crop((111,132,355,332))
+        rgb0=np.array(crop,dtype=np.float32)
+        mask=rgb0[:,:,3]>220
+        # Fill any rare transparencies by the mean stone tone, never white.
+        mean=rgb0[mask,:3].mean(axis=0)
+        rgb0[~mask,:3]=mean
+        rgb0[:,:,3]=255
+        return Image.fromarray(np.clip(rgb0,0,255).astype("uint8"),"RGBA")
+    except (OSError,subprocess.CalledProcessError) as exc:
+        raise RuntimeError("Original painted stone material is required for the v7-quality output; shallow history or no e5cc1090d") from exc
+PAINTED_MATERIAL=painted_material()
+
 def pos(q,r):
     return (HEX*(q+r/2),1.5*R*r)
 def verts(q,r):
@@ -58,7 +84,6 @@ def stone_grain(im,seed):
     This textures the independently constructed polygons but NEVER traces,
     transforms, or copies any of the previous stone-wall images.
     """
-    import numpy as np
     ar=np.array(im,dtype=np.uint8)
     h,w=ar.shape[:2]
     rand=np.random.default_rng(seed)
@@ -71,14 +96,42 @@ def stone_grain(im,seed):
     grain=wave(42,.12)+wave(13,.11)+wave(4,.08)
     grain+=rand.normal(0,3.8,(h,w)).astype(np.float32)
     rgb_pixels=ar[:,:,:3].astype(np.float32)
-    for c,weight in enumerate((1.04,1.0,.91)):
-        rgb_pixels[:,:,c]=np.clip(rgb_pixels[:,:,c]+grain*weight,0,211)
+    # Sample the original detailed hand-painted masonry only as COLOR and
+    # local surface texture. Retain the new perfectly straight v6 silhouettes.
+    # A large tiled atlas prevents rectangular seam repeats at tile edges.
+    tile=PAINTED_MATERIAL.resize((w,h),Image.Resampling.BICUBIC)
+    original=np.asarray(tile,dtype=np.float32)[:,:,:3]
+    material=Image.fromarray(original.astype("uint8"),"RGB").filter(
+        ImageFilter.GaussianBlur(2.1))
+    material=np.asarray(material,dtype=np.float32)
+    # Keep intentional mortar line darkness instead of washing it out.
+    solid=(rgb_pixels.mean(axis=2)>72)
+    # Stone spans old art's mineral detail, while assembly is entirely new.
+    rgb_pixels[solid]=rgb_pixels[solid]*.49+material[solid]*.51
+    for ch,weight in enumerate((1.04,1.0,.91)):
+        rgb_pixels[:,:,ch]=np.clip(rgb_pixels[:,:,ch]+grain*weight,0,210)
+    # Stronger self-shading: left-lit masonry, darker east-facing and low
+    # courses, while retaining a narrow highlight at the cap. The shadow on
+    # the ground remains handled by the existing shared renderer.
+    yy=np.arange(h,dtype=np.float32)[:,None]
+    vertical=np.clip((h-yy)/h,0,1)
+    shade=0.78+0.27*vertical
+    rgb_pixels*=shade[:,:,None]
     # Alpha is untouched. Opaque pixels always originate from a stone polygon;
     # outside retains exact zero-alpha, with no white or JPEG matte.
     ar[:,:,:3]=rgb_pixels.astype(np.uint8)
     return Image.fromarray(ar,"RGBA")
 def finish(im,dir_or_name):
     im=stone_grain(im,SEED+sum(ord(c) for c in dir_or_name))
+    # Explicit orientation-dependent sunlight. Screen-space normals of the
+    # painted wall faces are NOT interchangeable with the shadow-on-ground.
+    strengths={"edge_dir0":1.07,"edge_dir1":.79,"edge_dir2":.86,
+               "edge_dir3":.78,"edge_dir4":.84,"edge_dir5":1.06,
+               "corner_post":1.00,"end_post":1.00}
+    gain=strengths.get(dir_or_name,1.00)
+    pixels=np.array(im,dtype=np.uint8)
+    pixels[:,:,:3]=np.clip(pixels[:,:,:3].astype(np.float32)*gain,0,208).astype(np.uint8)
+    im=Image.fromarray(pixels,"RGBA")
     # The geometry is rendered on transparent pixels and premultiplied during
     # downsample: no white matte or JPG color fringe can be introduced.
     from PIL import ImageChops
@@ -114,9 +167,9 @@ def draw_brick(d,rng,shape,base):
     cx=sum(x for x,_ in shape)/4;cy=sum(y for _,y in shape)/4
     t=jitter(rng,base,9)
     poly(d,shape,t)
-    line(d,[shape[0],shape[1]],rgb(177,173,151,225),.50)
-    line(d,[shape[1],shape[2]],rgb(52,52,49,200),.65)
-    line(d,[shape[2],shape[3]],rgb(49,50,48,185),.55)
+    line(d,[shape[0],shape[1]],rgb(166,159,136,225),.85)
+    line(d,[shape[1],shape[2]],rgb(44,44,40,225),1.1)
+    line(d,[shape[2],shape[3]],rgb(42,43,39,200),.85)
     # Pocks, grain and short mineral fissures stay INSIDE their ashlar, so
     # they never modify the mathematically straight segment silhouette.
     def inside(u,v):
