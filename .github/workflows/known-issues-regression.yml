@@ -78,7 +78,7 @@ jobs:
             /assets/walls/palisade/*.webp
             /assets/walls/stone/*.webp
             /assets/walls/stone/*.png
-            /assets/walls/stone/v5/*.png
+            /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -126,7 +126,7 @@ jobs:
             /assets/walls/palisade/*.webp
             /assets/walls/stone/*.webp
             /assets/walls/stone/*.png
-            /assets/walls/stone/v5/*.png
+            /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
