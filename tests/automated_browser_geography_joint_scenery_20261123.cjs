@@ -1,5 +1,5 @@
 'use strict';
-/* Real Firefox proof: original birch AND mountain PNG in ONE joined 2.5x
+/* Real Firefox proof: original birch, mountain AND warm boulder PNG in ONE joined 2.5x
  * world tile. Overlapping strips across adjacent WorldTiles must have
  * identical RGBA pixels. This does not claim editor 4x or shadows parity.
  */
@@ -8,12 +8,13 @@ const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const Geo=require('../worldgen-geography.js');
 const Plan=require('../large-map-bake-plan.js');
 const root=path.resolve(__dirname,'..');
-const names=['assets/nature/birke1.png','assets/nature/berg_01.png'];
+const names=['assets/nature/birke1.png','assets/nature/berg_01.png',
+ 'assets/nature/boulder_36.png'];
 const nature=JSON.parse(fs.readFileSync(path.join(root,
  'assets/nature/nature_catalog.json'),'utf8'));
 const terrain=JSON.parse(fs.readFileSync(path.join(root,
  'assets/terrain/terrain_catalog.json'),'utf8'));
-for(const file of names)assert(fs.statSync(path.join(root,file)).size>20000,
+for(const file of names)assert(fs.statSync(path.join(root,file)).size>1024,
  'Original PNG is missing: '+file);
 const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'polish.js','mountain.js','relief.js','autotile.js',
@@ -50,7 +51,7 @@ const plan=Plan.plan(world);
    'large-map-bake-scenery-seam.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
-   const [tree,mount]=names;
+   const [tree,mount,rock]=names;
    const imageByPath=new Map();
    for(const p of names){
     const img=new Image();img.src='/'+p;await img.decode();
@@ -61,7 +62,8 @@ const plan=Plan.plan(world);
    const revision=nature.revision??null;
    const treePlan={schema:'vedras-geography-tree-trunk-plan-v1',
     complete:false,readyForViewer:false,rasterized:false,
-    requiresTreeShadows:true,worldHexes:world.cells.length,
+    requiresTreeShadows:true,earlierWarmBoulders:1,
+    worldHexes:world.cells.length,
     worldSource:source,natureCatalogRevision:revision,seed:12345,
     instances:[{q:3,r:0,dx:-115,dy:70,assetPath:tree,
      assetId:nature.entries[tree.slice(7)].id,scale:1,
@@ -75,9 +77,18 @@ const plan=Plan.plan(world);
      width:nature.entries[mount.slice(7)].logicalWidth,
      mode:'chain',chainId:'geography_0',coreRadius:0,radius:1,
      source:'geography-scenery-preview'}]};
+   const boulderPlan={schema:'vedras-geography-warm-boulder-prepass-v1',
+    stage:'original-warm-boulders-before-canopy',
+    complete:false,readyForViewer:false,rasterized:false,
+    worldHexes:world.cells.length,worldSource:source,
+    natureCatalogRevision:revision,seed:12345,
+    instances:[{q:3,r:0,dx:-95,dy:65,assetPath:rock,
+     assetId:nature.entries[rock.slice(7)].id,scale:1,
+     source:'geography-original-warm-boulder-prepass'}]};
    const assets=names.map(p=>({path:p,relPath:p.slice(7),category:'nature'}));
    const renderer=window.VedrasLargeMapJointScenery.create({
-    world,plan,treePlan,mountainPlan,terrainCatalog:terrain,
+    world,plan,treePlan,mountainPlan,boulderPlan,
+    terrainCatalog:terrain,
     natureCatalog:nature,assets,
     loadImage:async a=>({img:imageByPath.get(a.path)})
    });
@@ -115,8 +126,10 @@ const plan=Plan.plan(world);
    }
    return {stages:[a.stage,b.stage],
     sizes:[a.png.size,b.png.size],
-    draws:[a.drawnTrees+a.drawnMountains,
-     b.drawnTrees+b.drawnMountains],
+    draws:[a.drawnTrees+a.drawnMountains+a.drawnWarmBoulders,
+     b.drawnTrees+b.drawnMountains+b.drawnWarmBoulders],
+    rocks:[a.drawnWarmBoulders,b.drawnWarmBoulders],
+    lateRocks:[a.needsOtherBoulderPass,b.needsOtherBoulderPass],
     trees:[a.drawnTrees,b.drawnTrees],
     mountains:[a.drawnMountains,b.drawnMountains],
     occludedPairs:[a.occludedTreeMountainPairs,b.occludedTreeMountainPairs],
@@ -135,7 +148,9 @@ const plan=Plan.plan(world);
    'original-tree-mountain-combined-preview']);
   assert.deepEqual(result.trees,[1,1]);
   assert.deepEqual(result.mountains,[1,1]);
-  assert.deepEqual(result.draws,[2,2]);
+  assert.deepEqual(result.rocks,[1,1]);
+  assert.deepEqual(result.lateRocks,[true,true]);
+  assert.deepEqual(result.draws,[3,3]);
   assert.deepEqual(result.ready,[false,false]);
   assert.deepEqual(result.complete,[false,false]);
   assert(result.sizes.every(x=>x>1000));
@@ -146,7 +161,7 @@ const plan=Plan.plan(world);
   assert.equal(result.pixelProof.different,0);
   assert(result.pixelProof.painted>500);
   assert.deepEqual(result.projection,[2.5,2.125]);
-  console.log('PASS real joint Nature tree+mountain 2.5x pixel seam',JSON.stringify(result));
+  console.log('PASS real joint Nature tree+mountain+warm boulder 2.5x pixel seam',JSON.stringify(result));
  }finally{
   try{await browser?.close();}finally{
    server.closeAllConnections();

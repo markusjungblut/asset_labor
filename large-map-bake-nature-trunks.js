@@ -20,7 +20,7 @@ function hash(seed,q,r,salt){
 }
 function pathSalt(s){let v=0;for(const ch of s)v=(Math.imul(v,31)+ch.charCodeAt(0))|0;return v;}
 function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainPlan,siteAudit,
- seed=12345,composition=1,riverWidth=32,roadEdges=world?.roadEdges||[],
+ boulderPlan=null,seed=12345,composition=1,riverWidth=32,roadEdges=world?.roadEdges||[],
  rules=root.VedrasNatureCatalog,forest=root.VedrasForest,
  balance=root.VedrasNatureBalance,mountains=root.VedrasMountains,
  polish=root.VedrasPolish,existing=root.VedrasExistingAssets,
@@ -115,15 +115,49 @@ function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainP
    throw Error("Standort-Audit enthält nicht freigegebene Baumhexe.");
   usedSites.add(key(s));
  }
- const byHex=new Map(),instances=[],stats={
+ // Phase 2.8h: early warm rocks reserve per-hex object slots and prevent
+ // tree trunks from overlapping rock bases. This uses the same local
+ // 2-hex collision neighborhood as Nature UI populate().
+ const rocksByHex=new Map();
+ if(boulderPlan){
+  const src=siteAudit.worldSource,b=boulderPlan;
+  if(b.schema!=="vedras-geography-warm-boulder-prepass-v1"||
+   b.stage!=="original-warm-boulders-before-canopy"||
+   b.complete!==false||b.rasterized!==false||b.readyForViewer!==false||
+   b.worldHexes!==world.cells.length||b.seed!==seed||
+   b.natureCatalogRevision!==(natureCatalog.revision??null)||
+   b.mountainCoreHexes!==cores.size||
+   b.reservedBuildHexes!==clearings.size||
+   !src||!b.worldSource||
+   !["version","seed","width","height","originQ","originR"]
+    .every(k=>src[k]===b.worldSource[k])||
+   !Array.isArray(b.instances)||b.instances.length>world.cells.length)
+   throw Error("Baumplanung benötigt einen gültigen unveränderten Findlingsvorlauf.");
+  const available=new Set(assets.filter(a=>a.category==="nature").map(a=>a.path));
+  for(const n of b.instances){
+   const c=cells.get(key(n));
+   const meta=natureCatalog.entries[n.assetPath?.slice(7)];
+   if(!c||!available.has(n.assetPath)||!balance.isWarmBoulder(meta)||
+    meta.id!==n.assetId||!isGround(c)||cores.has(key(c))||
+    clearings.has(key(c))||rocksByHex.has(key(c))||
+    n.source!=="geography-original-warm-boulder-prepass"||
+    !Number.isFinite(n.dx)||!Number.isFinite(n.dy)||
+    !inside(n.dx,n.dy,meta.placement.edgeMargin-.02)||
+    !Number.isFinite(n.scale)||n.scale<=0)
+    throw Error("Baumplanung: warmer Original-Findling kollidiert mit Geografie oder Katalog.");
+   rocksByHex.set(key(c),[n]);
+  }
+ }
+ const byHex=new Map([...rocksByHex].map(([k,items])=>[k,[...items]])),instances=[],stats={
   eligibleSites:0,targetTreeSlots:0,attemptedTreeSlots:0,
   placedTrees:0,failedTreeSlots:0,desertTreeAttempts:0,desertTreesPlaced:0,
   rejectedOutside:0,rejectedGlade:0,rejectedRiver:0,
-  rejectedRoad:0,rejectedSpacing:0,missingMatchingAssets:0
+  rejectedRoad:0,rejectedSpacing:0,missingMatchingAssets:0,
+  earlierWarmBoulders:boulderPlan?boulderPlan.instances.length:0
  };
  const riverClearance=meta=>Math.max(6,Math.min(28,(Number(meta.logicalWidth)||52)*.16))+5;
  function makeTree(v,c,f,spacingFactor){
-  const index=instances.length+1,meta=v.meta,base=pos(c);
+  const index=instances.length+(boulderPlan?.instances.length||0)+1,meta=v.meta,base=pos(c);
   const scale=meta.scaleMin+(meta.scaleMax-meta.scaleMin)*hash(seed,c.q,c.r,index*47+7);
   const neighborInstances=[];
   for(let dr=-2;dr<=2;dr++)for(let dq=-2;dq<=2;dq++){
@@ -144,8 +178,9 @@ function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainP
    if(neighborInstances.some(old=>{
     const a=pos(old),other=natureCatalog.entries[old.assetPath.slice(7)];
     const areaScale=Math.sqrt(balance.placementScale(meta)*balance.placementScale(other));
-    const factor=spacingFactor;
-    const spacing=Math.max(factor<.6?10:14,
+    const canopyPair=balance.isCanopy(meta)&&balance.isCanopy(other);
+    const factor=canopyPair?spacingFactor:Math.max(.85,spacingFactor);
+    const spacing=Math.max(canopyPair&&factor<.6?10:14,
      Math.max(meta.placement.minSpacing,other?.placement?.minSpacing||0)*factor*areaScale);
     return Math.hypot(x-a.x-old.dx,y-a.y-old.dy)<spacing;
    })){stats.rejectedSpacing++;continue;}
@@ -190,7 +225,9 @@ function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainP
    mode==="dense"?
    (f.forestClass==="dense_forest"?.52:f.forestClass==="light_forest"?.73:1):
    (f.forestClass==="dense_forest"?.72:f.forestClass==="light_forest"?.92:1);
-  const limit=Math.min(s.targetTreeSlots,36);
+  const limit=Math.min(s.targetTreeSlots,36,
+   Math.max(0,forest.maxObjects(f)-(rocksByHex.get(key(c))?.length||0)));
+
   stats.targetTreeSlots+=limit;
   if(desertPool.length&&hash(seed,c.q,c.r,1751)<.065){
    const palms=desertPool.filter(v=>v.meta.family==="palms");
@@ -226,9 +263,11 @@ function create({world,terrainCatalog,natureCatalog,assets,forestCells,mountainP
   mountainCoreHexes:cores.size,reservedBuildHexes:clearings.size,
   riverRoutes:routes.length,roadEdges:roadEdges.length,
   originalTreeVariants:variants.length,stats,instances,
+  earlierWarmBoulders:boulderPlan?.instances.length||0,
   requiresPixelCrownCoverage:true,requiresEditorFullPopulationParity:true,
   requiresOriginalPngDecoding:true,requiresNatureShrubs:true,
-  requiresRockAndAccentPass:true,requiresTreeShadows:true,
+  requiresRockAndAccentPass:true,requiresLateRockPass:true,
+  requiresTreeShadows:true,
   requiresTrunkPixelOverlapAudit:true,
   rasterized:false,complete:false,readyForViewer:false};
 }

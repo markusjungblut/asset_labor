@@ -14,6 +14,7 @@ on:
       - 'tests/automated_browser_geography_tree_png_20261123.cjs'
       - 'large-map-bake-tree-png.js'
       - 'large-map-bake-joint-scenery.js'
+      - 'large-map-bake-warm-boulders.js'
       - 'large-map-bake-scenery-seam.js'
       - 'tests/automated_browser_geography_joint_scenery_20261123.cjs'
       - '.github/workflows/geography-io-regression.yml'
@@ -47,6 +48,7 @@ jobs:
             /assets/nature/nature_catalog.json
             /assets/nature/birke1.png
             /assets/nature/berg_01.png
+            /assets/nature/boulder_36.png
             /assets/terrain/terrain_catalog.json
       - uses: actions/setup-node@v4
         with:

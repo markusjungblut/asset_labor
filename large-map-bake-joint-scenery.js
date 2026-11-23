@@ -15,7 +15,7 @@ const validPath=p=>typeof p==="string"&&
  /^assets\/nature\/[\p{L}\p{N}_.-]+\.png$/iu.test(p)&&!p.includes("..");
 const sameSource=(a,b)=>!!a&&!!b&&
  ["version","seed","width","height","originQ","originR"].every(k=>a[k]===b[k]);
-function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
+function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalog,natureCatalog,
  assets,loadImage,canvasFactory=()=>root.document.createElement("canvas"),
  planner=root.VedrasLargeMapBakePlan,
  groundRelief=root.VedrasLargeMapBakeGroundRelief,
@@ -37,7 +37,19 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
   mountainPlan.complete!==false||mountainPlan.readyForViewer!==false||
   mountainPlan.rasterized!==false||
   !Array.isArray(treePlan.instances)||!Array.isArray(mountainPlan.instances)||
-  treePlan.instances.length+mountainPlan.instances.length>MAX_INSTANCES||
+  (boulderPlan&&(
+   boulderPlan.schema!=="vedras-geography-warm-boulder-prepass-v1"||
+   boulderPlan.stage!=="original-warm-boulders-before-canopy"||
+   boulderPlan.rasterized!==false||boulderPlan.complete!==false||
+   boulderPlan.readyForViewer!==false||
+   !Array.isArray(boulderPlan.instances)||
+   boulderPlan.worldHexes!==plan.source?.cells||
+   !sameSource(boulderPlan.worldSource,plan.source)||
+   boulderPlan.seed!==treePlan.seed||
+   boulderPlan.natureCatalogRevision!==(natureCatalog?.revision??null)||
+   treePlan.earlierWarmBoulders!==boulderPlan.instances.length))||
+  treePlan.instances.length+mountainPlan.instances.length+
+   (boulderPlan?.instances.length||0)>MAX_INSTANCES||
   treePlan.worldHexes!==plan.source?.cells||
   mountainPlan.worldHexes!==plan.source?.cells||
   !sameSource(treePlan.worldSource,plan.source)||
@@ -76,16 +88,20 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
    throw Error("Scenery-Instanz ohne gültige physische Originalgrafik.");
   const meta=natureCatalog.entries[inst.assetPath.slice(7)];
   if(!meta||meta.id!==inst.assetId||
-    (type==="tree"?!balance.isCanopy(meta):meta.kind!=="mountain"))
+    (type==="tree"?!balance.isCanopy(meta):
+     type==="rock"?!balance.isWarmBoulder(meta):
+     meta.kind!=="mountain"))
    throw Error("Scenery-Asset widerspricht dem Original-Naturekatalog.");
   const p=pos(inst);
-  if(type==="tree"){
+  if(type==="tree"||type==="rock"){
    if(!Number.isFinite(inst.dx)||!Number.isFinite(inst.dy)||
      Math.abs(inst.dx)>160||Math.abs(inst.dy)>160||
      !Number.isFinite(inst.scale)||inst.scale<=0||
      inst.scale<meta.scaleMin-.002||inst.scale>meta.scaleMax+.002||
-     inst.source!=="geography-original-tree-trunk-preview")
-    throw Error("Originalbaum-Stammanker oder Skalierung ungültig.");
+     inst.source!==(type==="tree"?
+      "geography-original-tree-trunk-preview":
+      "geography-original-warm-boulder-prepass"))
+    throw Error("Original-Nature-Stammanker oder Skalierung ungültig.");
    p.x+=inst.dx;p.y+=inst.dy;
   }else if(!Number.isFinite(inst.width)||inst.width<=0||
    Math.abs(inst.width-meta.logicalWidth)>.001||
@@ -99,6 +115,7 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
   buckets.get(b).push(item);
  }
  for(const m of mountainPlan.instances)register(m,"mountain");
+ for(const r of boulderPlan?.instances||[])register(r,"rock");
  for(const t of treePlan.instances)register(t,"tree");
  // Exactly the same continuous geography relief source as the native ground
  // adapter, but with the editor's additional flattened mountain chain pads.
@@ -242,11 +259,12 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
    placed.push({item,img,g,coveredByMountains:new Set()});
   }
   const mount=placed.filter(x=>x.item.type==="mountain"),
-   trees=placed.filter(x=>x.item.type==="tree");
-  let occluded=0;
-  for(const tree of trees)for(const m of mount)if(occludes(tree,m)){
-   tree.coveredByMountains.add(m);
-   occluded++;
+   trees=placed.filter(x=>x.item.type==="tree"),
+   rocks=placed.filter(x=>x.item.type==="rock");
+  let occluded=0,occludedRocks=0;
+  for(const plant of [...trees,...rocks])for(const m of mount)if(occludes(plant,m)){
+   plant.coveredByMountains.add(m);
+   if(plant.item.type==="tree")occluded++;else occludedRocks++;
   }
   const sorted=placed.slice().sort((a,b)=>{
    if(a.item.type==="mountain"&&b.coveredByMountains.has(a))return 1;
@@ -308,14 +326,18 @@ function create({world,plan,treePlan,mountainPlan,terrainCatalog,natureCatalog,
   return {schema:SCHEMA,stage:"original-tree-mountain-combined-preview",
    tile:{...tile},png,width:output.width,height:output.height,
    drawnTrees:trees.length,drawnMountains:mount.length,
+   drawnWarmBoulders:rocks.length,
    testedTreeMountainOcclusions:trees.length*mount.length,
    occludedTreeMountainPairs:occluded,
+   testedRockMountainOcclusions:rocks.length*mount.length,
+   occludedRockMountainPairs:occludedRocks,
    originalPngs:images.size,mountainFlattenPads:pads.length,
    reliefMode:base.mode,sourceFingerprint:plan.source.fingerprint,
    samplesPerWorldUnitX:SCALE,samplesPerWorldUnitY:SCALE*PROJECT_Y,
    needsFullEditorImageParity:true,needsPhysicalMountainOverlapAudit:true,
-   needsFullNaturePopulation:true,needsPriorBoulderPass:true,
-   needsShrubsAndSnow:true,needsGroundAndSpriteShadows:true,
+   needsFullNaturePopulation:true,needsPriorBoulderPass:!boulderPlan,
+   needsOtherBoulderPass:true,needsShrubsAndSnow:true,
+   needsGroundAndSpriteShadows:true,
    needsFinal4x:true,transparent:true,rasterized:true,
    complete:false,readyForViewer:false};
  }
