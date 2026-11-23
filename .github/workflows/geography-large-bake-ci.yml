@@ -112,6 +112,7 @@ jobs:
             /tests/test_large_map_bake_mountain_receivers_20261123.cjs
             /tests/test_large_map_bake_editor_reference_sprite_20261123.cjs
             /tests/automated_browser_geography_editor_parity_20261123.cjs
+            /tests/automated_browser_geography_joint_scenery_20261123.cjs
             /tests/test_large_map_bake_scenery_seam_20261123.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4
