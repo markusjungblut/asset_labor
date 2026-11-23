@@ -76,8 +76,6 @@ jobs:
             /assets/shadows/sprite_shadow_profiles.json
             /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
-            /assets/walls/stone/*.webp
-            /assets/walls/stone/*.png
             /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
@@ -124,8 +122,6 @@ jobs:
             /assets/shadows/sprite_shadow_profiles.json
             /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
-            /assets/walls/stone/*.webp
-            /assets/walls/stone/*.png
             /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
