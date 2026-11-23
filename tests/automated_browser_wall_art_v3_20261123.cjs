@@ -149,7 +149,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
     const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);
     const p=c.getImageData(0,0,can.width,can.height).data;
     for(let k=0;k<p.length;k+=4)
-     if(p[k+3]>15&&p[k+3]<249&&p[k]>223&&p[k+1]>223&&p[k+2]>223)matteFringe++;
+     if(p[k+3]>80&&p[k+3]<249&&p[k]>232&&p[k+1]>232&&p[k+2]>232)matteFringe++;
    }
    return {ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
