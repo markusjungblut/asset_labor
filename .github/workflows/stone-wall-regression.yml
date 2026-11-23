@@ -49,5 +49,7 @@ jobs:
         if: always()
         with:
           name: stone-wall-original-v7-editor-preview
-          path: |\n            test-artifacts/wall-art-v3-all-directions.png\n            test-artifacts/editor-stone-v7.png
+          path: |
+            test-artifacts/wall-art-v3-all-directions.png
+            test-artifacts/editor-stone-v7.png
           if-no-files-found: ignore
