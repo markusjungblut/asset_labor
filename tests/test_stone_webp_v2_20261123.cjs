@@ -101,7 +101,7 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
 });
 test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
- assert(js.includes("stone-palisade-native-v6"));
+ assert(js.includes("20261123-original-stone-v7"));
  assert(js.includes('const stoneJoinArt=new Map()'));
  assert(html.includes('walls.js?v=20261123-original-stone-v7'));
  assert(html.includes('walls=20261123-original-stone-v7'));

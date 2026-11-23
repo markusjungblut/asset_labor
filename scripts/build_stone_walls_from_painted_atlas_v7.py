@@ -110,6 +110,10 @@ def render_post(k,name):
 def write_rgba(out,name):
     out=out.copy()
     out[out[:,:,3]<9]=0
+    # Keep bright mineral highlights on opaque stone, but prevent the faint
+    # almost-white source-canvas contamination from glowing in soft alpha edges.
+    feather=(out[:,:,3]>0)&(out[:,:,3]<249)
+    out[:,:,:3][feather]=np.minimum(out[:,:,:3][feather],221)
     # color in fully transparent pixel does not matter, force true zero
     out[out[:,:,3]==0,:3]=0
     im=Image.fromarray(out,'RGBA')
