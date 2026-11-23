@@ -4,24 +4,14 @@ on:
     branches: [main]
     paths:
       - 'assets/walls/stone/**'
+      - 'assets/walls/palisade/**'
       - 'walls.js'
-      - 'index.html'
-      - 'app.js'
+      - 'wall-ui.js'
       - 'tests/test_wall_edges_v1_20261122.cjs'
       - 'tests/test_stone_webp_v2_20261123.cjs'
       - 'tests/automated_browser_wall_art_v3_20261123.cjs'
       - '.github/workflows/stone-wall-regression.yml'
-  push:
-    branches: [feat/stone-battlements-aoe2-20261123]
-    paths:
-      - 'assets/walls/stone/**'
-      - 'walls.js'
-      - 'index.html'
-      - 'app.js'
-      - 'tests/test_wall_edges_v1_20261122.cjs'
-      - 'tests/test_stone_webp_v2_20261123.cjs'
-      - 'tests/automated_browser_wall_art_v3_20261123.cjs'
-      - '.github/workflows/stone-wall-regression.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
