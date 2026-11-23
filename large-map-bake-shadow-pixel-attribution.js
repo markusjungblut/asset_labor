@@ -33,7 +33,7 @@ function check({width,height,originX,originY,
    !(m.width>0&&m.height>0&&m.width*m.height<=6500000)||
    !(m.bits instanceof Uint8Array)||
    m.bits.length!==Math.ceil(m.width*m.height/8)||
-   typeof m.path!=="string"||!/^assets\\/nature\\/[\\p{L}\\p{N}_.-]+\\.png$/iu.test(m.path)||
+   typeof m.path!=="string"||!/^assets\/nature\/[\p{L}\p{N}_.-]+\.png$/iu.test(m.path)||
    typeof m.type!=="string"||m.type.length>32)
    throw Error("Original-Schattenattribution verweigert beschädigte Original-Sprite-Masken.");
   ords.add(m.ordinal);bytes+=m.bits.length;
