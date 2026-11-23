@@ -36,8 +36,8 @@ def foot_samples(im,x0,x1):
         for y in range(H-1,0,-1):
             red,green,blue,alpha=pix[x,y]
             # Solid ashlar, not green foreground vegetation or light fringes.
-            if alpha>215 and red>62 and red+3>=green and green+8>=blue and
-               red<218 and green<211:
+            if (alpha>215 and red>62 and red+3>=green and green+8>=blue
+                and red<218 and green<211):
                 result.append((x,y));break
     return result
 def estimate_baseline(im,dir):
