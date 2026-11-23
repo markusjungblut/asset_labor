@@ -4368,6 +4368,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-correct-diagonal-hex-slope-ground-footprint-v4',
   'stone-independent-reanchored-six-hex-raster-v5',
   'stone-palisade-native-geometry-new-ashlar-v6',
+   'stone-original-hand-painted-v7-palisade-v5-anchors',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication

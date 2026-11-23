@@ -16,7 +16,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
   const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
-  const png=/^\/assets\/walls\/stone\/v6\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
+  const png=/^\/assets\/walls\/stone\/v7\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
   if(!webp&&!png){res.writeHead(404);return res.end('missing');}
   res.writeHead(200,{'Content-Type':png?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
@@ -100,7 +100,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    let matteFringe=0;
    for(const dir of [0,2,3,5]){
     const im=new Image();
-    im.src='assets/walls/stone/v6/edge_dir'+dir+'.png?v=20261123-stone-palisade-native-v6';
+    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7';
     await im.decode();
     const proof=document.createElement('canvas');
     proof.width=im.naturalWidth;proof.height=im.naturalHeight;
@@ -128,7 +128,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    // Edge-on walls must have one straight shaft, unlike obsolete bent art.
    for(const dir of [1,4]){
     const im=new Image();
-    im.src='assets/walls/stone/v6/edge_dir'+dir+'.png?v=20261123-stone-palisade-native-v6';
+    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7';
     await im.decode();
     const can=document.createElement('canvas');can.width=im.width;can.height=im.height;
     const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);
@@ -143,7 +143,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    }
    // Transparent RGBA must never contain a white JPEG/matte fringe.
    for(let dir=0;dir<6;dir++){
-    const im=new Image();im.src='assets/walls/stone/v6/edge_dir'+dir+'.png';
+    const im=new Image();im.src='assets/walls/stone/v7/edge_dir'+dir+'.png';
     await im.decode();
     const can=document.createElement('canvas');can.width=im.width;can.height=im.height;
     const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);

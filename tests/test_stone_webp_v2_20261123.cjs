@@ -17,7 +17,7 @@ const W=scope.window.VedrasWalls,R=scope.window.VedrasRivers;
 const expected=[[156,167,14,89],[40,216,20,82],[156,167,142,89],
  [156,167,142,152],[40,216,20,208],[156,167,14,152]];
 function size(file){
- const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v6',file+'.png'));
+ const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v7',file+'.png'));
  assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file);
  assert([8,16].includes(bytes[24]),'Each source must be genuine RGB+A PNG');
  assert.equal(bytes[25],6,'Transparent RGBA PNG is required');
@@ -36,8 +36,8 @@ test('all six stand-alone stone edge rasters preserve the original fixed-size he
   assert(x>=-1&&x<=w+1&&y>=-1&&y<=h+1,
    'both real hex corners must fit the directional bitmap: '+dir);
  }
- assert.deepEqual(size('corner_post'),[34*3,74*3]);
- assert.deepEqual(size('end_post'),[30*3,74*3]);
+ assert.deepEqual(size('corner_post'),[46*3,84*3]);
+ assert.deepEqual(size('end_post'),[38*3,82*3]);
 });
 test('stone artwork loads only PNG raster images, while palisade v5 remains unchanged',async()=>{
  assert.equal(await W.artworkReady(),true);
@@ -47,11 +47,11 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
  assert.equal(info.stonePostsLoaded,2);
  assert.equal(loaded.length,16);
  for(let dir=0;dir<6;dir++){
-  assert(loaded.some(x=>x.includes('walls/stone/v6/edge_dir'+dir+'.png?v=20261123-stone-palisade-native-v6')));
+  assert(loaded.some(x=>x.includes('walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7')));
   assert(loaded.some(x=>x.includes('walls/palisade/edge_dir'+dir+'.webp?v=20261123-painted-volumetric-v5')));
  }
  for(const join of ['corner_post','end_post']){
-  assert(loaded.some(x=>x.includes('walls/stone/v6/'+join+'.png?v=20261123-stone-palisade-native-v6')));
+  assert(loaded.some(x=>x.includes('walls/stone/v7/'+join+'.png?v=20261123-original-stone-v7')));
   assert(loaded.some(x=>x.includes('walls/palisade/'+join+'.webp?v=20261123-painted-volumetric-v5')));
  }
  assert(!loaded.some(x=>x.endsWith('.svg')||x.includes('.svg?')));
@@ -70,7 +70,7 @@ test('all six stone directions draw independent raster images, not vector facade
  assert.equal(drawCalls.length,6);
  for(let dir=0;dir<6;dir++){
   const img=drawCalls[dir][0];
-  assert(img.src.includes('walls/stone/v6/edge_dir'+dir+'.png'));
+  assert(img.src.includes('walls/stone/v7/edge_dir'+dir+'.png'));
   assert.equal(drawCalls[dir][3],expected[dir][0]);
   assert.equal(drawCalls[dir][4],expected[dir][1]);
  }
@@ -85,8 +85,8 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
  assert(corner&&end&&mixed);
  const project=(x,y)=>({x:100+x,y:200+y*.85});
  for(const [node,asset,width,height] of [
-  [corner,'stone/v6/corner_post.png',34,74],
-  [end,'stone/v6/end_post.png',30,74],
+  [corner,'stone/v7/corner_post.png',46,84],
+  [end,'stone/v7/end_post.png',38,82],
   [mixed,'palisade/corner_post.webp',25,76]]){
   const calls=[],ctx={save(){},restore(){},drawImage(...args){calls.push(args);}};
   assert(W.drawJoin(ctx,node,project,1));
@@ -103,8 +103,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("stone-palisade-native-v6"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261123-stone-palisade-native-v6'));
- assert(html.includes('walls=20261123-stone-palisade-native-v6'));
+ assert(html.includes('walls.js?v=20261123-original-stone-v7'));
+ assert(html.includes('walls=20261123-original-stone-v7'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));

@@ -202,7 +202,7 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
  assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261123-stone-palisade-native-v6'),
+ assert(index.includes('walls.js?v=20261123-original-stone-v7'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -244,7 +244,7 @@ test('six preserved SVG palisades and six real stone PNG artworks use canonical 
   assert(svg.startsWith('<?xml')&&svg.includes('<svg')&&svg.includes('</svg>'));
   assert(svg.includes('hex edge direction '+dir));
   const [w,h,ax,ay]=meta.stone[dir];
-  const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v6','edge_dir'+dir+'.png'));
+  const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v7','edge_dir'+dir+'.png'));
    assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
    assert.equal(bytes.readUInt32BE(16),w*3);
    assert.equal(bytes.readUInt32BE(20),h*3);
@@ -254,10 +254,11 @@ test('six preserved SVG palisades and six real stone PNG artworks use canonical 
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-stone-palisade-native-v6'));
+ assert(html.includes('walls.js?v=20261123-original-stone-v7'));
  assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
  assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
  assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
+ assert(app.includes("'stone-original-hand-painted-v7-palisade-v5-anchors'"));
 });
 
 test('all six corner combinations resolve a single canonical joined node',()=>{
