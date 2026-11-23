@@ -848,6 +848,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
   const withShadows=$('jointSceneryWithShadows').checked;
   const withMountains=$('jointSceneryWithMountainShadows').checked;
   const withReceivers=$('jointSceneryWithMountainReceivers').checked;
+  const withEditorProjection=$('jointSceneryWithEditorProjection').checked;
   if(withReceivers&&!withMountains)
    throw Error('Bergschatten auf Originalobjekten benötigen aktive Bergschatten.');
   if(withMountains&&!withShadows)
@@ -860,12 +861,16 @@ $('previewJointScenery').addEventListener('click',async()=>{
    renderer.renderTile(id,{
     previewSpriteShadows:withShadows,previewMountainShadows:withMountains,
     authoredShadowScene:authored,
-    previewMountainReceivers:withReceivers
+    previewMountainReceivers:withReceivers,
+    previewEditorProjection:withEditorProjection
    }));
 
   if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
-  if(sample.stage!==(withMountains?
-    'original-mountain-sprite-shadow-scenery-preview':
+  if(sample.stage!==(withEditorProjection?
+    (withMountains?'editor-foot-mountain-sprite-shadow-scenery-preview':
+     withShadows?'editor-foot-sprite-shadow-scenery-preview':
+     'editor-foot-tree-mountain-scenery-preview'):
+    withMountains?'original-mountain-sprite-shadow-scenery-preview':
     withShadows?'original-sprite-shadow-scenery-preview':
     'original-tree-mountain-combined-preview')||
     !sample.rasterized||sample.complete||sample.readyForViewer||
@@ -880,7 +885,10 @@ $('previewJointScenery').addEventListener('click',async()=>{
    link.remove();setTimeout(()=>URL.revokeObjectURL(url),15000);
   }
   report.textContent='Gemeinsame Original-Scenery-Probe '+id+': '+
-   sample.drawnTrees+' gezeichnete Bäume · '+sample.drawnMountains+
+   sample.drawnTrees+' gezeichnete Bäume · '+
+   (withEditorProjection?sample.editorHiddenTrees+
+    ' am Bergfuß ausgeblendete Bäume · volle Editor-PNG-Höhe · ':'')+
+   sample.drawnMountains+
    ' Berge · '+sample.drawnWarmBoulders+' warme Findlinge in dieser Kachel ('+
    boulders.instances.length+' global geplant, davon '+
    boulders.statistics.guaranteedWarmPlaced+' garantierter Vorlauf) · '+
@@ -932,6 +940,7 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   const withShadows=$('jointSceneryWithShadows').checked;
   const withMountains=$('jointSceneryWithMountainShadows').checked;
   const withReceivers=$('jointSceneryWithMountainReceivers').checked;
+  const withEditorProjection=$('jointSceneryWithEditorProjection').checked;
   if(withReceivers&&!withMountains)
    throw Error('Bergschatten auf Originalobjekten benötigen aktive Bergschatten.');
   if(withMountains&&!withShadows)
@@ -940,19 +949,21 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   const authored=await jointAuthoredMountainScene(scenery);
   if(authored&&!withMountains)
    throw Error('Editor-Szenenwerte benötigen aktive Bergschatten.');
-  const seamRenderer=withShadows?{
+  const seamRenderer=(withShadows||withEditorProjection)?{
    previewOnly:true,defaultTile:()=>renderer.defaultTile(),
    renderTile:id=>renderer.renderTile(id,{
     previewSpriteShadows:true,previewMountainShadows:withMountains,
     authoredShadowScene:authored,
-    previewMountainReceivers:withReceivers
+    previewMountainReceivers:withReceivers,
+    previewEditorProjection:withEditorProjection
    })
   }:renderer;
   const verifier=SEAM.create({
    plan,renderer:seamRenderer,allowShadowPreview:withShadows,
    allowMountainShadowPreview:withMountains,
    allowAuthoredMountainScene:!!authored,
-   allowReceiverPreview:withReceivers
+   allowReceiverPreview:withReceivers,
+   allowEditorProjectionPreview:withEditorProjection
   });
   const requested=String($('materialPreviewTileId').value||'').trim();
   let pair=verifier.defaultPair();
@@ -989,6 +1000,7 @@ $('verifyJointSeam').addEventListener('click',async()=>{
    (result.firstDifferences.length?' · erste Abweichung bei x='+
     result.firstDifferences[0].x+', y='+result.firstDifferences[0].y:'')+
    '. Auch bei bestandener Naht: KEIN fertiger Kartenatlas; '+
+   (withEditorProjection?'Editor-Fußpunktprojektion ohne Freigabe · ':'')+
    'Editor-Bildparität, Nature-Vollpopulation, Schatten und 4× bleiben offen.';
  }catch(error){
   report.textContent='Original-Pixelnahtprüfung fehlgeschlagen: '+

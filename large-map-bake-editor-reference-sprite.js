@@ -32,6 +32,23 @@ function geometry({object,scale=2.5,projectY=.85}={}){
   legacyImageHeight:height*projectY,
   verticalBodyDifference:height*(1-projectY)};
 }
+// Conservative but globally deterministic post-perspective pixel envelope.
+ // Floor/ceil on the GLOBAL lattice, never on an individual tile viewport.
+function pixelBounds({object,scale=2.5,projectY=.85,padding=32}={}){
+ const g=geometry({object,scale,projectY});
+ if(!(Number.isFinite(padding)&&padding>=0&&padding<=256))
+  throw Error("Editor-Referenz benötigt begrenztes Bounding-Padding.");
+ let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+ for(const y of [g.top,g.top+g.height])
+  for(const x of [g.left,g.left+g.width]){
+   const sx=x+SHEAR*(y-g.footY);
+   const sy=g.footY+VERTICAL*(y-g.footY);
+   x0=Math.min(x0,sx);x1=Math.max(x1,sx);
+   y0=Math.min(y0,sy);y1=Math.max(y1,sy);
+  }
+ return {left:Math.floor(x0-padding),top:Math.floor(y0-padding),
+  right:Math.ceil(x1+padding),bottom:Math.ceil(y1+padding)};
+}
 function paint({object,ctx,canvasFactory,
  casts=[],scale=2.5,projectY=.85,
  dpr=2,naturePolish=.40,outputX=0,outputY=0,
@@ -118,7 +135,7 @@ function occludes({plant,mountain,canvasFactory,
  return alpha[(Math.min(63,Math.floor(v*64))*64+
   Math.min(63,Math.floor(u*64)))*4+3]>50;
 }
-const api={SCHEMA,geometry,paint,occludes};
+const api={SCHEMA,geometry,pixelBounds,paint,occludes};
 if(typeof module!=="undefined"&&module.exports)module.exports=api;
 root.VedrasEditorReferenceSprite=api;
 })(typeof window!=="undefined"?window:globalThis);

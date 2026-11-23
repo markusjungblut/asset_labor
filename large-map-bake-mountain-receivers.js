@@ -15,15 +15,23 @@ function southwestLargeReceiver(receiver,caster){
  return a.q===b.q-1&&a.r===b.r+1;
 }
 function select({object,casts,shadows=root.VedrasShadows,
- scale=2.5,projectY=.85}={}){
+ scale=2.5,projectY=.85,editorProjection=false}={}){
  if(!object?.item||!object?.g||
   !Array.isArray(casts)||casts.length>LIMIT_CASTS||
   typeof shadows?.mountainAlphaAt!=="function"||
   !(scale>0&&projectY>0))
   throw Error("Bergschattenempfänger benötigt native Fußpunkt-Distanzfelder.");
  const x=object.item.p.x*scale,y=object.g.y*scale*projectY,
-  g=object.g,left=g.left*scale,top=g.top*scale*projectY,
-  right=left+g.width*scale,bottom=top+g.height*scale*projectY;
+  g=object.g;
+ if(editorProjection&&
+  (!g.editorPixelBox||!Number.isFinite(g.editorPixelBox.left+
+   g.editorPixelBox.top+g.editorPixelBox.right+g.editorPixelBox.bottom)))
+  throw Error("Editor-Empfänger benötigt den projizierten Original-PNG-Bildbereich.");
+ const left=editorProjection?g.editorPixelBox.left:g.left*scale,
+  top=editorProjection?g.editorPixelBox.top:g.top*scale*projectY,
+  right=editorProjection?g.editorPixelBox.right:left+g.width*scale,
+  bottom=editorProjection?g.editorPixelBox.bottom:
+   top+g.height*scale*projectY;
  if(!Number.isFinite(x+y+left+top+right+bottom))
   throw Error("Objektfuß des Schattenempfängers ungültig.");
  const selected=[];

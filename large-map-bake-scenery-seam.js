@@ -10,7 +10,7 @@ const EXPECTED_WIDTH=Math.round((SIZE+2*PAD)*SCALE_X);
 const EXPECTED_HEIGHT=Math.round((SIZE+2*PAD)*SCALE_Y);
 function create({plan,renderer,allowShadowPreview=false,
  allowMountainShadowPreview=false,allowAuthoredMountainScene=false,
- allowReceiverPreview=false,
+ allowReceiverPreview=false,allowEditorProjectionPreview=false,
  bitmapFactory=root.createImageBitmap?.bind(root),
  canvasFactory=()=>root.document.createElement("canvas")}={}){
  if(plan?.schema!=="vedras-geography-bake-plan-v1"||
@@ -22,7 +22,8 @@ function create({plan,renderer,allowShadowPreview=false,
   typeof canvasFactory!=="function"||
   (allowMountainShadowPreview&&!allowShadowPreview)||
   (allowAuthoredMountainScene&&!allowMountainShadowPreview)||
-  (allowReceiverPreview&&!allowMountainShadowPreview))
+  (allowReceiverPreview&&!allowMountainShadowPreview)||
+  typeof allowEditorProjectionPreview!=="boolean")
   throw Error("Pixelnahtprüfung benötigt den ungeänderten Weltplan und Original-Scenery-Testbilder.");
  const tiles=new Map();
  for(const tile of plan.tiles){
@@ -57,11 +58,20 @@ function create({plan,renderer,allowShadowPreview=false,
   return null;
  }
  function validateResult(result,id){
+  const expectedStage=allowEditorProjectionPreview?
+   (allowMountainShadowPreview?"editor-foot-mountain-sprite-shadow-scenery-preview":
+    allowShadowPreview?"editor-foot-sprite-shadow-scenery-preview":
+    "editor-foot-tree-mountain-scenery-preview"):
+   allowMountainShadowPreview?"original-mountain-sprite-shadow-scenery-preview":
+   allowShadowPreview?"original-sprite-shadow-scenery-preview":
+   "original-tree-mountain-combined-preview";
   if(result?.schema!=="vedras-geography-joint-scenery-preview-v1"||
-   result.stage!==(allowMountainShadowPreview?
-    "original-mountain-sprite-shadow-scenery-preview":
-    allowShadowPreview?"original-sprite-shadow-scenery-preview":
-    "original-tree-mountain-combined-preview")||
+   result.stage!==expectedStage||
+   result.editorFootSpriteProjection!==allowEditorProjectionPreview||
+   (allowEditorProjectionPreview&&(
+    result.editorPixelsUnprojectedHeight!==true||
+    !Number.isSafeInteger(result.editorHiddenTrees)||
+    result.editorHiddenTrees<0))||
    (allowShadowPreview&&!(result.originalShadowProfiles>0))||
    (allowMountainShadowPreview&&(
     result.needsOriginalMountainShadows!==false||
@@ -97,9 +107,7 @@ function create({plan,renderer,allowShadowPreview=false,
    !result.png.size)
    throw Error("Nicht verifizierbare Original-Scenery-PNG oder falsche Quellrevision: "+
     JSON.stringify({id,stage:result?.stage,
-     expected:allowMountainShadowPreview?"original-mountain-sprite-shadow-scenery-preview":
-      allowShadowPreview?"original-sprite-shadow-scenery-preview":
-      "original-tree-mountain-combined-preview",
+     expected:expectedStage,
      mountainShadows:result?.drawnOriginalMountainShadows,
      mountainShadowPixels:result?.originalMountainShadowPositivePixels,
      needsMountain:result?.needsOriginalMountainShadows,
@@ -175,6 +183,8 @@ function create({plan,renderer,allowShadowPreview=false,
    differingPixels:differing,maxChannelDifference:maxDelta,
    firstDifferences:examples,passesPixelIdentity:differing===0&&painted>0,
    needsEditorVisualParity:true,needsOriginalShadows:true,
+   editorProjectionMode:allowEditorProjectionPreview?
+    "editor-foot-sprite-projection-preview":"legacy-projected-body",
    shadowMode:allowReceiverPreview?"native-mountain-receiver-preview":
     allowAuthoredMountainScene?"authored-mountain-and-sprite-preview":
     allowMountainShadowPreview?"original-mountain-and-sprite-preview":

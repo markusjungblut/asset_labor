@@ -283,7 +283,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   return plan.tiles[0]?.id||null;
  }
  async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
-  authoredShadowScene=null,previewMountainReceivers=false}={}){
+  authoredShadowScene=null,previewMountainReceivers=false,
+  previewEditorProjection=false}={}){
+  if(typeof previewEditorProjection!=="boolean"||
+   (previewEditorProjection&&(
+    typeof root.VedrasEditorReferenceSprite?.pixelBounds!=="function"||
+    typeof root.VedrasEditorReferenceSprite?.paint!=="function")))
+   throw Error("Editor-Bildprojektion nur mit geprüften Original-Referenzfunktionen.");
   if(previewMountainReceivers&&!previewMountainShadows)
    throw Error("Bergschatten auf Original-Objekten benötigen die native Bergschattenprobe.");
   if(authoredShadowScene!==null&&!previewMountainShadows)
@@ -304,8 +310,20 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     crop(img);images.set(item.inst.assetPath,img);
    }
    const g=geometry(item,img);
-   if(g.box.right<tile.x-PAD||g.box.left>tile.x+SIZE+PAD||
-      g.box.bottom<tile.y-PAD||g.box.top>tile.y+SIZE+PAD){
+   if(previewEditorProjection)
+    g.editorPixelBox=root.VedrasEditorReferenceSprite.pixelBounds({
+     object:{item,img,g},scale:SCALE,projectY:PROJECT_Y,
+     padding:Math.ceil(32*SCALE)
+    });
+   const bx=g.editorPixelBox;
+   const outside=previewEditorProjection?
+    (bx.right<=Math.round((tile.x-PAD)*SCALE)||
+     bx.left>=Math.round((tile.x+SIZE+PAD)*SCALE)||
+     bx.bottom<=Math.round((tile.y-PAD)*SCALE*PROJECT_Y)||
+     bx.top>=Math.round((tile.y+SIZE+PAD)*SCALE*PROJECT_Y)):
+    (g.box.right<tile.x-PAD||g.box.left>tile.x+SIZE+PAD||
+     g.box.bottom<tile.y-PAD||g.box.top>tile.y+SIZE+PAD);
+   if(outside){
     // The mountain's OWN sprite may lie outside this WorldTile while
     // its LEFT-directed native ground cast still crosses the tile.
     if(previewMountainShadows&&item.type==="mountain")
@@ -321,14 +339,23 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    snow=placed.filter(x=>x.item.type==="snow"),
    accents=placed.filter(x=>x.item.type==="accent");
   let occluded=0,occludedRocks=0,occludedOther=0;
+  const occlusionMountains=previewEditorProjection?
+   [...mount,...shadowOnlyMountains]:mount;
   for(const plant of [...trees,...rocks,...ordinary,...snow,...accents])
-   for(const m of mount)if(occludes(plant,m)){
+   for(const m of occlusionMountains)if(occludes(plant,m)){
     plant.coveredByMountains.add(m);
     if(plant.item.type==="tree")occluded++;
     else if(plant.item.type==="rock")occludedRocks++;
     else occludedOther++;
    }
-  const sorted=placed.slice().sort((a,b)=>{
+  // app.js drawMapObjects removes trees rooted in mountain opaque alpha.
+  // Other Nature props stay (depth-sorted behind mountains).
+  const hiddenEditorTrees=previewEditorProjection?
+   trees.filter(t=>t.coveredByMountains.size>0):[];
+  const renderable=previewEditorProjection?
+   placed.filter(o=>o.item.type!=="tree"||!o.coveredByMountains.size):
+   placed;
+  const sorted=renderable.slice().sort((a,b)=>{
    if(a.item.type==="mountain"&&b.coveredByMountains.has(a))return 1;
    if(b.item.type==="mountain"&&a.coveredByMountains.has(b))return -1;
    return a.g.y-b.g.y||a.item.p.x-b.item.p.x||
@@ -356,7 +383,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    if(typeof root.VedrasLargeMapOriginalSpriteShadows?.paint!=="function")
     throw Error("Original-Schattenadapter nicht geladen.");
    shadowResult=root.VedrasLargeMapOriginalSpriteShadows.paint({
-    objects:placed,output,tile,canvasFactory,
+    objects:renderable,output,tile,canvasFactory,
     scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
    });
   }
@@ -379,11 +406,18 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    outputGY=Math.round((tile.y-PAD)*SCALE*PROJECT_Y);
   for(const obj of sorted){
    const {item,img,g}=obj;
-   const gx=Math.floor(g.box.left*SCALE),
-    gy=Math.floor(g.box.top*SCALE*PROJECT_Y),
-    rx=Math.ceil(g.box.right*SCALE),
-    ry=Math.ceil(g.box.bottom*SCALE*PROJECT_Y);
-   if(rx<=gx||ry<=gy||rx-gx>2600||ry-gy>2400)
+   const gx=previewEditorProjection?g.editorPixelBox.left:
+    Math.floor(g.box.left*SCALE),
+    gy=previewEditorProjection?g.editorPixelBox.top:
+     Math.floor(g.box.top*SCALE*PROJECT_Y),
+    rx=previewEditorProjection?g.editorPixelBox.right:
+     Math.ceil(g.box.right*SCALE),
+    ry=previewEditorProjection?g.editorPixelBox.bottom:
+     Math.ceil(g.box.bottom*SCALE*PROJECT_Y);
+   if(rx<=gx||ry<=gy||
+    (previewEditorProjection?
+     (rx-gx>3000||ry-gy>3500||(rx-gx)*(ry-gy)>6500000):
+     (rx-gx>2600||ry-gy>2400)))
     throw Error("Kanonsches Sprite-Pixelraster überschreitet den Arbeitsspeicherrahmen.");
    scratch.width=rx-gx;scratch.height=ry-gy;
    const sc=scratch.getContext("2d",{alpha:true});
@@ -392,9 +426,28 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    const selected=receiverEngine?
     receiverEngine.select({
      object:obj,casts:mountainShadowResult.casts,
-     scale:SCALE,projectY:PROJECT_Y
+     scale:SCALE,projectY:PROJECT_Y,
+     editorProjection:previewEditorProjection
     }):[];
-   if(selected.length){
+   if(previewEditorProjection){
+    const casts=selected.map(c=>({
+     canvas:c.canvas,x:c.box.left,y:c.box.top,
+     width:c.box.width,height:c.box.height
+    }));
+    const report=root.VedrasEditorReferenceSprite.paint({
+     object:obj,ctx:sc,canvasFactory,
+     casts,scale:SCALE,projectY:PROJECT_Y,
+     outputX:gx,outputY:gy,dpr:2,naturePolish,
+     polish
+    });
+    if(report?.projection!=="editor-foot-only-projectY"||
+     report.readyForViewer!==false)
+     throw Error("Editor-Fußpunktprojektion unvollständig.");
+    if(selected.length){
+     drawnMountainShadowReceivers++;
+     drawnMountainReceiverCasts+=selected.length;
+    }
+   }else if(selected.length){
     receiverEngine.paint({
      object:obj,selected,ctx:sc,canvasFactory,
      gx,gy,width:rx-gx,height:ry-gy,scale:SCALE,projectY:PROJECT_Y,
@@ -427,12 +480,19 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   else throw Error("Scenery-PNG-Kodierer fehlt.");
   if(!(png instanceof Blob)||png.type!=="image/png"||!png.size)
    throw Error("Transparente Scenery-PNG leer oder nicht kodiert.");
-  return {schema:SCHEMA,stage:previewMountainShadows?
-    "original-mountain-sprite-shadow-scenery-preview":
+  return {schema:SCHEMA,stage:previewEditorProjection?
+    (previewMountainShadows?"editor-foot-mountain-sprite-shadow-scenery-preview":
+     previewSpriteShadows?"editor-foot-sprite-shadow-scenery-preview":
+     "editor-foot-tree-mountain-scenery-preview"):
+    previewMountainShadows?"original-mountain-sprite-shadow-scenery-preview":
     previewSpriteShadows?"original-sprite-shadow-scenery-preview":
     "original-tree-mountain-combined-preview",
    tile:{...tile},png,width:output.width,height:output.height,
-   drawnTrees:trees.length,drawnMountains:mount.length,
+   drawnTrees:trees.length-hiddenEditorTrees.length,
+   editorHiddenTrees:hiddenEditorTrees.length,
+   editorFootSpriteProjection:previewEditorProjection,
+   editorPixelsUnprojectedHeight:previewEditorProjection,
+   drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
    drawnOrdinaryBoulders:ordinary.length,drawnSnowPatches:snow.length,
    drawnAccents:accents.length,
