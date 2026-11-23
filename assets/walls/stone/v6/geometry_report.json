@@ -45,10 +45,10 @@
   "files": {
     "corner_post.png": {
       "size": [
-        90,
+        102,
         222
       ],
-      "sha256": "e68d15cd1acf8c468deae17a97f3e3741c6f402ba515e12e1d63df021b48b516"
+      "sha256": "bbf70d89632481129826f2e9dac7920469a30cf4bed8813b473f29a11fc59134"
     },
     "edge_dir0.png": {
       "size": [
@@ -69,7 +69,7 @@
         120,
         648
       ],
-      "sha256": "2266d1f6d558bc8b7a831759f18f4dcec69e3295f8a5e982c6b1d3e11ef92aa3"
+      "sha256": "cc458f112ef2b9737ce1a1d688de7925f9fe4fea2c6d10949cc873fc72d42310"
     },
     "edge_dir2.png": {
       "size": [
@@ -87,24 +87,24 @@
     },
     "end_post.png": {
       "size": [
-        78,
+        90,
         222
       ],
-      "sha256": "f37977901836d31adc3d67b0688d5406eca6cc351eeb89cc257abf7d829a554f"
+      "sha256": "70ecedcde2ff6b3245c56997bd86286c55500be85c8ae4c6e263dcc5584c1ec9"
     },
     "edge_dir4.png": {
       "size": [
         120,
         648
       ],
-      "sha256": "f45b5d9f12f276bfa15a99dacf1e4d3fa81b64152de3697582e75b9e3958f78b"
+      "sha256": "7fd7bfa426c8230d8178983043c9545550d39cfb987ae556b7fc8edb47a318f9"
     },
     "real-hex-v6-preview.png": {
       "size": [
         1700,
         1280
       ],
-      "sha256": "7c6fb15fcd65c05a9f63df5ea5d466ff5105ccc392efb7cfa6c0df5060782061"
+      "sha256": "64c0b09e82804e1c277b2a2ed7beab89f440cb7003d507f70b98ca27e0b0f474"
     }
   },
   "topology": {
