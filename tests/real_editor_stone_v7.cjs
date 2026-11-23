@@ -71,6 +71,26 @@ async function main(){
   assert(result.canvasSize[0]>100&&result.canvasSize[1]>100,'renderer canvas must exist');
   await page.waitForTimeout(1900);
   await page.screenshot({path:path.join(OUT,'editor-stone-v7.png')});
+  // A second, human-inspectable 185% editor view: the former 65% overview
+  // hid even substantial endpoint and shadow defects at thumbnail size.
+  // Center the ACTUAL dry editor hex without introducing a mock canvas.
+  const closeup=await page.evaluate(({chosen})=>{
+   const core=window.VedrasAssetLabor;
+   const slider=document.getElementById('zoomSlider');
+   slider.value='185';
+   slider.dispatchEvent(new Event('input',{bubbles:true}));
+   const hex=256, radius=hex/Math.sqrt(3), worldX=hex*(chosen.q+chosen.r/2),
+    worldY=1.5*radius*chosen.r;
+   core.state.panX=-worldX*core.state.zoom;
+   core.state.panY=-worldY*.85*core.state.zoom;
+   core.state.fastCamera=false;
+   core.requestDraw();
+   return {zoom:core.state.zoom,selected:core.state.selected};
+  },{chosen:result.chosen});
+  assert(closeup.zoom>=1.8,'real editor must support an inspectable 185% hex view');
+  await page.waitForTimeout(2000);
+  await page.screenshot({path:path.join(OUT,'editor-stone-v7-closeup.png')});
+
   const visible=await page.evaluate(()=>{
    const c=document.getElementById('mapCanvas');
    try{
