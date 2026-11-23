@@ -8,10 +8,27 @@ const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const Geo=require('../worldgen-geography.js');
 const Plan=require('../large-map-bake-plan.js');
 const root=path.resolve(__dirname,'..');
+// Direct editor source functions: run app.js itself for independent
+// compositing, visibility and depth-order comparison, not copied formulas.
+const editorSource=fs.readFileSync(path.join(root,'app.js'),'utf8');
+function fromEditor(begin,end){
+ const start=editorSource.indexOf(begin);
+ const stop=editorSource.indexOf(end,start+begin.length);
+ if(start<0||stop<=start)throw Error('Editor source boundary missing: '+begin);
+ return editorSource.slice(start,stop);
+}
+const editorCompositeSource=[
+ fromEditor('function visibleBounds(img){','// Large neighboring objects rise'),
+ fromEditor('function protectsSouthwestLargeSprite(', '// A cast may overlap an elevated tree'),
+ fromEditor('function mountainShadowReachesFoot(', '// The owner\'s own cast'),
+ fromEditor('function spriteMountainCasts(', '// Reuse one scratch canvas'),
+ fromEditor('let spriteShadeCanvas=null;','function drawNatureShadow('),
+ fromEditor('function mountainCoversBase(', '// Build once per scene edit')
+].join('\n');
 const names=['assets/nature/birke1.png','assets/nature/berg_01.png',
  'assets/nature/boulder_36.png','assets/nature/boulder_01.png',
  'assets/nature/snow_patch_01.png','assets/nature/bush_01.png',
- 'assets/nature/fallen_log_01.png'];
+ 'assets/nature/fallen_log_01.png','assets/nature/dead_tree_01.png'];
 const nature=JSON.parse(fs.readFileSync(path.join(root,
  'assets/nature/nature_catalog.json'),'utf8'));
 const terrain=JSON.parse(fs.readFileSync(path.join(root,
@@ -67,8 +84,8 @@ const plan=Plan.plan(world);
    'large-map-bake-mountain-receivers.js',
    'large-map-bake-editor-reference-sprite.js'])
    await page.addScriptTag({url:origin+'/'+file});
-  const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles})=>{
-   const [tree,mount,rock,ordinary,snow,bush,log]=names;
+  const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource})=>{
+   const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
    const imageByPath=new Map();
    for(const p of names){
     const img=new Image();img.src='/'+p;await img.decode();
@@ -291,6 +308,168 @@ const plan=Plan.plan(world);
     renderer:{previewOnly:true,defaultTile:()=> '0,0',
      renderTile:async id=>id==='0,0'?editorShadowLeft:editorShadowRight}
    }).verifyPair('0,0','right');
+
+   // Phase 2.8q. Exercise multiple living trees, one covered dead tree,
+   // overlapping shrubs, warm/late rocks and TWO original mountains. This
+   // is a fixed read-only editor scene; no generated assets are changed.
+   const extraTrees=[
+    {q:1,r:0,dx:90,dy:90,assetPath:tree,
+     assetId:nature.entries[tree.slice(7)].id,scale:1,
+     source:'geography-original-tree-trunk-preview'},
+    {q:4,r:0,dx:-95,dy:90,assetPath:tree,
+     assetId:nature.entries[tree.slice(7)].id,scale:1,
+     source:'geography-original-tree-trunk-preview'}
+   ];
+   const compositeTrees={...treePlan,
+    instances:[...treePlan.instances,...extraTrees]};
+   const compositeLate={...latePlan,earlierTrees:compositeTrees.instances.length};
+   const coveredDeadTree={q:3,r:0,dx:-115,dy:70,
+    assetPath:deadTree,assetId:nature.entries[deadTree.slice(7)].id,
+    scale:1,kind:'tree',source:'geography-original-late-accents'};
+   const compositeAccents={...receivingPlan,
+    earlierTrees:compositeTrees.instances.length,
+    instances:[...receivingPlan.instances,coveredDeadTree]};
+   const compositeRenderer=window.VedrasLargeMapJointScenery.create({
+    world,plan,treePlan:compositeTrees,mountainPlan,boulderPlan,
+    latePlan:compositeLate,accentPlan:compositeAccents,
+    terrainCatalog:terrain,natureCatalog:nature,
+    assets,loadImage:async a=>({img:imageByPath.get(a.path)})
+   });
+   const sourceNative=new Function('ctx','state','toScreen',
+    'mountainCastsForFrame','finalRendering','spriteAtlas',
+    'mountainAlphaCache','natureBounds','clamp',
+    '"use strict";\n'+editorCompositeSource+
+    '\nreturn {visibleBounds,drawSprite,mountainCoversBase,spriteMountainCasts};');
+   const nativeClamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+   const nativeState={zoom:2.5,dpr:2,visualPolish:{nature:.4},
+    natureInstances:Array(501),objects:true};
+   const nativeToScreen=(x,y)=>({x:x*2.5,y:y*2.5*.85});
+   function nativeComposite(output){
+    const trace=output.editorCompositeReference;
+    if(trace?.source!=='read-only-original-editor-reference-candidates-v1'||
+     trace.readyForViewer!==false||trace.complete!==false||
+     !trace.background||!trace.candidates.length)
+     throw Error('Editor composite requires a complete READ-ONLY source trace');
+    const screen=document.createElement('canvas');
+    screen.width=output.width;screen.height=output.height;
+    const target=screen.getContext('2d',{willReadFrequently:true});
+    target.drawImage(trace.background,0,0);
+    target.setTransform(1,0,0,1,-trace.sampleX,-trace.sampleY);
+    const obj=raw=>({
+     type:raw.item.type==='mountain'?'mountain':'nature',
+     x:raw.item.p.x,y:raw.g.y,w:raw.g.width,
+     sortY:raw.g.y,cell:raw.item.inst.q+','+raw.item.inst.r,
+     natureMeta:raw.item.meta,
+     asset:{img:raw.img,path:raw.item.inst.assetPath},
+     itemOrdinal:raw.item.ordinal,
+     groundY:raw.item.p.y
+    });
+    const owners=new Map(trace.candidates.map(o=>[o.item,obj(o)]));
+    for(const m of trace.shadowOnlyMountains)owners.set(m.item,obj(m));
+    const placed=trace.candidates.map(o=>owners.get(o.item));
+    const mountains=placed.filter(o=>o.type==='mountain');
+    const native=sourceNative(target,nativeState,nativeToScreen,
+     trace.mountainCasts.map(c=>({
+      owner:owners.get(c.owner.item),
+      canvas:c.canvas,x:c.box.left,y:c.box.top,
+      width:c.box.width,height:c.box.height,shape:c.shape,
+      modelWidth:c.modelWidth,strength:c.strength,peakAlpha:c.peakAlpha
+     })),true,null,new WeakMap(),new WeakMap(),nativeClamp);
+    for(const o of placed)if(o.type==='nature'){
+     o.coveredByMountains=new Set(mountains.filter(m=>
+      native.mountainCoversBase(o,m)));
+    }
+    const hidden=placed.filter(o=>o.type==='nature'&&
+     o.natureMeta?.kind==='tree'&&o.coveredByMountains.size>0);
+    const visible=placed.filter(o=>!hidden.includes(o));
+    visible.sort((a,b)=>{
+     if(a.type==='mountain'&&b.coveredByMountains?.has(a))return 1;
+     if(b.type==='mountain'&&a.coveredByMountains?.has(b))return -1;
+     return a.sortY-b.sortY||(a.x-b.x);
+    });
+    for(const o of visible)native.drawSprite(o);
+    target.setTransform(1,0,0,1,0,0);
+    return {ctx:target,
+     hidden:hidden.map(o=>o.itemOrdinal),
+     order:visible.map(o=>o.itemOrdinal),
+     candidates:placed.length,
+     count:visible.length};
+   }
+   const compareFrames=(a,b)=>{
+    const A=a.getImageData(0,0,a.canvas.width,a.canvas.height).data,
+     B=b.getImageData(0,0,b.canvas.width,b.canvas.height).data;
+    if(A.length!==B.length)throw Error('Composite image lengths differ');
+    let different=0,painted=0,maxDelta=0;
+    const samples=[];
+    for(let i=0;i<A.length;i+=4){
+     if(A[i+3]>0||B[i+3]>0)painted++;
+     if(A[i]!==B[i]||A[i+1]!==B[i+1]||
+      A[i+2]!==B[i+2]||A[i+3]!==B[i+3]){
+      different++;
+      maxDelta=Math.max(maxDelta,
+       Math.abs(A[i]-B[i]),Math.abs(A[i+1]-B[i+1]),
+       Math.abs(A[i+2]-B[i+2]),Math.abs(A[i+3]-B[i+3]));
+      if(samples.length<5)
+       samples.push({x:(i/4)%a.canvas.width,
+        y:Math.floor((i/4)/a.canvas.width),
+        original:[...A.slice(i,i+4)],editor:[...B.slice(i,i+4)]});
+     }
+    }
+    return {different,painted,maxDelta,samples};
+   };
+   const compositeBare0=await compositeRenderer.renderTile('0,0',{
+    previewEditorProjection:true,captureEditorCompositeReference:true
+   });
+   const compositeBare1=await compositeRenderer.renderTile('1,0',{
+    previewEditorProjection:true,captureEditorCompositeReference:true
+   });
+   const compositeShadow0=await compositeRenderer.renderTile('0,0',{
+    previewEditorProjection:true,previewSpriteShadows:true,
+    previewMountainShadows:true,previewMountainReceivers:true,
+    captureEditorCompositeReference:true
+   });
+   const compositeShadow1=await compositeRenderer.renderTile('1,0',{
+    previewEditorProjection:true,previewSpriteShadows:true,
+    previewMountainShadows:true,previewMountainReceivers:true,
+    captureEditorCompositeReference:true
+   });
+   const nativeBare0=nativeComposite(compositeBare0);
+   const nativeBare1=nativeComposite(compositeBare1);
+   const nativeShade0=nativeComposite(compositeShadow0);
+   const nativeShade1=nativeComposite(compositeShadow1);
+   const decodeComp=async png=>{
+    const bitmap=await createImageBitmap(png);
+    const canvas=document.createElement('canvas');
+    canvas.width=bitmap.width;canvas.height=bitmap.height;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(bitmap,0,0);bitmap.close();return ctx;
+   };
+   const compositeNoShadows=[
+    compareFrames((await decodeComp(compositeBare0.png)),nativeBare0.ctx),
+    compareFrames((await decodeComp(compositeBare1.png)),nativeBare1.ctx)];
+   const compositeWithShadows=[
+    compareFrames((await decodeComp(compositeShadow0.png)),nativeShade0.ctx),
+    compareFrames((await decodeComp(compositeShadow1.png)),nativeShade1.ctx)];
+   const compositeOcclusion=[
+    {expected:hiddenFromNative(nativeBare0),
+     drawn:compositeBare0.editorHiddenTrees+
+      compositeBare0.editorHiddenDeadTreeAccents,
+     dead:compositeBare0.editorHiddenDeadTreeAccents,
+     orderMatching:JSON.stringify(nativeBare0.order)===
+      JSON.stringify(compositeBare0.editorCompositeReference.displayedOrder)},
+    {expected:hiddenFromNative(nativeBare1),
+     drawn:compositeBare1.editorHiddenTrees+
+      compositeBare1.editorHiddenDeadTreeAccents,
+     dead:compositeBare1.editorHiddenDeadTreeAccents,
+     orderMatching:JSON.stringify(nativeBare1.order)===
+      JSON.stringify(compositeBare1.editorCompositeReference.displayedOrder)}];
+   function hiddenFromNative(frame){return frame.hidden.length;}
+   console.log('EDITOR_COMPOSITE_DIAGNOSTIC',JSON.stringify({
+    bare:compositeNoShadows,shadows:compositeWithShadows,
+    occlusion:compositeOcclusion,
+    receivers:[compositeShadow0.drawnMountainShadowReceivers,
+     compositeShadow1.drawnMountainShadowReceivers]
+   }));
    const spriteOnly=await renderer.renderTile('0,0',{
     previewSpriteShadows:true,previewMountainShadows:false
    });
@@ -374,6 +553,9 @@ const plan=Plan.plan(world);
     shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
     mountainChangedPixels,authoredChangedPixels,
     receiverChangedPixels,
+    compositeNoShadows,compositeWithShadows,compositeOcclusion,
+    compositeReceivers:[compositeShadow0.drawnMountainShadowReceivers,
+     compositeShadow1.drawnMountainShadowReceivers],
     editorBodyChangedPixels,editorReceiverChangedPixels,
     editorBareStages:[editorBareLeft.stage,editorBareRight.stage],
     editorShadowStages:[editorShadowLeft.stage,editorShadowRight.stage],
@@ -421,7 +603,7 @@ const plan=Plan.plan(world);
     ready:[a.readyForViewer,b.readyForViewer],
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
-  },{world,plan,nature,terrain,names,shadowProfiles});
+  },{world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource});
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
@@ -439,6 +621,22 @@ const plan=Plan.plan(world);
   assert(result.spriteShadows.every(x=>x>=4));
   assert(result.manualShadows.every(x=>x>=2));
   assert(result.shadowProfiles.every(x=>x>=7));
+  assert(result.compositeOcclusion.every(x=>x.expected===x.drawn),
+   'editor must decide visibility independently at actual feet');
+  assert(result.compositeOcclusion.some(x=>x.dead>0),
+   'a covered dead-tree accent must be hidden like other trees');
+  assert(result.compositeOcclusion.every(x=>x.orderMatching),
+   'the editor must independently reproduce exact sprite draw ordering');
+  assert(result.compositeReceivers.some(x=>x>0),
+   'multiple real Nature sprites must actually receive casts');
+  assert(result.compositeNoShadows.every(x=>x.painted>10000));
+  assert(result.compositeWithShadows.every(x=>x.painted>10000));
+  // Exact pixel parity is the target, but the diagnostic must show any
+  // real resampling difference to be fixed rather than fake completion.
+  assert(result.compositeNoShadows.every(x=>x.different===0),
+   'Native editor composited original sprites must match WorldTile pixels');
+  assert(result.compositeWithShadows.every(x=>x.different===0),
+   'Native editor source-atop sprite composition must match WorldTile pixels');
   assert.deepEqual(result.editorFootProjection,[true,true]);
   assert.deepEqual(result.editorBareStages,[
    'editor-foot-tree-mountain-scenery-preview',
