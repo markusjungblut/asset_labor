@@ -90,3 +90,24 @@ test('new editor projection is explicitly opt-in and never lifts viewer gates',(
  assert(html.includes('jointSceneryWithEditorProjection'));
  assert.match(seam,/allowEditorProjectionPreview=false/);
 });
+
+test('diagnostic composite capture is opt-in, small, and never released',()=>{
+ const code=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
+ assert.match(code,/captureEditorCompositeReference=false/);
+ assert.match(code,/captureEditorCompositeReference&&!previewEditorProjection/);
+ assert.match(code,/placed\.length>36/);
+ assert.match(code,/editorCompositeReference=\{/);
+ assert.match(code,/complete:false,readyForViewer:false/);
+ assert.match(code,/displayedOrder:sorted\.map/);
+});
+test('editor hides dead-tree accent sprites as well as canopy trees',()=>{
+ const code=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
+ const browser=fs.readFileSync(path.join(root,'tests',
+  'automated_browser_geography_joint_scenery_20261123.cjs'),'utf8');
+ assert.match(code,/hiddenEditorTreeAccents/);
+ assert.match(code,/o\.item\.meta\?\.kind==="tree"/);
+ assert.match(code,/editorHiddenDeadTreeAccents/);
+ assert(browser.includes('assets/nature/dead_tree_01.png'));
+ assert(browser.includes('EDITOR_COMPOSITE_DIAGNOSTIC'));
+ assert(browser.includes('sourceNative(target,nativeState'));
+});
