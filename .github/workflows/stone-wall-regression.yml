@@ -47,6 +47,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stone-wall-raster-v3-browser-preview
+          name: stone-wall-raster-v6-browser-preview
           path: test-artifacts/wall-art-v3-all-directions.png
           if-no-files-found: ignore
