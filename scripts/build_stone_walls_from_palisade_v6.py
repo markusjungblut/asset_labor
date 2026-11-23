@@ -195,8 +195,13 @@ def draw_direction(dir):
     length=math.hypot(vx,vy)
     nx,ny=-vy/length,vx/length
     if ny<0 or abs(ny)<1e-9 and nx<0:nx,ny=-nx,-ny
-    near=(nx*WIDTH*.43,ny*WIDTH*.43*.62)
-    back=(-near[0],-near[1])
+    # The visibly painted BASE must sit on the real projected hex edge.
+    # Moving the front facade downward by half a thick-wall footprint made
+    # BOTH south walls extend below their common node while the join ended
+    # on the vertex: the user-visible nonflush V-shaped foundation gap.
+    # Retain world-X volume, but zero screen-Y foot offset for all facades.
+    near=(nx*WIDTH*.43,0)
+    back=(-nx*WIDTH*.43,-ny*WIDTH*.43*.62)
     def P(t,z=0,offset=near):
         return (a[0]+vx*t+offset[0],a[1]+vy*t+offset[1]-z)
     def quad(t0,t1,z0,z1,off=near):
