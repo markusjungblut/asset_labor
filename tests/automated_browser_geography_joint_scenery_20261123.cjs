@@ -48,6 +48,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-editor-reference-sprite.js',
  'large-map-bake-editor-composite-audit.js',
  'large-map-bake-shadow-pixel-attribution.js',
+ 'large-map-bake-alpha-source-over-ab.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -86,7 +87,8 @@ const plan=Plan.plan(world);
    'large-map-bake-mountain-receivers.js',
    'large-map-bake-editor-reference-sprite.js',
    'large-map-bake-editor-composite-audit.js',
-   'large-map-bake-shadow-pixel-attribution.js'])
+   'large-map-bake-shadow-pixel-attribution.js',
+   'large-map-bake-alpha-source-over-ab.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource})=>{
    const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
@@ -430,12 +432,12 @@ const plan=Plan.plan(world);
    const compositeShadow0=await compositeRenderer.renderTile('0,0',{
     previewEditorProjection:true,previewSpriteShadows:true,
     previewMountainShadows:true,previewMountainReceivers:true,
-    captureEditorCompositeReference:true
+    captureEditorCompositeReference:true,captureAlphaAB:true
    });
    const compositeShadow1=await compositeRenderer.renderTile('1,0',{
     previewEditorProjection:true,previewSpriteShadows:true,
     previewMountainShadows:true,previewMountainReceivers:true,
-    captureEditorCompositeReference:true
+    captureEditorCompositeReference:true,captureAlphaAB:true
    });
    const compositeBareSeam=await window.VedrasJointScenerySeam.create({
     plan,allowEditorProjectionPreview:true,
@@ -483,6 +485,64 @@ const plan=Plan.plan(world);
      worldShaded:rgbaOf(raw(compositeShadow1)),
      editorShaded:rgbaOf(nativeShade1.ctx)})
    ];
+   const AlphaAB=window.VedrasAlphaSourceOverAB;
+   if(typeof AlphaAB?.render!=="function")
+    throw Error('Read-only original alpha A/B experiment not loaded.');
+   const abTiles=[compositeShadow0,compositeShadow1];
+   const originalEditorPixels=[rgbaOf(nativeShade0.ctx),rgbaOf(nativeShade1.ctx)];
+   const alphaAB=["straight-rounded","premultiplied-byte"].map(mode=>{
+    const rendered=abTiles.map((sample,i)=>{
+     const trace=sample.editorCompositeReference;
+     const input=trace?.alphaAB;
+     if(!input||input.complete!==false||input.readyForViewer!==false||
+      !input.background||!Array.isArray(input.sprites)||
+      input.sprites.length===0)
+      throw Error('Missing explicit bounded original alpha A/B inputs');
+     const result=AlphaAB.render({
+      mode,width:1920,height:1632,
+      originX:trace.sampleX,originY:trace.sampleY,
+      background:input.background,sprites:input.sprites
+     });
+     if(result.readyForViewer!==false||result.complete!==false)
+      throw Error('Alpha A/B must never release the viewer gate');
+     const against=RGBA.compare({
+      width:1920,height:1632,world:result.data,
+      editor:originalEditorPixels[i]
+     });
+     return {mode,data:result.data,patches:result.patches,
+      touched:result.touched,against};
+    });
+    // The overlapping sample strip must be EXACTLY the same globally
+    // for both WorldTiles. No tolerance or shared post-blend patching.
+    let seamDifferent=0,overlapPainted=0,maxSeamDelta=0;
+    for(let y=0;y<1632;y++)for(let x=0;x<640;x++){
+     const li=(y*1920+x+1280)*4,ri=(y*1920+x)*4,
+      L=rendered[0].data,R=rendered[1].data;
+     if(L[li+3]||R[ri+3])overlapPainted++;
+     let differs=false;
+     for(let c=0;c<4;c++){
+      const d=Math.abs(L[li+c]-R[ri+c]);
+      if(d){differs=true;maxSeamDelta=Math.max(maxSeamDelta,d);}
+     }
+     if(differs)seamDifferent++;
+    }
+    const result={mode,seamDifferent,maxSeamDelta,overlapPainted,
+     tiles:rendered.map((r,i)=>({
+      different:r.against.different,
+      maxDelta:r.against.maxDelta,painted:r.against.painted,
+      baselineDifferent:compositeWithShadows[i].different,
+      baselineMaxDelta:compositeWithShadows[i].maxDelta,
+      patches:r.patches,touched:r.touched,
+      oneByte:r.against.maxDeltaBins['1'],
+      alphaOnly:r.against.differentAlphaOnly,
+      rgbOnly:r.against.differentRGBOnly
+     })),
+     eligibleForReview:seamDifferent===0&&rendered.every((r,i)=>
+      r.against.different<compositeWithShadows[i].different&&
+      r.against.maxDelta<=compositeWithShadows[i].maxDelta),
+     complete:false,readyForViewer:false};
+    return result;
+   });
    const Provenance=window.VedrasEditorShadowAttribution;
    if(typeof Provenance?.analyze!=="function")
     throw Error("Read-only original sprite-shadow attribution unavailable.");
@@ -609,6 +669,7 @@ const plan=Plan.plan(world);
     bare:compositeNoShadows,shadows:compositeWithShadows,
     parity:compositePixelParityPassed,
     rgba:auditDigest,sourceAttribution:originalPixelAttribution,
+    alphaAB,
     seams:compositeSeams,occlusion:compositeOcclusion,
     receivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers]
@@ -698,6 +759,7 @@ const plan=Plan.plan(world);
     receiverChangedPixels,
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
+    compositeAlphaAB:alphaAB,
     compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
@@ -771,10 +833,15 @@ const plan=Plan.plan(world);
    JSON.stringify({schema:'vedras-geography-phase28s-shadow-ownership-diagnostic',
     source:'original sprite alpha masks + independent editor RGBA',
     results:result.compositeSourceAttribution},null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28t_original_sprite_alpha_composite_ab.json'),
+   JSON.stringify({schema:'vedras-geography-phase28t-alpha-source-over-ab',
+    source:'pre-encode actual global scratch pixels, independent editor RGBAs',
+    productionRendererChanged:false,results:result.compositeAlphaAB},null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   console.log('EDITOR_COMPOSITE_RGBA_AUDIT',JSON.stringify(result.compositeRGBA));
+  console.log('ORIGINAL_ALPHA_SOURCE_OVER_AB',JSON.stringify(result.compositeAlphaAB));
   console.log('EDITOR_SHADOW_SOURCE_ATTRIBUTION',JSON.stringify(
    result.compositeSourceAttribution.map((r,i)=>({
     tile:i===0?'0,0':'1,0',masks:r.masks,
@@ -833,6 +900,21 @@ const plan=Plan.plan(world);
    assert(a.transitions.worldTouched>100);
    assert(a.transitions.editorTouched>100);
    assert.equal(a.parity,false);
+  }
+  assert.equal(result.compositeAlphaAB.length,2);
+  for(const variant of result.compositeAlphaAB){
+   assert.equal(variant.tiles.length,2);
+   assert(variant.tiles.every(t=>t.patches>=2&&t.touched>1000));
+   assert(variant.tiles.every(t=>Number.isSafeInteger(t.different)&&
+    t.different>=0&&t.different<=t.painted));
+   assert(Number.isSafeInteger(variant.seamDifferent));
+   assert(variant.overlapPainted>100);
+   assert.equal(variant.readyForViewer,false);
+   assert.equal(variant.complete,false);
+   if(variant.eligibleForReview){
+    assert.equal(variant.seamDifferent,0);
+    assert(variant.tiles.every(t=>t.different<t.baselineDifferent));
+   }
   }
   assert.equal(result.compositeSourceAttribution.length,2);
   for(let i=0;i<2;i++){

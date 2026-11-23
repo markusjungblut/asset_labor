@@ -23,6 +23,7 @@ on:
       - 'large-map-bake-editor-reference-sprite.js'
       - 'large-map-bake-editor-composite-audit.js'
       - 'large-map-bake-shadow-pixel-attribution.js'
+      - 'large-map-bake-alpha-source-over-ab.js'
       - 'tests/test_large_map_bake_shadow_pixel_attribution_20261123.cjs'
       - 'tests/test_large_map_bake_editor_composite_audit_20261123.cjs'
       - 'tests/automated_browser_geography_editor_parity_20261123.cjs'

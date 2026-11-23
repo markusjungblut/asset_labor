@@ -54,6 +54,7 @@ jobs:
             /large-map-bake-editor-reference-sprite.js
             /large-map-bake-editor-composite-audit.js
             /large-map-bake-shadow-pixel-attribution.js
+            /large-map-bake-alpha-source-over-ab.js
             /large-map-bake-authored-mountain-shadows.js
             /shadow-tone.js
             /shadow-shapes.js
@@ -115,6 +116,7 @@ jobs:
             /tests/test_large_map_bake_editor_reference_sprite_20261123.cjs
             /tests/test_large_map_bake_editor_composite_audit_20261123.cjs
             /tests/test_large_map_bake_shadow_pixel_attribution_20261123.cjs
+            /tests/test_large_map_bake_alpha_source_over_ab_20261123.cjs
             /tests/automated_browser_geography_editor_parity_20261123.cjs
             /tests/automated_browser_geography_joint_scenery_20261123.cjs
             /tests/test_large_map_bake_scenery_seam_20261123.cjs
