@@ -48,7 +48,9 @@ function create({plan,mountainPlan,natureCatalog,assets,loadImage,
  const entries=new Map();
  for(const m of mountainPlan.instances){
   const path=m?.assetPath,meta=natureCatalog.entries[path?.slice(7)];
-  if(!originals.has(path)||meta?.kind!=="mountain"||
+  if(!originals.has(path))
+   throw Error("Berginstanz ohne physische Originalgrafik: "+path);
+  if(meta?.kind!=="mountain"||
     meta.id!==m.assetId||m.width!==meta.logicalWidth||
     !Number.isSafeInteger(m.q)||!Number.isSafeInteger(m.r)||
     m.q<plan.source.originQ||
