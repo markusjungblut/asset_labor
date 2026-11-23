@@ -1035,6 +1035,22 @@ const plan=Plan.plan(world);
   assert(result.compositeLocalMaskAudit.seam.painted>500);
   assert(result.compositeLocalMaskAudit.maskGroundComparison.every(x=>
    x.sourcePixels>1000));
+  // The positive 2.8u hypothesis is now an immutable fixture regression,
+  // not just an optional unasserted quality report.
+  assert.equal(result.compositeLocalMaskAudit.eligibleForReview,true,
+   'Original app.js local mask must improve BOTH full sprite scenes without seams');
+  for(let i=0;i<2;i++){
+   const ground=result.compositeLocalMaskAudit.maskGroundComparison[i];
+   const sprite=result.compositeLocalMaskAudit.localComposites[i];
+   assert(ground.localCloser&&ground.localDifferent<ground.baselineDifferent,
+    'Original local ground masks must be strictly closer to app.js');
+   assert(ground.localMaxDelta<=1,
+    'Remaining global scratch vs direct fractional mask error must be only 1 byte');
+   assert(sprite.different<result.compositeWithShadows[i].different,
+    'Original cached local casts must improve complete independent sprite composite');
+   assert(sprite.maxDelta<=result.compositeWithShadows[i].maxDelta,
+    'Original cast must not create a new larger channel excursion');
+  }
   assert(result.compositeLocalMaskAudit.localComposites.every(x=>
    Number.isSafeInteger(x.different)&&x.painted>10000));
   assert.equal(result.compositeLocalMaskAudit.complete,false);
