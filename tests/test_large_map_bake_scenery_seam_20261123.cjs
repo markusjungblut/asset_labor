@@ -138,3 +138,16 @@ test('shadow-preview seam requires explicit opt-in and retains mountain gate',as
  assert.match(source,/original-sprite-shadow-scenery-preview/);
  assert.match(source,/originalShadowProfiles>0/);
 });
+
+test('native mountain-shadow seam needs explicit original-sprite mode',async()=>{
+ const h=harness();
+ assert.throws(()=>Seam.create({
+  plan,renderer:h.seam,allowMountainShadowPreview:true,
+  bitmapFactory:async()=>{},canvasFactory:()=>{}
+ }),/Original-Scenery-Testbilder/);
+ const source=fs.readFileSync(path.join(__dirname,'../large-map-bake-scenery-seam.js'),'utf8');
+ assert.match(source,/allowMountainShadowPreview=false/);
+ assert.match(source,/original-mountain-sprite-shadow-scenery-preview/);
+ assert.match(source,/drawnOriginalMountainShadows>0/);
+ assert.match(source,/needsMountainShadowScenePresetParity/);
+});

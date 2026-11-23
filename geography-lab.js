@@ -796,6 +796,17 @@ async function makeJointSceneryPreview(current){
   });
   return {plan,renderer,boulders,trunks,late,accents};
 }
+async function loadJointOriginalShadows(){
+ if(!window.VedrasSpriteShadows?.set||!window.VedrasSpriteShadows?.valid||
+  !window.VedrasShadowTone?.targetAlpha)
+  throw Error('Original-Schattenrenderer nicht geladen.');
+ const response=await fetch('/api/sprite-shadows',{cache:'no-store'});
+ if(!response.ok)throw Error('Gespeicherte Original-Schattenprofile nicht verfügbar.');
+ const profiles=window.VedrasSpriteShadows.valid(await response.json());
+ if(!Object.keys(profiles.profiles).length)
+  throw Error('Kein gespeichertes Schattenprofil: Probe blockiert.');
+ window.VedrasSpriteShadows.set(profiles);
+}
 $('previewJointScenery').addEventListener('click',async()=>{
  if(!currentWorld())return;
  const button=$('previewJointScenery'),report=$('jointSceneryReport');
@@ -810,22 +821,18 @@ $('previewJointScenery').addEventListener('click',async()=>{
    throw Error('WorldTile-ID liegt nicht im autoritativen geografischen Renderplan.');
   report.textContent='Original-Baum- und Berg-PNGs mit kontinuierlichem geografischem Relief für '+id+' werden dekodiert …';
   const withShadows=$('jointSceneryWithShadows').checked;
-  if(withShadows){
-   if(!window.VedrasSpriteShadows?.set||!window.VedrasSpriteShadows?.valid||
-    !window.VedrasShadowTone?.targetAlpha)
-    throw Error('Original-Schattenrenderer nicht geladen.');
-   const response=await fetch('/api/sprite-shadows',{cache:'no-store'});
-   if(!response.ok)throw Error('Gespeicherte Original-Schattenprofile nicht verfügbar.');
-   const profiles=window.VedrasSpriteShadows.valid(await response.json());
-   if(!Object.keys(profiles.profiles).length)
-    throw Error('Kein gespeichertes Schattenprofil: Probe blockiert.');
-   window.VedrasSpriteShadows.set(profiles);
-  }
-  const sample=await renderer.renderTile(id,{previewSpriteShadows:withShadows});
+  const withMountains=$('jointSceneryWithMountainShadows').checked;
+  if(withMountains&&!withShadows)
+   throw Error('Bergschattenprobe benötigt auch die Sprite-Schattenprobe.');
+  if(withShadows)await loadJointOriginalShadows();
+  const sample=await renderer.renderTile(id,{
+   previewSpriteShadows:withShadows,previewMountainShadows:withMountains
+  });
 
   if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
-  if(sample.stage!==(withShadows?
-    'original-sprite-shadow-scenery-preview':
+  if(sample.stage!==(withMountains?
+    'original-mountain-sprite-shadow-scenery-preview':
+    withShadows?'original-sprite-shadow-scenery-preview':
     'original-tree-mountain-combined-preview')||
     !sample.rasterized||sample.complete||sample.readyForViewer||
     !sample.needsGroundAndSpriteShadows||!sample.needsFullEditorImageParity)
@@ -849,7 +856,10 @@ $('previewJointScenery').addEventListener('click',async()=>{
    (withShadows?sample.drawnOriginalSpriteShadows+
     ' Original-Sprite-Schatten ('+sample.drawnManualShadows+
     ' Handprofile, '+sample.originalShadowProfiles+
-    ' Quellprofile, Bergschatten noch offen) · ':'Sprite-Schatten noch offen · ')+
+    ' Quellprofile'+(withMountains?', plus '+
+     sample.drawnOriginalMountainShadows+' native Bergschatten ('+
+     sample.drawnShadowOnlyMountains+' aus Schatten-Halo)':
+     ', Bergschatten noch offen')+') · ':'Sprite-Schatten noch offen · ')+
    'Akzente (global '+
    accents.instances.length+' geplant, davon '+
    accents.stats.placedDeadTrees+' stehende tote Bäume / '+
@@ -863,7 +873,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
    sample.mountainFlattenPads+' globale Bergfundament-Pads · '+
    sample.width+'×'+sample.height+' px (2,5×) · '+
    Math.ceil(sample.png.size/1024)+' KiB. KEIN fertiger Kartenatlas: '+
-   'Nature-Vollpopulation, Schatten, Sträucher, Totholz, 4×-Renderer, '+
+   'Nature-Vollpopulation, Berg-Übersteuerungen, Empfänger-Schatten, 4×-Renderer, '+
    'visuelle Editor-Parität und Berg-Berg-Silhouettenprüfung fehlen.';
  }catch(error){
   report.textContent='Gemeinsame Original-Scenery-Probe fehlgeschlagen: '+
@@ -879,7 +889,21 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   if(!SEAM?.create)throw Error('Original-Pixelnahtprüfer nicht geladen.');
   report.textContent='Globalen Originalbaum-/Berg-Scenery-Renderer für benachbarte WorldTiles vorbereiten …';
   const {plan,renderer}=await makeJointSceneryPreview(current);
-  const verifier=SEAM.create({plan,renderer});
+  const withShadows=$('jointSceneryWithShadows').checked;
+  const withMountains=$('jointSceneryWithMountainShadows').checked;
+  if(withMountains&&!withShadows)
+   throw Error('Bergschattennahttest benötigt auch die Sprite-Schattenprobe.');
+  if(withShadows)await loadJointOriginalShadows();
+  const seamRenderer=withShadows?{
+   previewOnly:true,defaultTile:()=>renderer.defaultTile(),
+   renderTile:id=>renderer.renderTile(id,{
+    previewSpriteShadows:true,previewMountainShadows:withMountains
+   })
+  }:renderer;
+  const verifier=SEAM.create({
+   plan,renderer:seamRenderer,allowShadowPreview:withShadows,
+   allowMountainShadowPreview:withMountains
+  });
   const requested=String($('materialPreviewTileId').value||'').trim();
   let pair=verifier.defaultPair();
   if(requested){

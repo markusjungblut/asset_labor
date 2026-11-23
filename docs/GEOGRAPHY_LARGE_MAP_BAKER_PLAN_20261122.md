@@ -783,3 +783,11 @@ Renderer**, nicht das schnellste ungetestete Einmalbild.
 - Neuer rein lesender, begrenzter Rasteradapter mit ganzzahliger Weltpixelverankerung und unionsbasierter Schattenmaske. Alte Scenery-Probe ohne Checkbox bleibt unverändert.
 - Native **Bergschatten sind nicht enthalten**, ebenso keine echte 4×-Atlasauflösung und noch keine vollständige Kronen-/Editor-Bildparität. `complete:false`, `readyForViewer:false` bleiben.
 - Eigene Firefox-Regression mit echten Originalprofilen ist ergänzt. Der Bildvergleich muss vor der Freigabe der Probe erfolgreich sein.
+
+### Phase 2.8l – Native Bergschatten im WorldTile-Schattenvorschau-Layer
+
+- Natives `VedrasShadows.paintMountain()` mit originaler Fuß-Alphaanalyse (`VedrasShadows.alphaFoot()`), `mountainOrigin()` und `mountainShape()`; ausschließlich globale ganzzahlige Pixel-Scratch-Raster, keine alternativen Schattenformen.
+- Drei ausdrücklich getrennte Vorschauen: ohne Schatten, mit nativen Sprite-Schattenprofilen, mit Sprite- **und** Bergschatten. Alte Vorschau bleibt unverändert; die Bergschattenoption setzt gespeicherte Original-Sprite-Profile voraus.
+- Anders als bei normalen Sprite-Grafiken können Schatten in eine Kachel hineinreichen, obwohl die zugehörige Berggrafik außerhalb liegt. Für den Bergschattenmodus werden solche Bergkandidaten aus dem vorhandenen globalen Scenery-Halo einbezogen. Ein Schatten außerhalb dieses Halos führt zum Fehler statt zu fehlenden Nachbarpixeln.
+- Separater Node-Vertragstest und Firefox-Echtbildtest mit Pixelnaht sowie Bildvergleich mit/ohne Bergschatten sind vorgesehen. **Die Prüfungsergebnisse werden erst nach CI-Lauf dokumentiert.**
+- Der Geografiegenerator besitzt keine gespeicherten Editor-Szeneinstellungen zu Berg-Presets, Berg-Instanzen oder Schattenempfängern. Die Vorschau verwendet deshalb ausschließlich die Original-Editor-**Standardwerte**, bezeichnet dies ausdrücklich und lässt `needsMountainShadowScenePresetParity:true`, `needsMountainSpriteReceiverParity:true`, `complete:false`, `readyForViewer:false` bestehen. Erst ein späterer tatsächlicher Editorvergleich kann Vollparität belegen.

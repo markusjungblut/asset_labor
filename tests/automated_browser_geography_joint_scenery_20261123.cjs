@@ -24,7 +24,8 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'polish.js','mountain.js','relief.js','autotile.js',
  'large-map-bake-ground-relief.js','large-map-bake-plan.js',
  'large-map-bake-joint-scenery.js','large-map-bake-scenery-seam.js',
- 'large-map-bake-original-sprite-shadows.js','shadow-tone.js',
+ 'large-map-bake-original-sprite-shadows.js',
+ 'large-map-bake-original-mountain-shadows.js','shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
  {width:10,height:10});
@@ -55,8 +56,9 @@ const plan=Plan.plan(world);
    'mountain.js','relief.js','autotile.js','large-map-bake-plan.js',
    'large-map-bake-ground-relief.js','large-map-bake-joint-scenery.js',
    'large-map-bake-scenery-seam.js',
-   'shadow-tone.js','shadow-shapes.js','sprite-shadow-editor.js',
-   'large-map-bake-original-sprite-shadows.js'])
+   'shadow-tone.js','shadow-system.js','shadow-shapes.js',
+   'sprite-shadow-editor.js','large-map-bake-original-sprite-shadows.js',
+   'large-map-bake-original-mountain-shadows.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles})=>{
    const [tree,mount,rock,ordinary,snow,bush,log]=names;
@@ -132,13 +134,21 @@ const plan=Plan.plan(world);
    });
    const profiles=window.VedrasSpriteShadows.valid(shadowProfiles);
    window.VedrasSpriteShadows.set(profiles);
-   const a=await renderer.renderTile('0,0',{previewSpriteShadows:true});
-   const b=await renderer.renderTile('1,0',{previewSpriteShadows:true});
-   const verifier=window.VedrasJointScenerySeam.create({plan,allowShadowPreview:true,renderer:{
+   const a=await renderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:true
+   });
+   const b=await renderer.renderTile('1,0',{
+    previewSpriteShadows:true,previewMountainShadows:true
+   });
+   const verifier=window.VedrasJointScenerySeam.create({
+    plan,allowShadowPreview:true,allowMountainShadowPreview:true,renderer:{
     previewOnly:true,defaultTile:()=> '0,0',
     renderTile:async id=>id==='0,0'?a:b
    }});
    const pixelProof=await verifier.verifyPair('0,0','right');
+   const spriteOnly=await renderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:false
+   });
    const decode=async blob=>{
     const bitmap=await createImageBitmap(blob);
     const canvas=document.createElement('canvas');
@@ -147,6 +157,14 @@ const plan=Plan.plan(world);
     ctx.drawImage(bitmap,0,0);bitmap.close();return ctx;
    };
    const left=await decode(a.png),right=await decode(b.png);
+   const baseline=await decode(spriteOnly.png);
+   const aa=left.getImageData(0,0,left.canvas.width,left.canvas.height).data,
+    bb=baseline.getImageData(0,0,baseline.canvas.width,baseline.canvas.height).data;
+   let mountainChangedPixels=0;
+   for(let k=0;k<aa.length;k+=4)
+    if(aa[k]!==bb[k]||aa[k+1]!==bb[k+1]||
+       aa[k+2]!==bb[k+2]||aa[k+3]!==bb[k+3])
+     mountainChangedPixels++;
    const w=640,h=1632,L=left.getImageData(1280,0,w,h).data,
     R=right.getImageData(0,0,w,h).data;
    let different=0,opaque=0,transparent=0,maxDelta=0;
@@ -176,6 +194,12 @@ const plan=Plan.plan(world);
     spriteShadows:[a.drawnOriginalSpriteShadows,b.drawnOriginalSpriteShadows],
     manualShadows:[a.drawnManualShadows,b.drawnManualShadows],
     shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
+    mountainChangedPixels,
+    mountainShadows:[a.drawnOriginalMountainShadows,b.drawnOriginalMountainShadows],
+    mountainShadowPixels:[a.originalMountainShadowPositivePixels,b.originalMountainShadowPositivePixels],
+    mountainShadowOnly:[a.drawnShadowOnlyMountains,b.drawnShadowOnlyMountains],
+    pendingMountainShadows:[a.needsOriginalMountainShadows,b.needsOriginalMountainShadows],
+    mountainEditorPresetsPending:[a.needsMountainShadowScenePresetParity,b.needsMountainShadowScenePresetParity],
     pendingAccents:[a.needsShrubsAndAccents,b.needsShrubsAndAccents],
     missingSnow:[a.needsSnowPass,b.needsSnowPass],
     rocks:[a.drawnWarmBoulders,b.drawnWarmBoulders],
@@ -194,8 +218,8 @@ const plan=Plan.plan(world);
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
-   'original-sprite-shadow-scenery-preview',
-   'original-sprite-shadow-scenery-preview']);
+   'original-mountain-sprite-shadow-scenery-preview',
+   'original-mountain-sprite-shadow-scenery-preview']);
   assert.deepEqual(result.trees,[1,1]);
   assert.deepEqual(result.mountains,[1,1]);
   assert.deepEqual(result.rocks,[1,1]);
@@ -207,6 +231,13 @@ const plan=Plan.plan(world);
   assert(result.spriteShadows.every(x=>x>=4));
   assert(result.manualShadows.every(x=>x>=2));
   assert(result.shadowProfiles.every(x=>x>=7));
+  assert(result.mountainChangedPixels>100,
+   'native mountain shadow must alter pixels beyond sprite-only preview');
+  assert.deepEqual(result.mountainShadows,[1,1]);
+  assert(result.mountainShadowPixels.every(x=>x>100),
+   'native mountain cast must draw actual positive shadow alpha');
+  assert.deepEqual(result.pendingMountainShadows,[false,false]);
+  assert.deepEqual(result.mountainEditorPresetsPending,[true,true]);
   assert.deepEqual(result.pendingAccents,[false,false]);
   assert.deepEqual(result.draws,[7,7]);
   assert.deepEqual(result.ready,[false,false]);
