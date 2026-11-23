@@ -197,7 +197,8 @@ const plan=Plan.plan(world);
      authoredShadowScene:authored
     });
     const verifyAuth=window.VedrasJointScenerySeam.create({
-     plan,allowShadowPreview:true,allowMountainShadowPreview:true,renderer:{
+     plan,allowShadowPreview:true,allowMountainShadowPreview:true,
+     allowAuthoredMountainScene:true,renderer:{
       previewOnly:true,defaultTile:()=> '0,0',
       renderTile:async id=>id==='0,0'?authA:authB
      }

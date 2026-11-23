@@ -8,7 +8,8 @@ const SCHEMA="vedras-geography-joint-scenery-seam-proof-v1";
 const SIZE=512,SCALE_X=2.5,SCALE_Y=2.125,PAD=128;
 const EXPECTED_WIDTH=Math.round((SIZE+2*PAD)*SCALE_X);
 const EXPECTED_HEIGHT=Math.round((SIZE+2*PAD)*SCALE_Y);
-function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPreview=false,
+function create({plan,renderer,allowShadowPreview=false,
+ allowMountainShadowPreview=false,allowAuthoredMountainScene=false,
  bitmapFactory=root.createImageBitmap?.bind(root),
  canvasFactory=()=>root.document.createElement("canvas")}={}){
  if(plan?.schema!=="vedras-geography-bake-plan-v1"||
@@ -18,7 +19,8 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
   !plan.source?.fingerprint||typeof renderer?.renderTile!=="function"||
   renderer.previewOnly!==true||typeof bitmapFactory!=="function"||
   typeof canvasFactory!=="function"||
-  (allowMountainShadowPreview&&!allowShadowPreview))
+  (allowMountainShadowPreview&&!allowShadowPreview)||
+  (allowAuthoredMountainScene&&!allowMountainShadowPreview))
   throw Error("Pixelnahtprüfung benötigt den ungeänderten Weltplan und Original-Scenery-Testbilder.");
  const tiles=new Map();
  for(const tile of plan.tiles){
@@ -63,7 +65,13 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
     result.needsOriginalMountainShadows!==false||
     !Number.isSafeInteger(result.drawnOriginalMountainShadows)||
     result.drawnOriginalMountainShadows<0||
-    result.needsMountainShadowScenePresetParity!==true))||
+    (allowAuthoredMountainScene?
+     (result.authoredMountainScene!==true||
+      !Number.isSafeInteger(result.authoredMountainSceneInstances)||
+      result.needsMountainShadowScenePresetParity!==
+       !result.authoredMountainInstanceMatch):
+     (result.authoredMountainScene!==false||
+      result.needsMountainShadowScenePresetParity!==true))))||
    (allowShadowPreview&&!allowMountainShadowPreview&&
     !result.needsOriginalMountainShadows)||
    result.tile?.id!==id||
@@ -154,7 +162,8 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
    differingPixels:differing,maxChannelDifference:maxDelta,
    firstDifferences:examples,passesPixelIdentity:differing===0&&painted>0,
    needsEditorVisualParity:true,needsOriginalShadows:true,
-   shadowMode:allowMountainShadowPreview?"original-mountain-and-sprite-preview":
+   shadowMode:allowAuthoredMountainScene?"authored-mountain-and-sprite-preview":
+    allowMountainShadowPreview?"original-mountain-and-sprite-preview":
     allowShadowPreview?"original-sprite-preview":"none",
    needsOriginalMountainShadows:true,
    complete:false,readyForViewer:false,rasterized:false};

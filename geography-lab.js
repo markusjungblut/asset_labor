@@ -939,7 +939,8 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   }:renderer;
   const verifier=SEAM.create({
    plan,renderer:seamRenderer,allowShadowPreview:withShadows,
-   allowMountainShadowPreview:withMountains
+   allowMountainShadowPreview:withMountains,
+   allowAuthoredMountainScene:!!authored
   });
   const requested=String($('materialPreviewTileId').value||'').trim();
   let pair=verifier.defaultPair();

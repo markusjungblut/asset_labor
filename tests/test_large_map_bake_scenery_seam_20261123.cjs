@@ -151,3 +151,12 @@ test('native mountain-shadow seam needs explicit original-sprite mode',async()=>
  assert.match(source,/a\.drawnOriginalMountainShadows\+b\.drawnOriginalMountainShadows>0/);
  assert.match(source,/needsMountainShadowScenePresetParity/);
 });
+
+test('authored scene seam gate requires explicit import and source metadata',()=>{
+ const code=fs.readFileSync(path.join(__dirname,
+  '../large-map-bake-scenery-seam.js'),'utf8');
+ assert.match(code,/allowAuthoredMountainScene=false/);
+ assert.match(code,/authoredMountainScene!==true/);
+ assert.match(code,/needsMountainShadowScenePresetParity/);
+ assert.match(code,/authored-mountain-and-sprite-preview/);
+});
