@@ -1,5 +1,5 @@
 'use strict';
-/* Browser-level wall-art acceptance: all 12 painted WebPs decode, every
+/* Browser-level wall-art acceptance: six wooden WebPs and six stone PNGs decode, every
  * orientation renders without rotating the upright wall graphics, and six
  * connected corners remain filled and cast continuous nonadditive shadows. */
 const assert=require('node:assert/strict');
@@ -15,9 +15,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
-  const webp=/^\/assets\/walls\/(?:palisade|stone)\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
-  if(!webp){res.writeHead(404);return res.end('missing');}
-  res.writeHead(200,{'Content-Type':'image/webp'});
+  const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
+  const png=/^\/assets\/walls\/stone\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
+  if(!webp&&!png){res.writeHead(404);return res.end('missing');}
+  res.writeHead(200,{'Content-Type':png?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -37,7 +38,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    canvas.width=1200;canvas.height=730;
    const g=canvas.getContext('2d',{willReadFrequently:true});
    document.body.style.background='#22352b';document.body.append(canvas);
-   // 12 previews, each uses a real painted WebP via drawImage().
+   // 12 previews, each uses a real painted image via drawImage().
    for(let row=0;row<2;row++)for(let dir=0;dir<6;dir++){
     const kind=row===0?'palisade':'stone';
     const [dq,dr]=W.DIRS[dir],edge={a:[0,0],b:[dq,dr],kind};
@@ -117,6 +118,6 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert(result.timberBelow[3]<12,
    'no palisade point may protrude below its shared ground anchor');
   await page.screenshot({path:path.join(OUT,'wall-art-v3-all-directions.png')});
-  process.stdout.write('Six painted palisades, two painted posts, six stone SVGs and corner shadows Firefox PASS\n');
+  process.stdout.write('Six painted palisades, two painted posts, six stone PNGs and corner shadows Firefox PASS\n');
  }finally{await browser.close();server.close();}
 })().catch(e=>{process.stderr.write(String(e.stack||e)+'\n');process.exitCode=1;});

@@ -193,10 +193,12 @@ window.VedrasWalls=(()=>{
  const palisadeMaterial={inset:10.5,width:16,height:70,
   cornerWidth:25,cornerHeight:76,endWidth:23,endHeight:76};
  const palisadeJoinArt=new Map();
- // Stone v2 uses the same independently painted WebP edge and join
- // pipeline as palisade v5; no stone SVG is loaded by the normal renderer.
+ // Stone v3 uses independently painted, high-resolution transparent PNGs.
+ // 3x raster sprites retain fixed 2.5D anchors and upright stone faces.
+ // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
- const stoneMaterial={cornerWidth:40,cornerHeight:80,endWidth:34,endHeight:80};
+ const stoneRasterMeta=wallArtMeta.stone;
+ const stoneMaterial={cornerWidth:40,cornerHeight:82,endWidth:32,endHeight:82};
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
@@ -209,8 +211,9 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/'+kind+'/edge_dir'+side+'.webp?v='+
-     (kind==='palisade'?'20261123-painted-volumetric-v5':'20261123-stone-painted-v2');
+    image.src='assets/walls/'+kind+'/edge_dir'+side+
+     (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':
+      '.png?v=20261123-stone-raster-v3');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -226,7 +229,7 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/stone/'+name+'.webp?v=20261123-stone-painted-v2';
+    image.src='assets/walls/stone/'+name+'.png?v=20261123-stone-raster-v3';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{
@@ -250,11 +253,12 @@ window.VedrasWalls=(()=>{
   const img=wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
   const [w,h,ax,ay]=(edge.kind==='palisade'?
-   palisadeRasterMeta:wallArtMeta[edge.kind])[g.side];
+   palisadeRasterMeta:stoneRasterMeta)[g.side];
   const origin=project(g.a.x,g.a.y);
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
   ctx.globalCompositeOperation='source-over';
-  ctx.drawImage(img,origin.x-ax*zoom,origin.y-ay*zoom,w*zoom,h*zoom);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+   ctx.drawImage(img,origin.x-ax*zoom,origin.y-ay*zoom,w*zoom,h*zoom);
   ctx.restore();
   return true;
  }
@@ -297,7 +301,8 @@ window.VedrasWalls=(()=>{
     // one shared hex corner. Mixed timber/stone vertices retain timber art.
     ctx.save();ctx.globalAlpha=1;ctx.filter='none';
     ctx.globalCompositeOperation='source-over';
-    ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+     ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
     ctx.restore();return true;
    }
   }
@@ -501,5 +506,5 @@ window.VedrasWalls=(()=>{
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
-  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,palisadeMaterial,stoneMaterial,junctions,drawJoin,drawJoinShadow};
+  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,junctions,drawJoin,drawJoinShadow};
 })();
