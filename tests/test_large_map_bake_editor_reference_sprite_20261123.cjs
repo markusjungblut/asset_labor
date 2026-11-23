@@ -84,7 +84,7 @@ test('new editor projection is explicitly opt-in and never lifts viewer gates',(
  const seam=fs.readFileSync(path.join(root,'large-map-bake-scenery-seam.js'),'utf8');
  assert.match(rootCode,/previewEditorProjection=false/);
  assert.match(rootCode,/editorPixelsUnprojectedHeight:previewEditorProjection/);
- assert.match(rootCode,/hiddenEditorTrees/);
+ assert.match(rootCode,/hiddenEditorNatureTrees/);
  assert.match(rootCode,/needsFullEditorImageParity:true/);
  assert.match(rootCode,/complete:false,readyForViewer:false/);
  assert(html.includes('jointSceneryWithEditorProjection'));
