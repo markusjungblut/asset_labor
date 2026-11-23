@@ -776,3 +776,10 @@ Renderer**, nicht das schnellste ungetestete Einmalbild.
 - `large-map-bake-nature-accents.js` übernimmt den *nachgelagerten* Original-Akzentdurchlauf aus `nature-ui.js` für physische Shrub-/Cluster-/Ground-Cover-/Deadwood-/stehende Totholzvarianten. Baum-, Warmfindling-, Spätfindling- und Schneepositionen werden zuerst reserviert. Katalog-Habitat, globale Akzentlimits je Landfläche, Seed-Ranking, Wald-/Randgewicht, `Polish.patch`, Objekt-Slots, 2-Hex-Kollisionen, Straßen-/Flusssperren und die erhöhte Flusssperre für liegende Stämme bleiben erhalten.
 - Die gemeinsame Scenery-Probe kann die zusätzlichen PNGs mit derselben globalen 2,5×-Rasterung rendern. Eine Browser-Nahtregression berücksichtigt zusätzlich `bush_01.png` und `fallen_log_01.png`. Ein eigener fokussierter Vertragstest prüft Seed-Stabilität, globale Akzentgrenzen, Mindestabstände und veraltete Vorläufe.
 - Alle Resultate verbleiben `complete:false`, `readyForViewer:false`; die neue Nature-Planung ist keine Aussage über vollständige 397-Hex-Editor-Parität, Baumkronenabdeckung, Schatten oder einen produktionsreifen 4×-WorldTile-Atlas. Original-PNGs, Nature-Katalog und bestehende Karten bleiben unverändert.
+
+### Phase 2.8k – native Sprite-Schattenprobe (vorläufig)
+
+- Opt-in gemeinsame Scenery mit gespeicherten Original-Sprite-Schattenprofilen aus `/api/sprite-shadows` (niemals generische Ersatzprofile); originale PNG-Alphas, `VedrasSpriteShadows.draw()` mit `VedrasManualShadows`, sowie `VedrasShadowTone.withMaskPass()` werden wiederverwendet.
+- Neuer rein lesender, begrenzter Rasteradapter mit ganzzahliger Weltpixelverankerung und unionsbasierter Schattenmaske. Alte Scenery-Probe ohne Checkbox bleibt unverändert.
+- Native **Bergschatten sind nicht enthalten**, ebenso keine echte 4×-Atlasauflösung und noch keine vollständige Kronen-/Editor-Bildparität. `complete:false`, `readyForViewer:false` bleiben.
+- Eigene Firefox-Regression mit echten Originalprofilen ist ergänzt. Der Bildvergleich muss vor der Freigabe der Probe erfolgreich sein.

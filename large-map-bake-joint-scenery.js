@@ -282,7 +282,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   }
   return plan.tiles[0]?.id||null;
  }
- async function renderTile(id){
+ async function renderTile(id,{previewSpriteShadows=false}={}){
   const tile=byTile.get(id);
   if(!tile)throw Error("Unbekanntes geografisches WorldTile.");
   const near=candidates(tile),images=new Map(),placed=[];
@@ -327,6 +327,15 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   const ctx=output.getContext("2d",{alpha:true});
   if(!ctx?.setTransform||!ctx?.drawImage)
    throw Error("Gemeinsame transparente Scenery-Canvas2D fehlt.");
+  let shadowResult=null;
+  if(previewSpriteShadows){
+   if(typeof root.VedrasLargeMapOriginalSpriteShadows?.paint!=="function")
+    throw Error("Original-Schattenadapter nicht geladen.");
+   shadowResult=root.VedrasLargeMapOriginalSpriteShadows.paint({
+    objects:placed,output,tile,canvasFactory,
+    scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
+   });
+  }
   // Canonical global-pixel sprite scratch: Firefox/Chromium may otherwise
   // resample a large alpha PNG differently depending on the destination
   // tile's Canvas origin, even if translations differ by exactly 1280px.
@@ -372,12 +381,17 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   else throw Error("Scenery-PNG-Kodierer fehlt.");
   if(!(png instanceof Blob)||png.type!=="image/png"||!png.size)
    throw Error("Transparente Scenery-PNG leer oder nicht kodiert.");
-  return {schema:SCHEMA,stage:"original-tree-mountain-combined-preview",
+  return {schema:SCHEMA,stage:previewSpriteShadows?
+    "original-sprite-shadow-scenery-preview":"original-tree-mountain-combined-preview",
    tile:{...tile},png,width:output.width,height:output.height,
    drawnTrees:trees.length,drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
    drawnOrdinaryBoulders:ordinary.length,drawnSnowPatches:snow.length,
    drawnAccents:accents.length,
+   drawnOriginalSpriteShadows:shadowResult?.drawn||0,
+   drawnManualShadows:shadowResult?.manual||0,
+   originalShadowProfiles:shadowResult?.profiles||0,
+   needsOriginalMountainShadows:true,
    testedOtherMountainOcclusions:(ordinary.length+snow.length+accents.length)*mount.length,
    occludedOtherMountainPairs:occludedOther,
    testedTreeMountainOcclusions:trees.length*mount.length,

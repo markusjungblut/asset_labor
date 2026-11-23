@@ -16,12 +16,16 @@ const nature=JSON.parse(fs.readFileSync(path.join(root,
  'assets/nature/nature_catalog.json'),'utf8'));
 const terrain=JSON.parse(fs.readFileSync(path.join(root,
  'assets/terrain/terrain_catalog.json'),'utf8'));
+const shadowProfiles=JSON.parse(fs.readFileSync(path.join(root,
+ 'assets/shadows/sprite_shadow_profiles.json'),'utf8'));
 for(const file of names)assert(fs.statSync(path.join(root,file)).size>1024,
  'Original PNG is missing: '+file);
 const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'polish.js','mountain.js','relief.js','autotile.js',
  'large-map-bake-ground-relief.js','large-map-bake-plan.js',
- 'large-map-bake-joint-scenery.js','large-map-bake-scenery-seam.js']);
+ 'large-map-bake-joint-scenery.js','large-map-bake-scenery-seam.js',
+ 'large-map-bake-original-sprite-shadows.js','shadow-tone.js',
+ 'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
  {width:10,height:10});
 const plan=Plan.plan(world);
@@ -50,9 +54,11 @@ const plan=Plan.plan(world);
   for(const file of ['sprite-planner.js','nature-balance.js','polish.js',
    'mountain.js','relief.js','autotile.js','large-map-bake-plan.js',
    'large-map-bake-ground-relief.js','large-map-bake-joint-scenery.js',
-   'large-map-bake-scenery-seam.js'])
+   'large-map-bake-scenery-seam.js',
+   'shadow-tone.js','shadow-shapes.js','sprite-shadow-editor.js',
+   'large-map-bake-original-sprite-shadows.js'])
    await page.addScriptTag({url:origin+'/'+file});
-  const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
+  const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles})=>{
    const [tree,mount,rock,ordinary,snow,bush,log]=names;
    const imageByPath=new Map();
    for(const p of names){
@@ -124,8 +130,10 @@ const plan=Plan.plan(world);
     natureCatalog:nature,assets,
     loadImage:async a=>({img:imageByPath.get(a.path)})
    });
-   const a=await renderer.renderTile('0,0');
-   const b=await renderer.renderTile('1,0');
+   const profiles=window.VedrasSpriteShadows.valid(shadowProfiles);
+   window.VedrasSpriteShadows.set(profiles);
+   const a=await renderer.renderTile('0,0',{previewSpriteShadows:true});
+   const b=await renderer.renderTile('1,0',{previewSpriteShadows:true});
    const verifier=window.VedrasJointScenerySeam.create({plan,renderer:{
     previewOnly:true,defaultTile:()=> '0,0',
     renderTile:async id=>id==='0,0'?a:b
@@ -165,6 +173,9 @@ const plan=Plan.plan(world);
     ordinaryRocks:[a.drawnOrdinaryBoulders,b.drawnOrdinaryBoulders],
     snowPatches:[a.drawnSnowPatches,b.drawnSnowPatches],
     accents:[a.drawnAccents,b.drawnAccents],
+    spriteShadows:[a.drawnOriginalSpriteShadows,b.drawnOriginalSpriteShadows],
+    manualShadows:[a.drawnManualShadows,b.drawnManualShadows],
+    shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
     pendingAccents:[a.needsShrubsAndAccents,b.needsShrubsAndAccents],
     missingSnow:[a.needsSnowPass,b.needsSnowPass],
     rocks:[a.drawnWarmBoulders,b.drawnWarmBoulders],
@@ -179,12 +190,12 @@ const plan=Plan.plan(world);
     ready:[a.readyForViewer,b.readyForViewer],
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
-  },{world,plan,nature,terrain,names});
+  },{world,plan,nature,terrain,names,shadowProfiles});
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
-   'original-tree-mountain-combined-preview',
-   'original-tree-mountain-combined-preview']);
+   'original-sprite-shadow-scenery-preview',
+   'original-sprite-shadow-scenery-preview']);
   assert.deepEqual(result.trees,[1,1]);
   assert.deepEqual(result.mountains,[1,1]);
   assert.deepEqual(result.rocks,[1,1]);
@@ -193,6 +204,9 @@ const plan=Plan.plan(world);
   assert.deepEqual(result.lateRocks,[false,false]);
   assert.deepEqual(result.missingSnow,[false,false]);
   assert.deepEqual(result.accents,[2,2]);
+  assert(result.spriteShadows.every(x=>x>=4));
+  assert(result.manualShadows.every(x=>x>=2));
+  assert(result.shadowProfiles.every(x=>x>=7));
   assert.deepEqual(result.pendingAccents,[false,false]);
   assert.deepEqual(result.draws,[7,7]);
   assert.deepEqual(result.ready,[false,false]);

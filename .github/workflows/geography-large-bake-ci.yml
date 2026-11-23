@@ -47,6 +47,10 @@ jobs:
             /large-map-bake-tree-png.js
             /large-map-bake-canopy-audit.js
             /large-map-bake-joint-scenery.js
+            /large-map-bake-original-sprite-shadows.js
+            /shadow-tone.js
+            /shadow-shapes.js
+            /sprite-shadow-editor.js
             /large-map-bake-scenery-seam.js
             /sprite-planner.js
             /roads.js
