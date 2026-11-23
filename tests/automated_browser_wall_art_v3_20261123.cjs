@@ -84,6 +84,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const timberPx=(x,y)=>[...tc.getImageData(Math.round(x),Math.round(y),1,1).data];
    const timberCore=timberPx(xyT.x,xyT.y-34);
    const timberFoot=timberPx(xyT.x,xyT.y-3);
+   const timberBridge=timberPx(xyT.x,xyT.y+3);
    // Sample below the middle of ONE slope, not below a shared node:
    // at the shared node the second valid segment naturally continues down.
    const only=document.createElement('canvas');only.width=490;only.height=400;
@@ -93,7 +94,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const timberBelow=[...onlyCtx.getImageData(
     Math.round(midp.x),Math.round(midp.y+9),1,1).data];
    return {ok,info,connected,atFoot,shadowColor,counts:joined.map(n=>n.degree),
-    timberCore,timberFoot,timberBelow,
+    timberCore,timberFoot,timberBridge,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
   assert.deepEqual(errors,[]);
@@ -108,6 +109,8 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    'real painted corner post closes the daylight gap between both timber edges');
   assert(result.timberFoot[3]>100,
    'painted corner post remains visible at the ground-level shared vertex');
+  assert(result.timberBridge[3]>100,
+   'painted join must reach down-slope edge bases without a triangular opening');
   assert(result.timberBelow[3]<12,
    'no palisade point may protrude below its shared ground anchor');
   await page.screenshot({path:path.join(OUT,'wall-art-v3-all-directions.png')});
