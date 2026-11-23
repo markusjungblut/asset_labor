@@ -429,7 +429,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    };
   }
   ctx.setTransform(1,0,0,1,0,0);
-  const scratch=previewEditorProjection?null:canvasFactory();
+  const scratch=canvasFactory();
   const receiverEngine=previewMountainReceivers?
    root.VedrasLargeMapMountainReceivers:null;
   if(previewMountainReceivers&&
@@ -454,10 +454,9 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
      (rx-gx>3000||ry-gy>3500||(rx-gx)*(ry-gy)>6500000):
      (rx-gx>2600||ry-gy>2400)))
     throw Error("Kanonsches Sprite-Pixelraster überschreitet den Arbeitsspeicherrahmen.");
-   if(scratch){scratch.width=rx-gx;scratch.height=ry-gy;}
-   const sc=scratch?.getContext("2d",{alpha:true});
-   if(!previewEditorProjection&&
-    (!sc?.setTransform||!sc?.drawImage||!sc?.transform))
+   scratch.width=rx-gx;scratch.height=ry-gy;
+   const sc=scratch.getContext("2d",{alpha:true});
+   if(!sc?.setTransform||!sc?.drawImage||!sc?.transform)
     throw Error("Original-Sprite-Raster-Canvas2D fehlt.");
    const selected=receiverEngine?
     receiverEngine.select({
@@ -471,14 +470,14 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
      width:c.box.width,height:c.box.height
     }));
     const report=root.VedrasEditorReferenceSprite.paint({
-     // The editor paints directly to the target canvas. Rendering into
-     // a separate transparent scratch and then drawImage-ing it again
-     // introduces a second premultiplied-alpha resampling step. That
-     // visibly changes RGB in partially transparent ORIGINAL tree pixels.
-     // Here both editor source and our reference renderer compose once.
-     object:obj,ctx,canvasFactory,
+     // The canonical GLOBAL integer-aligned scratch yields exact pixels
+     // in adjacent WorldTile overlapping strips. A direct source draw can
+     // match editor pixel colors more closely but was PROVEN to break the
+     // tile seam (1800+ distinct pixels on the actual fixture). Keep it
+     // diagnostic-only outside of the publication-bound compositor.
+     object:obj,ctx:sc,canvasFactory,
      casts,scale:SCALE,projectY:PROJECT_Y,
-     outputX:outputGX,outputY:outputGY,dpr:2,naturePolish,
+     outputX:gx,outputY:gy,dpr:2,naturePolish,
      polish
     });
     if(report?.projection!=="editor-foot-only-projectY"||
@@ -509,8 +508,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    }
    // One-to-one pixel copy at an integer offset: identical source pixels
    // for overlapping tiles, even with transparent mountain/tree layering.
-   if(scratch)ctx.drawImage(scratch,gx-outputGX,gy-outputGY);
+   ctx.drawImage(scratch,gx-outputGX,gy-outputGY);
   }
+  if(editorCompositeReference)
+   // Expose PRE-ENCODE ORIGINAL canvas for diagnosis: createImageBitmap()
+   // and decoding a PNG into another canvas introduce extra premultiplied
+   // RGB rounding, which is not a renderer-vs-editor shading discrepancy.
+   editorCompositeReference.painted=output;
   let png;
   if(typeof output.convertToBlob==="function")
    png=await output.convertToBlob({type:"image/png"});
