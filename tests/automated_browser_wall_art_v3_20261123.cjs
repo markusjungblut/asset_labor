@@ -1,5 +1,5 @@
 'use strict';
-/* Browser-level wall-art acceptance: all 12 real SVG assets decode, every
+/* Browser-level wall-art acceptance: all 12 painted WebPs decode, every
  * orientation renders without rotating the upright wall graphics, and six
  * connected corners remain filled and cast continuous nonadditive shadows. */
 const assert=require('node:assert/strict');
@@ -32,13 +32,13 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   const result=await page.evaluate(async()=>{
    const W=window.VedrasWalls,T=window.VedrasShadowTone;
    const ok=await W.artworkReady();
-   if(!ok)throw Error('Not all six painted palisades, two post images and six stone SVGs loaded');
+   if(!ok)throw Error('Not all six painted palisades, six painted stone walls or four joins loaded');
    const info=W.artworkInfo();
    const canvas=document.createElement('canvas');
    canvas.width=1200;canvas.height=730;
    const g=canvas.getContext('2d',{willReadFrequently:true});
    document.body.style.background='#22352b';document.body.append(canvas);
-   // 12 previews, each uses the real SVG via drawImage() after it has decoded.
+   // 12 previews, each uses a real painted WebP via drawImage().
    for(let row=0;row<2;row++)for(let dir=0;dir<6;dir++){
     const kind=row===0?'palisade':'stone';
     const [dq,dr]=W.DIRS[dir],edge={a:[0,0],b:[dq,dr],kind};
@@ -100,7 +100,8 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.deepEqual(errors,[]);
   assert.equal(result.ok,true);
   assert.equal(result.info.loaded,12);
-  assert.equal(result.info.postsLoaded,2,'real painted corner and end posts must decode');
+  assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
+  assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
   assert(result.connected[3]>235,'joint must seal daylight in the middle of the wall');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
