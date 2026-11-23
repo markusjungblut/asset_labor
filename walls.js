@@ -269,9 +269,18 @@ window.VedrasWalls=(()=>{
    if(image?.naturalWidth){
     const p=project(node.x,node.y),w=(end?25:30)*zoom,
      h=(end?79:82)*zoom;
+    // At the top of a pointed hex two adjacent edges descend from the
+    // corner. Their painted bases end BELOW that vertex because the edges
+    // have a small deliberate inset. Extend only the painted post's base
+    // down to those two real edge feet; no open green triangle remains.
+    // Opposite/bottom-facing vertices need no extension. The post tip's
+    // absolute screen height stays unchanged for all six orientations.
+    const descents=(node.incident||[]).map(part=>
+     Math.sin(part.angle)*10.5*.85);
+    const extension=Math.max(0,...descents)*zoom;
     ctx.save();ctx.globalAlpha=1;ctx.filter='none';
     ctx.globalCompositeOperation='source-over';
-    ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
+    ctx.drawImage(image,p.x-w/2,p.y-h,w,h+extension);
     ctx.restore();return true;
    }
   }
