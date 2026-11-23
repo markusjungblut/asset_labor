@@ -86,6 +86,13 @@ const plan=Plan.plan(world);
      assetId:nature.entries[mount.slice(7)].id,
      width:nature.entries[mount.slice(7)].logicalWidth,
      mode:'chain',chainId:'geography_0',coreRadius:0,radius:1,
+     source:'geography-scenery-preview'},
+     // q=3,r=1 has a PNG body OUTSIDE tile 0,0, but its left cast
+     // reaches the real shared-pixel strip and must be included there.
+     {q:3,r:1,assetPath:mount,
+     assetId:nature.entries[mount.slice(7)].id,
+     width:nature.entries[mount.slice(7)].logicalWidth,
+     mode:'chain',chainId:'geography_1',coreRadius:0,radius:1,
      source:'geography-scenery-preview'}]};
    const boulderPlan={schema:'vedras-geography-warm-boulder-prepass-v1',
     stage:'original-warm-boulders-before-canopy',
@@ -231,7 +238,8 @@ const plan=Plan.plan(world);
    'original-mountain-sprite-shadow-scenery-preview',
    'original-mountain-sprite-shadow-scenery-preview']);
   assert.deepEqual(result.trees,[1,1]);
-  assert.deepEqual(result.mountains,[1,1]);
+  assert.deepEqual(result.mountains,[1,2],
+   'right tile also contains the second actual original mountain PNG');
   assert.deepEqual(result.rocks,[1,1]);
   assert.deepEqual(result.ordinaryRocks,[1,1]);
   assert.deepEqual(result.snowPatches,[1,1]);
@@ -243,13 +251,15 @@ const plan=Plan.plan(world);
   assert(result.shadowProfiles.every(x=>x>=7));
   assert(result.mountainChangedPixels>100,
    'native mountain shadow must alter pixels beyond sprite-only preview');
-  assert.deepEqual(result.mountainShadows,[1,1]);
+  assert(result.mountainShadows.every(x=>x>=1));
+  assert(result.mountainShadowOnly[0]>=1,
+   'left tile must include an off-tile mountain shadow caster');
   assert(result.mountainShadowPixels.every(x=>x>100),
    'native mountain cast must draw actual positive shadow alpha');
   assert.deepEqual(result.pendingMountainShadows,[false,false]);
   assert.deepEqual(result.mountainEditorPresetsPending,[true,true]);
   assert.deepEqual(result.pendingAccents,[false,false]);
-  assert.deepEqual(result.draws,[7,7]);
+  assert.deepEqual(result.draws,[7,8]);
   assert.deepEqual(result.ready,[false,false]);
   assert.deepEqual(result.complete,[false,false]);
   assert(result.sizes.every(x=>x>1000));

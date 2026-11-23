@@ -61,7 +61,8 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
    (allowShadowPreview&&!(result.originalShadowProfiles>0))||
    (allowMountainShadowPreview&&(
     result.needsOriginalMountainShadows!==false||
-    !(result.drawnOriginalMountainShadows>0)||
+    !Number.isSafeInteger(result.drawnOriginalMountainShadows)||
+    result.drawnOriginalMountainShadows<0||
     result.needsMountainShadowScenePresetParity!==true))||
    (allowShadowPreview&&!allowMountainShadowPreview&&
     !result.needsOriginalMountainShadows)||
@@ -114,6 +115,12 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
    throw Error("Pixelnahtprüfung: benachbarte WorldTile-Kachel fehlt.");
   const a=await renderer.renderTile(id),b=await renderer.renderTile(adjacent);
   validateResult(a,id);validateResult(b,adjacent);
+  // A cast may be absent on ONE tile (the sunlight-facing neighbor),
+  // but the native-shadow proof requires at least one genuinely rasterized
+  // mountain ground cast across the two samples.
+  if(allowMountainShadowPreview&&
+   !(a.drawnOriginalMountainShadows+b.drawnOriginalMountainShadows>0))
+   throw Error("Bergschattennaht ohne tatsächlich gezeichneten Original-Bergschatten.");
   const shift=direction==="right"?SIZE*SCALE_X:SIZE*SCALE_Y;
   if(!Number.isInteger(shift))
    throw Error("Pixelnahtprüfung: keine globale ganzzahlige Pixelverschiebung.");

@@ -148,6 +148,6 @@ test('native mountain-shadow seam needs explicit original-sprite mode',async()=>
  const source=fs.readFileSync(path.join(__dirname,'../large-map-bake-scenery-seam.js'),'utf8');
  assert.match(source,/allowMountainShadowPreview=false/);
  assert.match(source,/original-mountain-sprite-shadow-scenery-preview/);
- assert.match(source,/drawnOriginalMountainShadows>0/);
+ assert.match(source,/a\.drawnOriginalMountainShadows\+b\.drawnOriginalMountainShadows>0/);
  assert.match(source,/needsMountainShadowScenePresetParity/);
 });
