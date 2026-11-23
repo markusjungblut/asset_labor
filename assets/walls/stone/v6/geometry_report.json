@@ -1,0 +1,172 @@
+{
+  "source": "river.js canonical 256-unit axial hex, app.js PY=.85",
+  "basis": "palisade v5 coordinate/anchor convention",
+  "segments": 6,
+  "joins": 2,
+  "material": "new procedural ashlar; no previous stone geometry",
+  "metadata": [
+    [
+      156,
+      167,
+      14,
+      89
+    ],
+    [
+      40,
+      216,
+      20,
+      82
+    ],
+    [
+      156,
+      167,
+      142,
+      89
+    ],
+    [
+      156,
+      167,
+      142,
+      152
+    ],
+    [
+      40,
+      216,
+      20,
+      208
+    ],
+    [
+      156,
+      167,
+      14,
+      152
+    ]
+  ],
+  "files": {
+    "edge_dir5.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "ab6d84684b96f875578b6adb6e7e8c78b689196253b84c2e5d824dc935bef8bb"
+    },
+    "corner_post.png": {
+      "size": [
+        90,
+        222
+      ],
+      "sha256": "9ab5bdc437f05c79e62c873fa6bdb83a7ada34f993776d1dd1e66fe601b971ff"
+    },
+    "real-hex-v6-preview.png": {
+      "size": [
+        1700,
+        1280
+      ],
+      "sha256": "782a76b334be87b8464579f6ae51e831b1002f621509aef339e542486dc3b02a"
+    },
+    "end_post.png": {
+      "size": [
+        78,
+        222
+      ],
+      "sha256": "fc0a3e0db6421f2920cf1b1d8ffef1dc4f95f46df6d3fb0e328f0a16712656a2"
+    },
+    "edge_dir4.png": {
+      "size": [
+        120,
+        648
+      ],
+      "sha256": "103b3a0c7efc4d421690c3b8211ff40fdcb04715554b4beff2966e0ccf772a2b"
+    },
+    "edge_dir3.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "ad6b530a094aff038b8b9a33c312bd62ced4039d65a1c21e2d3dbc84c6d69a6e"
+    },
+    "edge_dir1.png": {
+      "size": [
+        120,
+        648
+      ],
+      "sha256": "4c8197713cf0c71d006989324ec6c210b74e318ce53c3b89343ecffd57d57680"
+    },
+    "edge_dir0.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "6220de38afadd80c10a8e98dbc0d378331b33899eae3c94928de7eb769fdb952"
+    },
+    "edge_dir2.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "3e7d6baa3754f78480f81142be0c881c3df7a25f5ae3cd73a33c2bed3d5af613"
+    }
+  },
+  "topology": {
+    "0": [
+      [
+        14,
+        89
+      ],
+      [
+        142.0,
+        151.81570928783128
+      ]
+    ],
+    "1": [
+      [
+        20,
+        82
+      ],
+      [
+        20.00000000000003,
+        207.63141857566256
+      ]
+    ],
+    "2": [
+      [
+        142,
+        89
+      ],
+      [
+        13.999999999999972,
+        151.8157092878313
+      ]
+    ],
+    "3": [
+      [
+        142,
+        152
+      ],
+      [
+        13.999999999999991,
+        89.18429071216875
+      ]
+    ],
+    "4": [
+      [
+        20,
+        208
+      ],
+      [
+        20.0,
+        82.36858142433738
+      ]
+    ],
+    "5": [
+      [
+        14,
+        152
+      ],
+      [
+        142.0,
+        89.18429071216872
+      ]
+    ]
+  }
+}
