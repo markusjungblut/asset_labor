@@ -4361,6 +4361,7 @@ function frozenSceneKey({force4x=false}={}){
   'wall-material-silhouette-v2',
   'authored-wall-directional-svg-corner-nodes-v3',
   'palisade-painted-webp-edge-inset-and-posts-v4',
+  'palisade-complete-posts-symmetric-volume-v5',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
