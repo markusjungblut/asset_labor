@@ -952,7 +952,7 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   const seamRenderer=(withShadows||withEditorProjection)?{
    previewOnly:true,defaultTile:()=>renderer.defaultTile(),
    renderTile:id=>renderer.renderTile(id,{
-    previewSpriteShadows:true,previewMountainShadows:withMountains,
+    previewSpriteShadows:withShadows,previewMountainShadows:withMountains,
     authoredShadowScene:authored,
     previewMountainReceivers:withReceivers,
     previewEditorProjection:withEditorProjection

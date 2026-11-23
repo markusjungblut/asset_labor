@@ -28,6 +28,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-original-mountain-shadows.js',
  'large-map-bake-authored-mountain-shadows.js',
  'large-map-bake-mountain-receivers.js',
+ 'large-map-bake-editor-reference-sprite.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -63,7 +64,8 @@ const plan=Plan.plan(world);
    'sprite-shadow-editor.js','large-map-bake-original-sprite-shadows.js',
    'large-map-bake-authored-mountain-shadows.js',
    'large-map-bake-original-mountain-shadows.js',
-   'large-map-bake-mountain-receivers.js'])
+   'large-map-bake-mountain-receivers.js',
+   'large-map-bake-editor-reference-sprite.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles})=>{
    const [tree,mount,rock,ordinary,snow,bush,log]=names;
@@ -255,6 +257,40 @@ const plan=Plan.plan(world);
     }
    });
    const receiverProof=await receiverVerifier.verifyPair('0,0','right');
+   // Independent opt-in experiment: FULL ORIGINAL Sprite height is not
+   // multiplied by the ground-foot PROJECT_Y=.85. Both neighboring tiles
+   // still use the integer WORLD raster and both old options stay unchanged.
+   const editorBareLegacy=await renderer.renderTile('0,0');
+   const editorBareLeft=await renderer.renderTile('0,0',{
+    previewEditorProjection:true
+   });
+   const editorBareRight=await renderer.renderTile('1,0',{
+    previewEditorProjection:true
+   });
+   const editorBareProof=await window.VedrasJointScenerySeam.create({
+    plan,allowEditorProjectionPreview:true,renderer:{
+     previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?editorBareLeft:editorBareRight
+    }
+   }).verifyPair('0,0','right');
+   const editorShadowNoReceiver=await receiverRenderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:true,
+    previewEditorProjection:true
+   });
+   const editorShadowLeft=await receiverRenderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:true,
+    previewMountainReceivers:true,previewEditorProjection:true
+   });
+   const editorShadowRight=await receiverRenderer.renderTile('1,0',{
+    previewSpriteShadows:true,previewMountainShadows:true,
+    previewMountainReceivers:true,previewEditorProjection:true
+   });
+   const editorShadowProof=await window.VedrasJointScenerySeam.create({
+    plan,allowShadowPreview:true,allowMountainShadowPreview:true,
+    allowReceiverPreview:true,allowEditorProjectionPreview:true,
+    renderer:{previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?editorShadowLeft:editorShadowRight}
+   }).verifyPair('0,0','right');
    const spriteOnly=await renderer.renderTile('0,0',{
     previewSpriteShadows:true,previewMountainShadows:false
    });
@@ -267,6 +303,23 @@ const plan=Plan.plan(world);
    };
    const left=await decode(a.png),right=await decode(b.png);
    const baseline=await decode(spriteOnly.png);
+   const editorBefore=await decode(editorBareLegacy.png),
+    editorAfter=await decode(editorBareLeft.png),
+    editorWithCast=await decode(editorShadowLeft.png),
+    editorNoCast=await decode(editorShadowNoReceiver.png);
+   function imagePixelDifference(a,b){
+    const first=a.getImageData(0,0,a.canvas.width,a.canvas.height).data,
+     second=b.getImageData(0,0,b.canvas.width,b.canvas.height).data;
+    if(first.length!==second.length)throw Error('EDITOR_PROJECTION_SAMPLE_DIMENSIONS_DIFFER');
+    let changed=0;
+    for(let p=0;p<first.length;p+=4)
+     if(first[p]!==second[p]||first[p+1]!==second[p+1]||
+        first[p+2]!==second[p+2]||first[p+3]!==second[p+3])
+      changed++;
+    return changed;
+   }
+   const editorBodyChangedPixels=imagePixelDifference(editorBefore,editorAfter),
+    editorReceiverChangedPixels=imagePixelDifference(editorNoCast,editorWithCast);
    const receiverA=await decode(receiverLeft.png),
     receiverBaseline=await decode(receiverBefore.png);
    const ar=receiverA.getImageData(0,0,receiverA.canvas.width,receiverA.canvas.height).data,
@@ -321,6 +374,22 @@ const plan=Plan.plan(world);
     shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
     mountainChangedPixels,authoredChangedPixels,
     receiverChangedPixels,
+    editorBodyChangedPixels,editorReceiverChangedPixels,
+    editorBareStages:[editorBareLeft.stage,editorBareRight.stage],
+    editorShadowStages:[editorShadowLeft.stage,editorShadowRight.stage],
+    editorFootProjection:[editorBareLeft.editorFootSpriteProjection,
+     editorShadowLeft.editorFootSpriteProjection],
+    editorHiddenTrees:[editorBareLeft.editorHiddenTrees,
+     editorBareRight.editorHiddenTrees],
+    editorRenderedTrees:[editorBareLeft.drawnTrees,editorBareRight.drawnTrees],
+    editorShadowReceivers:[editorShadowLeft.drawnMountainShadowReceivers,
+     editorShadowRight.drawnMountainShadowReceivers],
+    editorShadowOnlyCasters:[editorShadowLeft.drawnShadowOnlyMountains,
+     editorShadowRight.drawnShadowOnlyMountains],
+    editorBareSeam:{passed:editorBareProof.passesPixelIdentity,
+     differing:editorBareProof.differingPixels,painted:editorBareProof.paintedPixels},
+    editorShadowSeam:{passed:editorShadowProof.passesPixelIdentity,
+     differing:editorShadowProof.differingPixels,painted:editorShadowProof.paintedPixels},
     realMountainReceiverCounts:[receiverLeft.drawnMountainShadowReceivers,
      receiverRight.drawnMountainShadowReceivers],
     realMountainReceiverCasts:[receiverLeft.drawnMountainReceiverCasts,
@@ -370,6 +439,29 @@ const plan=Plan.plan(world);
   assert(result.spriteShadows.every(x=>x>=4));
   assert(result.manualShadows.every(x=>x>=2));
   assert(result.shadowProfiles.every(x=>x>=7));
+  assert.deepEqual(result.editorFootProjection,[true,true]);
+  assert.deepEqual(result.editorBareStages,[
+   'editor-foot-tree-mountain-scenery-preview',
+   'editor-foot-tree-mountain-scenery-preview']);
+  assert.deepEqual(result.editorShadowStages,[
+   'editor-foot-mountain-sprite-shadow-scenery-preview',
+   'editor-foot-mountain-sprite-shadow-scenery-preview']);
+  assert(result.editorBodyChangedPixels>1000,
+   'correct original sprite height must CHANGE actual PNG pixels');
+  assert(result.editorReceiverChangedPixels>100,
+   'editor body projection must receive mountain shadow on original pixels');
+  assert.equal(result.editorBareSeam.passed,true);
+  assert.equal(result.editorBareSeam.differing,0);
+  assert(result.editorBareSeam.painted>100);
+  assert.equal(result.editorShadowSeam.passed,true);
+  assert.equal(result.editorShadowSeam.differing,0);
+  assert(result.editorShadowSeam.painted>100);
+  assert(result.editorHiddenTrees.some(x=>x>0),
+   'Editor semantics must HIDE trees whose feet lie in opaque mountain alpha');
+  assert(result.editorShadowReceivers.some(x=>x>0),
+   'Native cast must reach real original Nature PNG bodies');
+  assert(result.editorShadowOnlyCasters[0]>=1,
+   'Editor projection must keep casts from off-tile mountain bodies');
   assert(result.realMountainReceiverCounts[0]>0,
    'real original Nature sprites must receive a native mountain cast');
   assert(result.realMountainReceiverCasts[0]>0);

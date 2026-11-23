@@ -64,3 +64,29 @@ test('real editor browser proof is wired to ORIGINAL app.js, not mock functions'
  assert(t.includes('EDITOR_SPRITE_PARITY_DIAGNOSTIC'));
  assert(ci.includes('automated_browser_geography_editor_parity_20261123.cjs'));
 });
+
+test('editor pixel bounds enclose the complete perspective-transformed PNG body',()=>{
+ const geo=Probe.geometry({object}),box=Probe.pixelBounds({object});
+ assert.equal(Number.isInteger(box.left),true);
+ assert.equal(Number.isInteger(box.top),true);
+ assert(box.top<geo.top,'perspective margin protects the tallest canopy');
+ assert(box.bottom>geo.footY,'sprite continues beneath the ground anchor');
+ assert(box.right-box.left>geo.width);
+ assert(box.bottom-box.top>geo.height*.9);
+});
+test('editor projection boundaries fail closed on missing fields or bad padding',()=>{
+ assert.throws(()=>Probe.pixelBounds({object,padding:Infinity}),/begrenztes/);
+ assert.throws(()=>Probe.pixelBounds({object:{}}),/Original-PNG/);
+});
+test('new editor projection is explicitly opt-in and never lifts viewer gates',()=>{
+ const rootCode=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
+ const html=fs.readFileSync(path.join(root,'geography-lab.html'),'utf8');
+ const seam=fs.readFileSync(path.join(root,'large-map-bake-scenery-seam.js'),'utf8');
+ assert.match(rootCode,/previewEditorProjection=false/);
+ assert.match(rootCode,/editorPixelsUnprojectedHeight:previewEditorProjection/);
+ assert.match(rootCode,/hiddenEditorTrees/);
+ assert.match(rootCode,/needsFullEditorImageParity:true/);
+ assert.match(rootCode,/complete:false,readyForViewer:false/);
+ assert(html.includes('jointSceneryWithEditorProjection'));
+ assert.match(seam,/allowEditorProjectionPreview=false/);
+});
