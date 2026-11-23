@@ -101,7 +101,7 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
 });
 test('viewer and baked scene invalidate pre-v4 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
- assert(js.includes("stone-raster-v3"));
+ assert(js.includes("stone-correct-hex-v4"));
  assert(js.includes('const stoneJoinArt=new Map()'));
  assert(html.includes('walls.js?v=20261123-stone-correct-hex-v4'));
  assert(html.includes('walls=20261123-stone-correct-hex-v4'));
