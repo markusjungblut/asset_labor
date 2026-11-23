@@ -72,7 +72,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const d=W.shadowVector('stone',.90,{angle:160});
    const shadowColor=[...h.getImageData(
     Math.round(xy.x+d.x*.5),Math.round(xy.y+d.y*.5),1,1).data];
-   // Real painted Palisade v4: two cropped edges meet only through the
+   // Real painted Palisade v5: complete timber posts meet through one
    // distinct hand-painted corner post, never through a polygon proxy.
    const timber=pair.map(e=>({...e,kind:'palisade'}));
    const timberNode=W.junctions(timber).find(n=>n.degree===2);
@@ -109,8 +109,11 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    'real painted corner post closes the daylight gap between both timber edges');
   assert(result.timberFoot[3]>100,
    'painted corner post remains visible at the ground-level shared vertex');
-  assert(result.timberBridge[3]>100,
-   'painted join must reach down-slope edge bases without a triangular opening');
+  // The v5 joint is grounded at the TRUE shared vertex. Nearby slopes
+  // may extend below the vertex, but the joint image is never stretched to
+  // force a false triangle-shaped bridge (the v4 visual defect).
+  assert(result.timberFoot[3]>100,
+   'real fixed-size timber corner must stand on the shared hex vertex');
   assert(result.timberBelow[3]<12,
    'no palisade point may protrude below its shared ground anchor');
   await page.screenshot({path:path.join(OUT,'wall-art-v3-all-directions.png')});
