@@ -1,4 +1,4 @@
-name: Stone Walls – Painted WebP Regression
+name: Stone Walls – Painted Raster Regression
 on:
   pull_request:
     branches: [main]
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate canonical edges, palisade compatibility and painted WebPs
+      - name: Validate canonical edges, palisade compatibility and painted stone PNGs
         run: node --test tests/test_wall_edges_v1_20261122.cjs tests/test_stone_webp_v2_20261123.cjs
       - name: Install headless Firefox for visual decoding
         run: |
@@ -47,6 +47,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stone-wall-webp-v2-browser-preview
+          name: stone-wall-raster-v3-browser-preview
           path: test-artifacts/wall-art-v3-all-directions.png
           if-no-files-found: ignore

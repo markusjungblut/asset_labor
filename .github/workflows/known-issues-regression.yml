@@ -77,6 +77,7 @@ jobs:
             /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
             /assets/walls/stone/*.webp
+             /assets/walls/stone/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -123,6 +124,7 @@ jobs:
             /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
             /assets/walls/stone/*.webp
+             /assets/walls/stone/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -150,7 +152,7 @@ jobs:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_walls_v1_20261122.cjs
-      - name: Richtungs-Mauerkunst – zwölf WebPs, vier Anschlussbilder und Schatten (Firefox)
+      - name: Richtungs-Mauerkunst – Palisaden-WebPs und Stein-PNGs (Firefox)
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts

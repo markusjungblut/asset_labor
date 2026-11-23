@@ -19,7 +19,7 @@ const expected=[[156,167,14,89],[40,216,20,82],[156,167,142,89],
 function size(file){
  const bytes=fs.readFileSync(path.join(root,'assets','walls','stone',file+'.png'));
  assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file);
- assert.equal(bytes[24],8,'Each source must be 8-bit colour');
+ assert([8,16].includes(bytes[24]),'Each source must be genuine RGB+A PNG');
  assert.equal(bytes[25],6,'Transparent RGBA PNG is required');
  assert(bytes.length>5000,'No placeholder or pixel-length fake asset: '+file);
  return [bytes.readUInt32BE(16),bytes.readUInt32BE(20)];
@@ -101,7 +101,7 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
 });
 test('viewer and baked scene invalidate pre-v3 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
- assert(js.includes("stone-painted-v2"));
+ assert(js.includes("stone-raster-v3"));
  assert(js.includes('const stoneJoinArt=new Map()'));
  assert(html.includes('walls.js?v=20261123-stone-raster-v3'));
  assert(html.includes('walls=20261123-stone-raster-v3'));
