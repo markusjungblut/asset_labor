@@ -177,7 +177,7 @@ const plan=Plan.plan(world);
      ...m,shadowAngle:i===0?163:189,
      shadowLength:i===0?.7:1.1,shadowOriginX:-.16
     })),
-    shadowTone:{gray:17,mountains:true,balance:0}
+    shadowTone:{gray:0,mountains:true,balance:0}
    };
    const authored=window.VedrasLargeMapAuthoredMountainShadows.create({
     scene:authoredExport,mountainPlan,shadows:window.VedrasShadows,
@@ -185,6 +185,8 @@ const plan=Plan.plan(world);
    });
    if(!authored.instanceMatchComplete)throw Error('Expected exact exported source match');
    const toneBefore=window.VedrasShadowTone.get();
+   // Compare authored geometry with the SAME visible tone as the baseline.
+   if(toneBefore.gray!==0)throw Error('Fixture assumes fresh default editor tone.');
    let authA,authB,authProof;
    try{
     window.VedrasShadowTone.set(authored.shadowTone,{persist:false});
