@@ -284,7 +284,10 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
  }
  async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
   authoredShadowScene=null,previewMountainReceivers=false,
-  previewEditorProjection=false}={}){
+  previewEditorProjection=false,captureEditorCompositeReference=false}={}){
+  if(typeof captureEditorCompositeReference!=="boolean"||
+   (captureEditorCompositeReference&&!previewEditorProjection))
+   throw Error("Diagnostische Editor-Komposition nur im expliziten Referenzmodus.");
   if(typeof previewEditorProjection!=="boolean"||
    (previewEditorProjection&&(
     typeof root.VedrasEditorReferenceSprite?.pixelBounds!=="function"||
@@ -350,10 +353,16 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    }
   // app.js drawMapObjects removes trees rooted in mountain opaque alpha.
   // Other Nature props stay (depth-sorted behind mountains).
-  const hiddenEditorTrees=previewEditorProjection?
-   trees.filter(t=>t.coveredByMountains.size>0):[];
+  // app.js hides ANY Nature object whose metadata kind is "tree" and whose
+  // foot is on opaque mountain alpha. This includes dead-tree ACCENTS, not
+  // just full-size canopy instances from the tree planner.
+  const hiddenEditorNatureTrees=previewEditorProjection?
+   placed.filter(o=>o.item.type!=="mountain"&&
+    o.item.meta?.kind==="tree"&&o.coveredByMountains.size>0):[];
+  const hiddenEditorCanopies=hiddenEditorNatureTrees.filter(o=>o.item.type==="tree");
+  const hiddenEditorTreeAccents=hiddenEditorNatureTrees.filter(o=>o.item.type==="accent");
   const renderable=previewEditorProjection?
-   placed.filter(o=>o.item.type!=="tree"||!o.coveredByMountains.size):
+   placed.filter(o=>o.item.meta?.kind!=="tree"||!o.coveredByMountains.size):
    placed;
   const sorted=renderable.slice().sort((a,b)=>{
    if(a.item.type==="mountain"&&b.coveredByMountains.has(a))return 1;
@@ -393,6 +402,32 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   // Paint each sprite once on an integer-anchored GLOBAL sample lattice,
   // then composite its pixels at an integer offset into each WorldTile.
   // A single bounded scratch canvas is reused; no world-sized atlas buffer.
+  // Capture one READ-ONLY ephemeral test reference after the two native
+  // ground-shadow passes but before a single sprite is painted. This is
+  // separate from real render output and only permitted for small fixtures.
+  let editorCompositeReference=null;
+  if(captureEditorCompositeReference){
+   if(placed.length>36)
+    throw Error("Editor-Kompositionsprobe überschreitet 36 Originalobjekte.");
+   const background=canvasFactory();background.width=output.width;
+   background.height=output.height;
+   const bg=background.getContext("2d",{alpha:true});
+   if(!bg?.setTransform||!bg?.drawImage)
+    throw Error("Editor-Hintergrundreferenz benötigt natives Canvas2D.");
+   bg.setTransform(1,0,0,1,0,0);bg.drawImage(output,0,0);
+   editorCompositeReference={
+    source:"read-only-original-editor-reference-candidates-v1",
+    candidates:placed.slice(),
+    shadowOnlyMountains:shadowOnlyMountains.slice(),
+    mountainCasts:mountainShadowResult?.casts||[],
+    background,
+    sampleX:Math.round((tile.x-PAD)*SCALE),
+    sampleY:Math.round((tile.y-PAD)*SCALE*PROJECT_Y),
+    editorShadowReceivers:previewMountainReceivers,
+    displayedOrder:sorted.map(x=>x.item.ordinal),
+    complete:false,readyForViewer:false
+   };
+  }
   ctx.setTransform(1,0,0,1,0,0);
   const scratch=canvasFactory();
   const receiverEngine=previewMountainReceivers?
@@ -488,14 +523,16 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     previewSpriteShadows?"original-sprite-shadow-scenery-preview":
     "original-tree-mountain-combined-preview",
    tile:{...tile},png,width:output.width,height:output.height,
-   drawnTrees:trees.length-hiddenEditorTrees.length,
-   editorHiddenTrees:hiddenEditorTrees.length,
+   drawnTrees:trees.length-hiddenEditorCanopies.length,
+   editorHiddenTrees:hiddenEditorCanopies.length,
+   editorHiddenDeadTreeAccents:hiddenEditorTreeAccents.length,
+   editorCompositeReference,
    editorFootSpriteProjection:previewEditorProjection,
    editorPixelsUnprojectedHeight:previewEditorProjection,
    drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
    drawnOrdinaryBoulders:ordinary.length,drawnSnowPatches:snow.length,
-   drawnAccents:accents.length,
+   drawnAccents:accents.length-hiddenEditorTreeAccents.length,
    drawnOriginalSpriteShadows:shadowResult?.drawn||0,
    drawnManualShadows:shadowResult?.manual||0,
    originalShadowProfiles:shadowResult?.profiles||0,
