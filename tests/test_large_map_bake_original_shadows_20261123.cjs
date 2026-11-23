@@ -43,7 +43,7 @@ test('native shadow painter owns geometry and uses a single union mask',()=>{
  assert.equal(fixture.masks,1);
  assert.equal(fixture.draws.length,1);
  assert.equal(fixture.draws[0][1].asset.path,'assets/nature/bush_01.png');
- assert.equal(fixture.draws[0][3].x,1250);
+ assert.equal(fixture.draws[0][2].x,1250);
 });
 test('hand-drawn polygon shadow footprints include authentic negative bounds',()=>{
  const raw={manual:{polygons:[[[-.8,-.3],[-.2,-.3],[-.2,.1]]]},
