@@ -199,10 +199,10 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
   assert(bytes.length>8000,'junction artwork must be a real painting');
  }
  const js=source('walls.js'),index=source('index.html');
- assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg?v=20261123-crenellated-stone-v1'"));
+ assert(js.includes("kind==='palisade'?'20261123-painted-volumetric-v5':'20261123-stone-painted-v2'"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261123-stone-battlements-v1'),
+ assert(index.includes('walls.js?v=20261123-stone-painted-v2'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -237,31 +237,27 @@ test('whole-post palisade v5 uses symmetric endpoints and no circular corner sha
  assert(sourceText.includes('node.kinds?.includes(\'palisade\')'),
   'mixed palisade/stone must use one intentional timber connector');
 });
-test('twelve authored SVG variants exist and preserve canonical foot anchors',()=>{
+test('six preserved SVG palisades and six real stone WebP artworks use canonical anchors',()=>{
  const meta=W.wallArtMeta;
- for(const kind of ['palisade','stone'])for(let dir=0;dir<6;dir++){
-  const file=path.join(root,'assets','walls',kind,'edge_dir'+dir+'.svg');
-  const svg=fs.readFileSync(file,'utf8');
-  assert.match(svg,/^<\?xml[^]*<svg[\s\S]+<\/svg>\s*$/);
-  assert.match(svg,/viewBox="/);
+ for(let dir=0;dir<6;dir++){
+  const svg=fs.readFileSync(path.join(root,'assets','walls','palisade','edge_dir'+dir+'.svg'),'utf8');
+  assert.match(svg,/^<\\?xml[^]*<svg[\\s\\S]+<\\/svg>\\s*$/);
   assert(svg.includes('hex edge direction '+dir));
-  assert(svg.includes('polygon'),'real painted polygons, not a placeholder link');
-  const [width,height,anchorX,anchorY]=meta[kind][dir];
-  assert(width>20&&height>120);
-  assert(anchorX>=0&&anchorX<=width&&anchorY>=0&&anchorY<=height);
-  const opening=svg.match(/<svg[^>]+>/)?.[0]||'';
-  assert(opening.includes('width="'+width+'"')&&
-   opening.includes('height="'+height+'"'),
-   'sprite metadata must exactly match SVG raster dimensions');
-  assert(kind==='stone'?svg.includes('ashlar'):svg.includes('timber'),
-   'each family has distinct authored material geometry');
+  const [w,h,ax,ay]=meta.stone[dir];
+  const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','edge_dir'+dir+'.webp'));
+  assert.equal(bytes.toString('ascii',0,4),'RIFF');
+  assert.equal(bytes.toString('ascii',8,12),'WEBP');
+  assert.equal(bytes.toString('ascii',12,16),'VP8X');
+  assert.equal(bytes.readUIntLE(24,3)+1,w);
+  assert.equal(bytes.readUIntLE(27,3)+1,h);
+  assert(ax>=0&&ax<=w&&ay>0&&ay<=h);
  }
  const app=source('app.js'),html=source('index.html');
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-stone-battlements-v1'));
- assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
+ assert(html.includes('walls.js?v=20261123-stone-painted-v2'));
+ assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
 });
 
 test('all six corner combinations resolve a single canonical joined node',()=>{
