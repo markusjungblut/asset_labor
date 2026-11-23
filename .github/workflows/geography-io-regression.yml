@@ -62,6 +62,7 @@ jobs:
             /assets/nature/snow_patch_01.png
             /assets/nature/bush_01.png
             /assets/nature/fallen_log_01.png
+            /assets/nature/dead_tree_01.png
             /assets/shadows/sprite_shadow_profiles.json
             /shadow-system.js
             /large-map-bake-original-mountain-shadows.js
