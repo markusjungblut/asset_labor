@@ -52,7 +52,33 @@ def rect(d,box,c):
     d.rectangle(tuple(round(z*S) for z in box),fill=c)
 def ellipse(d,b,c):
     d.ellipse(tuple(round(z*S) for z in b),fill=c)
+def stone_grain(im,seed):
+    """Deterministic fine/mid/coarse mineral grain, clipped to real RGBA.
+
+    This textures the independently constructed polygons but NEVER traces,
+    transforms, or copies any of the previous stone-wall images.
+    """
+    import numpy as np
+    ar=np.array(im,dtype=np.uint8)
+    h,w=ar.shape[:2]
+    rand=np.random.default_rng(seed)
+    def wave(cell,weight):
+        hh=max(3,(h+cell-1)//cell)
+        ww=max(3,(w+cell-1)//cell)
+        seed_img=Image.fromarray(rand.integers(0,255,(hh,ww),dtype=np.uint8))
+        up=np.asarray(seed_img.resize((w,h),Image.Resampling.BICUBIC),dtype=np.float32)
+        return (up-127)*weight
+    grain=wave(42,.12)+wave(13,.11)+wave(4,.08)
+    grain+=rand.normal(0,3.8,(h,w)).astype(np.float32)
+    rgb_pixels=ar[:,:,:3].astype(np.float32)
+    for c,weight in enumerate((1.04,1.0,.91)):
+        rgb_pixels[:,:,c]=np.clip(rgb_pixels[:,:,c]+grain*weight,0,211)
+    # Alpha is untouched. Opaque pixels always originate from a stone polygon;
+    # outside retains exact zero-alpha, with no white or JPEG matte.
+    ar[:,:,:3]=rgb_pixels.astype(np.uint8)
+    return Image.fromarray(ar,"RGBA")
 def finish(im,dir_or_name):
+    im=stone_grain(im,SEED+sum(ord(c) for c in dir_or_name))
     # The geometry is rendered on transparent pixels and premultiplied during
     # downsample: no white matte or JPG color fringe can be introduced.
     from PIL import ImageChops
@@ -85,12 +111,23 @@ def draw_brick(d,rng,shape,base):
     line(d,[shape[0],shape[1]],rgb(177,173,151,225),.50)
     line(d,[shape[1],shape[2]],rgb(52,52,49,200),.65)
     line(d,[shape[2],shape[3]],rgb(49,50,48,185),.55)
-    # Sparse mineral flecks are deliberately midtone; no 245-255 white.
-    for i in range(5):
-        x=cx+rng.uniform(-2.5,2.5)
-        y=cy+rng.uniform(-2.3,2.3)
-        tone=jitter(rng,(111,106,94),15)
-        ellipse(d,(x-.26,y-.23,x+.26,y+.23),tone)
+    # Pocks, grain and short mineral fissures stay INSIDE their ashlar, so
+    # they never modify the mathematically straight segment silhouette.
+    def inside(u,v):
+        t=(1-u,v)
+        x=(1-v)*(shape[0][0]*(1-u)+shape[1][0]*u)+v*(shape[3][0]*(1-u)+shape[2][0]*u)
+        y=(1-v)*(shape[0][1]*(1-u)+shape[1][1]*u)+v*(shape[3][1]*(1-u)+shape[2][1]*u)
+        return x,y
+    for i in range(24):
+        x,y=inside(rng.uniform(.08,.92),rng.uniform(.10,.90))
+        tone=jitter(rng,(97,96,87) if i%3 else (164,155,130),13)
+        rad=rng.uniform(.12,.37)
+        ellipse(d,(x-rad,y-rad*.7,x+rad,y+rad*.7),tone)
+    for i in range(2):
+        x,y=inside(rng.uniform(.18,.82),rng.uniform(.18,.75))
+        yy=y+rng.uniform(.3,1.0)
+        line(d,[(x,y),(x+rng.uniform(-.6,.7),yy)],
+             rgb(74,74,66,165),.35)
 def draw_direction(dir):
     w,h,ax,ay=META[dir]
     im=new_im(w,h);d=ImageDraw.Draw(im,"RGBA")
@@ -160,6 +197,10 @@ def draw_direction(dir):
                 draw_brick(d,rng,brick,(120,119,107))
         # Low parapet coping with narrow, subdued top, rather than a visible
         # birds-eye top face of the former hand-painted crenellations.
+        # A thin visible masonry thickness, NEVER a broad birds-eye roof.
+        poly(d,[P(inset,WALL_HEIGHT,back),P(1-inset,WALL_HEIGHT,back),
+                P(1-inset,WALL_HEIGHT,near),P(inset,WALL_HEIGHT,near)],
+             rgb(127,124,108))
         poly(d,[P(inset,WALL_HEIGHT-2),P(1-inset,WALL_HEIGHT-2),
                 P(1-inset,WALL_HEIGHT+1),P(inset,WALL_HEIGHT+1)],rgb(85,85,77))
         line(d,[P(inset,WALL_HEIGHT+1),P(1-inset,WALL_HEIGHT+1)],
@@ -170,6 +211,12 @@ def draw_direction(dir):
             half=.31/count
             lo=max(inset,center-half);hi=min(1-inset,center+half)
             if hi<lo:continue
+            # Each battlement is an upright rectangular merlon with a shaded
+            # narrow return; big top-down "Lego blocks" are prohibited.
+            poly(d,[P(hi,WALL_HEIGHT-1,near),P(hi,WALL_HEIGHT-1,back),
+                    P(hi,WALL_HEIGHT+MERLON_HEIGHT,back),
+                    P(hi,WALL_HEIGHT+MERLON_HEIGHT,near)],
+                 rgb(73,72,64))
             poly(d,quad(lo,hi,WALL_HEIGHT-1,WALL_HEIGHT+MERLON_HEIGHT),
                  jitter(rng,(132,128,112),6))
             line(d,[P(lo,WALL_HEIGHT+MERLON_HEIGHT),P(hi,WALL_HEIGHT+MERLON_HEIGHT)],
