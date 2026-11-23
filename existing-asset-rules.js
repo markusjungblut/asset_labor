@@ -69,11 +69,19 @@ window.VedrasExistingAssets = (() => {
   ferns:[['grass_pasture','wetlands'],.13,38],
   tropical_bushes:[[],.13,55],
   cacti:[['arid_regions'],.085,72],
+  dry_patches:[[],.32,38],
  };
  const stem = name => String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').toLowerCase().replace(/\.(?:png|webp|jpe?g|svg|gif|avif)$/i,'');
  function classify(asset) {
   if (asset?.category !== 'nature' || !/\.(?:png|webp|jpe?g|svg|gif|avif)$/i.test(asset.name || '')) return null;
   const base = stem(asset.name);
+  const dryPatch=/^dry[_ -]?patch[_ -]?(\d+)$/.exec(base);
+  if(dryPatch&&Number(dryPatch[1])>=1&&Number(dryPatch[1])<=15){
+   const n=Number(dryPatch[1]);
+   return {id:'dry_patch_'+String(n).padStart(2,'0'),name:'Trockener Bodenfleck '+n,
+    family:'dry_patches',kind:'ground_cover',sizeClass:'medium',
+    confirmedSpecies:true,group:'dry_patch'};
+  }
   const boulder=/^boulder[_ -]?(\d+)$/.exec(base);
   if(boulder){
    const number=Number(boulder[1]),winter=number>=21&&number<=35,
@@ -151,6 +159,7 @@ window.VedrasExistingAssets = (() => {
   const cluster=info.group==='bush_group';
   const density=cluster?0.10:baseDensity;
   const groupSpacing=cluster?80:baseSpacing;
+  const dryPatch=info.group==='dry_patch';
   const isSmallPalm=info.family==='palms'&&info.sizeClass==='medium';
   const actualDensity=info.family==='palms'?(isSmallPalm?0.17:0.12):density;
   const spacing=info.family==='palms'?(isSmallPalm?76:105):groupSpacing;
@@ -176,7 +185,7 @@ window.VedrasExistingAssets = (() => {
   const desertBiomes=['rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert'];
   const acacia=info.family==='savanna_trees'&&/^existing_schirmakazie_?\d+$/.test(info.id||'');
   const temperateBiomes=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
-  const specialTypes=acacia?['savanna',...desertBiomes]:info.group==='winter_boulder'?winterBiomes:
+  const specialTypes=dryPatch?['sparse_pasture','pasture','grassland','savanna','dry_ground','rocky_desert','sandy_desert','clay_desert','badlands','wasteland','semi_desert','sandy_rocky_desert','sandy_badlands','rocky_badlands','desert']:acacia?['savanna',...desertBiomes]:info.group==='winter_boulder'?winterBiomes:
    info.group==='warm_boulder'?warmBiomes:
    info.group==='temperate_stump'?
      ['grassland','pasture','sparse_pasture','savanna','jungle','moor','marshland','swamp']:
@@ -187,14 +196,14 @@ window.VedrasExistingAssets = (() => {
   const groundWood=['deadwood','fallen_logs','snow_fallen_logs'].includes(info.family);
   return {
    ...tmpl, id:info.id, family:info.family, kind:info.kind, sizeClass:info.sizeClass,
-   sizeMode:mountain?'manual':'class',targetHeight,
-   logicalWidth:mountain?360:['fallen_logs','snow_fallen_logs'].includes(info.family)?140:ground?28:tree?110:52,
+   sizeMode:mountain||dryPatch?'manual':'class',targetHeight:dryPatch?35:targetHeight,
+   logicalWidth:mountain?360:dryPatch?72:['fallen_logs','snow_fallen_logs'].includes(info.family)?140:ground?28:tree?110:52,
    description:info.name+' – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.'+(info.provisionalSize?' Größe innerhalb der trockenen Buschreihe vorläufig.':''),
    sourceReference:'Bestandsdatei: '+filename,
    anchor:mountain?{x:.5,y:.67}:{x:.5,y:.96},
    shadow:{...tmpl.shadow,mode:mountain||ground||groundWood?'none':tree?'generic_medium_round':'generic_small_round'},
    terrainPresetId:'',allowedTerrainCategories:specialTypes?[]:(preciseTypes[info.family]||['kapok','winter_dead_tree'].includes(info.group)||['mangroves','tropical_bushes','snow_dead_trees','snow_fallen_logs'].includes(info.family)?[]:categories),allowedTerrainTypes:specialTypes||(preciseTypes[info.family]||(info.group==='kapok'?['jungle']:(restrict[info.family]||[]))),excludedTerrainTypes:info.group==='temperate_stump'?winterBiomes:(info.family==='deadwood'?['snowfields','frozen_tundra']:[]),
-   placement:{...tmpl.placement,weight:1,density:actualDensity,minSpacing:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
+   placement:{...tmpl.placement,weight:1,density:dryPatch?.32:actualDensity,minSpacing:dryPatch?38:spacing,canCluster:groundWood?false:(cluster||(!mountain&&!tree))},
    artStatus:'candidate',
    tags:[
     'existing','needs_art_review',...(info.confirmedSpecies?[]:['needs_species_review']),

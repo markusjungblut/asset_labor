@@ -115,6 +115,43 @@ for(const name of ['palme_01.png','schirmakazie1.png']){
   assert(N.canPlace(future,{baseBiome:biome,biome,forestClass:'none'},terrain,nature),
    name+' import must support '+biome);
 }
+
+// Fifteen real dry_patch ground sprites must all be registered, eligible
+// in approved dry/open habitats, and impossible to force onto wet/cold tiles.
+const dryPatchNames=Array.from({length:15},(_,i)=>'dry_patch_'+n2(i+1)+'.png');
+const expectedDry=[...N.DRY_PATCH_BIOMES].sort();
+for(const filename of dryPatchNames){
+ assert(fs.existsSync(path.join(dir,'assets/nature',filename)),filename+' PNG missing');
+ const meta=nature.entries['nature/'+filename];
+ assert(meta,'Nature metadata missing for '+filename);
+ assert.equal(meta.family,'dry_patches');
+ assert.equal(meta.kind,'ground_cover');
+ assert.equal(meta.shadow.mode,'none');
+ assert(N.isDryPatch(meta));
+ assert(meta.placement.density>0);
+ assert.deepEqual(all.filter(type=>eligible(meta,type)).sort(),expectedDry,filename+' habitats');
+ const widened={...meta,allowedTerrainCategories:terrain.categories.map(c=>c.id),
+  allowedTerrainTypes:all,excludedTerrainTypes:[]};
+ for(const type of all)assert.equal(eligible(widened,type),expectedDry.includes(type),
+  filename+' hard habitat gate '+type);
+ const future=E.metadata(E.classify({name:filename,category:'nature'}),N.template(),filename);
+ assert(N.effectiveTypes(future,terrain,nature).size>0);
+ assert.deepEqual(all.filter(type=>eligible(future,type)).sort(),expectedDry,
+  filename+' future-import habitats');
+}
+const dryChances={sparse_pasture:.32,pasture:.06,grassland:.04,
+ sandy_desert:.07,savanna:.07,dry_ground:.07};
+for(const [type,chance] of Object.entries(dryChances))assert.equal(N.dryPatchChance(type),chance);
+for(const type of ['jungle','highland','tundra','snowfields','moor','swamp','marshland','ocean'])
+ assert.equal(N.dryPatchChance(type),0,'No dry patch chance on '+type);
+const dryUI=get('nature-ui.js');
+assert(dryUI.includes('N.dryPatchChance(core.baseBiomeOf(c))'),
+ 'Dry patch frequency must use the real base terrain');
+assert(dryUI.includes('dryPatches.length&&count<objectCap&&random(seed,c.q,c.r,1831)<dryChance'),
+ 'Dry patch spawn must be seeded per hex, not per image');
+assert(dryUI.includes('!N.isDryPatch(entryFor(a))'),
+ 'Dry patches excluded from generic per-image loop');
+assert(dryUI.includes('newDryPatches'),'Generated dry patches counted');
 // Five newly supplied ice blocks accept both German/English file naming.
 for(let n=1;n<=5;n++){
  exact('Eisblock_'+n2(n)+'.png',['snowfields','frozen_tundra','tundra']);

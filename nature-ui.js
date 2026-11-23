@@ -396,7 +396,7 @@ window.VedrasNature=(()=>{
    if(!neighborsByHex.has(k))neighborsByHex.set(k,[]);
    neighborsByHex.get(k).push(inst);
   }
-  let suitableCells=0,forestTrees=0,newBoulders=0,newWarmBoulders=0,newDesertPalms=0,newDesertAcacias=0;
+  let suitableCells=0,forestTrees=0,newBoulders=0,newWarmBoulders=0,newDesertPalms=0,newDesertAcacias=0,newDryPatches=0;
   const rank=(a,c,salt)=>random(seed,c.q,c.r,salt+a.relPath.split('').reduce((v,ch)=>Math.imul(v,31)+ch.charCodeAt(0)|0,0));
   // Reserve a warm boulder on scenes with at least three eligible warm
   // hexes, so 36–54 cannot disappear simply because of an unlucky seed.
@@ -459,10 +459,12 @@ window.VedrasNature=(()=>{
     .sort((a,b)=>a.relPath.localeCompare(b.relPath));
    // Snow patches are flat foreground ground cover, not rocks. Give each
    // eligible cold hex one seeded opportunity BEFORE rocks/shrubs fill slots.
+   const dryPatches=possible.filter(a=>N.isDryPatch(entryFor(a)))
+    .sort((a,b)=>a.relPath.localeCompare(b.relPath));
    const snowPatches=possible.filter(a=>entryFor(a)?.family==='snow')
     .sort((a,b)=>a.relPath.localeCompare(b.relPath));
    const other=possible.filter(a=>!B.isCanopy(entryFor(a))&&
-    !isBoulder(entryFor(a))&&entryFor(a)?.family!=='snow')
+    !isBoulder(entryFor(a))&&!N.isDryPatch(entryFor(a))&&entryFor(a)?.family!=='snow')
     .sort((a,b)=>rank(a,c,302)-rank(b,c,302));
    let wantedTrees=F.treeTarget(f);
    // Coherent stand variation: neighboring hexes form groves and glades
@@ -511,6 +513,17 @@ window.VedrasNature=(()=>{
        if(entryFor(a).family==='palms')newDesertPalms++;else newDesertAcacias++;
        break;}
      }
+    }
+   }
+   // One seeded family attempt per eligible hex regardless of the number of
+   // uploaded dry_patch variants. Honor existing collision/object constraints.
+   const dryChance=N.dryPatchChance(core.baseBiomeOf(c));
+   if(dryPatches.length&&count<objectCap&&random(seed,c.q,c.r,1831)<dryChance){
+    const first=Math.floor(random(seed,c.q,c.r,1832)*dryPatches.length);
+    for(let j=0;j<dryPatches.length;j++){
+     const a=dryPatches[(first+j)%dryPatches.length];
+     const inst=makeInstance(a,c.q,c.r,all.length+1,all,seed,1,forestByHex,neighborsByHex);
+     if(inst){record(inst);count++;newDryPatches++;break;}
     }
    }
    // In canopy mode, continue planting until the rendered crown-size proxy
@@ -582,7 +595,7 @@ window.VedrasNature=(()=>{
    (generatedMountains.requested?' · '+generatedMountains.requested+' ausgewählte Berg-PNGs werden geladen':'');
   if(!candidates.length)message('0 Nature-Instanzen: Keine zulässigen Nature-Sprites. Katalog und Dichte prüfen. · '+mountainSummary);
   else if(!suitableCells)message('0 Nature-Instanzen: Die aktuellen Geländearten passen zu keinem Nature-Sprite. · '+mountainSummary);
-  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · '+mountainSummary+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Wüstenpalmen '+newDesertPalms+' · Wüstenakazien '+newDesertAcacias+' · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
+  else message(all.length+' Nature-Instanzen ('+forestTrees+' neue lebende Bäume, '+newBoulders+' Findlinge, davon '+newWarmBoulders+' warme · '+warmAssets.length+' warme Varianten / '+eligibleWarmSites.length+' passende warme Hexe) · '+mountainSummary+' · auf '+core.cells().length+' Hexen · '+clearings.size+' Bau-/Freiflächen · Wüstenpalmen '+newDesertPalms+' · Wüstenakazien '+newDesertAcacias+' · Dry Patches '+newDryPatches+' · Totholzbäume '+accents.dead_trees+'/'+limits.dead_trees+' · liegende Stämme '+accents.fallen_logs+'/'+limits.fallen_logs+' · Waldmodus '+state.forest.mode+', '+dense+' dicht, '+light+' licht, '+
     edge+' Rand, '+glades+' Lichtungshexe.');
  }
 
