@@ -8,7 +8,7 @@ const SCHEMA="vedras-geography-joint-scenery-seam-proof-v1";
 const SIZE=512,SCALE_X=2.5,SCALE_Y=2.125,PAD=128;
 const EXPECTED_WIDTH=Math.round((SIZE+2*PAD)*SCALE_X);
 const EXPECTED_HEIGHT=Math.round((SIZE+2*PAD)*SCALE_Y);
-function create({plan,renderer,
+function create({plan,renderer,allowShadowPreview=false,
  bitmapFactory=root.createImageBitmap?.bind(root),
  canvasFactory=()=>root.document.createElement("canvas")}={}){
  if(plan?.schema!=="vedras-geography-bake-plan-v1"||
@@ -53,7 +53,11 @@ function create({plan,renderer,
  }
  function validateResult(result,id){
   if(result?.schema!=="vedras-geography-joint-scenery-preview-v1"||
-   result.stage!=="original-tree-mountain-combined-preview"||
+   result.stage!==(allowShadowPreview?
+    "original-sprite-shadow-scenery-preview":
+    "original-tree-mountain-combined-preview")||
+   (allowShadowPreview&&(!result.needsOriginalMountainShadows||
+    !(result.originalShadowProfiles>0)))||
    result.tile?.id!==id||
    result.tile.x!==tiles.get(id).x||
    result.tile.y!==tiles.get(id).y||
@@ -125,6 +129,8 @@ function create({plan,renderer,
    differingPixels:differing,maxChannelDifference:maxDelta,
    firstDifferences:examples,passesPixelIdentity:differing===0&&painted>0,
    needsEditorVisualParity:true,needsOriginalShadows:true,
+   shadowMode:allowShadowPreview?"original-sprite-preview":"none",
+   needsOriginalMountainShadows:true,
    complete:false,readyForViewer:false,rasterized:false};
  }
  return {defaultPair,verifyPair,previewOnly:true};

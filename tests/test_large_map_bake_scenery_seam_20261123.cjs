@@ -127,3 +127,14 @@ test('seam test is explicitly opt-in and sparse-checked, not an atlas publisher'
  assert(ci.includes('/large-map-bake-scenery-seam.js'));
  assert(ci.includes('/tests/test_large_map_bake_scenery_seam_20261123.cjs'));
 });
+
+test('shadow-preview seam requires explicit opt-in and retains mountain gate',async()=>{
+ const h=harness(),base=h.seam;
+ const r=await base.verifyPair('0,0','right');
+ assert.equal(r.shadowMode,'none');
+ assert.equal(r.needsOriginalMountainShadows,true);
+ const source=fs.readFileSync(path.join(__dirname,'../large-map-bake-scenery-seam.js'),'utf8');
+ assert.match(source,/allowShadowPreview=false/);
+ assert.match(source,/original-sprite-shadow-scenery-preview/);
+ assert.match(source,/originalShadowProfiles>0/);
+});

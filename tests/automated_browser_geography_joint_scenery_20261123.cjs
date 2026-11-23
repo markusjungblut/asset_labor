@@ -134,7 +134,7 @@ const plan=Plan.plan(world);
    window.VedrasSpriteShadows.set(profiles);
    const a=await renderer.renderTile('0,0',{previewSpriteShadows:true});
    const b=await renderer.renderTile('1,0',{previewSpriteShadows:true});
-   const verifier=window.VedrasJointScenerySeam.create({plan,renderer:{
+   const verifier=window.VedrasJointScenerySeam.create({plan,allowShadowPreview:true,renderer:{
     previewOnly:true,defaultTile:()=> '0,0',
     renderTile:async id=>id==='0,0'?a:b
    }});
