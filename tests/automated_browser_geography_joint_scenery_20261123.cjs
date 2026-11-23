@@ -473,6 +473,293 @@ const plan=Plan.plan(world);
     'const mountainShadowRasterCache=new Map();'+
     'let mountainShadowCachedPixels=0;\n'+editorLocalMaskSource+
     '\nreturn shadowLocalMask;')(window,document);
+   // Phase 2.8v: source-exact local Editor masks for DIFFERENT widths and
+   // exported styles. World mountains have catalogue-fixed logicalWidth=360:
+   // deliberately do not falsify original assets to get arbitrary widths.
+   const originalMaskEngine=window.VedrasEditorLocalMountainMask,
+    originalStyleEngine=window.VedrasLargeMapAuthoredMountainShadows,
+    originalMountainEngine=window.VedrasShadows,
+    bitmapCanvas=()=>document.createElement('canvas');
+   const maskStyles=[
+    {case:'small-480px',width:480,origin:{x:1031.375,y:991.625},
+     settings:originalMountainEngine.settings({
+      ...originalMountainEngine.settings(),angle:145,softness:7,
+      opacity:.41,rootWidth:.28,length:.64})},
+    {case:'authored-first-900px',width:900,origin:{x:1200.25,y:1095.875},
+     settings:originalStyleEngine.resolve(authored,
+      mountainPlan.instances[0],originalMountainEngine)},
+    {case:'authored-second-1280px',width:1280,
+     origin:{x:1270.625,y:1120.375},
+     settings:originalStyleEngine.resolve(authored,
+      mountainPlan.instances[1],originalMountainEngine)}
+   ];
+   const variableRasterReceipt=[];
+   for(const v of maskStyles){
+    const generated=originalMaskEngine.raster({
+     width:v.width,settings:v.settings,strength:1.12,
+     canvasFactory:bitmapCanvas,shadows:originalMountainEngine
+    });
+    const editor=originalShadowLocal(v.width,v.settings,1.12);
+    if(generated.canvas.width!==editor.canvas.width||
+     generated.canvas.height!==editor.canvas.height)
+     throw Error('2.8v original local-mask dimensions differ for '+v.case);
+    const A=generated.canvas.getContext('2d',{willReadFrequently:true})
+     .getImageData(0,0,generated.canvas.width,generated.canvas.height).data,
+     B=editor.canvas.getContext('2d',{willReadFrequently:true})
+     .getImageData(0,0,editor.canvas.width,editor.canvas.height).data;
+    let mismatches=0,positive=0,minX=Infinity,maxX=-Infinity,
+     minY=Infinity,maxY=-Infinity;
+    for(let i=0;i<A.length;i+=4){
+     const p=i/4,x=p%generated.canvas.width,
+      y=Math.floor(p/generated.canvas.width);
+     if(A[i]!==B[i]||A[i+1]!==B[i+1]||
+      A[i+2]!==B[i+2]||A[i+3]!==B[i+3])mismatches++;
+     if(B[i+3]>0){
+      positive++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);
+      minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+     }
+    }
+    if(!positive||!Number.isFinite(minX+minY+maxX+maxY))
+     throw Error('2.8v original Editor mask must have positive source alpha');
+    const got=originalMaskEngine.cast({raster:generated,origin:v.origin});
+    const expected={
+     x:v.origin.x+editor.left/editor.factor,
+     y:v.origin.y+editor.top/editor.factor,
+     width:editor.canvas.width/editor.factor,
+     height:editor.canvas.height/editor.factor
+    };
+    const placementError=Math.max(
+     Math.abs(got.x-expected.x),Math.abs(got.y-expected.y),
+     Math.abs(got.width-expected.width),
+     Math.abs(got.height-expected.height));
+    variableRasterReceipt.push({case:v.case,width:v.width,
+     factor:generated.factor,
+     cachedWidth:generated.canvas.width,
+     cachedHeight:generated.canvas.height,
+     sourceRGBAChanged:mismatches,positive,
+     placementError,peakAlpha:generated.maxAlpha,
+     sourcePeakAlpha:editor.peakAlpha,
+     positiveExtent:{minX,maxX,minY,maxY},
+     complete:false,readyForViewer:false});
+   }
+   // Force a real source-derived alpha-positive part of a FRACTIONALLY
+   // placed ORIGINAL cast through BOTH the right and down tile overlaps.
+   // The integer GLOBAL scratch is copied without source re-sampling at
+   // separate tile origins. This is a ground-mask seam probe, separate
+   // from the full original sprite scene checked below.
+   const overlapStyle=maskStyles[1],
+    overlapSource=originalMaskEngine.raster({
+     width:overlapStyle.width,settings:overlapStyle.settings,
+     strength:1.12,canvasFactory:bitmapCanvas,shadows:originalMountainEngine
+    });
+   const ex=variableRasterReceipt[1].positiveExtent,
+    centerX=(ex.minX+ex.maxX)/2,centerY=(ex.minY+ex.maxY)/2,
+    positiveCenter={x:1270.375,y:1110.625};
+   const centeredOrigin={
+    x:positiveCenter.x-(overlapSource.left+centerX)/overlapSource.factor,
+    y:positiveCenter.y-(overlapSource.top+centerY)/overlapSource.factor
+   };
+   const crossCast=originalMaskEngine.cast({
+    raster:overlapSource,origin:centeredOrigin});
+   const crossBox=originalMaskEngine.globalBox({cast:crossCast});
+   const master=bitmapCanvas();master.width=crossBox.width;
+   master.height=crossBox.height;
+   const masterContext=master.getContext('2d',{willReadFrequently:true});
+   masterContext.drawImage(crossCast.canvas,
+    crossCast.x-crossBox.left,crossCast.y-crossBox.top,
+    crossCast.width,crossCast.height);
+   const tileAlpha=(ox,oy)=>{
+    const cv=bitmapCanvas();cv.width=1920;cv.height=1632;
+    const c=cv.getContext('2d',{willReadFrequently:true});
+    c.drawImage(master,crossBox.left-ox,crossBox.top-oy);
+    return c.getImageData(0,0,1920,1632).data;
+   };
+   const acrossLeft=tileAlpha(-320,-272),
+    acrossRight=tileAlpha(960,-272),
+    acrossDown=tileAlpha(-320,816);
+   const seamCheck=(first,second,dir)=>{
+    const w=dir==='right'?640:1920,h=dir==='down'?544:1632,
+     offsetX=dir==='right'?1280:0,
+     offsetY=dir==='down'?1088:0;
+    let different=0,painted=0,maxDelta=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+     const a=((y+offsetY)*1920+x+offsetX)*4,
+      b=(y*1920+x)*4;
+     if(first[a+3]||second[b+3])painted++;
+     for(let channel=0;channel<4;channel++){
+      const delta=Math.abs(first[a+channel]-second[b+channel]);
+      if(delta){maxDelta=Math.max(maxDelta,delta);}
+     }
+     if(first[a]!==second[b]||first[a+1]!==second[b+1]||
+      first[a+2]!==second[b+2]||first[a+3]!==second[b+3])
+      different++;
+    }
+    return {direction:dir,different,painted,maxDelta,width:w,height:h};
+   };
+   const fractionalGlobalSeams=[
+    seamCheck(acrossLeft,acrossRight,'right'),
+    seamCheck(acrossLeft,acrossDown,'down')
+   ];
+   // Full real-PNG fixture: two exported ORIGINAL mountain instances
+   // plus a third actual catalogue mountain whose foot straddles a
+   // vertical tile overlap. Distinct instance style overrides are source
+   // validated; a mountain's hard-coded logicalWidth is NOT changed.
+   const downMountain={...mountainPlan.instances[0],
+    q:2,r:2,mode:'chain',chainId:'geography_vertical_2',
+    coreRadius:0,radius:1};
+   const variantMountainPlan={...mountainPlan,
+    instances:[...mountainPlan.instances,downMountain]};
+   const styleExport={...authoredExport,
+    mountainShadowDefaults:{...authoredExport.mountainShadowDefaults,
+     softness:10,rootWidth:.27,tipWidth:.095},
+    shadowAssetPresets:{[mount]:{
+     angle:179,length:.91,rootWidth:.34,softness:9,
+     contactWidth:.15}},
+    mountainInstances:variantMountainPlan.instances.map((m,i)=>({
+     ...m,shadowAngle:[153,211,188][i],
+     shadowLength:[.73,1.08,.48][i],
+     shadowSoftness:[5,22,33][i],
+     shadowOriginX:[-.12,-.21,.035][i],
+     shadowOriginY:[.04,.08,-.055][i]
+    }))
+   };
+   const variantAuthored=originalStyleEngine.create({
+    scene:styleExport,mountainPlan:variantMountainPlan,
+    shadows:originalMountainEngine,tone:window.VedrasShadowTone
+   });
+   if(!variantAuthored.instanceMatchComplete||
+    variantAuthored.instancesInPlan!==3)
+    throw Error('2.8v needs three exactly matched exported mountain instances');
+   const variedRenderer=window.VedrasLargeMapJointScenery.create({
+    world,plan,treePlan:compositeTrees,mountainPlan:variantMountainPlan,
+    boulderPlan,latePlan:compositeLate,accentPlan:compositeAccents,
+    terrainCatalog:terrain,natureCatalog:nature,assets,
+    loadImage:async a=>({img:imageByPath.get(a.path)})
+   });
+   const variedOptions={
+    previewEditorProjection:true,previewSpriteShadows:true,
+    previewMountainShadows:true,previewMountainReceivers:true,
+    authoredShadowScene:variantAuthored,captureEditorCompositeReference:true
+   };
+   const variedLocalLeft=await variedRenderer.renderTile('0,0',{
+    ...variedOptions,previewEditorLocalMountainMask:true
+   });
+   const variedLocalRight=await variedRenderer.renderTile('1,0',{
+    ...variedOptions,previewEditorLocalMountainMask:true
+   });
+   const variedLocalDown=await variedRenderer.renderTile('0,1',{
+    ...variedOptions,previewEditorLocalMountainMask:true
+   });
+   const variedBaseLeft=await variedRenderer.renderTile('0,0',variedOptions);
+   const variedBaseRight=await variedRenderer.renderTile('1,0',variedOptions);
+   const sourceDerivedStyleReceipts=[],variedComparisons=[];
+   for(const [i,tile] of [
+    ['0,0',variedLocalLeft],['1,0',variedLocalRight],
+    ['0,1',variedLocalDown]]){
+    const trace=tile.editorCompositeReference;
+    if(!trace?.mountainCasts?.length||tile.readyForViewer!==false||
+     tile.authoredMountainInstanceMatch!==true)
+     throw Error('2.8v original authored mountain source missing on tile '+i);
+    const sources=[];
+    const directCanvas=bitmapCanvas();directCanvas.width=1920;
+    directCanvas.height=1632;
+    const direct=directCanvas.getContext('2d',{willReadFrequently:true});
+    for(const cast of trace.mountainCasts){
+     const settings=originalStyleEngine.resolve(
+      variantAuthored,cast.owner.item.inst,originalMountainEngine);
+     const source=originalShadowLocal(cast.modelWidth,settings,cast.strength);
+     if(source.canvas.width!==cast.canvas.width||
+      source.canvas.height!==cast.canvas.height)
+      throw Error('2.8v per-instance Editor style mask size mismatch');
+     const src=source.canvas.getContext('2d',{willReadFrequently:true})
+      .getImageData(0,0,source.canvas.width,source.canvas.height).data;
+     const actual=cast.canvas.getContext('2d',{willReadFrequently:true})
+      .getImageData(0,0,cast.canvas.width,cast.canvas.height).data;
+     let different=0;
+     for(let p=0;p<src.length;p+=4)
+      if(src[p]!==actual[p]||src[p+1]!==actual[p+1]||
+       src[p+2]!==actual[p+2]||src[p+3]!==actual[p+3])
+       different++;
+     const expectedX=cast.nativeCastOriginX+source.left/source.factor,
+      expectedY=cast.nativeCastOriginY+source.top/source.factor;
+     const err=Math.max(
+      Math.abs(cast.box.left-expectedX),
+      Math.abs(cast.box.top-expectedY),
+      Math.abs(cast.box.width-source.canvas.width/source.factor),
+      Math.abs(cast.box.height-source.canvas.height/source.factor));
+     direct.drawImage(source.canvas,expectedX-trace.sampleX,
+      expectedY-trace.sampleY,
+      source.canvas.width/source.factor,source.canvas.height/source.factor);
+     sources.push({asset:cast.owner.item.inst.assetPath,
+      instance:cast.owner.item.inst.q+','+cast.owner.item.inst.r,
+      softness:settings.softness,width:cast.modelWidth,
+      sourceRGBAChanged:different,placementError:err,
+      peakAlpha:cast.peakAlpha,sourcePeakAlpha:source.peakAlpha});
+    }
+    const native=nativeComposite(tile);
+    const sampled=tile.editorCompositeReference.painted
+     .getContext('2d',{willReadFrequently:true});
+    const fg=tile.editorCompositeReference.mountainGround
+     .getContext('2d',{willReadFrequently:true});
+    const compositor=compareFrames(sampled,native.ctx);
+    const bg=window.VedrasEditorCompositeAudit.compare({
+     width:1920,height:1632,
+     world:fg.getImageData(0,0,1920,1632).data,
+     editor:direct.getImageData(0,0,1920,1632).data
+    });
+    sourceDerivedStyleReceipts.push({tile:i,sources,
+     groundDifferent:bg.different,groundMaxDelta:bg.maxDelta,
+     groundPainted:bg.painted,
+     compositorDifferent:compositor.different,
+     compositorMaxDelta:compositor.maxDelta});
+    if(i!=='0,1'){
+     const baseline=i==='0,0'?variedBaseLeft:variedBaseRight;
+     const reference=nativeComposite(baseline);
+     const bc=compareFrames(baseline.editorCompositeReference.painted
+      .getContext('2d',{willReadFrequently:true}),reference.ctx);
+     const originalBg=baseline.editorCompositeReference.mountainGround
+      .getContext('2d',{willReadFrequently:true});
+     const old=window.VedrasEditorCompositeAudit.compare({
+      width:1920,height:1632,
+      world:originalBg.getImageData(0,0,1920,1632).data,
+      editor:direct.getImageData(0,0,1920,1632).data
+     });
+     variedComparisons.push({tile:i,localCompositorDifferent:compositor.different,
+      baselineCompositorDifferent:bc.different,
+      localGroundDifferent:bg.different,
+      baselineGroundDifferent:old.different,
+      localGroundMaxDelta:bg.maxDelta,
+      baselineGroundMaxDelta:old.maxDelta,
+      maskBetter:bg.different<old.different,
+      compositorBetter:compositor.different<bc.different});
+    }
+   }
+   const pixelCanvas=sample=>sample.editorCompositeReference.painted
+    .getContext('2d',{willReadFrequently:true})
+    .getImageData(0,0,1920,1632).data;
+   const realVariedSeams=[
+    seamCheck(pixelCanvas(variedLocalLeft),
+     pixelCanvas(variedLocalRight),'right'),
+    seamCheck(pixelCanvas(variedLocalLeft),
+     pixelCanvas(variedLocalDown),'down')
+   ];
+   const variedEditorMaskAudit={
+    schema:'vedras-phase28v-original-mountain-mask-style-and-seams',
+    sourceVariants:variableRasterReceipt,
+    fractionalGlobalSeams,sourceDerivedStyleReceipts,
+    realVariedSeams,variedComparisons,
+    exactSourceMasks:sourceDerivedStyleReceipts.every(r=>
+     r.sources.length>0&&r.sources.every(s=>
+      s.sourceRGBAChanged===0&&s.placementError===0&&
+      s.peakAlpha===s.sourcePeakAlpha)),
+    eligibleForReview:
+     realVariedSeams.every(s=>s.different===0)&&
+     variedComparisons.length===2&&
+     variedComparisons.every(c=>
+      c.maskBetter&&c.compositorBetter&&c.localGroundMaxDelta<=
+      c.baselineGroundMaxDelta),
+    complete:false,readyForViewer:false
+   };
    const sourceLocalMaskReceipt=[];
    const localResults=[localMasked0,localMasked1];
    for(let i=0;i<localResults.length;i++){
@@ -876,6 +1163,7 @@ const plan=Plan.plan(world);
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
     compositeAlphaAB:alphaAB,compositeLocalMaskAudit:localMaskAudit,
+    variedEditorMaskAudit,
     compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
@@ -958,11 +1246,17 @@ const plan=Plan.plan(world);
    JSON.stringify({schema:'vedras-geography-phase28u-editor-original-local-mask',
     originalSource:'app.js source-extracted shadowLocalMask()',
     productionRendererChanged:false,result:result.compositeLocalMaskAudit},null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28v_original_mountain_mask_variants.json'),
+   JSON.stringify({schema:'vedras-geography-phase28v-real-original-mask-variants',
+    originalSource:'app.js source-extracted shadowLocalMask()',
+    productionRendererChanged:false,result:result.variedEditorMaskAudit},null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   console.log('EDITOR_COMPOSITE_RGBA_AUDIT',JSON.stringify(result.compositeRGBA));
   console.log('ORIGINAL_ALPHA_SOURCE_OVER_AB',JSON.stringify(result.compositeAlphaAB));
+  console.log('EDITOR_LOCAL_MOUNTAIN_MASK_VARIANTS',
+   JSON.stringify(result.variedEditorMaskAudit));
   console.log('EDITOR_LOCAL_MOUNTAIN_MASK_DIAGNOSTIC',
    JSON.stringify(result.compositeLocalMaskAudit));
   console.log('EDITOR_SHADOW_SOURCE_ATTRIBUTION',JSON.stringify(
@@ -1024,7 +1318,34 @@ const plan=Plan.plan(world);
    assert(a.transitions.editorTouched>100);
    assert.equal(a.parity,false);
   }
-  assert.equal(result.compositeLocalMaskAudit.sourceLocalMaskReceipt.length,2);
+  const variants=result.variedEditorMaskAudit;
+  assert.equal(variants.schema,'vedras-phase28v-original-mountain-mask-style-and-seams');
+  assert.equal(variants.sourceVariants.length,3);
+  assert.deepEqual(variants.sourceVariants.map(x=>x.width),[480,900,1280]);
+  assert(variants.sourceVariants.every(x=>
+   x.sourceRGBAChanged===0&&x.placementError===0&&x.positive>1000&&
+   x.sourcePeakAlpha===x.peakAlpha));
+  assert.equal(variants.sourceDerivedStyleReceipts.length,3);
+  assert.equal(variants.exactSourceMasks,true);
+  assert(variants.sourceDerivedStyleReceipts.some(x=>x.sources.length>=2));
+  assert(variants.sourceDerivedStyleReceipts.some(x=>
+   x.sources.some(y=>y.softness!==5&&y.softness!==9)));
+  for(const seam of [...variants.fractionalGlobalSeams,...variants.realVariedSeams]){
+   assert.equal(seam.different,0,'Real source mountain mask must stay pixel-identical');
+   assert.equal(seam.maxDelta,0);
+   assert(seam.painted>100,
+    'Horizontal and vertical overlap MUST contain original positive shadow alpha');
+  }
+  assert(variants.sourceDerivedStyleReceipts.every(x=>
+   x.groundPainted>100&&x.groundDifferent>=0&&x.groundMaxDelta<=2));
+  assert.equal(variants.variedComparisons.length,2);
+  assert(variants.variedComparisons.every(x=>x.maskBetter),
+   'Real authored style ground must get closer with the original cached local mask');
+  assert.equal(variants.complete,false);
+  assert.equal(variants.readyForViewer,false);
+  if(variants.eligibleForReview)
+   assert(variants.variedComparisons.every(x=>x.compositorBetter));
+    assert.equal(result.compositeLocalMaskAudit.sourceLocalMaskReceipt.length,2);
   assert.equal(result.compositeLocalMaskAudit.localComposites.length,2);
   assert(result.compositeLocalMaskAudit.sourceLocalMaskReceipt.every(
    masks=>masks.length>0&&masks.every(m=>
