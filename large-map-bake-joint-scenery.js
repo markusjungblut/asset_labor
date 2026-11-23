@@ -387,6 +387,17 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
    });
   }
+  // Retain the NATIVE mountain-only ground layer for strict read-only
+  // attribution of shadow-related pixel changes. Not a render input.
+  let editorMountainGround=null;
+  if(captureEditorCompositeReference){
+   editorMountainGround=canvasFactory();
+   editorMountainGround.width=output.width;
+   editorMountainGround.height=output.height;
+   const gc=editorMountainGround.getContext("2d",{alpha:true});
+   if(!gc?.drawImage)throw Error("Bergschatten-Diagnose benötigt Canvas2D.");
+   gc.drawImage(output,0,0);
+  }
   let shadowResult=null;
   if(previewSpriteShadows){
    if(typeof root.VedrasLargeMapOriginalSpriteShadows?.paint!=="function")
@@ -420,6 +431,9 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     candidates:placed.slice(),
     shadowOnlyMountains:shadowOnlyMountains.slice(),
     mountainCasts:mountainShadowResult?.casts||[],
+    mountainGround:editorMountainGround,
+    spriteAlphaMasks:[],
+    spriteAlphaMaskBytes:0,
     background,
     sampleX:Math.round((tile.x-PAD)*SCALE),
     sampleY:Math.round((tile.y-PAD)*SCALE*PROJECT_Y),
@@ -505,6 +519,27 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     sc.drawImage(img,g.b.sx,g.b.sy,g.b.sw,g.b.sh,
      g.left,g.top,g.width,g.height);
     sc.restore();
+   }
+   if(editorCompositeReference){
+    // Precisely packed alpha coverage of the ACTUAL global-scratch sprite
+    // that WorldTile will composite. This avoids guessing ownership from
+    // opaque rectangles (which grossly overcount transparent tree crowns).
+    // No screenshot, image file or renderer decision changes.
+    const width=rx-gx,height=ry-gy,bitBytes=Math.ceil(width*height/8);
+    if(editorCompositeReference.spriteAlphaMaskBytes+bitBytes>8000000)
+     throw Error("Editor-Pixelattribution überschreitet 8 MB Maskenbudget.");
+    if(!sc.getImageData)
+     throw Error("Editor-Pixelattribution benötigt Original-Scratch-Alpha.");
+    const rgba=sc.getImageData(0,0,width,height).data,
+     bits=new Uint8Array(bitBytes);
+    for(let p=0,i=3;i<rgba.length;p++,i+=4)
+     if(rgba[i]>0)bits[p>>>3]|=1<<(p&7);
+    editorCompositeReference.spriteAlphaMaskBytes+=bitBytes;
+    editorCompositeReference.spriteAlphaMasks.push({
+     ordinal:item.ordinal,type:item.type,kind:item.meta?.kind||null,
+     path:item.inst.assetPath,cell:item.inst.q+","+item.inst.r,
+     x:gx,y:gy,width,height,bits
+    });
    }
    // One-to-one pixel copy at an integer offset: identical source pixels
    // for overlapping tiles, even with transparent mountain/tree layering.
