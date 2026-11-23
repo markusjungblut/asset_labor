@@ -25,6 +25,11 @@ const editorCompositeSource=[
  fromEditor('let spriteShadeCanvas=null;','function drawNatureShadow('),
  fromEditor('function mountainCoversBase(', '// Build once per scene edit')
 ].join('\n');
+// Compile the ORIGINAL low-resolution shadowLocalMask from app.js directly
+// in Firefox; the adapter must match its own source, not a copied unit mock.
+const editorLocalMaskSource=fromEditor(
+ 'function shadowLocalMask(width,settings,global){',
+ '// Reuse the exact same mountain-shadow rasters');
 const names=['assets/nature/birke1.png','assets/nature/berg_01.png',
  'assets/nature/boulder_36.png','assets/nature/boulder_01.png',
  'assets/nature/snow_patch_01.png','assets/nature/bush_01.png',
@@ -49,6 +54,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-editor-composite-audit.js',
  'large-map-bake-shadow-pixel-attribution.js',
  'large-map-bake-alpha-source-over-ab.js',
+ 'large-map-bake-editor-local-mountain-mask.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -88,9 +94,11 @@ const plan=Plan.plan(world);
    'large-map-bake-editor-reference-sprite.js',
    'large-map-bake-editor-composite-audit.js',
    'large-map-bake-shadow-pixel-attribution.js',
-   'large-map-bake-alpha-source-over-ab.js'])
+   'large-map-bake-alpha-source-over-ab.js',
+   'large-map-bake-editor-local-mountain-mask.js'])
    await page.addScriptTag({url:origin+'/'+file});
-  const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource})=>{
+  const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource,
+  editorLocalMaskSource})=>{
    const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
    const imageByPath=new Map();
    for(const p of names){
@@ -439,6 +447,69 @@ const plan=Plan.plan(world);
     previewMountainShadows:true,previewMountainReceivers:true,
     captureEditorCompositeReference:true,captureAlphaAB:true
    });
+   // Phase 2.8u: same original mountain PNGs with independently
+   // extracted app.js shadowLocalMask (0.6 / 320 px local canvas).
+   // The old renderer and old alpha candidates are preserved unchanged.
+   const localMasked0=await compositeRenderer.renderTile('0,0',{
+    previewEditorProjection:true,previewSpriteShadows:true,
+    previewMountainShadows:true,previewMountainReceivers:true,
+    captureEditorCompositeReference:true,
+    previewEditorLocalMountainMask:true
+   });
+   const localMasked1=await compositeRenderer.renderTile('1,0',{
+    previewEditorProjection:true,previewSpriteShadows:true,
+    previewMountainShadows:true,previewMountainReceivers:true,
+    captureEditorCompositeReference:true,
+    previewEditorLocalMountainMask:true
+   });
+   const localMaskSeam=await window.VedrasJointScenerySeam.create({
+    plan,allowShadowPreview:true,allowMountainShadowPreview:true,
+    allowReceiverPreview:true,allowEditorProjectionPreview:true,
+    renderer:{previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?localMasked0:localMasked1}
+   }).verifyPair('0,0','right');
+   const originalShadowLocal=new Function('window','document',
+    '"use strict";\n'+
+    'const mountainShadowRasterCache=new Map();'+
+    'let mountainShadowCachedPixels=0;\n'+editorLocalMaskSource+
+    '\nreturn shadowLocalMask;')(window,document);
+   const sourceLocalMaskReceipt=[];
+   const localResults=[localMasked0,localMasked1];
+   for(let i=0;i<localResults.length;i++){
+    const result=localResults[i];
+    if(!result.editorCachedLocalMountainMask||
+     !result.editorCompositeReference?.mountainCasts?.length)
+     throw Error('Missing editor original cached local mountain mask proof');
+    const masks=[];
+    for(const c of result.editorCompositeReference.mountainCasts){
+     const source=originalShadowLocal(c.modelWidth,
+      window.VedrasShadows.settings(),c.strength);
+     const src=source.canvas.getContext('2d',{willReadFrequently:true});
+     const dst=c.canvas.getContext('2d',{willReadFrequently:true});
+     const sameDimensions=source.canvas.width===c.canvas.width&&
+      source.canvas.height===c.canvas.height;
+     if(!sameDimensions)throw Error('Cached original local shadow dimensions differ');
+     const A=src.getImageData(0,0,c.canvas.width,c.canvas.height).data,
+      B=dst.getImageData(0,0,c.canvas.width,c.canvas.height).data;
+     let different=0;
+     for(let k=0;k<A.length;k+=4)
+      if(A[k]!==B[k]||A[k+1]!==B[k+1]||
+       A[k+2]!==B[k+2]||A[k+3]!==B[k+3])different++;
+     const expectedX=c.nativeCastOriginX+source.left/source.factor,
+      expectedY=c.nativeCastOriginY+source.top/source.factor;
+     const placementError=Math.max(
+      Math.abs(c.box.left-expectedX),Math.abs(c.box.top-expectedY),
+      Math.abs(c.box.width-c.canvas.width/source.factor),
+      Math.abs(c.box.height-c.canvas.height/source.factor));
+     masks.push({source:'unmodified-app.js-shadowLocalMask',
+      originalWidth:c.modelWidth,cachedWidth:c.canvas.width,
+      cachedHeight:c.canvas.height,scale:source.factor,
+      pixelDifference:different,peakAlpha:c.peakAlpha,
+      expectedPeakAlpha:source.peakAlpha,
+      placementError,positiveCount:source.positiveCount});
+    }
+    sourceLocalMaskReceipt.push(masks);
+   }
    const compositeBareSeam=await window.VedrasJointScenerySeam.create({
     plan,allowEditorProjectionPreview:true,
     renderer:{previewOnly:true,defaultTile:()=> '0,0',
@@ -468,6 +539,51 @@ const plan=Plan.plan(world);
    const compositeWithShadows=[
     compareFrames(raw(compositeShadow0),nativeShade0.ctx),
     compareFrames(raw(compositeShadow1),nativeShade1.ctx)];
+   const cachedLocalNative=[
+    nativeComposite(localMasked0),nativeComposite(localMasked1)];
+   const localComposites=[
+    compareFrames(raw(localMasked0),cachedLocalNative[0].ctx),
+    compareFrames(raw(localMasked1),cachedLocalNative[1].ctx)];
+   // The editor DIRECTLY draws its local mask at a fractional pixel offset.
+   // WorldTiles must first align this source onto the GLOBAL integer lattice
+   // to guarantee exact neighbor seams; quantify the local shadow raster
+   // error independently from all sprite and receiver passes.
+   const maskGroundComparison=[0,1].map(i=>{
+    const local=localResults[i],baseline=[compositeShadow0,compositeShadow1][i];
+    const trace=local.editorCompositeReference;
+    const cv=document.createElement('canvas');cv.width=1920;cv.height=1632;
+    const direct=cv.getContext('2d',{willReadFrequently:true});
+    direct.setTransform(1,0,0,1,0,0);
+    for(const cast of trace.mountainCasts){
+     direct.drawImage(cast.canvas,cast.box.left-trace.sampleX,
+      cast.box.top-trace.sampleY,cast.box.width,cast.box.height);
+    }
+    const toData=sample=>sample.editorCompositeReference.mountainGround
+     .getContext('2d',{willReadFrequently:true})
+     .getImageData(0,0,1920,1632).data;
+    const source=direct.getImageData(0,0,1920,1632).data;
+    const maskRGBA=window.VedrasEditorCompositeAudit;
+    const old=maskRGBA.compare({width:1920,height:1632,
+     world:toData(baseline),editor:source});
+    const fresh=maskRGBA.compare({width:1920,height:1632,
+     world:toData(local),editor:source});
+    return {directOriginalMaskSource:'app.js shadowLocalMask',
+     baselineDifferent:old.different,localDifferent:fresh.different,
+     baselineMaxDelta:old.maxDelta,localMaxDelta:fresh.maxDelta,
+     localCloser:fresh.different<old.different,
+     sourcePixels:fresh.painted};
+   });
+   const localMaskAudit={
+    schema:'vedras-original-editor-cached-mountain-mask-audit-v1',
+    sourceLocalMaskReceipt,localComposites,maskGroundComparison,
+    seam:{passed:localMaskSeam.passesPixelIdentity,
+     different:localMaskSeam.differingPixels,
+     painted:localMaskSeam.paintedPixels},
+    eligibleForReview:localMaskSeam.passesPixelIdentity&&
+     localComposites.every((x,i)=>x.different<compositeWithShadows[i].different)&&
+     maskGroundComparison.every(x=>x.localCloser),
+    complete:false,readyForViewer:false
+   };
    // Analyze ORIGINAL pre-encode canvases by RGBA channel, transparency
    // bucket, delta magnitude and the shadow-only transition on each pixel.
    const RGBA=window.VedrasEditorCompositeAudit;
@@ -669,7 +785,7 @@ const plan=Plan.plan(world);
     bare:compositeNoShadows,shadows:compositeWithShadows,
     parity:compositePixelParityPassed,
     rgba:auditDigest,sourceAttribution:originalPixelAttribution,
-    alphaAB,
+    alphaAB,localMaskAudit,
     seams:compositeSeams,occlusion:compositeOcclusion,
     receivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers]
@@ -759,7 +875,7 @@ const plan=Plan.plan(world);
     receiverChangedPixels,
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
-    compositeAlphaAB:alphaAB,
+    compositeAlphaAB:alphaAB,compositeLocalMaskAudit:localMaskAudit,
     compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
@@ -817,7 +933,8 @@ const plan=Plan.plan(world);
     ready:[a.readyForViewer,b.readyForViewer],
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
-  },{world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource});
+  },{world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource,
+   editorLocalMaskSource});
   // Persist the tested heatmap and full machine-readable metrics in the
   // existing short-lived CI artifact. Do not print base64 into workflow logs.
   const rgbaDir=path.join(root,process.env.VEDRAS_CI_ARTIFACTS||'test-artifacts');
@@ -837,11 +954,17 @@ const plan=Plan.plan(world);
    JSON.stringify({schema:'vedras-geography-phase28t-alpha-source-over-ab',
     source:'pre-encode actual global scratch pixels, independent editor RGBAs',
     productionRendererChanged:false,results:result.compositeAlphaAB},null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28u_original_editor_cached_local_mountain_mask.json'),
+   JSON.stringify({schema:'vedras-geography-phase28u-editor-original-local-mask',
+    originalSource:'app.js source-extracted shadowLocalMask()',
+    productionRendererChanged:false,result:result.compositeLocalMaskAudit},null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   console.log('EDITOR_COMPOSITE_RGBA_AUDIT',JSON.stringify(result.compositeRGBA));
   console.log('ORIGINAL_ALPHA_SOURCE_OVER_AB',JSON.stringify(result.compositeAlphaAB));
+  console.log('EDITOR_LOCAL_MOUNTAIN_MASK_DIAGNOSTIC',
+   JSON.stringify(result.compositeLocalMaskAudit));
   console.log('EDITOR_SHADOW_SOURCE_ATTRIBUTION',JSON.stringify(
    result.compositeSourceAttribution.map((r,i)=>({
     tile:i===0?'0,0':'1,0',masks:r.masks,
@@ -900,6 +1023,25 @@ const plan=Plan.plan(world);
    assert(a.transitions.worldTouched>100);
    assert(a.transitions.editorTouched>100);
    assert.equal(a.parity,false);
+  }
+  assert.equal(result.compositeLocalMaskAudit.sourceLocalMaskReceipt.length,2);
+  assert.equal(result.compositeLocalMaskAudit.localComposites.length,2);
+  assert(result.compositeLocalMaskAudit.sourceLocalMaskReceipt.every(
+   masks=>masks.length>0&&masks.every(m=>
+    m.pixelDifference===0&&m.placementError===0&&
+    m.peakAlpha===m.expectedPeakAlpha)));
+  assert.equal(result.compositeLocalMaskAudit.seam.passed,true);
+  assert.equal(result.compositeLocalMaskAudit.seam.different,0);
+  assert(result.compositeLocalMaskAudit.seam.painted>500);
+  assert(result.compositeLocalMaskAudit.maskGroundComparison.every(x=>
+   x.sourcePixels>1000));
+  assert(result.compositeLocalMaskAudit.localComposites.every(x=>
+   Number.isSafeInteger(x.different)&&x.painted>10000));
+  assert.equal(result.compositeLocalMaskAudit.complete,false);
+  assert.equal(result.compositeLocalMaskAudit.readyForViewer,false);
+  if(result.compositeLocalMaskAudit.eligibleForReview){
+   assert(result.compositeLocalMaskAudit.localComposites.every((x,i)=>
+    x.different<result.compositeWithShadows[i].different));
   }
   assert.equal(result.compositeAlphaAB.length,2);
   for(const variant of result.compositeAlphaAB){
