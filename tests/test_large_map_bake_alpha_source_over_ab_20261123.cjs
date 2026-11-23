@@ -32,7 +32,8 @@ test('failed quality and memory contracts do not affect the production renderer'
  assert.throws(()=>A.render({...x,mode:'experimental-publish'}),/Rundungsmodus/);
  assert.throws(()=>A.render({...x,width:2000,height:2000}),/Canvas-Maße/);
  assert.throws(()=>A.render({...x,background:[0,0]}),/Originalhintergrund/);
- assert.throws(()=>A.render({...x,sprites:[{...x.sprites[0],rgba:new Uint8Array(8)}]}),
+ assert.throws(()=>A.render({...x,mode:'straight-rounded',
+  sprites:[{...x.sprites[0],rgba:new Uint8Array(8)}]}),
   /Sprite-Patch/);
  const js=fs.readFileSync(path.join(__dirname,
   '../large-map-bake-joint-scenery.js'),'utf8');
