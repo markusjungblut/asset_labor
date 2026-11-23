@@ -111,7 +111,7 @@ test('wall visual v2 keeps identical NW/NE height, thicker stone and centered fo
  assert.equal(W.heightFor('stone'),W.heightFor('palisade'),
   'palisade and masonry share the same vertical wall height');
  assert.equal(W.widthFor('stone'),24);
- assert.equal(W.widthFor('palisade'),11);
+ assert.equal(W.widthFor('palisade'),16);
  const project=(x,y)=>({x:x*.8+22,y:y*.85-12});
  for(const [dq,dr] of R.DIRS){
   const a={q:0,r:0},b={q:dq,r:dr};
@@ -127,8 +127,8 @@ test('wall visual v2 keeps identical NW/NE height, thicker stone and centered fo
    assert(p.depth.y>=-1e-9,'all back faces point toward screen front, including NW');
    assert.equal(p.height,62,'a different hex direction must not change height');
   }
-  assert(stone.thickness>timber.thickness*2,
-   'broad masonry extends into both neighboring hexes');
+  assert(stone.thickness>=timber.thickness*1.45,
+   'stone remains wider than the newly volumetric palisade on both sides');
   const shadowStone=W.shadowVector('stone',1,{angle:160});
   const shadowTimber=W.shadowVector('palisade',1,{angle:160});
   assert.equal(shadowStone.height,shadowTimber.height,
@@ -176,12 +176,12 @@ test('wall casting uses default sprite sun angle (left) and can follow edits',()
 });
 
 
-test('painted palisade v4 has six real raster edges and independent painted posts',()=>{
+test('painted palisade v5 has six volumetric whole-post edge images with canonical anchors',()=>{
  const raster=W.palisadeRasterMeta;
  assert.equal(raster.length,6);
- const expected=[[128,139,0,72.369],[58,210,29,68.5],
-  [128,139,128,71.816],[128,139,128,134.631],
-  [58,210,29,194.131],[128,139,0,135.184]];
+ const expected=[[140,148,6,78.368581],[28,210,14,78.184291],
+  [141,148,134,78.815709],[141,148,134,141.631419],
+  [28,210,14,203.815709],[141,148,6,141.184291]];
  assert.deepEqual(plain(raster),expected);
  for(let dir=0;dir<6;dir++){
   const filename=path.join(root,'assets','walls','palisade','edge_dir'+dir+'.webp');
@@ -199,13 +199,43 @@ test('painted palisade v4 has six real raster edges and independent painted post
   assert(bytes.length>8000,'junction artwork must be a real painting');
  }
  const js=source('walls.js'),index=source('index.html');
- assert(js.includes("kind==='palisade'?'.webp':'.svg'"));
- assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp'"));
+ assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg'"));
+ assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261123-painted-palisade-v4'),
+ assert(index.includes('walls.js?v=20261123-painted-palisade-v5'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
+ assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"),
+  'new baked maps must not reuse old paper-thin palisade atlases');
+});
+test('whole-post palisade v5 uses symmetric endpoints and no circular corner shadow',()=>{
+ const material=W.palisadeMaterial;
+ assert.equal(material.inset,10.5);
+ assert.equal(material.width,16);
+ assert.equal(material.height,70);
+ assert.equal(material.cornerWidth,25);
+ const expected=W.palisadeRasterMeta;
+ const g=(i)=>{const [q,r]=R.DIRS[i];return W.geometry({a:[0,0],b:[q,r],kind:'palisade'});};
+ const scale=1;
+ for(let i=0;i<6;i++){
+  const edge=g(i),w=expected[i],width=w[0],height=w[1],ax=w[2],ay=w[3];
+  // Canonical beginning is contained within each image's 2.5D bounds.
+  assert(ax>=0&&ax<=width&&ay>0&&ay<=height);
+  const x1=ax+edge.b.x-edge.a.x,
+   y1=ay+(edge.b.y-edge.a.y)*.85;
+  assert(x1>=-1&&x1<=width+1&&y1>=-1&&y1<=height+1,
+    'opposite hex corner must fit the same raster: '+i);
+ }
+ const sourceText=source('walls.js');
+ const joinText=sourceText.slice(sourceText.indexOf('function drawJoinShadow('),
+  sourceText.indexOf('\n function draw(ctx,edge'));
+ assert(!joinText.includes('ctx.arc('),
+  'no disconnected dark circles beneath southern palisade corners');
+ assert(!sourceText.includes('h+extension'),
+  'join textures must never stretch with hex edge direction');
+ assert(sourceText.includes('node.kinds?.includes(\'palisade\')'),
+  'mixed palisade/stone must use one intentional timber connector');
 });
 test('twelve authored SVG variants exist and preserve canonical foot anchors',()=>{
  const meta=W.wallArtMeta;
@@ -230,7 +260,7 @@ test('twelve authored SVG variants exist and preserve canonical foot anchors',()
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-painted-palisade-v4'));
+ assert(html.includes('walls.js?v=20261123-painted-palisade-v5'));
  assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
 });
 

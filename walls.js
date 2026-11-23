@@ -105,7 +105,7 @@ window.VedrasWalls=(()=>{
  // direction of the shared hex edge. NW and NE therefore use identical
  // sprite height, including the eight-unit sharpened palisade tip.
  function heightFor(_kind){return 62;}
- function widthFor(kind){return kind==='stone'?24:11;}
+ function widthFor(kind){return kind==='stone'?24:16;}
  function projected(edge,project){
   const g=geometry(edge);if(!g)return null;
   return {a:project(g.a.x,g.a.y),b:project(g.b.x,g.b.y)};
@@ -179,14 +179,19 @@ window.VedrasWalls=(()=>{
   stone:[[156,167,14,89],[40,216,20,82],[156,167,142,89],
    [156,167,142,152],[40,216,20,208],[156,167,14,152]]
  };
- // These are genuine hand-painted transparent raster assets, authored from
- // the same physical Hex-vertex anchor as the legacy direction SVGs.
- // Edges end 10.5 world units short of both vertices. A separate post,
- // painted with the same material, owns each corner or open end.
+ // Palisade v5: eight painted binary assets, with individually complete
+ // posts and identical 70-unit above-ground pole bodies. Every image has a
+ // canonical anchor at the ORIGINAL (not trimmed) first hex corner.
+ // Endpoints are inset by 10.5 world units; join art owns the corners.
+ // Six directions share EXACT hex-edge geometry, with no paper-thin
+ // transformation of a horizontal facade at east/west directions.
  const palisadeRasterMeta=[
-  [128,139,0,72.369],[58,210,29,68.5],[128,139,128,71.816],
-  [128,139,128,134.631],[58,210,29,194.131],[128,139,0,135.184]
+  [140,148,6,78.368581],[28,210,14,78.184291],
+  [141,148,134,78.815709],[141,148,134,141.631419],
+  [28,210,14,203.815709],[141,148,6,141.184291]
  ];
+ const palisadeMaterial={inset:10.5,width:16,height:70,
+  cornerWidth:25,cornerHeight:76,endWidth:23,endHeight:76};
  const palisadeJoinArt=new Map();
  const wallArt=new Map();
  let artworkPromise=null;
@@ -201,7 +206,7 @@ window.VedrasWalls=(()=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
     image.src='assets/walls/'+kind+'/edge_dir'+side+
-     (kind==='palisade'?'.webp':'.svg');
+     (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -209,7 +214,7 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/palisade/'+name+'.webp';
+    image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{
@@ -262,25 +267,24 @@ window.VedrasWalls=(()=>{
  }
  function drawJoin(ctx,node,project,zoom=1){
   if(!node||!node.degree)return false;
-  if(node.kind==='palisade'&&typeof Image!=='undefined'){
+  // Mixed stone/wood vertices are finished with a deliberate timber post,
+  // not a stone pier running through the palisade's wooden body.
+  const timber=node.kind==='palisade'||node.kinds?.includes('palisade')&&
+   node.kinds?.includes('stone');
+  if(timber&&typeof Image!=='undefined'){
    if(!artworkPromise)artworkReady();
    const end=node.degree===1;
    const image=palisadeJoinArt.get(end?'end_post':'corner_post');
    if(image?.naturalWidth){
-    const p=project(node.x,node.y),w=(end?25:30)*zoom,
-     h=(end?79:82)*zoom;
-    // At the top of a pointed hex two adjacent edges descend from the
-    // corner. Their painted bases end BELOW that vertex because the edges
-    // have a small deliberate inset. Extend only the painted post's base
-    // down to those two real edge feet; no open green triangle remains.
-    // Opposite/bottom-facing vertices need no extension. The post tip's
-    // absolute screen height stays unchanged for all six orientations.
-    const descents=(node.incident||[]).map(part=>
-     Math.sin(part.angle)*10.5*.85);
-    const extension=Math.max(0,...descents)*zoom;
+    const p=project(node.x,node.y),
+     w=(end?palisadeMaterial.endWidth:palisadeMaterial.cornerWidth)*zoom,
+     h=(end?palisadeMaterial.endHeight:palisadeMaterial.cornerHeight)*zoom;
+    // A single fixed-size painted post at the exact shared hex vertex.
+    // V4 stretched these textures on downward edges, causing asymmetry.
+    // No scaling by edge slope; no bottom spikes or hanging half-posts.
     ctx.save();ctx.globalAlpha=1;ctx.filter='none';
     ctx.globalCompositeOperation='source-over';
-    ctx.drawImage(image,p.x-w/2,p.y-h,w,h+extension);
+    ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
     ctx.restore();return true;
    }
   }
@@ -328,22 +332,29 @@ window.VedrasWalls=(()=>{
  }
  function drawJoinShadow(ctx,node,project,zoom=1,global={}){
   if(!node||!node.degree)return false;
-  const p=project(node.x,node.y),d=shadowVector(node.kind,zoom,global);
+  const p=project(node.x,node.y);
+  const timber=node.kind==='palisade'||node.kinds?.includes('palisade')&&
+   node.kinds?.includes('stone');
+  const kind=timber?'palisade':'stone';
+  const d=shadowVector(kind,zoom,global);
   const sx=Number(global.offsetX??-.07)*d.height;
   const sy=Number(global.offsetY??.025)*d.height;
   const moved={x:p.x+d.x+sx,y:p.y+d.y+sy};
-  const r=(node.kind==='stone'?17:16)*zoom;
+  const halfWidth=(timber?10:13)*zoom;
   const tone=window.VedrasShadowTone;
-  ctx.save();ctx.globalAlpha=tone?.targetAlpha?.('sprite')??.40;
+  ctx.save();
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=tone?.targetAlpha?.('sprite')??.40;
   ctx.fillStyle=tone?.colorCss?.()||'#203131';
   ctx.filter='blur('+Math.min(12,Math.max(1,
    (Number(global.softness)||6)*zoom*.65))+'px)';
-  poly(ctx,[{x:p.x-r,y:p.y-r*.48},{x:p.x+r,y:p.y-r*.48},
-   {x:moved.x+r,y:moved.y-r*.48},{x:moved.x-r,y:moved.y-r*.48}]);
-  ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(moved.x,moved.y,r*.8,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-  return true;
+  // A connected narrow footprint, NO independently blurred circles at
+  // either end. Combined with edge casts in the common nonstacking mask.
+  poly(ctx,[{x:p.x-halfWidth,y:p.y-3*zoom},
+   {x:p.x+halfWidth,y:p.y-3*zoom},
+   {x:moved.x+halfWidth,y:moved.y+3*zoom},
+   {x:moved.x-halfWidth,y:moved.y+3*zoom}]);
+  ctx.restore();return true;
  }
 
  function draw(ctx,edge,project,zoom=1){
@@ -449,5 +460,5 @@ window.VedrasWalls=(()=>{
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
-  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,junctions,drawJoin,drawJoinShadow};
+  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,palisadeMaterial,junctions,drawJoin,drawJoinShadow};
 })();
