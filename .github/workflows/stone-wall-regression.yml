@@ -44,6 +44,7 @@ jobs:
       - name: Browser rendering, corners and unified shadow acceptance
         run: node tests/automated_browser_wall_art_v3_20261123.cjs
       - name: Real asset-labor editor six-edge rendering and screenshot
+        if: always()
         run: node tests/real_editor_stone_v7.cjs
       - uses: actions/upload-artifact@v4
         if: always()
