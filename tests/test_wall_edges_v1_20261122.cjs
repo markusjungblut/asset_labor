@@ -241,7 +241,7 @@ test('six preserved SVG palisades and six real stone WebP artworks use canonical
  const meta=W.wallArtMeta;
  for(let dir=0;dir<6;dir++){
   const svg=fs.readFileSync(path.join(root,'assets','walls','palisade','edge_dir'+dir+'.svg'),'utf8');
-  assert.match(svg,/^<\\?xml[^]*<svg[\\s\\S]+<\\/svg>\\s*$/);
+  assert(svg.startsWith('<?xml')&&svg.includes('<svg')&&svg.includes('</svg>'));
   assert(svg.includes('hex edge direction '+dir));
   const [w,h,ax,ay]=meta.stone[dir];
   const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','edge_dir'+dir+'.webp'));
