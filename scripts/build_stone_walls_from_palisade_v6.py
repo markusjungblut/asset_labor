@@ -225,15 +225,29 @@ def draw_direction(dir):
                 draw_brick(d,rng,bx,(111,109,98))
         line(d,[(x0,top-WALL_HEIGHT),(x0,bottom)],rgb(43,43,41),1.1)
         line(d,[(x1,top-WALL_HEIGHT),(x1,bottom)],rgb(48,48,45),1.1)
-        # Far-to-near upright merlons: small caps, never oblique roofs.
+        # The edge-on face is the same *complete* 24-unit-thick wall, not a
+        # 2-pixel stick. Its six visible crenels run along the receding top
+        # edge. Each is independently upright, with an exposed shadowed
+        # return and narrow illuminated cap. The broad face remains fixed
+        # to one X axis (no tilting, no bird's-eye slabs).
         for j in range(7):
-            yy=top-WALL_HEIGHT+8+j*(bottom-top-14)/6
-            rect(d,(x0-1,yy-MERLON_HEIGHT,x1+1,yy+1),rgb(60,61,55))
-            rect(d,(x0,yy-MERLON_HEIGHT+1,x1-.8,yy),jitter(rng,(130,125,110),5))
-            line(d,[(x0,yy-MERLON_HEIGHT+1),(x1-.8,yy-MERLON_HEIGHT+1)],
-                 rgb(174,167,144),1.1)
-        # Bottom of ribbon must follow the true near vertex, with zero
-        # lateral bend. Posts are separate so the last pixels are masked.
+            yy=top-WALL_HEIGHT+7+j*(bottom-top-14)/6
+            lo=x0-3.4
+            hi=x1+1.8
+            # Right return: the recess has a distinct dark near-side edge.
+            poly(d,[(hi-3,yy-MERLON_HEIGHT),(hi,yy-MERLON_HEIGHT+2),
+                    (hi,yy+1),(hi-3,yy-.2)],rgb(58,57,52))
+            rect(d,(lo,yy-MERLON_HEIGHT,hi-2.4,yy-.8),
+                 jitter(rng,(125,119,105),6))
+            # Restrained top face: only 2 world units, NOT a roof seen above.
+            poly(d,[(lo,yy-MERLON_HEIGHT),(hi-2.4,yy-MERLON_HEIGHT),
+                    (hi-.5,yy-MERLON_HEIGHT-1.7),
+                    (lo+2.0,yy-MERLON_HEIGHT-1.7)],
+                 rgb(174,164,143))
+            line(d,[(lo+.7,yy-MERLON_HEIGHT+2),(lo+.7,yy-.9)],
+                 rgb(179,167,139),.65)
+        # Bottom of ribbon follows the true near vertex, without lateral
+        # X drift, so the shared corner pier can seal it cleanly.
     else:
         # A single planar face: source ground A and B define every course,
         # every upper edge and each upright merlon. Nothing may deform it.
@@ -281,7 +295,7 @@ def draw_direction(dir):
         line(d,[P(inset,.6),P(1-inset,.6)],rgb(64,64,56),.85)
     return finish(im,f"edge_dir{dir}")
 def draw_join(name):
-    w,h=(30,74) if name=="corner_post" else (26,74)
+    w,h=(34,74) if name=="corner_post" else (30,74)
     im=new_im(w,h); d=ImageDraw.Draw(im,"RGBA")
     rng=random.Random(SEED+100+(name!="corner_post"))
     xmin=3;xmax=w-3
@@ -345,7 +359,7 @@ def panel(cx,cy,label,segments,zoom=1.62):
         else:
             name="corner_post" if key>1 else "end_post"
             im=joins[name]
-            width=30 if key>1 else 26
+            width=34 if key>1 else 30
             dest=(round(px-width*zoom/2),round(py-74*zoom))
             size=(round(width*zoom),round(74*zoom))
         scaled=im.resize(size,Image.Resampling.LANCZOS)
