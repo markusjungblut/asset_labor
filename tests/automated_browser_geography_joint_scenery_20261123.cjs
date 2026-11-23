@@ -433,6 +433,17 @@ const plan=Plan.plan(world);
     previewMountainShadows:true,previewMountainReceivers:true,
     captureEditorCompositeReference:true
    });
+   const compositeBareSeam=await window.VedrasJointScenerySeam.create({
+    plan,allowEditorProjectionPreview:true,
+    renderer:{previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?compositeBare0:compositeBare1}
+   }).verifyPair('0,0','right');
+   const compositeShadowSeam=await window.VedrasJointScenerySeam.create({
+    plan,allowShadowPreview:true,allowMountainShadowPreview:true,
+    allowReceiverPreview:true,allowEditorProjectionPreview:true,
+    renderer:{previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?compositeShadow0:compositeShadow1}
+   }).verifyPair('0,0','right');
    const nativeBare0=nativeComposite(compositeBare0);
    const nativeBare1=nativeComposite(compositeBare1);
    const nativeShade0=nativeComposite(compositeShadow0);
@@ -450,6 +461,14 @@ const plan=Plan.plan(world);
    const compositeWithShadows=[
     compareFrames((await decodeComp(compositeShadow0.png)),nativeShade0.ctx),
     compareFrames((await decodeComp(compositeShadow1.png)),nativeShade1.ctx)];
+   const compositeSeams={
+    noShadow:{passed:compositeBareSeam.passesPixelIdentity,
+     different:compositeBareSeam.differingPixels,
+     painted:compositeBareSeam.paintedPixels},
+    withShadow:{passed:compositeShadowSeam.passesPixelIdentity,
+     different:compositeShadowSeam.differingPixels,
+     painted:compositeShadowSeam.paintedPixels}
+   };
    const compositeOcclusion=[
     {expected:hiddenFromNative(nativeBare0),
      drawn:compositeBare0.editorHiddenTrees+
@@ -466,7 +485,7 @@ const plan=Plan.plan(world);
    function hiddenFromNative(frame){return frame.hidden.length;}
    console.log('EDITOR_COMPOSITE_DIAGNOSTIC',JSON.stringify({
     bare:compositeNoShadows,shadows:compositeWithShadows,
-    occlusion:compositeOcclusion,
+    seams:compositeSeams,occlusion:compositeOcclusion,
     receivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers]
    }));
@@ -553,7 +572,7 @@ const plan=Plan.plan(world);
     shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
     mountainChangedPixels,authoredChangedPixels,
     receiverChangedPixels,
-    compositeNoShadows,compositeWithShadows,compositeOcclusion,
+    compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositeReceivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers],
     editorBodyChangedPixels,editorReceiverChangedPixels,
@@ -629,6 +648,10 @@ const plan=Plan.plan(world);
    'the editor must independently reproduce exact sprite draw ordering');
   assert(result.compositeReceivers.some(x=>x>0),
    'multiple real Nature sprites must actually receive casts');
+  assert(result.compositeSeams.noShadow.passed,true);
+  assert.equal(result.compositeSeams.noShadow.different,0);
+  assert(result.compositeSeams.withShadow.passed,true);
+  assert.equal(result.compositeSeams.withShadow.different,0);
   assert(result.compositeNoShadows.every(x=>x.painted>10000));
   assert(result.compositeWithShadows.every(x=>x.painted>10000));
   // Exact pixel parity is the target, but the diagnostic must show any
