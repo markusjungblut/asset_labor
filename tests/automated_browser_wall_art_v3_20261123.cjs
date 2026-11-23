@@ -15,10 +15,9 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
-  const svg=/^\/assets\/walls\/stone\/edge_dir[0-5]\.svg$/.test(name);
-  const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
-  if(!svg&&!webp){res.writeHead(404);return res.end('missing');}
-  res.writeHead(200,{'Content-Type':svg?'image/svg+xml':'image/webp'});
+  const webp=/^\/assets\/walls\/(?:palisade|stone)\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
+  if(!webp){res.writeHead(404);return res.end('missing');}
+  res.writeHead(200,{'Content-Type':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
