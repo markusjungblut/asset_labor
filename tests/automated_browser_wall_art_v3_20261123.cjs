@@ -16,7 +16,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
   const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
-  const png=/^\/assets\/walls\/stone\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
+  const png=/^\/assets\/walls\/stone\/v5\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
   if(!webp&&!png){res.writeHead(404);return res.end('missing');}
   res.writeHead(200,{'Content-Type':png?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
@@ -98,7 +98,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const diagonalFeet=[];
    for(const dir of [0,2,3,5]){
     const im=new Image();
-    im.src='assets/walls/stone/edge_dir'+dir+'.png?v=20261123-stone-correct-hex-v4';
+    im.src='assets/walls/stone/v5/edge_dir'+dir+'.png?v=20261123-stone-true-hex-v5';
     await im.decode();
     const proof=document.createElement('canvas');
     proof.width=im.naturalWidth;proof.height=im.naturalHeight;
@@ -111,7 +111,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
       if(p[(y*proof.width+x)*4+3]>180)return y;
      throw Error('Missing painted masonry footprint at direction '+dir);
     };
-    diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78)});
+    const [dq,dr]=W.DIRS[dir],geometry=W.geometry({a:[0,0],b:[dq,dr],kind:'stone'});
+    const ideal=((geometry.b.y-geometry.a.y)*.85/(geometry.b.x-geometry.a.x))*
+     ((.78-.22)*im.naturalWidth);
+    diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78),ideal});
    }
    return {ok,info,connected,atFoot,shadowColor,diagonalFeet,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
@@ -122,7 +125,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
-  for(const {dir,left,right} of result.diagonalFeet){
+  for(const {dir,left,right,ideal} of result.diagonalFeet){
+   assert(Math.abs((right-left)-ideal)<25,
+    '3x raster base must follow the true hex slope, not merely its sign: '+dir+
+    ', observed='+(right-left)+', ideal='+ideal);
    const shouldDescend=dir===0||dir===3;
    assert(shouldDescend?right-left>90:left-right>90,
     'direction '+dir+' must follow the real hex footprint, left='+left+', right='+right);

@@ -17,7 +17,7 @@ const W=scope.window.VedrasWalls,R=scope.window.VedrasRivers;
 const expected=[[156,167,14,89],[40,216,20,82],[156,167,142,89],
  [156,167,142,152],[40,216,20,208],[156,167,14,152]];
 function size(file){
- const bytes=fs.readFileSync(path.join(root,'assets','walls','stone',file+'.png'));
+ const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v5',file+'.png'));
  assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file);
  assert([8,16].includes(bytes[24]),'Each source must be genuine RGB+A PNG');
  assert.equal(bytes[25],6,'Transparent RGBA PNG is required');
@@ -47,11 +47,11 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
  assert.equal(info.stonePostsLoaded,2);
  assert.equal(loaded.length,16);
  for(let dir=0;dir<6;dir++){
-  assert(loaded.some(x=>x.includes('walls/stone/edge_dir'+dir+'.png?v=20261123-stone-correct-hex-v4')));
+  assert(loaded.some(x=>x.includes('walls/stone/v5/edge_dir'+dir+'.png?v=20261123-stone-true-hex-v5')));
   assert(loaded.some(x=>x.includes('walls/palisade/edge_dir'+dir+'.webp?v=20261123-painted-volumetric-v5')));
  }
  for(const join of ['corner_post','end_post']){
-  assert(loaded.some(x=>x.includes('walls/stone/'+join+'.png?v=20261123-stone-correct-hex-v4')));
+  assert(loaded.some(x=>x.includes('walls/stone/v5/'+join+'.png?v=20261123-stone-true-hex-v5')));
   assert(loaded.some(x=>x.includes('walls/palisade/'+join+'.webp?v=20261123-painted-volumetric-v5')));
  }
  assert(!loaded.some(x=>x.endsWith('.svg')||x.includes('.svg?')));
@@ -70,7 +70,7 @@ test('all six stone directions draw independent raster images, not vector facade
  assert.equal(drawCalls.length,6);
  for(let dir=0;dir<6;dir++){
   const img=drawCalls[dir][0];
-  assert(img.src.includes('walls/stone/edge_dir'+dir+'.png'));
+  assert(img.src.includes('walls/stone/v5/edge_dir'+dir+'.png'));
   assert.equal(drawCalls[dir][3],expected[dir][0]);
   assert.equal(drawCalls[dir][4],expected[dir][1]);
  }
@@ -85,8 +85,8 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
  assert(corner&&end&&mixed);
  const project=(x,y)=>({x:100+x,y:200+y*.85});
  for(const [node,asset,width,height] of [
-  [corner,'stone/corner_post.png',34,74],
-  [end,'stone/end_post.png',30,74],
+  [corner,'stone/v5/corner_post.png',34,74],
+  [end,'stone/v5/end_post.png',30,74],
   [mixed,'palisade/corner_post.webp',25,76]]){
   const calls=[],ctx={save(){},restore(){},drawImage(...args){calls.push(args);}};
   assert(W.drawJoin(ctx,node,project,1));
@@ -99,13 +99,14 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
   assert(Math.abs(calls[0][2]+height-p.y)<1e-6);
  }
 });
-test('viewer and baked scene invalidate pre-v4 stone assets',()=>{
+test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("stone-correct-hex-v4"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261123-stone-correct-hex-v4'));
- assert(html.includes('walls=20261123-stone-correct-hex-v4'));
+ assert(html.includes('walls.js?v=20261123-stone-true-hex-v5'));
+ assert(html.includes('walls=20261123-stone-true-hex-v5'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
+ assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
 });
