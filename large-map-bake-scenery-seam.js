@@ -8,7 +8,7 @@ const SCHEMA="vedras-geography-joint-scenery-seam-proof-v1";
 const SIZE=512,SCALE_X=2.5,SCALE_Y=2.125,PAD=128;
 const EXPECTED_WIDTH=Math.round((SIZE+2*PAD)*SCALE_X);
 const EXPECTED_HEIGHT=Math.round((SIZE+2*PAD)*SCALE_Y);
-function create({plan,renderer,allowShadowPreview=false,
+function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPreview=false,
  bitmapFactory=root.createImageBitmap?.bind(root),
  canvasFactory=()=>root.document.createElement("canvas")}={}){
  if(plan?.schema!=="vedras-geography-bake-plan-v1"||
@@ -17,7 +17,8 @@ function create({plan,renderer,allowShadowPreview=false,
   !Array.isArray(plan.tiles)||plan.tiles.length!==plan.tileCount||
   !plan.source?.fingerprint||typeof renderer?.renderTile!=="function"||
   renderer.previewOnly!==true||typeof bitmapFactory!=="function"||
-  typeof canvasFactory!=="function")
+  typeof canvasFactory!=="function"||
+  (allowMountainShadowPreview&&!allowShadowPreview))
   throw Error("Pixelnahtprüfung benötigt den ungeänderten Weltplan und Original-Scenery-Testbilder.");
  const tiles=new Map();
  for(const tile of plan.tiles){
@@ -53,11 +54,17 @@ function create({plan,renderer,allowShadowPreview=false,
  }
  function validateResult(result,id){
   if(result?.schema!=="vedras-geography-joint-scenery-preview-v1"||
-   result.stage!==(allowShadowPreview?
-    "original-sprite-shadow-scenery-preview":
+   result.stage!==(allowMountainShadowPreview?
+    "original-mountain-sprite-shadow-scenery-preview":
+    allowShadowPreview?"original-sprite-shadow-scenery-preview":
     "original-tree-mountain-combined-preview")||
-   (allowShadowPreview&&(!result.needsOriginalMountainShadows||
-    !(result.originalShadowProfiles>0)))||
+   (allowShadowPreview&&!(result.originalShadowProfiles>0))||
+   (allowMountainShadowPreview&&(
+    result.needsOriginalMountainShadows!==false||
+    !(result.drawnOriginalMountainShadows>0)||
+    result.needsMountainShadowScenePresetParity!==true))||
+   (allowShadowPreview&&!allowMountainShadowPreview&&
+    !result.needsOriginalMountainShadows)||
    result.tile?.id!==id||
    result.tile.x!==tiles.get(id).x||
    result.tile.y!==tiles.get(id).y||
@@ -129,7 +136,8 @@ function create({plan,renderer,allowShadowPreview=false,
    differingPixels:differing,maxChannelDifference:maxDelta,
    firstDifferences:examples,passesPixelIdentity:differing===0&&painted>0,
    needsEditorVisualParity:true,needsOriginalShadows:true,
-   shadowMode:allowShadowPreview?"original-sprite-preview":"none",
+   shadowMode:allowMountainShadowPreview?"original-mountain-and-sprite-preview":
+    allowShadowPreview?"original-sprite-preview":"none",
    needsOriginalMountainShadows:true,
    complete:false,readyForViewer:false,rasterized:false};
  }

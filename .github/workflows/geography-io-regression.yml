@@ -18,6 +18,7 @@ on:
       - 'large-map-bake-nature-late-rock-snow.js'
       - 'large-map-bake-nature-accents.js'
       - 'large-map-bake-original-sprite-shadows.js'
+      - 'large-map-bake-original-mountain-shadows.js'
       - 'large-map-bake-scenery-seam.js'
       - 'tests/automated_browser_geography_joint_scenery_20261123.cjs'
       - '.github/workflows/geography-io-regression.yml'
@@ -57,6 +58,8 @@ jobs:
             /assets/nature/bush_01.png
             /assets/nature/fallen_log_01.png
             /assets/shadows/sprite_shadow_profiles.json
+            /shadow-system.js
+            /large-map-bake-original-mountain-shadows.js
             /assets/terrain/terrain_catalog.json
       - uses: actions/setup-node@v4
         with:

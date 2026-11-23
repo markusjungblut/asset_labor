@@ -282,10 +282,12 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   }
   return plan.tiles[0]?.id||null;
  }
- async function renderTile(id,{previewSpriteShadows=false}={}){
+ async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false}={}){
+  if(previewMountainShadows&&!previewSpriteShadows)
+   throw Error("Original-Bergschatten brauchen die gemeinsame Original-Sprite-Schattenprobe.");
   const tile=byTile.get(id);
   if(!tile)throw Error("Unbekanntes geografisches WorldTile.");
-  const near=candidates(tile),images=new Map(),placed=[];
+  const near=candidates(tile),images=new Map(),placed=[],shadowOnlyMountains=[];
   // Decode, alpha-validate and size-check BEFORE any output Canvas2D draw.
   for(const item of near){
    let img=images.get(item.inst.assetPath);
@@ -298,7 +300,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    }
    const g=geometry(item,img);
    if(g.box.right<tile.x-PAD||g.box.left>tile.x+SIZE+PAD||
-      g.box.bottom<tile.y-PAD||g.box.top>tile.y+SIZE+PAD)continue;
+      g.box.bottom<tile.y-PAD||g.box.top>tile.y+SIZE+PAD){
+    // The mountain's OWN sprite may lie outside this WorldTile while
+    // its LEFT-directed native ground cast still crosses the tile.
+    if(previewMountainShadows&&item.type==="mountain")
+     shadowOnlyMountains.push({item,img,g,shadowOnly:true});
+    continue;
+   }
    placed.push({item,img,g,coveredByMountains:new Set()});
   }
   const mount=placed.filter(x=>x.item.type==="mountain"),
@@ -327,6 +335,15 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   const ctx=output.getContext("2d",{alpha:true});
   if(!ctx?.setTransform||!ctx?.drawImage)
    throw Error("Gemeinsame transparente Scenery-Canvas2D fehlt.");
+  let mountainShadowResult=null;
+  if(previewMountainShadows){
+   if(typeof root.VedrasLargeMapOriginalMountainShadows?.paint!=="function")
+    throw Error("Natives Bergschatten-Modul nicht geladen.");
+   mountainShadowResult=root.VedrasLargeMapOriginalMountainShadows.paint({
+    objects:[...mount,...shadowOnlyMountains],output,tile,canvasFactory,
+    scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
+   });
+  }
   let shadowResult=null;
   if(previewSpriteShadows){
    if(typeof root.VedrasLargeMapOriginalSpriteShadows?.paint!=="function")
@@ -381,8 +398,10 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   else throw Error("Scenery-PNG-Kodierer fehlt.");
   if(!(png instanceof Blob)||png.type!=="image/png"||!png.size)
    throw Error("Transparente Scenery-PNG leer oder nicht kodiert.");
-  return {schema:SCHEMA,stage:previewSpriteShadows?
-    "original-sprite-shadow-scenery-preview":"original-tree-mountain-combined-preview",
+  return {schema:SCHEMA,stage:previewMountainShadows?
+    "original-mountain-sprite-shadow-scenery-preview":
+    previewSpriteShadows?"original-sprite-shadow-scenery-preview":
+    "original-tree-mountain-combined-preview",
    tile:{...tile},png,width:output.width,height:output.height,
    drawnTrees:trees.length,drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
@@ -391,7 +410,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    drawnOriginalSpriteShadows:shadowResult?.drawn||0,
    drawnManualShadows:shadowResult?.manual||0,
    originalShadowProfiles:shadowResult?.profiles||0,
-   needsOriginalMountainShadows:true,
+   drawnOriginalMountainShadows:mountainShadowResult?.drawn||0,
+   drawnShadowOnlyMountains:mountainShadowResult?.onlyShadow||0,
+   originalMountainShadowPositivePixels:mountainShadowResult?.nonzeroPixels||0,
+   originalMountainShadowMaxAlpha:mountainShadowResult?.maxAlpha||0,
+   needsOriginalMountainShadows:!previewMountainShadows,
+   needsMountainShadowScenePresetParity:true,
+   needsMountainSpriteReceiverParity:true,
    testedOtherMountainOcclusions:(ordinary.length+snow.length+accents.length)*mount.length,
    occludedOtherMountainPairs:occludedOther,
    testedTreeMountainOcclusions:trees.length*mount.length,
