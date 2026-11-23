@@ -179,8 +179,9 @@ def draw_direction(dir):
     else:
         # A single planar face: source ground A and B define every course,
         # every upper edge and each upright merlon. Nothing may deform it.
-        poly(d,[P(inset,0,back),P(1-inset,0,back),
-                P(1-inset,WALL_HEIGHT,back),P(inset,WALL_HEIGHT,back)],rgb(63,64,59))
+        # The front face alone defines the crenel gaps. A painted BACK top
+        # made an accidental continuous high roof through every gap because
+        # its screen-depth lift nearly matched MERLON_HEIGHT.
         poly(d,quad(inset,1-inset,0,WALL_HEIGHT),rgb(65,66,62))
         rows=5
         for row in range(rows):
@@ -197,10 +198,7 @@ def draw_direction(dir):
                 draw_brick(d,rng,brick,(120,119,107))
         # Low parapet coping with narrow, subdued top, rather than a visible
         # birds-eye top face of the former hand-painted crenellations.
-        # A thin visible masonry thickness, NEVER a broad birds-eye roof.
-        poly(d,[P(inset,WALL_HEIGHT,back),P(1-inset,WALL_HEIGHT,back),
-                P(1-inset,WALL_HEIGHT,near),P(inset,WALL_HEIGHT,near)],
-             rgb(127,124,108))
+        # Strictly front-facing low coping; do not show a continuous roof.
         poly(d,[P(inset,WALL_HEIGHT-2),P(1-inset,WALL_HEIGHT-2),
                 P(1-inset,WALL_HEIGHT+1),P(inset,WALL_HEIGHT+1)],rgb(85,85,77))
         line(d,[P(inset,WALL_HEIGHT+1),P(1-inset,WALL_HEIGHT+1)],
