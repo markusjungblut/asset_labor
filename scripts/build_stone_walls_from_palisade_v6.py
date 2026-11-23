@@ -27,7 +27,7 @@ PAL_META=((140,148,6,78.368581),(28,210,14,78.184291),
           (28,210,14,203.815709),(141,148,6,141.184291))
 WALL_HEIGHT=62
 MERLON_HEIGHT=11
-WIDTH=22
+WIDTH=24  # matches walls.js widthFor('stone') exactly
 SEED=97026
 def pos(q,r):
     return (HEX*(q+r/2),1.5*R*r)
