@@ -48,63 +48,63 @@
         468,
         501
       ],
-      "sha256": "ab6d84684b96f875578b6adb6e7e8c78b689196253b84c2e5d824dc935bef8bb"
+      "sha256": "1fcc636763c9f90489bbc70b0df6288a0514bd8ed0d3fae9a6adeacbffc4c90e"
     },
     "corner_post.png": {
       "size": [
         90,
         222
       ],
-      "sha256": "9ab5bdc437f05c79e62c873fa6bdb83a7ada34f993776d1dd1e66fe601b971ff"
+      "sha256": "cf8d54f6271df547985256fa4cb23d7afeb8586aa029ca6e838604f6fbc826e6"
     },
     "real-hex-v6-preview.png": {
       "size": [
         1700,
         1280
       ],
-      "sha256": "782a76b334be87b8464579f6ae51e831b1002f621509aef339e542486dc3b02a"
+      "sha256": "1cb6a16eec640734b7822de8e3a286f24d0a1f4b843b8f2556f23727015584a3"
     },
     "end_post.png": {
       "size": [
         78,
         222
       ],
-      "sha256": "fc0a3e0db6421f2920cf1b1d8ffef1dc4f95f46df6d3fb0e328f0a16712656a2"
+      "sha256": "f5c54b7cae4db92e32512daf9b3f9cda39a42195e8966edcc7869c803b733c1f"
     },
     "edge_dir4.png": {
       "size": [
         120,
         648
       ],
-      "sha256": "103b3a0c7efc4d421690c3b8211ff40fdcb04715554b4beff2966e0ccf772a2b"
+      "sha256": "3cd9a37c49f4d1e47099e01d2f4e2db0899fdc6bf228b97f1caa582407b8522c"
     },
     "edge_dir3.png": {
       "size": [
         468,
         501
       ],
-      "sha256": "ad6b530a094aff038b8b9a33c312bd62ced4039d65a1c21e2d3dbc84c6d69a6e"
+      "sha256": "46aef5b59c7773a2662008ad98178eb3c246bcef25814ec483ea765f9739b93a"
     },
     "edge_dir1.png": {
       "size": [
         120,
         648
       ],
-      "sha256": "4c8197713cf0c71d006989324ec6c210b74e318ce53c3b89343ecffd57d57680"
+      "sha256": "7a8d7e39e9f850d0d0243ae9a171ddad32f7a2cc84932e6939069df410f3e3e3"
     },
     "edge_dir0.png": {
       "size": [
         468,
         501
       ],
-      "sha256": "6220de38afadd80c10a8e98dbc0d378331b33899eae3c94928de7eb769fdb952"
+      "sha256": "7c541fa11dd251cb7843195df16dd5fc11989dbbcf3b05f115c13be6aeccd227"
     },
     "edge_dir2.png": {
       "size": [
         468,
         501
       ],
-      "sha256": "3e7d6baa3754f78480f81142be0c881c3df7a25f5ae3cd73a33c2bed3d5af613"
+      "sha256": "0945a4d65bd58fd930d24aaf77be84b1159eb6de05363d07bcd64a257bbd621a"
     }
   },
   "topology": {
