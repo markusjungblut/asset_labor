@@ -92,4 +92,33 @@ assert(app.includes('Sh.paintMountain(g,{x:-left,y:-top},w,cfg,global)')&&app.in
 assert(app.includes('mountainOriginForObject(o,sh)'),'dragging uses actual alpha origin');
 assert(editor.includes('placementScale(meta)')&&editor.includes('encodeInstanceShadow(sh)'),
  'new sprite spacing and saved shape are integrated');
+// The live 2.5D renderer must not darken a foreground canopy merely because
+// its rectangular projection intersects a ground cast behind its trunk.
+const start=app.indexOf('function protectsSouthwestLargeSprite(');
+const end=app.indexOf('// Reuse one scratch canvas',start);
+assert(start>=0&&end>start,'test actual mountain/sprite occlusion code');
+const shadowGate=vm.runInNewContext(
+ '(casts)=>{const mountainCastsForFrame=casts;'+app.slice(start,end)+
+ ';return {spriteMountainCasts,mountainShadowReachesFoot};}',
+ {window:{VedrasShadows:S},toScreen:(x,y)=>({x,y})});
+const caster={type:'mountain',cell:'5,5'};
+const mountainCast={owner:caster,canvas:{},shape,modelWidth:width,
+ strength:.7,peakAlpha:Math.round(main*255),
+ x:shape.p2.x-160,y:origin.y-160,width:550,height:450};
+const gate=shadowGate([mountainCast]);
+const area=[mountainCast.x,mountainCast.y,mountainCast.width,mountainCast.height];
+const inCast={type:'nature',cell:'1,1',x:shape.p1.x,y:shape.p1.y};
+const sunlit={type:'nature',cell:'2,2',x:origin.x+width*.19,y:shape.p1.y};
+const list=(o)=>gate.spriteMountainCasts(o,...area);
+assert(S.mountainAlphaAt(sunlit.x,sunlit.y,shape,width,.7)===0,
+ 'sample sunlit foot genuinely outside the cast');
+assert.equal(list(inCast).length,1,'tree rooted inside mountain shadow is shaded');
+assert.equal(list(sunlit).length,0,'sunlit foreground tree must never have a shadowed crown');
+assert.equal(list(caster).length,0,'mountain cannot receive its own cast');
+assert.equal(list({...inCast,type:'building',cell:'4,6'}).length,0,
+ 'SW building height exception is preserved');
+assert(app.includes('shape:window.VedrasShadows.mountainShape(origin,width,cfg)'),
+ 'ground and sprite shading must share the same mountain model');
+assert(!app.slice(start,end).includes('getImageData('),
+ 'per-object shadow test must never read back Canvas2D pixels');
 console.log('PASS: directional mountain field, alpha foot, scale bump with deadwood exclusions and original density quotas.');

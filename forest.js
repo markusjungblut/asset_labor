@@ -11,10 +11,19 @@ window.VedrasForest=(()=>{
  };
  const random=(seed,q,r,salt=0)=>hash(seed,q,r,salt)/4294967296;
  const distance=(a,b)=>Math.max(Math.abs(a.q-b.q),Math.abs(a.r-b.r),Math.abs(a.q+a.r-b.q-b.r));
+ // Smooth, deterministic +/-1 variation across neighboring hexes.
+ // A three-hex wavelength avoids a checkerboard of dense/empty crowns.
+ function canopyDrift(seed,q,r){
+  const x=q/3,y=r/3,ix=Math.floor(x),iy=Math.floor(y);
+  const u=(x-ix)**2*(3-2*(x-ix)),v=(y-iy)**2*(3-2*(y-iy));
+  const a=random(seed,ix,iy,2301),b=random(seed,ix+1,iy,2301);
+  const c=random(seed,ix,iy+1,2301),d=random(seed,ix+1,iy+1,2301);
+  return 2*((a+(b-a)*u)*(1-v)+(c+(d-c)*u)*v)-1;
+ }
  // Tropical canopy is a climate-specific overlay, not a universal forest type.
  const jungleAllowed=base=>['jungle','savanna'].includes(base);
  const defaults=()=>({enabled:true,seed:12345,coverage:0.38,edgeStrength:0.72,
-  mode:'canopy',canopyCover:.82,gladeRate:.10,debug:false,
+  mode:'canopy',canopyCover:.82,canopyVariation:.15,openTreeChance:.18,gladeRate:.10,debug:false,
   overrides:{},densityOverrides:{},geographyHexes:{},jungleHexes:{}});
  function valid(raw){
   const d=defaults(),v=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
@@ -39,6 +48,8 @@ window.VedrasForest=(()=>{
    coverage:numeric(v.coverage,d.coverage,0,1),edgeStrength:numeric(v.edgeStrength,d.edgeStrength,0,1),
    mode:['classic','dense','canopy'].includes(v.mode)?v.mode:d.mode,
    canopyCover:numeric(v.canopyCover,d.canopyCover,.35,.98),
+   canopyVariation:numeric(v.canopyVariation,d.canopyVariation,0,.30),
+   openTreeChance:numeric(v.openTreeChance,d.openTreeChance,0,.50),
    gladeRate:numeric(v.gladeRate,d.gladeRate,0,.30),
    debug:v.debug===true,overrides,densityOverrides,geographyHexes,jungleHexes};
  }
@@ -152,7 +163,17 @@ window.VedrasForest=(()=>{
    }
    const base=c.forestClass==='dense_forest'?1:
     c.forestClass==='light_forest'?.49:c.edgeInfluence>.08?.17:0;
-   c.canopyCoverage=clamp(options.canopyCover*base*
+   // Density swing is in absolute percentage points around the canopy target
+   // (82% +/-15 pp by default), BEFORE biome, density and glade multipliers.
+   // All forest canopy types share the same smooth regional fluctuation; they
+   // remain light/dense forest without changing the geography classification.
+   // Prefer absolute original geography coordinates for stable preview crops.
+   const original=originalByKey.get(c.key);
+   const worldQ=Number.isFinite(original?.worldQ)?original.worldQ:c.q;
+   const worldR=Number.isFinite(original?.worldR)?original.worldR:c.r;
+   const target=clamp(options.canopyCover+
+    options.canopyVariation*canopyDrift(options.seed,worldQ,worldR),0,.98);
+   c.canopyCoverage=clamp(target*base*
     (.64+.36*c.density)*c.suitability*(c.glade?.24:1),0,.98);
   }
   return info;

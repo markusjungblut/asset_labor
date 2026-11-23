@@ -24,7 +24,7 @@ window.VedrasManualShadows=(()=>{
  function render(ctx,raw,anchor,width,alpha,blur){
   if(!raw?.polygons?.length||width<=0||alpha<=0)return;
   ctx.save();ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=clamp(alpha,0,.95);ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
+  ctx.globalAlpha=clamp(alpha,0,1);ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
   ctx.filter='blur('+Math.max(0,blur)+'px)';
   ctx.translate(anchor.x,anchor.y);ctx.scale(width,width);
   for(const poly of raw.polygons){

@@ -7,7 +7,7 @@
  // Separate mountain tools from Nature generation. Editing and mountain tools are independent workflows.
  const mountain=$('mountainTools'),natureTools=$('natureLabTools');
  if(mountain&&natureTools)natureTools.after(mountain);
- const captions={natureLabTools:'Natur auf Karte verteilen',spriteShadowLab:'Schatten-Editor: alle Sprites',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',riverPanel:'Flüsse',roadPanel:'Wege & Straßen',polishPanel:'Grafik-Finish',viewSettings:'Ansicht & Qualität',testSceneSettings:'Testszene & Ausgabe'};
+ const captions={natureLabTools:'Natur auf Karte verteilen',spriteShadowLab:'Schatten-Editor: alle Sprites',mountainTools:'Berge & Bergketten',terrainTests:'Gelände & Regionen testen',reliefPanel:'Hügel & Relief',shorelinePanel:'Ufer & Küsten',riverPanel:'Flüsse',roadPanel:'Wege & Straßen',wallPanel:'Mauern & Palisaden',polishPanel:'Grafik-Finish',viewSettings:'Ansicht & Qualität',testSceneSettings:'Testszene & Ausgabe'};
  // Set up native accessible disclosure containers, no reimplementation of existing event handlers.
  function accordion(element,open){
   const wrap=document.createElement('details');wrap.className='lab-accordion';wrap.id='drawer_'+element.id;wrap.open=!!open;
@@ -109,7 +109,7 @@
  // real DOM nodes, not cloned replacements, are moved.
  const groups=[
   {id:'terrain',title:'01 · Gelände & Wasser',
-   drawers:['terrainTests','reliefPanel','shorelinePanel','riverPanel','roadPanel']},
+   drawers:['terrainTests','reliefPanel','shorelinePanel','riverPanel','roadPanel','wallPanel']},
   {id:'nature',title:'02 · Natur, Berge & Schatten',
    drawers:['natureLabTools','mountainTools','spriteShadowLab','polishPanel']},
   {id:'view',title:'03 · Ansicht & Darstellung',
@@ -168,7 +168,7 @@
  if($('shadowToneControls')&&$('drawer_spriteShadowLab')){
   const balanceShortcut=document.createElement('button');
   balanceShortcut.type='button';
-  balanceShortcut.textContent='Schattenangleich';
+  balanceShortcut.textContent='Schatten-Grauton';
   balanceShortcut.dataset.drawer='spriteShadowLab';
   balanceShortcut.dataset.focus='shadowToneControls';
   balanceShortcut.setAttribute('aria-controls','drawer_spriteShadowLab');

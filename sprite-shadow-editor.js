@@ -69,8 +69,12 @@ window.VedrasSpriteShadows=(()=>{
   const globalStrength=strength===null?current.global.strength:strength;
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
   const familyFactor=(small?.28:1)*(family==='snow_fallen_logs'?.8:1);
-  const alpha=clamp(globalStrength*opacity*
+  const legacyAlpha=clamp(globalStrength*opacity*
    (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor),0,.95);
+  // Authored opacity still allows disabling a cast, but it no longer
+  // multiplies the common visible tone of manual/auto/ground-cover shadows.
+  const tonal=window.VedrasShadowTone?.targetAlpha?.('sprite');
+  const alpha=tonal??legacyAlpha;
   if(alpha<=0)return;
   if(x.manual?.polygons?.length){
    // Many boulders have manually drawn long casts but no contact
@@ -80,7 +84,7 @@ window.VedrasSpriteShadows=(()=>{
    if(obj?.natureMeta?.kind==='rock'&&x.contact>0){
     const originX=p.x+width*x.offsetX,originY=p.y+width*x.offsetY;
     ctx.save();ctx.globalCompositeOperation='source-over';
-    ctx.globalAlpha=Math.min(.48,alpha*.46);
+    ctx.globalAlpha=tonal??Math.min(.48,alpha*.46);
     ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';
     ctx.filter='blur('+Math.max(1,Math.min(8,x.softness))+'px)';
     ctx.beginPath();ctx.ellipse(originX-width*.10,originY,
@@ -96,7 +100,7 @@ window.VedrasSpriteShadows=(()=>{
     ox=p.x+width*x.offsetX,oy=p.y+width*x.offsetY,
     blur=Math.min(30,x.softness);
   ctx.save();ctx.globalCompositeOperation='source-over';
-  ctx.globalAlpha=clamp(alpha*(log?.65:.48),0,.94);
+  ctx.globalAlpha=tonal??clamp(alpha*(log?.65:.48),0,.94);
   ctx.fillStyle=window.VedrasShadowTone?.colorCss()||'#203131';ctx.filter='blur('+Math.max(0,blur*.65)+'px)';
   // Contact ellipse is long for logs, compact for trees and stones.
   const contactX=ox+castX*(log?.40:.22),contactY=oy+castY*(log?.36:.20);
@@ -174,7 +178,8 @@ window.VedrasSpriteShadows=(()=>{
   const opacity=window.VedrasShadowTone?.opacity(x.opacity,.40)??x.opacity;
   const familyFactor=(kind==='ground_cover'?.28:1)*
    (family==='snow_fallen_logs'?.8:1);
-  const alpha=globalStrength*opacity*
+  const alpha=window.VedrasShadowTone?.targetAlpha?.('sprite')??
+   globalStrength*opacity*
    (window.VedrasShadowTone?.attenuation(familyFactor)??familyFactor);
   if(x.enabled===false||!(alpha>0))return;
   // Hand-painted masks, very small objects, and unsupported canvases keep
@@ -191,6 +196,7 @@ window.VedrasSpriteShadows=(()=>{
   const id=JSON.stringify([imageId(silhouette),obj.asset?.path,
    nominal,anchor.x??.5,anchor.y??.96,globalStrength,
    window.VedrasShadowTone?.revision?.()||0,
+   window.VedrasShadowTone?.inMaskPass?.()===true,
    family||'',kind||'',x.angle,x.opacity,x.length,x.width,x.softness,
    x.offsetX,x.offsetY,x.contact]);
   let raster=rasterCache.get(id);
@@ -492,29 +498,51 @@ window.addEventListener('DOMContentLoaded',()=>{
   'mountainContactLength'])$(id)?.addEventListener('input',()=>{
    if(isMountainAsset(asset()))preview();
   });
- // Tonal calibration is a local visual preview, deliberately separate from
- // the versioned server-side sprite profile JSON. No PNGs or stored maps change.
+ // Shared absolute grayscale is a local VISUAL override, independent
+ // from the versioned sprite profile JSON and the original source art.
  const Tone=window.VedrasShadowTone;
  if(Tone){
-  const ui=[['shadowToneBalance','shadowToneBalanceValue','balance']];
+  const level=$('shadowGrayLevel'),mountains=$('shadowGrayMountains');
   function refreshTone(){
-   const values=Tone.get();
-   for(const [slider,label,key] of ui){
-    if($(slider))$(slider).value=String(Math.round(values[key]*100));
-    if($(label))$(label).textContent=Math.round(values[key]*100)+' %';
+   const values=Tone.get(),v=Math.round(values.gray);
+   if(level)level.value=String(v);
+   if($('shadowGrayLevelValue'))
+    $('shadowGrayLevelValue').textContent=v+' / 100 · '+
+     Math.round(12+v*.88)+' % Schwarzdeckung';
+   if(mountains)mountains.checked=values.mountains;
+   // The gray override is AUTHORITATIVE. Do not leave old opacity
+   // sliders apparently functional when they are intentionally bypassed.
+   for(const id of ['ssGlobal_opacity','ssSprite_opacity']){
+    const node=$(id);if(node){node.disabled=true;
+     node.title='Der globale Grauton-Regler bestimmt die Deckkraft.';}
+   }
+   for(const id of ['ssGlobal_strength','shadowGeneralStrength',
+    'shadowGlobalStrength','mountainCastOpacity']){
+    const node=$(id);if(node){node.disabled=values.mountains;
+     node.title=values.mountains?
+      'Von der globalen Grauton-Vorgabe übersteuert.':
+      'Nur für Bergschatten ohne Grauton-Override.';}
    }
   }
-  for(const [slider,,key] of ui){
-   $(slider)?.addEventListener('input',()=>{
-    Tone.set({...Tone.get(),[key]:Number($(slider).value)/100});
-    refreshTone();refresh();core.requestDraw();
-   });
-   // Only invalidate the expensive WorldTile scenery once on release.
-   $(slider)?.addEventListener('change',()=>core.invalidateScenery?.());
+  function updateTone(changes){
+   Tone.set({...Tone.get(),...changes});
+   // Keep the single-sprite Canvas preview responsive while dragging.
+   // The large authored map rebuilds once after release/change below.
+   refreshTone();refresh();
   }
-  $('shadowToneReset')?.addEventListener('click',()=>{
-   Tone.set(Tone.defaults());refreshTone();refresh();core.invalidateScenery?.();
+  if(level){
+   level.addEventListener('input',()=>updateTone({gray:Number(level.value)}));
+   // Re-render expensive WorldTile scenery once on pointer release.
+   level.addEventListener('change',()=>core.invalidateScenery?.());
+  }
+  mountains?.addEventListener('change',()=>{
+   updateTone({mountains:mountains.checked});core.invalidateScenery?.();
   });
+  $('shadowToneReset')?.addEventListener('click',()=>{
+   Tone.set({...Tone.get(),gray:0,mountains:true});
+   refreshTone();refresh();core.invalidateScenery?.();
+  });
+  window.addEventListener('vedras:shadow-tone-changed',refreshTone);
   refreshTone();
  }
  // Keep the existing scene-wide 0–200% slider and the dedicated editor in sync.

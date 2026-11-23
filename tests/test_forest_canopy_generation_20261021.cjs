@@ -51,6 +51,34 @@ const stronger=generate({mode:'canopy',canopyCover:.98,gladeRate:0});
 assert.equal(stronger.filter(c=>c.glade).length,0);
 assert(stronger.find(c=>c.key==='0,0').canopyCoverage>
  canopy.find(c=>c.key==='0,0').canopyCoverage);
+
+// 2026-11-22: density fluctuation changes canopy targets but never forest
+// geography, and isolated-tree odds remain independent from the forest share.
+const zeroSwing=generate({mode:'canopy',gladeRate:0,canopyVariation:0});
+const swung=generate({mode:'canopy',gladeRate:0,canopyVariation:.30});
+const denseTargets=swung.filter(c=>c.forestClass==='dense_forest');
+assert(denseTargets.length>50,'test needs a substantial dense-forest region');
+assert(denseTargets.some(c=>Math.abs(c.canopyCoverage-
+ zeroSwing.find(b=>b.key===c.key).canopyCoverage)>.01),
+ 'regional density variation must change canopy targets');
+assert(denseTargets.some(c=>c.canopyCoverage>
+ zeroSwing.find(b=>b.key===c.key).canopyCoverage+.005));
+assert(denseTargets.some(c=>c.canopyCoverage<
+ zeroSwing.find(b=>b.key===c.key).canopyCoverage-.005));
+assert.deepEqual(swung,generate({mode:'canopy',gladeRate:0,canopyVariation:.30}),
+ 'the same seed and parameters give identical density variation');
+assert(zeroSwing.every((c,i)=>c.forestClass===swung[i].forestClass),
+ 'variation must never recategorize forest hexes');
+assert(F.valid({...F.defaults(),canopyVariation:100,openTreeChance:-1}).canopyVariation===.3);
+assert(F.valid({...F.defaults(),canopyVariation:100,openTreeChance:-1}).openTreeChance===0);
+assert.equal(F.valid({...F.defaults(),openTreeChance:.42}).openTreeChance,.42);
+assert.deepEqual(generate({openTreeChance:0}),generate({openTreeChance:.5}),
+ 'isolated-tree chance must not alter forest classification or canopy geometry');
+const cropped=F.generate(cells.map(c=>({...c,worldQ:c.q+170,worldR:c.r-120})),
+ terrain,{...cfg,gladeRate:0,canopyVariation:.3},
+ c=>c.terrainTypeId,c=>c.terrainTypeId);
+assert(cropped.some((c,i)=>Math.abs(c.canopyCoverage-swung[i].canopyCoverage)>.002),
+ 'regional density seed must respect absolute geographic coordinates');
 const legal=cells.filter(c=>c.biome==='grassland');
 const forestMap=new Map(legal.map((c,i)=>[F.key(c.q,c.r),{
  key:F.key(c.q,c.r),forestClass:i<60?'dense_forest':'none'
@@ -70,6 +98,10 @@ assert(floor.includes("sg.globalCompositeOperation='destination-out'")&&
 assert(app.includes('c.glade,c.gladeX,c.gladeY'),'forest mask keys include glade offsets and radii');
 assert(app.includes('geographyHexes[key(q,r)]=true'));
 assert(ui.includes("config().mode=e.target.value;changed(true)"));
-for(const id of ['forestMode','forestCanopyCover','forestGladeRate'])
+assert(ui.includes('config().canopyVariation=Number(e.target.value)/100;changed(true)'));
+assert(ui.includes('config().openTreeChance=Number(e.target.value)/100;changed(true)'));
+assert(nature.includes('rank(trees[0],c,311)<state.forest.openTreeChance'));
+assert(!nature.includes('rank(trees[0],c,311)<.06'), 'hardcoded 6% must be removed');
+for(const id of ['forestMode','forestCanopyCover','forestCanopyVariation','forestOpenTreeChance','forestGladeRate'])
  assert(html.includes('id="'+id+'"'),id+' input missing');
 console.log('PASS: 3 forest modes, geography density, connected glades, protected manual overrides and infrastructure.');
