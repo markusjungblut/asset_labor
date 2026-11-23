@@ -76,7 +76,18 @@ function create({plan,renderer,allowShadowPreview=false,allowMountainShadowPrevi
    result.complete!==false||result.readyForViewer!==false||
    !(result.png instanceof Blob)||result.png.type!=="image/png"||
    !result.png.size)
-   throw Error("Nicht verifizierbare Original-Scenery-PNG oder falsche Quellrevision.");
+   throw Error("Nicht verifizierbare Original-Scenery-PNG oder falsche Quellrevision: "+
+    JSON.stringify({id,stage:result?.stage,
+     expected:allowMountainShadowPreview?"original-mountain-sprite-shadow-scenery-preview":
+      allowShadowPreview?"original-sprite-shadow-scenery-preview":
+      "original-tree-mountain-combined-preview",
+     mountainShadows:result?.drawnOriginalMountainShadows,
+     mountainShadowPixels:result?.originalMountainShadowPositivePixels,
+     needsMountain:result?.needsOriginalMountainShadows,
+     presetParity:result?.needsMountainShadowScenePresetParity,
+     profiles:result?.originalShadowProfiles,
+     tile:result?.tile?.id,width:result?.width,height:result?.height,
+     source:result?.sourceFingerprint,expectedSource:plan.source.fingerprint}));
  }
  async function getPixels(png,x,y,width,height){
   const bitmap=await bitmapFactory(png);
