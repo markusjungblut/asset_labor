@@ -199,10 +199,10 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
   assert(bytes.length>8000,'junction artwork must be a real painting');
  }
  const js=source('walls.js'),index=source('index.html');
- assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg'"));
+ assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg?v=20261123-crenellated-stone-v1'"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261123-painted-palisade-v5'),
+ assert(index.includes('walls.js?v=20261123-stone-battlements-v1'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -260,7 +260,7 @@ test('twelve authored SVG variants exist and preserve canonical foot anchors',()
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-painted-palisade-v5'));
+ assert(html.includes('walls.js?v=20261123-stone-battlements-v1'));
  assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
 });
 
