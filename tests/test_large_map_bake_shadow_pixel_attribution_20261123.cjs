@@ -54,7 +54,7 @@ test('auditor rejects wrong RGBA arrays, duplicate ordinals and invalid bitmaps'
  const a=fixture();
  assert.throws(()=>S.analyze({...a,worldBare:[]}),/sechs/);
  assert.throws(()=>S.analyze({...a,originX:.5}),/globale Pixel/);
- assert.throws(()=>S.analyze({...a,width:5000}),/globale Pixel/);
+ assert.throws(()=>S.analyze({...a,width:5000,height:5000}),/globale Pixel/);
  assert.throws(()=>S.analyze({...a,
   spriteMasks:[a.spriteMasks[0],a.spriteMasks[0]]}),/Sprite-Masken/);
  assert.throws(()=>S.analyze({...a,spriteMasks:[{...a.spriteMasks[0],
