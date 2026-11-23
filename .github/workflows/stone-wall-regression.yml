@@ -1,0 +1,62 @@
+name: Stone Walls – Painted WebP Regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/walls/stone/**'
+      - 'walls.js'
+      - 'index.html'
+      - 'app.js'
+      - 'tests/test_wall_edges_v1_20261122.cjs'
+      - 'tests/test_stone_webp_v2_20261123.cjs'
+      - 'tests/automated_browser_wall_art_v3_20261123.cjs'
+      - '.github/workflows/stone-wall-regression.yml'
+  push:
+    branches: [feat/stone-battlements-aoe2-20261123]
+    paths:
+      - 'assets/walls/stone/**'
+      - 'walls.js'
+      - 'index.html'
+      - 'app.js'
+      - 'tests/test_wall_edges_v1_20261122.cjs'
+      - 'tests/test_stone_webp_v2_20261123.cjs'
+      - 'tests/automated_browser_wall_art_v3_20261123.cjs'
+      - '.github/workflows/stone-wall-regression.yml'
+permissions:
+  contents: read
+jobs:
+  stone-raster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /river.js
+            /walls.js
+            /wall-ui.js
+            /app.js
+            /index.html
+            /shadow-tone.js
+            /assets/walls/
+            /tests/test_wall_edges_v1_20261122.cjs
+            /tests/test_stone_webp_v2_20261123.cjs
+            /tests/automated_browser_wall_art_v3_20261123.cjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate canonical edges, palisade compatibility and painted WebPs
+        run: node --test tests/test_wall_edges_v1_20261122.cjs tests/test_stone_webp_v2_20261123.cjs
+      - name: Install headless Firefox for visual decoding
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps firefox
+      - name: Browser rendering, corners and unified shadow acceptance
+        run: node tests/automated_browser_wall_art_v3_20261123.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stone-wall-webp-v2-browser-preview
+          path: test-artifacts/wall-art-v3-all-directions.png
+          if-no-files-found: ignore
