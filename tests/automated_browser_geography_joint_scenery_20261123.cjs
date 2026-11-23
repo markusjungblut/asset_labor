@@ -145,6 +145,16 @@ const plan=Plan.plan(world);
     previewOnly:true,defaultTile:()=> '0,0',
     renderTile:async id=>id==='0,0'?a:b
    }});
+   console.log('MOUNTAIN_SHADOW_PREVERIFY',JSON.stringify({
+    tiles:[{id:a.tile.id,stage:a.stage,shadows:a.drawnOriginalMountainShadows,
+     shadowPixels:a.originalMountainShadowPositivePixels,
+     needs:a.needsOriginalMountainShadows,
+     profiles:a.originalShadowProfiles,scenePresetGate:a.needsMountainShadowScenePresetParity},
+     {id:b.tile.id,stage:b.stage,shadows:b.drawnOriginalMountainShadows,
+     shadowPixels:b.originalMountainShadowPositivePixels,
+     needs:b.needsOriginalMountainShadows,
+     profiles:b.originalShadowProfiles,scenePresetGate:b.needsMountainShadowScenePresetParity}]
+   }));
    const pixelProof=await verifier.verifyPair('0,0','right');
    const spriteOnly=await renderer.renderTile('0,0',{
     previewSpriteShadows:true,previewMountainShadows:false
