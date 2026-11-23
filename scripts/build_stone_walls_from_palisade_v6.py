@@ -211,12 +211,9 @@ def draw_direction(dir):
             half=.31/count
             lo=max(inset,center-half);hi=min(1-inset,center+half)
             if hi<lo:continue
-            # Each battlement is an upright rectangular merlon with a shaded
-            # narrow return; big top-down "Lego blocks" are prohibited.
-            poly(d,[P(hi,WALL_HEIGHT-1,near),P(hi,WALL_HEIGHT-1,back),
-                    P(hi,WALL_HEIGHT+MERLON_HEIGHT,back),
-                    P(hi,WALL_HEIGHT+MERLON_HEIGHT,near)],
-                 rgb(73,72,64))
+            # Strictly vertical merlon FRONT, with no receding side polygon.
+            # Projecting the full wall thickness here produced pointed roof
+            # spikes under .85 projection, a rejected bird's-eye artefact.
             poly(d,quad(lo,hi,WALL_HEIGHT-1,WALL_HEIGHT+MERLON_HEIGHT),
                  jitter(rng,(132,128,112),6))
             line(d,[P(lo,WALL_HEIGHT+MERLON_HEIGHT),P(hi,WALL_HEIGHT+MERLON_HEIGHT)],
