@@ -28,6 +28,7 @@ jobs:
             /geography-lab.html
             /geography-lab.js
             /.github/workflows/geography-large-bake-ci.yml
+            /.github/workflows/geography-io-regression.yml
             /chunks.js
             /large-map-bake-plan.js
             /large-map-bake-source.js
