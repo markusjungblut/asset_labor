@@ -670,19 +670,7 @@ $('previewTreeScenery').addEventListener('click',async()=>{
    throw Error('WorldTile-ID liegt nicht im geografischen Renderplan.');
   report.textContent='Originale Baum-PNGs für Kachel '+id+
    ' werden separat und transparent gerendert …';
-  const withShadows=$('jointSceneryWithShadows').checked;
-  if(withShadows){
-   if(!window.VedrasSpriteShadows?.set||!window.VedrasSpriteShadows?.valid||
-    !window.VedrasShadowTone?.targetAlpha)
-    throw Error('Original-Schattenrenderer nicht geladen.');
-   const response=await fetch('/api/sprite-shadows',{cache:'no-store'});
-   if(!response.ok)throw Error('Gespeicherte Original-Schattenprofile nicht verfügbar.');
-   const profiles=window.VedrasSpriteShadows.valid(await response.json());
-   if(!Object.keys(profiles.profiles).length)
-    throw Error('Kein gespeichertes Schattenprofil: Probe blockiert.');
-   window.VedrasSpriteShadows.set(profiles);
-  }
-  const sample=await renderer.renderTile(id,{previewSpriteShadows:withShadows});
+  const sample=await renderer.renderTile(id);
   if(current!==world)throw Error('Geografiewelt während des Renderns verändert.');
   if(sample.stage!=='original-tree-scenery-png-preview'||
     !sample.rasterized||sample.complete||sample.readyForViewer||
@@ -821,7 +809,20 @@ $('previewJointScenery').addEventListener('click',async()=>{
   if(!plan.tiles.some(t=>t.id===id))
    throw Error('WorldTile-ID liegt nicht im autoritativen geografischen Renderplan.');
   report.textContent='Original-Baum- und Berg-PNGs mit kontinuierlichem geografischem Relief für '+id+' werden dekodiert …';
-  const sample=await renderer.renderTile(id);
+  const withShadows=$('jointSceneryWithShadows').checked;
+  if(withShadows){
+   if(!window.VedrasSpriteShadows?.set||!window.VedrasSpriteShadows?.valid||
+    !window.VedrasShadowTone?.targetAlpha)
+    throw Error('Original-Schattenrenderer nicht geladen.');
+   const response=await fetch('/api/sprite-shadows',{cache:'no-store'});
+   if(!response.ok)throw Error('Gespeicherte Original-Schattenprofile nicht verfügbar.');
+   const profiles=window.VedrasSpriteShadows.valid(await response.json());
+   if(!Object.keys(profiles.profiles).length)
+    throw Error('Kein gespeichertes Schattenprofil: Probe blockiert.');
+   window.VedrasSpriteShadows.set(profiles);
+  }
+  const sample=await renderer.renderTile(id,{previewSpriteShadows:withShadows});
+
   if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
   if(sample.stage!==(withShadows?
     'original-sprite-shadow-scenery-preview':
