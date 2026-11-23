@@ -84,7 +84,14 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const timberPx=(x,y)=>[...tc.getImageData(Math.round(x),Math.round(y),1,1).data];
    const timberCore=timberPx(xyT.x,xyT.y-34);
    const timberFoot=timberPx(xyT.x,xyT.y-3);
-   const timberBelow=timberPx(xyT.x,xyT.y+5);
+   // Sample below the middle of ONE slope, not below a shared node:
+   // at the shared node the second valid segment naturally continues down.
+   const only=document.createElement('canvas');only.width=490;only.height=400;
+   const onlyCtx=only.getContext('2d',{willReadFrequently:true});
+   W.draw(onlyCtx,timber[0],project,.90);
+   const middle=W.midpoint(timber[0]),midp=project(middle.x,middle.y);
+   const timberBelow=[...onlyCtx.getImageData(
+    Math.round(midp.x),Math.round(midp.y+9),1,1).data];
    return {ok,info,connected,atFoot,shadowColor,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBelow,
     pngData:spot.toDataURL('image/png')};
