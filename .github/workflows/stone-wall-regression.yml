@@ -1,5 +1,13 @@
 name: Stone Walls – Painted Raster Regression
 on:
+  push:
+    branches: [feat/stone-battlements-aoe2-20261123]
+    paths:
+      - 'assets/walls/stone/v6/**'
+      - 'walls.js'
+      - 'tests/test_stone_webp_v2_20261123.cjs'
+      - 'tests/automated_browser_wall_art_v3_20261123.cjs'
+      - '.github/workflows/stone-wall-regression.yml'
   pull_request:
     branches: [main]
     paths:
