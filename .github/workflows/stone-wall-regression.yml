@@ -54,4 +54,5 @@ jobs:
           path: |
             test-artifacts/wall-art-v3-all-directions.png
             test-artifacts/editor-stone-v7.png
+            test-artifacts/editor-stone-v7-closeup.png
           if-no-files-found: ignore
