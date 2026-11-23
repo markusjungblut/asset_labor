@@ -794,7 +794,7 @@ async function makeJointSceneryPreview(current){
    terrainCatalog:catalog,natureCatalog,assets,
    loadImage:MATERIAL.imageLoader()
   });
-  return {plan,renderer,boulders,trunks,late,accents};
+  return {plan,renderer,scenery,boulders,trunks,late,accents};
 }
 async function loadJointOriginalShadows(){
  if(!window.VedrasSpriteShadows?.set||!window.VedrasSpriteShadows?.valid||
@@ -807,6 +807,31 @@ async function loadJointOriginalShadows(){
   throw Error('Kein gespeichertes Schattenprofil: Probe blockiert.');
  window.VedrasSpriteShadows.set(profiles);
 }
+async function jointAuthoredMountainScene(mountainPlan){
+ const file=$('jointMountainShadowSceneFile').files?.[0];
+ if(!file)return null;
+ if(file.size<10||file.size>8*1024*1024)
+  throw Error('Editor-Szene: JSON-Datei fehlt oder ist zu groß.');
+ if(!window.VedrasLargeMapAuthoredMountainShadows?.create)
+  throw Error('Exportiertes Editor-Bergprofilmodul nicht geladen.');
+ let data;
+ try{data=JSON.parse(await file.text());}
+ catch{throw Error('Exportierte Editor-Szene ist kein gültiges JSON.');}
+ return window.VedrasLargeMapAuthoredMountainShadows.create({
+  scene:data,mountainPlan,shadows:window.VedrasShadows,
+  tone:window.VedrasShadowTone
+ });
+}
+async function withJointShadowTone(authored,callback){
+ if(!authored?.shadowTone)return callback();
+ const tone=window.VedrasShadowTone,previous=tone.get();
+ // JSON import changes only the temporary rendering context; the editor
+ // scene, saved localStorage shadow tone and physical assets are untouched.
+ try{
+  tone.set(authored.shadowTone,{persist:false});
+  return await callback();
+ }finally{tone.set(previous,{persist:false});}
+}
 $('previewJointScenery').addEventListener('click',async()=>{
  if(!currentWorld())return;
  const button=$('previewJointScenery'),report=$('jointSceneryReport');
@@ -814,7 +839,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
  const current=world;
  try{
   report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
-  const {plan,renderer,boulders,late,accents}=await makeJointSceneryPreview(current);
+  const {plan,renderer,scenery,boulders,late,accents}=await makeJointSceneryPreview(current);
   const requested=String($('materialPreviewTileId').value||'').trim();
   const id=requested||renderer.defaultTile();
   if(!plan.tiles.some(t=>t.id===id))
@@ -825,9 +850,14 @@ $('previewJointScenery').addEventListener('click',async()=>{
   if(withMountains&&!withShadows)
    throw Error('Bergschattenprobe benötigt auch die Sprite-Schattenprobe.');
   if(withShadows)await loadJointOriginalShadows();
-  const sample=await renderer.renderTile(id,{
-   previewSpriteShadows:withShadows,previewMountainShadows:withMountains
-  });
+  const authored=await jointAuthoredMountainScene(scenery);
+  if(authored&&!withMountains)
+   throw Error('Editor-Szenenwerte benötigen aktive Bergschatten.');
+  const sample=await withJointShadowTone(authored,()=>
+   renderer.renderTile(id,{
+    previewSpriteShadows:withShadows,previewMountainShadows:withMountains,
+    authoredShadowScene:authored
+   }));
 
   if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
   if(sample.stage!==(withMountains?
@@ -858,7 +888,10 @@ $('previewJointScenery').addEventListener('click',async()=>{
     ' Handprofile, '+sample.originalShadowProfiles+
     ' Quellprofile'+(withMountains?', plus '+
      sample.drawnOriginalMountainShadows+' native Bergschatten ('+
-     sample.drawnShadowOnlyMountains+' aus Schatten-Halo)':
+     sample.drawnShadowOnlyMountains+' aus Schatten-Halo, '+
+     (authored?'Editor-Szenenimport '+(sample.authoredMountainInstanceMatch?
+      'mit vollständiger Instanzzuordnung':'ohne Instanzzuordnung'):
+      'Editor-Standardwerte')+')':
      ', Bergschatten noch offen')+') · ':'Sprite-Schatten noch offen · ')+
    'Akzente (global '+
    accents.instances.length+' geplant, davon '+
@@ -873,7 +906,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
    sample.mountainFlattenPads+' globale Bergfundament-Pads · '+
    sample.width+'×'+sample.height+' px (2,5×) · '+
    Math.ceil(sample.png.size/1024)+' KiB. KEIN fertiger Kartenatlas: '+
-   'Nature-Vollpopulation, Berg-Übersteuerungen, Empfänger-Schatten, 4×-Renderer, '+
+   'Nature-Vollpopulation, nicht zuordenbare Instanzwerte, Empfänger-Schatten, 4×-Renderer, '+
    'visuelle Editor-Parität und Berg-Berg-Silhouettenprüfung fehlen.';
  }catch(error){
   report.textContent='Gemeinsame Original-Scenery-Probe fehlgeschlagen: '+
@@ -888,16 +921,20 @@ $('verifyJointSeam').addEventListener('click',async()=>{
  try{
   if(!SEAM?.create)throw Error('Original-Pixelnahtprüfer nicht geladen.');
   report.textContent='Globalen Originalbaum-/Berg-Scenery-Renderer für benachbarte WorldTiles vorbereiten …';
-  const {plan,renderer}=await makeJointSceneryPreview(current);
+  const {plan,renderer,scenery}=await makeJointSceneryPreview(current);
   const withShadows=$('jointSceneryWithShadows').checked;
   const withMountains=$('jointSceneryWithMountainShadows').checked;
   if(withMountains&&!withShadows)
    throw Error('Bergschattennahttest benötigt auch die Sprite-Schattenprobe.');
   if(withShadows)await loadJointOriginalShadows();
+  const authored=await jointAuthoredMountainScene(scenery);
+  if(authored&&!withMountains)
+   throw Error('Editor-Szenenwerte benötigen aktive Bergschatten.');
   const seamRenderer=withShadows?{
    previewOnly:true,defaultTile:()=>renderer.defaultTile(),
    renderTile:id=>renderer.renderTile(id,{
-    previewSpriteShadows:true,previewMountainShadows:withMountains
+    previewSpriteShadows:true,previewMountainShadows:withMountains,
+    authoredShadowScene:authored
    })
   }:renderer;
   const verifier=SEAM.create({
@@ -923,7 +960,8 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   if(!pair)throw Error('Zwei benachbarte Kacheln für den Pixelnahttest fehlen.');
   const id=pair.id,direction=pair.direction;
   report.textContent='Zwei originale transparente WorldTiles dekodieren und Pixel für Pixel vergleichen …';
-  const result=await verifier.verifyPair(id,direction);
+  const result=await withJointShadowTone(authored,()=>
+   verifier.verifyPair(id,direction));
   if(current!==world)throw Error('Geografiewelt während der Pixelnahtprüfung geändert.');
   if(result.complete||result.readyForViewer||result.rasterized)
    throw Error('Eine Pixelnahtprobe darf kein fertiger Atlas sein.');
