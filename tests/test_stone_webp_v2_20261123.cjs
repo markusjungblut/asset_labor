@@ -47,11 +47,11 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
  assert.equal(info.stonePostsLoaded,2);
  assert.equal(loaded.length,16);
  for(let dir=0;dir<6;dir++){
-  assert(loaded.some(x=>x.includes('walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7')));
+  assert(loaded.some(x=>x.includes('walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
   assert(loaded.some(x=>x.includes('walls/palisade/edge_dir'+dir+'.webp?v=20261123-painted-volumetric-v5')));
  }
  for(const join of ['corner_post','end_post']){
-  assert(loaded.some(x=>x.includes('walls/stone/v7/'+join+'.png?v=20261123-original-stone-v7')));
+  assert(loaded.some(x=>x.includes('walls/stone/v7/'+join+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
   assert(loaded.some(x=>x.includes('walls/palisade/'+join+'.webp?v=20261123-painted-volumetric-v5')));
  }
  assert(!loaded.some(x=>x.endsWith('.svg')||x.includes('.svg?')));
@@ -101,10 +101,10 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
 });
 test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
- assert(js.includes("20261123-original-stone-v7"));
+ assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261123-original-stone-v7'));
- assert(html.includes('walls=20261123-original-stone-v7'));
+ assert(html.includes('walls.js?v=20261123-original-stone-v7-foot-shadow-v2'));
+ assert(html.includes('walls=20261123-original-stone-v7-foot-shadow-v2'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));

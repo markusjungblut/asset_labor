@@ -86,18 +86,29 @@ def render_vertical(k,dir):
     src,bb=isolated(k)
     x,y,w,h=bb
     W,H,ax,ay=META[dir]
-    # real projected hex edge endpoints are y=82..208, upright height=73 units
-    outw=24*DPR
+    # Same projected north/south vertices as palisade v5. The actual
+    # DIAGONAL painted silhouette rises about 50-52 units above its foot,
+    # even though its nominal technical height is 73; copy the visible
+    # height, NOT the oversized v7 edge-on column. Both dirs share one
+    # symmetrical placement contract independent of the source painting.
+    wall_top=30.0          # upper vertex at y=82, painted rise ~52
+    ground_bottom=207.6314185757
+    outw=22*DPR
     xdest=(W*DPR-outw)//2
-    ydest=3*DPR
-    fullh=H*DPR - ydest - 6*DPR
+    ydest=round(wall_top*DPR)
+    bottom=round(ground_bottom*DPR)
+    fullh=bottom-ydest+1
     crop=src[y:y+h,x:x+w].copy()
     transformed=cv2.resize(crop,(outw,fullh),interpolation=cv2.INTER_CUBIC)
     target=np.zeros((H*DPR,W*DPR,4),np.uint8)
-    target[ydest:ydest+fullh,xdest:xdest+outw]=transformed
-    # bottom must rest directly on projected southern shared hex foot y=208
-    # east/west images represent their upright edge's full projection
-    return target,{'source_bbox':bb,'target_foot':[20,208]}
+    target[ydest:bottom+1,xdest:xdest+outw]=transformed
+    # The shaft must stop at the real lower HEX VERTEX. In the first
+    # build it overhung the corner piers by ~2 world units at y=210.
+    target[bottom+1:,:,:]=0
+    return target,{'source_bbox':bb,
+      'target_foot':[20,float(ground_bottom)],
+      'target_top_y':wall_top,'target_bounds_x':[xdest/DPR,(xdest+outw)/DPR],
+      'source_style':'new painted edge-on wall; no old v1-v6 masonry'}
 
 def render_post(k,name):
     src,bb=isolated(k)

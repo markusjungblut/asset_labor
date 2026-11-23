@@ -100,7 +100,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    let matteFringe=0;
    for(const dir of [0,2,3,5]){
     const im=new Image();
-    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7';
+    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7-foot-shadow-v2';
     await im.decode();
     const proof=document.createElement('canvas');
     proof.width=im.naturalWidth;proof.height=im.naturalHeight;
@@ -128,7 +128,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    // Edge-on walls must have one straight shaft, unlike obsolete bent art.
    for(const dir of [1,4]){
     const im=new Image();
-    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7';
+    im.src='assets/walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7-foot-shadow-v2';
     await im.decode();
     const can=document.createElement('canvas');can.width=im.width;can.height=im.height;
     const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);
@@ -139,7 +139,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
      for(let x=0;x<im.width;x++)if(p[(y*im.width+x)*4+3]>225)xs.push(x);
      if(xs.length>4)shaft.push({left:xs[0],right:xs.at(-1)});
     }
-    uprightColumns.push({dir,shaft});
+    let top=im.height,bottom=-1;
+     for(let yy=0;yy<im.height;yy++)for(let xx=0;xx<im.width;xx++)
+      if(p[(yy*im.width+xx)*4+3]>80){top=Math.min(top,yy);bottom=Math.max(bottom,yy);}
+     uprightColumns.push({dir,shaft,top,bottom});
    }
    // Transparent RGBA must never contain a white JPEG/matte fringe.
    for(let dir=0;dir<6;dir++){
@@ -171,10 +174,14 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    assert(shouldDescend?right-left>90:left-right>90,
     'direction '+dir+' must follow the real hex footprint, left='+left+', right='+right);
   }
-  for(const {dir,shaft} of result.uprightColumns){
+  for(const u of result.uprightColumns){
+    const {dir,shaft}=u;
    assert(shaft.length>=4,'edge-on direction '+dir+' has a continuous shaft');
    const drift=Math.max(...shaft.map(s=>s.left))-Math.min(...shaft.map(s=>s.left));
    assert(drift<=10,'edge-on direction '+dir+' must be straight, x drift='+drift);
+    assert(Math.abs(u.top-90)<=2&&Math.abs(u.bottom-623)<=2,
+     'edge-on wall must be visibly lower and terminate at the shared hex vertex: '+dir+
+     ' actual '+u.top+'..'+u.bottom);
   }
   assert.equal(result.matteFringe,0,'no stone image may contain a white matte halo');
   assert(result.connected[3]>235,'joint must seal daylight in the middle of the wall');

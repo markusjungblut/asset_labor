@@ -21,3 +21,13 @@ Das System muss im tatsächlichen Editor mit allen sechs Richtungen, offenen Ket
 Eck- und Endpfeilern und verschiedenen Zoomstufen geprüft werden. Neben Browser-
 und PNG-Tests ist die ästhetische Qualität **manuell** zu bewerten; CI kann
 gute Bildgestaltung nicht garantieren. PR #182 darf nicht ohne Zustimmung gemergt werden.
+
+## Korrektur: präzise Ost-/Westwände und gerichtete Schatten
+
+Die beiden vertikalen Wand-PNGs verwenden denselben x-Bereich [9, 31],
+starten bei y=30 (an die sichtbare Höhe der schrägen Gemälde angepasst)
+und enden am projizierten unteren Hexvertex y=207,6314. Damit ragt
+kein Wandfuß mehr unter einem Anschluss hervor. Die Mauer-Schatten erhalten
+weiterhin dieselbe globale Lichtrichtung wie alle übrigen Sprites,
+aber eine reduzierte Reichweite, um übergroße flache Schattenflächen
+zu vermeiden. Die Palisaden v5 und ihre Schattenwerte sind unverändert.

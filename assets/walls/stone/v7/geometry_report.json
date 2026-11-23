@@ -82,8 +82,14 @@
       ],
       "target_foot": [
         20,
-        208
-      ]
+        207.6314185757
+      ],
+      "target_top_y": 30,
+      "target_bounds_x": [
+        9,
+        31
+      ],
+      "source_style": "new painted edge-on wall; no old v1-v6 masonry"
     },
     "edge_dir2": {
       "source_bbox": [
@@ -140,8 +146,14 @@
       ],
       "target_foot": [
         20,
-        208
-      ]
+        207.6314185757
+      ],
+      "target_top_y": 30,
+      "target_bounds_x": [
+        9,
+        31
+      ],
+      "source_style": "new painted edge-on wall; no old v1-v6 masonry"
     },
     "edge_dir5": {
       "source_bbox": [
@@ -182,5 +194,6 @@
         322
       ]
     }
-  }
+  },
+  "correction": "v7-foot-shadow-v2: symmetric shortened vertical panels; actual lower foot=207.6314185757"
 }

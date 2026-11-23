@@ -147,7 +147,8 @@ window.VedrasWalls=(()=>{
   const d=shadowVector(edge.kind,zoom,global);
   const sx=Number(global.offsetX??-.07)*d.height;
   const sy=Number(global.offsetY??.025)*d.height;
-  const cast=x=>({x:x.x+d.x+sx,y:x.y+d.y+sy});
+  const reach=edge.kind==='stone'?.58:1;
+   const cast=x=>({x:x.x+d.x*reach+sx,y:x.y+d.y*reach+sy});
   const tone=window.VedrasShadowTone;
   ctx.save();
   ctx.globalCompositeOperation='source-over';
@@ -193,7 +194,7 @@ window.VedrasWalls=(()=>{
  const palisadeMaterial={inset:10.5,width:16,height:70,
   cornerWidth:25,cornerHeight:76,endWidth:23,endHeight:76};
  const palisadeJoinArt=new Map();
- // Stone v6 uses newly constructed palisade-aligned 3x raster masonry.
+ // Stone v7 uses original painted, palisade-aligned 3x raster masonry.
  // 3x raster sprites retain fixed 2.5D anchors and upright stone faces.
  // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
@@ -213,7 +214,7 @@ window.VedrasWalls=(()=>{
     image.onerror=()=>resolve(false);
     image.src='assets/walls/'+kind+(kind==='stone'?'/v7':'')+'/edge_dir'+side+
      (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':
-      '.png?v=20261123-original-stone-v7');
+      '.png?v=20261123-original-stone-v7-foot-shadow-v2');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -229,7 +230,7 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/stone/v7/'+name+'.png?v=20261123-original-stone-v7';
+    image.src='assets/walls/stone/v7/'+name+'.png?v=20261123-original-stone-v7-foot-shadow-v2';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{
@@ -385,7 +386,8 @@ window.VedrasWalls=(()=>{
   const d=shadowVector(kind,zoom,global);
   const sx=Number(global.offsetX??-.07)*d.height;
   const sy=Number(global.offsetY??.025)*d.height;
-  const moved={x:p.x+d.x+sx,y:p.y+d.y+sy};
+  const reach=timber?1:.58;
+   const moved={x:p.x+d.x*reach+sx,y:p.y+d.y*reach+sy};
   const halfWidth=(timber?10:13)*zoom;
   const tone=window.VedrasShadowTone;
   ctx.save();
