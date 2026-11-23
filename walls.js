@@ -193,6 +193,10 @@ window.VedrasWalls=(()=>{
  const palisadeMaterial={inset:10.5,width:16,height:70,
   cornerWidth:25,cornerHeight:76,endWidth:23,endHeight:76};
  const palisadeJoinArt=new Map();
+ // Stone v2 uses the same independently painted WebP edge and join
+ // pipeline as palisade v5; no stone SVG is loaded by the normal renderer.
+ const stoneJoinArt=new Map();
+ const stoneMaterial={cornerWidth:40,cornerHeight:80,endWidth:34,endHeight:80};
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
@@ -205,8 +209,8 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/'+kind+'/edge_dir'+side+
-     (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg?v=20261123-crenellated-stone-v1');
+    image.src='assets/walls/'+kind+'/edge_dir'+side+'.webp?v='+
+     (kind==='palisade'?'20261123-painted-volumetric-v5':'20261123-stone-painted-v2');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -215,6 +219,14 @@ window.VedrasWalls=(()=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
     image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5';
+   }));
+  }
+  for(const name of ['corner_post','end_post']){
+   const image=new Image();stoneJoinArt.set(name,image);
+   pending.push(new Promise(resolve=>{
+    image.onload=()=>resolve(true);
+    image.onerror=()=>resolve(false);
+    image.src='assets/walls/stone/'+name+'.webp?v=20261123-stone-painted-v2';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{
@@ -228,7 +240,9 @@ window.VedrasWalls=(()=>{
   loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
   total:12,
   postsLoaded:[...palisadeJoinArt.values()].filter(i=>i.naturalWidth>0).length,
-  postsTotal:2};}
+  postsTotal:2,
+  stonePostsLoaded:[...stoneJoinArt.values()].filter(i=>i.naturalWidth>0).length,
+  stonePostsTotal:2};}
  function drawArtwork(ctx,edge,project,zoom){
   if(typeof Image==='undefined')return false;
   if(!artworkPromise)artworkReady();
@@ -271,17 +285,16 @@ window.VedrasWalls=(()=>{
   // not a stone pier running through the palisade's wooden body.
   const timber=node.kind==='palisade'||node.kinds?.includes('palisade')&&
    node.kinds?.includes('stone');
-  if(timber&&typeof Image!=='undefined'){
+  if(typeof Image!=='undefined'){
    if(!artworkPromise)artworkReady();
-   const end=node.degree===1;
-   const image=palisadeJoinArt.get(end?'end_post':'corner_post');
+   const end=node.degree===1,material=timber?palisadeMaterial:stoneMaterial;
+   const image=(timber?palisadeJoinArt:stoneJoinArt).get(end?'end_post':'corner_post');
    if(image?.naturalWidth){
     const p=project(node.x,node.y),
-     w=(end?palisadeMaterial.endWidth:palisadeMaterial.cornerWidth)*zoom,
-     h=(end?palisadeMaterial.endHeight:palisadeMaterial.cornerHeight)*zoom;
-    // A single fixed-size painted post at the exact shared hex vertex.
-    // V4 stretched these textures on downward edges, causing asymmetry.
-    // No scaling by edge slope; no bottom spikes or hanging half-posts.
+     w=(end?material.endWidth:material.cornerWidth)*zoom,
+     h=(end?material.endHeight:material.cornerHeight)*zoom;
+    // Each complete painted pier/post is independently grounded at the
+    // one shared hex corner. Mixed timber/stone vertices retain timber art.
     ctx.save();ctx.globalAlpha=1;ctx.filter='none';
     ctx.globalCompositeOperation='source-over';
     ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
@@ -488,5 +501,5 @@ window.VedrasWalls=(()=>{
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
-  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,palisadeMaterial,junctions,drawJoin,drawJoinShadow};
+  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,palisadeMaterial,stoneMaterial,junctions,drawJoin,drawJoinShadow};
 })();
