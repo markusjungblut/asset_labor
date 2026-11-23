@@ -67,7 +67,7 @@ function create({plan,renderer,allowShadowPreview=false,
    "original-tree-mountain-combined-preview";
   if(result?.schema!=="vedras-geography-joint-scenery-preview-v1"||
    result.stage!==expectedStage||
-   result.editorFootSpriteProjection!==allowEditorProjectionPreview||
+   (result.editorFootSpriteProjection===true)!==allowEditorProjectionPreview||
    (allowEditorProjectionPreview&&(
     result.editorPixelsUnprojectedHeight!==true||
     !Number.isSafeInteger(result.editorHiddenTrees)||
