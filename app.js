@@ -4367,6 +4367,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3',
   'stone-correct-diagonal-hex-slope-ground-footprint-v4',
   'stone-independent-reanchored-six-hex-raster-v5',
+  'stone-palisade-native-geometry-new-ashlar-v6',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
