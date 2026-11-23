@@ -49,9 +49,9 @@ test('source editor half-size variant remains capped by 60% world width',()=>{
 test('pixel limits, invalid mask, origin and style fail closed',()=>{
  const a=mock();
  assert.throws(()=>L.raster({width:0,settings:{softness:5,contactWidth:.1},
-  strength:1,shadows:a.sh,canvasFactory:a.canvasFactory}),/Geometrie/);
+  strength:1,shadows:a.sh,canvasFactory:a.canvasFactory}),/Berggeometrie/);
  assert.throws(()=>L.raster({width:120,settings:{softness:-1,contactWidth:.1},
-  strength:1,shadows:a.sh,canvasFactory:a.canvasFactory}),/Geometrie/);
+  strength:1,shadows:a.sh,canvasFactory:a.canvasFactory}),/Berggeometrie/);
  assert.throws(()=>L.cast({raster:null,origin:{x:1,y:1}}),/ursprung/);
  assert.throws(()=>L.globalBox({cast:{x:0,y:0,width:99999,height:3}}),/Rastergrenze/);
 });
@@ -62,7 +62,8 @@ test('real source and browser fixture include independent original shadowLocalMa
   'automated_browser_geography_joint_scenery_20261123.cjs'),'utf8');
  const renderer=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
  assert(app.includes('function shadowLocalMask(width,settings,global)'));
- assert(testSource.includes("fromEditor('function shadowLocalMask("));
+ assert(testSource.includes('editorLocalMaskSource=fromEditor('));
+ assert(testSource.includes("'function shadowLocalMask(width,settings,global){'"));
  assert(testSource.includes('EDITOR_LOCAL_MOUNTAIN_MASK_DIAGNOSTIC'));
  assert(renderer.includes('previewEditorLocalMountainMask=false'));
  assert(renderer.includes('needsFullEditorImageParity:true'));
