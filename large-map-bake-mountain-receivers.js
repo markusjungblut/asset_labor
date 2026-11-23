@@ -11,7 +11,7 @@ const SCHEMA="vedras-geography-mountain-receivers-preview-v1";
 const LIMIT_CASTS=96,LIMIT_SPRITE_PIXELS=6000000;
 function southwestLargeReceiver(receiver,caster){
  if(receiver.item.type!=="mountain")return false;
- const a=receiver.item.inst,b=caster.owner.item.inst;
+ const a=receiver.item.inst,b=caster.item.inst;
  return a.q===b.q-1&&a.r===b.r+1;
 }
 function select({object,casts,shadows=root.VedrasShadows,
