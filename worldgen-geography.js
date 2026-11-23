@@ -254,20 +254,10 @@
     values.sort((a,b)=>b-a);
     return values[Math.min(values.length-1,Math.floor(clamp(part)*values.length))];
   }
-  function generateWorld(seed, options={}) {
+  function createPointSampler(seed, config) {
     if(typeof seed!=="string"||seed.length<1||seed.length>256)
       throw Error("World Seed muss 1–256 Zeichen lang sein.");
-    const width=options.width===undefined?100:Number(options.width);
-    const height=options.height===undefined?80:Number(options.height);
-    const originQ=options.originQ===undefined?0:Number(options.originQ);
-    const originR=options.originR===undefined?0:Number(options.originR);
-    if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
-       width<10||height<10||width*height>60000)
-      throw RangeError("Kartenausschnitt mindestens 10×10, maximal 60.000 Hexfelder.");
-    if(!Number.isSafeInteger(originQ)||!Number.isSafeInteger(originR)||
-       Math.abs(originQ)>1000000||Math.abs(originR)>1000000)
-      throw RangeError("Ungültige Weltkoordinaten.");
-    const c=normalizeConfig(options.config),s=hashString(NOISE_LINEAGE+":"+seed);
+    const c=normalizeConfig(config),s=hashString(NOISE_LINEAGE+":"+seed);
     const aridRegionConfig={...c,"biomes.targetHexes":Math.max(5,c["geology.scale"]*1.5)};
     const cacheWater=new Map(),cacheRelief=new Map(),cacheField=new Map();
     const spot=(q,r)=>key(q,r);
@@ -362,33 +352,77 @@
       return noise(s,q,r,c["water.scale"]*.8,"storm")>
         1-c["water.stormChance"]?"stormy_ocean":"ocean";
     }
+    function attachFeatures(x){
+      const chance=(name,per1000)=>unit(s,x.q,x.r,"feature:"+name)<per1000/1000;
+      if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"){
+        if(chance("iron",c["features.ironPer1000"])&&
+          field(x.q,x.r).landRelief.mountain>.30)x.features.push("iron");
+        if(["grassland","savanna","wetland","jungle"].includes(x.baseBiome)&&
+          chance("animals",c["features.animalsPer1000"])){
+          if(x.baseBiome==="wetland"||x.baseBiome==="jungle")x.features.push("pigs");
+          else if(x.baseBiome==="savanna"||x.terrainId==="sparse_pasture")
+            x.features.push("horses");
+          else x.features.push(unit(s,x.q,x.r,"species")>.5?"pigs":"horses");
+        }
+        if(chance("ruins",c["features.ruinsPer1000"]))x.features.push("ruins");
+        if(chance("obelisk",c["features.obelisksPer1000"]))x.features.push("obelisk");
+        if(x.baseBiome==="arid"&&chance("oasis",c["features.oasesPer1000"]))
+          x.features.push("oasis");
+      }else if(x.surfaceClass!=="land"&&chance("wreck",c["features.wrecksPer1000"]))
+        x.features.push("wreck");
+      for(const ext of extraFeatures)
+        if(ext.place({hex:x,config:c,seed,random:salt=>
+          unit(s,x.q,x.r,ext.id+":"+salt)}))x.features.push(ext.id);
+      return x;
+    }
+    function buildBaseCell(q,r){
+      const surfaceClass=surface(q,r),land=surfaceClass==="land",
+        info=land?field(q,r):null;
+      const mountain=land&&isMountain(q,r),hills=land&&!mountain&&isHill(q,r);
+      const suit=!land?0:info.family==="jungle"?1:
+        info.family==="grassland"?.86:info.family==="wetland"?.76:
+        info.family==="savanna"?.46:info.family==="cold"?.25:.08;
+      const value=land?(noise(s,q,r,c["forest.patchScale"],"forest")-.5)*1.6+
+        c["forest.coverage"]-.3+(info.h-.5)*.35:0;
+      const forestDensity=mountain?0:info?.family==="jungle"?Math.max(.76,clamp(value)):clamp(value)*suit;
+      const forestClass=mountain?"none":info?.family==="jungle"?"dense_forest":
+        forestDensity>=c["forest.denseThreshold"]*c["forest.denseFactor"]?"dense_forest":
+        forestDensity>c["forest.lightThreshold"]?"light_forest":"none";
+      return {q,r,temperature:info?.t??temperature(q,r),
+        humidity:info?.h??humidity(q,r),regionId:info?.center.id??"",
+        baseBiome:info?.family??null,
+        terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c,info.landRelief,info.aridPatch):surfaceClass,
+        surfaceClass,reliefClass:mountain?"mountain":hills?"hills":"flat",
+        hillProfile:hills?["rounded","steep","chain","plateau","ridge"][
+          Math.floor(unit(s,Math.floor(q/3),Math.floor(r/3),"hill-style")*5)]:null,
+        hillStrength:hills?clamp(info.landRelief.hill*c["relief.hillVariation"]+
+          (1-c["relief.hillVariation"])*.4):0,
+        mountainClass:mountain?"massif":null,
+        forestDensity,forestClass,riverPotential:info?.riverPotential??0,
+        river:false,riverEdges:[],features:[]};
+    }
+    function sampleCell(q,r){return attachFeatures(buildBaseCell(q,r));}
+    return {c,s,spot,wet,relief,isMountain,isHill,field,surface,buildBaseCell,attachFeatures,sampleCell};
+  }
+  function generateWorld(seed, options={}) {
+    if(typeof seed!=="string"||seed.length<1||seed.length>256)
+      throw Error("World Seed muss 1–256 Zeichen lang sein.");
+    const width=options.width===undefined?100:Number(options.width);
+    const height=options.height===undefined?80:Number(options.height);
+    const originQ=options.originQ===undefined?0:Number(options.originQ);
+    const originR=options.originR===undefined?0:Number(options.originR);
+    if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||
+       width<10||height<10||width*height>60000)
+      throw RangeError("Kartenausschnitt mindestens 10×10, maximal 60.000 Hexfelder.");
+    if(!Number.isSafeInteger(originQ)||!Number.isSafeInteger(originR)||
+       Math.abs(originQ)>1000000||Math.abs(originR)>1000000)
+      throw RangeError("Ungültige Weltkoordinaten.");
+    const core=createPointSampler(seed,options.config);
+    const {c,s,spot,wet,relief,isMountain,field,buildBaseCell,attachFeatures}=core;
     const cells=[],byKey=new Map();
     for(let r=originR;r<originR+height;r++)
       for(let q=originQ;q<originQ+width;q++){
-        const surfaceClass=surface(q,r),land=surfaceClass==="land",
-          info=land?field(q,r):null;
-        const mountain=land&&isMountain(q,r),hills=land&&!mountain&&isHill(q,r);
-        const suit=!land?0:info.family==="jungle"?1:
-          info.family==="grassland"?.86:info.family==="wetland"?.76:
-          info.family==="savanna"?.46:info.family==="cold"?.25:.08;
-        const value=land?(noise(s,q,r,c["forest.patchScale"],"forest")-.5)*1.6+
-          c["forest.coverage"]-.3+(info.h-.5)*.35:0;
-        const forestDensity=mountain?0:info?.family==="jungle"?Math.max(.76,clamp(value)):clamp(value)*suit;
-        const forestClass=mountain?"none":info?.family==="jungle"?"dense_forest":
-          forestDensity>=c["forest.denseThreshold"]*c["forest.denseFactor"]?"dense_forest":
-          forestDensity>c["forest.lightThreshold"]?"light_forest":"none";
-        const cell={q,r,temperature:info?.t??temperature(q,r),
-          humidity:info?.h??humidity(q,r),regionId:info?.center.id??"",
-          baseBiome:info?.family??null,
-          terrainId:land?terrainFrom(info.family,info.t,info.h,info.soil,c,info.landRelief,info.aridPatch):surfaceClass,
-          surfaceClass,reliefClass:mountain?"mountain":hills?"hills":"flat",
-          hillProfile:hills?["rounded","steep","chain","plateau","ridge"][
-            Math.floor(unit(s,Math.floor(q/3),Math.floor(r/3),"hill-style")*5)]:null,
-          hillStrength:hills?clamp(info.landRelief.hill*c["relief.hillVariation"]+
-            (1-c["relief.hillVariation"])*.4):0,
-          mountainClass:mountain?"massif":null,
-          forestDensity,forestClass,riverPotential:info?.riverPotential??0,
-          river:false,riverEdges:[],features:[]};
+        const cell=buildBaseCell(q,r);
         cells.push(cell);byKey.set(spot(q,r),cell);
       }
     // Route topology uses axial adjacency. The graphics renderer explicitly
@@ -450,26 +484,7 @@
       }
     // Habitat-first animals: the adjustable count refers to ALL animal types.
     for(const x of cells){
-      const chance=(name,per1000)=>unit(s,x.q,x.r,"feature:"+name)<per1000/1000;
-      if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"){
-        if(chance("iron",c["features.ironPer1000"])&&
-          field(x.q,x.r).landRelief.mountain>.30)x.features.push("iron");
-        if(["grassland","savanna","wetland","jungle"].includes(x.baseBiome)&&
-          chance("animals",c["features.animalsPer1000"])){
-          if(x.baseBiome==="wetland"||x.baseBiome==="jungle")x.features.push("pigs");
-          else if(x.baseBiome==="savanna"||x.terrainId==="sparse_pasture")
-            x.features.push("horses");
-          else x.features.push(unit(s,x.q,x.r,"species")>.5?"pigs":"horses");
-        }
-        if(chance("ruins",c["features.ruinsPer1000"]))x.features.push("ruins");
-        if(chance("obelisk",c["features.obelisksPer1000"]))x.features.push("obelisk");
-        if(x.baseBiome==="arid"&&chance("oasis",c["features.oasesPer1000"]))
-          x.features.push("oasis");
-      }else if(x.surfaceClass!=="land"&&chance("wreck",c["features.wrecksPer1000"]))
-        x.features.push("wreck");
-      for(const ext of extraFeatures)
-        if(ext.place({hex:x,config:c,seed,random:salt=>
-          unit(s,x.q,x.r,ext.id+":"+salt)}))x.features.push(ext.id);
+      attachFeatures(x);
       x.riverEdges.sort((a,b)=>a-b);
     }
     const totalLand=cells.filter(x=>x.surfaceClass==="land").length;
@@ -524,7 +539,7 @@
   }
   const api={VERSION,DIRS,TERRAIN_IDS,BIOME_IDS,parameterSchema,defaultConfig,
     normalizeConfig,aggregateDistributions,registerParameter,registerFeature,
-    generateWorld,getWorldCell:(world,q,r)=>{
+    createPointSampler,generateWorld,getWorldCell:(world,q,r)=>{
       const oq=world.originQ??0,or=world.originR??0;
       if(q<oq||r<or||q>=oq+world.width||r>=or+world.height)return null;
       return world.cells[(r-or)*world.width+(q-oq)]??null;
