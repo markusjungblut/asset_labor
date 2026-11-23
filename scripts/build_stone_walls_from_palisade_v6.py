@@ -141,7 +141,6 @@ def finish(im,dir_or_name):
     # Premultiplied-color edge-safe resampling, with RGBA separation.
     chans=[prem.getchannel(c).resize((im.width//2,im.height//2),Image.Resampling.LANCZOS) for c in "RGB"]
     alpha=a.resize((im.width//2,im.height//2),Image.Resampling.LANCZOS)
-    import numpy as np
     arr=np.stack([np.asarray(c,dtype=np.float32) for c in chans],axis=2)
     aa=np.asarray(alpha,dtype=np.float32)
     # Pasting with alpha leaves premultiplied RGB, restore for PNG.
