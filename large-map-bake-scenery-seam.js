@@ -10,6 +10,7 @@ const EXPECTED_WIDTH=Math.round((SIZE+2*PAD)*SCALE_X);
 const EXPECTED_HEIGHT=Math.round((SIZE+2*PAD)*SCALE_Y);
 function create({plan,renderer,allowShadowPreview=false,
  allowMountainShadowPreview=false,allowAuthoredMountainScene=false,
+ allowReceiverPreview=false,
  bitmapFactory=root.createImageBitmap?.bind(root),
  canvasFactory=()=>root.document.createElement("canvas")}={}){
  if(plan?.schema!=="vedras-geography-bake-plan-v1"||
@@ -20,7 +21,8 @@ function create({plan,renderer,allowShadowPreview=false,
   renderer.previewOnly!==true||typeof bitmapFactory!=="function"||
   typeof canvasFactory!=="function"||
   (allowMountainShadowPreview&&!allowShadowPreview)||
-  (allowAuthoredMountainScene&&!allowMountainShadowPreview))
+  (allowAuthoredMountainScene&&!allowMountainShadowPreview)||
+  (allowReceiverPreview&&!allowMountainShadowPreview))
   throw Error("Pixelnahtprüfung benötigt den ungeänderten Weltplan und Original-Scenery-Testbilder.");
  const tiles=new Map();
  for(const tile of plan.tiles){
@@ -72,6 +74,14 @@ function create({plan,renderer,allowShadowPreview=false,
        !result.authoredMountainInstanceMatch):
      (result.authoredMountainScene!==false||
       result.needsMountainShadowScenePresetParity!==true))))||
+   (allowMountainShadowPreview&&(
+    result.needsMountainSpriteReceiverParity!==!allowReceiverPreview||
+    (allowReceiverPreview&&(
+     result.testedNativeMountainReceiverFoot!==true||
+     result.originalMountainReceiverComposition!==
+      "native-foot-source-atop-before-perspective"||
+     !Number.isSafeInteger(result.drawnMountainShadowReceivers)||
+     result.drawnMountainShadowReceivers<0))))||
    (allowShadowPreview&&!allowMountainShadowPreview&&
     !result.needsOriginalMountainShadows)||
    result.tile?.id!==id||
@@ -129,6 +139,9 @@ function create({plan,renderer,allowShadowPreview=false,
   if(allowMountainShadowPreview&&
    !(a.drawnOriginalMountainShadows+b.drawnOriginalMountainShadows>0))
    throw Error("Bergschattennaht ohne tatsächlich gezeichneten Original-Bergschatten.");
+  if(allowReceiverPreview&&
+   !(a.drawnMountainShadowReceivers+b.drawnMountainShadowReceivers>0))
+   throw Error("Empfängernaht ohne tatsächlich gezeichnete Objekt-Bergschatten.");
   const shift=direction==="right"?SIZE*SCALE_X:SIZE*SCALE_Y;
   if(!Number.isInteger(shift))
    throw Error("Pixelnahtprüfung: keine globale ganzzahlige Pixelverschiebung.");
@@ -162,7 +175,8 @@ function create({plan,renderer,allowShadowPreview=false,
    differingPixels:differing,maxChannelDifference:maxDelta,
    firstDifferences:examples,passesPixelIdentity:differing===0&&painted>0,
    needsEditorVisualParity:true,needsOriginalShadows:true,
-   shadowMode:allowAuthoredMountainScene?"authored-mountain-and-sprite-preview":
+   shadowMode:allowReceiverPreview?"native-mountain-receiver-preview":
+    allowAuthoredMountainScene?"authored-mountain-and-sprite-preview":
     allowMountainShadowPreview?"original-mountain-and-sprite-preview":
     allowShadowPreview?"original-sprite-preview":"none",
    needsOriginalMountainShadows:true,

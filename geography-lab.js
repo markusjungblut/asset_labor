@@ -847,6 +847,9 @@ $('previewJointScenery').addEventListener('click',async()=>{
   report.textContent='Original-Baum- und Berg-PNGs mit kontinuierlichem geografischem Relief für '+id+' werden dekodiert …';
   const withShadows=$('jointSceneryWithShadows').checked;
   const withMountains=$('jointSceneryWithMountainShadows').checked;
+  const withReceivers=$('jointSceneryWithMountainReceivers').checked;
+  if(withReceivers&&!withMountains)
+   throw Error('Bergschatten auf Originalobjekten benötigen aktive Bergschatten.');
   if(withMountains&&!withShadows)
    throw Error('Bergschattenprobe benötigt auch die Sprite-Schattenprobe.');
   if(withShadows)await loadJointOriginalShadows();
@@ -856,7 +859,8 @@ $('previewJointScenery').addEventListener('click',async()=>{
   const sample=await withJointShadowTone(authored,()=>
    renderer.renderTile(id,{
     previewSpriteShadows:withShadows,previewMountainShadows:withMountains,
-    authoredShadowScene:authored
+    authoredShadowScene:authored,
+    previewMountainReceivers:withReceivers
    }));
 
   if(current!==world)throw Error('Welt während der gemeinsamen PNG-Probe geändert.');
@@ -889,6 +893,9 @@ $('previewJointScenery').addEventListener('click',async()=>{
     ' Quellprofile'+(withMountains?', plus '+
      sample.drawnOriginalMountainShadows+' native Bergschatten ('+
      sample.drawnShadowOnlyMountains+' aus Schatten-Halo, '+
+     (withReceivers?sample.drawnMountainShadowReceivers+
+      ' Originalobjekt-Empfänger mit '+sample.drawnMountainReceiverCasts+
+      ' nativen Objektcasts, ':'Empfängercasts noch offen, ')+
      (authored?'Editor-Szenenimport '+(sample.authoredMountainInstanceMatch?
       'mit vollständiger Instanzzuordnung':'ohne Instanzzuordnung'):
       'Editor-Standardwerte')+')':
@@ -924,6 +931,9 @@ $('verifyJointSeam').addEventListener('click',async()=>{
   const {plan,renderer,scenery}=await makeJointSceneryPreview(current);
   const withShadows=$('jointSceneryWithShadows').checked;
   const withMountains=$('jointSceneryWithMountainShadows').checked;
+  const withReceivers=$('jointSceneryWithMountainReceivers').checked;
+  if(withReceivers&&!withMountains)
+   throw Error('Bergschatten auf Originalobjekten benötigen aktive Bergschatten.');
   if(withMountains&&!withShadows)
    throw Error('Bergschattennahttest benötigt auch die Sprite-Schattenprobe.');
   if(withShadows)await loadJointOriginalShadows();
@@ -934,13 +944,15 @@ $('verifyJointSeam').addEventListener('click',async()=>{
    previewOnly:true,defaultTile:()=>renderer.defaultTile(),
    renderTile:id=>renderer.renderTile(id,{
     previewSpriteShadows:true,previewMountainShadows:withMountains,
-    authoredShadowScene:authored
+    authoredShadowScene:authored,
+    previewMountainReceivers:withReceivers
    })
   }:renderer;
   const verifier=SEAM.create({
    plan,renderer:seamRenderer,allowShadowPreview:withShadows,
    allowMountainShadowPreview:withMountains,
-   allowAuthoredMountainScene:!!authored
+   allowAuthoredMountainScene:!!authored,
+   allowReceiverPreview:withReceivers
   });
   const requested=String($('materialPreviewTileId').value||'').trim();
   let pair=verifier.defaultPair();

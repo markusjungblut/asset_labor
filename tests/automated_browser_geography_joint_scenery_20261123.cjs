@@ -27,6 +27,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-original-sprite-shadows.js',
  'large-map-bake-original-mountain-shadows.js',
  'large-map-bake-authored-mountain-shadows.js',
+ 'large-map-bake-mountain-receivers.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -61,7 +62,8 @@ const plan=Plan.plan(world);
    'shadow-tone.js','shadow-system.js','shadow-shapes.js',
    'sprite-shadow-editor.js','large-map-bake-original-sprite-shadows.js',
    'large-map-bake-authored-mountain-shadows.js',
-   'large-map-bake-original-mountain-shadows.js'])
+   'large-map-bake-original-mountain-shadows.js',
+   'large-map-bake-mountain-receivers.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles})=>{
    const [tree,mount,rock,ordinary,snow,bush,log]=names;
@@ -209,6 +211,50 @@ const plan=Plan.plan(world);
    }finally{
     window.VedrasShadowTone.set(toneBefore,{persist:false});
    }
+   // A small REAL shrub field sits southwest of the first native cast.
+   // The sampling is deterministic and is deliberately not a fake flat
+   // receiver silhouette. Original PNGs and the actual relief remain active.
+   const receiverSites=[];
+   for(const dx of [-100,-40,20,80])
+    for(const dy of [35,85,135])
+     receiverSites.push({q:1,r:0,dx,dy,assetPath:bush,
+      assetId:nature.entries[bush.slice(7)].id,scale:1,
+      kind:nature.entries[bush.slice(7)].kind,
+      source:'geography-original-late-accents'});
+   const receivingPlan={...accentPlan,
+    instances:[...accentPlan.instances,...receiverSites]};
+   const receiverRenderer=window.VedrasLargeMapJointScenery.create({
+    world,plan,treePlan,mountainPlan,boulderPlan,latePlan,
+    accentPlan:receivingPlan,terrainCatalog:terrain,natureCatalog:nature,
+    assets,loadImage:async a=>({img:imageByPath.get(a.path)})
+   });
+   const receiverBefore=await receiverRenderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:true
+   });
+   const receiverLeft=await receiverRenderer.renderTile('0,0',{
+    previewSpriteShadows:true,previewMountainShadows:true,
+    previewMountainReceivers:true
+   });
+   const receiverRight=await receiverRenderer.renderTile('1,0',{
+    previewSpriteShadows:true,previewMountainShadows:true,
+    previewMountainReceivers:true
+   });
+   console.log('MOUNTAIN_RECEIVER_COUNTS',JSON.stringify({
+    receivers:[receiverLeft.drawnMountainShadowReceivers,
+     receiverRight.drawnMountainShadowReceivers],
+    casts:[receiverLeft.drawnMountainReceiverCasts,
+     receiverRight.drawnMountainReceiverCasts],
+    groundShadows:[receiverLeft.drawnOriginalMountainShadows,
+     receiverRight.drawnOriginalMountainShadows]
+   }));
+   const receiverVerifier=window.VedrasJointScenerySeam.create({
+    plan,allowShadowPreview:true,allowMountainShadowPreview:true,
+    allowReceiverPreview:true,renderer:{
+     previewOnly:true,defaultTile:()=> '0,0',
+     renderTile:async id=>id==='0,0'?receiverLeft:receiverRight
+    }
+   });
+   const receiverProof=await receiverVerifier.verifyPair('0,0','right');
    const spriteOnly=await renderer.renderTile('0,0',{
     previewSpriteShadows:true,previewMountainShadows:false
    });
@@ -221,6 +267,16 @@ const plan=Plan.plan(world);
    };
    const left=await decode(a.png),right=await decode(b.png);
    const baseline=await decode(spriteOnly.png);
+   const receiverA=await decode(receiverLeft.png),
+    receiverBaseline=await decode(receiverBefore.png);
+   const ar=receiverA.getImageData(0,0,receiverA.canvas.width,receiverA.canvas.height).data,
+    br=receiverBaseline.getImageData(0,0,receiverBaseline.canvas.width,
+     receiverBaseline.canvas.height).data;
+   let receiverChangedPixels=0;
+   for(let k=0;k<ar.length;k+=4)
+    if(ar[k]!==br[k]||ar[k+1]!==br[k+1]||
+       ar[k+2]!==br[k+2]||ar[k+3]!==br[k+3])
+     receiverChangedPixels++;
    const authLeft=await decode(authA.png),authRgba=authLeft.getImageData(
     0,0,authLeft.canvas.width,authLeft.canvas.height).data;
    const aa=left.getImageData(0,0,left.canvas.width,left.canvas.height).data,
@@ -264,6 +320,14 @@ const plan=Plan.plan(world);
     manualShadows:[a.drawnManualShadows,b.drawnManualShadows],
     shadowProfiles:[a.originalShadowProfiles,b.originalShadowProfiles],
     mountainChangedPixels,authoredChangedPixels,
+    receiverChangedPixels,
+    realMountainReceiverCounts:[receiverLeft.drawnMountainShadowReceivers,
+     receiverRight.drawnMountainShadowReceivers],
+    realMountainReceiverCasts:[receiverLeft.drawnMountainReceiverCasts,
+     receiverRight.drawnMountainReceiverCasts],
+    receiverProof:{passed:receiverProof.passesPixelIdentity,
+     different:receiverProof.differingPixels,
+     painted:receiverProof.paintedPixels},
     authoredSceneSource:[authA.authoredMountainScene,authB.authoredMountainScene],
     authoredInstanceMatch:[authA.authoredMountainInstanceMatch,
      authB.authoredMountainInstanceMatch],
@@ -306,6 +370,14 @@ const plan=Plan.plan(world);
   assert(result.spriteShadows.every(x=>x>=4));
   assert(result.manualShadows.every(x=>x>=2));
   assert(result.shadowProfiles.every(x=>x>=7));
+  assert(result.realMountainReceiverCounts[0]>0,
+   'real original Nature sprites must receive a native mountain cast');
+  assert(result.realMountainReceiverCasts[0]>0);
+  assert(result.receiverChangedPixels>100,
+   'source-atop must alter real original PNG pixels, not just metadata');
+  assert.equal(result.receiverProof.passed,true);
+  assert.equal(result.receiverProof.different,0);
+  assert(result.receiverProof.painted>100);
   assert(result.authoredChangedPixels>100,
    'real exported editor styles must alter real mountain shadow pixels');
   assert.deepEqual(result.authoredSceneSource,[true,true]);
