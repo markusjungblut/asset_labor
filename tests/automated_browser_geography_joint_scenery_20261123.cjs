@@ -47,6 +47,7 @@ const allowed=new Set([...names,'sprite-planner.js','nature-balance.js',
  'large-map-bake-mountain-receivers.js',
  'large-map-bake-editor-reference-sprite.js',
  'large-map-bake-editor-composite-audit.js',
+ 'large-map-bake-shadow-pixel-attribution.js',
  'shadow-system.js','shadow-tone.js',
  'shadow-shapes.js','sprite-shadow-editor.js']);
 const world=Geo.generateWorld('original-tree-mountain-png-proof',
@@ -84,7 +85,8 @@ const plan=Plan.plan(world);
    'large-map-bake-original-mountain-shadows.js',
    'large-map-bake-mountain-receivers.js',
    'large-map-bake-editor-reference-sprite.js',
-   'large-map-bake-editor-composite-audit.js'])
+   'large-map-bake-editor-composite-audit.js',
+   'large-map-bake-shadow-pixel-attribution.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource})=>{
    const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
@@ -481,6 +483,41 @@ const plan=Plan.plan(world);
      worldShaded:rgbaOf(raw(compositeShadow1)),
      editorShaded:rgbaOf(nativeShade1.ctx)})
    ];
+   const Provenance=window.VedrasEditorShadowAttribution;
+   if(typeof Provenance?.analyze!=="function")
+    throw Error("Read-only original sprite-shadow attribution unavailable.");
+   const traceData=(sample,key)=>{
+    const trace=sample.editorCompositeReference;
+    if(!trace||trace.source!=="read-only-original-editor-reference-candidates-v1"||
+     !trace.mountainGround||!trace.background||
+     !Array.isArray(trace.spriteAlphaMasks)||trace.spriteAlphaMasks.length===0)
+     throw Error("Missing original mountain/sprite ground and precise alpha mask trace: "+key);
+    const source=key==="mountainGround"?trace.mountainGround:trace.background;
+    return source.getContext("2d",{willReadFrequently:true})
+     .getImageData(0,0,1920,1632).data;
+   };
+   const originalPixelAttribution=[
+    Provenance.analyze({width:1920,height:1632,
+     originX:compositeShadow0.editorCompositeReference.sampleX,
+     originY:compositeShadow0.editorCompositeReference.sampleY,
+     worldBare:rgbaOf(raw(compositeBare0)),
+     editorBare:rgbaOf(nativeBare0.ctx),
+     worldShaded:rgbaOf(raw(compositeShadow0)),
+     editorShaded:rgbaOf(nativeShade0.ctx),
+     mountainGround:traceData(compositeShadow0,"mountainGround"),
+     spriteGround:traceData(compositeShadow0,"background"),
+     spriteMasks:compositeShadow0.editorCompositeReference.spriteAlphaMasks}),
+    Provenance.analyze({width:1920,height:1632,
+     originX:compositeShadow1.editorCompositeReference.sampleX,
+     originY:compositeShadow1.editorCompositeReference.sampleY,
+     worldBare:rgbaOf(raw(compositeBare1)),
+     editorBare:rgbaOf(nativeBare1.ctx),
+     worldShaded:rgbaOf(raw(compositeShadow1)),
+     editorShaded:rgbaOf(nativeShade1.ctx),
+     mountainGround:traceData(compositeShadow1,"mountainGround"),
+     spriteGround:traceData(compositeShadow1,"background"),
+     spriteMasks:compositeShadow1.editorCompositeReference.spriteAlphaMasks})
+   ];
    const auditDigest=compositeAudits.map(r=>({
     tileWidth:r.width,tileHeight:r.height,
     parity:r.parityPassed,
@@ -571,7 +608,7 @@ const plan=Plan.plan(world);
    console.log('EDITOR_COMPOSITE_DIAGNOSTIC',JSON.stringify({
     bare:compositeNoShadows,shadows:compositeWithShadows,
     parity:compositePixelParityPassed,
-    rgba:auditDigest,
+    rgba:auditDigest,sourceAttribution:originalPixelAttribution,
     seams:compositeSeams,occlusion:compositeOcclusion,
     receivers:[compositeShadow0.drawnMountainShadowReceivers,
      compositeShadow1.drawnMountainShadowReceivers]
@@ -661,6 +698,7 @@ const plan=Plan.plan(world);
     receiverChangedPixels,
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
+    compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
     compositeNeedsFullEditorParity:[
@@ -729,10 +767,22 @@ const plan=Plan.plan(world);
    JSON.stringify({schema:'vedras-geography-phase28r-rgba-report',
     source:'app.js independent source + original PNG pre-encode canvases',
     result:result.compositeAuditFullReport},null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28s_original_sprite_shadow_attribution.json'),
+   JSON.stringify({schema:'vedras-geography-phase28s-shadow-ownership-diagnostic',
+    source:'original sprite alpha masks + independent editor RGBA',
+    results:result.compositeSourceAttribution},null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
   console.log('EDITOR_COMPOSITE_RGBA_AUDIT',JSON.stringify(result.compositeRGBA));
+  console.log('EDITOR_SHADOW_SOURCE_ATTRIBUTION',JSON.stringify(
+   result.compositeSourceAttribution.map((r,i)=>({
+    tile:i===0?'0,0':'1,0',masks:r.masks,
+    editorOnly:r.editorOnlyShadeTouched,
+    worldOnly:r.worldOnlyShadeTouched,
+    severeBare:r.severeBare,severeShaded:r.severeShaded,
+    complete:r.complete,ready:r.readyForViewer
+   }))));
   assert.deepEqual(errors,[]);
   assert.deepEqual(result.stages,[
    'original-mountain-sprite-shadow-scenery-preview',
@@ -783,6 +833,26 @@ const plan=Plan.plan(world);
    assert(a.transitions.worldTouched>100);
    assert(a.transitions.editorTouched>100);
    assert.equal(a.parity,false);
+  }
+  assert.equal(result.compositeSourceAttribution.length,2);
+  for(let i=0;i<2;i++){
+   const s=result.compositeSourceAttribution[i],
+    reference=result.compositeRGBA[i];
+   assert(s.masks>=2,'Original sprites must provide exact visible alpha masks');
+   assert.equal(s.editorOnlyShadeTouched.count,reference.transitions.editorOnly);
+   assert.equal(s.worldOnlyShadeTouched.count,reference.transitions.worldOnly);
+   assert.equal(s.severeBare.count,reference.bare.delta['65-255']);
+   assert.equal(s.severeShaded.count,reference.shaded.delta['65-255']);
+   assert.equal(s.editorOnlyShadeTouched.ground.mountainOnly+
+    s.editorOnlyShadeTouched.ground.mountainAndSprite+
+    s.editorOnlyShadeTouched.ground.spriteOnly+
+    s.editorOnlyShadeTouched.ground.neither,
+    s.editorOnlyShadeTouched.count);
+   assert(s.editorOnlyShadeTouched.count>0);
+   assert(s.severeBare.count>0);
+   assert(s.severeBare.samples.length>0);
+   assert.equal(s.complete,false);
+   assert.equal(s.readyForViewer,false);
   }
   assert(result.compositeNoShadows.every(x=>x.painted>10000));
   assert(result.compositeWithShadows.every(x=>x.painted>10000));
