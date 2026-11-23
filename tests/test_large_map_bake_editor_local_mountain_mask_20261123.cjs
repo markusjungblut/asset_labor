@@ -27,7 +27,7 @@ test('original editor low-res raster is capped at .6 and 320 global pixels',()=>
  assert.equal(a.observed[0].softness,3.2);
  assert.equal(a.observed[1].w,320);
  assert.equal(a.observed[1].strength,1.12);
- assert.equal(o.left,-32); // Math.floor(-20-(5+5*1.3))-2
+ assert.equal(o.left,-125); // contact radius=96; floor(-20-102.5)-2
  assert.equal(o.canvas.width,Math.ceil(320*.045+3)-o.left);
  assert.equal(o.complete,false);assert.equal(o.readyForViewer,false);
 });

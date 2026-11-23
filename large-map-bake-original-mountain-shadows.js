@@ -23,7 +23,9 @@ function paint({objects,output,tile,canvasFactory,
  shadows=root.VedrasShadows,tone=root.VedrasShadowTone,
  spriteShadows=root.VedrasSpriteShadows,
  authoredScene=null,styleBridge=root.VedrasLargeMapAuthoredMountainShadows,
- captureReceiverCasts=false,scale=2.5,projectY=.85,pad=128,size=512}={}){
+ captureReceiverCasts=false,editorLocalMask=false,
+ localEngine=root.VedrasEditorLocalMountainMask,
+ scale=2.5,projectY=.85,pad=128,size=512}={}){
  const profile=spriteShadows?.get?.();
  if(!Array.isArray(objects)||objects.length>MAX_MOUNTAINS||
   !output?.getContext||!tile||typeof canvasFactory!=="function"||
@@ -38,6 +40,11 @@ function paint({objects,output,tile,canvasFactory,
   !Object.keys(profile.profiles).length||
   !(scale>0&&projectY>0&&pad>=0&&size>0)||
   typeof captureReceiverCasts!=="boolean"||
+  typeof editorLocalMask!=="boolean"||
+  (editorLocalMask&&(
+   typeof localEngine?.raster!=="function"||
+   typeof localEngine?.cast!=="function"||
+   typeof localEngine?.globalBox!=="function"))||
   (captureReceiverCasts&&typeof shadows?.mountainAlphaAt!=="function")||
   (authoredScene!==null&&
    (typeof styleBridge?.valid!=="function"||
@@ -92,7 +99,14 @@ function paint({objects,output,tile,canvasFactory,
   const p={x:obj.item.p.x*scale,y:g.y*scale*projectY},
    foot=alphaFoot(obj,anchor),
    origin=shadows.mountainOrigin(p,width,width*aspect,anchor,settings,foot);
-  const box=bounds(shadows,origin,width,settings);
+  const cachedEditorMask=editorLocalMask?localEngine.raster({
+   width,settings,strength,canvasFactory,shadows
+  }):null;
+  const cachedEditorCast=cachedEditorMask?localEngine.cast({
+   raster:cachedEditorMask,origin
+  }):null;
+  const box=cachedEditorCast?localEngine.globalBox({cast:cachedEditorCast}):
+   bounds(shadows,origin,width,settings);
   if(!(box.width>0&&box.height>0)||
    box.width>MAX_SIDE||box.height>MAX_SIDE||
    box.width*box.height>MAX_PIXELS)
@@ -110,9 +124,23 @@ function paint({objects,output,tile,canvasFactory,
   const sc=scratch.getContext("2d",{willReadFrequently:true});
   if(!sc?.createImageData||!sc?.putImageData)
    throw Error("Natives Bergschatten-Distanzfeld erfordert ImageData.");
-  const stats=shadows.paintMountain(sc,
-   {x:origin.x-box.left,y:origin.y-box.top},
-   width,settings,strength);
+  // app.js shadowLocalMask paints at a reduced resolution and then
+  // stretches the cached mask. In this TEST-ONLY option a separate
+  // integer-global scratch preserves the already proven WorldTile seam.
+  // The original editor cached raster canvas is retained for receiver
+  // source-atop casts, not reconstructed from the larger world scratch.
+  const stats=cachedEditorCast?
+   {positiveCount:cachedEditorMask.positiveCount,maxAlpha:cachedEditorMask.maxAlpha}:
+   shadows.paintMountain(sc,
+    {x:origin.x-box.left,y:origin.y-box.top},
+    width,settings,strength);
+  if(cachedEditorCast){
+   sc.setTransform(1,0,0,1,0,0);
+   sc.globalAlpha=1;sc.globalCompositeOperation="source-over";
+   sc.drawImage(cachedEditorCast.canvas,
+    cachedEditorCast.x-box.left,cachedEditorCast.y-box.top,
+    cachedEditorCast.width,cachedEditorCast.height);
+  }
   if(!stats||!(stats.positiveCount>0))continue;
   // The local raster origin is an ABSOLUTE INTEGER global pixel.
   // Adjacent tiles copy precisely the same generated RGBA samples.
@@ -124,7 +152,23 @@ function paint({objects,output,tile,canvasFactory,
   drawn++;nonzeroPixels+=stats.positiveCount;
   maxAlpha=Math.max(maxAlpha,stats.maxAlpha);
   if(obj.shadowOnly===true)onlyShadow++;
-  if(captureReceiverCasts){
+  if(captureReceiverCasts&&cachedEditorCast){
+   // Per-caster original editor-local native 320px mask is a fresh,
+   // stable canvas; expose its EXACT fractional draw rect for source-atop.
+   retainedPixels+=cachedEditorCast.canvas.width*cachedEditorCast.canvas.height;
+   if(retainedPixels>12500000)
+    throw Error("Zu viele Editor-Lokal-Casts für die Empfängerprobe.");
+   casts.push({owner:obj,canvas:cachedEditorCast.canvas,
+    box:{left:cachedEditorCast.x,top:cachedEditorCast.y,
+     width:cachedEditorCast.width,height:cachedEditorCast.height},
+    nativeMaskFactor:cachedEditorMask.factor,
+    nativeMaskLeft:cachedEditorMask.left,
+    nativeMaskTop:cachedEditorMask.top,
+    nativeMaskWidth:cachedEditorCast.canvas.width,
+    nativeMaskHeight:cachedEditorCast.canvas.height,
+    shape:shadows.mountainShape(origin,width,settings),
+    modelWidth:width,strength,peakAlpha:stats.maxAlpha});
+  }else if(captureReceiverCasts){
    // The mutable scratch canvas is reused by the ground shadow pass.
    // Keep only independent copies; NEVER leak an image that can be cleared
    // when the next mountain is rasterized. Retention stays strictly bounded.
@@ -141,7 +185,10 @@ function paint({objects,output,tile,canvasFactory,
     modelWidth:width,strength,peakAlpha:stats.maxAlpha});
   }
  }
- return {schema:SCHEMA,source:"native-VedrasShadows-paintMountain",
+ return {schema:SCHEMA,source:editorLocalMask?
+   "opt-in-original-editor-cached-local-mountain-mask":
+   "native-VedrasShadows-paintMountain",
+  editorCachedLocalMask:editorLocalMask,
   drawn,onlyShadow,nonzeroPixels,maxAlpha,
   casts,retainedCastPixels:retainedPixels,
   defaultEditorSettings:authoredScene===null,

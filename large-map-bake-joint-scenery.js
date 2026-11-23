@@ -285,7 +285,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
  async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
   authoredShadowScene=null,previewMountainReceivers=false,
   previewEditorProjection=false,captureEditorCompositeReference=false,
-  captureAlphaAB=false}={}){
+  captureAlphaAB=false,previewEditorLocalMountainMask=false}={}){
+  if(typeof previewEditorLocalMountainMask!=="boolean"||
+   (previewEditorLocalMountainMask&&(
+    !previewEditorProjection||!previewSpriteShadows||
+    !previewMountainShadows||!previewMountainReceivers||
+    !captureEditorCompositeReference)))
+   throw Error("Gecachte Editor-Berglokalmaske nur für komplette begrenzte Schattenreferenz.");
   if(typeof captureAlphaAB!=="boolean"||
    (captureAlphaAB&&!captureEditorCompositeReference))
    throw Error("Alpha-A/B braucht eine begrenzte explizite Original-Editor-Referenz.");
@@ -388,6 +394,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
     objects:[...mount,...shadowOnlyMountains],output,tile,canvasFactory,
     authoredScene:authoredShadowScene,
     captureReceiverCasts:previewMountainReceivers,
+    editorLocalMask:previewEditorLocalMountainMask,
     scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
    });
   }
@@ -592,6 +599,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    editorHiddenTrees:hiddenEditorCanopies.length,
    editorHiddenDeadTreeAccents:hiddenEditorTreeAccents.length,
    editorCompositeReference,
+   editorCachedLocalMountainMask:previewEditorLocalMountainMask,
    editorFootSpriteProjection:previewEditorProjection,
    editorPixelsUnprojectedHeight:previewEditorProjection,
    drawnMountains:mount.length,
