@@ -93,7 +93,7 @@ const plan=Plan.plan(world);
     natureCatalogRevision:revision,seed:12345,
     earlierWarmBoulders:1,earlierTrees:1,
     instances:[
-     {q:3,r:0,dx:-75,dy:48,assetPath:ordinary,
+     {q:2,r:1,dx:-60,dy:48,assetPath:ordinary,
       assetId:nature.entries[ordinary.slice(7)].id,scale:1,
       kind:'rock',source:'geography-original-late-rock-snow'},
      {q:3,r:0,dx:-100,dy:35,assetPath:snow,
