@@ -5,6 +5,7 @@ const G=window.VedrasGeography,MIX=window.VedrasGeographyLabMix,
  IO=window.VedrasGeographyIO,BAKE=window.VedrasLargeMapBakePlan,
  MATERIAL=window.VedrasLargeMapMaterialPreview,
  SCENERY=window.VedrasLargeMapScenerySource,
+ MOUNTAIN_ENVELOPES=window.VedrasLargeMapMountainEnvelopeAudit,
  MOUNTAINPNG=window.VedrasLargeMapMountainPNG,
  TREEPNG=window.VedrasLargeMapTreePNG,
  CANOPY=window.VedrasLargeMapCanopyAudit,
@@ -503,6 +504,52 @@ $('previewMountainScenery').addEventListener('click',async()=>{
    ' Bergplatzierungen beruhen auf noch ungeprüften candidate-Grafiken.';
  }catch(error){
   report.textContent='Original-Bergprobe fehlgeschlagen: '+String(error?.message||error);
+ }finally{button.disabled=false;}
+});
+$('auditMountainEnvelopes').addEventListener('click',async()=>{
+ if(!currentWorld())return;
+ const button=$('auditMountainEnvelopes'),report=$('mountainEnvelopeReport');
+ if(button.disabled)return;button.disabled=true;
+ const current=world;
+ try{
+  if(!MOUNTAIN_ENVELOPES?.create||!MATERIAL?.imageLoader)
+   throw Error('Original-Bergketten-Envelope-Auditor nicht geladen.');
+  report.textContent='Globale Bergkette wird aus Nature-Katalog und echten PNG-Seitenverhältnissen nach Editor-Regel geprüft …';
+  const {plan,scenery,assets,natureCatalog}=await mountainPreflight(current);
+  const auditor=MOUNTAIN_ENVELOPES.create({
+   plan,mountainPlan:scenery,natureCatalog,assets,
+   loadImage:MATERIAL.imageLoader(),mountains:window.VedrasMountains
+  });
+  const audit=await auditor.audit();
+  if(current!==world)
+   throw Error('Geografiewelt während des Bergketten-Audits geändert.');
+  if(audit.stage!=='original-mountain-editor-envelope-audit'||
+   audit.complete||audit.readyForViewer||audit.rasterized||
+   audit.actualAlphaOverlapMeasured||!audit.usesEditorVisualOverlap)
+   throw Error('Berg-Envelope-Audit darf keine fertige Atlas-Scenery freigeben.');
+  const s=audit.statistics;
+  const total=s.coreOverlaps+s.interChainInfluenceConflicts+
+   s.sharedChainTooCrowded;
+  report.textContent=(audit.matchesOriginalCandidateSpacing?
+    'EDITOR-ABSTANDSPRÜFUNG OHNE ERKANNTE KONFLIKTE: ':
+    'EDITOR-ABSTANDSKONFLIKTE GEFUNDEN: ')+
+   s.mountains+' globale Berge · '+
+   s.decodedOriginalPngs+' physisch dekodierte Original-Berggrafiken · '+
+   s.testedSharedChainEnvelopes+' sich überdeckende Bildumschläge geprüft · '+
+   s.sharedChainTooCrowded+' zu dicht stehende Bergkettenpaare (Grenze 52 %) · '+
+   s.coreOverlaps+' geteilte Bergkerne · '+
+   s.interChainInfluenceConflicts+' fremde Einflusszonen · '+
+   s.candidateArtwork+' candidate-Status-Berginstanzen · '+
+   total+' Regelkonflikte'+
+   (audit.issues.length?' · Beispiel: '+audit.issues[0].kind+
+     ' ('+audit.issues[0].a.q+','+audit.issues[0].a.r+
+     ' / '+audit.issues[0].b.q+','+audit.issues[0].b.r+')':'')+
+   '. Diese Prüfung verwendet die originale Editor-AABB-Bildhülle mit echtem PNG-Seitenverhältnis, '+
+   'KEINE pixelgenaue Berg-Berg-Alpha-Überlagerung. '+
+   'Kein fertiger Kartenatlas: Originalschatten, Berg-Bildparität und 4× fehlen.';
+ }catch(error){
+  report.textContent='Original-Bergketten-Envelope-Prüfung fehlgeschlagen: '+
+    String(error?.message||error);
  }finally{button.disabled=false;}
 });
 $('auditNatureTreeSites').addEventListener('click',async()=>{
