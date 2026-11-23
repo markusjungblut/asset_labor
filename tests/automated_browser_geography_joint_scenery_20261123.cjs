@@ -9,7 +9,8 @@ const Geo=require('../worldgen-geography.js');
 const Plan=require('../large-map-bake-plan.js');
 const root=path.resolve(__dirname,'..');
 const names=['assets/nature/birke1.png','assets/nature/berg_01.png',
- 'assets/nature/boulder_36.png'];
+ 'assets/nature/boulder_36.png','assets/nature/boulder_01.png',
+ 'assets/nature/snow_patch_01.png'];
 const nature=JSON.parse(fs.readFileSync(path.join(root,
  'assets/nature/nature_catalog.json'),'utf8'));
 const terrain=JSON.parse(fs.readFileSync(path.join(root,
@@ -51,7 +52,7 @@ const plan=Plan.plan(world);
    'large-map-bake-scenery-seam.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names})=>{
-   const [tree,mount,rock]=names;
+   const [tree,mount,rock,ordinary,snow]=names;
    const imageByPath=new Map();
    for(const p of names){
     const img=new Image();img.src='/'+p;await img.decode();
@@ -85,9 +86,23 @@ const plan=Plan.plan(world);
     instances:[{q:3,r:0,dx:-95,dy:65,assetPath:rock,
      assetId:nature.entries[rock.slice(7)].id,scale:1,
      source:'geography-original-warm-boulder-prepass'}]};
+   const latePlan={schema:'vedras-geography-late-rock-snow-v1',
+    stage:'original-late-rock-and-snow-after-trees',
+    complete:false,readyForViewer:false,rasterized:false,
+    worldHexes:world.cells.length,worldSource:source,
+    natureCatalogRevision:revision,seed:12345,
+    earlierWarmBoulders:1,earlierTrees:1,
+    instances:[
+     {q:3,r:0,dx:-75,dy:48,assetPath:ordinary,
+      assetId:nature.entries[ordinary.slice(7)].id,scale:1,
+      kind:'rock',source:'geography-original-late-rock-snow'},
+     {q:3,r:0,dx:-100,dy:35,assetPath:snow,
+      assetId:nature.entries[snow.slice(7)].id,scale:1,
+      kind:'snow',source:'geography-original-late-rock-snow'}
+    ]};
    const assets=names.map(p=>({path:p,relPath:p.slice(7),category:'nature'}));
    const renderer=window.VedrasLargeMapJointScenery.create({
-    world,plan,treePlan,mountainPlan,boulderPlan,
+    world,plan,treePlan,mountainPlan,boulderPlan,latePlan,
     terrainCatalog:terrain,
     natureCatalog:nature,assets,
     loadImage:async a=>({img:imageByPath.get(a.path)})
@@ -126,8 +141,13 @@ const plan=Plan.plan(world);
    }
    return {stages:[a.stage,b.stage],
     sizes:[a.png.size,b.png.size],
-    draws:[a.drawnTrees+a.drawnMountains+a.drawnWarmBoulders,
-     b.drawnTrees+b.drawnMountains+b.drawnWarmBoulders],
+    draws:[a.drawnTrees+a.drawnMountains+a.drawnWarmBoulders+
+     a.drawnOrdinaryBoulders+a.drawnSnowPatches,
+     b.drawnTrees+b.drawnMountains+b.drawnWarmBoulders+
+     b.drawnOrdinaryBoulders+b.drawnSnowPatches],
+    ordinaryRocks:[a.drawnOrdinaryBoulders,b.drawnOrdinaryBoulders],
+    snowPatches:[a.drawnSnowPatches,b.drawnSnowPatches],
+    missingSnow:[a.needsSnowPass,b.needsSnowPass],
     rocks:[a.drawnWarmBoulders,b.drawnWarmBoulders],
     lateRocks:[a.needsOtherBoulderPass,b.needsOtherBoulderPass],
     trees:[a.drawnTrees,b.drawnTrees],
@@ -149,8 +169,11 @@ const plan=Plan.plan(world);
   assert.deepEqual(result.trees,[1,1]);
   assert.deepEqual(result.mountains,[1,1]);
   assert.deepEqual(result.rocks,[1,1]);
-  assert.deepEqual(result.lateRocks,[true,true]);
-  assert.deepEqual(result.draws,[3,3]);
+  assert.deepEqual(result.ordinaryRocks,[1,1]);
+  assert.deepEqual(result.snowPatches,[1,1]);
+  assert.deepEqual(result.lateRocks,[false,false]);
+  assert.deepEqual(result.missingSnow,[false,false]);
+  assert.deepEqual(result.draws,[5,5]);
   assert.deepEqual(result.ready,[false,false]);
   assert.deepEqual(result.complete,[false,false]);
   assert(result.sizes.every(x=>x>1000));
@@ -161,7 +184,7 @@ const plan=Plan.plan(world);
   assert.equal(result.pixelProof.different,0);
   assert(result.pixelProof.painted>500);
   assert.deepEqual(result.projection,[2.5,2.125]);
-  console.log('PASS real joint Nature tree+mountain+warm boulder 2.5x pixel seam',JSON.stringify(result));
+  console.log('PASS real joint Nature tree+mountain+ordinary boulders+snow 2.5x pixel seam',JSON.stringify(result));
  }finally{
   try{await browser?.close();}finally{
    server.closeAllConnections();

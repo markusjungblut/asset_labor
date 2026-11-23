@@ -754,6 +754,7 @@ $('auditCanopyProxy').addEventListener('click',async()=>{
 async function makeJointSceneryPreview(current){
   if(!JOINT?.create||!NATURE?.create||
     !window.VedrasLargeMapWarmBoulders?.create||
+    !window.VedrasLargeMapLateNature?.create||
     !window.VedrasLargeMapNatureTrunks?.create||
     !window.VedrasLargeMapBakeForestFloor?.create||
     !window.VedrasLargeMapBakeGroundRelief?.createOptions||
@@ -775,14 +776,19 @@ async function makeJointSceneryPreview(current){
    world:current,terrainCatalog:catalog,natureCatalog,assets,forestCells,
    mountainPlan:scenery,siteAudit,boulderPlan:boulders,seed:12345
   });
+  const late=window.VedrasLargeMapLateNature.create({
+   world:current,terrainCatalog:catalog,natureCatalog,assets,forestCells,
+   mountainPlan:scenery,siteAudit,warmPlan:boulders,treePlan:trunks,
+   seed:12345
+  });
   if(current!==world)throw Error('Welt während der Scenery-Platzierung geändert.');
   const renderer=JOINT.create({
    world:current,plan,treePlan:trunks,mountainPlan:scenery,
-   boulderPlan:boulders,
+   boulderPlan:boulders,latePlan:late,
    terrainCatalog:catalog,natureCatalog,assets,
    loadImage:MATERIAL.imageLoader()
   });
-  return {plan,renderer,boulders,trunks};
+  return {plan,renderer,boulders,trunks,late};
 }
 $('previewJointScenery').addEventListener('click',async()=>{
  if(!currentWorld())return;
@@ -791,7 +797,7 @@ $('previewJointScenery').addEventListener('click',async()=>{
  const current=world;
  try{
   report.textContent='Bergketten, globale Originalbaumanker und Relief werden als gemeinsamer Test geplant …';
-  const {plan,renderer,boulders}=await makeJointSceneryPreview(current);
+  const {plan,renderer,boulders,late}=await makeJointSceneryPreview(current);
   const requested=String($('materialPreviewTileId').value||'').trim();
   const id=requested||renderer.defaultTile();
   if(!plan.tiles.some(t=>t.id===id))
@@ -816,13 +822,17 @@ $('previewJointScenery').addEventListener('click',async()=>{
    ' Berge · '+sample.drawnWarmBoulders+' warme Findlinge in dieser Kachel ('+
    boulders.instances.length+' global geplant, davon '+
    boulders.statistics.guaranteedWarmPlaced+' garantierter Vorlauf) · '+
+   sample.drawnOrdinaryBoulders+' gewöhnliche Findlinge · '+
+   sample.drawnSnowPatches+' Schneeflächen (global '+
+   late.stats.placedOrdinaryBoulders+' gewöhnliche Findlinge / '+
+   late.stats.placedSnowPatches+' Schneeflächen geplant) · '+
    sample.originalPngs+' dekodierte Originalgrafiken · '+
    sample.occludedTreeMountainPairs+' erkannte Baum-Berg-Verdeckungen ('+
    sample.testedTreeMountainOcclusions+' getestete Paare) · '+
    sample.mountainFlattenPads+' globale Bergfundament-Pads · '+
    sample.width+'×'+sample.height+' px (2,5×) · '+
    Math.ceil(sample.png.size/1024)+' KiB. KEIN fertiger Kartenatlas: '+
-   'Nature-Vollpopulation, Schatten, weitere Felsen, Sträucher, 4×-Renderer, '+
+   'Nature-Vollpopulation, Schatten, Sträucher, Totholz, 4×-Renderer, '+
    'visuelle Editor-Parität und Berg-Berg-Silhouettenprüfung fehlen.';
  }catch(error){
   report.textContent='Gemeinsame Original-Scenery-Probe fehlgeschlagen: '+

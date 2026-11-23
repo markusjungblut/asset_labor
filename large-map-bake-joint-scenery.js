@@ -15,7 +15,7 @@ const validPath=p=>typeof p==="string"&&
  /^assets\/nature\/[\p{L}\p{N}_.-]+\.png$/iu.test(p)&&!p.includes("..");
 const sameSource=(a,b)=>!!a&&!!b&&
  ["version","seed","width","height","originQ","originR"].every(k=>a[k]===b[k]);
-function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalog,natureCatalog,
+function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null,terrainCatalog,natureCatalog,
  assets,loadImage,canvasFactory=()=>root.document.createElement("canvas"),
  planner=root.VedrasLargeMapBakePlan,
  groundRelief=root.VedrasLargeMapBakeGroundRelief,
@@ -48,8 +48,21 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
    boulderPlan.seed!==treePlan.seed||
    boulderPlan.natureCatalogRevision!==(natureCatalog?.revision??null)||
    treePlan.earlierWarmBoulders!==boulderPlan.instances.length))||
+  (latePlan&&(
+   !boulderPlan||latePlan.schema!=="vedras-geography-late-rock-snow-v1"||
+   latePlan.stage!=="original-late-rock-and-snow-after-trees"||
+   latePlan.rasterized!==false||latePlan.complete!==false||
+   latePlan.readyForViewer!==false||
+   !Array.isArray(latePlan.instances)||
+   latePlan.worldHexes!==plan.source?.cells||
+   !sameSource(latePlan.worldSource,plan.source)||
+   latePlan.seed!==treePlan.seed||
+   latePlan.natureCatalogRevision!==(natureCatalog?.revision??null)||
+   latePlan.earlierWarmBoulders!==boulderPlan.instances.length||
+   latePlan.earlierTrees!==treePlan.instances.length))||
   treePlan.instances.length+mountainPlan.instances.length+
-   (boulderPlan?.instances.length||0)>MAX_INSTANCES||
+   (boulderPlan?.instances.length||0)+
+   (latePlan?.instances.length||0)>MAX_INSTANCES||
   treePlan.worldHexes!==plan.source?.cells||
   mountainPlan.worldHexes!==plan.source?.cells||
   !sameSource(treePlan.worldSource,plan.source)||
@@ -90,17 +103,25 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
   if(!meta||meta.id!==inst.assetId||
     (type==="tree"?!balance.isCanopy(meta):
      type==="rock"?!balance.isWarmBoulder(meta):
+     type==="late-rock"?!(
+      meta.kind==="rock"&&(meta.family==="stones"||
+       /^boulder[_-]?\d+$/i.test(meta.id||""))&&!balance.isWarmBoulder(meta)):
+     type==="snow"?!(
+      meta.kind==="ground_cover"&&meta.family==="snow"):
      meta.kind!=="mountain"))
    throw Error("Scenery-Asset widerspricht dem Original-Naturekatalog.");
   const p=pos(inst);
-  if(type==="tree"||type==="rock"){
+  if(type==="tree"||type==="rock"||type==="late-rock"||type==="snow"){
    if(!Number.isFinite(inst.dx)||!Number.isFinite(inst.dy)||
      Math.abs(inst.dx)>160||Math.abs(inst.dy)>160||
      !Number.isFinite(inst.scale)||inst.scale<=0||
      inst.scale<meta.scaleMin-.002||inst.scale>meta.scaleMax+.002||
      inst.source!==(type==="tree"?
       "geography-original-tree-trunk-preview":
-      "geography-original-warm-boulder-prepass"))
+      type==="rock"?"geography-original-warm-boulder-prepass":
+      "geography-original-late-rock-snow")||
+     (type==="late-rock"&&inst.kind!=="rock")||
+     (type==="snow"&&inst.kind!=="snow"))
     throw Error("Original-Nature-Stammanker oder Skalierung ungültig.");
    p.x+=inst.dx;p.y+=inst.dy;
   }else if(!Number.isFinite(inst.width)||inst.width<=0||
@@ -117,6 +138,8 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
  for(const m of mountainPlan.instances)register(m,"mountain");
  for(const r of boulderPlan?.instances||[])register(r,"rock");
  for(const t of treePlan.instances)register(t,"tree");
+ for(const n of latePlan?.instances||[])
+  register(n,n.kind==="rock"?"late-rock":n.kind==="snow"?"snow":"invalid");
  // Exactly the same continuous geography relief source as the native ground
  // adapter, but with the editor's additional flattened mountain chain pads.
  // Full world cells are used to make relief independent of the requested tile.
@@ -260,12 +283,17 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
   }
   const mount=placed.filter(x=>x.item.type==="mountain"),
    trees=placed.filter(x=>x.item.type==="tree"),
-   rocks=placed.filter(x=>x.item.type==="rock");
-  let occluded=0,occludedRocks=0;
-  for(const plant of [...trees,...rocks])for(const m of mount)if(occludes(plant,m)){
-   plant.coveredByMountains.add(m);
-   if(plant.item.type==="tree")occluded++;else occludedRocks++;
-  }
+   rocks=placed.filter(x=>x.item.type==="rock"),
+   ordinary=placed.filter(x=>x.item.type==="late-rock"),
+   snow=placed.filter(x=>x.item.type==="snow");
+  let occluded=0,occludedRocks=0,occludedOther=0;
+  for(const plant of [...trees,...rocks,...ordinary,...snow])
+   for(const m of mount)if(occludes(plant,m)){
+    plant.coveredByMountains.add(m);
+    if(plant.item.type==="tree")occluded++;
+    else if(plant.item.type==="rock")occludedRocks++;
+    else occludedOther++;
+   }
   const sorted=placed.slice().sort((a,b)=>{
    if(a.item.type==="mountain"&&b.coveredByMountains.has(a))return 1;
    if(b.item.type==="mountain"&&a.coveredByMountains.has(b))return -1;
@@ -327,6 +355,9 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
    tile:{...tile},png,width:output.width,height:output.height,
    drawnTrees:trees.length,drawnMountains:mount.length,
    drawnWarmBoulders:rocks.length,
+   drawnOrdinaryBoulders:ordinary.length,drawnSnowPatches:snow.length,
+   testedOtherMountainOcclusions:(ordinary.length+snow.length)*mount.length,
+   occludedOtherMountainPairs:occludedOther,
    testedTreeMountainOcclusions:trees.length*mount.length,
    occludedTreeMountainPairs:occluded,
    testedRockMountainOcclusions:rocks.length*mount.length,
@@ -336,7 +367,8 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,terrainCatalo
    samplesPerWorldUnitX:SCALE,samplesPerWorldUnitY:SCALE*PROJECT_Y,
    needsFullEditorImageParity:true,needsPhysicalMountainOverlapAudit:true,
    needsFullNaturePopulation:true,needsPriorBoulderPass:!boulderPlan,
-   needsOtherBoulderPass:true,needsShrubsAndSnow:true,
+   needsOtherBoulderPass:!latePlan,needsSnowPass:!latePlan,
+   needsShrubsAndSnow:!latePlan,needsShrubsAndAccents:true,
    needsGroundAndSpriteShadows:true,
    needsFinal4x:true,transparent:true,rasterized:true,
    complete:false,readyForViewer:false};

@@ -41,6 +41,7 @@ jobs:
             /large-map-bake-mountain-png.js
             /large-map-bake-nature-source.js
             /large-map-bake-warm-boulders.js
+            /large-map-bake-nature-late-rock-snow.js
             /large-map-bake-nature-trunks.js
             /large-map-bake-tree-png.js
             /large-map-bake-canopy-audit.js
@@ -90,6 +91,7 @@ jobs:
             /tests/test_large_map_bake_nature_source_20261122.cjs
             /tests/test_large_map_bake_nature_trunks_20261122.cjs
             /tests/test_large_map_bake_warm_boulders_20261123.cjs
+            /tests/test_large_map_bake_nature_late_20261123.cjs
             /tests/test_large_map_bake_tree_png_20261122.cjs
             /tests/test_large_map_bake_canopy_audit_20261123.cjs
             /tests/test_large_map_bake_joint_scenery_20261123.cjs
