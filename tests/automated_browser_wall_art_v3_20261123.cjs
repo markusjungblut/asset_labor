@@ -16,7 +16,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    return res.end('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
   }
   const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
-  const png=/^\/assets\/walls\/stone\/v5\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
+  const png=/^\/assets\/walls\/stone\/v6\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
   if(!webp&&!png){res.writeHead(404);return res.end('missing');}
   res.writeHead(200,{'Content-Type':png?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
@@ -96,9 +96,11 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    // Regression: authored diagonals must descend/rise in the same order
    // as the TRUE projected hex-edge geometry. V3 swapped all four slopes.
    const diagonalFeet=[];
+   const uprightColumns=[];
+   let matteFringe=0;
    for(const dir of [0,2,3,5]){
     const im=new Image();
-    im.src='assets/walls/stone/v5/edge_dir'+dir+'.png?v=20261123-stone-true-hex-v5';
+    im.src='assets/walls/stone/v6/edge_dir'+dir+'.png?v=20261123-stone-palisade-native-v6';
     await im.decode();
     const proof=document.createElement('canvas');
     proof.width=im.naturalWidth;proof.height=im.naturalHeight;
@@ -116,7 +118,33 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
      ((.78-.22)*im.naturalWidth);
     diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78),ideal});
    }
-   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,counts:joined.map(n=>n.degree),
+   // Edge-on walls must have one straight shaft, unlike obsolete bent art.
+   for(const dir of [1,4]){
+    const im=new Image();
+    im.src='assets/walls/stone/v6/edge_dir'+dir+'.png?v=20261123-stone-palisade-native-v6';
+    await im.decode();
+    const can=document.createElement('canvas');can.width=im.width;can.height=im.height;
+    const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);
+    const p=c.getImageData(0,0,can.width,can.height).data;
+    const shaft=[];
+    for(const part of [.30,.45,.60,.75,.90]){
+     const y=Math.floor(im.height*part),xs=[];
+     for(let x=0;x<im.width;x++)if(p[(y*im.width+x)*4+3]>225)xs.push(x);
+     if(xs.length>4)shaft.push({left:xs[0],right:xs.at(-1)});
+    }
+    uprightColumns.push({dir,shaft});
+   }
+   // Transparent RGBA must never contain a white JPEG/matte fringe.
+   for(let dir=0;dir<6;dir++){
+    const im=new Image();im.src='assets/walls/stone/v6/edge_dir'+dir+'.png';
+    await im.decode();
+    const can=document.createElement('canvas');can.width=im.width;can.height=im.height;
+    const c=can.getContext('2d',{willReadFrequently:true});c.drawImage(im,0,0);
+    const p=c.getImageData(0,0,can.width,can.height).data;
+    for(let k=0;k<p.length;k+=4)
+     if(p[k+3]>15&&p[k]>223&&p[k+1]>223&&p[k+2]>223)matteFringe++;
+   }
+   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
@@ -126,13 +154,19 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
   for(const {dir,left,right,ideal} of result.diagonalFeet){
-   assert(Math.abs((right-left)-ideal)<25,
+   assert(Math.abs((right-left)-ideal)<15,
     '3x raster base must follow the true hex slope, not merely its sign: '+dir+
     ', observed='+(right-left)+', ideal='+ideal);
    const shouldDescend=dir===0||dir===3;
    assert(shouldDescend?right-left>90:left-right>90,
     'direction '+dir+' must follow the real hex footprint, left='+left+', right='+right);
   }
+  for(const {dir,shaft} of result.uprightColumns){
+   assert(shaft.length>=4,'edge-on direction '+dir+' has a continuous shaft');
+   const drift=Math.max(...shaft.map(s=>s.left))-Math.min(...shaft.map(s=>s.left));
+   assert(drift<=10,'edge-on direction '+dir+' must be straight, x drift='+drift);
+  }
+  assert.equal(result.matteFringe,0,'no stone image may contain a white matte halo');
   assert(result.connected[3]>235,'joint must seal daylight in the middle of the wall');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
