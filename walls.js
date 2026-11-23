@@ -193,12 +193,12 @@ window.VedrasWalls=(()=>{
  const palisadeMaterial={inset:10.5,width:16,height:70,
   cornerWidth:25,cornerHeight:76,endWidth:23,endHeight:76};
  const palisadeJoinArt=new Map();
- // Stone v3 uses independently painted, high-resolution transparent PNGs.
+ // Stone v4 uses independently painted, high-resolution transparent PNGs.
  // 3x raster sprites retain fixed 2.5D anchors and upright stone faces.
  // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
  const stoneRasterMeta=wallArtMeta.stone;
- const stoneMaterial={cornerWidth:40,cornerHeight:82,endWidth:32,endHeight:82};
+ const stoneMaterial={cornerWidth:34,cornerHeight:74,endWidth:30,endHeight:74};
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
@@ -213,7 +213,7 @@ window.VedrasWalls=(()=>{
     image.onerror=()=>resolve(false);
     image.src='assets/walls/'+kind+'/edge_dir'+side+
      (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':
-      '.png?v=20261123-stone-raster-v3');
+      '.png?v=20261123-stone-correct-hex-v4');
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -229,7 +229,7 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);
     image.onerror=()=>resolve(false);
-    image.src='assets/walls/stone/'+name+'.png?v=20261123-stone-raster-v3';
+    image.src='assets/walls/stone/'+name+'.png?v=20261123-stone-correct-hex-v4';
    }));
   }
   artworkPromise=Promise.all(pending).then(results=>{

@@ -93,7 +93,27 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const middle=W.midpoint(timber[0]),midp=project(middle.x,middle.y);
    const timberBelow=[...onlyCtx.getImageData(
     Math.round(midp.x),Math.round(midp.y+9),1,1).data];
-   return {ok,info,connected,atFoot,shadowColor,counts:joined.map(n=>n.degree),
+   // Regression: authored diagonals must descend/rise in the same order
+   // as the TRUE projected hex-edge geometry. V3 swapped all four slopes.
+   const diagonalFeet=[];
+   for(const dir of [0,2,3,5]){
+    const im=new Image();
+    im.src='assets/walls/stone/edge_dir'+dir+'.png?v=20261123-stone-correct-hex-v4';
+    await im.decode();
+    const proof=document.createElement('canvas');
+    proof.width=im.naturalWidth;proof.height=im.naturalHeight;
+    const pc=proof.getContext('2d',{willReadFrequently:true});
+    pc.drawImage(im,0,0);
+    const p=pc.getImageData(0,0,proof.width,proof.height).data;
+    const footAt=xf=>{
+     const x=Math.round(proof.width*xf);
+     for(let y=proof.height-1;y>=0;y--)
+      if(p[(y*proof.width+x)*4+3]>180)return y;
+     throw Error('Missing painted masonry footprint at direction '+dir);
+    };
+    diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78)});
+   }
+   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
@@ -102,6 +122,11 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
+  for(const {dir,left,right} of result.diagonalFeet){
+   const shouldDescend=dir===0||dir===3;
+   assert(shouldDescend?right-left>90:left-right>90,
+    'direction '+dir+' must follow the real hex footprint, left='+left+', right='+right);
+  }
   assert(result.connected[3]>235,'joint must seal daylight in the middle of the wall');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
