@@ -14,9 +14,11 @@ Thumbs.db
 .vscode/
 # Neue lokale Grafikdateien nicht versehentlich öffentlich committen.
 
-# Rebuildable outputs: atlas CI artifact and per-scene on-disk terrain cache
+# Rebuildable outputs: atlas CI artifact, web exports, and per-scene caches
 /atlases/
 /precomputed/
+/dist/
 
-# Local Chromium acceptance output; reference scene remains committed separately
-/artifacts/rendering-step13-auto/
+# Local acceptance and diagnostic dumps (never commit transient PNG/JSON dumps)
+/artifacts/
+/test-artifacts/
