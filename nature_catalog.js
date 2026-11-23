@@ -56,7 +56,7 @@ window.VedrasNatureCatalog=(()=>{
   meta?.kind==='ground_cover';
  // Spawn density is an overall per-hex rate, never a rate per PNG variant.
  const dryPatchChance=biome=>biome==='sparse_pasture'?.32:
-  biome==='pasture'?.06:biome==='grassland'?.04:
+  biome==='pasture'?.06:biome==='grassland'?.04:biome==='savanna'?.32:
   DRY_PATCH_BIOMES.includes(biome)?.07:0;
  const TEMPERATE_BIOMES=['grassland','pasture','sparse_pasture','moor','marshland','swamp'];
  const STUMP_BIOMES=[...TEMPERATE_BIOMES,'savanna','jungle'];
