@@ -140,7 +140,7 @@ for(const filename of dryPatchNames){
   filename+' future-import habitats');
 }
 const dryChances={sparse_pasture:.32,pasture:.06,grassland:.04,
- sandy_desert:.07,savanna:.07,dry_ground:.07};
+ sandy_desert:.07,savanna:.32,dry_ground:.07};
 for(const [type,chance] of Object.entries(dryChances))assert.equal(N.dryPatchChance(type),chance);
 for(const type of ['jungle','highland','tundra','snowfields','moor','swamp','marshland','ocean'])
  assert.equal(N.dryPatchChance(type),0,'No dry patch chance on '+type);
