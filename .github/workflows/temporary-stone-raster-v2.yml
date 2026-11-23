@@ -1,0 +1,54 @@
+name: Temporary Stone Raster Asset Import
+on:
+  push:
+    branches: [feat/stone-battlements-aoe2-20261123]
+permissions:
+  contents: write
+concurrency:
+  group: stone-v2-authoring
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          sparse-checkout: |
+            scripts/build_stone_wall_webp_v2.py
+            assets/walls/stone
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install raster authoring dependencies
+        run: python -m pip install --disable-pip-version-check pillow numpy
+      - name: Retrieve original painted wall art
+        run: |
+          curl --fail --location --retry 2 --output /tmp/stone_source.png 'https://at.adobe.com/9f9MDOjLFgq2kNC0'
+          file /tmp/stone_source.png
+      - name: Rasterize all six directions and both joins
+        run: python scripts/build_stone_wall_webp_v2.py /tmp/stone_source.png
+      - name: Verify actual WebP image files before committing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          names=[f'edge_dir{x}' for x in range(6)]+['corner_post','end_post']
+          for name in names:
+              path=Path('assets/walls/stone')/(name+'.webp')
+              with Image.open(path) as image:
+                  assert image.format=='WEBP',name
+                  assert image.mode in ('RGBA','RGB'),name
+                  assert image.size[0]>20 and image.size[1]>70,name
+                  print(name,image.size,path.stat().st_size)
+          PY
+      - name: Publish finished independent painted sprites
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/walls/stone/edge_dir*.webp assets/walls/stone/corner_post.webp assets/walls/stone/end_post.webp
+          if git diff --cached --quiet; then echo 'Nothing to commit'; exit 0; fi
+          git commit -m 'art(stone): commit eight painted transparent WebP sprites v2'
+          git push origin "HEAD:$GITHUB_REF_NAME"
