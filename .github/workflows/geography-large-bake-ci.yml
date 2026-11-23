@@ -84,6 +84,7 @@ jobs:
             /tests/test_large_map_river_raster_window_20261122.cjs
             /tests/test_large_map_bake_forest_floor_20261122.cjs
             /tests/test_large_map_scenery_source_20261122.cjs
+            /tests/test_large_map_bake_mountain_source_parity_20261123.cjs
             /tests/test_large_map_bake_mountain_envelopes_20261123.cjs
             /tests/test_large_map_bake_nature_source_20261122.cjs
             /tests/test_large_map_bake_nature_trunks_20261122.cjs

@@ -21,6 +21,12 @@ function create(options={}) {
  const mountains=options.mountains || root.VedrasMountains;
  const rules=options.rules || root.VedrasNatureCatalog;
  const seed=options.seed ?? 12345;
+ // Optional strict source geometry from REAL decoded original PNGs.
+ // No synthetic width/aspect fallback: callers using strict preview should
+ // obtain every mountain variant's natural image dimensions first.
+ const imageGeometry=options.originalMountainImageGeometry;
+ if(imageGeometry!==undefined&&!(imageGeometry instanceof Map))
+  throw Error("Original-Berggeometrie muss für jede PNG-Variante gemessen vorliegen.");
  if(!Array.isArray(world?.cells) || !Array.isArray(terrainCatalog?.terrainTypes) ||
     !natureCatalog?.entries || !Array.isArray(assets) ||
     typeof mountains?.candidate!=="function" || typeof mountains?.config!=="function" ||
@@ -43,6 +49,18 @@ function create(options={}) {
  // /api/assets is lexically ordered; normalize mocks/alternate API listings
  // before the original seeded pick to keep full-world placement deterministic.
  variants.sort((a,b)=>a.asset.path.localeCompare(b.asset.path,'en'));
+ if(imageGeometry){
+  for(const {asset,meta} of variants){
+   const g=imageGeometry.get(asset.path);
+   if(!g||g.width!==meta.logicalWidth||
+      !Number.isFinite(g.aspect)||g.aspect<=0||g.aspect>20||
+      !Number.isFinite(g.anchorX)||g.anchorX<0||g.anchorX>1||
+      !Number.isFinite(g.anchorY)||g.anchorY<0||g.anchorY>1||
+      g.anchorX!==(meta.anchor?.x??.5)||
+      g.anchorY!==(meta.anchor?.y??.67))
+    throw Error("Original-Berg-PNG-Geometrie fehlt oder widerspricht dem Naturekatalog: "+asset.path);
+  }
+ }
  const pools=new Map();
  for(const t of terrainCatalog.terrainTypes)
   pools.set(t.id,variants.filter(v=>rules.mountainAllowed(
@@ -69,6 +87,8 @@ function create(options={}) {
  }
  const scene={cells:world.cells,mountains:[],nature:[],objects:{}};
  const placed=[],unmatched=[],statuses={};
+ let rejectedVisualSpacing=0;
+ const geometryFor=m=>imageGeometry?.get(m.assetPath);
  for(let index=0;index<components.length;index++) {
   for(const cell of components[index]) {
    const pool=pools.get(cell.terrainId)||[];
@@ -84,8 +104,14 @@ function create(options={}) {
     const allow=c=>rules.mountainAllowed(
      choice.meta,c.terrainId,terrainCatalog,natureCatalog);
     const candidate=mountains.candidate(scene,cell.q,cell.r,cfg.radius,allow,
-     {coreRadius:0,mode:"chain",chainId:"geography_"+index,spacing:"tight"});
-    if(!candidate.ok)continue;
+     {coreRadius:0,mode:"chain",chainId:"geography_"+index,spacing:"tight",
+      ...(imageGeometry?{visualInfo:imageGeometry.get(choice.asset.path),
+       visualInfoOf:geometryFor}:{})});
+    if(!candidate.ok){
+     if(candidate.reason?.startsWith("Bergsilhouetten überlagern"))
+      rejectedVisualSpacing++;
+     continue;
+    }
     const record={q:cell.q,r:cell.r,assetPath:choice.asset.path,
      assetId:choice.meta.id,terrainId:cell.terrainId,
      width:choice.meta.logicalWidth,anchor:choice.meta.anchor,
@@ -109,11 +135,47 @@ function create(options={}) {
   worldHexes:world.cells.length,mountainHexes:wanted.length,
   mountainRegions:components.length,sourceVariants:variants.length,
   placed:placed.length,instances:placed,unmatched,artStatuses:statuses,
+  usesDecodedOriginalMountainSpacing:!!imageGeometry,
+  originalMountainImageVariants:imageGeometry?variants.length:0,
+  rejectedVisualSpacing,
   requiresOriginalPngDecoding:true,requiresPixelOverlapCheck:true,
   requiresNatureTrees:true,requiresShadows:true,
   rasterized:false,complete:false,readyForViewer:false};
 }
-const api={SCHEMA,hash,loadNatureCatalog,create};
+// This is the *only* source-backed path for preview/world-bake candidates.
+ // Nature UI uses uncropped naturalWidth/Height for mountain visualInfo.
+ // The original /api/assets item is handed unmodified to the supplied decoder.
+async function createWithOriginalImages(options={}){
+ if(typeof options.loadImage!=="function")
+  throw Error("Original-Bergabstand benötigt den physischen PNG-Dekoder.");
+ const {natureCatalog,assets}=options;
+ if(!natureCatalog?.entries||!Array.isArray(assets))
+  throw Error("Original-Bergkatalog oder physische Assets fehlen.");
+ const geometry=new Map(),seen=new Set();
+ for(const asset of assets){
+  if(asset?.category!=="nature"||typeof asset.path!=="string"||
+     !asset.path.startsWith("assets/nature/")||!asset.path.endsWith(".png")||asset.path.includes("..")||
+     asset.relPath!==asset.path.slice(7)||seen.has(asset.path))continue;
+  seen.add(asset.path);
+  const meta=natureCatalog.entries[asset.relPath];
+  if(meta?.kind!=="mountain"||meta.artStatus==="deprecated"||
+     !Number.isFinite(meta.logicalWidth)||meta.logicalWidth<=0)continue;
+  const loaded=await options.loadImage(asset);
+  const img=loaded?.img||loaded;
+  if(!(img?.naturalWidth>0&&img?.naturalHeight>0)||
+    img.naturalWidth>16000||img.naturalHeight>16000)
+   throw Error("Physische Original-Berg-PNG fehlt/ist nicht dekodiert: "+asset.path);
+  geometry.set(asset.path,{width:meta.logicalWidth,
+   aspect:img.naturalHeight/img.naturalWidth,
+   anchorX:meta.anchor?.x??.5,anchorY:meta.anchor?.y??.67});
+ }
+ const result=create({...options,originalMountainImageGeometry:geometry});
+ if(!result.usesDecodedOriginalMountainSpacing||
+    result.originalMountainImageVariants!==result.sourceVariants)
+  throw Error("Bildbasierter Bergabstand wurde nicht für alle Originalvarianten angewendet.");
+ return result;
+}
+const api={SCHEMA,hash,loadNatureCatalog,create,createWithOriginalImages};
 if(typeof module!=="undefined" && module.exports)module.exports=api;
 root.VedrasLargeMapScenerySource=api;
 })(typeof window!=="undefined"?window:globalThis);

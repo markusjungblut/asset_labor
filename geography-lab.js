@@ -428,9 +428,9 @@ $('auditMaterialCatalog').addEventListener('click',async()=>{
  }finally{button.disabled=false;}
 });
 async function mountainPreflight(worldAtStart){
- if(!SCENERY?.create||!SCENERY?.loadNatureCatalog||
+ if(!SCENERY?.createWithOriginalImages||!SCENERY?.loadNatureCatalog||
     !window.VedrasNatureCatalog||!window.VedrasMountains||
-    !MATERIAL?.loadCatalog||!BAKE?.plan)
+    !MATERIAL?.loadCatalog||!MATERIAL?.imageLoader||!BAKE?.plan)
   throw Error('Original-Bergkatalog oder Scenery-Regeln sind nicht geladen.');
  const [{catalog,assets},natureCatalog]=await Promise.all([
   MATERIAL.loadCatalog(),SCENERY.loadNatureCatalog()
@@ -438,11 +438,16 @@ async function mountainPreflight(worldAtStart){
  if(worldAtStart!==world)
   throw Error('Geografiewelt hat sich während des Bergchecks geändert.');
  const plan=BAKE.plan(worldAtStart);
- const scenery=SCENERY.create({
+ const scenery=await SCENERY.createWithOriginalImages({
   world:worldAtStart,terrainCatalog:catalog,natureCatalog,assets,
   mountains:window.VedrasMountains,rules:window.VedrasNatureCatalog,
-  seed:12345
+  seed:12345,loadImage:MATERIAL.imageLoader()
  });
+ if(worldAtStart!==world)
+  throw Error('Geografiewelt hat sich während der Bildquellenprüfung geändert.');
+ if(!scenery.usesDecodedOriginalMountainSpacing||
+    scenery.originalMountainImageVariants!==scenery.sourceVariants)
+  throw Error('Original-PNG-Bergabstände wurden nicht vollständig angewendet.');
  if(scenery.readyForViewer||scenery.rasterized||scenery.complete)
   throw Error('Unfertige Scenery darf nicht als fertiger Atlas gelten.');
  return {plan,scenery,assets,catalog,natureCatalog};
@@ -458,10 +463,12 @@ $('auditMountainScenery').addEventListener('click',async()=>{
   report.textContent='Bergquelle: '+scenery.mountainHexes+' Berghexe in '+
    scenery.mountainRegions+' Regionen · '+scenery.placed+
    ' geplante Original-Berg-Sprites aus '+scenery.sourceVariants+
-   ' Varianten · '+scenery.unmatched.length+' nicht belegte Berghexe'+
+   ' physisch dekodierten PNG-Varianten · '+scenery.unmatched.length+' nicht belegte Berghexe · '+
+   scenery.rejectedVisualSpacing+' am Editor-Abstand verworfene Bergvarianten'+
    (scenery.artStatuses.candidate?' · NICHT FREIGEGEBEN: '+
     scenery.artStatuses.candidate+' Platzierungen mit candidate-Grafiken':'')+
-   '. Noch ohne geprüfte PNG-Silhouetten, Bäume und Schatten. Kein fertiger Atlas.';
+   '. Abstände nach der Original-PNG-Bildhülle geprüft (AABB, nicht echte Alpha-Überlappung). '+
+   'Noch ohne vollständige Nature-Bäume, Originalschatten und 4×. Kein fertiger Atlas.';
  }catch(error){
   report.textContent='Bergprüfung fehlgeschlagen: '+String(error?.message||error);
  }finally{button.disabled=false;}
