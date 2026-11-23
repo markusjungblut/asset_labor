@@ -35,7 +35,8 @@ function fixture(){
   p:{x:512,y:100}},g:{width:360,y:100,
    b:{sx:0,sy:0,sw:180,sh:120}},
   img:{naturalWidth:1200,naturalHeight:900}};
- return {objects:[o],output:canvasFactory(),tile:{x:0,y:0},
+ const output=canvasFactory();output.width=1920;output.height=1632;
+ return {objects:[o],output,tile:{x:0,y:0},
   canvasFactory,shadows:SH,
   tone:{targetAlpha:()=>.12},
   spriteShadows:{get:()=>({global:{strength:2},
@@ -78,8 +79,7 @@ test('shadow-only off-tile source is accepted, but no fake draw is generated',()
 test('browser and focused CI load native mountain module before joint renderer',()=>{
  const html=fs.readFileSync(path.join(root,'geography-lab.html'),'utf8');
  const lab=fs.readFileSync(path.join(root,'geography-lab.js'),'utf8');
- const browser=fs.readFileSync(path.join(root,
-  'tests/automated_browser_geography_joint_scenery_20261123.cjs'),'utf8');
+ const joint=fs.readFileSync(path.join(root,'large-map-bake-joint-scenery.js'),'utf8');
  const ci=fs.readFileSync(path.join(root,
   '.github/workflows/geography-large-bake-ci.yml'),'utf8');
  assert(html.includes('jointSceneryWithMountainShadows'));
@@ -88,6 +88,7 @@ test('browser and focused CI load native mountain module before joint renderer',
  assert(html.indexOf('src="large-map-bake-original-mountain-shadows.js')<
   html.indexOf('src="large-map-bake-joint-scenery.js'));
  assert(lab.includes('previewMountainShadows:withMountains'));
- assert(browser.includes('previewMountainShadows:true'));
+ assert(joint.includes('previewMountainShadows=false'));
+ assert(joint.includes('VedrasLargeMapOriginalMountainShadows.paint'));
  assert(ci.includes('/tests/test_large_map_bake_original_mountain_shadows_20261123.cjs'));
 });
