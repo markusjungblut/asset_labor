@@ -127,8 +127,8 @@ test('wall visual v2 keeps identical NW/NE height, thicker stone and centered fo
    assert(p.depth.y>=-1e-9,'all back faces point toward screen front, including NW');
    assert.equal(p.height,62,'a different hex direction must not change height');
   }
-  assert(stone.thickness>timber.thickness*2,
-   'broad masonry extends into both neighboring hexes');
+  assert(stone.thickness>=timber.thickness*1.45,
+   'stone remains wider than the newly volumetric palisade on both sides');
   const shadowStone=W.shadowVector('stone',1,{angle:160});
   const shadowTimber=W.shadowVector('palisade',1,{angle:160});
   assert.equal(shadowStone.height,shadowTimber.height,
