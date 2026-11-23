@@ -23,7 +23,7 @@ function paint({objects,output,tile,canvasFactory,
  shadows=root.VedrasShadows,tone=root.VedrasShadowTone,
  spriteShadows=root.VedrasSpriteShadows,
  authoredScene=null,styleBridge=root.VedrasLargeMapAuthoredMountainShadows,
- scale=2.5,projectY=.85,pad=128,size=512}={}){
+ captureReceiverCasts=false,scale=2.5,projectY=.85,pad=128,size=512}={}){
  const profile=spriteShadows?.get?.();
  if(!Array.isArray(objects)||objects.length>MAX_MOUNTAINS||
   !output?.getContext||!tile||typeof canvasFactory!=="function"||
@@ -37,6 +37,8 @@ function paint({objects,output,tile,canvasFactory,
   !profile?.global||!profile?.profiles||
   !Object.keys(profile.profiles).length||
   !(scale>0&&projectY>0&&pad>=0&&size>0)||
+  typeof captureReceiverCasts!=="boolean"||
+  (captureReceiverCasts&&typeof shadows?.mountainAlphaAt!=="function")||
   (authoredScene!==null&&
    (typeof styleBridge?.valid!=="function"||
     !styleBridge.valid(authoredScene)||
@@ -51,7 +53,8 @@ function paint({objects,output,tile,canvasFactory,
  const outputX=Math.round((tile.x-pad)*scale),
   outputY=Math.round((tile.y-pad)*scale*projectY);
  const maxOffset=(pad+1250)*scale; // matches joint candidate halo
- const scratch=canvasFactory(),feet=new WeakMap();
+ const scratch=canvasFactory(),feet=new WeakMap(),casts=[];
+ let retainedPixels=0;
  function alphaFoot(obj,anchor){
   const img=obj.img;
   let cached=feet.get(img);
@@ -121,9 +124,26 @@ function paint({objects,output,tile,canvasFactory,
   drawn++;nonzeroPixels+=stats.positiveCount;
   maxAlpha=Math.max(maxAlpha,stats.maxAlpha);
   if(obj.shadowOnly===true)onlyShadow++;
+  if(captureReceiverCasts){
+   // The mutable scratch canvas is reused by the ground shadow pass.
+   // Keep only independent copies; NEVER leak an image that can be cleared
+   // when the next mountain is rasterized. Retention stays strictly bounded.
+   retainedPixels+=box.width*box.height;
+   if(retainedPixels>12500000)
+    throw Error("Zu viele native Bergschatten-Masken für die Empfängerprobe.");
+   const copy=canvasFactory();copy.width=box.width;copy.height=box.height;
+   const c=copy.getContext("2d",{alpha:true});
+   if(!c?.setTransform||!c?.drawImage)
+    throw Error("Empfänger-Cast-Pixelkopie benötigt natives Canvas2D.");
+   c.setTransform(1,0,0,1,0,0);c.drawImage(scratch,0,0);
+   casts.push({owner:obj,canvas:copy,box,
+    shape:shadows.mountainShape(origin,width,settings),
+    modelWidth:width,strength,peakAlpha:stats.maxAlpha});
+  }
  }
  return {schema:SCHEMA,source:"native-VedrasShadows-paintMountain",
   drawn,onlyShadow,nonzeroPixels,maxAlpha,
+  casts,retainedCastPixels:retainedPixels,
   defaultEditorSettings:authoredScene===null,
   authoredEditorScene:authoredScene!==null,
   authoredInstanceMatch:authoredScene?.instanceMatchComplete??false,

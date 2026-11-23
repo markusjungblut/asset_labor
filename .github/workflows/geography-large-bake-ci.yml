@@ -49,6 +49,7 @@ jobs:
             /large-map-bake-joint-scenery.js
             /large-map-bake-original-sprite-shadows.js
             /large-map-bake-original-mountain-shadows.js
+            /large-map-bake-mountain-receivers.js
             /large-map-bake-authored-mountain-shadows.js
             /shadow-tone.js
             /shadow-shapes.js
@@ -106,6 +107,7 @@ jobs:
             /tests/test_large_map_bake_original_shadows_20261123.cjs
             /tests/test_large_map_bake_original_mountain_shadows_20261123.cjs
             /tests/test_large_map_bake_authored_mountain_shadows_20261123.cjs
+            /tests/test_large_map_bake_mountain_receivers_20261123.cjs
             /tests/test_large_map_bake_scenery_seam_20261123.cjs
       - name: Node.js 22
         uses: actions/setup-node@v4

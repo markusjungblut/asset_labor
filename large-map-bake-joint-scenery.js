@@ -283,7 +283,9 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   return plan.tiles[0]?.id||null;
  }
  async function renderTile(id,{previewSpriteShadows=false,previewMountainShadows=false,
-  authoredShadowScene=null}={}){
+  authoredShadowScene=null,previewMountainReceivers=false}={}){
+  if(previewMountainReceivers&&!previewMountainShadows)
+   throw Error("Bergschatten auf Original-Objekten benötigen die native Bergschattenprobe.");
   if(authoredShadowScene!==null&&!previewMountainShadows)
    throw Error("Exportierte Editor-Bergprofile benötigen aktive Bergschatten.");
   if(previewMountainShadows&&!previewSpriteShadows)
@@ -345,6 +347,7 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    mountainShadowResult=root.VedrasLargeMapOriginalMountainShadows.paint({
     objects:[...mount,...shadowOnlyMountains],output,tile,canvasFactory,
     authoredScene:authoredShadowScene,
+    captureReceiverCasts:previewMountainReceivers,
     scale:SCALE,projectY:PROJECT_Y,pad:PAD,size:SIZE
    });
   }
@@ -365,6 +368,13 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
   // A single bounded scratch canvas is reused; no world-sized atlas buffer.
   ctx.setTransform(1,0,0,1,0,0);
   const scratch=canvasFactory();
+  const receiverEngine=previewMountainReceivers?
+   root.VedrasLargeMapMountainReceivers:null;
+  if(previewMountainReceivers&&
+   (typeof receiverEngine?.select!=="function"||
+    typeof receiverEngine?.paint!=="function"))
+   throw Error("Nativer Objekt-Empfänger-Schattenrenderer nicht geladen.");
+  let drawnMountainShadowReceivers=0,drawnMountainReceiverCasts=0;
   const outputGX=Math.round((tile.x-PAD)*SCALE),
    outputGY=Math.round((tile.y-PAD)*SCALE*PROJECT_Y);
   for(const obj of sorted){
@@ -379,15 +389,30 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    const sc=scratch.getContext("2d",{alpha:true});
    if(!sc?.setTransform||!sc?.drawImage||!sc?.transform)
     throw Error("Original-Sprite-Raster-Canvas2D fehlt.");
-   sc.setTransform(SCALE,0,0,SCALE*PROJECT_Y,-gx,-gy);
-   sc.save();sc.globalAlpha=1;sc.globalCompositeOperation="source-over";
-   sc.filter=polish.natureFilter(item.meta,naturePolish);
-   sc.translate(item.p.x,g.y);
-   sc.transform(1,0,.012,.965,0,0);
-   sc.translate(-item.p.x,-g.y);
-   sc.drawImage(img,g.b.sx,g.b.sy,g.b.sw,g.b.sh,
-    g.left,g.top,g.width,g.height);
-   sc.restore();
+   const selected=receiverEngine?
+    receiverEngine.select({
+     object:obj,casts:mountainShadowResult.casts,
+     scale:SCALE,projectY:PROJECT_Y
+    }):[];
+   if(selected.length){
+    receiverEngine.paint({
+     object:obj,selected,ctx:sc,canvasFactory,
+     gx,gy,width:rx-gx,height:ry-gy,scale:SCALE,projectY:PROJECT_Y,
+     spriteFilter:polish.natureFilter(item.meta,naturePolish)
+    });
+    drawnMountainShadowReceivers++;
+    drawnMountainReceiverCasts+=selected.length;
+   }else{
+    sc.setTransform(SCALE,0,0,SCALE*PROJECT_Y,-gx,-gy);
+    sc.save();sc.globalAlpha=1;sc.globalCompositeOperation="source-over";
+    sc.filter=polish.natureFilter(item.meta,naturePolish);
+    sc.translate(item.p.x,g.y);
+    sc.transform(1,0,.012,.965,0,0);
+    sc.translate(-item.p.x,-g.y);
+    sc.drawImage(img,g.b.sx,g.b.sy,g.b.sw,g.b.sh,
+     g.left,g.top,g.width,g.height);
+    sc.restore();
+   }
    // One-to-one pixel copy at an integer offset: identical source pixels
    // for overlapping tiles, even with transparent mountain/tree layering.
    ctx.drawImage(scratch,gx-outputGX,gy-outputGY);
@@ -418,13 +443,18 @@ function create({world,plan,treePlan,mountainPlan,boulderPlan=null,latePlan=null
    drawnShadowOnlyMountains:mountainShadowResult?.onlyShadow||0,
    originalMountainShadowPositivePixels:mountainShadowResult?.nonzeroPixels||0,
    originalMountainShadowMaxAlpha:mountainShadowResult?.maxAlpha||0,
+   drawnMountainShadowReceivers,drawnMountainReceiverCasts,
+   testedNativeMountainReceiverFoot:previewMountainReceivers,
+   originalMountainReceiverComposition:previewMountainReceivers?
+    "native-foot-source-atop-before-perspective":"not-tested",
    authoredMountainScene:mountainShadowResult?.authoredEditorScene||false,
    authoredMountainInstanceMatch:mountainShadowResult?.authoredInstanceMatch||false,
    authoredMountainSceneInstances:mountainShadowResult?.authoredSceneMountains||0,
    needsOriginalMountainShadows:!previewMountainShadows,
    needsMountainShadowScenePresetParity:mountainShadowResult?
     mountainShadowResult.needsAuthoredSceneOverrides:true,
-   needsMountainSpriteReceiverParity:true,
+   needsMountainSpriteReceiverParity:!previewMountainReceivers,
+   needsFullEditorReceiverImageParity:true,
    testedOtherMountainOcclusions:(ordinary.length+snow.length+accents.length)*mount.length,
    occludedOtherMountainPairs:occludedOther,
    testedTreeMountainOcclusions:trees.length*mount.length,
