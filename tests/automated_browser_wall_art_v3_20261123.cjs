@@ -116,7 +116,14 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
     const [dq,dr]=W.DIRS[dir],geometry=W.geometry({a:[0,0],b:[dq,dr],kind:'stone'});
     const ideal=((geometry.b.y-geometry.a.y)*.85/(geometry.b.x-geometry.a.x))*
      ((.78-.22)*im.naturalWidth);
-    diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78),ideal});
+    const [w,h,ax,ay]=W.wallArtMeta.stone[dir];
+    const expectedAt=xf=>{
+     const x=im.naturalWidth*xf;
+     return (ay+(x/3-ax)*(geometry.b.y-geometry.a.y)*.85/
+      (geometry.b.x-geometry.a.x))*3;
+    };
+    diagonalFeet.push({dir,left:footAt(.22),right:footAt(.78),ideal,
+     expectedLeft:expectedAt(.22),expectedRight:expectedAt(.78)});
    }
    // Edge-on walls must have one straight shaft, unlike obsolete bent art.
    for(const dir of [1,4]){
@@ -153,7 +160,10 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
-  for(const {dir,left,right,ideal} of result.diagonalFeet){
+  for(const {dir,left,right,ideal,expectedLeft,expectedRight} of result.diagonalFeet){
+   assert(Math.abs(left-expectedLeft)<12&&Math.abs(right-expectedRight)<12,
+    'wall feet must sit on true projected hex BASE, not only have correct slope: '+dir+
+    ', observed '+left+','+right+' expected '+expectedLeft+','+expectedRight);
    assert(Math.abs((right-left)-ideal)<15,
     '3x raster base must follow the true hex slope, not merely its sign: '+dir+
     ', observed='+(right-left)+', ideal='+ideal);

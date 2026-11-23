@@ -198,7 +198,7 @@ window.VedrasWalls=(()=>{
  // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
  const stoneRasterMeta=wallArtMeta.stone;
- const stoneMaterial={cornerWidth:30,cornerHeight:74,endWidth:26,endHeight:74};
+ const stoneMaterial={cornerWidth:34,cornerHeight:74,endWidth:30,endHeight:74};
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){

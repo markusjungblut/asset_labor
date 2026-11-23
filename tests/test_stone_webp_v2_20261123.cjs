@@ -36,8 +36,8 @@ test('all six stand-alone stone edge rasters preserve the original fixed-size he
   assert(x>=-1&&x<=w+1&&y>=-1&&y<=h+1,
    'both real hex corners must fit the directional bitmap: '+dir);
  }
- assert.deepEqual(size('corner_post'),[30*3,74*3]);
- assert.deepEqual(size('end_post'),[26*3,74*3]);
+ assert.deepEqual(size('corner_post'),[34*3,74*3]);
+ assert.deepEqual(size('end_post'),[30*3,74*3]);
 });
 test('stone artwork loads only PNG raster images, while palisade v5 remains unchanged',async()=>{
  assert.equal(await W.artworkReady(),true);
@@ -85,8 +85,8 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
  assert(corner&&end&&mixed);
  const project=(x,y)=>({x:100+x,y:200+y*.85});
  for(const [node,asset,width,height] of [
-  [corner,'stone/v6/corner_post.png',30,74],
-  [end,'stone/v6/end_post.png',26,74],
+  [corner,'stone/v6/corner_post.png',34,74],
+  [end,'stone/v6/end_post.png',30,74],
   [mixed,'palisade/corner_post.webp',25,76]]){
   const calls=[],ctx={save(){},restore(){},drawImage(...args){calls.push(args);}};
   assert(W.drawJoin(ctx,node,project,1));
