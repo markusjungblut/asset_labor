@@ -43,13 +43,6 @@
     ]
   ],
   "files": {
-    "edge_dir5.png": {
-      "size": [
-        468,
-        501
-      ],
-      "sha256": "1fcc636763c9f90489bbc70b0df6288a0514bd8ed0d3fae9a6adeacbffc4c90e"
-    },
     "corner_post.png": {
       "size": [
         90,
@@ -57,12 +50,40 @@
       ],
       "sha256": "cf8d54f6271df547985256fa4cb23d7afeb8586aa029ca6e838604f6fbc826e6"
     },
-    "real-hex-v6-preview.png": {
+    "edge_dir0.png": {
       "size": [
-        1700,
-        1280
+        468,
+        501
       ],
-      "sha256": "1cb6a16eec640734b7822de8e3a286f24d0a1f4b843b8f2556f23727015584a3"
+      "sha256": "7a1d3a645905c4a6bb4d13f28e0e8f6ed1dca08966983f134c68ab4ca6b99296"
+    },
+    "edge_dir3.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "eea388d9c02c751787f2d13a4c84570b54c000fa8e3a86d71989c333aaf666a5"
+    },
+    "edge_dir1.png": {
+      "size": [
+        120,
+        648
+      ],
+      "sha256": "7a8d7e39e9f850d0d0243ae9a171ddad32f7a2cc84932e6939069df410f3e3e3"
+    },
+    "edge_dir2.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "c37bc9464093172d5374910d1eea79c8b0cadb2ac0628fd8fddc839cfca98047"
+    },
+    "edge_dir5.png": {
+      "size": [
+        468,
+        501
+      ],
+      "sha256": "bbfdd382864a5513a06fa87d0d52b4cf04cf764537bec8025916d54269853652"
     },
     "end_post.png": {
       "size": [
@@ -78,33 +99,12 @@
       ],
       "sha256": "3cd9a37c49f4d1e47099e01d2f4e2db0899fdc6bf228b97f1caa582407b8522c"
     },
-    "edge_dir3.png": {
+    "real-hex-v6-preview.png": {
       "size": [
-        468,
-        501
+        1700,
+        1280
       ],
-      "sha256": "46aef5b59c7773a2662008ad98178eb3c246bcef25814ec483ea765f9739b93a"
-    },
-    "edge_dir1.png": {
-      "size": [
-        120,
-        648
-      ],
-      "sha256": "7a8d7e39e9f850d0d0243ae9a171ddad32f7a2cc84932e6939069df410f3e3e3"
-    },
-    "edge_dir0.png": {
-      "size": [
-        468,
-        501
-      ],
-      "sha256": "7c541fa11dd251cb7843195df16dd5fc11989dbbcf3b05f115c13be6aeccd227"
-    },
-    "edge_dir2.png": {
-      "size": [
-        468,
-        501
-      ],
-      "sha256": "0945a4d65bd58fd930d24aaf77be84b1159eb6de05363d07bcd64a257bbd621a"
+      "sha256": "29f9ffae17e78a88d8c2b33665baa304f42d727f23abb3188bea877250208f1e"
     }
   },
   "topology": {
