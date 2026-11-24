@@ -4421,7 +4421,7 @@ function frozenSceneKey({force4x=false}={}){
   'wall-nature-persistent-clearance-v1',
   'palisade-closed-gates-v1',
   'palisade-native-rgba-gates-v2',
-  'palisade-ai-painted-gates-v3',
+  'palisade-ai-painted-gates-v4',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
