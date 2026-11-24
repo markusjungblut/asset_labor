@@ -200,6 +200,42 @@ window.VedrasWalls=(()=>{
  const stoneJoinArt=new Map();
  const stoneRasterMeta=wallArtMeta.stone;
  const stoneMaterial={cornerWidth:46,cornerHeight:84,endWidth:38,endHeight:82};
+ // The source art is registered at the visible FRONT foot, not the
+ // center of its ground footprint. Center that footprint on the grid
+ // without modifying, rotating or stretching either material's images.
+ // Half the visible depth of the painted join is approximately 5.5
+ // (stone) or 3.5 (timber) screen-world units.
+ function joinFootDepth(kind){return kind==='stone'?5.5:3.5;}
+ function edgeArtPlacement(edge,project,zoom=1){
+  const g=geometry(edge);if(!g)return null;
+  const [w,h,ax,ay]=(edge.kind==='palisade'?palisadeRasterMeta:stoneRasterMeta)[g.side];
+  const p=footprint(edge,project,zoom);if(!p)return null;
+  const dx=p.b.x-p.a.x,dy=p.b.y-p.a.y;
+  // Diagonals: express the south/front half of the footprint as
+  // vertical offset at fixed X. Edge-on: anchor the nearer end
+  // to the front foot of the matching pier; X is already centered.
+  const south=Math.abs(dx)>1e-6?
+   (p.depth.y-dy/dx*p.depth.x)/2:joinFootDepth(edge.kind)*zoom;
+  // Remove the opposite stone directions' fractional Y rounding
+  // mismatch by matching their nominal baselines at the midpoint.
+  let anchorY=ay;
+  if(edge.kind==='stone'){
+   const other=stoneRasterMeta[(g.side+3)%6][3];
+   anchorY=(ay+other-(g.b.y-g.a.y)*.85)/2;
+  }
+  return {x:p.a.x-ax*zoom,y:p.a.y-anchorY*zoom+south,
+   width:w*zoom,height:h*zoom,south,anchorY,center:p.a};
+ }
+ function joinArtPlacement(node,project,zoom=1){
+  const timber=node.kind==='palisade'||node.kinds?.includes('palisade')&&
+   node.kinds?.includes('stone');
+  const kind=timber?'palisade':'stone',end=node.degree===1;
+  const material=timber?palisadeMaterial:stoneMaterial;
+  const p=project(node.x,node.y),w=(end?material.endWidth:material.cornerWidth)*zoom,
+   h=(end?material.endHeight:material.cornerHeight)*zoom;
+  const south=joinFootDepth(kind)*zoom;
+  return {x:p.x-w/2,y:p.y-h+south,width:w,height:h,south,center:p};
+ }
  const wallArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
@@ -253,13 +289,11 @@ window.VedrasWalls=(()=>{
   const g=geometry(edge);if(!g)return false;
   const img=wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
-  const [w,h,ax,ay]=(edge.kind==='palisade'?
-   palisadeRasterMeta:stoneRasterMeta)[g.side];
-  const origin=project(g.a.x,g.a.y);
+  const box=edgeArtPlacement(edge,project,zoom);if(!box)return false;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
   ctx.globalCompositeOperation='source-over';
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-   ctx.drawImage(img,origin.x-ax*zoom,origin.y-ay*zoom,w*zoom,h*zoom);
+  ctx.drawImage(img,box.x,box.y,box.width,box.height);
   ctx.restore();
   return true;
  }
@@ -295,15 +329,13 @@ window.VedrasWalls=(()=>{
    const end=node.degree===1,material=timber?palisadeMaterial:stoneMaterial;
    const image=(timber?palisadeJoinArt:stoneJoinArt).get(end?'end_post':'corner_post');
    if(image?.naturalWidth){
-    const p=project(node.x,node.y),
-     w=(end?material.endWidth:material.cornerWidth)*zoom,
-     h=(end?material.endHeight:material.cornerHeight)*zoom;
+    const box=joinArtPlacement(node,project,zoom);
     // Each complete painted pier/post is independently grounded at the
     // one shared hex corner. Mixed timber/stone vertices retain timber art.
     ctx.save();ctx.globalAlpha=1;ctx.filter='none';
     ctx.globalCompositeOperation='source-over';
     ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-     ctx.drawImage(image,p.x-w/2,p.y-h,w,h);
+    ctx.drawImage(image,box.x,box.y,box.width,box.height);
     ctx.restore();return true;
    }
   }
@@ -508,5 +540,5 @@ window.VedrasWalls=(()=>{
  }
  return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
-  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,junctions,drawJoin,drawJoinShadow};
+  artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,edgeArtPlacement,joinArtPlacement,junctions,drawJoin,drawJoinShadow};
 })();

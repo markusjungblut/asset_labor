@@ -1294,7 +1294,12 @@ function hexPoints(q,r){const p=axialPos(q,r);return Array.from({length:6},(_,i)
 function cubeRound(q,r){let x=q,z=r,y=-q-r;let rx=Math.round(x),ry=Math.round(y),rz=Math.round(z),dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy>dz)ry=-rx-rz;else rz=-rx-ry;return {q:rx,r:rz};}
 function pixelToHex(x,y){return cubeRound((x/HEX)-(y/(3*R)),2*y/(3*R));}
 function toScreen(x,y){return {x:W/2+state.panX+x*state.zoom,y:H/2+state.panY+y*PROJECT_Y*state.zoom};}
-function fromScreen(x,y){return {x:(x-W/2-state.panX)/state.zoom,y:(y-H/2-state.panY)/(PROJECT_Y*state.zoom)};}
+// Boundary walls are grid objects, not free-positioned terrain sprites.
+ // The displayed hex grid is unrelieved; use its exact projection for
+ // BOTH ends, all joins, shadows, and depth ordering. Projecting only
+ // the first endpoint through relief made the same hex asymmetric.
+ function wallGridProject(x,y){return toScreen(x,y);}
+ function fromScreen(x,y){return {x:(x-W/2-state.panX)/state.zoom,y:(y-H/2-state.panY)/(PROJECT_Y*state.zoom)};}
 const SCENE_SIZES=[7,19,37,91,169,271,397];
 function sceneRadius(size){return ({7:1,19:2,37:3,91:5,169:7,271:9,397:11})[size]||3;}
 function suggestedSceneZoom(size){return clamp(3.1/sceneRadius(size),ZMIN,.80);}
@@ -2698,13 +2703,11 @@ function objectPerspective(context,p){
 let benchmarkAtlasMode='auto'; // auto / on / off; no persisted editor changes
 function drawSprite(obj){
  if(obj.type==='wall-joint'){
-  window.VedrasWalls.drawJoin(ctx,obj.wallJoin,
-   (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom);
+  window.VedrasWalls.drawJoin(ctx,obj.wallJoin,wallGridProject,state.zoom);
   return;
  }
  if(obj.type==='wall'){
-  window.VedrasWalls.draw(ctx,obj.wallEdge,
-   (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom);
+  window.VedrasWalls.draw(ctx,obj.wallEdge,wallGridProject,state.zoom);
   return;
  }
  if(!obj.asset?.img?.naturalWidth)return;
@@ -2883,7 +2886,7 @@ function buildSpriteLayout(){
  }
  return visible.map(o=>{
   const groundY=o.y;
-  return {...o,groundY,y:displayGroundY(o.x,groundY)};
+  return {...o,groundY,y:o.type==='wall'||o.type==='wall-joint'?groundY:displayGroundY(o.x,groundY)};
  });
 }
 function spriteIndexMargin(o){
@@ -3061,11 +3064,11 @@ function drawMapObjects({includeUnits=true,onlyUnits=false,anchorBounds=null}={}
    else profile.staticShadows++;
    if(o.type==='wall-joint')
     window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin,
-     (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom,
+     wallGridProject,state.zoom,
      window.VedrasSpriteShadows?.get?.().global||{});
    else if(o.type==='wall')
     window.VedrasWalls.drawShadow(ctx,o.wallEdge,
-     (x,y)=>toScreen(x,displayGroundY(x,y)),state.zoom,
+     wallGridProject,state.zoom,
      window.VedrasSpriteShadows?.get?.().global||{});
    else if(o.natureMeta)drawNatureGrounding(o,p);
    else if(o.type==='building'&&window.VedrasSpriteShadows){
@@ -4369,6 +4372,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-independent-reanchored-six-hex-raster-v5',
   'stone-palisade-native-geometry-new-ashlar-v6',
    'stone-original-hand-painted-v7-precise-foot-shadow-v2',
+  'stone-and-palisade-grid-foot-center-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
@@ -6110,6 +6114,6 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
   effectiveDpr:state.dpr,backingWidth:canvas.width,
   backingHeight:canvas.height,images:imagePool.report(),
   scenery:staticScenery.stats(),background:backgroundScene.stats()}),
- roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},walls:{environment:wallEnvironment,visible:visibleWallEdges,apply:applyWallChanges},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
+ roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},walls:{environment:wallEnvironment,visible:visibleWallEdges,apply:applyWallChanges,project:wallGridProject},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
  invalidateScenery:()=>{invalidateSpriteLayout(null,{preserveCamera:true});requestDraw();},
  persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};

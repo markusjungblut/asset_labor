@@ -55,4 +55,5 @@ jobs:
             test-artifacts/wall-art-v3-all-directions.png
             test-artifacts/editor-stone-v7.png
             test-artifacts/editor-stone-v7-closeup.png
+            test-artifacts/editor-palisade-grid-closeup.png
           if-no-files-found: ignore

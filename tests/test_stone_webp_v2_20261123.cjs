@@ -96,18 +96,56 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
   assert.equal(calls[0][4],height);
   const p=project(node.x,node.y);
   assert(Math.abs(calls[0][1]+width/2-p.x)<1e-6);
-  assert(Math.abs(calls[0][2]+height-p.y)<1e-6);
+  assert(Math.abs(calls[0][2]+height-W.joinArtPlacement(node,project,1).south-p.y)<1e-6);
  }
 });
 test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261123-original-stone-v7-foot-shadow-v2'));
- assert(html.includes('walls=20261123-original-stone-v7-foot-shadow-v2'));
+ assert(html.includes('walls.js?v=20261124-wall-grid-center-v1'));
+ assert(html.includes('walls=20261124-wall-grid-center-v1'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
  assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
  assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
+});
+
+test('stone and timber use the same grid-center geometry, not the front pixel or relief',async()=>{
+ await W.artworkReady();
+ for(const kind of ['stone','palisade'])for(const zoom of [.65,1,1.85,2]){
+  const project=(x,y)=>({x:170+x*zoom,y:210+y*.85*zoom});
+  const edges=R.DIRS.map(([q,r])=>({a:[0,0],b:[q,r],kind}));
+  const nodes=W.junctions(edges);
+  assert.equal(nodes.length,6);
+  const southeast=W.geometry(edges[2]),southwest=W.geometry(edges[3]);
+  assert(Math.abs(southeast.a.y-southwest.b.y)<1e-6);
+  const a=W.edgeArtPlacement(edges[2],project,zoom),b=W.edgeArtPlacement(edges[3],project,zoom);
+  assert(Math.abs(a.south-b.south)<1e-6,'southeast and southwest offsets symmetric');
+  assert(Math.abs(a.south/zoom-W.edgeArtPlacement(edges[0],project,zoom).south/zoom)<1e-6);
+  for(const edge of edges){
+   const p=W.footprint(edge,project,zoom),g=W.geometry(edge);
+   const box=W.edgeArtPlacement(edge,project,zoom);
+   assert(box.south>0);
+   const meta=(kind==='stone'?W.stoneRasterMeta:W.palisadeRasterMeta)[g.side];
+   assert(Math.abs(box.x+meta[2]*zoom-p.a.x)<1e-6);
+   assert(Math.abs(box.y+box.anchorY*zoom-box.south-p.a.y)<1e-6);
+   const reversed=W.edgeArtPlacement({a:edge.b,b:edge.a,kind},project,zoom);
+   assert(Math.abs(box.south-reversed.south)<1e-6);
+   const drawCalls=[],ctx={save(){},restore(){},drawImage(...a){drawCalls.push(a)}};
+   W.draw(ctx,edge,project,zoom);
+   assert.deepEqual(drawCalls[0].slice(1),[box.x,box.y,box.width,box.height]);
+  }
+  for(const node of nodes){
+   const box=W.joinArtPlacement(node,project,zoom),p=project(node.x,node.y);
+   assert(Math.abs(box.x+box.width/2-p.x)<1e-6);
+   assert(Math.abs(box.y+box.height-box.south-p.y)<1e-6);
+  }
+ }
+ const app=source('app.js');
+ assert(app.includes('function wallGridProject(x,y){return toScreen(x,y);}'));
+ assert(app.includes('draw(ctx,obj.wallEdge,wallGridProject,state.zoom)'));
+ assert(app.includes('drawJoin(ctx,obj.wallJoin,wallGridProject,state.zoom)'));
+ assert(app.includes("'stone-and-palisade-grid-foot-center-v1'"));
 });

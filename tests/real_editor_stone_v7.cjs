@@ -51,6 +51,28 @@ async function main(){
    }
    if(!chosen)throw Error('No dry six-edge hex in real editor map');
    core.state.selected=chosen.q+','+chosen.r;
+   // Reproduce the actual reported defect: raised relief under a flat grid.
+   core.state.relief={...core.state.relief,enabled:true,mode:'legacy',
+    center:core.state.selected,profile:'rounded',strength:85,connected:true};
+   core.invalidateTerrain();
+   const grid=document.getElementById('gridToggle');
+   grid.checked=true;grid.dispatchEvent(new Event('change',{bubbles:true}));
+   // Verify the actual renderer's supplied projector, not only a mock.
+   const report=window.__wallGridProof={maxError:0,calls:{},reliefDifference:0};
+   for(const [name,isJoin] of [['draw',false],['drawJoin',true],['drawShadow',false],['drawJoinShadow',true]]){
+    const original=W[name];
+    W[name]=function(ctx,obj,project,...rest){
+     const points=isJoin?[obj]:[W.geometry(obj).a,W.geometry(obj).b];
+     for(const p of points){
+      const actual=project(p.x,p.y),grid=core.toScreen(p.x,p.y);
+      report.maxError=Math.max(report.maxError,Math.hypot(actual.x-grid.x,actual.y-grid.y));
+      report.reliefDifference=Math.max(report.reliefDifference,Math.abs(core.relief.height(p.x,p.y)));
+     }
+     const key=name+':'+obj.kind;
+     report.calls[key]=(report.calls[key]||0)+1;
+     return original.call(this,ctx,obj,project,...rest);
+    };
+   }
    core.state.wallKind='stone';
    core.state.wallShown=true;
    const sel=document.getElementById('wallKind');
@@ -91,6 +113,23 @@ async function main(){
   await page.waitForTimeout(2000);
   await page.screenshot({path:path.join(OUT,'editor-stone-v7-closeup.png')});
 
+  // Repeat the same physical six edges using palisade v5 at the same
+  // camera position, with the grid and raised relief still enabled.
+  await page.evaluate(()=>{
+   const core=window.VedrasAssetLabor;
+   const sel=document.getElementById('wallKind');
+   sel.value='palisade';sel.dispatchEvent(new Event('change',{bubbles:true}));
+   document.getElementById('wallTest').click();
+   core.requestDraw();
+  });
+  await page.waitForTimeout(2000);
+  await page.screenshot({path:path.join(OUT,'editor-palisade-grid-closeup.png')});
+  const proof=await page.evaluate(()=>window.__wallGridProof);
+  assert(proof.maxError<1e-6,'all wall, join and shadow projections must match actual grid');
+  assert(proof.reliefDifference>0,'test must include nonzero relief, not only flat ground');
+  for(const kind of ['stone','palisade'])for(const name of ['draw','drawJoin','drawShadow','drawJoinShadow'])
+   assert(proof.calls[name+':'+kind]>0,'real editor must draw '+name+':'+kind);
+  console.log(JSON.stringify({gridAlignment:proof}));
   const visible=await page.evaluate(()=>{
    const c=document.getElementById('mapCanvas');
    try{

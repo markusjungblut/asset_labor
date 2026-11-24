@@ -92,7 +92,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    W.draw(onlyCtx,timber[0],project,.90);
    const middle=W.midpoint(timber[0]),midp=project(middle.x,middle.y);
    const timberBelow=[...onlyCtx.getImageData(
-    Math.round(midp.x),Math.round(midp.y+9),1,1).data];
+    Math.round(midp.x),Math.round(midp.y+16),1,1).data];
    // Regression: authored diagonals must descend/rise in the same order
    // as the TRUE projected hex-edge geometry. V3 swapped all four slopes.
    const diagonalFeet=[];
@@ -198,7 +198,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert(result.timberFoot[3]>100,
    'real fixed-size timber corner must stand on the shared hex vertex');
   assert(result.timberBelow[3]<12,
-   'no palisade point may protrude below its shared ground anchor');
+   'no palisade point may protrude beyond its centered footprint');
   await page.screenshot({path:path.join(OUT,'wall-art-v3-all-directions.png')});
   process.stdout.write('Six painted palisades, two painted posts, six stone PNGs and corner shadows Firefox PASS\n');
  }finally{await browser.close();server.close();}
