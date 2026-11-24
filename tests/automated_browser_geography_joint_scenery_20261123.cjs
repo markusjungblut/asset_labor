@@ -27,6 +27,14 @@ const editorCompositeSource=[
 ].join('\n');
 // Compile the ORIGINAL low-resolution shadowLocalMask from app.js directly
 // in Firefox; the adapter must match its own source, not a copied unit mock.
+// Phase 2.8x: independently execute the original normal ground-shadow
+// union, silhouette crop and Nature grounding path from app.js.
+const editorGroundShadowSource=[
+ fromEditor('function visibleBounds(img){','// Large neighboring objects rise'),
+ fromEditor('const mountainSilhouettes=new WeakMap();','function mountainShadowSettings('),
+ fromEditor('function drawNatureGrounding(obj,p){','// If a neighboring tree'),
+ fromEditor('const normalShadowUnionCanvas=','function drawMapObjects(')
+].join('\n');
 const editorLocalMaskSource=fromEditor(
  'function shadowLocalMask(width,settings,global){',
  '// Reuse the exact same mountain-shadow rasters');
@@ -98,7 +106,7 @@ const plan=Plan.plan(world);
    'large-map-bake-editor-local-mountain-mask.js'])
    await page.addScriptTag({url:origin+'/'+file});
   const result=await page.evaluate(async({world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource,
-  editorLocalMaskSource})=>{
+  editorLocalMaskSource,editorGroundShadowSource})=>{
    const [tree,mount,rock,ordinary,snow,bush,log,deadTree]=names;
    const imageByPath=new Map();
    for(const p of names){
@@ -391,7 +399,8 @@ const plan=Plan.plan(world);
      }));
     const makeNative=ctx=>sourceNative(ctx,nativeState,nativeToScreen,
      casts,true,null,new WeakMap(),new WeakMap(),nativeClamp);
-    const native=makeNative(target);
+    const native=sourceNative(target,nativeState,nativeToScreen,
+     casts,true,null,new WeakMap(),new WeakMap(),nativeClamp);
     for(const o of placed)if(o.type==='nature'){
      o.coveredByMountains=new Set(mountains.filter(m=>
       native.mountainCoversBase(o,m)));
@@ -434,7 +443,7 @@ const plan=Plan.plan(world);
      hidden:hidden.map(o=>o.itemOrdinal),
      order:visible.map(o=>o.itemOrdinal),
      candidates:placed.length,
-     count:visible.length};
+     count:visible.length,visible};
    }
    const compareFrames=(a,b)=>{
     const A=a.getImageData(0,0,a.canvas.width,a.canvas.height).data,
@@ -684,6 +693,34 @@ const plan=Plan.plan(world);
    // native draw order, direct vs globally aligned scratch, with/without
    // receiver casts. This is not a candidate renderer or proof of cause.
    const compositionIsolation=[],scratchFrames=new Map();
+   // Actual Editor functions, no copied shadow projection or alpha union.
+   const nativeGroundFactory=new Function('ctx','state','finalRendering',
+    'sceneShadowStrength','clamp',
+    '"use strict";\nconst natureBounds=new WeakMap();\n'+
+    editorGroundShadowSource+
+    '\nreturn {paintUnifiedNormalShadows,drawNatureGrounding};');
+   const groundIsolation=[];
+   function nativeGround(tile,base,objects){
+    const trace=tile.editorCompositeReference;
+    const cv=bitmapCanvas();cv.width=1920;cv.height=1632;
+    const ctx=cv.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(base,0,0);
+    ctx.setTransform(1,0,0,1,-trace.sampleX,-trace.sampleY);
+    // Keep strength identical to the Baker input so the experiment
+    // isolates sampling/order rather than changing authored profiles.
+    const engine=window.VedrasSpriteShadows;
+    const source=engine.get();
+    const native=nativeGroundFactory(ctx,nativeState,true,
+     ()=>source.global.strength,nativeClamp);
+    const natureObjects=objects.filter(o=>o.type==='nature');
+    native.paintUnifiedNormalShadows(()=>{
+     for(const o of natureObjects)
+      native.drawNatureGrounding(o,nativeToScreen(o.x,o.y));
+    });
+    if(engine.get()!==source)throw Error('2.8x changed original shadow profiles');
+    ctx.setTransform(1,0,0,1,0,0);
+    return {ctx,natureCount:natureObjects.length};
+   }
    for(const [i,tile] of [
     ['0,0',variedLocalLeft],['1,0',variedLocalRight],
     ['0,1',variedLocalDown]]){
@@ -728,6 +765,29 @@ const plan=Plan.plan(world);
       peakAlpha:cast.peakAlpha,sourcePeakAlpha:source.peakAlpha});
     }
     const native=nativeComposite(tile);
+    // Compare the same ordinary shadow sources in the actual Editor
+    // ordering and in the Baker's input ordering. Shared mountain base
+    // isolates normal shadows; native direct mountain base shows combined
+    // ground error without any original sprite-body compositing.
+    const byOrdinal=new Map(native.visible.map(o=>[o.itemOrdinal,o]));
+    const inputOrder=trace.candidates.map(o=>byOrdinal.get(o.item.ordinal))
+     .filter(Boolean);
+    if(inputOrder.length!==native.visible.length)
+     throw Error('2.8x ground object source order mismatch');
+    const directEditorOrder=nativeGround(tile,trace.mountainGround,native.visible);
+    const directInputOrder=nativeGround(tile,trace.mountainGround,inputOrder);
+    const directCombined=nativeGround(tile,directCanvas,native.visible);
+    const bakerGround=trace.background.getContext('2d',{willReadFrequently:true});
+    const mountainOnly=trace.mountainGround.getContext('2d',{willReadFrequently:true});
+    groundIsolation.push({tile:i,natureCount:directEditorOrder.natureCount,
+     sameObjectCount:directEditorOrder.natureCount===directInputOrder.natureCount,
+     ordinaryGroundVsNativeEditorOrder:compareFrames(bakerGround,directEditorOrder.ctx),
+     ordinaryGroundVsNativeInputOrder:compareFrames(bakerGround,directInputOrder.ctx),
+     nativeOrderEffect:compareFrames(directEditorOrder.ctx,directInputOrder.ctx),
+     nativeNormalShadowEffect:compareFrames(mountainOnly,directEditorOrder.ctx),
+     combinedGroundVsNative:compareFrames(bakerGround,directCombined.ctx)});
+    for(const v of [directEditorOrder,directInputOrder,directCombined])
+     v.ctx.canvas.width=v.ctx.canvas.height=1;
     const sampled=tile.editorCompositeReference.painted
      .getContext('2d',{willReadFrequently:true});
     const fg=tile.editorCompositeReference.mountainGround
@@ -809,6 +869,13 @@ const plan=Plan.plan(world);
     productionRendererChanged:false,complete:false,readyForViewer:false
    };
    scratchFrames.clear();
+   const groundIsolationAudit={
+    schema:'vedras-phase28x-original-ground-shadow-composition-v1',
+    source:'source-extracted app.js shadowSilhouette, drawNatureGrounding and paintUnifiedNormalShadows; original PNG and profiles',
+    strength:'same Baker profile global.strength; no independent full scene-global setting parity claim',
+    tiles:groundIsolation,
+    productionRendererChanged:false,complete:false,readyForViewer:false
+   };
    const variedEditorMaskAudit={
     schema:'vedras-phase28v-original-mountain-mask-style-and-seams',
     sourceVariants:variableRasterReceipt,
@@ -1229,7 +1296,7 @@ const plan=Plan.plan(world);
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
     compositeAlphaAB:alphaAB,compositeLocalMaskAudit:localMaskAudit,
-    variedEditorMaskAudit,compositionIsolationAudit,
+    variedEditorMaskAudit,compositionIsolationAudit,groundIsolationAudit,
     compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
@@ -1288,7 +1355,7 @@ const plan=Plan.plan(world);
     complete:[a.complete,b.complete],
     projection:[a.samplesPerWorldUnitX,a.samplesPerWorldUnitY]};
   },{world,plan,nature,terrain,names,shadowProfiles,editorCompositeSource,
-   editorLocalMaskSource});
+   editorLocalMaskSource,editorGroundShadowSource});
   // Persist the tested heatmap and full machine-readable metrics in the
   // existing short-lived CI artifact. Do not print base64 into workflow logs.
   const rgbaDir=path.join(root,process.env.VEDRAS_CI_ARTIFACTS||'test-artifacts');
@@ -1318,6 +1385,8 @@ const plan=Plan.plan(world);
     productionRendererChanged:false,result:result.variedEditorMaskAudit},null,2));
   fs.writeFileSync(path.join(rgbaDir,'phase28w_original_native_composition_isolation.json'),
    JSON.stringify(result.compositionIsolationAudit,null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28x_original_ground_shadow_composition.json'),
+   JSON.stringify(result.groundIsolationAudit,null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
@@ -1401,12 +1470,31 @@ const plan=Plan.plan(world);
   ].every(r=>Number.isInteger(r.different)&&r.different>=0&&
    r.different<=r.painted&&r.painted>0&&r.maxDelta>=0&&r.maxDelta<=255)));
   assert.equal(isolation.nativeScratchSeams.length,2);
-  assert(isolation.nativeScratchSeams.every(s=>s.painted>100));
+  assert(isolation.nativeScratchSeams.every(s=>s.different===0&&s.painted>100));
+  // Proven by the actual Firefox run on e5377eb; lock it in, not a tolerance.
+  assert(isolation.tiles.every(t=>t.bakerOrderMatchesNative&&
+   t.bakerVsNativeGlobalScratch.different===0&&
+   t.bakerVsNativeGlobalScratch.maxDelta===0),
+   '2.8w Baker must match original native app.js on the identical scratch lattice');
+  const ground=result.groundIsolationAudit;
+  assert.equal(ground.schema,'vedras-phase28x-original-ground-shadow-composition-v1');
+  assert.deepEqual(ground.tiles.map(t=>t.tile),['0,0','1,0','0,1']);
+  assert(ground.tiles.every(t=>t.sameObjectCount&&t.natureCount>=0));
+  assert(ground.tiles.some(t=>t.natureCount>0&&t.nativeNormalShadowEffect.different>0),
+   '2.8x must exercise the real original normal-shadow union');
+  assert(ground.tiles.every(t=>[
+   t.ordinaryGroundVsNativeEditorOrder,t.ordinaryGroundVsNativeInputOrder,
+   t.nativeOrderEffect,t.nativeNormalShadowEffect,t.combinedGroundVsNative
+  ].every(r=>Number.isInteger(r.different)&&r.different>=0&&
+   r.different<=r.painted&&r.painted>0&&r.maxDelta>=0&&r.maxDelta<=255)));
+  assert.equal(ground.productionRendererChanged,false);
+  assert.equal(ground.complete,false);
+  assert.equal(ground.readyForViewer,false);
   assert(isolation.bakerSeams.every(s=>s.different===0&&s.painted>100));
   assert.equal(isolation.productionRendererChanged,false);
   assert.equal(isolation.complete,false);
   assert.equal(isolation.readyForViewer,false);
-  // No positivity claim for the scratch experiment before real measurements.
+  // 2.8x remains diagnostic until the independent ground results are available.
   const variants=result.variedEditorMaskAudit;
   assert.equal(variants.schema,'vedras-phase28v-original-mountain-mask-style-and-seams');
   assert.equal(variants.sourceVariants.length,3);
