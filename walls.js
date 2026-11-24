@@ -331,7 +331,8 @@ window.VedrasWalls=(()=>{
    const image=new Image();palisadeGateArt.set(side,image);
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
-    image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.png?v=20261124-timber-gates-ai-v4';
+    image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.png?v='+
+     ((side===2||side===3)?'20261124-timber-gates-south-stage1-v5':'20261124-timber-gates-ai-v4');
    }));
   }
   for(const name of ['corner_post','end_post']){
