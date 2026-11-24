@@ -4,10 +4,11 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo =============================================================
-echo  VEDRAS REICHE - ASSET-LABOR (NORMALE EDITOR-OBERFLAECHE)
+echo  VEDRAS REICHE - ASSET-LABOR (WEBGL2 STUDIO + GEOGRAFIE-LAB)
 echo =============================================================
-echo  Startseite: http://127.0.0.1:8780/index.html
-echo  Wichtig: Port 8780 fuer dieselbe gespeicherte Firefox-Karte.
+echo  WebGL2 Studio (Standard): http://127.0.0.1:8780/studio.html
+echo  Legacy Canvas2D Editor  : http://127.0.0.1:8780/index.html
+echo  Wichtig: Port 8780 fuer dieselbe Browser-Origin.
 echo  Dies ist KEIN Rendering-/CI-/Geografie-Teststarter.
 echo.
 
