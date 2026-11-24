@@ -69,7 +69,7 @@
     activeScenarioPreset: null,
     fogEnabled: false,
     showGrid: false,
-    shadowOpacity: 0.36,
+    shadowOpacity: 0.54,
 
     /** Map<hexKey, Partial<MapHexCell>> for live terrain/relief/forest painting */
     hexOverrides: new Map(),
@@ -113,6 +113,7 @@
     seedInput: $("seedInput"),
     applySeedBtn: $("applySeedBtn"),
     geoConfigFile: $("geoConfigFile"),
+    geoPresetBadge: $("geoPresetBadge"),
     zoomDetailBtn: $("zoomDetailBtn"),
     zoomStrategicBtn: $("zoomStrategicBtn"),
     toggleGridBtn: $("toggleGridBtn"),
@@ -478,7 +479,7 @@
       pushScene();
       return;
     }
-    const preset = createSandboxScenario(id, state.seed);
+    const preset = createSandboxScenario(id, state.seed, state.geographyConfig);
     state.activeScenarioPreset = preset;
     state.scene = {
       rivers: [...(preset.scene.rivers || [])],
@@ -941,8 +942,55 @@
           el.seedInput.value = state.seed;
         }
         state.hexOverrides.clear();
+
+        // Convert exported Geography-Lab riverPaths (hex chains) into crisp hex-edge MapRiverEdge[]
+        const rawRivers = parsed.riverPreviewPaths || parsed.riverPaths;
+        if (Array.isArray(rawRivers) && rawRivers.length > 0) {
+          const edgeMap = new Map();
+          for (const route of rawRivers) {
+            if (!Array.isArray(route) || route.length < 2) continue;
+            for (let i = 0; i < route.length - 1; i++) {
+              const a = Array.isArray(route[i]) ? { q: route[i][0], r: route[i][1] } : route[i];
+              const b = Array.isArray(route[i + 1]) ? { q: route[i + 1][0], r: route[i + 1][1] } : route[i + 1];
+              if (!a || !b) continue;
+              const dir = hexMath.neighborDirection(a.q, a.r, b.q, b.r);
+              if (dir < 0) continue;
+              // Emit a side edge bordering the step so the river follows hex boundaries cleanly
+              const sideDir = (dir + 1) % 6;
+              const d = hexMath.HEX_NEIGHBOR_DIRS[sideDir];
+              const pair = hexMath.canonicalEdgePair(a.q, a.r, a.q + d[0], a.r + d[1]);
+              if (!edgeMap.has(pair.key)) {
+                edgeMap.set(pair.key, { q: a.q, r: a.r, dir: sideDir });
+              }
+            }
+          }
+          state.scene.rivers = Array.from(edgeMap.values());
+        }
+
         state.engine?.setWorldProvider(buildProvider(), state.seed);
-        showToast(`Geografie-Labor-Konfiguration geladen (${Object.keys(cfg).length} Parameter).`);
+
+        // If Geography-Lab JSON includes a region box, center camera on that exact area!
+        const originQ = Number(parsed.originQ);
+        const originR = Number(parsed.originR);
+        const w = Number(parsed.width);
+        const h = Number(parsed.height);
+        if (Number.isFinite(originQ) && Number.isFinite(originR) && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+          const centerQ = Math.round(originQ + w * 0.5);
+          const centerR = Math.round(originR + h * 0.5);
+          state.engine?.centerOnHex(centerQ, centerR, 0.72);
+        }
+
+        if (el.geoPresetBadge) {
+          const label = file.name.replace(/\.json$/i, "").slice(0, 22);
+          el.geoPresetBadge.textContent = `JSON: ${label}`;
+          el.geoPresetBadge.title = `Geladene Geografie-Labor-JSON: ${file.name}`;
+        }
+        pushScene();
+        showToast(
+          `Geografie-Labor-JSON geladen (${Object.keys(cfg).length} Parameter` +
+            (state.scene.rivers.length ? `, ${state.scene.rivers.length} Flusskanten` : "") +
+            `).`,
+        );
       } catch (err) {
         showToast(`Geografie-JSON ungültig: ${err.message}`, true);
       } finally {

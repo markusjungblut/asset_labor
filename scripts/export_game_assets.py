@@ -590,9 +590,11 @@ def bake_sprite_shadow(
         (ma, mb, mc, md, me, mf),
         resample=Image.Resampling.BILINEAR,
     )
-    # Normalize alpha silhouette to crisp solid shape before applying Gaussian softness.
+    # Normalize alpha silhouette to crisp solid shape before applying Gaussian softness
+    # (matches shadow-tone.js withMaskPass() full-opacity union mask before single composite).
     cast_mask = cast_mask.point(lambda v: 255 if v > 32 else int(v * 255 / 32))
-    cast_mask = cast_mask.filter(ImageFilter.GaussianBlur(radius=blur_px * scale))
+    eff_blur = clamp(blur_px * 0.65 * scale, 0.6, 8.0)
+    cast_mask = cast_mask.filter(ImageFilter.GaussianBlur(radius=eff_blur))
 
     if contact > 0:
         contact_mask = Image.new("L", (cw, ch), 0)
@@ -601,8 +603,10 @@ def bake_sprite_shadow(
         ecy = (c_y - y0) * scale
         erx = c_rx * scale
         ery = max(1.0, c_ry * scale)
-        cdraw.ellipse([ecx - erx, ecy - ery, ecx + erx, ecy + ery], fill=190)
-        contact_mask = contact_mask.filter(ImageFilter.GaussianBlur(radius=max(0.5, blur_px * 0.65 * scale)))
+        cdraw.ellipse([ecx - erx, ecy - ery, ecx + erx, ecy + ery], fill=255)
+        contact_mask = contact_mask.filter(
+            ImageFilter.GaussianBlur(radius=max(0.5, eff_blur * 0.65))
+        )
         # Union max(cast, contact) so contact grounds the foot without over-darkening.
         cb = cast_mask.tobytes()
         kb = contact_mask.tobytes()
@@ -623,6 +627,119 @@ def bake_sprite_shadow(
         round((y0 + cy1 / scale) / ref_width, 5),
     ]
     return out, bounds, "auto_cast"
+
+
+def repair_seamless_terrain(
+    rgb: Image.Image,
+    center_stripe: bool = False,
+    edge_band: int = 32,
+) -> Image.Image:
+    """Exact 1:1 port of `asset_labor/water-texture.js` `repairPixels` for seamless WebGL2 tiles.
+
+    - Repairs straight vertical center split seams in water artwork (`center_stripe=True`)
+    - Smoothly blends outer `edge_band` texels across opposite edges (`8` for water, `32` for ground)
+    - Raw PNG files on disk are NEVER modified.
+    """
+    w, h = rgb.size
+    if w < 24 or h < 24:
+        return rgb
+    raw = rgb.tobytes()
+    out = bytearray(raw)
+    stride = w * 3
+
+    if center_stripe:
+        for cx in (w // 2 - 1, w // 2, w // 2 + 1):
+            if cx < 3 or cx >= w - 3:
+                continue
+            hit = 0
+            rows = 0
+            for y in range(4, h - 4, 4):
+                row_off = y * stride
+                i_c = row_off + cx * 3
+                i_l = row_off + (cx - 3) * 3
+                i_r = row_off + (cx + 3) * 3
+                dev = (
+                    abs(raw[i_c] - 0.5 * (raw[i_l] + raw[i_r]))
+                    + abs(raw[i_c + 1] - 0.5 * (raw[i_l + 1] + raw[i_r + 1]))
+                    + abs(raw[i_c + 2] - 0.5 * (raw[i_l + 2] + raw[i_r + 2]))
+                ) / 3.0
+                if dev > 26.0:
+                    hit += 1
+                rows += 1
+            if rows and hit / rows > 0.72:
+                for y in range(h):
+                    row_off = y * stride
+                    i_l = row_off + (cx - 3) * 3
+                    i_r = row_off + (cx + 3) * 3
+                    lr, lg, lb = raw[i_l], raw[i_l + 1], raw[i_l + 2]
+                    rr, rg, rb = raw[i_r], raw[i_r + 1], raw[i_r + 2]
+                    for dx in range(-2, 3):
+                        t = (dx + 3) / 6.0
+                        inv_t = 1.0 - t
+                        i_x = row_off + (cx + dx) * 3
+                        out[i_x] = int(round(lr * inv_t + rr * t))
+                        out[i_x + 1] = int(round(lg * inv_t + rg * t))
+                        out[i_x + 2] = int(round(lb * inv_t + rb * t))
+                break
+
+    band = max(1, min(int(edge_band), min(w, h) // 6))
+    weights = [0.5 * (1.0 - smoothstep(0.0, 1.0, d / band)) for d in range(band)]
+
+    # Left <-> Right wrap feather
+    for y in range(h):
+        row_off = y * stride
+        for d in range(band):
+            wt = weights[d]
+            inv_wt = 1.0 - wt
+            ia = row_off + d * 3
+            ib = row_off + (w - 1 - d) * 3
+            for c in range(3):
+                first = out[ia + c]
+                last = out[ib + c]
+                out[ia + c] = int(round(first * inv_wt + last * wt))
+                out[ib + c] = int(round(last * inv_wt + first * wt))
+
+    # Top <-> Bottom wrap feather
+    for d in range(band):
+        wt = weights[d]
+        inv_wt = 1.0 - wt
+        top_off = d * stride
+        bot_off = (h - 1 - d) * stride
+        for x in range(stride):
+            first = out[top_off + x]
+            last = out[bot_off + x]
+            out[top_off + x] = int(round(first * inv_wt + last * wt))
+            out[bot_off + x] = int(round(last * inv_wt + first * wt))
+
+    return Image.frombytes("RGB", (w, h), bytes(out))
+
+
+def polish_terrain_rgb(
+    rgb: Image.Image,
+    material_class: str,
+    terrain_id: str,
+    amount: float = 0.35,
+) -> Image.Image:
+    """Exact 1:1 port of `asset_labor/polish.js` `terrainRGB` (gentle ground contrast/saturation balance)."""
+    v = clamp(amount, 0.0, 1.0)
+    if v <= 0.0 or material_class != "ground" or terrain_id in ("snowfields", "frozen_tundra", "forest_floor"):
+        return rgb
+    contrast = 1.0 - 0.12 * v
+    saturation = 1.0 - 0.14 * v
+    raw = rgb.tobytes()
+    out = bytearray(len(raw))
+    for i in range(0, len(raw), 3):
+        r = raw[i]
+        g = raw[i + 1]
+        b = raw[i + 2]
+        y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        nr = (y + (r - y) * saturation - 128.0) * contrast + 128.0
+        ng = (y + (g - y) * saturation - 128.0) * contrast + 128.0
+        nb = (y + (b - y) * saturation - 128.0) * contrast + 128.0
+        out[i] = 0 if nr < 0 else (255 if nr > 255 else int(round(nr)))
+        out[i + 1] = 0 if ng < 0 else (255 if ng > 255 else int(round(ng)))
+        out[i + 2] = 0 if nb < 0 else (255 if nb > 255 else int(round(nb)))
+    return Image.frombytes("RGB", rgb.size, bytes(out))
 
 
 def export_terrain(
@@ -650,6 +767,8 @@ def export_terrain(
 
     for tt in tc.get("terrainTypes", []):
         tid = str(tt["id"])
+        material_class = str(tt.get("materialClass") or "ground")
+        is_water = material_class == "water"
         files = sorted(by_type_raw.get(tid, []))[:max_variants]
         if not files:
             continue
@@ -663,12 +782,19 @@ def export_terrain(
             with Image.open(src) as im:
                 rgb = im.convert("RGB")
                 resized = rgb.resize((terrain_size, terrain_size), Image.Resampling.LANCZOS)
-                mean = ImageStat.Stat(resized).mean
+                # Apply 1:1 asset_labor seamless tile & water center-seam repair offline (0 ms runtime!).
+                repaired = repair_seamless_terrain(
+                    resized,
+                    center_stripe=is_water,
+                    edge_band=8 if is_water else 32,
+                )
+                polished = polish_terrain_rgb(repaired, material_class, tid, amount=0.35)
+                mean = ImageStat.Stat(polished).mean
                 for c in range(3):
                     color_acc[c] += mean[c]
                 fname = f"{tid}_{v_idx:02d}.webp"
                 dest = terrain_out / fname
-                resized.save(dest, format="WEBP", quality=webp_quality, method=5)
+                polished.save(dest, format="WEBP", quality=webp_quality, method=5)
             layer_idx = len(layers)
             layer_indices.append(layer_idx)
             layers.append(
@@ -688,7 +814,7 @@ def export_terrain(
             by_type[tid] = {
                 "layers": layer_indices,
                 "categoryId": tt.get("categoryId"),
-                "materialClass": tt.get("materialClass", "ground"),
+                "materialClass": material_class,
                 "transitionProfileId": tt.get("transitionProfileId", "standard_ground"),
                 "avgColor": [int(round(color_acc[c] / n)) for c in range(3)],
             }
@@ -764,8 +890,6 @@ def export_nature_and_shadows(
         ay = round(clamp(float(anchor.get("y", 0.96)), 0.0, 1.0), 4)
 
         # Pre-bake shadow offline from trimmed image + artist shadow profile.
-        # Shadows are soft blurs, so ref_width=96 (mountains 144) stays visually identical
-        # under WebGL bilinear filtering while fitting all 376 shadows on a single GPU page.
         profile = shadow_profiles.get(asset_key) or shadow_profiles.get(rel_key) or {}
         baked = bake_sprite_shadow(
             trimmed, meta, profile, global_shadow, world_w, ref_width=96.0
@@ -788,30 +912,39 @@ def export_nature_and_shadows(
         else:
             shadow_counts["none"] += 1
 
+        entry_meta: dict[str, Any] = {
+            "id": meta.get("id"),
+            "kind": kind,
+            "family": meta.get("family"),
+            "sizeClass": meta.get("sizeClass"),
+            "sizeMode": meta.get("sizeMode", "manual"),
+            "sourceReference": meta.get("sourceReference", ""),
+            "artStatus": meta.get("artStatus", "candidate"),
+            "tags": meta.get("tags", []),
+            "terrainPresetId": meta.get("terrainPresetId", ""),
+            "sourceSize": [src_w, src_h],
+            "trim": [x0, y0, trim_w, trim_h],
+            "aspect": round(trim_h / max(1, trim_w), 5),
+            "worldWidth": round(world_w, 2),
+            "scaleRange": [
+                round(float(meta.get("scaleMin", 0.85)), 3),
+                round(float(meta.get("scaleMax", 1.15)), 3),
+            ],
+            "anchor": [ax, ay],
+            "allowedTerrainCategories": meta.get("allowedTerrainCategories", []),
+            "allowedTerrainTypes": meta.get("allowedTerrainTypes", []),
+            "excludedTerrainTypes": meta.get("excludedTerrainTypes", []),
+            "placement": meta.get("placement", {}),
+            "hasShadow": has_shadow,
+        }
+        if isinstance(meta.get("mountain"), dict):
+            entry_meta["mountain"] = meta["mountain"]
+
         nature_items.append(
             PackedItem(
                 key=asset_key,
                 image=packed_img,
-                metadata={
-                    "id": meta.get("id"),
-                    "kind": kind,
-                    "family": meta.get("family"),
-                    "sizeClass": meta.get("sizeClass"),
-                    "sourceSize": [src_w, src_h],
-                    "trim": [x0, y0, trim_w, trim_h],
-                    "aspect": round(trim_h / max(1, trim_w), 5),
-                    "worldWidth": round(world_w, 2),
-                    "scaleRange": [
-                        round(float(meta.get("scaleMin", 0.85)), 3),
-                        round(float(meta.get("scaleMax", 1.15)), 3),
-                    ],
-                    "anchor": [ax, ay],
-                    "allowedTerrainCategories": meta.get("allowedTerrainCategories", []),
-                    "allowedTerrainTypes": meta.get("allowedTerrainTypes", []),
-                    "excludedTerrainTypes": meta.get("excludedTerrainTypes", []),
-                    "placement": meta.get("placement", {}),
-                    "hasShadow": has_shadow,
-                },
+                metadata=entry_meta,
                 extrude=True,
             )
         )
@@ -828,6 +961,7 @@ def export_nature_and_shadows(
         {
             "pages": nature_pages,
             "spriteCount": len(nature_entries),
+            "presets": nc.get("presets", {}),
             "sprites": nature_entries,
         },
         {

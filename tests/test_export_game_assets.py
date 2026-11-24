@@ -204,6 +204,23 @@ class ExportGameAssetsTest(unittest.TestCase):
             self.assertNotIn("walls/stone/v7/source_atlas", infra_sprites)
             self.assertEqual(m1["clouds"]["count"], 1)
 
+    def test_repair_seamless_terrain_removes_water_center_stripe_and_edge_seams(self) -> None:
+        # Synthetic water image with dark vertical center seam + contrasting left/right edges
+        im = Image.new("RGB", (64, 64), (40, 120, 160))
+        px = im.load()
+        for y in range(64):
+            px[32, y] = (5, 20, 30)  # harsh vertical center split stripe
+            for x in range(8):
+                px[x, y] = (20, 80, 120)
+                px[63 - x, y] = (100, 180, 210)
+        repaired = exporter.repair_seamless_terrain(im, center_stripe=True, edge_band=8)
+        rp = repaired.load()
+        # Center stripe smoothed back toward surrounding water tone
+        self.assertGreater(rp[32, 32][1], 95)
+        # Left & right opposite edges now meet seamlessly
+        self.assertLessEqual(abs(rp[0, 32][0] - rp[63, 32][0]), 2)
+        self.assertLessEqual(abs(rp[0, 32][2] - rp[63, 32][2]), 2)
+
     def test_real_catalogs_have_no_missing_assets(self) -> None:
         assets = ROOT / "assets"
         tc = json.loads((assets / "terrain" / "terrain_catalog.json").read_text(encoding="utf-8"))
