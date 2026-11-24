@@ -332,7 +332,8 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
     image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.png?v='+
-     ((side===2||side===3)?'20261124-timber-gates-south-stage1-v5':'20261124-timber-gates-stage2-v6');
+     (side===0?'20261124-timber-gate-ne-refined-v7':
+      (side===2||side===3)?'20261124-timber-gates-south-stage1-v5':'20261124-timber-gates-stage2-v6');
    }));
   }
   for(const name of ['corner_post','end_post']){
