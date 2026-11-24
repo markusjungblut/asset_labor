@@ -331,7 +331,7 @@ window.VedrasWalls=(()=>{
    const image=new Image();palisadeGateArt.set(side,image);
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
-    image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.svg?v=20261124-timber-gates-v1';
+    image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.png?v=20261124-timber-gates-raster-v2';
    }));
   }
   for(const name of ['corner_post','end_post']){

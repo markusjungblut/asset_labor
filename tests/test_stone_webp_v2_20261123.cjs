@@ -56,7 +56,7 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
   assert(loaded.some(x=>x.includes('walls/stone/v7/'+join+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
   assert(loaded.some(x=>x.includes('walls/palisade/'+join+'.webp?v=20261123-painted-volumetric-v5')));
  }
- assert(!loaded.some(x=>!x.includes('/palisade/gates/v1/')&&(x.endsWith('.svg')||x.includes('.svg?'))));
+ assert(!loaded.some(x=>x.endsWith('.svg')||x.includes('.svg?')),'no SVG artwork in the active wall/gate renderer');
 });
 test('all six stone directions draw independent raster images, not vector facades',async()=>{
  await W.artworkReady();
@@ -105,8 +105,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261124-palisade-gates-v1'));
- assert(html.includes('walls=20261124-palisade-gates-v1'));
+ assert(html.includes('walls.js?v=20261124-palisade-gates-raster-v2'));
+ assert(html.includes('walls=20261124-palisade-gates-raster-v2'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
@@ -206,12 +206,15 @@ test('six timber gate assets use the exact original palisade image dimensions an
  const project=(x,y)=>({x:100+x,y:200+y*.85});
  for(let dir=0;dir<6;dir++){
   const [w,h]=W.palisadeRasterMeta[dir];
-  const svg=fs.readFileSync(path.join(root,'assets/walls/palisade/gates/v1/gate_dir'+dir+'.svg'),'utf8');
-  assert(svg.includes('width="'+w*3+'" height="'+h*3+'"'));
-  assert(svg.includes('data:image/webp;base64,'));
+  const bytes=fs.readFileSync(path.join(root,'assets/walls/palisade/gates/v1/gate_dir'+dir+'.png'));
+  assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  assert.equal(bytes.readUInt32BE(16),w*3);
+  assert.equal(bytes.readUInt32BE(20),h*3);
+  assert.equal(bytes[25],6,'native RGBA PNG required');
+  assert(!fs.existsSync(path.join(root,'assets/walls/palisade/gates/v1/gate_dir'+dir+'.svg')));
   const edge={a:[0,0],b:R.DIRS[dir],kind:'palisade_gate',gateSide:dir};
   assert(W.draw(ctx,edge,project,1));
-  assert(ctx.call[0].src.includes('palisade/gates/v1/gate_dir'+dir+'.svg'));
+  assert(ctx.call[0].src.includes('palisade/gates/v1/gate_dir'+dir+'.png'));
   assert.deepEqual(W.edgeArtPlacement(edge,project,1),W.edgeArtPlacement({...edge,kind:'palisade'},project,1));
  }
 });
