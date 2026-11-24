@@ -714,6 +714,9 @@ function fastRender(){
   if(frozenMapMode)return;
   if((!fastInteracting&&!tileModeActive)||state.mode==='far'||
     state.view!=='map')return;
+  healthBegin('fast');
+  try{
+  healthStage('camera-prime');
   const now=performance.now(),bounds=streamingViewBounds(96);
   if(now-fastLastPrime>90){
    fastLastPrime=now;
@@ -729,6 +732,7 @@ function fastRender(){
    if(state.roadShown)
     roadChunks.prime(bounds,{prefetch:{enabled:false},notifyReady:false});
   }
+  healthStage('camera-tile-requests');
   const ready=terrainChunks.readyTiles(bounds,{limit:100,sourceKeys:true});
   let result,visibleCameraTiles=[];
   if(worldTiles){
@@ -761,6 +765,7 @@ function fastRender(){
    worldTiles.reconcileGroundRevisions(versions);
    for(const [tileId,revision] of versions)
     worldTiles.terrainReady(tileId,revision);
+   healthStage('camera-composition');
    result=worldTiles.render(fastView(),{
      drawStatic:drawFastStaticScenery,drawDynamic:drawTileDynamics,
      // Per-hex quick previews use an unblended source texture and show
@@ -768,10 +773,14 @@ function fastRender(){
      // is enabled; do not present a fake finished transition.
      drawPreview:state.edgeBlend?null:drawFastTerrainPreview
     });
-  }else result=realtimeMap.render(fastView(),{terrainPieces:ready});
+  }else {healthStage('camera-composition');result=realtimeMap.render(fastView(),{terrainPieces:ready});}
   if(result){
    window.VedrasBenchmarkProfiler?.record('tile.compositeMs',result.renderMs);
    realtimeMap.show();fastFrames++;
+   healthOutput({submitted:(result.coverage||0)>0||(result.loaded||0)>0||(result.previewHexes||0)>0,
+    kind:'fast',coverage:result.coverage??null,loaded:result.loaded??null,
+    missing:result.missing??null,exact:result.exact??null,previewHexes:result.previewHexes??null});
+   healthStage('camera-status');
    fastLastMs=result.renderMs;fastLastCoverage=result.coverage;
    fastNewTerrain=result.loaded??ready.length;
    // A missing River/Scenery source once showed only a silent cloud. Give
@@ -809,6 +818,7 @@ function fastRender(){
      (worldTiles?.stats().clouds?
       ' · '+worldTiles.stats().clouds.bases+' Cloud-Hexgrafiken · Seeded':'');
   }
+  }catch(error){healthError(error);throw error;}finally{healthEnd();}
  });
 }
 // Step 4: camera-only navigation reuses immutable world tiles. A first
@@ -1408,13 +1418,129 @@ function makePattern(a,patternCtx=ctx){
  if(pat.setTransform)pat.setTransform(new DOMMatrix([sc,0,0,sc,0,0]));
  return pat;
 }
+// Render health: bounded stage counters, independent of fast-camera frame count.
+// Never read pixels or traverse individual tiles during automatic diagnostics.
+const renderHealth={startedAt:performance.now(),requested:0,coalesced:0,
+ editorFrames:0,fastFrames:0,strategyFrames:0,errors:0,firstOutputMs:null,
+ active:null,lastFrame:null,lastError:null,contextLosses:[]};
+function healthBegin(mode){
+ const now=performance.now();
+ renderHealth.active={mode,started:now,stage:'start',stageAt:now,stages:{},output:null};
+}
+function healthStage(stage){
+ const f=renderHealth.active;if(!f)return;
+ const now=performance.now();
+ f.stages[f.stage]=(f.stages[f.stage]||0)+now-f.stageAt;
+ f.stage=stage;f.stageAt=now;
+}
+function healthOutput(output){
+ const f=renderHealth.active;if(!f)return;
+ f.output=output;
+ if(output?.submitted&&renderHealth.firstOutputMs===null)
+  renderHealth.firstOutputMs=performance.now()-renderHealth.startedAt;
+}
+function healthError(error){
+ const f=renderHealth.active;
+ renderHealth.errors++;
+ renderHealth.lastError={at:performance.now(),mode:f?.mode||null,
+  stage:f?.stage||null,message:String(error?.message||error),stack:String(error?.stack||'').slice(0,3000)};
+ if(f)f.failed=true;
+}
+function healthEnd(){
+ const f=renderHealth.active;if(!f)return;
+ healthStage('finished');
+ if(!f.failed)renderHealth[f.mode+'Frames']++;
+ renderHealth.lastFrame={mode:f.mode,elapsedMs:performance.now()-f.started,
+  endedAt:performance.now(),failed:!!f.failed,stages:f.stages,output:f.output};
+ renderHealth.active=null;
+}
+function renderHealthReport({samplePixels=false}={}){
+ const layers={terrain:terrainChunks,shore:shorelineChunks,rivers:riverChunks,roads:roadChunks};
+ const streams=Object.fromEntries(Object.entries(layers).map(([id,c])=>[id,
+  {...c.stats(),queuedVisible:c.pending(),memory:c.memoryDetails?.()||null}]));
+ const canvasState=id=>{
+  const el=$(id);if(!el)return null;
+  const css=getComputedStyle(el);
+  const result={width:el.width,height:el.height,display:css.display,
+   visibility:css.visibility,opacity:css.opacity,zIndex:css.zIndex,hidden:el.hidden};
+  // Explicit user-triggered readback ONLY. A nontransparent sample is not
+  // proof of correct artwork; transparent samples can reveal a blank layer.
+  if(samplePixels&&['mapCanvas','realtimeCanvas'].includes(id)&&el.width&&el.height){
+   try{
+    const g=el.getContext('2d');
+    if(g)result.samples=[.2,.5,.8].flatMap(y=>[.2,.5,.8].map(x=>({
+     x,y,rgba:Array.from(g.getImageData(Math.floor((el.width-1)*x),
+      Math.floor((el.height-1)*y),1,1).data)})));
+   }catch(e){result.sampleError=String(e?.message||e);}
+  }
+  return result;
+ };
+ return {schema:'vedras-render-health-v1',time:new Date().toISOString(),
+  health:{...renderHealth,elapsedMs:performance.now()-renderHealth.startedAt},
+  view:{mode:state.mode,view:state.view,zoom:state.zoom,lod:terrainLod,dpr:state.dpr,
+   quality:state.quality,worldCells:worldCells.length,sceneSize:state.sceneSize,
+   fastInteracting,tileModeActive,gpuFrame,cloudsDisabled:!!window.VedrasCloudsDisabled},
+  streams,worker:window.VedrasTerrainWorker.status(),worldTiles:worldTiles?.stats()||null,
+  background:backgroundScene.stats(),scenery:staticScenery.stats(),images:imagePool.report(),
+  atlas:spriteAtlas?.info()||null,gpu:gpuTerrain?.stats()||null,
+  gpuSprites:gpuSprites?.stats()||null,shadowRaster:window.VedrasSpriteShadows?.cacheStats?.()||null,
+  canvases:Object.fromEntries(['mapCanvas','realtimeCanvas','gpuCanvas','gpuSpriteCanvas',
+   'frozenGameCanvas'].map(id=>[id,canvasState(id)]))};
+}
+function installRenderHealth(){
+ const anchor=$('chunkStats');if(!anchor)return;
+ const panel=document.createElement('div');panel.className='infobox';panel.id='renderHealthStats';
+ panel.setAttribute('role','status');
+ const btn=document.createElement('button');btn.type='button';btn.className='button outline block';
+ btn.textContent='Renderdiagnose herunterladen (JSON, inkl. Pixelstichprobe)';
+ anchor.after(panel,btn);
+ const update=()=>{
+  if(document.hidden)return;
+  const f=renderHealth.lastFrame;
+  const streams=[['Terrain',terrainChunks],['Ufer',shorelineChunks],
+   ['Fluss',riverChunks],['Straßen',roadChunks]];
+  const mib=n=>Math.round((n||0)/1048576);
+  const stats=streams.map(([name,c])=>{
+   const q=c.stats(),m=c.memoryDetails?.();
+   return name+' '+q.painted+'/'+q.visible+' letzte Zeichenphase, '+c.pending()+
+    ' wartend, '+q.inFlight+' aktiv, '+mib(q.bytes)+'/'+mib(q.budgetBytes)+' MiB'+
+    (m?.overBudgetBytes>0?' (+'+mib(m.overBudgetBytes)+' MiB; '+m.protectedCount+' geschützt)':'');
+  });
+  panel.textContent='Renderdiagnose · Editor '+renderHealth.editorFrames+
+   ' / Kamera '+renderHealth.fastFrames+' / Strategie '+renderHealth.strategyFrames+
+   ' abgeschlossene Frames · '+(f?'zuletzt '+f.mode+' '+f.elapsedMs.toFixed(1)+' ms, vor '+
+    Math.round(performance.now()-f.endedAt)+' ms'+(f.output?.submitted?' · Ausgabe angefordert':' · keine Terrain-/Kamera-Ausgabe bestätigt'):'noch kein abgeschlossener Frame')+
+   ' · '+(renderHealth.firstOutputMs===null?'noch keine Terrain-/Kamera-Ausgabe':'erste Ausgabe nach '+Math.round(renderHealth.firstOutputMs)+' ms')+
+   (renderHealth.lastError?' · FEHLER '+renderHealth.lastError.stage+': '+renderHealth.lastError.message:'')+
+   (renderHealth.contextLosses.length?' · Kontextverlust: '+renderHealth.contextLosses.at(-1).id:'')+
+   ' · '+stats.join(' | ')+
+   ' · Atlas '+(spriteAtlas?.info().active?'aktiv':spriteAtlas?.info().failed?'nicht verfügbar (Originalbilder)':'nicht aktiv');
+ };
+ btn.addEventListener('click',()=>{
+  const report=renderHealthReport({samplePixels:true});
+  const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='vedras-render-health.json';
+  link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
+ for(const id of ['mapCanvas','realtimeCanvas','gpuCanvas','gpuSpriteCanvas']){
+  const el=$(id);
+  for(const event of ['contextlost','webglcontextlost','contextrestored','webglcontextrestored'])
+   el?.addEventListener(event,()=>{
+    renderHealth.contextLosses.push({id,event,at:performance.now()});
+    if(renderHealth.contextLosses.length>16)renderHealth.contextLosses.shift();
+    update();
+   });
+ }
+ update();setInterval(update,1500);
+}
 function requestDraw(){
  if(frozenTour?.offlineOnly)return;
  if(frozenMapMode)return; // Frozen game test never invokes editor/Worker baking.
  if(state.mode==='far'&&(fastInteracting||tileModeActive))
   stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
- if(drawPending)return;
+ renderHealth.requested++;
+ if(drawPending){renderHealth.coalesced++;return;}
  drawPending=true;requestAnimationFrame(()=>{drawPending=false;draw();});
 }
 // Terrain detail factors remain independent of physical canvas DPR.
@@ -3429,6 +3555,8 @@ function draw(){
  if(state.mode==='far')stopFastCameraForStrategy();
  if((fastInteracting||tileModeActive)&&!finalRendering){fastRender();return;}
  if(!ctx||!canvas.width)return;
+ healthBegin(state.mode==='far'?'strategy':'editor');
+ try{
  if(state.mode==='far'){
   realtimeMap.hide();realtimeMap.setSnapshots([]);
   gpuFrame=false;gpuTerrain?.hide();gpuSprites?.hide();
@@ -3452,11 +3580,13 @@ function draw(){
    overview.regions+' Biomregionen · '+overview.labels+' lesbare Beschriftungen · '+
    overview.centers+' Zentren · kein Terrain-/Sprite-Neuaufbau';
   $('modeBadge').textContent='STRATEGIE';
+  healthOutput({submitted:true,kind:'strategy'});
   return;
  }
  // Protect all shared terrain sources and the sprite images intersecting the
  // camera. Without this, the cache evicts a visible tree and the next frame
  // immediately re-decodes it, producing endless add/remove flicker.
+ healthStage('image-pool');
  protectCameraImagePool();
  if(++frameNumber%120===0)imagePool.prune();
  // The background signature must see the CURRENT tier before paint() decides
@@ -3478,6 +3608,7 @@ function draw(){
    panX:state.panX,panY:state.panY,projectY:PROJECT_Y});
  let terrainElapsed=0,roadsElapsed=0;
  let backgroundProfile=null;
+ healthStage('background');
  const renderBackground=()=>{
   const groundStart=performance.now();
   drawGround();terrainElapsed=performance.now()-groundStart;
@@ -3548,6 +3679,7 @@ function draw(){
  const streams={terrain:terrainChunks.stats(),shore:shorelineChunks.stats(),
   rivers:riverChunks.stats(),roads:roadChunks.stats()};
  window.__vedrasStreamingProfile=streams;
+ healthStage('objects-and-shadows');
  // Mask shadows and sprites to the generated map, allowing only a small
  // crown overhang. The same authored clouds cover that overhang afterwards.
  const mapView={width:W,height:H,zoom:state.zoom,dpr:state.dpr,
@@ -3627,6 +3759,7 @@ function draw(){
    drawMapObjects({onlyUnits:true});
   }
  }finally{spriteAtlas?.endFrame();if(clippedWorld)ctx.restore();}
+ healthStage('overlays-and-gpu-end');
  drawMountainFootprints();drawBounds();
  if(!window.VedrasCloudsDisabled&&!finalRendering&&state.view==='map'&&state.mode!=='far'&&!gpuFrame&&worldTiles){
   // Normal mapCanvas path used to reveal partly rendered terrain/sprites in
@@ -3691,6 +3824,12 @@ function draw(){
   }else{realtimeMap.setSnapshots([]);realtimeMap.setPreviewCells([]);}
  }else realtimeMap.setSnapshots([]);
  realtimeMap.hide();
+ healthOutput({submitted:streams.terrain.painted>0||!(state.chunkRendering||state.sceneSize>37),
+  kind:'editor',terrainPainted:streams.terrain.painted,terrainVisible:streams.terrain.visible,
+  backgroundMode:backgroundProfile?.mode||null,backgroundCached:!!backgroundProfile?.cached,
+  sceneryMode:sceneryProfile?.mode||null,gpuFrame,
+  note:'Terrain counts include staging overscan; submitted is not verified visible pixels.'});
+ healthStage('world-tile-seeding');
  if(worldTiles){
   // Camera-only redraws must reuse completed tiles. Invalidate ONLY when
   // the underlying prepared source images or geometry actually changed.
@@ -3731,6 +3870,7 @@ function draw(){
   }
   worldTileSelectiveSnapshot=false;
  }
+ healthStage('editor-status');
  const ready=$('fastCameraStats');
  if(ready&&state.fastCamera!==false&&!fastInteracting)
   ready.textContent=realtimeMap.snapshotReady()?
@@ -3873,7 +4013,9 @@ function draw(){
   Math.round(mem.decodedBytes/1048576)+' MiB geschätzt'+
   (spriteAtlas?.info().active?' · Atlas '+spriteAtlas.info().pages+
    ' Seiten ('+spriteAtlas.info().tier+')':'');
- $('modeBadge').textContent=state.mode==='normal'?'NORMAL':'FERNANSICHT';}
+ $('modeBadge').textContent=state.mode==='normal'?'NORMAL':'FERNANSICHT';
+ }catch(error){healthError(error);throw error;}finally{healthEnd();}
+}
 function updateDiagnostics(){const pixels=canvas.width*canvas.height,mb=(pixels*4/1048576).toFixed(1);$('renderStats').textContent=`Canvas ${canvas.width}×${canvas.height} px · ${state.dpr.toFixed(2)}× Pixelratio · ${mb} MiB Bildpuffer`;
  const a=useAsset(state.asset);if(!a?.img?.naturalWidth){$('sharpnessInfo').textContent='Bitte eine Grafik auswählen.';return;}
  const isSvg=a.name.toLowerCase().endsWith('.svg');const meta=a.meta||{};const terrain=isTerrain(a);
@@ -5995,6 +6137,7 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
  warmWorldTileStatus:()=>worldTiles?.warmTileStatus()||null,
  pruneIdleImagePool:()=>imagePool.pruneIdle(),atlasStats:()=>({...spriteAtlas?.info(),benchmarkMode:benchmarkAtlasMode}),
  benchmarkProfiler:()=>window.VedrasBenchmarkProfiler?.snapshot()||null,
+ renderHealth:renderHealthReport,
  step15Trace:()=>window.VedrasStep15Trace?.snapshot()||null,
  enableStep15Trace:on=>window.VedrasStep15Trace?.enable(on),
  resetStep15Trace:label=>window.VedrasStep15Trace?.reset(label),
@@ -6106,3 +6249,4 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
  roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},walls:{environment:wallEnvironment,visible:visibleWallEdges,apply:applyWallChanges},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
  invalidateScenery:()=>{invalidateSpriteLayout(null,{preserveCamera:true});requestDraw();},
  persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};
+installRenderHealth();
