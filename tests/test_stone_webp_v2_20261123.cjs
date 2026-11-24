@@ -105,8 +105,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261124-palisade-gates-raster-v2'));
- assert(html.includes('walls=20261124-palisade-gates-raster-v2'));
+ assert(html.includes('walls.js?v=20261124-palisade-gates-ai-v3'));
+ assert(html.includes('walls=20261124-palisade-gates-ai-v3'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
@@ -218,3 +218,8 @@ test('six timber gate assets use the exact original palisade image dimensions an
   assert.deepEqual(W.edgeArtPlacement(edge,project,1),W.edgeArtPlacement({...edge,kind:'palisade'},project,1));
  }
 });
+
+ test('northwest reuses the exact southeast painted timber gate bytes',()=>{
+  const dir=path.join(root,'assets/walls/palisade/gates/v1');
+  assert.deepEqual(fs.readFileSync(path.join(dir,'gate_dir5.png')),fs.readFileSync(path.join(dir,'gate_dir2.png')));
+ });
