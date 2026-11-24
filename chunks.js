@@ -715,7 +715,29 @@ window.VedrasChunks=(()=>{
    playbackPaused=!!yes;
    if(!playbackPaused)schedule();
   }
-  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,setPlaybackPaused,diagnostics,
+  // Explicit health snapshots only; stats() remains O(1) on the frame path.
+  function memoryDetails(){
+   let protectedCount=0,protectedPixels=0,evictableCount=0,evictablePixels=0,
+    retiredCount=0,retiredPixels=0;
+   for(const [id,value] of cache){
+    if(protectedIds.has(id)){protectedCount++;protectedPixels+=value.pixels||0;}
+    else{evictableCount++;evictablePixels+=value.pixels||0;}
+   }
+   for(const bucket of retired.values())for(const [id,value] of bucket){
+    const pixels=value.pixels||0;retiredCount++;retiredPixels+=pixels;
+    if(protectedIds.has(id)){protectedCount++;protectedPixels+=pixels;}
+    else{evictableCount++;evictablePixels+=pixels;}
+   }
+   return {protectedCount,protectedBytes:protectedPixels*4,
+    evictableCount,evictableBytes:evictablePixels*4,
+    retiredCount,retiredBytes:retiredPixels*4,
+    overBudgetBytes:Math.max(0,(stats.pixels-maxPixels)*4),
+    overTileLimit:Math.max(0,cache.size+retiredCount-maxTiles),
+    maxTiles,visibleWanted:viewportWanted.size,queuedVisible:queue.size,
+    inFlightInteractive,inFlightBackground,epoch,
+    bytesAccountingDelta:(stats.pixels-protectedPixels-evictablePixels)*4};
+  }
+  return {configure,draw,prime,readyTiles,paintedVersions,warm,stopWarm,clipCore,clear,setInteractive,setPlaybackPaused,diagnostics,memoryDetails,
    stats:()=>({...stats,cached:cache.size,variants:retired.size,
     warmPending:backgroundQueue.size,prefetchPending:prefetchQueue.size,
     manualPending:backgroundQueue.size,
