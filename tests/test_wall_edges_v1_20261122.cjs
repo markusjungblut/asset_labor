@@ -202,7 +202,7 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
  assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261124-native-stone-pier-v3'),
+ assert(index.includes('walls.js?v=20261124-stone-gates-south-v1'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -254,7 +254,7 @@ test('six preserved SVG palisades and six real stone PNG artworks use canonical 
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261124-native-stone-pier-v3'));
+ assert(html.includes('walls.js?v=20261124-stone-gates-south-v1'));
  assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
  assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
  assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
@@ -314,4 +314,26 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   assert(html.includes('id="'+key+'"'),'missing usable editor control '+key);
  assert(html.includes('walls.js?v=')&&html.includes('wall-ui.js?v='));
  assert(ui.includes("W.removeEdge")&&ui.includes("W.setEdge"));
+});
+test('only the two southern gate variants are placeable and saved once with facing',()=>{
+ const scope=env(),from=[0,0];
+ let edges=[];
+ for(let dir=0;dir<6;dir++){
+  const to=R.DIRS[dir];
+  assert.equal(W.canPlaceKind(from,to,'stone_gate',scope).ok,[2,3].includes(dir));
+  edges=W.setEdge(edges,from,to,'stone_gate',scope);
+ }
+ assert.equal(edges.length,2);
+ assert.deepEqual(plain(edges.map(e=>e.gateSide).sort()),[2,3]);
+ for(const gate of edges){
+  const reversed={...gate,a:gate.b,b:gate.a};
+  assert.deepEqual(plain(W.normalize([reversed],scope)),plain([gate]));
+  const g=W.geometry(gate);
+  assert.equal(g.side,gate.gateSide);
+  assert.equal(W.widthFor(gate.kind),W.widthFor('stone'));
+  assert(W.junctions([gate]).every(n=>n.kind==='stone'));
+  const restored=W.setEdge(edges,gate.a,gate.b,'stone',scope);
+  assert.equal(restored.length,2);
+  assert.equal(restored.filter(e=>e.kind==='stone_gate').length,1);
+ }
 });

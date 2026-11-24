@@ -4375,6 +4375,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-and-palisade-grid-foot-center-v1',
   'stone-pier-deep-foot-continuous-shadow-v1',
   'stone-native-pier-unified-open-and-closed-v1',
+  'stone-gates-south-closed-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication

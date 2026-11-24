@@ -132,6 +132,28 @@ async function main(){
   await page.waitForTimeout(1500);
   await page.screenshot({path:path.join(OUT,'editor-stone-open-south-v.png')});
   await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__stoneFullEdges));
+  // Replace only the southern two stone edges with the new closed gates.
+  const gates=await page.evaluate(()=>{
+   const W=window.VedrasWalls,core=window.VedrasAssetLabor;
+   const sel=document.getElementById('wallKind');
+   sel.value='stone_gate';sel.dispatchEvent(new Event('change',{bubbles:true}));
+   document.getElementById('wallTest').click();
+   const edges=W.normalize(core.state.wallEdges,core.walls.environment());
+   window.__gatedHex=edges.slice();
+   return {total:edges.length,stone:edges.filter(e=>e.kind==='stone').length,
+    gates:edges.filter(e=>e.kind==='stone_gate').map(e=>e.gateSide).sort(),
+    joints:W.junctions(edges).length};
+  });
+  assert.equal(gates.total,6);
+  assert.equal(gates.stone,4);
+  assert.deepEqual(gates.gates,[2,3]);
+  assert.equal(gates.joints,6);
+  await page.waitForTimeout(1600);
+  await page.screenshot({path:path.join(OUT,'editor-stone-gates-south.png')});
+  await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__gatedHex.filter(e=>e.kind==='stone_gate')));
+  await page.waitForTimeout(1600);
+  await page.screenshot({path:path.join(OUT,'editor-stone-gates-open.png')});
+  await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__gatedHex));
   // Repeat the same physical six edges using palisade v5 at the same
   // camera position, with the grid and raised relief still enabled.
   await page.evaluate(()=>{
@@ -148,7 +170,9 @@ async function main(){
   assert(proof.reliefDifference>0,'test must include nonzero relief, not only flat ground');
   for(const kind of ['stone','palisade'])for(const name of ['draw','drawJoin','drawShadow','drawJoinShadow'])
    assert(proof.calls[name+':'+kind]>0,'real editor must draw '+name+':'+kind);
-  console.log(JSON.stringify({gridAlignment:proof}));
+  assert(proof.calls['draw:stone_gate']>0,'real editor must draw gates');
+  assert(proof.calls['drawShadow:stone_gate']>0,'real editor must draw gate shadows');
+  console.log(JSON.stringify({gridAlignment:proof,gates}));
   const visible=await page.evaluate(()=>{
    const c=document.getElementById('mapCanvas');
    try{

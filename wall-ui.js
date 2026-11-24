@@ -14,6 +14,7 @@
  function render(){
   $('wallShown').checked=state.wallShown!==false;
   $('wallKind').value=W.kinds.includes(state.wallKind)?state.wallKind:'stone';
+  $('wallTest').textContent=state.wallKind==='stone_gate'?'Beide südlichen Tore testen':'Alle sechs Kanten am Hex testen';
   $('wallPaint').textContent=state.wallPaintMode?'Kanten-Zeichnen beenden':'Kante über zwei Hexe zeichnen';
   $('wallPaint').classList.toggle('primary',!!state.wallPaintMode);
   const list=$('wallNeighbors');list.textContent='';
@@ -23,10 +24,12 @@
    const to={q:from.q+dq,r:from.r+dr},check=W.canPlace(from,to,scope),
     existing=current.find(e=>W.identity(e.a,e.b)===W.identity(from,to));
    const button=document.createElement('button');button.type='button';
-   button.className='button outline';button.disabled=!check.ok;
-   button.textContent=dirs[i]+(existing?' · '+(existing.kind==='stone'?'Stein':'Palisade'):
+   const placement=W.canPlaceKind(from,to,state.wallKind,scope);
+   const removing=existing&&existing.kind===state.wallKind;
+   button.className='button outline';button.disabled=!(check.ok&&(removing||placement.ok));
+   button.textContent=dirs[i]+(existing?' · '+(existing.kind==='stone_gate'?'Steintor':existing.kind==='stone'?'Stein':'Palisade'):
     check.ok?' · freie Kante':' · gesperrt');
-   button.title=check.reason+(existing?' · Gleicher Typ: entfernen; anderer Typ: ersetzen.':'');
+   button.title=(removing?check.reason:placement.reason)+(existing?' · Gleicher Typ: entfernen; anderer Typ: ersetzen.':'');
    button.addEventListener('click',()=>{
     const next=existing&&existing.kind===state.wallKind?
      W.removeEdge(current,from,to,scope):
@@ -61,12 +64,12 @@
   let next=walls(),added=0;
   for(const [dq,dr] of W.DIRS){
    const to={q:from.q+dq,r:from.r+dr};
-   if(!W.canPlace(from,to,scope).ok)continue;
+   if(!W.canPlaceKind(from,to,state.wallKind,scope).ok)continue;
    next=W.setEdge(next,from,to,state.wallKind,scope);added++;
   }
   if(!added){$('wallStatus').textContent='Keine bebaubare Nachbarkante am ausgewählten Hex.';return;}
   state.wallShown=true;commit(next);
-  $('wallStatus').textContent+=' · Sechs-Richtungen-Test: '+added+' Segmente möglich.';
+  $('wallStatus').textContent+=' · Richtungstest: '+added+' Segmente möglich.';
  });
  $('wallRemoveLast').addEventListener('click',()=>{
   const list=walls();if(list.length){list.pop();commit(list);}

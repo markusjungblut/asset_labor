@@ -17,8 +17,9 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   }
   const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
   const png=/^\/assets\/walls\/stone\/v7\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
-  if(!webp&&!png){res.writeHead(404);return res.end('missing');}
-  res.writeHead(200,{'Content-Type':png?'image/png':'image/webp'});
+  const gate=/^\/assets\/walls\/stone\/gates\/v1\/gate_dir[23]\.png$/.test(name);
+  if(!webp&&!png&&!gate){res.writeHead(404);return res.end('missing');}
+  res.writeHead(200,{'Content-Type':png||gate?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -206,6 +207,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.ok,true);
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
+  assert.equal(result.info.gateLoaded,2);
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
   for(const {dir,left,right,ideal,expectedLeft,expectedRight} of result.diagonalFeet){
    assert(Math.abs(left-expectedLeft)<12&&Math.abs(right-expectedRight)<12,

@@ -7,7 +7,10 @@
 window.VedrasWalls=(()=>{
  const rivers=window.VedrasRivers;
  const DIRS=rivers.DIRS;
- const kinds=['palisade','stone'];
+ const materials=['palisade','stone'];
+ const kinds=[...materials,'stone_gate'];
+ const gateSides=[2,3];
+ const materialOf=kind=>kind==='stone_gate'?'stone':kind;
  const point=p=>Array.isArray(p)?{q:p[0],r:p[1]}:{q:p?.q,r:p?.r};
  const key=p=>p.q+','+p.r;
  const pair=(a,b)=>{
@@ -57,28 +60,46 @@ window.VedrasWalls=(()=>{
    return {ok:false,reason:'Auf einer tatsächlichen Flusskante ist keine Mauer erlaubt.'};
   return {ok:true,reason:'Bebaubare gemeinsame Hexkante.'};
  }
+ // Gates have a facing, independent of the sorted undirected edge key.
+ // Stage 1 provides only SO/SW. Preserve orientation when saving/reloading.
+ function canPlaceKind(a,b,kind,env){
+  const check=canPlace(a,b,env);
+  if(!check.ok)return check;
+  if(!kinds.includes(kind))return {ok:false,reason:'Unbekannter Mauertyp.'};
+  if(kind==='stone_gate'&&!gateSides.includes(rivers.side(point(a),point(b))))
+   return {ok:false,reason:'Steintor vorerst nur in SO und SW verfügbar.'};
+  return check;
+ }
  function normalize(edges,env){
   const byEdge=new Map();
   for(const input of Array.isArray(edges)?edges.slice(0,10000):[]){
    const a=point(input?.a),b=point(input?.b);
    if(!kinds.includes(input?.kind)||!canPlace(a,b,env).ok)continue;
    const [x,y]=pair(a,b);
-   byEdge.set(identity(x,y),{a:[x.q,x.r],b:[y.q,y.r],kind:input.kind});
+   const item={a:[x.q,x.r],b:[y.q,y.r],kind:input.kind};
+   if(input.kind==='stone_gate'){
+    const actual=rivers.side(x,y);
+    const facing=input.gateSide??rivers.side(a,b);
+    if(!gateSides.includes(facing)||!(actual===facing||(actual+3)%6===facing))continue;
+    item.gateSide=facing;
+   }
+   byEdge.set(identity(x,y),item);
   }
   return [...byEdge.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,v])=>v);
  }
  function setEdge(edges,a,b,kind,env){
-  if(!kinds.includes(kind)||!canPlace(a,b,env).ok)return normalize(edges,env);
+  if(!canPlaceKind(a,b,kind,env).ok)return normalize(edges,env);
   const [x,y]=pair(a,b),id=identity(x,y);
   return normalize([...normalize(edges,env).filter(e=>identity(e.a,e.b)!==id),
-   {a:[x.q,x.r],b:[y.q,y.r],kind}],env);
+   {a:[x.q,x.r],b:[y.q,y.r],kind,...(kind==='stone_gate'?{gateSide:rivers.side(point(a),point(b))}:{})}],env);
  }
  function removeEdge(edges,a,b,env){
   const id=identity(a,b);
   return normalize(edges.filter(e=>identity(e.a,e.b)!==id),env);
  }
  function geometry(edge){
-  const a=point(edge.a),b=point(edge.b),side=rivers.side(a,b);
+  let a=point(edge.a),b=point(edge.b),side=rivers.side(a,b);
+  if(edge.kind==='stone_gate'&&gateSides.includes(edge.gateSide)&&side!==edge.gateSide&&(side+3)%6===edge.gateSide){[a,b]=[b,a];side=edge.gateSide;}
   if(side<0)return null;
   const vertices=rivers.vertices(a);
   return {a:vertices[side],b:vertices[(side+1)%6],side};
@@ -105,7 +126,7 @@ window.VedrasWalls=(()=>{
  // direction of the shared hex edge. NW and NE therefore use identical
  // sprite height, including the eight-unit sharpened palisade tip.
  function heightFor(_kind){return 62;}
- function widthFor(kind){return kind==='stone'?24:16;}
+ function widthFor(kind){return materialOf(kind)==='stone'?24:16;}
  function projected(edge,project){
   const g=geometry(edge);if(!g)return null;
   return {a:project(g.a.x,g.a.y),b:project(g.b.x,g.b.y)};
@@ -161,7 +182,7 @@ window.VedrasWalls=(()=>{
   const d=shadowVector(edge.kind,zoom,global);
   const sx=Number(global.offsetX??-.07)*d.height;
   const sy=Number(global.offsetY??.025)*d.height;
-  const reach=edge.kind==='stone'?.58:1;
+  const reach=materialOf(edge.kind)==='stone'?.58:1;
    const cast=x=>({x:x.x+d.x*reach+sx,y:x.y+d.y*reach+sy});
   const tone=window.VedrasShadowTone;
   ctx.save();
@@ -172,7 +193,7 @@ window.VedrasWalls=(()=>{
   // Both sides cast from the actual thick base, not from the infinitely
   // thin border line. This is still painted through the existing shared
   // normal-shadow mask, so joined segments cannot compound darkness.
-  if(edge.kind==='stone'){
+  if(materialOf(edge.kind)==='stone'){
    poly(ctx,sweptFootprint([p.frontA,p.frontB,p.backB,p.backA],cast));
   }else{
    poly(ctx,[p.frontA,p.frontB,cast(p.frontB),cast(p.frontA)]);
@@ -182,7 +203,7 @@ window.VedrasWalls=(()=>{
   // Retain a continuous grounding stroke at the true shared edge.
   // It closes subpixel cracks between adjacent segments in the mask.
   ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
-  ctx.lineWidth=Math.max(2,(edge.kind==='stone'?11:7)*zoom);ctx.strokeStyle=ctx.fillStyle;
+  ctx.lineWidth=Math.max(2,(materialOf(edge.kind)==='stone'?11:7)*zoom);ctx.strokeStyle=ctx.fillStyle;
   ctx.lineCap='round';ctx.stroke();
   ctx.restore();
   return true;
@@ -240,7 +261,7 @@ window.VedrasWalls=(()=>{
   // Remove the opposite stone directions' fractional Y rounding
   // mismatch by matching their nominal baselines at the midpoint.
   let anchorY=ay;
-  if(edge.kind==='stone'){
+  if(materialOf(edge.kind)==='stone'){
    const other=stoneRasterMeta[(g.side+3)%6][3];
    anchorY=(ay+other-(g.b.y-g.a.y)*.85)/2;
   }
@@ -258,12 +279,13 @@ window.VedrasWalls=(()=>{
   return {x:p.x-w/2,y:p.y-h+south,width:w,height:h,south,center:p};
  }
  const wallArt=new Map();
+ const gateArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
   if(typeof Image==='undefined')return Promise.resolve(false);
   if(artworkPromise)return artworkPromise;
   const pending=[];
-  for(const kind of kinds)for(let side=0;side<6;side++){
+  for(const kind of materials)for(let side=0;side<6;side++){
    const name=kind+':'+side,image=new Image();
    wallArt.set(name,image);
    pending.push(new Promise(resolve=>{
@@ -272,6 +294,13 @@ window.VedrasWalls=(()=>{
     image.src='assets/walls/'+kind+(kind==='stone'?'/v7':'')+'/edge_dir'+side+
      (kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':
       '.png?v=20261123-original-stone-v7-foot-shadow-v2');
+   }));
+  }
+  for(const side of gateSides){
+   const image=new Image();gateArt.set(side,image);
+   pending.push(new Promise(resolve=>{
+    image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
+    image.src='assets/walls/stone/gates/v1/gate_dir'+side+'.png?v=20261124-gates-south-v1';
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -299,7 +328,7 @@ window.VedrasWalls=(()=>{
  }
  function artworkInfo(){return {count:wallArt.size,
   loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
-  total:12,
+  total:12,gateTotal:gateSides.length,gateLoaded:[...gateArt.values()].filter(i=>i.naturalWidth>0).length,
   postsLoaded:[...palisadeJoinArt.values()].filter(i=>i.naturalWidth>0).length,
   postsTotal:2,
   stonePostsLoaded:[...stoneJoinArt.values()].filter(i=>i.naturalWidth>0).length,
@@ -308,7 +337,7 @@ window.VedrasWalls=(()=>{
   if(typeof Image==='undefined')return false;
   if(!artworkPromise)artworkReady();
   const g=geometry(edge);if(!g)return false;
-  const img=wallArt.get(edge.kind+':'+g.side);
+  const img=edge.kind==='stone_gate'?gateArt.get(g.side):wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
   const box=edgeArtPlacement(edge,project,zoom);if(!box)return false;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
@@ -331,8 +360,9 @@ window.VedrasWalls=(()=>{
     let node=map.get(id);
     if(!node){node={id,x:p.x,y:p.y,incident:[],kinds:[],degree:0};
      map.set(id,node);}
-    node.incident.push({kind:e.kind,angle:Math.atan2(other.y-p.y,other.x-p.x)});
-    if(!node.kinds.includes(e.kind))node.kinds.push(e.kind);
+    const material=materialOf(e.kind);
+    node.incident.push({kind:material,angle:Math.atan2(other.y-p.y,other.x-p.x)});
+    if(!node.kinds.includes(material))node.kinds.push(material);
    }
   }
   return [...map.values()].map(n=>({...n,
@@ -482,7 +512,7 @@ window.VedrasWalls=(()=>{
   const frontTopA=lift(frontA,h),frontTopB=lift(frontB,h);
   const backTopA=lift(backA,h),backTopB=lift(backB,h);
   const length=Math.hypot(frontB.x-frontA.x,frontB.y-frontA.y);
-  const stone=edge.kind==='stone';
+  const stone=materialOf(edge.kind)==='stone';
   ctx.save();
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   ctx.filter='none';ctx.lineJoin='round';ctx.lineCap='round';
@@ -576,7 +606,7 @@ window.VedrasWalls=(()=>{
   ctx.restore();
   return true;
  }
- return {DIRS,kinds,point,identity,context,canPlace,normalize,setEdge,removeEdge,
+ return {DIRS,kinds,gateSides,materialOf,point,identity,context,canPlace,canPlaceKind,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
   artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,edgeArtPlacement,joinArtPlacement,junctions,drawJoin,drawJoinShadow};
 })();

@@ -4,6 +4,8 @@ on:
     branches: [feat/stone-battlements-aoe2-20261123]
     paths:
       - 'assets/walls/stone/v7/**'
+      - 'assets/walls/stone/gates/**'
+      - 'wall-ui.js'
       - 'walls.js'
       - 'app.js'
       - 'index.html'
@@ -56,5 +58,7 @@ jobs:
             test-artifacts/editor-stone-v7.png
             test-artifacts/editor-stone-v7-closeup.png
             test-artifacts/editor-stone-open-south-v.png
+            test-artifacts/editor-stone-gates-south.png
+            test-artifacts/editor-stone-gates-open.png
             test-artifacts/editor-palisade-grid-closeup.png
           if-no-files-found: ignore
