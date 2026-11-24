@@ -183,11 +183,35 @@ async function main(){
   });
   await page.waitForTimeout(2000);
   await page.screenshot({path:path.join(OUT,'editor-palisade-grid-closeup.png')});
+  const timberGates=await page.evaluate(()=>{
+   const W=window.VedrasWalls,core=window.VedrasAssetLabor;
+   const sel=document.getElementById('wallKind');
+   sel.value='palisade_gate';sel.dispatchEvent(new Event('change',{bubbles:true}));
+   document.getElementById('wallTest').click();
+   const edges=W.normalize(core.state.wallEdges,core.walls.environment());
+   window.__timberGatedHex=edges.slice();
+   return {total:edges.length,gates:edges.filter(e=>e.kind==='palisade_gate').map(e=>e.gateSide).sort(),
+    joints:W.junctions(edges).length};
+  });
+  assert.equal(timberGates.total,6);
+  assert.deepEqual(timberGates.gates,[0,1,2,3,4,5]);
+  assert.equal(timberGates.joints,6);
+  await page.waitForTimeout(1500);
+  await page.screenshot({path:path.join(OUT,'editor-palisade-gates-all.png')});
+  await page.evaluate(()=>{
+   const core=window.VedrasAssetLabor;
+   const edges=window.__timberGatedHex;
+   core.walls.apply(edges.filter(e=>[1,2,3,4].includes(e.gateSide)).map(e=>e.gateSide===2?{a:e.a,b:e.b,kind:'palisade'}:e));
+  });
+  await page.waitForTimeout(1500);
+  await page.screenshot({path:path.join(OUT,'editor-palisade-gates-open.png')});
   const proof=await page.evaluate(()=>window.__wallGridProof);
   assert(proof.maxError<1e-6,'all wall, join and shadow projections must match actual grid');
   assert(proof.reliefDifference>0,'test must include nonzero relief, not only flat ground');
   for(const kind of ['stone','palisade'])for(const name of ['draw','drawJoin','drawShadow','drawJoinShadow'])
    assert(proof.calls[name+':'+kind]>0,'real editor must draw '+name+':'+kind);
+  assert(proof.calls['draw:palisade_gate']>0,'real editor must draw palisade gates');
+  assert(proof.calls['drawShadow:palisade_gate']>0,'real editor must draw palisade gate shadows');
   assert(proof.calls['draw:stone_gate']>0,'real editor must draw gates');
   assert(proof.calls['drawShadow:stone_gate']>0,'real editor must draw gate shadows');
   console.log(JSON.stringify({gridAlignment:proof,gates}));

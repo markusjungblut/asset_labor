@@ -18,8 +18,9 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   const webp=/^\/assets\/walls\/palisade\/(?:edge_dir[0-5]|corner_post|end_post)\.webp$/.test(name);
   const png=/^\/assets\/walls\/stone\/v7\/(?:edge_dir[0-5]|corner_post|end_post)\.png$/.test(name);
   const gate=/^\/assets\/walls\/stone\/gates\/v1\/gate_dir[0-4]\.png$/.test(name);
-  if(!webp&&!png&&!gate){res.writeHead(404);return res.end('missing');}
-  res.writeHead(200,{'Content-Type':png||gate?'image/png':'image/webp'});
+  const timberGate=/^\/assets\/walls\/palisade\/gates\/v1\/gate_dir[0-5]\.svg$/.test(name);
+  if(!webp&&!png&&!gate&&!timberGate){res.writeHead(404);return res.end('missing');}
+  res.writeHead(200,{'Content-Type':timberGate?'image/svg+xml':png||gate?'image/png':'image/webp'});
   res.end(fs.readFileSync(path.join(ROOT,name)));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -228,6 +229,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.gateLoaded,6);
+  assert.equal(result.info.palisadeGateLoaded,6);
   assert(result.gateWidth.middle>=84&&result.gateWidth.middle<=90,'gatehouse is locally thicker');
   assert(result.gateWidth.upper<70&&result.gateWidth.lower<70,'original wall ends remain narrow');
   assert.equal(result.gateWidth.mirrorMismatch,0,'east/west gate pixels must mirror exactly');

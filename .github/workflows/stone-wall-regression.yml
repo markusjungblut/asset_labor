@@ -5,6 +5,7 @@ on:
     paths:
       - 'assets/walls/stone/v7/**'
       - 'assets/walls/stone/gates/**'
+      - 'assets/walls/palisade/gates/**'
       - 'wall-ui.js'
       - 'walls.js'
       - 'app.js'
@@ -62,5 +63,7 @@ jobs:
             test-artifacts/editor-stone-open-south-v.png
             test-artifacts/editor-stone-gates-all.png
             test-artifacts/editor-stone-gates-open.png
+            test-artifacts/editor-palisade-gates-all.png
+            test-artifacts/editor-palisade-gates-open.png
             test-artifacts/editor-palisade-grid-closeup.png
           if-no-files-found: ignore

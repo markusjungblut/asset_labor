@@ -4419,6 +4419,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-gates-all-facings-and-nature-footprint-v2',
   'stone-gates-wide-mirrored-edge-on-v3',
   'wall-nature-persistent-clearance-v1',
+  'palisade-closed-gates-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication

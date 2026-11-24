@@ -14,7 +14,7 @@
  function render(){
   $('wallShown').checked=state.wallShown!==false;
   $('wallKind').value=W.kinds.includes(state.wallKind)?state.wallKind:'stone';
-  $('wallTest').textContent=state.wallKind==='stone_gate'?'Alle sechs Steintore testen':'Alle sechs Kanten am Hex testen';
+  $('wallTest').textContent=state.wallKind==='stone_gate'?'Alle sechs Steintore testen':state.wallKind==='palisade_gate'?'Alle sechs Palisadentore testen':'Alle sechs Kanten am Hex testen';
   $('wallPaint').textContent=state.wallPaintMode?'Kanten-Zeichnen beenden':'Kante über zwei Hexe zeichnen';
   $('wallPaint').classList.toggle('primary',!!state.wallPaintMode);
   const list=$('wallNeighbors');list.textContent='';
@@ -27,7 +27,7 @@
    const placement=W.canPlaceKind(from,to,state.wallKind,scope);
    const removing=existing&&existing.kind===state.wallKind;
    button.className='button outline';button.disabled=!(check.ok&&(removing||placement.ok));
-   button.textContent=dirs[i]+(existing?' · '+(existing.kind==='stone_gate'?'Steintor':existing.kind==='stone'?'Stein':'Palisade'):
+   button.textContent=dirs[i]+(existing?' · '+(existing.kind==='stone_gate'?'Steintor':existing.kind==='palisade_gate'?'Palisadentor':existing.kind==='stone'?'Stein':'Palisade'):
     check.ok?' · freie Kante':' · gesperrt');
    button.title=(removing?check.reason:placement.reason)+(existing?' · Gleicher Typ: entfernen; anderer Typ: ersetzen.':'');
    button.addEventListener('click',()=>{

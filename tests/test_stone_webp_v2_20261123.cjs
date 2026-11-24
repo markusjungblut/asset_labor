@@ -45,7 +45,8 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
  assert.equal(info.loaded,12);
  assert.equal(info.postsLoaded,2);
  assert.equal(info.stonePostsLoaded,2);
- assert.equal(loaded.length,21);
+ assert.equal(loaded.length,27);
+ assert.equal(info.palisadeGateLoaded,6);
  assert.equal(info.gateLoaded,6);
  for(let dir=0;dir<6;dir++){
   assert(loaded.some(x=>x.includes('walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
@@ -55,7 +56,7 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
   assert(loaded.some(x=>x.includes('walls/stone/v7/'+join+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
   assert(loaded.some(x=>x.includes('walls/palisade/'+join+'.webp?v=20261123-painted-volumetric-v5')));
  }
- assert(!loaded.some(x=>x.endsWith('.svg')||x.includes('.svg?')));
+ assert(!loaded.some(x=>!x.includes('/palisade/gates/v1/')&&(x.endsWith('.svg')||x.includes('.svg?'))));
 });
 test('all six stone directions draw independent raster images, not vector facades',async()=>{
  await W.artworkReady();
@@ -104,8 +105,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261124-stone-gates-wide-v3'));
- assert(html.includes('walls=20261124-stone-gates-wide-v3'));
+ assert(html.includes('walls.js?v=20261124-palisade-gates-v1'));
+ assert(html.includes('walls=20261124-palisade-gates-v1'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
@@ -196,5 +197,21 @@ test('all stone gate facings use native 3x sprites with NW reusing SO',async()=>
   assert.deepEqual(ctx.call.slice(1),[...Object.values(W.edgeArtPlacement(edge,project,1)).slice(0,4)]);
   const stone=W.edgeArtPlacement({...edge,kind:'stone'},project,1);
   assert.deepEqual(W.edgeArtPlacement(edge,project,1),stone);
+ }
+});
+
+test('six timber gate assets use the exact original palisade image dimensions and anchors',async()=>{
+ await W.artworkReady();
+ const ctx={save(){},restore(){},drawImage(...a){this.call=a;}};
+ const project=(x,y)=>({x:100+x,y:200+y*.85});
+ for(let dir=0;dir<6;dir++){
+  const [w,h]=W.palisadeRasterMeta[dir];
+  const svg=fs.readFileSync(path.join(root,'assets/walls/palisade/gates/v1/gate_dir'+dir+'.svg'),'utf8');
+  assert(svg.includes('width="'+w*3+'" height="'+h*3+'"'));
+  assert(svg.includes('data:image/webp;base64,'));
+  const edge={a:[0,0],b:R.DIRS[dir],kind:'palisade_gate',gateSide:dir};
+  assert(W.draw(ctx,edge,project,1));
+  assert(ctx.call[0].src.includes('palisade/gates/v1/gate_dir'+dir+'.svg'));
+  assert.deepEqual(W.edgeArtPlacement(edge,project,1),W.edgeArtPlacement({...edge,kind:'palisade'},project,1));
  }
 });

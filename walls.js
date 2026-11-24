@@ -8,11 +8,12 @@ window.VedrasWalls=(()=>{
  const rivers=window.VedrasRivers;
  const DIRS=rivers.DIRS;
  const materials=['palisade','stone'];
- const kinds=[...materials,'stone_gate'];
+ const kinds=[...materials,'stone_gate','palisade_gate'];
+ const isGate=kind=>kind==='stone_gate'||kind==='palisade_gate';
  const gateSides=[0,1,2,3,4,5];
  const gateSourceSide=side=>side===5?2:side;
  const gateAssetSides=[0,1,2,3,4];
- const materialOf=kind=>kind==='stone_gate'?'stone':kind;
+ const materialOf=kind=>kind==='stone_gate'?'stone':kind==='palisade_gate'?'palisade':kind;
  const point=p=>Array.isArray(p)?{q:p[0],r:p[1]}:{q:p?.q,r:p?.r};
  const key=p=>p.q+','+p.r;
  const pair=(a,b)=>{
@@ -68,8 +69,8 @@ window.VedrasWalls=(()=>{
   const check=canPlace(a,b,env);
   if(!check.ok)return check;
   if(!kinds.includes(kind))return {ok:false,reason:'Unbekannter Mauertyp.'};
-  if(kind==='stone_gate'&&!gateSides.includes(rivers.side(point(a),point(b))))
-   return {ok:false,reason:'Steintor-Richtung ist nicht verfügbar.'};
+  if(isGate(kind)&&!gateSides.includes(rivers.side(point(a),point(b))))
+   return {ok:false,reason:'Torrichtung ist nicht verfügbar.'};
   return check;
  }
  function normalize(edges,env){
@@ -79,7 +80,7 @@ window.VedrasWalls=(()=>{
    if(!kinds.includes(input?.kind)||!canPlace(a,b,env).ok)continue;
    const [x,y]=pair(a,b);
    const item={a:[x.q,x.r],b:[y.q,y.r],kind:input.kind};
-   if(input.kind==='stone_gate'){
+   if(isGate(input.kind)){
     const actual=rivers.side(x,y);
     const facing=input.gateSide??rivers.side(a,b);
     if(!gateSides.includes(facing)||!(actual===facing||(actual+3)%6===facing))continue;
@@ -93,7 +94,7 @@ window.VedrasWalls=(()=>{
   if(!canPlaceKind(a,b,kind,env).ok)return normalize(edges,env);
   const [x,y]=pair(a,b),id=identity(x,y);
   return normalize([...normalize(edges,env).filter(e=>identity(e.a,e.b)!==id),
-   {a:[x.q,x.r],b:[y.q,y.r],kind,...(kind==='stone_gate'?{gateSide:rivers.side(point(a),point(b))}:{})}],env);
+   {a:[x.q,x.r],b:[y.q,y.r],kind,...(isGate(kind)?{gateSide:rivers.side(point(a),point(b))}:{})}],env);
  }
  function removeEdge(edges,a,b,env){
   const id=identity(a,b);
@@ -101,7 +102,7 @@ window.VedrasWalls=(()=>{
  }
  function geometry(edge){
   let a=point(edge.a),b=point(edge.b),side=rivers.side(a,b);
-  if(edge.kind==='stone_gate'&&gateSides.includes(edge.gateSide)&&side!==edge.gateSide&&(side+3)%6===edge.gateSide){[a,b]=[b,a];side=edge.gateSide;}
+  if(isGate(edge.kind)&&gateSides.includes(edge.gateSide)&&side!==edge.gateSide&&(side+3)%6===edge.gateSide){[a,b]=[b,a];side=edge.gateSide;}
   if(side<0)return null;
   const vertices=rivers.vertices(a);
   return {a:vertices[side],b:vertices[(side+1)%6],side};
@@ -137,7 +138,7 @@ window.VedrasWalls=(()=>{
   for(const edge of edges||[]){
    const g=geometry(edge);if(!g)continue;
    const material=materialOf(edge.kind);
-   const half=edge.kind==='stone_gate'?16:material==='stone'?12:8;
+   const half=edge.kind==='stone_gate'?16:edge.kind==='palisade_gate'?13:material==='stone'?12:8;
    const pier=material==='stone'?23:12.5;
    const dx=g.b.x-g.a.x,dy=g.b.y-g.a.y,len=dx*dx+dy*dy;
    const t=len>0?Math.max(0,Math.min(1,((x-g.a.x)*dx+(y-g.a.y)*dy)/len)):0;
@@ -272,7 +273,7 @@ window.VedrasWalls=(()=>{
  function joinFootDepth(kind){return kind==='stone'?5.5:3.5;}
  function edgeArtPlacement(edge,project,zoom=1){
   const g=geometry(edge);if(!g)return null;
-  const [w,h,ax,ay]=(edge.kind==='palisade'?palisadeRasterMeta:stoneRasterMeta)[g.side];
+  const [w,h,ax,ay]=(materialOf(edge.kind)==='palisade'?palisadeRasterMeta:stoneRasterMeta)[g.side];
   const p=footprint(edge,project,zoom);if(!p)return null;
   const dx=p.b.x-p.a.x,dy=p.b.y-p.a.y;
   // Diagonals: express the south/front half of the footprint as
@@ -302,6 +303,7 @@ window.VedrasWalls=(()=>{
  }
  const wallArt=new Map();
  const gateArt=new Map();
+ const palisadeGateArt=new Map();
  let artworkPromise=null;
  function artworkReady(){
   if(typeof Image==='undefined')return Promise.resolve(false);
@@ -323,6 +325,13 @@ window.VedrasWalls=(()=>{
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
     image.src='assets/walls/stone/gates/v1/gate_dir'+side+'.png?v=20261124-gates-wide-center-v3';
+   }));
+  }
+  for(const side of gateSides){
+   const image=new Image();palisadeGateArt.set(side,image);
+   pending.push(new Promise(resolve=>{
+    image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
+    image.src='assets/walls/palisade/gates/v1/gate_dir'+side+'.svg?v=20261124-timber-gates-v1';
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -351,6 +360,7 @@ window.VedrasWalls=(()=>{
  function artworkInfo(){return {count:wallArt.size,
   loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
   total:12,gateTotal:gateSides.length,gateLoaded:gateSides.filter(side=>gateArt.get(gateSourceSide(side))?.naturalWidth>0).length,
+  palisadeGateTotal:gateSides.length,palisadeGateLoaded:[...palisadeGateArt.values()].filter(i=>i.naturalWidth>0).length,
   postsLoaded:[...palisadeJoinArt.values()].filter(i=>i.naturalWidth>0).length,
   postsTotal:2,
   stonePostsLoaded:[...stoneJoinArt.values()].filter(i=>i.naturalWidth>0).length,
@@ -359,7 +369,7 @@ window.VedrasWalls=(()=>{
   if(typeof Image==='undefined')return false;
   if(!artworkPromise)artworkReady();
   const g=geometry(edge);if(!g)return false;
-  const img=edge.kind==='stone_gate'?gateArt.get(gateSourceSide(g.side)):wallArt.get(edge.kind+':'+g.side);
+  const img=edge.kind==='stone_gate'?gateArt.get(gateSourceSide(g.side)):edge.kind==='palisade_gate'?palisadeGateArt.get(g.side):wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
   const box=edgeArtPlacement(edge,project,zoom);if(!box)return false;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
@@ -628,7 +638,7 @@ window.VedrasWalls=(()=>{
   ctx.restore();
   return true;
  }
- return {DIRS,kinds,gateSides,materialOf,point,identity,context,canPlace,canPlaceKind,normalize,setEdge,removeEdge,
+ return {DIRS,kinds,gateSides,isGate,materialOf,point,identity,context,canPlace,canPlaceKind,normalize,setEdge,removeEdge,
   occupiedRiverEdges,geometry,midpoint,blocksPoint,blocksNature,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
   artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,edgeArtPlacement,joinArtPlacement,junctions,drawJoin,drawJoinShadow};
 })();
