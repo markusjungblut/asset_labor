@@ -113,6 +113,25 @@ async function main(){
   await page.waitForTimeout(2000);
   await page.screenshot({path:path.join(OUT,'editor-stone-v7-closeup.png')});
 
+  // Reproduce the reported open south-east/south-west V in the real
+  // editor, then restore the same six edges for the palisade comparison.
+  const open=await page.evaluate(({chosen})=>{
+   const W=window.VedrasWalls,core=window.VedrasAssetLabor;
+   const full=core.state.wallEdges.slice();
+   const south=[2,3].map(i=>{
+    const [dq,dr]=W.DIRS[i];return {a:[chosen.q,chosen.r],b:[chosen.q+dq,chosen.r+dr],kind:'stone'};
+   });
+   core.walls.apply(south);
+   const edges=W.normalize(core.state.wallEdges,core.walls.environment());
+   const nodes=W.junctions(edges);
+   window.__stoneFullEdges=full;
+   return {edges:edges.length,degrees:nodes.map(n=>n.degree).sort()};
+  },{chosen:result.chosen});
+  assert.equal(open.edges,2);
+  assert.deepEqual(open.degrees,[1,1,2],'open south V has two endpoints and one corner');
+  await page.waitForTimeout(1500);
+  await page.screenshot({path:path.join(OUT,'editor-stone-open-south-v.png')});
+  await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__stoneFullEdges));
   // Repeat the same physical six edges using palisade v5 at the same
   // camera position, with the grid and raised relief still enabled.
   await page.evaluate(()=>{

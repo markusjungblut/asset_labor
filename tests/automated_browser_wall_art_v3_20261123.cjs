@@ -233,7 +233,12 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
   assert(result.shadowColor[3]<170,'the shadow cap never adds full darkness');
   for(const p of result.postOverlap){
-   assert(p.margins.every(n=>n>=10),'painted pier must cover the edge-on foot: '+JSON.stringify(p));
+   assert(p.margins[1]>=0&&p.margins[1]<=12,'pier center must end just beyond the edge-on foot: '+JSON.stringify(p));
+   assert(p.margins.every(n=>n>=-3&&n<=12),'pier sides must remain near the wall foot: '+JSON.stringify(p));
+  }
+  for(const dir of [1,4]){
+   const [end,corner]=result.postOverlap.filter(p=>p.dir===dir);
+   assert.deepEqual(end.margins,corner.margins,'open ends must retain the identical corner silhouette');
   }
   for(const p of result.shadowCoverage){
    assert(p.minAlpha>=100,'closed shadow sweep must have no interior holes: '+JSON.stringify(p));

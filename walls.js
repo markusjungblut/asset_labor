@@ -217,11 +217,10 @@ window.VedrasWalls=(()=>{
  // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
  const stoneRasterMeta=wallArtMeta.stone;
- const stoneMaterial={cornerWidth:46,cornerHeight:84,endWidth:38,endHeight:82,
-  // The painted pier is too short at the wall foot. Lower its crown only
-  // six units and extend the body fourteen: the base reaches 20 units
-  // farther south, yet the crown still overlaps the neighboring merlons.
-  postDrop:6,postLength:14};
+ // Every pure stone vertex uses the original corner sprite at its
+ // native 46:84 aspect ratio, including isolated ends and T junctions.
+ // Keep the front foot close to the diagonal wall baseline (~9.3 units).
+ const stoneMaterial={cornerWidth:46,cornerHeight:84,endWidth:46,endHeight:84,postDrop:4};
  // The source art is registered at the visible FRONT foot, not the
  // center of its ground footprint. Center that footprint on the grid
  // without modifying, rotating or stretching either material's images.
@@ -251,14 +250,11 @@ window.VedrasWalls=(()=>{
  function joinArtPlacement(node,project,zoom=1){
   const timber=node.kind==='palisade'||node.kinds?.includes('palisade')&&
    node.kinds?.includes('stone');
-  const kind=timber?'palisade':'stone',end=node.degree===1;
+  const kind=timber?'palisade':'stone',end=timber&&node.degree===1;
   const material=timber?palisadeMaterial:stoneMaterial;
   const p=project(node.x,node.y),w=(end?material.endWidth:material.cornerWidth)*zoom,
-   nominalHeight=(end?material.endHeight:material.cornerHeight)*zoom;
-  const extension=(material.postLength||0)*zoom;
-  const drop=(material.postDrop||0)*zoom;
-  const h=nominalHeight+extension;
-  const south=joinFootDepth(kind)*zoom+drop+extension;
+   h=(end?material.endHeight:material.cornerHeight)*zoom;
+  const south=(joinFootDepth(kind)+(material.postDrop||0))*zoom;
   return {x:p.x-w/2,y:p.y-h+south,width:w,height:h,south,center:p};
  }
  const wallArt=new Map();
@@ -351,7 +347,7 @@ window.VedrasWalls=(()=>{
    node.kinds?.includes('stone');
   if(typeof Image!=='undefined'){
    if(!artworkPromise)artworkReady();
-   const end=node.degree===1,material=timber?palisadeMaterial:stoneMaterial;
+   const end=timber&&node.degree===1;
    const image=(timber?palisadeJoinArt:stoneJoinArt).get(end?'end_post':'corner_post');
    if(image?.naturalWidth){
     const box=joinArtPlacement(node,project,zoom);
@@ -367,7 +363,7 @@ window.VedrasWalls=(()=>{
   const box=joinArtPlacement(node,project,zoom);
   const stone=!timber,base=box.center;
   const p=stone?{x:base.x,y:base.y+box.south}:base,
-   h=(stone?heightFor('stone')+stoneMaterial.postLength:heightFor('palisade'))*zoom,
+   h=(stone?stoneMaterial.cornerHeight:heightFor('palisade'))*zoom,
    w=(stone?14:8.5)*zoom;
   const top=p.y-h;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
@@ -464,7 +460,7 @@ window.VedrasWalls=(()=>{
     {x:moved.x+halfWidth,y:moved.y+3*zoom},
     {x:moved.x-halfWidth,y:moved.y+3*zoom}]);
   }else{
-   // The stone base now reaches below the wall ends. Sweep its complete
+   // The stone base is aligned with the adjacent wall ends. Sweep its complete
    // footprint into the same common mask, overlapping the wall polygons
    // at each real vertex without a separate dark circular blob.
    const front=joinArtPlacement(node,project,zoom).south;

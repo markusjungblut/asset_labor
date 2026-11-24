@@ -4374,6 +4374,7 @@ function frozenSceneKey({force4x=false}={}){
    'stone-original-hand-painted-v7-precise-foot-shadow-v2',
   'stone-and-palisade-grid-foot-center-v1',
   'stone-pier-deep-foot-continuous-shadow-v1',
+  'stone-native-pier-unified-open-and-closed-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
