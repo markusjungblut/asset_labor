@@ -1482,6 +1482,7 @@ function renderHealthReport({samplePixels=false}={}){
    fastInteracting,tileModeActive,gpuFrame,cloudsDisabled:!!window.VedrasCloudsDisabled},
   streams,worker:window.VedrasTerrainWorker.status(),worldTiles:worldTiles?.stats()||null,
   background:backgroundScene.stats(),scenery:staticScenery.stats(),images:imagePool.report(),
+  frozenExport:window.__vedrasLastFrozenExportReport||null,
   atlas:spriteAtlas?.info()||null,gpu:gpuTerrain?.stats()||null,
   gpuSprites:gpuSprites?.stats()||null,shadowRaster:window.VedrasSpriteShadows?.cacheStats?.()||null,
   canvases:Object.fromEntries(['mapCanvas','realtimeCanvas','gpuCanvas','gpuSpriteCanvas',
@@ -1492,8 +1493,12 @@ function installRenderHealth(){
  const panel=document.createElement('div');panel.className='infobox';panel.id='renderHealthStats';
  panel.setAttribute('role','status');
  const btn=document.createElement('button');btn.type='button';btn.className='button outline block';
- btn.textContent='Renderdiagnose herunterladen (JSON, inkl. Pixelstichprobe)';
- anchor.after(panel,btn);
+ btn.id='renderHealthDownload';
+ btn.textContent='Renderdiagnose (JSON)';
+ btn.title='Renderabschnitte, Speicher, Fehler und Pixelstichprobe herunterladen';
+ anchor.after(panel);
+ const toolbar=document.querySelector('.map-toolbar .quick-actions');
+ if(toolbar)toolbar.append(btn);else panel.after(btn);
  const update=()=>{
   if(document.hidden)return;
   const f=renderHealth.lastFrame;
@@ -5094,7 +5099,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  }
  window.__vedrasLastFrozenExportReport=null;
  $('frozenReportDownload').hidden=true;
- const run={cancel:false,quality:quality4?'4':null,offlineOnly:false};
+ const run={cancel:false,quality:quality4?'4':null,offlineOnly:false,phase:'start',tileId:null};
  frozenTour=run;lockFrozenTourEditor(true);
  const button=$('frozenCaptureAll');button.disabled=true;
  $('frozenCancel').hidden=false;$('frozenCapture').disabled=true;
@@ -5116,6 +5121,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
  };
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  try{
+  run.phase='camera-stop';
   if(fastInteracting)endFastCamera(true);
   tileModeActive=true;
   // Preview quality changes temporarily, while immutable native PNGs
@@ -5124,21 +5130,26 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   if(quality4){
    worldTiles?.setPlaybackPaused(true);
    frozenNotice('4×-Export: alle verwendeten Bodenquellen einheitlich laden …');
+   run.phase='freeze-ground-sources';
    const frozenSources=await freeze4xGroundSources();
    restoreFrozenSources=frozenSources.restore;
    // Original source images have different texel content than 512px
    // previews. Discard previously prepared preview-derived chunk caches.
    run.offlineOnly=true;
+   run.phase='invalidate-preview';
    invalidateTerrain('all');
    state.zoom=Math.max(1.1,pose.zoom);
    updateTerrainLod(state.zoom);
+   run.phase='initial-source-queues';run.tileId=all[0]?.id??null;
    frozenPrepare4xSourceQueues(all[0]);
    run.sourceRevision=frameMemo.stats().revision;
   }
   // The IndexedDB key scan is once per tour, not O(tiles²).
+  run.phase='scan-archive';run.tileId=null;
   const knownFrozenTiles=new Set(await frozenMap.storage.keys(scene+'|'+lod+'|'));
   // Deterministic scan; each actual completed tile is saved separately.
   for(const tile of workQueue){
+   run.phase='tile-scene-check';run.tileId=tile.id;
    if(run.cancel)break;
    if(frozenSceneKey()!==scene){
     frozenNotice('Karteninhalt während des Backens verändert. Vorgang zum Schutz der Archivkennung angehalten.');run.cancel=true;break;
@@ -5155,6 +5166,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      // Empty halo-only candidates have NO authored terrain. A transparent
      // genuine-4x PNG preserves the old 120-tile ID and allows resuming
      // the 98 existing immutable chunks without a new scene fingerprint.
+     run.phase='empty-edge-tile';
      const result=await frozenMap.capture(scene,[frozenEmptyNative4xTile(tile)]);
      if(result.saved!==1||result.rejected)
       throw Error('Leerer Randchunk nicht sicher gespeichert: '+tile.id);
@@ -5179,6 +5191,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     if(quality4){
      // Newly decoded terrain PNGs may advance source preparation while
      // exporting. Reconfigure the offscreen inputs, not the live camera.
+     run.phase='source-queues';
      if(run.sourceRevision!==frameMemo.stats().revision){
       frozenPrepare4xSourceQueues(tile);
       run.sourceRevision=frameMemo.stats().revision;
@@ -5192,6 +5205,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      if(state.shoreline?.enabled!==false)shorelineChunks.prime(bounds,opts);
      if(state.river&&state.riverBanks)riverChunks.prime(bounds,opts);
      if(state.roadShown)roadChunks.prime(bounds,opts);
+     run.phase='source-readiness';
      const diagnostic={};
      if(!tileArtworkStatus(tile,diagnostic,true)){
       noteBlocked(tile,'quellvorbereitung',
@@ -5218,6 +5232,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     }
     let ready=[];
     if(quality4){
+     run.phase='render-readiness';
      const readiness={};
      if(!tileArtworkStatus(tile,readiness,true)){
       noteBlocked(tile,'renderfreigabe',readiness.reason,readiness);
@@ -5226,6 +5241,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      // Separate editor-only full-resolution source. WorldTile's normal
      // near LOD is capped at 2.5 and MUST NOT be passed as a 4x product.
      let exact;
+     run.phase='bake-world-tile';
      try{exact=await bakeWorldTile(tile,'near');}
      catch(error){
       const reason=String(error?.message||error);
@@ -5253,6 +5269,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
      ready=worldTiles?.exportExactPackets({limit:96})||[];
     }
     if(!ready.some(p=>p.tile.id===tile.id&&p.level===lod))continue;
+    run.phase='save-tile';
     const result=await frozenMap.capture(scene,ready);
     if(result.saved+result.skipped!==1)
      throw Error('Falsche Anzahl gespeicherter 4×-Kacheln: '+tile.id);
@@ -5273,6 +5290,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
   // Source validation is authoritative, not the number of visited loops.
   // A game atlas is published only if every actual PNG and coordinate
   // passes the immutable archive audit, including the 4× ground density.
+  run.phase='archive-audit';run.tileId=null;
   const audit=await frozenMap.verifyArchive(scene,'near',all,{require4x:true});
   failed=audit.missingIds.length+audit.invalidTiles.length+
    audit.extraIds.length;
@@ -5284,6 +5302,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    const checker=window.VedrasGroundCoreSeams;
    if(!checker)throw Error('Verbindliche Ground-Nahtprüfung fehlt');
    frozenNotice('4×-PNG-Nahtprüfung: tatsächliche Ground-Kernkanten …');
+   run.phase='ground-seam-audit';
    seamAudit=await checker.auditSaved(scene,frozenMap.storage,all,worldCells,{
     onProgress:(checked,total,last)=>{
      if(checked===total||checked%12===0)
@@ -5294,6 +5313,7 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
    });
   }
   const published=!run.cancel&&audit.complete&&seamAudit.complete;
+  run.phase='save-manifest';
   await frozenMap.saveManifest(scene,{cells:frozenLocalCells(),
    levels:['near'],pose:{...pose,dpr:4,projectY:PROJECT_Y},
    expectedTiles:all.length,clouds:frozenCloudSettings(),
@@ -5351,8 +5371,23 @@ $('frozenCaptureAll').addEventListener('click',async()=>{
     'Chunks: '+affected.slice(0,12).join(', ')+
     (affected.length>12?' …':''));
   }
- }catch(e){frozenNotice('Karten-Vorbereitung abgebrochen: '+String(e.message||e)+
-   '. Bereits gespeicherte PNGs bleiben erhalten.');}
+ }catch(e){
+  const error={name:String(e?.name||'Error'),message:String(e?.message||e),
+   stack:String(e?.stack||'').slice(0,16000),phase:run.phase,tileId:run.tileId};
+  window.__vedrasLastFrozenExportReport={schema:'vedras-frozen-export-diagnostics-v1',
+   scene,expected:all.length,published:false,aborted:true,error,
+   progress:{totalSaved,already,missing,failed,processed},
+   terrainChunkStatus:terrainChunks.stats(),shorelineChunkStatus:shorelineChunks.stats(),
+   riverChunkStatus:riverChunks.stats(),roadChunkStatus:roadChunks.stats(),
+   worker:window.VedrasTerrainWorker.status(),
+   walls:{shown:state.wallShown,edges:state.wallEdges?.length||0,
+    artwork:window.VedrasWalls?.artworkInfo?.()||null}};
+  $('frozenReportDownload').hidden=false;
+  console.error('Vedras Karten-Vorbereitung abgebrochen',e,error);
+  frozenNotice('Karten-Vorbereitung abgebrochen ['+run.phase+
+   (run.tileId?' / '+run.tileId:'')+']: '+error.message+
+   '. Bereits gespeicherte PNGs bleiben erhalten. Details: 4×-Fehlerbericht herunterladen.');
+ }
  finally{
   run.offlineOnly=false;
   if(restoreFrozenSources){
