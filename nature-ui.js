@@ -166,6 +166,10 @@ window.VedrasNature=(()=>{
   return window.VedrasRoads.blocksPoint(pos.x+dx,pos.y+dy,
    state.roadEdges||[],8,256);
  }
+ function blocksWall(q,r,dx,dy,meta,asset,scale=1){
+  const p=pts(q,r);
+  return core.walls.blocksNature(p.x+dx,p.y+dy,core.walls.natureWidth(asset,meta,scale),meta?.kind);
+ }
  function blocksRiver(q,r,dx,dy,meta){
   const pos=pts(q,r),x=pos.x+dx,y=pos.y+dy;
   const width=Number(state.riverWidth)||32;
@@ -205,7 +209,7 @@ window.VedrasNature=(()=>{
   if((state.mountainInstances||[]).some(m=>window.VedrasMountains.occupied(m).includes(k)))return false;
   if(k==='0,0'&&core.assets().some(v=>v.category==='buildings'&&v.name.startsWith('mine_lvl01__main')))return false;
   if(conflictsWithBuilding(inst.q,inst.r,inst.dx,inst.dy,meta))return false;
-  return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta)&&!blocksRoad(inst.q,inst.r,inst.dx,inst.dy);
+  return eligible(meta,inst.q,inst.r,forestByHex)&&!blocksRiver(inst.q,inst.r,inst.dx,inst.dy,meta)&&!blocksRoad(inst.q,inst.r,inst.dx,inst.dy)&&!blocksWall(inst.q,inst.r,inst.dx,inst.dy,meta,a,inst.scale);
  }
  function cleanup(){
   if(!Object.keys(catalog.entries||{}).length)return 0;
@@ -214,6 +218,7 @@ window.VedrasNature=(()=>{
   // Unavailable assets stay in storage for recovery and are not shown meanwhile.
   state.natureInstances=(state.natureInstances||[]).filter(inst=>validInstance(inst,forestByHex)!==false);
   let dropped=before-state.natureInstances.length;
+  dropped+=core.walls.clearNature();
   // Older scenes can also contain legacy hexObject Nature assignments.
   for(const [hex,record] of Object.entries(state.hexObject||{})){
    const a=core.assets().find(v=>v.path===record?.path);
@@ -249,7 +254,7 @@ window.VedrasNature=(()=>{
    // Retain a few edge trees and never plant their trunks in the opening.
    if(meta.kind==='tree'&&window.VedrasForest.inGlade(forestByHex?.get(cellKey),dx,dy))continue;
    const x=p.x+dx,y=p.y+dy;
-   if(blocksRiver(q,r,dx,dy,meta)||blocksRoad(q,r,dx,dy))continue;
+   if(blocksRiver(q,r,dx,dy,meta)||blocksRoad(q,r,dx,dy)||blocksWall(q,r,dx,dy,meta,a,scale))continue;
    if(conflictsWithBuilding(q,r,dx,dy,meta))continue;
    if((q===0&&r===0)&&Math.hypot(dx,dy-52)<65)continue; // reserve mine demo footprint
    if(near.some(i=>{const v=pts(i.q,i.r);const other=catalog.entries[i.assetPath.replace(/^assets\//,'')];const areaScale=Math.sqrt(window.VedrasNatureBalance.placementScale(meta)*window.VedrasNatureBalance.placementScale(other));

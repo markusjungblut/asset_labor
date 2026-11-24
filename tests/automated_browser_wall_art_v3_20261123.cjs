@@ -199,7 +199,27 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
     for(let k=0;k<p.length;k+=4)
      if(p[k+3]>80&&p[k+3]<249&&p[k]>232&&p[k+1]>232&&p[k+2]>232)matteFringe++;
    }
-   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,postOverlap,shadowCoverage,counts:joined.map(n=>n.degree),
+   const gatePixels=[];
+   for(const dir of [1,4]){
+    const im=new Image();
+    im.src='assets/walls/stone/gates/v1/gate_dir'+dir+'.png?v=20261124-gates-wide-center-v3';
+    await im.decode();
+    const c=document.createElement('canvas');c.width=im.width;c.height=im.height;
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);
+    gatePixels.push(g.getImageData(0,0,c.width,c.height).data);
+   }
+   const widthAt=(p,y)=>{
+    let min=120,max=-1;
+    for(let x=0;x<120;x++)if(p[(y*120+x)*4+3]>128){min=Math.min(min,x);max=Math.max(max,x);}
+    return max-min+1;
+   };
+   let mirrorMismatch=0;
+   for(let y=0;y<648;y++)for(let x=0;x<120;x++)for(let k=0;k<4;k++){
+    if(gatePixels[0][(y*120+x)*4+k]!==gatePixels[1][(y*120+119-x)*4+k])mirrorMismatch++;
+   }
+   const gateWidth={middle:widthAt(gatePixels[0],300),upper:widthAt(gatePixels[0],150),
+    lower:widthAt(gatePixels[0],400),mirrorMismatch};
+   return {gateWidth,ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,postOverlap,shadowCoverage,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
@@ -208,6 +228,9 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert.equal(result.info.loaded,12);
   assert.equal(result.info.postsLoaded,2,'real painted palisade corner and end posts must decode');
   assert.equal(result.info.gateLoaded,6);
+  assert(result.gateWidth.middle>=84&&result.gateWidth.middle<=90,'gatehouse is locally thicker');
+  assert(result.gateWidth.upper<70&&result.gateWidth.lower<70,'original wall ends remain narrow');
+  assert.equal(result.gateWidth.mirrorMismatch,0,'east/west gate pixels must mirror exactly');
   assert.equal(result.info.stonePostsLoaded,2,'real painted stone corner and end posts must decode');
   for(const {dir,left,right,ideal,expectedLeft,expectedRight} of result.diagonalFeet){
    assert(Math.abs(left-expectedLeft)<12&&Math.abs(right-expectedRight)<12,

@@ -2385,12 +2385,53 @@ function wallEnvironment(){
 function visibleWallEdges(){
  return window.VedrasWalls.normalize(state.wallEdges,wallEnvironment());
 }
+// Compare both the authored root and the rendered (relief-adjusted) foot
+// against the same flat-grid construction. The latter matters when a plant
+// on a raised hex is painted over a wall even though its root is farther away.
+function wallNatureBlocked(x,y,width,kind,edges=state.wallEdges){
+ if(!edges?.length)return false;
+ const W=window.VedrasWalls;
+ return W.blocksNature(x,y,edges,width,kind)||
+  W.blocksNature(x,displayGroundY(x,y),edges,width,kind);
+}
+function wallNatureWidth(asset,meta,scale=1){
+ const crop=asset?.img?.naturalWidth?visibleBounds(asset.img):null;
+ const base=crop?(window.VedrasSpritePlanner?.visualWidth(meta,asset.img,crop)??meta?.logicalWidth??52):
+  (meta?.logicalWidth||52);
+ return base*(Number(scale)||1)*(window.VedrasNatureBalance?.sizeFactor(meta)??1);
+}
+// Clear saved Nature, including older hexObject assignments. The asset
+// catalog and original PNGs are never touched. Demo flora is filtered at draw.
+function clearWallNature(edges=visibleWallEdges()){
+ if(!edges.length)return 0;
+ let removed=0;
+ state.natureInstances=(state.natureInstances||[]).filter(n=>{
+  const a=assetByPath.get(n.assetPath),meta=window.VedrasNature?.entryFor(a);
+  const p=axialPos(n.q,n.r);
+  const blocked=wallNatureBlocked(p.x+(n.dx||0),p.y+(n.dy||0),
+   wallNatureWidth(a,meta,n.scale),meta?.kind,edges);
+  if(blocked)removed++;
+  return !blocked;
+ });
+ for(const [k,record] of Object.entries(state.hexObject||{})){
+  const a=assetByPath.get(record?.path);
+  if(a?.category!=='nature')continue;
+  const meta=window.VedrasNature?.entryFor(a),[q,r]=k.split(',').map(Number),p=axialPos(q,r);
+  const width=(record.width??80)*(window.VedrasNatureBalance?.sizeFactor(meta)??.85);
+  if(wallNatureBlocked(p.x,p.y+52,width,meta?.kind,edges)){
+   delete state.hexObject[k];delete state.hexShadow[k];removed++;
+  }
+ }
+ return removed;
+}
 function applyWallChanges(next){
  state.wallEdges=window.VedrasWalls.normalize(next,wallEnvironment());
- // Wall drawings live in the independent scenery layer, not the ground PNG.
+ const removed=clearWallNature(state.wallEdges);
+ if(removed)window.VedrasNature?.renderPlaced?.();
+ // Wall drawings and cleared plants share the independent scenery layer.
  persistScene(true);requestDraw();
  window.dispatchEvent(new Event('vedras:wall-changed'));
- return {walls:state.wallEdges.length};
+ return {walls:state.wallEdges.length,removed};
 }
 // Mountain shadows are procedural ground shapes. The PNG only determines
 // the LEFT-FOOT contact point; it is no longer sheared into a hidden spike.
@@ -2622,7 +2663,7 @@ function genericObjects(view=null){
  const roads=visibleRoadEdges(),walls=visibleWallEdges();
  return objs.filter(o=>{
   // Clear plants intersecting walls, gates or piers; preserve saved placement.
-  if(o.type==='nature'&&window.VedrasWalls.blocksNature(o.x,o.y,walls,o.w,o.natureMeta?.kind))
+  if(o.type==='nature'&&wallNatureBlocked(o.x,o.y,o.w,o.natureMeta?.kind,walls))
    return false;
   if(o.type!=='mountain'&&window.VedrasRoads.blocksPoint(o.x,o.y,roads,
    o.type==='building'?Math.min(72,(o.w||160)*.38):7,HEX))return false;
@@ -4376,6 +4417,8 @@ function frozenSceneKey({force4x=false}={}){
   'stone-native-pier-unified-open-and-closed-v1',
   'stone-gates-south-closed-v1',
   'stone-gates-all-facings-and-nature-footprint-v2',
+  'stone-gates-wide-mirrored-edge-on-v3',
+  'wall-nature-persistent-clearance-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication
@@ -6117,6 +6160,6 @@ window.VedrasAssetLabor={frozenMapTest:()=>({
   effectiveDpr:state.dpr,backingWidth:canvas.width,
   backingHeight:canvas.height,images:imagePool.report(),
   scenery:staticScenery.stats(),background:backgroundScene.stats()}),
- roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},walls:{environment:wallEnvironment,visible:visibleWallEdges,apply:applyWallChanges,project:wallGridProject},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
+ roads:{apply:applyRoadChanges,blocked:roadBlockedCell,blockedHexes:roadBlockedHexes},walls:{environment:wallEnvironment,visible:visibleWallEdges,apply:applyWallChanges,project:wallGridProject,blocksNature:wallNatureBlocked,natureWidth:wallNatureWidth,clearNature:clearWallNature},terrainReady:()=>catalogCanSave,state,catalog:()=>catalog,assets:()=>assets,cells:()=>worldCells,
  invalidateScenery:()=>{invalidateSpriteLayout(null,{preserveCamera:true});requestDraw();},
  persistScene,requestDraw,onSelect:null,inspectTerrain,isTerrainValid,effectiveBiome,baseBiomeOf,typeOfAsset,geometry:{HEX,R,PROJECT_Y,MAX_BUILD},forestCells,riverRoutes,invalidateTerrain,mountains:{validMountains,reservedMountainHexes},relief:{height:reliefHeight,displayY:displayGroundY},autotile:()=>window.__vedrasLastAutotile,toScreen,pixelToHex,assignBiomes,reloadFromServer};

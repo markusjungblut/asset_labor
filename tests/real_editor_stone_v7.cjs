@@ -78,14 +78,32 @@ async function main(){
    const sel=document.getElementById('wallKind');
    sel.value='stone';sel.dispatchEvent(new Event('change',{bubbles:true}));
    window.dispatchEvent(new Event('vedras:hex-selected'));
+   // Inject two saved placement records into the actual editor, one with
+   // its root outside the old narrow cutoff but overlapping the east edge.
+   // Unknown art is intentional: construction must clear saved placements
+   // even before their image has loaded. The distant record must survive.
+   const center={x:256*(chosen.q+chosen.r/2),y:1.5*(256/Math.sqrt(3))*chosen.r};
+   const [dq,dr]=W.DIRS[1];
+   const mid=W.midpoint({a:[chosen.q,chosen.r],b:[chosen.q+dq,chosen.r+dr],kind:'stone'});
+   const markers=['__wall_clear_near__','__wall_clear_far__'];
+   core.state.natureInstances.push(
+    {assetPath:markers[0],q:chosen.q,r:chosen.r,dx:mid.x-center.x+30,dy:mid.y-center.y,scale:1},
+    {assetPath:markers[1],q:chosen.q,r:chosen.r,dx:500,dy:0,scale:1});
    document.getElementById('wallTest').click();
+   const cleared=!core.state.natureInstances.some(n=>n.assetPath===markers[0]);
+   const retained=core.state.natureInstances.some(n=>n.assetPath===markers[1]);
+   const persisted=JSON.parse(localStorage.getItem('vedras_asset_labor_v10')||'{}');
+   const savedCleared=Array.isArray(persisted.natureInstances)&&!persisted.natureInstances.some(n=>n.assetPath===markers[0]);
+   core.state.natureInstances=core.state.natureInstances.filter(n=>!markers.includes(n.assetPath));
+   core.persistScene();
    const edges=W.normalize(core.state.wallEdges,core.walls.environment());
    const target=edges.filter(e=>[e.a,e.b].some(p=>p[0]===chosen.q&&p[1]===chosen.r));
    core.requestDraw();
-   return {chosen,target:target.length,kind:target.map(e=>e.kind),
+   return {chosen,cleared,retained,savedCleared,target:target.length,kind:target.map(e=>e.kind),
      info:W.artworkInfo(), canvasSize:[document.getElementById('mapCanvas').width,document.getElementById('mapCanvas').height],
      status:document.getElementById('wallStatus').textContent};
   });
+  assert(result.cleared&&result.retained&&result.savedCleared,'wall construction must remove overlapping saved Nature only');
   assert.equal(result.target,6,'real editor must place all six directions');
   assert(result.kind.every(k=>k==='stone'),'no palisade substitutes');
   assert.equal(result.info.loaded,12);

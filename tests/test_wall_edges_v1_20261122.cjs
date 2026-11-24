@@ -202,7 +202,7 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
  assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261124-stone-gates-all-v2'),
+ assert(index.includes('walls.js?v=20261124-stone-gates-wide-v3'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -254,7 +254,7 @@ test('six preserved SVG palisades and six real stone PNG artworks use canonical 
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261124-stone-gates-all-v2'));
+ assert(html.includes('walls.js?v=20261124-stone-gates-wide-v3'));
  assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
  assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
  assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
@@ -297,7 +297,11 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   'walls are indexed as depth-sorted scene objects, not global overlay');
  assert(app.includes('if(obj.type===\'wall\')'));
  assert(app.includes('window.VedrasWalls.drawShadow(ctx,o.wallEdge'));
- assert(app.includes('window.VedrasWalls.blocksNature(o.x,o.y,walls,o.w,o.natureMeta?.kind)'));
+ assert(app.includes('wallNatureBlocked(o.x,o.y,o.w,o.natureMeta?.kind,walls)'));
+ assert(app.includes('const removed=clearWallNature(state.wallEdges)'));
+ const nature=source('nature-ui.js');
+ assert(nature.includes('blocksWall(q,r,dx,dy,meta,a,scale)'));
+ assert(nature.includes('dropped+=core.walls.clearNature()'));
 
  assert(app.includes('window.VedrasSpriteShadows?.get?.().global'),
   'no independent wall sun vector');
@@ -349,5 +353,14 @@ test('nature footprint overlaps all boundary constructions and wider posts, not 
   assert(W.blocksNature(g.a.x+nx*32,g.a.y+ny*32,[edge],60,'shrub'));
   assert(!W.blocksNature(mid.x+nx*100,mid.y+ny*100,[edge],60,'shrub'));
   assert(!W.blocksNature(mid.x,mid.y,[],60,'shrub'));
+ }
+});
+
+test('wide overlapping vegetation is cleared even when its root is beyond the old 22-unit threshold',()=>{
+ for(const kind of ['stone','stone_gate','palisade','palisade_gate']){
+  const e={a:[0,0],b:R.DIRS[1],kind};
+  const m=W.midpoint(e);
+  assert(W.blocksNature(m.x+42,m.y,[e],60,'shrub'));
+  assert(!W.blocksNature(m.x+150,m.y,[e],60,'shrub'));
  }
 });
