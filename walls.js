@@ -142,6 +142,20 @@ window.VedrasWalls=(()=>{
   return {x:Math.cos(rad)*h*length,y:Math.sin(rad)*h*length*.30,
    height:h};
  }
+ // A convex sweep covers the complete projected volume. Two separate
+ // swept side strips leave an unpainted channel when the cast direction
+ // is nearly parallel to a wall (most visibly on the western edges).
+ function sweptFootprint(points,cast){
+  const sorted=points.concat(points.map(cast)).sort((a,b)=>a.x-b.x||a.y-b.y);
+  const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+  const chain=pts=>{const result=[];for(const p of pts){
+   while(result.length>1&&cross(result[result.length-2],result[result.length-1],p)<=1e-8)
+    result.pop();
+   result.push(p);
+  }return result;};
+  const lower=chain(sorted),upper=chain(sorted.slice().reverse());
+  return lower.slice(0,-1).concat(upper.slice(0,-1));
+ }
  function drawShadow(ctx,edge,project,zoom=1,global={}){
   const p=footprint(edge,project,zoom);if(!p)return false;
   const d=shadowVector(edge.kind,zoom,global);
@@ -158,13 +172,17 @@ window.VedrasWalls=(()=>{
   // Both sides cast from the actual thick base, not from the infinitely
   // thin border line. This is still painted through the existing shared
   // normal-shadow mask, so joined segments cannot compound darkness.
-  poly(ctx,[p.frontA,p.frontB,cast(p.frontB),cast(p.frontA)]);
-  poly(ctx,[p.backA,p.backB,cast(p.backB),cast(p.backA)]);
-  poly(ctx,[p.frontA,p.frontB,p.backB,p.backA]);
+  if(edge.kind==='stone'){
+   poly(ctx,sweptFootprint([p.frontA,p.frontB,p.backB,p.backA],cast));
+  }else{
+   poly(ctx,[p.frontA,p.frontB,cast(p.frontB),cast(p.frontA)]);
+   poly(ctx,[p.backA,p.backB,cast(p.backB),cast(p.backA)]);
+   poly(ctx,[p.frontA,p.frontB,p.backB,p.backA]);
+  }
   // Retain a continuous grounding stroke at the true shared edge.
   // It closes subpixel cracks between adjacent segments in the mask.
   ctx.beginPath();ctx.moveTo(p.a.x,p.a.y);ctx.lineTo(p.b.x,p.b.y);
-  ctx.lineWidth=Math.max(2,7*zoom);ctx.strokeStyle=ctx.fillStyle;
+  ctx.lineWidth=Math.max(2,(edge.kind==='stone'?11:7)*zoom);ctx.strokeStyle=ctx.fillStyle;
   ctx.lineCap='round';ctx.stroke();
   ctx.restore();
   return true;
@@ -199,7 +217,11 @@ window.VedrasWalls=(()=>{
  // No image is tilted or stretched by direction at runtime.
  const stoneJoinArt=new Map();
  const stoneRasterMeta=wallArtMeta.stone;
- const stoneMaterial={cornerWidth:46,cornerHeight:84,endWidth:38,endHeight:82};
+ const stoneMaterial={cornerWidth:46,cornerHeight:84,endWidth:38,endHeight:82,
+  // The painted pier is too short at the wall foot. Lower its crown only
+  // six units and extend the body fourteen: the base reaches 20 units
+  // farther south, yet the crown still overlaps the neighboring merlons.
+  postDrop:6,postLength:14};
  // The source art is registered at the visible FRONT foot, not the
  // center of its ground footprint. Center that footprint on the grid
  // without modifying, rotating or stretching either material's images.
@@ -232,8 +254,11 @@ window.VedrasWalls=(()=>{
   const kind=timber?'palisade':'stone',end=node.degree===1;
   const material=timber?palisadeMaterial:stoneMaterial;
   const p=project(node.x,node.y),w=(end?material.endWidth:material.cornerWidth)*zoom,
-   h=(end?material.endHeight:material.cornerHeight)*zoom;
-  const south=joinFootDepth(kind)*zoom;
+   nominalHeight=(end?material.endHeight:material.cornerHeight)*zoom;
+  const extension=(material.postLength||0)*zoom;
+  const drop=(material.postDrop||0)*zoom;
+  const h=nominalHeight+extension;
+  const south=joinFootDepth(kind)*zoom+drop+extension;
   return {x:p.x-w/2,y:p.y-h+south,width:w,height:h,south,center:p};
  }
  const wallArt=new Map();
@@ -339,8 +364,11 @@ window.VedrasWalls=(()=>{
     ctx.restore();return true;
    }
   }
-  const p=project(node.x,node.y),stone=node.kind==='stone',
-   h=heightFor(node.kind)*zoom,w=(stone?14:8.5)*zoom;
+  const box=joinArtPlacement(node,project,zoom);
+  const stone=!timber,base=box.center;
+  const p=stone?{x:base.x,y:base.y+box.south}:base,
+   h=(stone?heightFor('stone')+stoneMaterial.postLength:heightFor('palisade'))*zoom,
+   w=(stone?14:8.5)*zoom;
   const top=p.y-h;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
   ctx.globalCompositeOperation='source-over';
@@ -420,7 +448,7 @@ window.VedrasWalls=(()=>{
   const sy=Number(global.offsetY??.025)*d.height;
   const reach=timber?1:.58;
    const moved={x:p.x+d.x*reach+sx,y:p.y+d.y*reach+sy};
-  const halfWidth=(timber?10:13)*zoom;
+  const halfWidth=(timber?10:17)*zoom;
   const tone=window.VedrasShadowTone;
   ctx.save();
   ctx.globalCompositeOperation='source-over';
@@ -430,10 +458,24 @@ window.VedrasWalls=(()=>{
    (Number(global.softness)||6)*zoom*.65))+'px)';
   // A connected narrow footprint, NO independently blurred circles at
   // either end. Combined with edge casts in the common nonstacking mask.
-  poly(ctx,[{x:p.x-halfWidth,y:p.y-3*zoom},
-   {x:p.x+halfWidth,y:p.y-3*zoom},
-   {x:moved.x+halfWidth,y:moved.y+3*zoom},
-   {x:moved.x-halfWidth,y:moved.y+3*zoom}]);
+  if(timber){
+   poly(ctx,[{x:p.x-halfWidth,y:p.y-3*zoom},
+    {x:p.x+halfWidth,y:p.y-3*zoom},
+    {x:moved.x+halfWidth,y:moved.y+3*zoom},
+    {x:moved.x-halfWidth,y:moved.y+3*zoom}]);
+  }else{
+   // The stone base now reaches below the wall ends. Sweep its complete
+   // footprint into the same common mask, overlapping the wall polygons
+   // at each real vertex without a separate dark circular blob.
+   const front=joinArtPlacement(node,project,zoom).south;
+   const base=[
+    {x:p.x,y:p.y-5*zoom},
+    {x:p.x+halfWidth,y:p.y+front*.4},
+    {x:p.x,y:p.y+front+2*zoom},
+    {x:p.x-halfWidth,y:p.y+front*.4}
+   ];
+   poly(ctx,sweptFootprint(base,q=>({x:q.x+moved.x-p.x,y:q.y+moved.y-p.y})));
+  }
   ctx.restore();return true;
  }
 

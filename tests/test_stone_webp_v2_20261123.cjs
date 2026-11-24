@@ -85,8 +85,8 @@ test('end and corner piers use painted stone; mixed joints retain the timber pos
  assert(corner&&end&&mixed);
  const project=(x,y)=>({x:100+x,y:200+y*.85});
  for(const [node,asset,width,height] of [
-  [corner,'stone/v7/corner_post.png',46,84],
-  [end,'stone/v7/end_post.png',38,82],
+  [corner,'stone/v7/corner_post.png',46,98],
+  [end,'stone/v7/end_post.png',38,96],
   [mixed,'palisade/corner_post.webp',25,76]]){
   const calls=[],ctx={save(){},restore(){},drawImage(...args){calls.push(args);}};
   assert(W.drawJoin(ctx,node,project,1));
@@ -103,8 +103,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261124-wall-grid-center-v1'));
- assert(html.includes('walls=20261124-wall-grid-center-v1'));
+ assert(html.includes('walls.js?v=20261124-wall-pier-shadow-v2'));
+ assert(html.includes('walls=20261124-wall-pier-shadow-v2'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
@@ -148,4 +148,24 @@ test('stone and timber use the same grid-center geometry, not the front pixel or
  assert(app.includes('draw(ctx,obj.wallEdge,wallGridProject,state.zoom)'));
  assert(app.includes('drawJoin(ctx,obj.wallJoin,wallGridProject,state.zoom)'));
  assert(app.includes("'stone-and-palisade-grid-foot-center-v1'"));
+});
+
+test('stone corner and end feet reach 20 units farther south without dropping the crown by 20',async()=>{
+ await W.artworkReady();
+ const edges=R.DIRS.map(([q,r])=>({a:[0,0],b:[q,r],kind:'stone'}));
+ for(const zoom of [.65,1,1.85,2]){
+  const project=(x,y)=>({x:100+x*zoom,y:200+y*.85*zoom});
+  for(const node of [...W.junctions(edges),...W.junctions([edges[1]])]){
+   const box=W.joinArtPlacement(node,project,zoom);
+   const oldHeight=node.degree===1?82:84;
+   assert(Math.abs(box.south/zoom-25.5)<1e-8);
+   assert(Math.abs(box.height/zoom-(oldHeight+14))<1e-8);
+   assert(Math.abs((box.y-box.center.y)/zoom-(-oldHeight+5.5+6))<1e-8);
+   assert(Math.abs((box.y+box.height-box.center.y)/zoom-25.5)<1e-8);
+  }
+  const node=W.junctions(edges.map(e=>({...e,kind:'palisade'})))[0];
+  const timber=W.joinArtPlacement(node,project,zoom);
+  assert(Math.abs(timber.south/zoom-3.5)<1e-8);
+  assert(Math.abs(timber.height/zoom-76)<1e-8);
+ }
 });

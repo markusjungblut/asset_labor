@@ -4373,6 +4373,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-palisade-native-geometry-new-ashlar-v6',
    'stone-original-hand-painted-v7-precise-foot-shadow-v2',
   'stone-and-palisade-grid-foot-center-v1',
+  'stone-pier-deep-foot-continuous-shadow-v1',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication

@@ -93,6 +93,50 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
    const middle=W.midpoint(timber[0]),midp=project(middle.x,middle.y);
    const timberBelow=[...onlyCtx.getImageData(
     Math.round(midp.x),Math.round(midp.y+16),1,1).data];
+   // Compare the actual opaque lower silhouette of the painted stone
+   // corner/end against the edge-on raster at both southern vertices.
+   const postOverlap=[];
+   const shadowCoverage=[];
+   const allEdges=W.DIRS.map(([q,r])=>({a:[0,0],b:[q,r],kind:'stone'}));
+   const testZoom=1.85;
+   for(const dir of [1,4]){
+    const edge=allEdges[dir],g=W.geometry(edge),foot=g.a.y>g.b.y?g.a:g.b;
+    const local=(x,y)=>({x:350+(x-foot.x)*testZoom,y:500+(y-foot.y)*.85*testZoom});
+    const make=()=>{const c=document.createElement('canvas');c.width=700;c.height=650;return c.getContext('2d',{willReadFrequently:true});};
+    const ectx=make();W.draw(ectx,edge,local,testZoom);
+    const bottom=(ctx,x)=>{
+     const pix=ctx.getImageData(Math.round(x),0,1,650).data;
+     for(let yy=649;yy>=0;yy--)if(pix[yy*4+3]>160)return yy;
+     return -1;
+    };
+    const p=local(foot.x,foot.y);
+    for(const list of [[edge],allEdges]){
+     const node=W.junctions(list).find(n=>Math.hypot(n.x-foot.x,n.y-foot.y)<1e-6);
+     const jctx=make();W.drawJoin(jctx,node,local,testZoom);
+     const margins=[-5,0,5].map(dx=>bottom(jctx,p.x+dx*testZoom)-bottom(ectx,p.x+dx*testZoom));
+     postOverlap.push({dir,degree:node.degree,margins});
+    }
+   }
+   // Inspect actual cast-mask pixels within the swept center and
+   // cross-section for every side and several global light directions.
+   for(const angle of [135,160,200,270]){
+    for(let dir=0;dir<6;dir++){
+     const edge=allEdges[dir],mid=W.midpoint(edge),z=1.4;
+     const local=(x,y)=>({x:350+(x-mid.x)*z,y:250+(y-mid.y)*.85*z});
+     const c=document.createElement('canvas');c.width=700;c.height=500;
+     const mask=c.getContext('2d',{willReadFrequently:true});
+     T.withMaskPass(()=>W.drawShadow(mask,edge,local,z,{angle,softness:3}));
+     const p=W.footprint(edge,local,z),v=W.shadowVector('stone',z,{angle});
+     const dx=v.x*.58-.07*v.height,dy=v.y*.58+.025*v.height;
+     let minAlpha=255;
+     for(const along of [.2,.5,.8])for(const t of [.2,.5,.8])for(const lateral of [-.2,0,.2]){
+      const x=p.a.x+(p.b.x-p.a.x)*along+dx*t+p.depth.x*lateral;
+      const y=p.a.y+(p.b.y-p.a.y)*along+dy*t+p.depth.y*lateral;
+      minAlpha=Math.min(minAlpha,mask.getImageData(Math.round(x),Math.round(y),1,1).data[3]);
+     }
+     shadowCoverage.push({angle,dir,minAlpha});
+    }
+   }
    // Regression: authored diagonals must descend/rise in the same order
    // as the TRUE projected hex-edge geometry. V3 swapped all four slopes.
    const diagonalFeet=[];
@@ -154,7 +198,7 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
     for(let k=0;k<p.length;k+=4)
      if(p[k+3]>80&&p[k+3]<249&&p[k]>232&&p[k+1]>232&&p[k+2]>232)matteFringe++;
    }
-   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,counts:joined.map(n=>n.degree),
+   return {ok,info,connected,atFoot,shadowColor,diagonalFeet,uprightColumns,matteFringe,postOverlap,shadowCoverage,counts:joined.map(n=>n.degree),
     timberCore,timberFoot,timberBridge,timberBelow,
     pngData:spot.toDataURL('image/png')};
   });
@@ -188,6 +232,13 @@ const OUT=process.env.VEDRAS_CI_ARTIFACTS||path.join(ROOT,'test-artifacts');
   assert(result.atFoot[3]>235,'no detached pointed stakes at ground base');
   assert(result.shadowColor[3]>40,'connected wall corner has a visible shared shadow');
   assert(result.shadowColor[3]<170,'the shadow cap never adds full darkness');
+  for(const p of result.postOverlap){
+   assert(p.margins.every(n=>n>=10),'painted pier must cover the edge-on foot: '+JSON.stringify(p));
+  }
+  for(const p of result.shadowCoverage){
+   assert(p.minAlpha>=100,'closed shadow sweep must have no interior holes: '+JSON.stringify(p));
+  }
+  console.log(JSON.stringify({postOverlap:result.postOverlap,shadowCoverage:result.shadowCoverage}));
   assert(result.timberCore[3]>235,
    'real painted corner post closes the daylight gap between both timber edges');
   assert(result.timberFoot[3]>100,
