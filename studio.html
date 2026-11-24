@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vedras Reiche – Asset-Labor WebGL2 Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5' fill='%23d4af57' stroke='%23101923' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="studio.css?v=0.23.0">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-badge">WebGL2</span>
+      <div>
+        <h1>Vedras Asset-Labor Studio</h1>
+        <p class="subtitle">Gemeinsame Spiel-Engine · 60 FPS · WebP-Atlanten &amp; vorgebackene Schatten</p>
+      </div>
+    </div>
+
+    <div class="top-group">
+      <label class="inline-field" title="Welt-Seed für geography-v2.1.2">
+        <span>Seed</span>
+        <input id="seedInput" type="text" value="vedras-welt-01" maxlength="128">
+      </label>
+      <button id="applySeedBtn" class="btn" type="button">Welt laden</button>
+      <label class="btn" for="geoConfigFile" title="Exportierte Parameter-JSON aus dem Geografie-Labor laden">Geografie-JSON</label>
+      <input id="geoConfigFile" type="file" accept=".json,application/json" hidden>
+    </div>
+
+    <div class="top-group">
+      <div class="segmented" role="group" aria-label="Zoom-Modus">
+        <button id="zoomDetailBtn" class="btn seg active" type="button">Detail</button>
+        <button id="zoomStrategicBtn" class="btn seg" type="button">Strategie</button>
+      </div>
+      <button id="toggleGridBtn" class="btn" type="button">Hex-Raster</button>
+      <button id="toggleFogBtn" class="btn" type="button">FoW: Aus</button>
+      <label class="slider-pill" title="Schattendeckkraft">
+        <span>Schatten</span>
+        <input id="shadowRange" type="range" min="0" max="65" value="36">
+        <strong id="shadowVal">36%</strong>
+      </label>
+    </div>
+
+    <div class="top-group top-actions">
+      <button id="exportAssetsBtn" class="btn primary" type="button" title="Exportiert alle Roh-PNGs & Schattenprofile in WebP-Atlanten und synchronisiert nach browsergame/public/game-assets">
+        ⚡ WebP-Atlanten bauen &amp; syncen
+      </button>
+      <a class="btn" href="geography-lab.html" target="_blank" rel="noopener">Geografie-Labor ↗</a>
+      <a class="btn ghost" href="index.html" title="Bisheriger Canvas2D-Editor (Fallback)">Legacy 2D</a>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- Left Sidebar: Map Editing, Walls/Gates, Roads, Rivers, Scenarios -->
+    <aside id="leftPanel" class="panel left">
+      <section class="card">
+        <div class="card-head">
+          <h2>Werkzeuge</h2>
+          <span id="activeToolHint" class="pill">Inspizieren</span>
+        </div>
+        <div id="toolGrid" class="tool-grid">
+          <button type="button" class="tool-btn active" data-tool="inspect">🔍 Inspizieren</button>
+          <button type="button" class="tool-btn" data-tool="terrain">🎨 Terrain</button>
+          <button type="button" class="tool-btn" data-tool="relief">⛰ Relief/Wald</button>
+          <button type="button" class="tool-btn" data-tool="road">🛤 Straße</button>
+          <button type="button" class="tool-btn" data-tool="wall">🏰 Mauer/Tor</button>
+          <button type="button" class="tool-btn" data-tool="river">🌊 Fluss</button>
+          <button type="button" class="tool-btn" data-tool="sprite">🌲 Sprite</button>
+          <button type="button" class="tool-btn" data-tool="erase">🧹 Radieren</button>
+        </div>
+        <p id="toolHelp" class="help-text">
+          Klicke ein Hex zum Inspizieren. Ziehen = Karte verschieben, Mausrad = Zoom.
+        </p>
+      </section>
+
+      <!-- Context options for active tool -->
+      <section id="terrainToolBox" class="card" hidden>
+        <div class="card-head">
+          <h2>Terrain-Pinsel</h2>
+          <span id="terrainCountBadge" class="pill">31</span>
+        </div>
+        <input id="terrainSearch" class="text-input" type="search" placeholder="Terrain filtern (z. B. desert, snow, gras)…">
+        <div id="terrainList" class="terrain-list"></div>
+      </section>
+
+      <section id="reliefToolBox" class="card" hidden>
+        <div class="card-head">
+          <h2>Relief &amp; Walddichte</h2>
+        </div>
+        <div class="radio-row">
+          <button type="button" class="chip active" data-relief="flat">Flach</button>
+          <button type="button" class="chip" data-relief="hills">Hügel</button>
+          <button type="button" class="chip" data-relief="mountain">Berg</button>
+        </div>
+        <label class="field-stack">
+          <span>Walddichte: <strong id="forestPaintVal">65%</strong></span>
+          <input id="forestPaintRange" type="range" min="0" max="100" value="65">
+        </label>
+      </section>
+
+      <section id="roadToolBox" class="card" hidden>
+        <div class="card-head">
+          <h2>Straßen-Stufe</h2>
+        </div>
+        <div class="radio-row">
+          <button type="button" class="chip" data-road="trail">Pfad L1</button>
+          <button type="button" class="chip active" data-road="packed">Weg L2</button>
+          <button type="button" class="chip" data-road="stone">Straße L3</button>
+        </div>
+        <p class="help-text">Start-Hex anklicken, dann angrenzendes Nachbar-Hex anklicken.</p>
+      </section>
+
+      <section id="wallToolBox" class="card" hidden>
+        <div class="card-head">
+          <h2>Mauer &amp; Tor (PR #182)</h2>
+        </div>
+        <div class="wall-grid">
+          <button type="button" class="chip active" data-wall="stone:wall">🧱 Steinmauer v7</button>
+          <button type="button" class="chip" data-wall="stone:gate">🚪 Steintor v1</button>
+          <button type="button" class="chip" data-wall="palisade:wall">🪵 Palisade v5</button>
+          <button type="button" class="chip" data-wall="palisade:gate">⛩ Palisadentor v1</button>
+        </div>
+        <p class="help-text">1 Klick nahe einer Hexkante platziert oder entfernt die Kante.</p>
+      </section>
+
+      <!-- 1-Click Scenario Presets -->
+      <section class="card">
+        <div class="card-head">
+          <h2>1-Klick Szenarien</h2>
+        </div>
+        <div id="scenarioList" class="scenario-list">
+          <button type="button" class="scenario-btn active" data-scenario="free">
+            <strong>Freie Natur-Welt</strong>
+            <small>Reine Geografie v2.1.2 zum Gestalten</small>
+          </button>
+          <button type="button" class="scenario-btn" data-scenario="prosperous-realm">
+            <strong>Blühendes Reich</strong>
+            <small>Zentren, Straßen, Fluss, Gebäude</small>
+          </button>
+          <button type="button" class="scenario-btn" data-scenario="fortress-siege">
+            <strong>Festung &amp; Belagerung</strong>
+            <small>Steinmauern v7, Tore, Palisaden, Armee</small>
+          </button>
+          <button type="button" class="scenario-btn" data-scenario="coastal-harbors">
+            <strong>Küsten &amp; Häfen</strong>
+            <small>Küstenstädte, Häfen, Schiffe</small>
+          </button>
+          <button type="button" class="scenario-btn" data-scenario="strategic-empires">
+            <strong>Strategie-Reiche</strong>
+            <small>Weitwinkel-Zoom &amp; Reichsgrenzen</small>
+          </button>
+        </div>
+        <div class="btn-row">
+          <button id="clearEditsBtn" class="btn small" type="button">Mal-Änderungen leeren</button>
+          <button id="centerOriginBtn" class="btn small" type="button">Zur Mitte (0,0)</button>
+        </div>
+      </section>
+
+      <!-- Live Hex Inspector -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Hex-Inspektor</h2>
+          <span id="hexCoordsBadge" class="pill mono">0, 0</span>
+        </div>
+        <dl id="hexInspector" class="kv-list">
+          <div><dt>Terrain</dt><dd id="inspTerrain">–</dd></div>
+          <div><dt>Relief</dt><dd id="inspRelief">–</dd></div>
+          <div><dt>Wald</dt><dd id="inspForest">–</dd></div>
+          <div><dt>Sicht</dt><dd id="inspFog">–</dd></div>
+          <div><dt>Bemalt</dt><dd id="inspEdited">0 Hexe</dd></div>
+        </dl>
+      </section>
+    </aside>
+
+    <!-- Main WebGL2 Viewport -->
+    <main class="stage">
+      <canvas id="glCanvas" aria-label="Vedras WebGL2 Karten-Engine"></canvas>
+      <canvas id="overlayCanvas" aria-hidden="true"></canvas>
+
+      <div id="bootOverlay" class="boot-overlay">
+        <div class="boot-card">
+          <h2 id="bootTitle">WebGL2-Engine wird initialisiert …</h2>
+          <p id="bootMessage">Lade WebP-Texturen &amp; vorgebackene Schatten-Atlanten …</p>
+          <div class="progress-track"><div id="bootBar" class="progress-bar"></div></div>
+          <button id="bootBuildBtn" class="btn primary" type="button" hidden>
+            ⚡ WebP-Atlanten jetzt erstmalig bauen &amp; syncen
+          </button>
+        </div>
+      </div>
+
+      <div id="hudPill" class="hud-pill mono">
+        <span><strong id="hudFps">--</strong> FPS</span>
+        <span><strong id="hudFrame">--</strong> ms</span>
+        <span><strong id="hudDraws">--</strong> Draws</span>
+        <span><strong id="hudHexes">--</strong> Hexe</span>
+        <span><strong id="hudSprites">--</strong> Sprites</span>
+        <span>Zoom <strong id="hudZoom">--</strong></span>
+        <span id="hudPack" class="hud-pack">WebP: …</span>
+      </div>
+
+      <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+    </main>
+
+    <!-- Right Sidebar: Nature Sprite, Anchor & Shadow Catalog Inspector -->
+    <aside id="rightPanel" class="panel right">
+      <section class="card">
+        <div class="card-head">
+          <h2>Natur-Katalog &amp; Anker</h2>
+          <span id="spriteCountBadge" class="pill">0</span>
+        </div>
+        <input id="spriteSearch" class="text-input" type="search" placeholder="Sprite suchen (z. B. pine, rock, berg)…">
+        <div id="kindFilters" class="kind-filters">
+          <button type="button" class="chip active" data-kind="all">Alle</button>
+          <button type="button" class="chip" data-kind="tree">Bäume</button>
+          <button type="button" class="chip" data-kind="mountain">Berge</button>
+          <button type="button" class="chip" data-kind="shrub">Büsche</button>
+          <button type="button" class="chip" data-kind="rock">Felsen</button>
+          <button type="button" class="chip" data-kind="cluster">Cluster</button>
+          <button type="button" class="chip" data-kind="ground_cover">Boden</button>
+          <button type="button" class="chip" data-kind="special">Spezial</button>
+        </div>
+        <div id="spriteList" class="sprite-list" role="listbox" aria-label="Natur-Sprites"></div>
+      </section>
+
+      <section id="spriteEditorCard" class="card">
+        <div class="card-head">
+          <h2 id="selectedSpriteTitle">Sprite wählen</h2>
+          <span id="selectedShadowBadge" class="pill">–</span>
+        </div>
+
+        <div class="preview-wrap">
+          <canvas id="anchorCanvas" width="276" height="200" title="Klicken oder ziehen, um den Bodenanker (rot) zu verschieben"></canvas>
+          <div class="preview-caption">Klick/Ziehen im Bild verschiebt den Bodenanker live</div>
+        </div>
+
+        <div class="editor-fields">
+          <label class="field-stack">
+            <span>Anker X: <strong id="anchorXVal" class="mono">0.500</strong></span>
+            <input id="anchorXRange" type="range" min="0" max="1" step="0.005" value="0.5">
+          </label>
+          <label class="field-stack">
+            <span>Anker Y: <strong id="anchorYVal" class="mono">0.920</strong></span>
+            <input id="anchorYRange" type="range" min="0" max="1" step="0.005" value="0.92">
+          </label>
+          <label class="field-stack">
+            <span>Weltbreite (logicalWidth): <strong id="widthVal" class="mono">110 px</strong></span>
+            <input id="widthRange" type="range" min="12" max="380" step="1" value="110">
+          </label>
+          <label class="field-row">
+            <span>Status</span>
+            <select id="artStatusSelect" class="select-input">
+              <option value="approved">approved</option>
+              <option value="test">test</option>
+              <option value="candidate">candidate</option>
+              <option value="deprecated">deprecated</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="btn-col">
+          <button id="placeSpriteCenterBtn" class="btn" type="button">🌲 Auf Kartenmitte testen</button>
+          <button id="saveNatureCatalogBtn" class="btn primary" type="button">💾 In nature_catalog.json speichern</button>
+        </div>
+        <p class="help-text">
+          Geänderte Anker &amp; Breiten wirken sofort auf gesetzte Test-Sprites. Nach dem Speichern oben <em>WebP-Atlanten bauen &amp; syncen</em> klicken, um alle Chunks &amp; das Spiel zu aktualisieren.
+        </p>
+      </section>
+    </aside>
+  </div>
+
+  <script src="vedras-map-engine.bundle.js?v=0.23.0"></script>
+  <script src="studio-app.js?v=0.23.0"></script>
+</body>
+</html>

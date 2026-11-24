@@ -16,9 +16,10 @@ import threading
 import time
 from datetime import datetime
 
-VERSION = '0.22.6'
+VERSION = '0.23.0-webgl2'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
+DIST_GAME_ASSETS = BASE / 'dist' / 'game-assets'
 STATIC_TERRAIN = BASE / 'precomputed' / 'terrain'
 EXT = {'.png', '.webp', '.jpg', '.jpeg', '.svg', '.gif', '.avif'}
 HOST = '127.0.0.1'
@@ -29,6 +30,106 @@ PORT = int(os.environ.get('VEDRAS_PORT', DEFAULT_PORT))
 STRICT_PORT = os.environ.get('VEDRAS_STRICT_PORT') == '1'
 ATLAS_LOCK = threading.Lock()
 ATLAS_STATUS = {'state': 'idle', 'error': '', 'sprites': 0, 'pages': 0}
+EXPORT_LOCK = threading.Lock()
+EXPORT_STATUS = {
+    'state': 'idle',
+    'error': '',
+    'contentHash': '',
+    'rawMb': 0.0,
+    'exportedMb': 0.0,
+    'compressionRatio': 0.0,
+    'terrainLayers': 0,
+    'natureSprites': 0,
+    'shadowSprites': 0,
+    'infraSprites': 0,
+    'vramDesktopMb': 0.0,
+    'vramMobileMb': 0.0,
+    'elapsedSeconds': 0.0,
+    'syncedTo': '',
+}
+
+
+def detect_browsergame_sync_dir():
+    """Return ../browsergame/public/game-assets if sibling game repo exists, else None."""
+    env_dir = os.environ.get('VEDRAS_GAME_ASSETS_SYNC_DIR')
+    if env_dir:
+        return Path(env_dir).expanduser().resolve()
+    sibling = BASE.parent / 'browsergame'
+    if (sibling / 'package.json').is_file() and (sibling / 'engine' / 'map').is_dir():
+        return sibling / 'public' / 'game-assets'
+    return None
+
+
+def _manifest_to_export_status(manifest, synced_to=''):
+    stats = manifest.get('stats', {})
+    vram = stats.get('vramEstimate', {})
+    return {
+        'state': 'ready',
+        'error': '',
+        'contentHash': str(manifest.get('contentHash', ''))[:16],
+        'rawMb': round(stats.get('rawInputBytes', 0) / (1024 * 1024), 1),
+        'exportedMb': round(stats.get('exportedWebpBytes', 0) / (1024 * 1024), 2),
+        'compressionRatio': stats.get('compressionRatio', 0.0),
+        'terrainLayers': manifest.get('terrain', {}).get('layerCount', 0),
+        'natureSprites': manifest.get('nature', {}).get('spriteCount', 0),
+        'shadowSprites': manifest.get('shadows', {}).get('spriteCount', 0),
+        'infraSprites': manifest.get('infrastructure', {}).get('spriteCount', 0),
+        'vramDesktopMb': vram.get('desktopMb', 0.0),
+        'vramMobileMb': vram.get('mobileMb', 0.0),
+        'elapsedSeconds': stats.get('elapsedSeconds', 0.0),
+        'syncedTo': str(synced_to) if synced_to else '',
+    }
+
+
+def get_game_asset_export_status():
+    with EXPORT_LOCK:
+        info = EXPORT_STATUS.copy()
+    if info['state'] == 'idle':
+        manifest_path = DIST_GAME_ASSETS / 'manifest.json'
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text('utf-8'))
+                sync_dir = detect_browsergame_sync_dir()
+                synced = sync_dir if (sync_dir and (sync_dir / 'manifest.json').is_file()) else ''
+                info = _manifest_to_export_status(manifest, synced)
+            except (OSError, ValueError):
+                pass
+        else:
+            info['state'] = 'missing'
+    return info
+
+
+def schedule_game_asset_export():
+    """Run Decision 0123 WebP atlas + pre-baked shadow export in background and sync to browsergame."""
+    with EXPORT_LOCK:
+        if EXPORT_STATUS['state'] == 'building':
+            return False
+        EXPORT_STATUS.update(state='building', error='')
+
+    def task():
+        try:
+            from scripts.export_game_assets import export_all
+            sync_dir = detect_browsergame_sync_dir()
+            manifest = export_all(
+                assets_dir=ASSETS,
+                out_dir=DIST_GAME_ASSETS,
+                sync_to=sync_dir,
+            )
+            with EXPORT_LOCK:
+                EXPORT_STATUS.update(_manifest_to_export_status(manifest, sync_dir or ''))
+        except ImportError:
+            with EXPORT_LOCK:
+                EXPORT_STATUS.update(
+                    state='error',
+                    error='Pillow fehlt: python -m pip install Pillow',
+                )
+        except Exception as exc:
+            with EXPORT_LOCK:
+                EXPORT_STATUS.update(state='error', error=str(exc)[:240])
+
+    threading.Thread(target=task, name='export-game-assets-webp', daemon=True).start()
+    return True
+
 
 def schedule_atlas_build():
     """Explicit offline job; NEVER compete with terrain rendering on startup."""
@@ -258,6 +359,10 @@ class Handler(SimpleHTTPRequestHandler):
         if endpoint == '/api/build-atlases':
             self._send_json({'started': schedule_atlas_build(), **ATLAS_STATUS})
             return
+        if endpoint == '/api/export-game-assets':
+            started = schedule_game_asset_export()
+            self._send_json({'started': started, **get_game_asset_export_status()})
+            return
         if endpoint == '/api/static-terrain':
             try:
                 length = int(self.headers.get('Content-Length', '0'))
@@ -277,7 +382,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if length < 1 or length > 500_000:
+            if length < 1 or length > 4_000_000:
                 self._failure(413, 'Ungültige Kataloggröße')
                 return
             catalog = json.loads(self.rfile.read(length).decode('utf-8'))
@@ -322,6 +427,9 @@ class Handler(SimpleHTTPRequestHandler):
             with ATLAS_LOCK:
                 info = ATLAS_STATUS.copy()
             self._send_json(info)
+            return
+        if parsed.path == '/api/export-game-assets/status':
+            self._send_json(get_game_asset_export_status())
             return
         if parsed.path == '/api/version':
             self._send_json({
@@ -434,11 +542,15 @@ if __name__ == '__main__':
         print(f'VEDRAS STARTFEHLER: {error}', flush=True)
         raise SystemExit(2) from None
     port = server.server_port
-    url = f'http://{HOST}:{port}/index.html?v={VERSION.replace(".", "-")}'
-    print(f'VEDRAS ASSET-LABOR v{VERSION}', flush=True)
+    entry_page = 'index.html' if os.environ.get('VEDRAS_LEGACY_UI') == '1' else 'studio.html'
+    url = f'http://{HOST}:{port}/{entry_page}?v={VERSION.replace(".", "-")}'
+    print(f'VEDRAS ASSET-LABOR v{VERSION} (Decision 0123 WebGL2 Studio)', flush=True)
     print(f'Projektordner: {BASE}', flush=True)
-    print(f'Aktuelle URL: {url}', flush=True)
-    print('Neue Grafiken in assets/ ablegen, dann im Browser „Neu einlesen“ klicken.', flush=True)
+    print(f'WebGL2 Studio: http://{HOST}:{port}/studio.html', flush=True)
+    print(f'Geografie-Lab: http://{HOST}:{port}/geography-lab.html', flush=True)
+    print(f'Legacy Editor: http://{HOST}:{port}/index.html', flush=True)
+    print(f'Start-URL    : {url}', flush=True)
+    print('Neue Grafiken in assets/ ablegen, dann im Studio „WebP-Atlanten bauen & syncen“ klicken.', flush=True)
     print('Zum Beenden Strg+C. Nur die im Konsolenfenster angezeigte URL verwenden.', flush=True)
     if os.environ.get('VEDRAS_NO_BROWSER') != '1':
         threading.Thread(target=lambda: (time.sleep(0.5), webbrowser.open(url)), daemon=True).start()
