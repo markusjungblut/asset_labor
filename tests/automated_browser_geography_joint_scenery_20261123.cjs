@@ -358,7 +358,7 @@ const plan=Plan.plan(world);
    const nativeState={zoom:2.5,dpr:2,visualPolish:{nature:.4},
     natureInstances:Array(501),objects:true};
    const nativeToScreen=(x,y)=>({x:x*2.5,y:y*2.5*.85});
-   function nativeComposite(output){
+   function nativeComposite(output,{globalScratch=false,receiverShadows=true}={}){
     const trace=output.editorCompositeReference;
     if(trace?.source!=='read-only-original-editor-reference-candidates-v1'||
      trace.readyForViewer!==false||trace.complete!==false||
@@ -376,19 +376,22 @@ const plan=Plan.plan(world);
      natureMeta:raw.item.meta,
      asset:{img:raw.img,path:raw.item.inst.assetPath},
      itemOrdinal:raw.item.ordinal,
-     groundY:raw.item.p.y
+     groundY:raw.item.p.y,
+     noMountainCast:!receiverShadows
     });
     const owners=new Map(trace.candidates.map(o=>[o.item,obj(o)]));
     for(const m of trace.shadowOnlyMountains)owners.set(m.item,obj(m));
     const placed=trace.candidates.map(o=>owners.get(o.item));
     const mountains=placed.filter(o=>o.type==='mountain');
-    const native=sourceNative(target,nativeState,nativeToScreen,
-     trace.mountainCasts.map(c=>({
+    const casts=trace.mountainCasts.map(c=>({
       owner:owners.get(c.owner.item),
       canvas:c.canvas,x:c.box.left,y:c.box.top,
       width:c.box.width,height:c.box.height,shape:c.shape,
       modelWidth:c.modelWidth,strength:c.strength,peakAlpha:c.peakAlpha
-     })),true,null,new WeakMap(),new WeakMap(),nativeClamp);
+     }));
+    const makeNative=ctx=>sourceNative(ctx,nativeState,nativeToScreen,
+     casts,true,null,new WeakMap(),new WeakMap(),nativeClamp);
+    const native=makeNative(target);
     for(const o of placed)if(o.type==='nature'){
      o.coveredByMountains=new Set(mountains.filter(m=>
       native.mountainCoversBase(o,m)));
@@ -401,7 +404,31 @@ const plan=Plan.plan(world);
      if(b.type==='mountain'&&a.coveredByMountains?.has(b))return -1;
      return a.sortY-b.sortY||(a.x-b.x);
     });
-    for(const o of visible)native.drawSprite(o);
+    if(!globalScratch){
+     for(const o of visible)native.drawSprite(o);
+    }else{
+     // 2.8w: same ORIGINAL app.js drawSprite, same native order and
+     // receivers, but paint onto the Baker's canonical integer lattice.
+     // Do not substitute the Baker's paint() formulas for the editor.
+     const scratch=document.createElement('canvas');
+     const sc=scratch.getContext('2d');
+     const scratchNative=makeNative(sc);
+     const byOrdinal=new Map(trace.candidates.map(raw=>[raw.item.ordinal,raw]));
+     target.setTransform(1,0,0,1,0,0);
+     for(const o of visible){
+      const box=byOrdinal.get(o.itemOrdinal)?.g?.editorPixelBox;
+      if(!box||![box.left,box.top,box.right,box.bottom].every(Number.isInteger))
+       throw Error('2.8w missing canonical original sprite envelope');
+      const w=box.right-box.left,h=box.bottom-box.top;
+      if(w<=0||h<=0||w>3000||h>3500||w*h>6500000)
+       throw Error('2.8w canonical sprite scratch exceeds budget');
+      scratch.width=w;scratch.height=h;
+      sc.setTransform(1,0,0,1,-box.left,-box.top);
+      scratchNative.drawSprite(o);
+      target.drawImage(scratch,box.left-trace.sampleX,box.top-trace.sampleY);
+     }
+     scratch.width=scratch.height=1;
+    }
     target.setTransform(1,0,0,1,0,0);
     return {ctx:target,
      hidden:hidden.map(o=>o.itemOrdinal),
@@ -653,6 +680,10 @@ const plan=Plan.plan(world);
    const variedBaseLeft=await variedRenderer.renderTile('0,0',variedOptions);
    const variedBaseRight=await variedRenderer.renderTile('1,0',variedOptions);
    const sourceDerivedStyleReceipts=[],variedComparisons=[];
+   // 2.8w factorial diagnostic: same pre-sprite ground and original
+   // native draw order, direct vs globally aligned scratch, with/without
+   // receiver casts. This is not a candidate renderer or proof of cause.
+   const compositionIsolation=[],scratchFrames=new Map();
    for(const [i,tile] of [
     ['0,0',variedLocalLeft],['1,0',variedLocalRight],
     ['0,1',variedLocalDown]]){
@@ -702,6 +733,26 @@ const plan=Plan.plan(world);
     const fg=tile.editorCompositeReference.mountainGround
      .getContext('2d',{willReadFrequently:true});
     const compositor=compareFrames(sampled,native.ctx);
+    const scratchNative=nativeComposite(tile,{globalScratch:true});
+    const bareDirect=nativeComposite(tile,{receiverShadows:false});
+    const bareScratch=nativeComposite(tile,{
+     globalScratch:true,receiverShadows:false});
+    const sameOrder=[scratchNative,bareDirect,bareScratch].every(v=>
+     JSON.stringify(v.order)===JSON.stringify(native.order)&&
+     JSON.stringify(v.hidden)===JSON.stringify(native.hidden));
+    if(!sameOrder)throw Error('2.8w A/B native order or occlusion changed');
+    compositionIsolation.push({tile:i,nativeCount:native.count,sameOrder,
+     bakerVsNativeDirect:compositor,
+     bakerVsNativeGlobalScratch:compareFrames(sampled,scratchNative.ctx),
+     directVsScratchWithReceivers:compareFrames(native.ctx,scratchNative.ctx),
+     directVsScratchWithoutReceivers:compareFrames(bareDirect.ctx,bareScratch.ctx),
+     receiverEffectDirect:compareFrames(native.ctx,bareDirect.ctx),
+     receiverEffectScratch:compareFrames(scratchNative.ctx,bareScratch.ctx),
+     bakerOrderMatchesNative:JSON.stringify(trace.displayedOrder)===
+      JSON.stringify(native.order)});
+    scratchFrames.set(i,scratchNative.ctx.getImageData(0,0,1920,1632).data);
+    for(const v of [scratchNative,bareDirect,bareScratch])
+     v.ctx.canvas.width=v.ctx.canvas.height=1;
     const bg=window.VedrasEditorCompositeAudit.compare({
      width:1920,height:1632,
      world:fg.getImageData(0,0,1920,1632).data,
@@ -743,6 +794,21 @@ const plan=Plan.plan(world);
     seamCheck(pixelCanvas(variedLocalLeft),
      pixelCanvas(variedLocalDown),'down')
    ];
+   const compositionIsolationAudit={
+    schema:'vedras-phase28w-native-composition-isolation-v1',
+    source:'original app.js drawSprite, original PNGs, identical native order and shared pre-sprite ground',
+    tiles:compositionIsolation,
+    nativeScratchSeams:[
+     seamCheck(scratchFrames.get('0,0'),scratchFrames.get('1,0'),'right'),
+     seamCheck(scratchFrames.get('0,0'),scratchFrames.get('0,1'),'down')
+    ],
+    bakerSeams:realVariedSeams,
+    // Ground sampling remains the separate native mountain-only receipt
+    // (sourceDerivedStyleReceipts). Do not claim full ground parity.
+    groundReference:'shared baker pre-sprite ground; mountain-only native sampling measured separately in 2.8v',
+    productionRendererChanged:false,complete:false,readyForViewer:false
+   };
+   scratchFrames.clear();
    const variedEditorMaskAudit={
     schema:'vedras-phase28v-original-mountain-mask-style-and-seams',
     sourceVariants:variableRasterReceipt,
@@ -1163,7 +1229,7 @@ const plan=Plan.plan(world);
     compositeNoShadows,compositeWithShadows,compositeOcclusion,compositeSeams,
     compositePixelParityPassed,compositeRGBA:auditDigest,
     compositeAlphaAB:alphaAB,compositeLocalMaskAudit:localMaskAudit,
-    variedEditorMaskAudit,
+    variedEditorMaskAudit,compositionIsolationAudit,
     compositeSourceAttribution:originalPixelAttribution,
     editorRGBAHeatmapPng,
     compositeAuditFullReport:compositeAudits,
@@ -1250,6 +1316,8 @@ const plan=Plan.plan(world);
    JSON.stringify({schema:'vedras-geography-phase28v-real-original-mask-variants',
     originalSource:'app.js source-extracted shadowLocalMask()',
     productionRendererChanged:false,result:result.variedEditorMaskAudit},null,2));
+  fs.writeFileSync(path.join(rgbaDir,'phase28w_original_native_composition_isolation.json'),
+   JSON.stringify(result.compositionIsolationAudit,null,2));
   delete result.editorRGBAHeatmapPng;
   delete result.compositeAuditFullReport;
   console.log('JOINT_SCENERY_PIXEL_DIAGNOSTIC',JSON.stringify(result));
@@ -1318,6 +1386,27 @@ const plan=Plan.plan(world);
    assert(a.transitions.editorTouched>100);
    assert.equal(a.parity,false);
   }
+  const isolation=result.compositionIsolationAudit;
+  assert.equal(isolation.schema,'vedras-phase28w-native-composition-isolation-v1');
+  assert.deepEqual(isolation.tiles.map(t=>t.tile),['0,0','1,0','0,1']);
+  assert(isolation.tiles.every(t=>t.sameOrder&&t.nativeCount>0));
+  assert(isolation.tiles.some(t=>t.receiverEffectDirect.different>0),
+   '2.8w fixture must exercise real native sprite receiver casts');
+  assert(isolation.tiles.some(t=>t.receiverEffectScratch.different>0),
+   '2.8w scratch experiment must exercise real native sprite receiver casts');
+  assert(isolation.tiles.every(t=>[
+   t.bakerVsNativeDirect,t.bakerVsNativeGlobalScratch,
+   t.directVsScratchWithReceivers,t.directVsScratchWithoutReceivers,
+   t.receiverEffectDirect,t.receiverEffectScratch
+  ].every(r=>Number.isInteger(r.different)&&r.different>=0&&
+   r.different<=r.painted&&r.painted>0&&r.maxDelta>=0&&r.maxDelta<=255)));
+  assert.equal(isolation.nativeScratchSeams.length,2);
+  assert(isolation.nativeScratchSeams.every(s=>s.painted>100));
+  assert(isolation.bakerSeams.every(s=>s.different===0&&s.painted>100));
+  assert.equal(isolation.productionRendererChanged,false);
+  assert.equal(isolation.complete,false);
+  assert.equal(isolation.readyForViewer,false);
+  // No positivity claim for the scratch experiment before real measurements.
   const variants=result.variedEditorMaskAudit;
   assert.equal(variants.schema,'vedras-phase28v-original-mountain-mask-style-and-seams');
   assert.equal(variants.sourceVariants.length,3);
