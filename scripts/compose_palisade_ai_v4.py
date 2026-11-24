@@ -57,18 +57,26 @@ def fit_diagonal(d,original):
     # Crop the central double leaf (the AI atlas has outer stockade posts).
     sl=round(sw*.24);sr=round(sw*.76)
     out=ref.copy()
-    # Match the 145-pixel original log height from tip to foot, retaining
-    # the actual original top/bottom contour for a seamless wall transition.
-    for x in range(lo,hi+1):
-        sx=int(round(sl+(x-lo)/(hi-lo)*(sr-sl)))
-        if sb[sx]<0 or rb[x]<0:continue
-        ys=np.where(src[:,sx,3]>128)[0]
-        yr=np.where(ref[:,x,3]>128)[0]
-        if len(ys)<10 or len(yr)<10:continue
-        # One vertical resampling of the complete painted central column.
-        col=src[ys[0]:ys[-1]+1,sx:sx+1]
-        mapped=np.array(Image.fromarray(col).resize((1,yr[-1]-yr[0]+1),Image.Resampling.LANCZOS))[:,0]
-        out[yr[0]:yr[-1]+1,x,:3]=mapped[:,:3]
+    # One continuous affine transformation: do not rescale individual
+    # columns to the serrated stake tips (that bends the door braces).
+    # Fit the original and painted base lines, then map the complete
+    # gate face with a constant vertical scale and shear.
+    rxs=np.arange(lo,hi+1);sxs=np.arange(sl,sr+1)
+    rline=np.polyfit(rxs,rb[rxs],1);sline=np.polyfit(sxs,sb[sxs],1)
+    def heights(arr,xx):
+        return [np.ptp(np.flatnonzero(arr[:,x,3]>128))+1 for x in xx if (arr[:,x,3]>128).any()]
+    rh=np.median(heights(ref,rxs));shgt=np.median(heights(src,sxs))
+    xscale=(sr-sl)/(hi-lo);yscale=shgt/rh
+    # PIL affine mapping output -> source.
+    xoffset=sl-xscale*lo
+    yx=sline[0]*xscale-yscale*rline[0]
+    yoffset=sline[0]*xoffset+sline[1]-yscale*rline[1]
+    transformed=Image.fromarray(src).transform((w,h),Image.Transform.AFFINE,
+      (xscale,0,xoffset,yx,yscale,yoffset),resample=Image.Resampling.BICUBIC)
+    painted=np.array(transformed)
+    m=(painted[:,:,3]>160)&(ref[:,:,3]>0)
+    m[:,:lo]=False;m[:,hi+1:]=False
+    out[m,:3]=painted[m,:3]
     corrected=color_match(out,ref)
     # Feather only in the two internal transition strips. Preserve alpha
     # and original outside pixels exactly. No global recoloring.
