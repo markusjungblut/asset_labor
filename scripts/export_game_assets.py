@@ -806,6 +806,7 @@ def export_nature_and_shadows(
                         round(float(meta.get("scaleMax", 1.15)), 3),
                     ],
                     "anchor": [ax, ay],
+                    "allowedTerrainCategories": meta.get("allowedTerrainCategories", []),
                     "allowedTerrainTypes": meta.get("allowedTerrainTypes", []),
                     "excludedTerrainTypes": meta.get("excludedTerrainTypes", []),
                     "placement": meta.get("placement", {}),
