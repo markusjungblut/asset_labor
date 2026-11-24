@@ -1,0 +1,199 @@
+{
+  "origin": "fresh generated atlas, NOT old stone v6",
+  "reference": "palisade v5 canonical projection",
+  "metadata": [
+    [
+      156,
+      167,
+      14,
+      89
+    ],
+    [
+      40,
+      216,
+      20,
+      82
+    ],
+    [
+      156,
+      167,
+      142,
+      89
+    ],
+    [
+      156,
+      167,
+      142,
+      152
+    ],
+    [
+      40,
+      216,
+      20,
+      208
+    ],
+    [
+      156,
+      167,
+      14,
+      152
+    ]
+  ],
+  "joins": {
+    "corner_post": [
+      46,
+      84
+    ],
+    "end_post": [
+      38,
+      82
+    ]
+  },
+  "details": {
+    "edge_dir0": {
+      "source_bbox": [
+        77,
+        31,
+        409,
+        326
+      ],
+      "src_baseline": [
+        0.4681373571833724,
+        152.36745756016535
+      ],
+      "target_foot": [
+        [
+          14,
+          89
+        ],
+        [
+          142,
+          152
+        ]
+      ],
+      "source_height": 252.91405492869302
+    },
+    "edge_dir1": {
+      "source_bbox": [
+        229,
+        17,
+        66,
+        334
+      ],
+      "target_foot": [
+        20,
+        207.6314185757
+      ],
+      "target_top_y": 30,
+      "target_bounds_x": [
+        9,
+        31
+      ],
+      "source_style": "new painted edge-on wall; no old v1-v6 masonry"
+    },
+    "edge_dir2": {
+      "source_bbox": [
+        58,
+        23,
+        416,
+        331
+      ],
+      "src_baseline": [
+        -0.4729256644518268,
+        400.57921719269103
+      ],
+      "target_foot": [
+        [
+          14,
+          152
+        ],
+        [
+          142,
+          89
+        ]
+      ],
+      "source_height": 252.01745328073102
+    },
+    "edge_dir3": {
+      "source_bbox": [
+        65,
+        20,
+        418,
+        337
+      ],
+      "src_baseline": [
+        0.49305100422832976,
+        141.43375924947145
+      ],
+      "target_foot": [
+        [
+          14,
+          89
+        ],
+        [
+          142,
+          152
+        ]
+      ],
+      "source_height": 256.28320890591965
+    },
+    "edge_dir4": {
+      "source_bbox": [
+        237,
+        15,
+        65,
+        334
+      ],
+      "target_foot": [
+        20,
+        207.6314185757
+      ],
+      "target_top_y": 30,
+      "target_bounds_x": [
+        9,
+        31
+      ],
+      "source_style": "new painted edge-on wall; no old v1-v6 masonry"
+    },
+    "edge_dir5": {
+      "source_bbox": [
+        60,
+        25,
+        414,
+        329
+      ],
+      "src_baseline": [
+        -0.47197278012685057,
+        399.79499603594087
+      ],
+      "target_foot": [
+        [
+          14,
+          152
+        ],
+        [
+          142,
+          89
+        ]
+      ],
+      "source_height": 249.0142501321352
+    },
+    "corner_post": {
+      "source_bbox": [
+        166,
+        16,
+        210,
+        326
+      ]
+    },
+    "end_post": {
+      "source_bbox": [
+        184,
+        19,
+        166,
+        322
+      ]
+    }
+  },
+  "correction": "v7-foot-shadow-v2: symmetric shortened vertical panels; actual lower foot=207.6314185757"
+}

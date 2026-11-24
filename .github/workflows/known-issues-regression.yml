@@ -74,8 +74,9 @@ jobs:
             /assets/terrain/terrain_catalog.json
             /assets/nature/nature_catalog.json
             /assets/shadows/sprite_shadow_profiles.json
-            /assets/walls/*/*.svg
+            /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
+            /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -119,8 +120,9 @@ jobs:
             /assets/terrain/wald_03.png
             /assets/terrain/terrain_catalog.json
             /assets/shadows/sprite_shadow_profiles.json
-            /assets/walls/*/*.svg
+            /assets/walls/palisade/*.svg
             /assets/walls/palisade/*.webp
+            /assets/walls/stone/v6/*.png
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -148,7 +150,7 @@ jobs:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts
         run: node tests/automated_browser_walls_v1_20261122.cjs
-      - name: Richtungs-Mauerkunst – zwölf SVGs, Ecken und gemeinsame Schatten (Firefox)
+      - name: Richtungs-Mauerkunst – Palisaden-WebPs und Stein-PNGs (Firefox)
         env:
           NODE_PATH: ${{ github.workspace }}/.ci-tools/node_modules
           VEDRAS_CI_ARTIFACTS: test-artifacts

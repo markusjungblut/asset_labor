@@ -199,10 +199,10 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
   assert(bytes.length>8000,'junction artwork must be a real painting');
  }
  const js=source('walls.js'),index=source('index.html');
- assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':'.svg'"));
+ assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
- assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261123-painted-palisade-v5'),
+ assert(js.includes("end=timber&&node.degree===1"));
+ assert(index.includes('walls.js?v=20261124-palisade-gates-ai-v4'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -237,31 +237,28 @@ test('whole-post palisade v5 uses symmetric endpoints and no circular corner sha
  assert(sourceText.includes('node.kinds?.includes(\'palisade\')'),
   'mixed palisade/stone must use one intentional timber connector');
 });
-test('twelve authored SVG variants exist and preserve canonical foot anchors',()=>{
+test('six preserved SVG palisades and six real stone PNG artworks use canonical anchors',()=>{
  const meta=W.wallArtMeta;
- for(const kind of ['palisade','stone'])for(let dir=0;dir<6;dir++){
-  const file=path.join(root,'assets','walls',kind,'edge_dir'+dir+'.svg');
-  const svg=fs.readFileSync(file,'utf8');
-  assert.match(svg,/^<\?xml[^]*<svg[\s\S]+<\/svg>\s*$/);
-  assert.match(svg,/viewBox="/);
+ for(let dir=0;dir<6;dir++){
+  const svg=fs.readFileSync(path.join(root,'assets','walls','palisade','edge_dir'+dir+'.svg'),'utf8');
+  assert(svg.startsWith('<?xml')&&svg.includes('<svg')&&svg.includes('</svg>'));
   assert(svg.includes('hex edge direction '+dir));
-  assert(svg.includes('polygon'),'real painted polygons, not a placeholder link');
-  const [width,height,anchorX,anchorY]=meta[kind][dir];
-  assert(width>20&&height>120);
-  assert(anchorX>=0&&anchorX<=width&&anchorY>=0&&anchorY<=height);
-  const opening=svg.match(/<svg[^>]+>/)?.[0]||'';
-  assert(opening.includes('width="'+width+'"')&&
-   opening.includes('height="'+height+'"'),
-   'sprite metadata must exactly match SVG raster dimensions');
-  assert(kind==='stone'?svg.includes('ashlar'):svg.includes('timber'),
-   'each family has distinct authored material geometry');
+  const [w,h,ax,ay]=meta.stone[dir];
+  const bytes=fs.readFileSync(path.join(root,'assets','walls','stone','v7','edge_dir'+dir+'.png'));
+   assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+   assert.equal(bytes.readUInt32BE(16),w*3);
+   assert.equal(bytes.readUInt32BE(20),h*3);
+   assert(ax>=0&&ax<=w&&ay>0&&ay<=h);
  }
  const app=source('app.js'),html=source('index.html');
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261123-painted-palisade-v5'));
- assert(app.includes("'authored-wall-directional-svg-corner-nodes-v3'"));
+ assert(html.includes('walls.js?v=20261124-palisade-gates-ai-v4'));
+ assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
+ assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
+ assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
+ assert(app.includes("'stone-original-hand-painted-v7-precise-foot-shadow-v2'"));
 });
 
 test('all six corner combinations resolve a single canonical joined node',()=>{
@@ -300,7 +297,11 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   'walls are indexed as depth-sorted scene objects, not global overlay');
  assert(app.includes('if(obj.type===\'wall\')'));
  assert(app.includes('window.VedrasWalls.drawShadow(ctx,o.wallEdge'));
- assert(app.includes('window.VedrasWalls.blocksPoint(o.x,o.y,walls,22)'));
+ assert(app.includes('wallNatureBlocked(o.x,o.y,o.w,o.natureMeta?.kind,walls)'));
+ assert(app.includes('const removed=clearWallNature(state.wallEdges)'));
+ const nature=source('nature-ui.js');
+ assert(nature.includes('blocksWall(q,r,dx,dy,meta,a,scale)'));
+ assert(nature.includes('dropped+=core.walls.clearNature()'));
 
  assert(app.includes('window.VedrasSpriteShadows?.get?.().global'),
   'no independent wall sun vector');
@@ -317,4 +318,68 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   assert(html.includes('id="'+key+'"'),'missing usable editor control '+key);
  assert(html.includes('walls.js?v=')&&html.includes('wall-ui.js?v='));
  assert(ui.includes("W.removeEdge")&&ui.includes("W.setEdge"));
+});
+test('all six stone gate facings are placeable and saved once with facing',()=>{
+ const scope=env(),from=[0,0];
+ let edges=[];
+ for(let dir=0;dir<6;dir++){
+  const to=R.DIRS[dir];
+  assert.equal(W.canPlaceKind(from,to,'stone_gate',scope).ok,true);
+  edges=W.setEdge(edges,from,to,'stone_gate',scope);
+ }
+ assert.equal(edges.length,6);
+ assert.deepEqual(plain(edges.map(e=>e.gateSide).sort()),[0,1,2,3,4,5]);
+ for(const gate of edges){
+  const reversed={...gate,a:gate.b,b:gate.a};
+  assert.deepEqual(plain(W.normalize([reversed],scope)),plain([gate]));
+  const g=W.geometry(gate);
+  assert.equal(g.side,gate.gateSide);
+  assert.equal(W.widthFor(gate.kind),W.widthFor('stone'));
+  assert(W.junctions([gate]).every(n=>n.kind==='stone'));
+  const restored=W.setEdge(edges,gate.a,gate.b,'stone',scope);
+  assert.equal(restored.length,6);
+  assert.equal(restored.filter(e=>e.kind==='stone_gate').length,5);
+ }
+});
+
+test('nature footprint overlaps all boundary constructions and wider posts, not just the root',()=>{
+ for(const kind of ['palisade','stone','stone_gate','palisade_gate']){
+  const edge={a:[0,0],b:R.DIRS[1],kind};
+  const g=W.geometry(edge),mid=W.midpoint(edge);
+  const dx=g.b.x-g.a.x,dy=g.b.y-g.a.y,l=Math.hypot(dx,dy);
+  const nx=-dy/l,ny=dx/l;
+  assert(W.blocksNature(mid.x,mid.y,[edge],32,'shrub'));
+  assert(W.blocksNature(mid.x+nx*28,mid.y+ny*28,[edge],60,'shrub'));
+  assert(W.blocksNature(g.a.x+nx*32,g.a.y+ny*32,[edge],60,'shrub'));
+  assert(!W.blocksNature(mid.x+nx*100,mid.y+ny*100,[edge],60,'shrub'));
+  assert(!W.blocksNature(mid.x,mid.y,[],60,'shrub'));
+ }
+});
+
+test('wide overlapping vegetation is cleared even when its root is beyond the old 22-unit threshold',()=>{
+ for(const kind of ['stone','stone_gate','palisade','palisade_gate']){
+  const e={a:[0,0],b:R.DIRS[1],kind};
+  const m=W.midpoint(e);
+  assert(W.blocksNature(m.x+42,m.y,[e],60,'shrub'));
+  assert(!W.blocksNature(m.x+150,m.y,[e],60,'shrub'));
+ }
+});
+
+test('palisade gates preserve all six facings, canonical edges, timber piers and clearance',()=>{
+ const scope=env(),from=[0,0];
+ let edges=[];
+ for(let dir=0;dir<6;dir++)edges=W.setEdge(edges,from,R.DIRS[dir],'palisade_gate',scope);
+ assert.equal(edges.length,6);
+ assert.deepEqual(plain(edges.map(e=>e.gateSide).sort()),[0,1,2,3,4,5]);
+ assert.equal(W.widthFor('palisade_gate'),W.widthFor('palisade'));
+ assert(W.junctions(edges).every(n=>n.kind==='palisade'));
+ for(const edge of edges){
+  assert.deepEqual(plain(W.normalize([{...edge,a:edge.b,b:edge.a}],scope)),plain([edge]));
+  assert.equal(W.geometry(edge).side,edge.gateSide);
+  const mid=W.midpoint(edge);
+  assert(W.blocksNature(mid.x,mid.y,[edge],40,'shrub'));
+  const restored=W.setEdge(edges,edge.a,edge.b,'palisade',scope);
+  assert.equal(restored.length,6);
+  assert.equal(restored.filter(e=>e.kind==='palisade_gate').length,5);
+ }
 });
