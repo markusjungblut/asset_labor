@@ -14,7 +14,7 @@
  function render(){
   $('wallShown').checked=state.wallShown!==false;
   $('wallKind').value=W.kinds.includes(state.wallKind)?state.wallKind:'stone';
-  $('wallTest').textContent=state.wallKind==='stone_gate'?'Beide südlichen Tore testen':'Alle sechs Kanten am Hex testen';
+  $('wallTest').textContent=state.wallKind==='stone_gate'?'Alle sechs Steintore testen':'Alle sechs Kanten am Hex testen';
   $('wallPaint').textContent=state.wallPaintMode?'Kanten-Zeichnen beenden':'Kante über zwei Hexe zeichnen';
   $('wallPaint').classList.toggle('primary',!!state.wallPaintMode);
   const list=$('wallNeighbors');list.textContent='';

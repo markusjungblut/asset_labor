@@ -9,7 +9,9 @@ window.VedrasWalls=(()=>{
  const DIRS=rivers.DIRS;
  const materials=['palisade','stone'];
  const kinds=[...materials,'stone_gate'];
- const gateSides=[2,3];
+ const gateSides=[0,1,2,3,4,5];
+ const gateSourceSide=side=>side===5?2:side;
+ const gateAssetSides=[0,1,2,3,4];
  const materialOf=kind=>kind==='stone_gate'?'stone':kind;
  const point=p=>Array.isArray(p)?{q:p[0],r:p[1]}:{q:p?.q,r:p?.r};
  const key=p=>p.q+','+p.r;
@@ -61,13 +63,13 @@ window.VedrasWalls=(()=>{
   return {ok:true,reason:'Bebaubare gemeinsame Hexkante.'};
  }
  // Gates have a facing, independent of the sorted undirected edge key.
- // Stage 1 provides only SO/SW. Preserve orientation when saving/reloading.
+ // Preserve orientation when saving/reloading; NW shares the SO raster.
  function canPlaceKind(a,b,kind,env){
   const check=canPlace(a,b,env);
   if(!check.ok)return check;
   if(!kinds.includes(kind))return {ok:false,reason:'Unbekannter Mauertyp.'};
   if(kind==='stone_gate'&&!gateSides.includes(rivers.side(point(a),point(b))))
-   return {ok:false,reason:'Steintor vorerst nur in SO und SW verfügbar.'};
+   return {ok:false,reason:'Steintor-Richtung ist nicht verfügbar.'};
   return check;
  }
  function normalize(edges,env){
@@ -125,6 +127,24 @@ window.VedrasWalls=(()=>{
  // Height is the world-space VERTICAL dimension, independent of the
  // direction of the shared hex edge. NW and NE therefore use identical
  // sprite height, including the eight-unit sharpened palisade tip.
+ // Clear the visible ground footprint, not just the mathematical root point.
+ // Also account for the wider shared pier at each end. The saved nature
+ // instance is not deleted, so it returns when the construction is removed.
+ function blocksNature(x,y,edges,visualWidth=32,plantKind=''){
+  if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+  const w=Math.max(0,Number(visualWidth)||32);
+  const radius=Math.max(8,Math.min(48,w*(plantKind==='tree'?.18:.42)));
+  for(const edge of edges||[]){
+   const g=geometry(edge);if(!g)continue;
+   const material=materialOf(edge.kind);
+   const half=material==='stone'?12:8;
+   const pier=material==='stone'?23:12.5;
+   if(blocksPoint(x,y,[edge],half+radius+6)||
+      Math.hypot(x-g.a.x,y-g.a.y)<=pier+radius+6||
+      Math.hypot(x-g.b.x,y-g.b.y)<=pier+radius+6)return true;
+  }
+  return false;
+ }
  function heightFor(_kind){return 62;}
  function widthFor(kind){return materialOf(kind)==='stone'?24:16;}
  function projected(edge,project){
@@ -296,11 +316,11 @@ window.VedrasWalls=(()=>{
       '.png?v=20261123-original-stone-v7-foot-shadow-v2');
    }));
   }
-  for(const side of gateSides){
+  for(const side of gateAssetSides){
    const image=new Image();gateArt.set(side,image);
    pending.push(new Promise(resolve=>{
     image.onload=()=>resolve(true);image.onerror=()=>resolve(false);
-    image.src='assets/walls/stone/gates/v1/gate_dir'+side+'.png?v=20261124-gates-south-v1';
+    image.src='assets/walls/stone/gates/v1/gate_dir'+side+'.png?v=20261124-gates-all-stone-v2';
    }));
   }
   for(const name of ['corner_post','end_post']){
@@ -328,7 +348,7 @@ window.VedrasWalls=(()=>{
  }
  function artworkInfo(){return {count:wallArt.size,
   loaded:[...wallArt.values()].filter(i=>i.naturalWidth>0).length,
-  total:12,gateTotal:gateSides.length,gateLoaded:[...gateArt.values()].filter(i=>i.naturalWidth>0).length,
+  total:12,gateTotal:gateSides.length,gateLoaded:gateSides.filter(side=>gateArt.get(gateSourceSide(side))?.naturalWidth>0).length,
   postsLoaded:[...palisadeJoinArt.values()].filter(i=>i.naturalWidth>0).length,
   postsTotal:2,
   stonePostsLoaded:[...stoneJoinArt.values()].filter(i=>i.naturalWidth>0).length,
@@ -337,7 +357,7 @@ window.VedrasWalls=(()=>{
   if(typeof Image==='undefined')return false;
   if(!artworkPromise)artworkReady();
   const g=geometry(edge);if(!g)return false;
-  const img=edge.kind==='stone_gate'?gateArt.get(g.side):wallArt.get(edge.kind+':'+g.side);
+  const img=edge.kind==='stone_gate'?gateArt.get(gateSourceSide(g.side)):wallArt.get(edge.kind+':'+g.side);
   if(!img?.naturalWidth)return false;
   const box=edgeArtPlacement(edge,project,zoom);if(!box)return false;
   ctx.save();ctx.globalAlpha=1;ctx.filter='none';
@@ -607,6 +627,6 @@ window.VedrasWalls=(()=>{
   return true;
  }
  return {DIRS,kinds,gateSides,materialOf,point,identity,context,canPlace,canPlaceKind,normalize,setEdge,removeEdge,
-  occupiedRiverEdges,geometry,midpoint,blocksPoint,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
+  occupiedRiverEdges,geometry,midpoint,blocksPoint,blocksNature,heightFor,widthFor,footprint,shadowVector,draw,drawShadow,
   artworkReady,artworkInfo,wallArtMeta,palisadeRasterMeta,stoneRasterMeta,palisadeMaterial,stoneMaterial,edgeArtPlacement,joinArtPlacement,junctions,drawJoin,drawJoinShadow};
 })();

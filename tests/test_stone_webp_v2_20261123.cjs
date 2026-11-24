@@ -45,8 +45,8 @@ test('stone artwork loads only PNG raster images, while palisade v5 remains unch
  assert.equal(info.loaded,12);
  assert.equal(info.postsLoaded,2);
  assert.equal(info.stonePostsLoaded,2);
- assert.equal(loaded.length,18);
- assert.equal(info.gateLoaded,2);
+ assert.equal(loaded.length,21);
+ assert.equal(info.gateLoaded,6);
  for(let dir=0;dir<6;dir++){
   assert(loaded.some(x=>x.includes('walls/stone/v7/edge_dir'+dir+'.png?v=20261123-original-stone-v7-foot-shadow-v2')));
   assert(loaded.some(x=>x.includes('walls/palisade/edge_dir'+dir+'.webp?v=20261123-painted-volumetric-v5')));
@@ -104,8 +104,8 @@ test('viewer and baked scene invalidate pre-v5 stone assets',()=>{
  const js=source('walls.js'),html=source('index.html'),app=source('app.js');
  assert(js.includes("20261123-original-stone-v7-foot-shadow-v2"));
  assert(js.includes('const stoneJoinArt=new Map()'));
- assert(html.includes('walls.js?v=20261124-stone-gates-south-v1'));
- assert(html.includes('walls=20261124-stone-gates-south-v1'));
+ assert(html.includes('walls.js?v=20261124-stone-gates-all-v2'));
+ assert(html.includes('walls=20261124-stone-gates-all-v2'));
  assert(app.includes("'stone-orthographic-3x-raster-edges-no-birdseye-crenels-v3'"));
  assert(app.includes("'stone-correct-diagonal-hex-slope-ground-footprint-v4'"));
  assert(app.includes("'palisade-complete-posts-symmetric-volume-v5'"));
@@ -180,18 +180,19 @@ test('stone ends, corners and three-way joints use one unstretched sprite and a 
  }
 });
 
-test('both southern gate graphics are transparent native 3x stone sprites',async()=>{
+test('all stone gate facings use native 3x sprites with NW reusing SO',async()=>{
  await W.artworkReady();
  const ctx={save(){},restore(){},drawImage(...a){this.call=a;}};
  const project=(x,y)=>({x:100+x,y:200+y*.85});
- for(const dir of [2,3]){
-  const bytes=fs.readFileSync(path.join(root,'assets/walls/stone/gates/v1/gate_dir'+dir+'.png'));
+ for(const dir of [0,1,2,3,4,5]){
+  const sourceDir=dir===5?2:dir;
+  const bytes=fs.readFileSync(path.join(root,'assets/walls/stone/gates/v1/gate_dir'+sourceDir+'.png'));
   assert.equal(bytes[25],6);
-  assert.equal(bytes.readUInt32BE(16),468);
-  assert.equal(bytes.readUInt32BE(20),501);
+  assert.equal(bytes.readUInt32BE(16),[1,4].includes(dir)?120:468);
+  assert.equal(bytes.readUInt32BE(20),[1,4].includes(dir)?648:501);
   const edge={a:[0,0],b:R.DIRS[dir],kind:'stone_gate',gateSide:dir};
   assert(W.draw(ctx,edge,project,1));
-  assert(ctx.call[0].src.includes('gates/v1/gate_dir'+dir+'.png'));
+  assert(ctx.call[0].src.includes('gates/v1/gate_dir'+sourceDir+'.png'));
   assert.deepEqual(ctx.call.slice(1),[...Object.values(W.edgeArtPlacement(edge,project,1)).slice(0,4)]);
   const stone=W.edgeArtPlacement({...edge,kind:'stone'},project,1);
   assert.deepEqual(W.edgeArtPlacement(edge,project,1),stone);

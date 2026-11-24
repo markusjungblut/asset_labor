@@ -382,7 +382,7 @@ async function bakeWorldTile(t,level,{signal}={}){
  // decoding (or missing). Fallback shapes are editor-only.
  if(state.wallShown!==false&&state.wallEdges?.length){
   const ready=await window.VedrasWalls.artworkReady();
-  if(!ready)throw Error('Mauer-Grafiken fehlen: 12 SVG-Richtungsdateien prüfen.');
+  if(!ready)throw Error('Mauer- oder Torgrafiken fehlen: Richtungsdateien prüfen.');
  }
  const __bench=window.VedrasBenchmarkProfiler,__bakeStart=performance.now();
  const __trace=window.VedrasStep15Trace,__tileTrace=__trace?.enabled();
@@ -2621,9 +2621,8 @@ function genericObjects(view=null){
  // imported scenes obey this visual gate too; overhanging crowns are fine.
  const roads=visibleRoadEdges(),walls=visibleWallEdges();
  return objs.filter(o=>{
-  // The wall belongs to a shared hex edge. Hide only the root of a tree
-  // growing through that line; do not destroy saved Nature placement.
-  if(o.type==='nature'&&window.VedrasWalls.blocksPoint(o.x,o.y,walls,22))
+  // Clear plants intersecting walls, gates or piers; preserve saved placement.
+  if(o.type==='nature'&&window.VedrasWalls.blocksNature(o.x,o.y,walls,o.w,o.natureMeta?.kind))
    return false;
   if(o.type!=='mountain'&&window.VedrasRoads.blocksPoint(o.x,o.y,roads,
    o.type==='building'?Math.min(72,(o.w||160)*.38):7,HEX))return false;
@@ -4376,6 +4375,7 @@ function frozenSceneKey({force4x=false}={}){
   'stone-pier-deep-foot-continuous-shadow-v1',
   'stone-native-pier-unified-open-and-closed-v1',
   'stone-gates-south-closed-v1',
+  'stone-gates-all-facings-and-nature-footprint-v2',
   'forest-floor-wrap-v1',
   'organic-forest-fringes-and-soft-snow-v4',
   // Strict source-core alpha stabilization and read-only seam publication

@@ -58,7 +58,7 @@ jobs:
             test-artifacts/editor-stone-v7.png
             test-artifacts/editor-stone-v7-closeup.png
             test-artifacts/editor-stone-open-south-v.png
-            test-artifacts/editor-stone-gates-south.png
+            test-artifacts/editor-stone-gates-all.png
             test-artifacts/editor-stone-gates-open.png
             test-artifacts/editor-palisade-grid-closeup.png
           if-no-files-found: ignore

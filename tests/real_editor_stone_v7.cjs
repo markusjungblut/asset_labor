@@ -132,7 +132,7 @@ async function main(){
   await page.waitForTimeout(1500);
   await page.screenshot({path:path.join(OUT,'editor-stone-open-south-v.png')});
   await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__stoneFullEdges));
-  // Replace only the southern two stone edges with the new closed gates.
+  // Replace all six stone edges with the closed gates.
   const gates=await page.evaluate(()=>{
    const W=window.VedrasWalls,core=window.VedrasAssetLabor;
    const sel=document.getElementById('wallKind');
@@ -145,12 +145,12 @@ async function main(){
     joints:W.junctions(edges).length};
   });
   assert.equal(gates.total,6);
-  assert.equal(gates.stone,4);
-  assert.deepEqual(gates.gates,[2,3]);
+  assert.equal(gates.stone,0);
+  assert.deepEqual(gates.gates,[0,1,2,3,4,5]);
   assert.equal(gates.joints,6);
   await page.waitForTimeout(1600);
-  await page.screenshot({path:path.join(OUT,'editor-stone-gates-south.png')});
-  await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__gatedHex.filter(e=>e.kind==='stone_gate')));
+  await page.screenshot({path:path.join(OUT,'editor-stone-gates-all.png')});
+  await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__gatedHex.filter(e=>e.kind==='stone_gate'&&[0,1,4].includes(e.gateSide))));
   await page.waitForTimeout(1600);
   await page.screenshot({path:path.join(OUT,'editor-stone-gates-open.png')});
   await page.evaluate(()=>window.VedrasAssetLabor.walls.apply(window.__gatedHex));

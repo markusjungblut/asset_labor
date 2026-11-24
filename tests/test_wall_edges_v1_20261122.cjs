@@ -202,7 +202,7 @@ test('painted palisade v5 has six volumetric whole-post edge images with canonic
  assert(js.includes("kind==='palisade'?'.webp?v=20261123-painted-volumetric-v5':"));
  assert(js.includes("image.src='assets/walls/palisade/'+name+'.webp?v=20261123-painted-volumetric-v5'"));
  assert(js.includes("const end=node.degree===1"));
- assert(index.includes('walls.js?v=20261124-stone-gates-south-v1'),
+ assert(index.includes('walls.js?v=20261124-stone-gates-all-v2'),
   'browser needs to invalidate cached proxy art');
  const app=source('app.js');
  assert(app.includes("'palisade-painted-webp-edge-inset-and-posts-v4'"));
@@ -254,7 +254,7 @@ test('six preserved SVG palisades and six real stone PNG artworks use canonical 
  assert(app.includes('window.VedrasWalls.junctions(edges)'));
  assert(app.includes('window.VedrasWalls.drawJoin(ctx,obj.wallJoin'));
  assert(app.includes('window.VedrasWalls.drawJoinShadow(ctx,o.wallJoin'));
- assert(html.includes('walls.js?v=20261124-stone-gates-south-v1'));
+ assert(html.includes('walls.js?v=20261124-stone-gates-all-v2'));
  assert(app.includes("'stone-painted-webp-edges-and-grounded-join-assets-v2'"));
  assert(app.includes("'stone-independent-reanchored-six-hex-raster-v5'"));
  assert(app.includes("'stone-palisade-native-geometry-new-ashlar-v6'"));
@@ -297,7 +297,7 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
   'walls are indexed as depth-sorted scene objects, not global overlay');
  assert(app.includes('if(obj.type===\'wall\')'));
  assert(app.includes('window.VedrasWalls.drawShadow(ctx,o.wallEdge'));
- assert(app.includes('window.VedrasWalls.blocksPoint(o.x,o.y,walls,22)'));
+ assert(app.includes('window.VedrasWalls.blocksNature(o.x,o.y,walls,o.w,o.natureMeta?.kind)'));
 
  assert(app.includes('window.VedrasSpriteShadows?.get?.().global'),
   'no independent wall sun vector');
@@ -315,16 +315,16 @@ test('actual 2.5D map hooks preserve scenery depth, save/import and reset',()=>{
  assert(html.includes('walls.js?v=')&&html.includes('wall-ui.js?v='));
  assert(ui.includes("W.removeEdge")&&ui.includes("W.setEdge"));
 });
-test('only the two southern gate variants are placeable and saved once with facing',()=>{
+test('all six stone gate facings are placeable and saved once with facing',()=>{
  const scope=env(),from=[0,0];
  let edges=[];
  for(let dir=0;dir<6;dir++){
   const to=R.DIRS[dir];
-  assert.equal(W.canPlaceKind(from,to,'stone_gate',scope).ok,[2,3].includes(dir));
+  assert.equal(W.canPlaceKind(from,to,'stone_gate',scope).ok,true);
   edges=W.setEdge(edges,from,to,'stone_gate',scope);
  }
- assert.equal(edges.length,2);
- assert.deepEqual(plain(edges.map(e=>e.gateSide).sort()),[2,3]);
+ assert.equal(edges.length,6);
+ assert.deepEqual(plain(edges.map(e=>e.gateSide).sort()),[0,1,2,3,4,5]);
  for(const gate of edges){
   const reversed={...gate,a:gate.b,b:gate.a};
   assert.deepEqual(plain(W.normalize([reversed],scope)),plain([gate]));
@@ -333,7 +333,21 @@ test('only the two southern gate variants are placeable and saved once with faci
   assert.equal(W.widthFor(gate.kind),W.widthFor('stone'));
   assert(W.junctions([gate]).every(n=>n.kind==='stone'));
   const restored=W.setEdge(edges,gate.a,gate.b,'stone',scope);
-  assert.equal(restored.length,2);
-  assert.equal(restored.filter(e=>e.kind==='stone_gate').length,1);
+  assert.equal(restored.length,6);
+  assert.equal(restored.filter(e=>e.kind==='stone_gate').length,5);
+ }
+});
+
+test('nature footprint overlaps all boundary constructions and wider posts, not just the root',()=>{
+ for(const kind of ['palisade','stone','stone_gate','palisade_gate']){
+  const edge={a:[0,0],b:R.DIRS[1],kind};
+  const g=W.geometry(edge),mid=W.midpoint(edge);
+  const dx=g.b.x-g.a.x,dy=g.b.y-g.a.y,l=Math.hypot(dx,dy);
+  const nx=-dy/l,ny=dx/l;
+  assert(W.blocksNature(mid.x,mid.y,[edge],32,'shrub'));
+  assert(W.blocksNature(mid.x+nx*28,mid.y+ny*28,[edge],60,'shrub'));
+  assert(W.blocksNature(g.a.x+nx*32,g.a.y+ny*32,[edge],60,'shrub'));
+  assert(!W.blocksNature(mid.x+nx*100,mid.y+ny*100,[edge],60,'shrub'));
+  assert(!W.blocksNature(mid.x,mid.y,[],60,'shrub'));
  }
 });
