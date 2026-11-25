@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vedras Reiche – Asset-Labor WebGL2 Studio</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 29,9.5 29,22.5 16,30 3,22.5 3,9.5' fill='%23d4af57' stroke='%23101923' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="studio.css?v=0.23.0">
+  <link rel="stylesheet" href="studio.css?v=0.25.0">
 </head>
 <body>
   <header class="topbar">
@@ -52,7 +52,7 @@
   </header>
 
   <div class="workspace">
-    <!-- Left Sidebar: Map Editing, Walls/Gates, Roads, Rivers, Scenarios -->
+    <!-- Left Sidebar: Map Editing, World & Optics Controls, Scenarios, Inspector -->
     <aside id="leftPanel" class="panel left">
       <section class="card">
         <div class="card-head">
@@ -86,17 +86,32 @@
 
       <section id="reliefToolBox" class="card" hidden>
         <div class="card-head">
-          <h2>Relief &amp; Walddichte</h2>
+          <h2>Relief &amp; Wald malen</h2>
         </div>
+        <div class="sub-label">Relief setzen</div>
         <div class="radio-row">
-          <button type="button" class="chip active" data-relief="flat">Flach</button>
-          <button type="button" class="chip" data-relief="hills">Hügel</button>
+          <button type="button" class="chip" data-relief="keep">Unverändert</button>
+          <button type="button" class="chip" data-relief="flat">Flach</button>
+          <button type="button" class="chip active" data-relief="hills">Hügel</button>
           <button type="button" class="chip" data-relief="mountain">Berg</button>
         </div>
-        <label class="field-stack">
-          <span>Walddichte: <strong id="forestPaintVal">65%</strong></span>
-          <input id="forestPaintRange" type="range" min="0" max="100" value="65">
-        </label>
+        <div id="hillProfileRow" class="field-stack">
+          <div class="sub-label">Hügel-Profil</div>
+          <div class="radio-row">
+            <button type="button" class="chip active" data-hill-profile="rounded">Rund</button>
+            <button type="button" class="chip" data-hill-profile="steep">Steil</button>
+            <button type="button" class="chip" data-hill-profile="chain">Kette</button>
+            <button type="button" class="chip" data-hill-profile="plateau">Plateau</button>
+            <button type="button" class="chip" data-hill-profile="ridge">Grat</button>
+          </div>
+        </div>
+        <div class="sub-label">Wald setzen (getrennt vom Relief)</div>
+        <div class="radio-row">
+          <button type="button" class="chip active" data-forest-paint="keep">Unverändert</button>
+          <button type="button" class="chip" data-forest-paint="none">Kein Wald</button>
+          <button type="button" class="chip" data-forest-paint="light_forest">Licht</button>
+          <button type="button" class="chip" data-forest-paint="dense_forest">Dicht</button>
+        </div>
       </section>
 
       <section id="roadToolBox" class="card" hidden>
@@ -123,6 +138,108 @@
         </div>
         <p class="help-text">1 Klick nahe einer Hexkante platziert oder entfernt die Kante.</p>
       </section>
+
+      <!-- Live Asset-Labor World & Optics Controls (Relief, Forest/Canopy/Glades, Sprite Colors, Shadows/Autotile) -->
+      <details id="worldOpticsCard" class="card optics-card" open>
+        <summary class="card-head optics-summary">
+          <h2>Welt &amp; Optik</h2>
+          <span class="pill">Live GPU</span>
+        </summary>
+        <div class="optics-body">
+          <div class="optics-tabs" id="opticsTabs" role="tablist">
+            <button type="button" class="chip active" data-optics-tab="relief">Hügel</button>
+            <button type="button" class="chip" data-optics-tab="forest">Wald</button>
+            <button type="button" class="chip" data-optics-tab="colors">Farben</button>
+            <button type="button" class="chip" data-optics-tab="surface">Schatten</button>
+          </div>
+
+          <!-- Tab 1: 2.5D Relief & Quick-Jump Regions -->
+          <div id="opticsTabRelief" class="optics-pane">
+            <div class="toggle-row">
+              <label class="check-pill"><input id="reliefEnabledCheck" type="checkbox" checked> <span>2.5D Relief</span></label>
+              <label class="check-pill"><input id="reliefLightingCheck" type="checkbox" checked> <span>Beleuchtung</span></label>
+            </div>
+            <label class="field-stack">
+              <span>Hügel-Stärke: <strong id="reliefStrengthVal" class="mono">64%</strong></span>
+              <input id="reliefStrengthRange" type="range" min="0" max="100" step="2" value="64">
+            </label>
+            <div class="sub-label">Region direkt anspringen</div>
+            <div class="jump-grid" id="regionJumpGrid">
+              <button type="button" class="chip" data-jump="38,6,0.72">⛰ Hügel</button>
+              <button type="button" class="chip" data-jump="-18,-42,0.82">🏔 Berge/Wald</button>
+              <button type="button" class="chip" data-jump="-27,-41,0.78">🌊 Küste</button>
+              <button type="button" class="chip" data-jump="-10,37,0.84">🌵 Wüste</button>
+            </div>
+          </div>
+
+          <!-- Tab 2: Forest Canopy, Variation, Glades & Open-Ground Trees -->
+          <div id="opticsTabForest" class="optics-pane" hidden>
+            <div class="radio-row" id="forestModeRow">
+              <button type="button" class="chip active" data-forest-mode="canopy">Kronendach</button>
+              <button type="button" class="chip" data-forest-mode="dense">Dicht</button>
+              <button type="button" class="chip" data-forest-mode="classic">Klassisch</button>
+            </div>
+            <label class="field-stack">
+              <span>Kronendichte: <strong id="canopyCoverVal" class="mono">82%</strong></span>
+              <input id="canopyCoverRange" type="range" min="35" max="98" step="1" value="82">
+            </label>
+            <label class="field-stack">
+              <span>Dichte-Schwankung: <strong id="canopyVarVal" class="mono">±15 pp</strong></span>
+              <input id="canopyVarRange" type="range" min="0" max="30" step="1" value="15">
+            </label>
+            <label class="field-stack">
+              <span>Lichtungen (Kronendach): <strong id="gladeRateVal" class="mono">10%</strong></span>
+              <input id="gladeRateRange" type="range" min="0" max="30" step="1" value="10">
+            </label>
+            <label class="field-stack">
+              <span>Waldrand-Auslauf: <strong id="edgeStrengthVal" class="mono">72%</strong></span>
+              <input id="edgeStrengthRange" type="range" min="0" max="100" step="2" value="72">
+            </label>
+            <label class="field-stack">
+              <span>Bäume (Nicht-Wald): <strong id="openTreeVal" class="mono">18%</strong></span>
+              <input id="openTreeRange" type="range" min="0" max="50" step="1" value="18">
+            </label>
+          </div>
+
+          <!-- Tab 3: Sprite Colors & Nature Polish -->
+          <div id="opticsTabColors" class="optics-pane" hidden>
+            <label class="field-stack">
+              <span>Grafik-Finish Natur: <strong id="naturePolishVal" class="mono">40%</strong></span>
+              <input id="naturePolishRange" type="range" min="0" max="100" step="2" value="40">
+            </label>
+            <label class="field-stack">
+              <span>Sprite-Sättigung: <strong id="spriteSatVal" class="mono">100%</strong></span>
+              <input id="spriteSatRange" type="range" min="50" max="150" step="2" value="100">
+            </label>
+            <label class="field-stack">
+              <span>Sprite-Helligkeit: <strong id="spriteBrightVal" class="mono">100%</strong></span>
+              <input id="spriteBrightRange" type="range" min="70" max="130" step="2" value="100">
+            </label>
+            <label class="field-stack">
+              <span>Sprite-Kontrast: <strong id="spriteContrastVal" class="mono">100%</strong></span>
+              <input id="spriteContrastRange" type="range" min="70" max="130" step="2" value="100">
+            </label>
+            <button id="resetOpticsBtn" class="btn small" type="button">Optik &amp; Wald zurücksetzen</button>
+          </div>
+
+          <!-- Tab 4: Mountain Shadows & Auto-Tiling -->
+          <div id="opticsTabSurface" class="optics-pane" hidden>
+            <label class="check-pill">
+              <input id="mtnShadowSpritesCheck" type="checkbox" checked>
+              <span>Bergschatten verdunkelt Sprites</span>
+            </label>
+            <label class="field-stack">
+              <span>Übergangsbreite (Auto-Tile): <strong id="edgeBandVal" class="mono">28 px</strong></span>
+              <input id="edgeBandRange" type="range" min="8" max="48" step="2" value="28">
+            </label>
+            <div class="sub-label">Wasser-Sampling</div>
+            <div class="radio-row" id="waterSamplingRow">
+              <button type="button" class="chip active" data-water-sampling="hex">Hex-Motiv</button>
+              <button type="button" class="chip" data-water-sampling="repeat">Repeat</button>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <!-- 1-Click Scenario Presets -->
       <section class="card">
@@ -269,7 +386,7 @@
     </aside>
   </div>
 
-  <script src="vedras-map-engine.bundle.js?v=0.24.0"></script>
-  <script src="studio-app.js?v=0.24.0"></script>
+  <script src="vedras-map-engine.bundle.js?v=0.25.0"></script>
+  <script src="studio-app.js?v=0.25.0"></script>
 </body>
 </html>

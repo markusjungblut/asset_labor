@@ -197,6 +197,17 @@ class ExportGameAssetsTest(unittest.TestCase):
                 self.assertLess(b[0], b[2])
                 self.assertLess(b[1], b[3])
 
+            # Pre-baked swept ground shadows for stone & palisade walls/gates & posts (14 entries)
+            for mat in ("stone", "palisade"):
+                for side in range(6):
+                    wsh = m1["shadows"]["sprites"][f"wall_shadow:{mat}:dir{side}"]
+                    self.assertEqual(wsh["mode"], "wall_swept")
+                    wb = wsh["boundsInSpriteWidth"]
+                    self.assertLess(wb[0], wb[2])
+                    self.assertLess(wb[1], wb[3])
+                psh = m1["shadows"]["sprites"][f"wall_shadow:{mat}:post"]
+                self.assertEqual(psh["mode"], "wall_swept")
+
             # Walls picked up both palisade & extra stone v7, skipping source_atlas
             infra_sprites = m1["infrastructure"]["sprites"]
             self.assertIn("walls/palisade/edge_dir0", infra_sprites)

@@ -15,6 +15,9 @@
     createGeographyV2ChunkProvider,
     createSandboxScenario,
     computeScenarioFog,
+    DEFAULT_FOREST_CONFIG,
+    DEFAULT_RELIEF_CONFIG,
+    DEFAULT_VISUAL_CONFIG,
     hexMath,
   } = lib;
 
@@ -29,7 +32,7 @@
     },
     relief: {
       label: "Relief & Wald",
-      help: "Klicke Hexe, um Flach/Hügel/Berg & Walddichte live zu ändern (< 1 ms Chunk-Update).",
+      help: "Relief (Flach/Hügel/Berg) und Wald sind getrennt wählbar — Hügel spawnen keinen ungewollten Wald.",
     },
     road: {
       label: "Straße bauen",
@@ -59,8 +62,9 @@
     geographyConfig: undefined,
     activeTool: "inspect",
     activeTerrainId: "grassland",
-    paintRelief: "flat",
-    paintForest: 0.65,
+    paintRelief: "hills",
+    paintHillProfile: "rounded",
+    paintForestMode: "keep",
     paintRoadTier: "packed",
     paintWallKind: "stone",
     paintWallIsGate: false,
@@ -70,6 +74,34 @@
     fogEnabled: false,
     showGrid: false,
     shadowOpacity: 0.54,
+    forestConfig: {
+      ...(DEFAULT_FOREST_CONFIG || {
+        mode: "canopy",
+        canopyCover: 0.82,
+        canopyVariation: 0.15,
+        gladeRate: 0.1,
+        edgeStrength: 0.72,
+        openTreeChance: 0.18,
+      }),
+    },
+    reliefConfig: {
+      ...(DEFAULT_RELIEF_CONFIG || {
+        enabled: true,
+        strength: 64,
+        lighting: true,
+      }),
+    },
+    visualConfig: {
+      ...(DEFAULT_VISUAL_CONFIG || {
+        naturePolish: 0.4,
+        spriteSaturation: 1.0,
+        spriteBrightness: 1.0,
+        spriteContrast: 1.0,
+        edgeBand: 28,
+        waterSampling: "hex",
+        mountainShadowOnSprites: true,
+      }),
+    },
 
     /** Map<hexKey, Partial<MapHexCell>> for live terrain/relief/forest painting */
     hexOverrides: new Map(),
@@ -129,10 +161,43 @@
     terrainList: $("terrainList"),
     terrainCountBadge: $("terrainCountBadge"),
     reliefToolBox: $("reliefToolBox"),
-    forestPaintRange: $("forestPaintRange"),
-    forestPaintVal: $("forestPaintVal"),
+    hillProfileRow: $("hillProfileRow"),
     roadToolBox: $("roadToolBox"),
     wallToolBox: $("wallToolBox"),
+    opticsTabs: $("opticsTabs"),
+    opticsTabRelief: $("opticsTabRelief"),
+    opticsTabForest: $("opticsTabForest"),
+    opticsTabColors: $("opticsTabColors"),
+    opticsTabSurface: $("opticsTabSurface"),
+    reliefEnabledCheck: $("reliefEnabledCheck"),
+    reliefLightingCheck: $("reliefLightingCheck"),
+    reliefStrengthRange: $("reliefStrengthRange"),
+    reliefStrengthVal: $("reliefStrengthVal"),
+    regionJumpGrid: $("regionJumpGrid"),
+    forestModeRow: $("forestModeRow"),
+    canopyCoverRange: $("canopyCoverRange"),
+    canopyCoverVal: $("canopyCoverVal"),
+    canopyVarRange: $("canopyVarRange"),
+    canopyVarVal: $("canopyVarVal"),
+    gladeRateRange: $("gladeRateRange"),
+    gladeRateVal: $("gladeRateVal"),
+    edgeStrengthRange: $("edgeStrengthRange"),
+    edgeStrengthVal: $("edgeStrengthVal"),
+    openTreeRange: $("openTreeRange"),
+    openTreeVal: $("openTreeVal"),
+    naturePolishRange: $("naturePolishRange"),
+    naturePolishVal: $("naturePolishVal"),
+    spriteSatRange: $("spriteSatRange"),
+    spriteSatVal: $("spriteSatVal"),
+    spriteBrightRange: $("spriteBrightRange"),
+    spriteBrightVal: $("spriteBrightVal"),
+    spriteContrastRange: $("spriteContrastRange"),
+    spriteContrastVal: $("spriteContrastVal"),
+    resetOpticsBtn: $("resetOpticsBtn"),
+    mtnShadowSpritesCheck: $("mtnShadowSpritesCheck"),
+    edgeBandRange: $("edgeBandRange"),
+    edgeBandVal: $("edgeBandVal"),
+    waterSamplingRow: $("waterSamplingRow"),
     scenarioList: $("scenarioList"),
     clearEditsBtn: $("clearEditsBtn"),
     centerOriginBtn: $("centerOriginBtn"),
@@ -227,8 +292,15 @@
       return;
     }
     el.inspTerrain.textContent = cell.terrainId;
-    el.inspRelief.textContent = cell.reliefClass;
-    el.inspForest.textContent = `${Math.round((cell.forestDensity || 0) * 100)} %`;
+    el.inspRelief.textContent =
+      cell.reliefClass === "hills"
+        ? `hills (${cell.hillProfile || "rounded"} · ${Math.round((cell.hillStrength || 0.7) * 100)}%)`
+        : cell.reliefClass;
+    const fPct = Math.round((cell.forestDensity || 0) * 100);
+    el.inspForest.textContent =
+      cell.forestClass && cell.forestClass !== "none"
+        ? `${cell.forestClass === "dense_forest" ? "Dicht" : "Licht"} · ${fPct}%`
+        : `${fPct}%`;
     el.inspFog.textContent =
       cell.fogState === 2 ? "Sichtbar" : cell.fogState === 1 ? "Erkundet" : "Unbekannt";
     el.inspEdited.textContent = `${state.hexOverrides.size} Hexe · ${state.scene.customSprites.length} Sprites`;
@@ -273,11 +345,31 @@
     if (tool === "relief") {
       const k = hexMath.hexKey(hex.q, hex.r);
       const prev = state.hexOverrides.get(k) || {};
-      state.hexOverrides.set(k, {
-        ...prev,
-        reliefClass: state.paintRelief,
-        forestDensity: state.paintRelief === "mountain" ? 0 : state.paintForest,
-      });
+      const next = { ...prev };
+      if (state.paintRelief !== "keep") {
+        next.reliefClass = state.paintRelief;
+        if (state.paintRelief === "hills") {
+          next.hillProfile = state.paintHillProfile;
+          next.hillStrength = 0.92;
+        } else {
+          next.hillProfile = null;
+          next.hillStrength = 0;
+        }
+        if (state.paintRelief === "mountain") {
+          next.forestDensity = 0;
+          next.forestClass = "none";
+        }
+      }
+      if (state.paintForestMode !== "keep" && next.reliefClass !== "mountain") {
+        next.forestClass = state.paintForestMode;
+        next.forestDensity =
+          state.paintForestMode === "dense_forest"
+            ? 0.85
+            : state.paintForestMode === "light_forest"
+              ? 0.45
+              : 0;
+      }
+      state.hexOverrides.set(k, next);
       state.engine.invalidateChunkAt(hex.q, hex.r);
       updateHexInspector(hex);
       pushScene();
@@ -814,6 +906,9 @@
       initialZoom: 0.72,
       showHexGrid: state.showGrid,
       shadowOpacity: state.shadowOpacity,
+      forestConfig: state.forestConfig,
+      reliefConfig: state.reliefConfig,
+      visualConfig: state.visualConfig,
       onLoadProgress: (loaded, total, label) => {
         const pct = Math.max(8, Math.round((loaded / Math.max(1, total)) * 100));
         el.bootBar.style.width = `${pct}%`;
@@ -848,6 +943,52 @@
     pushScene();
   }
 
+  function syncOpticsUi() {
+    el.reliefEnabledCheck.checked = Boolean(state.reliefConfig.enabled);
+    el.reliefLightingCheck.checked = Boolean(state.reliefConfig.lighting);
+    el.reliefStrengthRange.value = String(Math.round(state.reliefConfig.strength));
+    el.reliefStrengthVal.textContent = `${Math.round(state.reliefConfig.strength)}%`;
+
+    for (const c of el.forestModeRow.querySelectorAll("[data-forest-mode]")) {
+      c.classList.toggle("active", c.dataset.forestMode === state.forestConfig.mode);
+    }
+    const coverPct = Math.round(state.forestConfig.canopyCover * 100);
+    el.canopyCoverRange.value = String(coverPct);
+    el.canopyCoverVal.textContent = `${coverPct}%`;
+    const varPct = Math.round(state.forestConfig.canopyVariation * 100);
+    el.canopyVarRange.value = String(varPct);
+    el.canopyVarVal.textContent = `±${varPct} pp`;
+    const gladePct = Math.round(state.forestConfig.gladeRate * 100);
+    el.gladeRateRange.value = String(gladePct);
+    el.gladeRateVal.textContent = `${gladePct}%`;
+    const edgePct = Math.round(state.forestConfig.edgeStrength * 100);
+    el.edgeStrengthRange.value = String(edgePct);
+    el.edgeStrengthVal.textContent = `${edgePct}%`;
+    const openPct = Math.round(state.forestConfig.openTreeChance * 100);
+    el.openTreeRange.value = String(openPct);
+    el.openTreeVal.textContent = `${openPct}%`;
+
+    const polPct = Math.round(state.visualConfig.naturePolish * 100);
+    el.naturePolishRange.value = String(polPct);
+    el.naturePolishVal.textContent = `${polPct}%`;
+    const satPct = Math.round(state.visualConfig.spriteSaturation * 100);
+    el.spriteSatRange.value = String(satPct);
+    el.spriteSatVal.textContent = `${satPct}%`;
+    const brtPct = Math.round(state.visualConfig.spriteBrightness * 100);
+    el.spriteBrightRange.value = String(brtPct);
+    el.spriteBrightVal.textContent = `${brtPct}%`;
+    const conPct = Math.round(state.visualConfig.spriteContrast * 100);
+    el.spriteContrastRange.value = String(conPct);
+    el.spriteContrastVal.textContent = `${conPct}%`;
+
+    el.mtnShadowSpritesCheck.checked = Boolean(state.visualConfig.mountainShadowOnSprites);
+    el.edgeBandRange.value = String(Math.round(state.visualConfig.edgeBand));
+    el.edgeBandVal.textContent = `${Math.round(state.visualConfig.edgeBand)} px`;
+    for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
+      c.classList.toggle("active", c.dataset.waterSampling === state.visualConfig.waterSampling);
+    }
+  }
+
   /* ---------------- Wire UI Events ---------------- */
   function bindEvents() {
     el.toolGrid.addEventListener("click", (e) => {
@@ -858,18 +999,166 @@
     el.terrainSearch.addEventListener("input", renderTerrainList);
 
     el.reliefToolBox.addEventListener("click", (e) => {
-      const chip = e.target.closest("[data-relief]");
-      if (!chip) return;
-      state.paintRelief = chip.dataset.relief;
-      for (const c of el.reliefToolBox.querySelectorAll("[data-relief]")) {
-        c.classList.toggle("active", c === chip);
+      const reliefChip = e.target.closest("[data-relief]");
+      if (reliefChip) {
+        state.paintRelief = reliefChip.dataset.relief;
+        for (const c of el.reliefToolBox.querySelectorAll("[data-relief]")) {
+          c.classList.toggle("active", c === reliefChip);
+        }
+        el.hillProfileRow.hidden = state.paintRelief !== "hills";
+        return;
+      }
+      const profileChip = e.target.closest("[data-hill-profile]");
+      if (profileChip) {
+        state.paintHillProfile = profileChip.dataset.hillProfile;
+        for (const c of el.reliefToolBox.querySelectorAll("[data-hill-profile]")) {
+          c.classList.toggle("active", c === profileChip);
+        }
+        return;
+      }
+      const forestChip = e.target.closest("[data-forest-paint]");
+      if (forestChip) {
+        state.paintForestMode = forestChip.dataset.forestPaint;
+        for (const c of el.reliefToolBox.querySelectorAll("[data-forest-paint]")) {
+          c.classList.toggle("active", c === forestChip);
+        }
       }
     });
 
-    el.forestPaintRange.addEventListener("input", () => {
-      const v = Number(el.forestPaintRange.value);
-      state.paintForest = v / 100;
-      el.forestPaintVal.textContent = `${v}%`;
+    // Welt & Optik Tabs
+    el.opticsTabs.addEventListener("click", (e) => {
+      const tab = e.target.closest("[data-optics-tab]");
+      if (!tab) return;
+      const target = tab.dataset.opticsTab;
+      for (const c of el.opticsTabs.querySelectorAll("[data-optics-tab]")) {
+        c.classList.toggle("active", c === tab);
+      }
+      el.opticsTabRelief.hidden = target !== "relief";
+      el.opticsTabForest.hidden = target !== "forest";
+      el.opticsTabColors.hidden = target !== "colors";
+      el.opticsTabSurface.hidden = target !== "surface";
+    });
+
+    // Relief live controls
+    el.reliefEnabledCheck.addEventListener("change", () => {
+      state.reliefConfig.enabled = el.reliefEnabledCheck.checked;
+      state.engine?.setReliefConfig({ enabled: state.reliefConfig.enabled });
+    });
+    el.reliefLightingCheck.addEventListener("change", () => {
+      state.reliefConfig.lighting = el.reliefLightingCheck.checked;
+      state.engine?.setReliefConfig({ lighting: state.reliefConfig.lighting });
+    });
+    el.reliefStrengthRange.addEventListener("input", () => {
+      const v = Number(el.reliefStrengthRange.value);
+      state.reliefConfig.strength = v;
+      el.reliefStrengthVal.textContent = `${v}%`;
+      state.engine?.setReliefConfig({ strength: v });
+    });
+    el.regionJumpGrid.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-jump]");
+      if (!btn || !state.engine) return;
+      const [q, r, z] = btn.dataset.jump.split(",").map(Number);
+      state.engine.centerOnHex(q, r, z || 0.72);
+    });
+
+    // Forest / Canopy / Glades / Open-Trees live controls
+    el.forestModeRow.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-forest-mode]");
+      if (!chip) return;
+      state.forestConfig.mode = chip.dataset.forestMode;
+      for (const c of el.forestModeRow.querySelectorAll("[data-forest-mode]")) {
+        c.classList.toggle("active", c === chip);
+      }
+      state.engine?.setForestConfig({ mode: state.forestConfig.mode });
+    });
+    el.canopyCoverRange.addEventListener("input", () => {
+      const pct = Number(el.canopyCoverRange.value);
+      state.forestConfig.canopyCover = pct / 100;
+      el.canopyCoverVal.textContent = `${pct}%`;
+      state.engine?.setForestConfig({ canopyCover: state.forestConfig.canopyCover });
+    });
+    el.canopyVarRange.addEventListener("input", () => {
+      const pct = Number(el.canopyVarRange.value);
+      state.forestConfig.canopyVariation = pct / 100;
+      el.canopyVarVal.textContent = `±${pct} pp`;
+      state.engine?.setForestConfig({ canopyVariation: state.forestConfig.canopyVariation });
+    });
+    el.gladeRateRange.addEventListener("input", () => {
+      const pct = Number(el.gladeRateRange.value);
+      state.forestConfig.gladeRate = pct / 100;
+      el.gladeRateVal.textContent = `${pct}%`;
+      state.engine?.setForestConfig({ gladeRate: state.forestConfig.gladeRate });
+    });
+    el.edgeStrengthRange.addEventListener("input", () => {
+      const pct = Number(el.edgeStrengthRange.value);
+      state.forestConfig.edgeStrength = pct / 100;
+      el.edgeStrengthVal.textContent = `${pct}%`;
+      state.engine?.setForestConfig({ edgeStrength: state.forestConfig.edgeStrength });
+    });
+    el.openTreeRange.addEventListener("input", () => {
+      const pct = Number(el.openTreeRange.value);
+      state.forestConfig.openTreeChance = pct / 100;
+      el.openTreeVal.textContent = `${pct}%`;
+      state.engine?.setForestConfig({ openTreeChance: state.forestConfig.openTreeChance });
+    });
+
+    // Sprite color & polish live controls (0 ms GPU uniforms)
+    el.naturePolishRange.addEventListener("input", () => {
+      const pct = Number(el.naturePolishRange.value);
+      state.visualConfig.naturePolish = pct / 100;
+      el.naturePolishVal.textContent = `${pct}%`;
+      state.engine?.setVisualConfig({ naturePolish: state.visualConfig.naturePolish });
+    });
+    el.spriteSatRange.addEventListener("input", () => {
+      const pct = Number(el.spriteSatRange.value);
+      state.visualConfig.spriteSaturation = pct / 100;
+      el.spriteSatVal.textContent = `${pct}%`;
+      state.engine?.setVisualConfig({ spriteSaturation: state.visualConfig.spriteSaturation });
+    });
+    el.spriteBrightRange.addEventListener("input", () => {
+      const pct = Number(el.spriteBrightRange.value);
+      state.visualConfig.spriteBrightness = pct / 100;
+      el.spriteBrightVal.textContent = `${pct}%`;
+      state.engine?.setVisualConfig({ spriteBrightness: state.visualConfig.spriteBrightness });
+    });
+    el.spriteContrastRange.addEventListener("input", () => {
+      const pct = Number(el.spriteContrastRange.value);
+      state.visualConfig.spriteContrast = pct / 100;
+      el.spriteContrastVal.textContent = `${pct}%`;
+      state.engine?.setVisualConfig({ spriteContrast: state.visualConfig.spriteContrast });
+    });
+    el.resetOpticsBtn.addEventListener("click", () => {
+      state.forestConfig = { ...(DEFAULT_FOREST_CONFIG || state.forestConfig) };
+      state.reliefConfig = { ...(DEFAULT_RELIEF_CONFIG || state.reliefConfig) };
+      state.visualConfig = { ...(DEFAULT_VISUAL_CONFIG || state.visualConfig) };
+      syncOpticsUi();
+      state.engine?.setForestConfig(state.forestConfig);
+      state.engine?.setReliefConfig(state.reliefConfig);
+      state.engine?.setVisualConfig(state.visualConfig);
+      showToast("Welt-, Wald- & Sprite-Optik auf Standard zurückgesetzt.");
+    });
+
+    // Mountain Shadows & Auto-Tiling controls (0 ms GPU uniforms)
+    el.mtnShadowSpritesCheck.addEventListener("change", () => {
+      state.visualConfig.mountainShadowOnSprites = el.mtnShadowSpritesCheck.checked;
+      state.engine?.setVisualConfig({
+        mountainShadowOnSprites: state.visualConfig.mountainShadowOnSprites,
+      });
+    });
+    el.edgeBandRange.addEventListener("input", () => {
+      const px = Number(el.edgeBandRange.value);
+      state.visualConfig.edgeBand = px;
+      el.edgeBandVal.textContent = `${px} px`;
+      state.engine?.setVisualConfig({ edgeBand: px });
+    });
+    el.waterSamplingRow.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-water-sampling]");
+      if (!chip) return;
+      state.visualConfig.waterSampling = chip.dataset.waterSampling;
+      for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
+        c.classList.toggle("active", c === chip);
+      }
+      state.engine?.setVisualConfig({ waterSampling: state.visualConfig.waterSampling });
     });
 
     el.roadToolBox.addEventListener("click", (e) => {
@@ -934,14 +1223,33 @@
       if (!file) return;
       try {
         const parsed = JSON.parse(await file.text());
-        const cfg = parsed.config || parsed.parameters || parsed;
-        if (typeof cfg !== "object" || cfg === null) throw new Error("Ungültiges JSON");
-        state.geographyConfig = cfg;
+        const cfg = parsed.config || parsed.parameters || (!Array.isArray(parsed.cells) ? parsed : undefined);
+        if (cfg && typeof cfg === "object") {
+          state.geographyConfig = cfg;
+        }
         if (typeof parsed.seed === "string" && parsed.seed.trim()) {
           state.seed = parsed.seed.trim();
           el.seedInput.value = state.seed;
         }
         state.hexOverrides.clear();
+
+        // If full exported world JSON includes explicit cells[], preserve EVERY cell's terrain, hills & forest 1:1!
+        let importedCells = 0;
+        if (Array.isArray(parsed.cells) && parsed.cells.length > 0) {
+          for (const c of parsed.cells) {
+            if (!Number.isSafeInteger(c?.q) || !Number.isSafeInteger(c?.r)) continue;
+            const k = hexMath.hexKey(c.q, c.r);
+            state.hexOverrides.set(k, {
+              terrainId: c.terrainId || c.terrainTypeId || "grassland",
+              reliefClass: c.reliefClass || "flat",
+              hillProfile: c.hillProfile ?? null,
+              hillStrength: Number.isFinite(Number(c.hillStrength)) ? Number(c.hillStrength) : undefined,
+              forestClass: c.forestClass,
+              forestDensity: Number.isFinite(Number(c.forestDensity)) ? Number(c.forestDensity) : 0,
+            });
+            importedCells++;
+          }
+        }
 
         // Convert exported Geography-Lab riverPaths (hex chains) into crisp hex-edge MapRiverEdge[]
         const rawRivers = parsed.riverPreviewPaths || parsed.riverPaths;
@@ -955,7 +1263,6 @@
               if (!a || !b) continue;
               const dir = hexMath.neighborDirection(a.q, a.r, b.q, b.r);
               if (dir < 0) continue;
-              // Emit a side edge bordering the step so the river follows hex boundaries cleanly
               const sideDir = (dir + 1) % 6;
               const d = hexMath.HEX_NEIGHBOR_DIRS[sideDir];
               const pair = hexMath.canonicalEdgePair(a.q, a.r, a.q + d[0], a.r + d[1]);
@@ -986,11 +1293,11 @@
           el.geoPresetBadge.title = `Geladene Geografie-Labor-JSON: ${file.name}`;
         }
         pushScene();
-        showToast(
-          `Geografie-Labor-JSON geladen (${Object.keys(cfg).length} Parameter` +
-            (state.scene.rivers.length ? `, ${state.scene.rivers.length} Flusskanten` : "") +
-            `).`,
-        );
+        const details = [];
+        if (cfg) details.push(`${Object.keys(cfg).length} Parameter`);
+        if (importedCells) details.push(`${importedCells} Hexe (inkl. Hügel & Wald)`);
+        if (state.scene.rivers.length) details.push(`${state.scene.rivers.length} Flusskanten`);
+        showToast(`Geografie-Labor-JSON geladen (${details.join(", ")}).`);
       } catch (err) {
         showToast(`Geografie-JSON ungültig: ${err.message}`, true);
       } finally {
@@ -1091,6 +1398,7 @@
     });
 
     el.saveNatureCatalogBtn.addEventListener("click", saveNatureCatalog);
+    syncOpticsUi();
   }
 
   async function init() {

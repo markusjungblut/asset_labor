@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 0,
+  "revision": 1,
   "entries": {
     "nature/affenbrotbaum1.png": {
       "id": "existing_affenbrotbaum1",
@@ -20710,6 +20710,1066 @@
         "dry_patch"
       ],
       "targetHeight": 35
+    },
+    "nature/boulder_55.png": {
+      "id": "boulder_55",
+      "description": "Wasserfelsen 55 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_55.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_56.png": {
+      "id": "boulder_56",
+      "description": "Wasserfelsen 56 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_56.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_57.png": {
+      "id": "boulder_57",
+      "description": "Wasserfelsen 57 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_57.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_58.png": {
+      "id": "boulder_58",
+      "description": "Wasserfelsen 58 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_58.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_59.png": {
+      "id": "boulder_59",
+      "description": "Wasserfelsen 59 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_59.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_60.png": {
+      "id": "boulder_60",
+      "description": "Wasserfelsen 60 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_60.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_61.png": {
+      "id": "boulder_61",
+      "description": "Wasserfelsen 61 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_61.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_62.png": {
+      "id": "boulder_62",
+      "description": "Wasserfelsen 62 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_62.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_63.png": {
+      "id": "boulder_63",
+      "description": "Wasserfelsen 63 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_63.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_64.png": {
+      "id": "boulder_64",
+      "description": "Wasserfelsen 64 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_64.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_65.png": {
+      "id": "boulder_65",
+      "description": "Wasserfelsen 65 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_65.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_66.png": {
+      "id": "boulder_66",
+      "description": "Wasserfelsen 66 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_66.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_67.png": {
+      "id": "boulder_67",
+      "description": "Wasserfelsen 67 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_67.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_68.png": {
+      "id": "boulder_68",
+      "description": "Wasserfelsen 68 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_68.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_69.png": {
+      "id": "boulder_69",
+      "description": "Wasserfelsen 69 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_69.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_70.png": {
+      "id": "boulder_70",
+      "description": "Wasserfelsen 70 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_70.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_71.png": {
+      "id": "boulder_71",
+      "description": "Wasserfelsen 71 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_71.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_72.png": {
+      "id": "boulder_72",
+      "description": "Wasserfelsen 72 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_72.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_73.png": {
+      "id": "boulder_73",
+      "description": "Wasserfelsen 73 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_73.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
+    },
+    "nature/boulder_74.png": {
+      "id": "boulder_74",
+      "description": "Wasserfelsen 74 – Felsen/Klippe ausschließlich für Ozean, Küstenwasser und stürmische See (nicht für Eismeer).",
+      "sourceReference": "Bestandsdatei: boulder_74.png",
+      "family": "stones",
+      "kind": "rock",
+      "sizeClass": "large",
+      "sizeMode": "class",
+      "logicalWidth": 96,
+      "scaleMin": 0.68,
+      "scaleMax": 3.0,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.8
+      },
+      "shadow": {
+        "mode": "generic_small_round",
+        "path": "",
+        "offsetX": -0.18,
+        "offsetY": 0.04,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "ocean",
+        "coastal_water",
+        "stormy_ocean"
+      ],
+      "excludedTerrainTypes": [
+        "icy_ocean"
+      ],
+      "placement": {
+        "weight": 1,
+        "density": 0.14,
+        "minSpacing": 26,
+        "canCluster": true,
+        "edgeMargin": 16
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.22,
+        "flatten": true
+      },
+      "artStatus": "approved",
+      "tags": [
+        "existing",
+        "water_boulder"
+      ],
+      "targetHeight": 110
     }
   }
 }
