@@ -96,12 +96,20 @@
     for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
     return h>>>0;
   }
-  function hash(seed,q,r,salt) {
-    let h=seed^Math.imul(q+32767,374761393)^Math.imul(r+65521,668265263)^hashString(String(salt));
+  const saltHashes=Object.create(null);
+  function saltCode(salt){
+    const k=typeof salt==="string"?salt:String(salt);
+    let v=saltHashes[k];
+    if(v===undefined){v=hashString(k);saltHashes[k]=v;}
+    return v;
+  }
+  function hashCode(seed,q,r,sc){
+    let h=seed^Math.imul(q+32767,374761393)^Math.imul(r+65521,668265263)^sc;
     h=Math.imul(h^(h>>>15),2246822519);h=Math.imul(h^(h>>>13),3266489917);
     return (h^(h>>>16))>>>0;
   }
-  const unit=(seed,q,r,salt)=>hash(seed,q,r,salt)/4294967296;
+  function hash(seed,q,r,salt){return hashCode(seed,q,r,saltCode(salt));}
+  const unit=(seed,q,r,salt)=>hashCode(seed,q,r,saltCode(salt))/4294967296;
   const ease=x=>x*x*(3-2*x);
   function chooseWeighted(value,entries,c) {
     const total=entries.reduce((n,[,name])=>n+c[name],0);
@@ -113,8 +121,10 @@
   const mix=(a,b,t)=>a+(b-a)*t;
   function noise(seed,x,y,scale,salt) {
     const px=x/scale,py=y/scale,q=Math.floor(px),r=Math.floor(py),u=ease(px-q),v=ease(py-r);
-    return mix(mix(unit(seed,q,r,salt),unit(seed,q+1,r,salt),u),
-      mix(unit(seed,q,r+1,salt),unit(seed,q+1,r+1,salt),u),v);
+    const sc=saltCode(salt),inv=1/4294967296;
+    const a=hashCode(seed,q,r,sc)*inv,b=hashCode(seed,q+1,r,sc)*inv;
+    const c=hashCode(seed,q,r+1,sc)*inv,d=hashCode(seed,q+1,r+1,sc)*inv;
+    return mix(mix(a,b,u),mix(c,d,u),v);
   }
   function parameterSchema(){return definitions.map(([group,id,label,defaultValue,min,max,step,help])=>
     ({group,id,label,defaultValue,min,max,step,help}));}
@@ -287,16 +297,49 @@
     function relief(q,r){
       const k=spot(q,r);if(cacheRelief.has(k))return cacheRelief.get(k);
       const mass=noise(s,q,r,c["relief.scale"],"relief");
-      const ridge=1-Math.abs(noise(s,q*.58+r*.3,r*1.5,
-        c["relief.chainLength"],"ridge")-.5)*2;
-      const obj={mass,mountain:(mass*.60+ridge*.40)*c["relief.chainWidth"]+
-        mass*(1-c["relief.chainWidth"]),
+      // Long curved tectonic ridge chains (naturally 2-4, max ~5 hexes wide) with traversable passes.
+      const chainLen=Math.max(6,c["relief.chainLength"]);
+      const wq=q+(noise(s,q,r,chainLen*.58,"m-warp-q")-.5)*11.0;
+      const wr=r+(noise(s,q,r,chainLen*.58,"m-warp-r")-.5)*11.0;
+      const ridgeA=1-Math.abs(noise(s,wq*.56+wr*.36,wr*1.18,chainLen,"ridge")-.5)*2;
+      const ridgeB=1-Math.abs(noise(s,wq*.34-wr*.74,wq*1.08,chainLen*1.25,"ridge-b")-.5)*2;
+      const rawRidge=Math.max(ridgeA,ridgeB*.86);
+      // Blend ridges softly without fattening intersections; sharp exponent keeps ribbons 2-4 hexes wide!
+      const sharpRidge=Math.pow(rawRidge,3.6);
+      // Natural mountain passes cut clean 1-2 hex traversable corridors through long chains.
+      const passA=1-Math.abs(noise(s,q*.92+r*.28,r*.96,7.5,"m-pass-a")-.5)*2;
+      const passB=1-Math.abs(noise(s,q*.28-r*.92,q*.96,8.2,"m-pass-b")-.5)*2;
+      const passVal=Math.max(passA,passB);
+      const passCut=passVal>.82?Math.pow((passVal-.82)/.18,.70)*.62:0;
+      const cw=clamp(c["relief.chainWidth"],.05,.95);
+      const ridgeWeight=.92-.14*cw;
+      const mountain=clamp(sharpRidge*ridgeWeight+mass*(1-ridgeWeight)-passCut,0,1);
+      // Broader tectonic foothill ore belt preserves M22 iron-deposit & forgotten-mine balance along chains.
+      const oreBelt=clamp(rawRidge*.65+mass*.35,0,1);
+      const obj={mass,mountain,oreBelt,
         hill:mass*.75+noise(s,q,r,c["relief.scale"]*.46,"hills")*.25};
       cacheRelief.set(k,obj);return obj;
     }
     const mountainCut=globalCut(s,"mountain",c["relief.mountainFraction"],
       (q,r)=>relief(q,r).mountain,(q,r)=>!wet(q,r));
-    const isMountain=(q,r)=>!wet(q,r)&&relief(q,r).mountain>=mountainCut;
+    const rawMountain=(q,r)=>!wet(q,r)&&relief(q,r).mountain>=mountainCut;
+    const cacheMtn=new Map();
+    const isMountain=(q,r)=>{
+      const k=spot(q,r);if(cacheMtn.has(k))return cacheMtn.get(k);
+      if(!rawMountain(q,r)){cacheMtn.set(k,false);return false;}
+      // Scout-visibility width guard (vision radius 2 from either flank => max ~4-5 hex wide chains):
+      // if all 18 hexes in radius 2 are solid raw mountain, open the deep core into an alpine valley (`hills`)!
+      let keep=false;
+      for(let dq=-2;dq<=2&&!keep;dq++){
+        const minR=Math.max(-2,-dq-2),maxR=Math.min(2,-dq+2);
+        for(let dr=minR;dr<=maxR;dr++){
+          if(dq===0&&dr===0)continue;
+          if(!rawMountain(q+dq,r+dr)){keep=true;break;}
+        }
+      }
+      cacheMtn.set(k,keep);
+      return keep;
+    };
     const hillCut=globalCut(s,"hills",c["relief.hillFraction"],
       (q,r)=>relief(q,r).hill,(q,r)=>!wet(q,r)&&!isMountain(q,r));
     const isHill=(q,r)=>!wet(q,r)&&!isMountain(q,r)&&relief(q,r).hill>=hillCut;
@@ -356,7 +399,7 @@
       const chance=(name,per1000)=>unit(s,x.q,x.r,"feature:"+name)<per1000/1000;
       if(x.surfaceClass==="land"&&x.reliefClass!=="mountain"){
         if(chance("iron",c["features.ironPer1000"])&&
-          field(x.q,x.r).landRelief.mountain>.30)x.features.push("iron");
+          field(x.q,x.r).landRelief.oreBelt>.30)x.features.push("iron");
         if(["grassland","savanna","wetland","jungle"].includes(x.baseBiome)&&
           chance("animals",c["features.animalsPer1000"])){
           if(x.baseBiome==="wetland"||x.baseBiome==="jungle")x.features.push("pigs");
@@ -401,8 +444,84 @@
         forestDensity,forestClass,riverPotential:info?.riverPotential??0,
         river:false,riverEdges:[],features:[]};
     }
+    function traceRivers(originQ,originR,width,height){
+      const maxLength=c["rivers.maxLength"],minLength=c["rivers.minLength"];
+      const halo=maxLength+1,extent=2*maxLength+2;
+      const inBox=(q,r)=>q>=originQ&&q<originQ+width&&r>=originR&&r<originR+height;
+      const minQ=originQ-extent,minR=originR-extent;
+      const spanW=width+2*extent,spanH=height+2*extent;
+      const distGrid=new Int16Array(spanW*spanH);
+      distGrid.fill(-1);
+      const qBuf=new Int32Array(spanW*spanH),rBuf=new Int32Array(spanW*spanH);
+      let qHead=0,qTail=0;
+      for(let lr=0;lr<spanH;lr++){
+        const r=minR+lr,rowOff=lr*spanW;
+        for(let lq=0;lq<spanW;lq++){
+          const q=minQ+lq;
+          if(wet(q,r)){distGrid[rowOff+lq]=0;qBuf[qTail]=q;rBuf[qTail]=r;qTail++;}
+        }
+      }
+      while(qHead<qTail){
+        const cq=qBuf[qHead],cr=rBuf[qHead];qHead++;
+        const d=distGrid[(cr-minR)*spanW+(cq-minQ)];
+        if(d>=maxLength)continue;
+        const nd=d+1;
+        for(let di=0;di<6;di++){
+          const nq=cq+DIRS[di][0],nr=cr+DIRS[di][1];
+          const lq=nq-minQ,lr=nr-minR;
+          if(lq<0||lq>=spanW||lr<0||lr>=spanH)continue;
+          const idx=lr*spanW+lq;
+          if(distGrid[idx]>=0)continue;
+          if(isMountain(nq,nr))continue;
+          distGrid[idx]=nd;qBuf[qTail]=nq;rBuf[qTail]=nr;qTail++;
+        }
+      }
+      const routes=[],edgesByKey=new Map();
+      const srcThresh=c["rivers.sourcesPer100"]/100;
+      const srcSalt=saltCode("river-source"),turnSalt=saltCode("river-turn"),inv=1/4294967296;
+      function markEdge(a,b){
+        for(const [p,o] of [[a,b],[b,a]]){
+          if(!inBox(p.q,p.r)||wet(p.q,p.r))continue;
+          const index=DIRS.findIndex(([dq,dr])=>p.q+dq===o.q&&p.r+dr===o.r);
+          if(index<0)continue;
+          const k=spot(p.q,p.r);
+          let list=edgesByKey.get(k);
+          if(!list){list=[];edgesByKey.set(k,list);}
+          if(!list.includes(index))list.push(index);
+        }
+      }
+      for(let r=originR-halo;r<originR+height+halo;r++)
+        for(let q=originQ-halo;q<originQ+width+halo;q++){
+          if(hashCode(s,q,r,srcSalt)*inv>=srcThresh)continue;
+          const distance=distGrid[(r-minR)*spanW+(q-minQ)];
+          if(distance<minLength||wet(q,r)||isMountain(q,r)||field(q,r).riverPotential<.36)continue;
+          const route=[{q,r}];let current={q,r};
+          for(let n=0;n<maxLength;n++){
+            const d=distGrid[(current.r-minR)*spanW+(current.q-minQ)];
+            if(d<=0)break;
+            let bestP=null,bestScore=Infinity;
+            for(let di=0;di<6;di++){
+              const pq=current.q+DIRS[di][0],pr=current.r+DIRS[di][1];
+              const lq=pq-minQ,lr=pr-minR;
+              if(lq<0||lq>=spanW||lr<0||lr>=spanH)continue;
+              if(distGrid[lr*spanW+lq]!==d-1)continue;
+              const sc=relief(pq,pr).hill*(1-c["rivers.meander"])+
+                hashCode(s,pq,pr,turnSalt)*inv*c["rivers.meander"];
+              if(sc<bestScore){bestScore=sc;bestP={q:pq,r:pr};}
+            }
+            if(!bestP)break;
+            current=bestP;route.push(current);
+          }
+          if(!wet(current.q,current.r)||route.length-1<minLength)continue;
+          if(!route.some(p=>inBox(p.q,p.r)))continue;
+          routes.push(route.map(p=>[p.q,p.r]));
+          for(let n=1;n<route.length;n++)markEdge(route[n-1],route[n]);
+        }
+      for(const list of edgesByKey.values())list.sort((a,b)=>a-b);
+      return {routes,edgesByKey};
+    }
     function sampleCell(q,r){return attachFeatures(buildBaseCell(q,r));}
-    return {c,s,spot,wet,relief,isMountain,isHill,field,surface,buildBaseCell,attachFeatures,sampleCell};
+    return {c,s,spot,wet,relief,isMountain,isHill,field,surface,buildBaseCell,attachFeatures,sampleCell,traceRivers};
   }
   function generateWorld(seed, options={}) {
     if(typeof seed!=="string"||seed.length<1||seed.length>256)

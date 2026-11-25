@@ -325,7 +325,13 @@ def bake_mountain_shadow(
     meta: dict[str, Any],
     ref_width: float = 180.0,
 ) -> tuple[Image.Image, list[float], str] | None:
-    """Offline exact distance-field mountain ground shadow matching `shadow-system.js`."""
+    """Offline silhouette-accurate mountain ground shadow matching the global 142-deg sun angle.
+
+    Unlike the legacy uniform wedge (which stretched >1.08x width with identical shape across all
+    21 mountains), each mountain now casts its OWN unique peak/ridge silhouette starting tightly
+    at its visible rocky base, matching the exact direction and proportional length of tree,
+    boulder, cactus, and wall shadows!
+    """
     mcfg = dict(MOUNTAIN_SHADOW_DEFAULTS)
     m_meta = meta.get("mountain") or {}
     if isinstance(m_meta.get("shadowOpacity"), (int, float)):
@@ -336,89 +342,130 @@ def bake_mountain_shadow(
     anchor = meta.get("anchor") or {}
     ax = clamp(float(anchor.get("x", 0.5)), 0.0, 1.0)
     ay = clamp(float(anchor.get("y", 0.67)), 0.0, 1.0)
-    foot_x, foot_y = compute_alpha_foot(trimmed, ax, ay)
-
     aspect = trimmed.height / max(1, trimmed.width)
     ref_h = ref_width * aspect
 
-    # Tuck shadow root solidly behind the mountain's left-base flank (never detached outside the silhouette!)
-    # and keep the right fade strictly left of the sunlit east ridge (x <= -0.04 * ref_width).
-    origin_x = ref_width * clamp(foot_x + 0.18, -0.32, -0.14)
-    origin_y = ref_h * clamp(foot_y, -0.06, 0.12) + ref_width * 0.045
+    # Exact global game sun angle (142 deg = light from screen-right, shadow cast left/down-left)
+    angle = 142.0
+    rad = math.radians(angle)
+    # Compact, realistic mountain cast reach (0.46x sprite width -> cohesive with trees/walls/hills!)
+    length_f = 0.46
+    width_f = 0.94
+    reach = ref_width * length_f
+    cast_x = reach * math.cos(rad)
+    cast_y = reach * math.sin(rad) * 0.28
+    ox = -ref_width * 0.06
+    oy = ref_width * 0.02
+    slant = 0.03
 
-    rad = math.radians(mcfg["angle"])
-    dir_x, dir_y = math.cos(rad), math.sin(rad)
-    norm_x, norm_y = -dir_y, dir_x
-    length = ref_width * max(0.84, mcfg["length"])
-    r0 = max(0.28, mcfg["rootWidth"]) * ref_width
-    r1 = max(0.22, mcfg["midWidth"]) * ref_width
-    r2 = max(0.11, mcfg["tipWidth"]) * ref_width
-    soft = max(1.8, mcfg["softness"] * (ref_width / max(1.0, float(meta.get("logicalWidth") or 360.0))))
-    contact_len = ref_width * max(0.36, mcfg["contactLength"])
-    contact_w = ref_width * max(0.18, mcfg["contactWidth"])
+    # Forward affine transform from mountain-local (lx, ly) to anchor-relative ground (px, py)
+    a11 = width_f
+    a12 = -cast_x / max(1.0, ref_h)
+    a21 = slant
+    a22 = -cast_y / max(1.0, ref_h)
+    det = a11 * a22 - a12 * a21
+    if abs(det) < 1e-6:
+        return None
 
-    p2_x = origin_x + dir_x * length
-    p2_y = origin_y + dir_y * length
-    max_r = max(r0, r1, r2, contact_w)
-    pad = max_r + max(6.0, soft) * 1.5
+    # Use rows down to a slightly lower foot cut so wide rocky skirts ground smoothly into terrain
+    foot_cut_ratio = clamp(ay + 0.14, 0.72, 0.96)
+    base_h = ref_h * foot_cut_ratio
 
-    x0 = int(math.floor(min(origin_x, p2_x) - pad))
-    x1 = int(math.ceil(origin_x + ref_width * 0.22 + 2))
-    y0 = int(math.floor(min(origin_y, p2_y) - pad))
-    y1 = int(math.ceil(max(origin_y, p2_y) + pad))
-    bw = max(1, x1 - x0)
-    bh = max(1, y1 - y0)
+    corners_x = [-ref_width * ax, ref_width * (1.0 - ax)]
+    corners_y = [-ref_h * ay, base_h - ref_h * ay]
+    proj_x = [ox + a11 * lx + a12 * ly for lx in corners_x for ly in corners_y]
+    proj_y = [oy + a21 * lx + a22 * ly for lx in corners_x for ly in corners_y]
+    # Also include grounded rocky base footprint bounds (no floating gap on sloped hills)
+    proj_x.extend([-ref_width * ax * 0.96, ref_width * (1.0 - ax) * 0.72])
+    proj_y.extend([-ref_width * 0.10, ref_width * 0.16])
 
-    alpha_buf = bytearray(bw * bh)
-    for py in range(bh):
-        wy = y0 + py + 0.5
-        dy = wy - origin_y
-        row_off = py * bw
-        for px in range(bw):
-            wx = x0 + px + 0.5
-            # Soft smoothstep right-edge gate tucked behind mountain base (zero vertical knife edge!)
-            right_gate = 1.0 - smoothstep(origin_x + ref_width * 0.04, origin_x + ref_width * 0.20, wx)
-            if right_gate <= 0.002:
+    blur_px = 5.2
+    pad = int(math.ceil(blur_px * 3.0)) + 6
+    x0 = int(math.floor(min(proj_x))) - pad
+    y0 = int(math.floor(min(proj_y))) - pad
+    x1 = int(math.ceil(max(proj_x))) + pad
+    y1 = int(math.ceil(max(proj_y))) + pad
+    bw = max(8, x1 - x0)
+    bh = max(8, y1 - y0)
+    scale = min(1.0, 280.0 / max(bw, bh))
+    cw = max(8, round(bw * scale))
+    ch = max(8, round(bh * scale))
+
+    src_alpha = trimmed.getchannel("A")
+    cut_y = max(1, min(src_alpha.height, int(round(src_alpha.height * foot_cut_ratio))))
+    cropped_src = src_alpha.crop((0, 0, src_alpha.width, cut_y))
+
+    sx_scale = cropped_src.width / ref_width
+    sy_scale = cropped_src.height / max(1.0, base_h)
+
+    inv11 = a22 / det
+    inv12 = -a12 / det
+    inv21 = -a21 / det
+    inv22 = a11 / det
+
+    ma = (inv11 / scale) * sx_scale
+    mb = (inv12 / scale) * sx_scale
+    mc = (inv11 * (x0 - ox) + inv12 * (y0 - oy) + ref_width * ax) * sx_scale
+    md = (inv21 / scale) * sy_scale
+    me = (inv22 / scale) * sy_scale
+    mf = (inv21 * (x0 - ox) + inv22 * (y0 - oy) + ref_h * ay) * sy_scale
+
+    cast_mask = cropped_src.transform(
+        (cw, ch),
+        Image.Transform.AFFINE,
+        (ma, mb, mc, md, me, mf),
+        resample=Image.Resampling.BILINEAR,
+    )
+    cast_mask = cast_mask.point(lambda v: 255 if v > 28 else int(v * 255 / 28))
+
+    # Soft right-edge mask keeps the sunlit eastern flank bright while hugging the western rocky foot!
+    raw_cast = bytearray(cast_mask.tobytes())
+    for py in range(ch):
+        row_off = py * cw
+        for px in range(cw):
+            val = raw_cast[row_off + px]
+            if val == 0:
                 continue
-            dx = wx - origin_x
-            t = dx * dir_x + dy * dir_y
-            lateral = dx * norm_x + dy * norm_y
-            if t < length * 0.43:
-                rr = r0 + (r1 - r0) * clamp(t / (length * 0.43), 0.0, 1.0)
-            else:
-                rr = r1 + (r2 - r1) * clamp((t - length * 0.43) / (length * 0.57), 0.0, 1.0)
-            along = -t if t < 0 else (t - length if t > length else 0.0)
-            signed = math.hypot(abs(lateral), along) - rr
-            root_gate = smoothstep(-ref_width * 0.14, ref_width * 0.04, t)
-            cast_fade = (
-                (1.0 - smoothstep(-soft * 0.18, soft * 0.95, signed))
-                * (1.0 - smoothstep(length * 0.88, length + r2 + soft, t))
-                * root_gate
-            )
-            c_axis = clamp(t, -contact_len * 0.12, contact_len * 0.88)
-            c_dist = math.hypot(lateral, t - c_axis) - contact_w
-            c_fade = (1.0 - smoothstep(-soft * 0.12, soft * 0.78, c_dist)) * smoothstep(
-                -ref_width * 0.12, ref_width * 0.03, t
-            )
-            # Normalized coverage (0..1) so WebGL2 applies global shadow opacity once!
-            cover = clamp(max(0.90 * cast_fade, 0.62 * c_fade) / 0.90 * right_gate, 0.0, 1.0)
-            a = int(round(cover * 255.0))
-            if a > 0:
-                alpha_buf[row_off + px] = a
+            wx = x0 + (px + 0.5) / scale
+            # Gently taper away on the sunlit eastern half (right of mountain center)
+            right_gate = 1.0 - smoothstep(ref_width * 0.02, ref_width * 0.24, wx)
+            if right_gate < 0.999:
+                raw_cast[row_off + px] = int(round(val * right_gate))
+    cast_mask = Image.frombytes("L", (cw, ch), bytes(raw_cast))
 
-    alpha_img = Image.frombytes("L", (bw, bh), bytes(alpha_buf))
-    bbox = alpha_img.point(lambda v: 255 if v > 2 else 0).getbbox()
+    # Add a soft grounded contact band along the mountain's left/center base foot (zero detachment on hills!)
+    contact_mask = Image.new("L", (cw, ch), 0)
+    cdraw = ImageDraw.Draw(contact_mask)
+    c_cx = (-ref_width * 0.14 - x0) * scale
+    c_cy = (ref_width * 0.035 - y0) * scale
+    c_rx = ref_width * 0.34 * scale
+    c_ry = max(2.0, ref_width * 0.11 * scale)
+    cdraw.ellipse([c_cx - c_rx, c_cy - c_ry, c_cx + c_rx, c_cy + c_ry], fill=215)
+
+    eff_blur = clamp(blur_px * scale, 1.2, 7.0)
+    cast_mask = cast_mask.filter(ImageFilter.GaussianBlur(radius=eff_blur))
+    contact_mask = contact_mask.filter(ImageFilter.GaussianBlur(radius=max(1.0, eff_blur * 1.15)))
+
+    merged_bytes = bytes(a if a >= b else b for a, b in zip(cast_mask.tobytes(), contact_mask.tobytes()))
+    final_mask = Image.frombytes("L", (cw, ch), merged_bytes)
+    lo_hi = final_mask.getextrema()
+    peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
+    if 32 < peak < 240:
+        gain = min(1.8, 240.0 / peak)
+        final_mask = final_mask.point(lambda v: min(255, int(round(v * gain))))
+
+    bbox = final_mask.point(lambda v: 255 if v > 3 else 0).getbbox()
     if not bbox:
         return None
     cx0, cy0, cx1, cy1 = bbox
-    cropped_a = alpha_img.crop((cx0, cy0, cx1, cy1))
-    out = Image.new("RGBA", cropped_a.size, (0, 0, 0, 0))
-    out.putalpha(cropped_a)
+    cropped = final_mask.crop((cx0, cy0, cx1, cy1))
+    out = Image.new("RGBA", cropped.size, (0, 0, 0, 0))
+    out.putalpha(cropped)
     bounds = [
-        round((x0 + cx0) / ref_width, 5),
-        round((y0 + cy0) / ref_width, 5),
-        round((x0 + cx1) / ref_width, 5),
-        round((y0 + cy1) / ref_width, 5),
+        round((x0 + cx0 / scale) / ref_width, 5),
+        round((y0 + cy0 / scale) / ref_width, 5),
+        round((x0 + cx1 / scale) / ref_width, 5),
+        round((y0 + cy1 / scale) / ref_width, 5),
     ]
     return out, bounds, "mountain_field"
 

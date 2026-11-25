@@ -159,9 +159,14 @@
               <label class="check-pill"><input id="reliefEnabledCheck" type="checkbox" checked> <span>2.5D Relief</span></label>
               <label class="check-pill"><input id="reliefLightingCheck" type="checkbox" checked> <span>Beleuchtung</span></label>
             </div>
+            <div class="sub-label">Relief-Stil</div>
+            <div class="radio-row" id="reliefStyleRow">
+              <button type="button" class="chip active" data-relief-style="sculpted">Skulpturiert (Neu)</button>
+              <button type="button" class="chip" data-relief-style="classic">Klassisch</button>
+            </div>
             <label class="field-stack">
-              <span>Hügel-Stärke: <strong id="reliefStrengthVal" class="mono">64%</strong></span>
-              <input id="reliefStrengthRange" type="range" min="0" max="100" step="2" value="64">
+              <span>Hügel-Stärke: <strong id="reliefStrengthVal" class="mono">78%</strong></span>
+              <input id="reliefStrengthRange" type="range" min="0" max="100" step="2" value="78">
             </label>
             <div class="sub-label">Region direkt anspringen</div>
             <div class="jump-grid" id="regionJumpGrid">
@@ -222,11 +227,15 @@
             <button id="resetOpticsBtn" class="btn small" type="button">Optik &amp; Wald zurücksetzen</button>
           </div>
 
-          <!-- Tab 4: Mountain Shadows & Auto-Tiling -->
+          <!-- Tab 4: Mountain Shadows, Auto-Tiling & Wind/Water -->
           <div id="opticsTabSurface" class="optics-pane" hidden>
             <label class="check-pill">
               <input id="mtnShadowSpritesCheck" type="checkbox" checked>
               <span>Bergschatten verdunkelt Sprites</span>
+            </label>
+            <label class="check-pill">
+              <input id="windAnimationCheck" type="checkbox" checked>
+              <span>Wind- &amp; Wasser-Animation</span>
             </label>
             <label class="field-stack">
               <span>Übergangsbreite (Auto-Tile): <strong id="edgeBandVal" class="mono">28 px</strong></span>

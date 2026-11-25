@@ -87,8 +87,9 @@
     reliefConfig: {
       ...(DEFAULT_RELIEF_CONFIG || {
         enabled: true,
-        strength: 64,
+        strength: 78,
         lighting: true,
+        style: "sculpted",
       }),
     },
     visualConfig: {
@@ -100,6 +101,7 @@
         edgeBand: 28,
         waterSampling: "hex",
         mountainShadowOnSprites: true,
+        windAnimation: true,
       }),
     },
 
@@ -171,6 +173,7 @@
     opticsTabSurface: $("opticsTabSurface"),
     reliefEnabledCheck: $("reliefEnabledCheck"),
     reliefLightingCheck: $("reliefLightingCheck"),
+    reliefStyleRow: $("reliefStyleRow"),
     reliefStrengthRange: $("reliefStrengthRange"),
     reliefStrengthVal: $("reliefStrengthVal"),
     regionJumpGrid: $("regionJumpGrid"),
@@ -195,6 +198,7 @@
     spriteContrastVal: $("spriteContrastVal"),
     resetOpticsBtn: $("resetOpticsBtn"),
     mtnShadowSpritesCheck: $("mtnShadowSpritesCheck"),
+    windAnimationCheck: $("windAnimationCheck"),
     edgeBandRange: $("edgeBandRange"),
     edgeBandVal: $("edgeBandVal"),
     waterSamplingRow: $("waterSamplingRow"),
@@ -946,6 +950,12 @@
   function syncOpticsUi() {
     el.reliefEnabledCheck.checked = Boolean(state.reliefConfig.enabled);
     el.reliefLightingCheck.checked = Boolean(state.reliefConfig.lighting);
+    const activeStyle = state.reliefConfig.style || "sculpted";
+    if (el.reliefStyleRow) {
+      for (const c of el.reliefStyleRow.querySelectorAll("[data-relief-style]")) {
+        c.classList.toggle("active", c.dataset.reliefStyle === activeStyle);
+      }
+    }
     el.reliefStrengthRange.value = String(Math.round(state.reliefConfig.strength));
     el.reliefStrengthVal.textContent = `${Math.round(state.reliefConfig.strength)}%`;
 
@@ -982,6 +992,9 @@
     el.spriteContrastVal.textContent = `${conPct}%`;
 
     el.mtnShadowSpritesCheck.checked = Boolean(state.visualConfig.mountainShadowOnSprites);
+    if (el.windAnimationCheck) {
+      el.windAnimationCheck.checked = state.visualConfig.windAnimation !== false;
+    }
     el.edgeBandRange.value = String(Math.round(state.visualConfig.edgeBand));
     el.edgeBandVal.textContent = `${Math.round(state.visualConfig.edgeBand)} px`;
     for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
@@ -1047,6 +1060,15 @@
     el.reliefLightingCheck.addEventListener("change", () => {
       state.reliefConfig.lighting = el.reliefLightingCheck.checked;
       state.engine?.setReliefConfig({ lighting: state.reliefConfig.lighting });
+    });
+    el.reliefStyleRow?.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-relief-style]");
+      if (!chip) return;
+      state.reliefConfig.style = chip.dataset.reliefStyle;
+      for (const c of el.reliefStyleRow.querySelectorAll("[data-relief-style]")) {
+        c.classList.toggle("active", c === chip);
+      }
+      state.engine?.setReliefConfig({ style: state.reliefConfig.style });
     });
     el.reliefStrengthRange.addEventListener("input", () => {
       const v = Number(el.reliefStrengthRange.value);
@@ -1138,11 +1160,17 @@
       showToast("Welt-, Wald- & Sprite-Optik auf Standard zurückgesetzt.");
     });
 
-    // Mountain Shadows & Auto-Tiling controls (0 ms GPU uniforms)
+    // Mountain Shadows, Wind/Water & Auto-Tiling controls (0 ms GPU uniforms)
     el.mtnShadowSpritesCheck.addEventListener("change", () => {
       state.visualConfig.mountainShadowOnSprites = el.mtnShadowSpritesCheck.checked;
       state.engine?.setVisualConfig({
         mountainShadowOnSprites: state.visualConfig.mountainShadowOnSprites,
+      });
+    });
+    el.windAnimationCheck?.addEventListener("change", () => {
+      state.visualConfig.windAnimation = el.windAnimationCheck.checked;
+      state.engine?.setVisualConfig({
+        windAnimation: state.visualConfig.windAnimation,
       });
     });
     el.edgeBandRange.addEventListener("input", () => {
