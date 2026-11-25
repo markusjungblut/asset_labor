@@ -959,6 +959,8 @@ def export_nature_and_shadows(
             )
         )
 
+    shadow_items.extend(bake_wall_shadows(global_shadow))
+
     atlases_dir = out_dir / "atlases"
     nature_pages, nature_entries = pack_atlas_group(
         nature_items, atlases_dir, "nature", page_size, GUTTER, webp_quality
@@ -983,6 +985,156 @@ def export_nature_and_shadows(
         },
         raw_bytes,
     )
+
+
+def _convex_hull_2d(pts: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Monotone chain 2D convex hull matching `walls.js:192-202` `sweptFootprint`."""
+    uniq = sorted(set(pts))
+    if len(uniq) <= 2:
+        return uniq
+
+    def cross(o: tuple[float, float], a: tuple[float, float], b: tuple[float, float]) -> float:
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower: list[tuple[float, float]] = []
+    for p in uniq:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 1e-8:
+            lower.pop()
+        lower.append(p)
+    upper: list[tuple[float, float]] = []
+    for p in reversed(uniq):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 1e-8:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def bake_wall_shadows(global_cfg: dict[str, Any]) -> list[PackedItem]:
+    """Pre-bake exact `walls.js:182-233` swept ground shadows for stone/palisade edges & posts.
+
+    Bounds are normalized by `ref_scale = 100.0` world units relative to vertex A (for edges)
+    or vertex center (for corner/end posts), so Layer 3 `gl.MAX` union composites them with
+    zero double-darkening at shared wall corners and zero extra draw calls!
+    """
+    ref_scale = 100.0
+    hex_r = 256.0 / math.sqrt(3.0)
+    proj_y = 0.85
+    angle_deg = float(global_cfg.get("angle", 160.0))
+    wall_rad = math.radians(clamp(angle_deg, 130.0, 172.0))
+    wall_h = 62.0
+    wall_len = 1.05
+    base_dx = math.cos(wall_rad) * wall_h * wall_len
+    base_dy = math.sin(wall_rad) * wall_h * wall_len * 0.30
+    sx = -0.07 * wall_h
+    sy = 0.025 * wall_h
+    blur_px = 3.2
+    pad = int(math.ceil(blur_px * 3.0)) + 4
+    px_per_wu = 0.85
+
+    items: list[PackedItem] = []
+
+    def pack_mask(key: str, mask: Image.Image, x0: float, y0: float) -> None:
+        blurred = mask.filter(ImageFilter.GaussianBlur(radius=blur_px * px_per_wu))
+        lo_hi = blurred.getextrema()
+        peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
+        if 24 < peak < 248:
+            gain = min(2.0, 250.0 / peak)
+            blurred = blurred.point(lambda v: min(255, int(round(v * gain))))
+        bbox = blurred.point(lambda v: 255 if v > 3 else 0).getbbox()
+        if not bbox:
+            return
+        cx0, cy0, cx1, cy1 = bbox
+        cropped = blurred.crop((cx0, cy0, cx1, cy1))
+        out = Image.new("RGBA", cropped.size, (0, 0, 0, 0))
+        out.putalpha(cropped)
+        bounds = [
+            round((x0 + cx0 / px_per_wu) / ref_scale, 5),
+            round((y0 + cy0 / px_per_wu) / ref_scale, 5),
+            round((x0 + cx1 / px_per_wu) / ref_scale, 5),
+            round((y0 + cy1 / px_per_wu) / ref_scale, 5),
+        ]
+        items.append(
+            PackedItem(
+                key=key,
+                image=out,
+                metadata={
+                    "mode": "wall_swept",
+                    "boundsInSpriteWidth": bounds,
+                },
+                extrude=False,
+            )
+        )
+
+    for material in ("stone", "palisade"):
+        thickness = 24.0 if material == "stone" else 16.0
+        reach = 0.62 if material == "stone" else 1.0
+        cast_x = base_dx * reach + sx
+        cast_y = base_dy * reach + sy
+        stroke_w = 11.0 if material == "stone" else 7.0
+
+        for side in range(6):
+            ang_a = -math.pi * 0.5 + side * math.pi / 3.0
+            ang_b = -math.pi * 0.5 + ((side + 1) % 6) * math.pi / 3.0
+            ax, ay = hex_r * math.cos(ang_a), hex_r * math.sin(ang_a) * proj_y
+            bx, by = hex_r * math.cos(ang_b), hex_r * math.sin(ang_b) * proj_y
+            p_a = (0.0, 0.0)
+            p_b = (bx - ax, by - ay)
+            dx, dy = p_b[0], p_b[1]
+            seg_len = math.hypot(dx, dy)
+            nx, ny = -dy / seg_len, dx / seg_len
+            if ny < 0.0 or (abs(ny) < 1e-9 and nx < 0.0):
+                nx, ny = -nx, -ny
+            dep_x, dep_y = nx * thickness * 0.5, ny * thickness * 0.62 * 0.5
+            base_pts = [
+                (p_a[0] - dep_x, p_a[1] - dep_y),
+                (p_b[0] - dep_x, p_b[1] - dep_y),
+                (p_b[0] + dep_x, p_b[1] + dep_y),
+                (p_a[0] + dep_x, p_a[1] + dep_y),
+            ]
+            cast_pts = [(px + cast_x, py + cast_y) for px, py in base_pts]
+            hull = _convex_hull_2d(base_pts + cast_pts)
+            xs = [p[0] for p in hull] + [p_a[0], p_b[0]]
+            ys = [p[1] for p in hull] + [p_a[1], p_b[1]]
+            x0 = math.floor(min(xs) - stroke_w) - pad
+            y0 = math.floor(min(ys) - stroke_w) - pad
+            x1 = math.ceil(max(xs) + stroke_w) + pad
+            y1 = math.ceil(max(ys) + stroke_w) + pad
+            cw = max(8, int(round((x1 - x0) * px_per_wu)))
+            ch = max(8, int(round((y1 - y0) * px_per_wu)))
+            mask = Image.new("L", (cw, ch), 0)
+            draw = ImageDraw.Draw(mask)
+            draw.polygon([((px - x0) * px_per_wu, (py - y0) * px_per_wu) for px, py in hull], fill=255)
+            draw.line(
+                [
+                    ((p_a[0] - x0) * px_per_wu, (p_a[1] - y0) * px_per_wu),
+                    ((p_b[0] - x0) * px_per_wu, (p_b[1] - y0) * px_per_wu),
+                ],
+                fill=255,
+                width=max(2, int(round(stroke_w * px_per_wu))),
+            )
+            pack_mask(f"wall_shadow:{material}:dir{side}", mask, float(x0), float(y0))
+
+        post_rx = 22.0 if material == "stone" else 13.0
+        post_ry = post_rx * 0.65
+        ring = [
+            (post_rx * math.cos(k * math.pi / 6.0), post_ry * math.sin(k * math.pi / 6.0))
+            for k in range(12)
+        ]
+        hull_p = _convex_hull_2d(ring + [(px + cast_x * 1.05, py + cast_y * 1.05) for px, py in ring])
+        xs = [p[0] for p in hull_p]
+        ys = [p[1] for p in hull_p]
+        x0 = math.floor(min(xs)) - pad
+        y0 = math.floor(min(ys)) - pad
+        x1 = math.ceil(max(xs)) + pad
+        y1 = math.ceil(max(ys)) + pad
+        cw = max(8, int(round((x1 - x0) * px_per_wu)))
+        ch = max(8, int(round((y1 - y0) * px_per_wu)))
+        mask = Image.new("L", (cw, ch), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.polygon([((px - x0) * px_per_wu, (py - y0) * px_per_wu) for px, py in hull_p], fill=255)
+        pack_mask(f"wall_shadow:{material}:post", mask, float(x0), float(y0))
+
+    return items
 
 
 def export_infrastructure_and_clouds(

@@ -236,7 +236,7 @@ def validate_nature_catalog(c):
             raise ValueError('Nature-Klasse oder -Familie ungültig')
         if any(not isinstance(item.get(field), str) or len(item[field]) > length for field, length in [('description', 600), ('sourceReference', 300)]):
             raise ValueError('Nature-Textfeld ungültig')
-        if not num(item.get('logicalWidth'), 4, 400) or not num(item.get('scaleMin'), .2, 3) or not num(item.get('scaleMax'), .2, 3) or item['scaleMin'] > item['scaleMax']:
+        if not num(item.get('logicalWidth'), 4, 400) or not num(item.get('scaleMin'), .2, 4) or not num(item.get('scaleMax'), .2, 4) or item['scaleMin'] > item['scaleMax']:
             raise ValueError('Sprite-Skalierung ungültig')
         anchor = item.get('anchor', {})
         if not isinstance(anchor, dict) or not num(anchor.get('x'), 0, 1) or not num(anchor.get('y'), 0, 1):
