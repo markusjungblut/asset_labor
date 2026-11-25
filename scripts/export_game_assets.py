@@ -341,27 +341,29 @@ def bake_mountain_shadow(
     aspect = trimmed.height / max(1, trimmed.width)
     ref_h = ref_width * aspect
 
-    origin_x = ref_width * (foot_x + mcfg["originX"])
-    origin_y = ref_h * foot_y + ref_width * mcfg["originY"]
+    # Tuck shadow root solidly behind the mountain's left-base flank (never detached outside the silhouette!)
+    # and keep the right fade strictly left of the sunlit east ridge (x <= -0.04 * ref_width).
+    origin_x = ref_width * clamp(foot_x + 0.18, -0.32, -0.14)
+    origin_y = ref_h * clamp(foot_y, -0.06, 0.12) + ref_width * 0.045
 
     rad = math.radians(mcfg["angle"])
     dir_x, dir_y = math.cos(rad), math.sin(rad)
     norm_x, norm_y = -dir_y, dir_x
-    length = ref_width * mcfg["length"]
-    r0 = mcfg["rootWidth"] * ref_width
-    r1 = mcfg["midWidth"] * ref_width
-    r2 = mcfg["tipWidth"] * ref_width
-    soft = max(1.0, mcfg["softness"] * (ref_width / max(1.0, float(meta.get("logicalWidth") or 360.0))))
-    contact_len = ref_width * mcfg["contactLength"]
-    contact_w = ref_width * mcfg["contactWidth"]
+    length = ref_width * max(0.84, mcfg["length"])
+    r0 = max(0.28, mcfg["rootWidth"]) * ref_width
+    r1 = max(0.22, mcfg["midWidth"]) * ref_width
+    r2 = max(0.11, mcfg["tipWidth"]) * ref_width
+    soft = max(1.8, mcfg["softness"] * (ref_width / max(1.0, float(meta.get("logicalWidth") or 360.0))))
+    contact_len = ref_width * max(0.36, mcfg["contactLength"])
+    contact_w = ref_width * max(0.18, mcfg["contactWidth"])
 
     p2_x = origin_x + dir_x * length
     p2_y = origin_y + dir_y * length
     max_r = max(r0, r1, r2, contact_w)
-    pad = max_r + max(5.0, soft) * 1.4
+    pad = max_r + max(6.0, soft) * 1.5
 
     x0 = int(math.floor(min(origin_x, p2_x) - pad))
-    x1 = int(math.ceil(origin_x + ref_width * 0.045 + 2))
+    x1 = int(math.ceil(origin_x + ref_width * 0.22 + 2))
     y0 = int(math.floor(min(origin_y, p2_y) - pad))
     y1 = int(math.ceil(max(origin_y, p2_y) + pad))
     bw = max(1, x1 - x0)
@@ -374,7 +376,9 @@ def bake_mountain_shadow(
         row_off = py * bw
         for px in range(bw):
             wx = x0 + px + 0.5
-            if wx > origin_x + ref_width * 0.045:
+            # Soft smoothstep right-edge gate tucked behind mountain base (zero vertical knife edge!)
+            right_gate = 1.0 - smoothstep(origin_x + ref_width * 0.04, origin_x + ref_width * 0.20, wx)
+            if right_gate <= 0.002:
                 continue
             dx = wx - origin_x
             t = dx * dir_x + dy * dir_y
@@ -385,19 +389,19 @@ def bake_mountain_shadow(
                 rr = r1 + (r2 - r1) * clamp((t - length * 0.43) / (length * 0.57), 0.0, 1.0)
             along = -t if t < 0 else (t - length if t > length else 0.0)
             signed = math.hypot(abs(lateral), along) - rr
-            root_gate = smoothstep(-ref_width * 0.045, ref_width * 0.04, t)
+            root_gate = smoothstep(-ref_width * 0.14, ref_width * 0.04, t)
             cast_fade = (
-                (1.0 - smoothstep(-soft * 0.15, soft * 0.90, signed))
-                * (1.0 - smoothstep(length * 0.90, length + r2 + soft, t))
+                (1.0 - smoothstep(-soft * 0.18, soft * 0.95, signed))
+                * (1.0 - smoothstep(length * 0.88, length + r2 + soft, t))
                 * root_gate
             )
-            c_axis = clamp(t, -contact_len * 0.06, contact_len * 0.87)
+            c_axis = clamp(t, -contact_len * 0.12, contact_len * 0.88)
             c_dist = math.hypot(lateral, t - c_axis) - contact_w
-            c_fade = (1.0 - smoothstep(-soft * 0.08, soft * 0.70, c_dist)) * smoothstep(
-                -ref_width * 0.05, ref_width * 0.025, t
+            c_fade = (1.0 - smoothstep(-soft * 0.12, soft * 0.78, c_dist)) * smoothstep(
+                -ref_width * 0.12, ref_width * 0.03, t
             )
             # Normalized coverage (0..1) so WebGL2 applies global shadow opacity once!
-            cover = clamp(max(0.90 * cast_fade, 0.56 * c_fade) / 0.90, 0.0, 1.0)
+            cover = clamp(max(0.90 * cast_fade, 0.62 * c_fade) / 0.90 * right_gate, 0.0, 1.0)
             a = int(round(cover * 255.0))
             if a > 0:
                 alpha_buf[row_off + px] = a
@@ -449,8 +453,8 @@ def bake_sprite_shadow(
         return None
 
     softness = clamp(float(merged.get("softness", 4.5)), 0.0, 30.0)
-    # Scale blur radius proportionally from logical world width to bake ref_width.
-    blur_px = clamp(softness * (ref_width / max(24.0, world_w)), 0.5, 18.0)
+    # Screen-consistent softness (do NOT blow up blur 3x on small 52px sprites like cacti!).
+    blur_px = clamp(softness * 0.55, 0.6, 7.5)
     pad = int(math.ceil(blur_px * 3.0)) + 4
     offset_x = float(merged.get("offsetX", -0.12))
     offset_y = float(merged.get("offsetY", -0.03))
@@ -489,7 +493,13 @@ def bake_sprite_shadow(
                 continue
             pts = [((pt[0] * ref_width - x0) * scale, (pt[1] * ref_width - y0) * scale) for pt in poly]
             draw.polygon(pts, fill=255)
-        mask = mask.filter(ImageFilter.GaussianBlur(radius=blur_px * scale))
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=clamp(blur_px * 0.72 * scale, 0.5, 4.5)))
+        # Normalize blurred peak so slender polygons (e.g. columnar cacti) match full-peak union shadows!
+        lo_hi = mask.getextrema()
+        peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
+        if 24 < peak < 248:
+            gain = min(2.4, 250.0 / peak)
+            mask = mask.point(lambda v: min(255, int(round(v * gain))))
         bbox = mask.point(lambda v: 255 if v > 3 else 0).getbbox()
         if not bbox:
             return None
