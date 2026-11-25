@@ -23,8 +23,9 @@
         <input id="seedInput" type="text" value="vedras-welt-01" maxlength="128">
       </label>
       <button id="applySeedBtn" class="btn" type="button">Welt laden</button>
-      <label class="btn" for="geoConfigFile" title="Exportierte Parameter-JSON aus dem Geografie-Labor laden">Geografie-JSON</label>
+      <label class="btn" for="geoConfigFile" title="Exportierte Parameter- oder Welt-JSON aus dem Geografie-Labor laden">Geografie-JSON</label>
       <input id="geoConfigFile" type="file" accept=".json,application/json" hidden>
+      <span id="geoPresetBadge" class="pill" title="Aktive Geografie-Vorgabe (Standard: Geografie-Labor Vielfalt-Mix)">Vielfalt-Mix</span>
     </div>
 
     <div class="top-group">
@@ -36,8 +37,8 @@
       <button id="toggleFogBtn" class="btn" type="button">FoW: Aus</button>
       <label class="slider-pill" title="Schattendeckkraft">
         <span>Schatten</span>
-        <input id="shadowRange" type="range" min="0" max="65" value="36">
-        <strong id="shadowVal">36%</strong>
+        <input id="shadowRange" type="range" min="0" max="80" value="54">
+        <strong id="shadowVal">54%</strong>
       </label>
     </div>
 
@@ -268,7 +269,7 @@
     </aside>
   </div>
 
-  <script src="vedras-map-engine.bundle.js?v=0.23.0"></script>
-  <script src="studio-app.js?v=0.23.0"></script>
+  <script src="vedras-map-engine.bundle.js?v=0.24.0"></script>
+  <script src="studio-app.js?v=0.24.0"></script>
 </body>
 </html>
