@@ -326,6 +326,63 @@ class ExportGameAssetsTest(unittest.TestCase):
                 bp = assets / "bridges" / mat / f"bridge_dir_{d:02d}.png"
                 self.assertTrue(bp.is_file(), f"Missing painted bridge {bp}")
 
+    def test_pass10_painted_buildings_and_arctic_snow_mountains(self) -> None:
+        assets = ROOT / "assets"
+        nc = json.loads((assets / "nature" / "nature_catalog.json").read_text(encoding="utf-8"))
+
+        # 1. All 5 P0 Settlement Centers + 5 Core Tier-1 Buildings exist with clean alpha transparency
+        expected_buildings = [
+            "buildings/centers/outpost.png",
+            "buildings/centers/settlement.png",
+            "buildings/centers/city.png",
+            "buildings/centers/metropolis.png",
+            "buildings/centers/capital_t1.png",
+            "buildings/tier1/farm.png",
+            "buildings/tier1/lumber_camp.png",
+            "buildings/tier1/quarry.png",
+            "buildings/tier1/fortress.png",
+            "buildings/tier1/watchtower.png",
+        ]
+        for rel in expected_buildings:
+            p = assets / rel
+            self.assertTrue(p.is_file(), f"Missing painted building {p}")
+            with Image.open(p) as im:
+                self.assertEqual(im.mode, "RGBA")
+                # Corners must be transparent (no opaque rectangle backdrop)
+                self.assertEqual(im.getpixel((0, 0))[3], 0, f"Opaque top-left corner in {rel}")
+
+        # 2. Building shadow baker produces valid directional 142-deg shadows for all 10 buildings
+        bldg_items = exporter.bake_building_shadows(assets, {"angle": 142.0, "softness": 4.5})
+        bldg_shadows = {item.key: item for item in bldg_items}
+        self.assertGreaterEqual(len(bldg_shadows), 10)
+        for rel in expected_buildings:
+            key = f"building_shadow:{rel[:-4]}"
+            self.assertIn(key, bldg_shadows)
+            item = bldg_shadows[key]
+            self.assertEqual(item.metadata.get("mode"), "building_cast")
+            bounds = item.metadata.get("boundsInSpriteWidth")
+            self.assertLess(bounds[0], bounds[2])
+            self.assertLess(bounds[1], bounds[3])
+            _, peak = item.image.getchannel("A").getextrema()
+            self.assertGreaterEqual(peak, 240)
+
+        # 3. All 3 Arctic Snow Mountains exist, allow snowfields/frozen_tundra, and green temperate mountains exclude snowfields
+        for i in (1, 2, 3):
+            rel = f"nature/snow_mountain_0{i}.png"
+            self.assertTrue((assets / rel).is_file(), f"Missing {rel}")
+            entry = nc["entries"].get(rel)
+            self.assertIsNotNone(entry, f"Missing catalog entry for {rel}")
+            self.assertEqual(entry.get("kind"), "mountain")
+            self.assertIn("snowfields", entry.get("allowedTerrainTypes") or [])
+            self.assertIn("frozen_tundra", entry.get("allowedTerrainTypes") or [])
+        for rel, entry in nc["entries"].items():
+            if entry.get("kind") == "mountain" and not rel.startswith("nature/snow_mountain_"):
+                self.assertIn(
+                    "snowfields",
+                    entry.get("excludedTerrainTypes") or [],
+                    f"Temperate mountain {rel} must exclude pure snowfields",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

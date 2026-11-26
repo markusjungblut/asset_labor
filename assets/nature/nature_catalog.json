@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 11,
+  "revision": 12,
   "entries": {
     "nature/affenbrotbaum1.png": {
       "id": "existing_affenbrotbaum1",
@@ -285,7 +285,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -335,7 +337,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -385,7 +389,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -435,7 +441,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14150,7 +14158,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14200,7 +14210,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14250,7 +14262,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14300,7 +14314,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14350,7 +14366,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14400,7 +14418,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14450,7 +14470,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14500,7 +14522,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -14550,7 +14574,9 @@
         "cold_regions"
       ],
       "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17024,10 +17050,10 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
         "snowfields"
       ],
-      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17075,10 +17101,10 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
         "snowfields"
       ],
-      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17126,10 +17152,10 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [
+      "allowedTerrainTypes": [],
+      "excludedTerrainTypes": [
         "snowfields"
       ],
-      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17185,7 +17211,9 @@
         "marshland",
         "swamp"
       ],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17241,7 +17269,9 @@
         "marshland",
         "swamp"
       ],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17297,7 +17327,9 @@
         "marshland",
         "swamp"
       ],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17353,7 +17385,9 @@
         "marshland",
         "swamp"
       ],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -18506,7 +18540,9 @@
         "marshland",
         "swamp"
       ],
-      "excludedTerrainTypes": [],
+      "excludedTerrainTypes": [
+        "snowfields"
+      ],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -22793,6 +22829,147 @@
         "terrain_tint"
       ],
       "artStatus": "approved"
+    },
+    "nature/snow_mountain_01.png": {
+      "id": "snow_mountain_01",
+      "name": "Snow Mountain 01",
+      "kind": "mountain",
+      "family": "mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 345,
+      "scaleMin": 0.92,
+      "scaleMax": 1.12,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.44,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "snow_mountain",
+        "arctic"
+      ],
+      "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
+      "sourceReference": "Pass 10 Roadmap B.9"
+    },
+    "nature/snow_mountain_02.png": {
+      "id": "snow_mountain_02",
+      "name": "Snow Mountain 02",
+      "kind": "mountain",
+      "family": "mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 375,
+      "scaleMin": 0.92,
+      "scaleMax": 1.12,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.44,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "snow_mountain",
+        "arctic"
+      ],
+      "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
+      "sourceReference": "Pass 10 Roadmap B.9"
+    },
+    "nature/snow_mountain_03.png": {
+      "id": "snow_mountain_03",
+      "name": "Snow Mountain 03",
+      "kind": "mountain",
+      "family": "mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 355,
+      "scaleMin": 0.92,
+      "scaleMax": 1.12,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.44,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "snow_mountain",
+        "arctic"
+      ],
+      "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
+      "sourceReference": "Pass 10 Roadmap B.9"
     }
   }
 }
