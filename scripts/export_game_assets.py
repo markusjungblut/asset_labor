@@ -28,9 +28,14 @@ import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
-from PIL import Image, ImageDraw, ImageFilter, ImageStat
+from PIL import Image, ImageDraw, ImageFilter, ImageStat, features as pil_features
+
+# Pillow 7.x-11.x compatibility (Image.Resampling / Image.Transform were added in Pillow 9.1).
+_RESAMPLE_LANCZOS = getattr(getattr(Image, "Resampling", Image), "LANCZOS", getattr(Image, "ANTIALIAS", 1))
+_RESAMPLE_BILINEAR = getattr(getattr(Image, "Resampling", Image), "BILINEAR", 2)
+_TRANSFORM_AFFINE = getattr(getattr(Image, "Transform", Image), "AFFINE", 0)
 
 SCHEMA = "vedras-game-assets-v1"
 PAGE_SIZE = 2048
@@ -212,7 +217,7 @@ def pack_atlas_group(
         elif used_h <= 1024:
             target_h = 1024
         save_img = page if target_h == page_size else page.crop((0, 0, page_size, target_h))
-        save_img.save(dest, format="WEBP", quality=webp_quality, method=5)
+        save_img.save(dest, format="WEBP", quality=webp_quality, method=4)
         pages_meta.append(
             {
                 "file": f"atlases/{filename}",
@@ -234,7 +239,7 @@ def pack_atlas_group(
             scale = min(max_inner / img.width, max_inner / img.height)
             img = img.resize(
                 (max(1, round(img.width * scale)), max(1, round(img.height * scale))),
-                Image.Resampling.LANCZOS,
+                _RESAMPLE_LANCZOS,
             )
         sw, sh = img.size
         ow = sw + 2 * gutter
@@ -287,7 +292,7 @@ def compute_alpha_foot(trimmed: Image.Image, anchor_x: float, anchor_y: float) -
     scale = min(1.0, 128.0 / max(w, h))
     sw = max(1, round(w * scale))
     sh = max(1, round(h * scale))
-    sample = trimmed.resize((sw, sh), Image.Resampling.BILINEAR) if scale < 1.0 else trimmed
+    sample = trimmed.resize((sw, sh), _RESAMPLE_BILINEAR) if scale < 1.0 else trimmed
     alpha_bytes = sample.getchannel("A").tobytes()
 
     ay = clamp(anchor_y, 0.1, 0.95)
@@ -347,7 +352,7 @@ def bake_mountain_shadow(
     sh = max(32, int(round(ref_width * aspect)))
     alpha_bytes = (
         trimmed.getchannel("A")
-        .resize((sw, sh), Image.Resampling.BILINEAR)
+        .resize((sw, sh), _RESAMPLE_BILINEAR)
         .tobytes()
     )
 
@@ -696,9 +701,9 @@ def bake_sprite_shadow(
 
     cast_mask = src_alpha.transform(
         (cw, ch),
-        Image.Transform.AFFINE,
+        _TRANSFORM_AFFINE,
         (ma, mb, mc, md, me, mf),
-        resample=Image.Resampling.BILINEAR,
+        resample=_RESAMPLE_BILINEAR,
     )
     # Normalize alpha silhouette to crisp solid shape before applying Gaussian softness
     # (matches shadow-tone.js withMaskPass() full-opacity union mask before single composite).
@@ -836,26 +841,30 @@ def polish_terrain_rgb(
     terrain_id: str,
     amount: float = 0.35,
 ) -> Image.Image:
-    """Exact 1:1 port of `asset_labor/polish.js` `terrainRGB` (gentle ground contrast/saturation balance)."""
+    """Exact 1:1 port of `asset_labor/polish.js` `terrainRGB` (C-accelerated RGB matrix)."""
     v = clamp(amount, 0.0, 1.0)
     if v <= 0.0 or material_class != "ground" or terrain_id in ("snowfields", "frozen_tundra", "forest_floor"):
         return rgb
     contrast = 1.0 - 0.12 * v
     saturation = 1.0 - 0.14 * v
-    raw = rgb.tobytes()
-    out = bytearray(len(raw))
-    for i in range(0, len(raw), 3):
-        r = raw[i]
-        g = raw[i + 1]
-        b = raw[i + 2]
-        y = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        nr = (y + (r - y) * saturation - 128.0) * contrast + 128.0
-        ng = (y + (g - y) * saturation - 128.0) * contrast + 128.0
-        nb = (y + (b - y) * saturation - 128.0) * contrast + 128.0
-        out[i] = 0 if nr < 0 else (255 if nr > 255 else int(round(nr)))
-        out[i + 1] = 0 if ng < 0 else (255 if ng > 255 else int(round(ng)))
-        out[i + 2] = 0 if nb < 0 else (255 if nb > 255 else int(round(nb)))
-    return Image.frombytes("RGB", rgb.size, bytes(out))
+    inv_s = 1.0 - saturation
+    off = 128.0 * (1.0 - contrast)
+    rw, gw, bw = 0.2126 * inv_s, 0.7152 * inv_s, 0.0722 * inv_s
+    matrix = (
+        (rw + saturation) * contrast,
+        gw * contrast,
+        bw * contrast,
+        off,
+        rw * contrast,
+        (gw + saturation) * contrast,
+        bw * contrast,
+        off,
+        rw * contrast,
+        gw * contrast,
+        (bw + saturation) * contrast,
+        off,
+    )
+    return rgb.convert("RGB", matrix)
 
 
 def export_terrain(
@@ -864,6 +873,7 @@ def export_terrain(
     terrain_size: int,
     max_variants: int,
     webp_quality: int,
+    on_progress: Callable[[int, str], None] | None = None,
 ) -> tuple[dict[str, Any], int]:
     """Export seamless WebP terrain layers + catalog mapping for GPU TEXTURE_2D_ARRAY."""
     tc_path = assets_dir / "terrain" / "terrain_catalog.json"
@@ -877,6 +887,10 @@ def export_terrain(
         if tid:
             by_type_raw.setdefault(tid, []).append(rel_path)
 
+    total_planned = sum(
+        min(max_variants, len(by_type_raw.get(str(tt["id"]), [])))
+        for tt in tc.get("terrainTypes", [])
+    )
     layers: list[dict[str, Any]] = []
     by_type: dict[str, dict[str, Any]] = {}
     raw_bytes = 0
@@ -897,7 +911,7 @@ def export_terrain(
             raw_bytes += src.stat().st_size
             with Image.open(src) as im:
                 rgb = im.convert("RGB")
-                resized = rgb.resize((terrain_size, terrain_size), Image.Resampling.LANCZOS)
+                resized = rgb.resize((terrain_size, terrain_size), _RESAMPLE_LANCZOS)
                 # Apply 1:1 asset_labor seamless tile & water center-seam repair offline (0 ms runtime!).
                 repaired = repair_seamless_terrain(
                     resized,
@@ -910,7 +924,7 @@ def export_terrain(
                     color_acc[c] += mean[c]
                 fname = f"{tid}_{v_idx:02d}.webp"
                 dest = terrain_out / fname
-                polished.save(dest, format="WEBP", quality=webp_quality, method=5)
+                polished.save(dest, format="WEBP", quality=webp_quality, method=4)
             layer_idx = len(layers)
             layer_indices.append(layer_idx)
             layers.append(
@@ -925,6 +939,9 @@ def export_terrain(
                     "bytes": dest.stat().st_size,
                 }
             )
+            if on_progress and (len(layers) % 5 == 0 or len(layers) == total_planned):
+                pct = 3 + int(round((len(layers) / max(1, total_planned)) * 17))
+                on_progress(pct, f"Terrain-Texturen ({len(layers)}/{max(1, total_planned)}) …")
         if layer_indices:
             n = len(layer_indices)
             by_type[tid] = {
@@ -956,6 +973,7 @@ def export_nature_and_shadows(
     page_size: int,
     webp_quality: int,
     shadow_quality: int,
+    on_progress: Callable[[int, str], None] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], int]:
     """Export trimmed WebP nature sprite atlases AND offline pre-baked soft shadow atlases."""
     nc_path = assets_dir / "nature" / "nature_catalog.json"
@@ -970,7 +988,9 @@ def export_nature_and_shadows(
     shadow_counts = {"manual_polygon": 0, "mountain_field": 0, "auto_cast": 0, "none": 0}
     raw_bytes = 0
 
-    for rel_key, meta in sorted(nc.get("entries", {}).items()):
+    sorted_entries = sorted(nc.get("entries", {}).items())
+    total_entries = max(1, len(sorted_entries))
+    for idx, (rel_key, meta) in enumerate(sorted_entries, 1):
         src = assets_dir / rel_key
         if not src.is_file():
             continue
@@ -996,7 +1016,7 @@ def export_nature_and_shadows(
         if scale < 1.0:
             packed_img = trimmed.resize(
                 (max(1, round(trim_w * scale)), max(1, round(trim_h * scale))),
-                Image.Resampling.LANCZOS,
+                _RESAMPLE_LANCZOS,
             )
         else:
             packed_img = trimmed
@@ -1064,14 +1084,23 @@ def export_nature_and_shadows(
                 extrude=True,
             )
         )
+        if on_progress and (idx % 15 == 0 or idx == total_entries):
+            pct = 20 + int(round((idx / total_entries) * 48))
+            on_progress(pct, f"Natur-Sprites & Schatten ({idx}/{total_entries}) …")
 
+    if on_progress:
+        on_progress(70, "Backe Mauer- & Gebäudeschatten …")
     shadow_items.extend(bake_wall_shadows(global_shadow))
     shadow_items.extend(bake_building_shadows(assets_dir, global_shadow))
 
     atlases_dir = out_dir / "atlases"
+    if on_progress:
+        on_progress(74, f"Packe Natur-Atlanten ({len(nature_items)} Sprites) …")
     nature_pages, nature_entries = pack_atlas_group(
         nature_items, atlases_dir, "nature", page_size, GUTTER, webp_quality
     )
+    if on_progress:
+        on_progress(82, f"Packe Schatten-Atlas ({len(shadow_items)} Schatten) …")
     shadow_pages, shadow_entries = pack_atlas_group(
         shadow_items, atlases_dir, "shadows", page_size, GUTTER, shadow_quality
     )
@@ -1378,7 +1407,7 @@ def export_infrastructure_and_clouds(
                     if scale < 1.0:
                         rgba = rgba.resize(
                             (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
-                            Image.Resampling.LANCZOS,
+                            _RESAMPLE_LANCZOS,
                         )
                 infra_items.append(
                     PackedItem(
@@ -1409,7 +1438,7 @@ def export_infrastructure_and_clouds(
                     if scale < 1.0:
                         rgba = rgba.resize(
                             (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
-                            Image.Resampling.LANCZOS,
+                            _RESAMPLE_LANCZOS,
                         )
                 infra_items.append(
                     PackedItem(
@@ -1441,7 +1470,7 @@ def export_infrastructure_and_clouds(
                 if scale < 1.0:
                     trimmed = trimmed.resize(
                         (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
-                        Image.Resampling.LANCZOS,
+                        _RESAMPLE_LANCZOS,
                     )
             infra_items.append(
                 PackedItem(
@@ -1461,7 +1490,7 @@ def export_infrastructure_and_clouds(
         for path in sorted(shore_dir.glob("*.png")):
             raw_bytes += path.stat().st_size
             with Image.open(path) as im:
-                rgba = im.convert("RGBA").resize((512, 512), Image.Resampling.LANCZOS)
+                rgba = im.convert("RGBA").resize((512, 512), _RESAMPLE_LANCZOS)
             infra_items.append(
                 PackedItem(
                     key=f"shorelines/{path.stem}",
@@ -1484,10 +1513,10 @@ def export_infrastructure_and_clouds(
         for path in sorted(clouds_dir.glob("*.png")):
             raw_bytes += path.stat().st_size
             with Image.open(path) as im:
-                rgba = im.convert("RGBA").resize((512, 512), Image.Resampling.LANCZOS)
+                rgba = im.convert("RGBA").resize((512, 512), _RESAMPLE_LANCZOS)
                 fname = f"{path.stem}.webp"
                 dest = clouds_out / fname
-                rgba.save(dest, format="WEBP", quality=82, method=5)
+                rgba.save(dest, format="WEBP", quality=82, method=4)
             cloud_entries.append(
                 {
                     "id": path.stem,
@@ -1542,6 +1571,52 @@ def estimate_vram_mb(terrain: dict[str, Any], *atlas_groups: dict[str, Any]) -> 
     }
 
 
+def _rmtree_safe(path: Path) -> None:
+    """Remove directory with brief retries for transient Windows Defender / Explorer file locks."""
+    if not path.exists():
+        return
+    last_err: OSError | None = None
+    for attempt in range(5):
+        try:
+            shutil.rmtree(path)
+            return
+        except OSError as exc:
+            last_err = exc
+            time.sleep(0.15 * (attempt + 1))
+    if last_err is not None:
+        raise last_err
+
+
+def _atomic_replace_dir(stage_dir: Path, target_dir: Path) -> None:
+    """Swap a freshly built staging directory into target_dir without wiping target_dir on failure."""
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+    backup_dir = target_dir.parent / f".{target_dir.name}.old"
+    if backup_dir.exists():
+        _rmtree_safe(backup_dir)
+    if target_dir.exists():
+        try:
+            target_dir.rename(backup_dir)
+        except OSError:
+            # Fallback if Windows locks directory rename (e.g. open file handle): overwrite files in-place.
+            shutil.copytree(stage_dir, target_dir, dirs_exist_ok=True)
+            _rmtree_safe(stage_dir)
+            return
+    try:
+        stage_dir.rename(target_dir)
+    except Exception:
+        if backup_dir.exists() and not target_dir.exists():
+            try:
+                backup_dir.rename(target_dir)
+            except OSError:
+                pass
+        raise
+    if backup_dir.exists():
+        try:
+            _rmtree_safe(backup_dir)
+        except OSError:
+            pass
+
+
 def export_all(
     assets_dir: Path,
     out_dir: Path,
@@ -1552,63 +1627,105 @@ def export_all(
     shadow_quality: int = 82,
     extra_walls_dir: Path | None = None,
     sync_to: Path | None = None,
+    on_progress: Callable[[int, str], None] | None = None,
 ) -> dict[str, Any]:
+    if not pil_features.check("webp"):
+        raise RuntimeError(
+            "Installiertes Pillow hat keine WebP-Unterstützung. Bitte aktualisieren: py -3 -m pip install --upgrade Pillow"
+        )
     t0 = time.perf_counter()
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if on_progress:
+        on_progress(2, "Starte WebP-Export (Terrain, Natur, Schatten, Gebäude) …")
 
-    terrain, raw_t = export_terrain(
-        assets_dir, out_dir, terrain_size, max_terrain_variants, min(84, webp_quality)
-    )
-    nature, shadows, raw_n = export_nature_and_shadows(
-        assets_dir, out_dir, page_size, webp_quality, shadow_quality
-    )
-    infra, clouds, raw_i = export_infrastructure_and_clouds(
-        assets_dir, out_dir, page_size, webp_quality, extra_walls_dir=extra_walls_dir
-    )
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+    stage_dir = out_dir.parent / f".{out_dir.name}.building"
+    if stage_dir.exists():
+        _rmtree_safe(stage_dir)
+    stage_dir.mkdir(parents=True, exist_ok=True)
 
-    raw_total = raw_t + raw_n + raw_i
-    webp_total = sum(p.stat().st_size for p in out_dir.rglob("*.webp"))
-    content_hash = compute_content_hash(out_dir)
-    vram = estimate_vram_mb(terrain, nature, shadows, infra)
-    elapsed = round(time.perf_counter() - t0, 2)
+    try:
+        terrain, raw_t = export_terrain(
+            assets_dir,
+            stage_dir,
+            terrain_size,
+            max_terrain_variants,
+            min(84, webp_quality),
+            on_progress=on_progress,
+        )
+        nature, shadows, raw_n = export_nature_and_shadows(
+            assets_dir,
+            stage_dir,
+            page_size,
+            webp_quality,
+            shadow_quality,
+            on_progress=on_progress,
+        )
+        if on_progress:
+            on_progress(86, "Exportiere Mauern, Brücken, Gebäude, Küsten & Wolken …")
+        infra, clouds, raw_i = export_infrastructure_and_clouds(
+            assets_dir, stage_dir, page_size, webp_quality, extra_walls_dir=extra_walls_dir
+        )
 
-    manifest: dict[str, Any] = {
-        "schema": SCHEMA,
-        "contentHash": content_hash,
-        "projection": {
-            "hexWidth": 256,
-            "projectY": 0.85,
-            "objectDisplayScaleY": 0.965,
-            "objectDisplayShearX": 0.012,
-        },
-        "stats": {
-            "rawInputBytes": raw_total,
-            "exportedWebpBytes": webp_total,
-            "compressionRatio": round(raw_total / max(1, webp_total), 1),
-            "elapsedSeconds": elapsed,
-            "vramEstimate": vram,
-        },
-        "terrain": terrain,
-        "nature": nature,
-        "shadows": shadows,
-        "infrastructure": infra,
-        "clouds": clouds,
-    }
+        if on_progress:
+            on_progress(93, "Berechne Content-Hash & Manifest …")
+        raw_total = raw_t + raw_n + raw_i
+        webp_total = sum(p.stat().st_size for p in stage_dir.rglob("*.webp"))
+        content_hash = compute_content_hash(stage_dir)
+        vram = estimate_vram_mb(terrain, nature, shadows, infra)
+        elapsed = round(time.perf_counter() - t0, 2)
 
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(manifest, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    manifest["stats"]["manifestBytes"] = manifest_path.stat().st_size
+        manifest: dict[str, Any] = {
+            "schema": SCHEMA,
+            "contentHash": content_hash,
+            "projection": {
+                "hexWidth": 256,
+                "projectY": 0.85,
+                "objectDisplayScaleY": 0.965,
+                "objectDisplayShearX": 0.012,
+            },
+            "stats": {
+                "rawInputBytes": raw_total,
+                "exportedWebpBytes": webp_total,
+                "compressionRatio": round(raw_total / max(1, webp_total), 1),
+                "elapsedSeconds": elapsed,
+                "vramEstimate": vram,
+            },
+            "terrain": terrain,
+            "nature": nature,
+            "shadows": shadows,
+            "infrastructure": infra,
+            "clouds": clouds,
+        }
+
+        manifest_path = stage_dir / "manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        manifest["stats"]["manifestBytes"] = manifest_path.stat().st_size
+
+        if on_progress:
+            on_progress(96, "Aktiviere fertige WebP-Atlanten …")
+        _atomic_replace_dir(stage_dir, out_dir)
+    except Exception:
+        try:
+            _rmtree_safe(stage_dir)
+        except OSError:
+            pass
+        raise
 
     if sync_to is not None:
-        if sync_to.exists():
-            shutil.rmtree(sync_to)
-        shutil.copytree(out_dir, sync_to)
+        if on_progress:
+            on_progress(98, "Synchronisiere nach browsergame/public/game-assets …")
+        sync_stage = sync_to.parent / f".{sync_to.name}.syncing"
+        if sync_stage.exists():
+            _rmtree_safe(sync_stage)
+        sync_to.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(out_dir, sync_stage)
+        _atomic_replace_dir(sync_stage, sync_to)
 
+    if on_progress:
+        on_progress(100, "WebP-Atlanten fertig!")
     return manifest
 
 

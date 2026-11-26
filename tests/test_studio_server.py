@@ -57,6 +57,8 @@ class WebGL2StudioServerTest(unittest.TestCase):
         self.assertIn(payload["state"], ("ready", "missing", "building", "idle"))
         self.assertIn("contentHash", payload)
         self.assertIn("exportedMb", payload)
+        self.assertIn("progress", payload)
+        self.assertIn("stage", payload)
 
         status_n, body_n = self._get("/api/nature-catalog")
         self.assertEqual(status_n, 200)
@@ -96,6 +98,11 @@ class WebGL2StudioServerTest(unittest.TestCase):
                 for n in tree.body[:5]
             )
             self.assertTrue(has_future, f"{rel} must import future annotations for Python 3.8/3.9")
+
+        # Pillow < 9.1 compatibility: export_game_assets.py must never access Image.Resampling / Image.Transform directly
+        exporter_src = (ROOT / "scripts" / "export_game_assets.py").read_text(encoding="utf-8")
+        self.assertNotIn("Image.Resampling.", exporter_src)
+        self.assertNotIn("Image.Transform.", exporter_src)
 
         # Missing manifest must cleanly report stale without throwing
         stale, reason, out_of_sync = server._detect_pack_staleness(
