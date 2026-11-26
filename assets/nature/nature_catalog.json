@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 2,
+  "revision": 10,
   "entries": {
     "nature/affenbrotbaum1.png": {
       "id": "existing_affenbrotbaum1",
@@ -21943,6 +21943,448 @@
         "water_boulder"
       ],
       "targetHeight": 110
+    },
+    "nature/decal_wildflowers_meadow.png": {
+      "id": "decal_wildflowers_meadow",
+      "description": "Importiertes Asset: decal_wildflowers_meadow (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_wildflowers_meadow.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 56,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.534,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground",
+        "forest_floor"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "meadow_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 70
+    },
+    "nature/decal_wildflowers_poppy.png": {
+      "id": "decal_wildflowers_poppy",
+      "description": "Importiertes Asset: decal_wildflowers_poppy (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_wildflowers_poppy.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 58,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.562,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "savanna"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "meadow_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 72
+    },
+    "nature/decal_grass_clover_tuft.png": {
+      "id": "decal_grass_clover_tuft",
+      "description": "Importiertes Asset: decal_grass_clover_tuft (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_grass_clover_tuft.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 58,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.383,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "hilly_ground",
+        "highland",
+        "savanna",
+        "forest_floor"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "grass_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 72
+    },
+    "nature/decal_woodland_leaves_moss.png": {
+      "id": "decal_woodland_leaves_moss",
+      "description": "Importiertes Asset: decal_woodland_leaves_moss (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_woodland_leaves_moss.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 56,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.565,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "forest_floor",
+        "grassland",
+        "hilly_ground",
+        "highland",
+        "jungle",
+        "moor",
+        "swamp",
+        "marshland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "woodland_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 70
+    },
+    "nature/decal_pebbles_gravel.png": {
+      "id": "decal_pebbles_gravel",
+      "description": "Importiertes Asset: decal_pebbles_gravel (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_pebbles_gravel.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 54,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.481,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "hilly_ground",
+        "highland",
+        "dry_ground",
+        "savanna",
+        "semi_desert",
+        "rocky_badlands",
+        "rocky_desert",
+        "wasteland",
+        "coast"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "stone_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 68
+    },
+    "nature/decal_arid_cracks_stones.png": {
+      "id": "decal_arid_cracks_stones",
+      "description": "Importiertes Asset: decal_arid_cracks_stones (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_arid_cracks_stones.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 50,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.498,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "clay_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "semi_desert",
+        "badlands",
+        "rocky_badlands",
+        "sandy_badlands",
+        "dry_ground",
+        "wasteland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "arid_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 78
+    },
+    "nature/decal_marsh_moss_reeds.png": {
+      "id": "decal_marsh_moss_reeds",
+      "description": "Importiertes Asset: decal_marsh_moss_reeds (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_marsh_moss_reeds.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 60,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.574,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "swamp",
+        "marshland",
+        "moor",
+        "jungle"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "wetland_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 75
+    },
+    "nature/decal_snow_drift_pebbles.png": {
+      "id": "decal_snow_drift_pebbles",
+      "description": "Importiertes Asset: decal_snow_drift_pebbles (ground_decal)",
+      "sourceReference": "Bestandsdatei: decal_snow_drift_pebbles.png",
+      "family": "ground_decal",
+      "kind": "ground_decal",
+      "sizeClass": "small",
+      "sizeMode": "class",
+      "logicalWidth": 56,
+      "scaleMin": 0.85,
+      "scaleMax": 1.25,
+      "anchor": {
+        "x": 0.558,
+        "y": 0.5
+      },
+      "shadow": {
+        "mode": "none",
+        "path": "",
+        "offsetX": -0.2,
+        "offsetY": 0.02,
+        "widthScale": 0.68,
+        "depthScale": 0.18
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
+      ],
+      "excludedTerrainTypes": [],
+      "placement": {
+        "weight": 1,
+        "density": 0.34,
+        "minSpacing": 18,
+        "canCluster": false,
+        "edgeMargin": 12
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.23,
+        "flatten": true
+      },
+      "artStatus": "candidate",
+      "tags": [
+        "arctic_decal",
+        "ingested",
+        "micro_decal"
+      ],
+      "targetHeight": 70
     }
   }
 }

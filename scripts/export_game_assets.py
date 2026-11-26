@@ -1198,6 +1198,40 @@ def bake_wall_shadows(global_cfg: dict[str, Any]) -> list[PackedItem]:
         draw.polygon([((px - x0) * px_per_wu, (py - y0) * px_per_wu) for px, py in hull_p], fill=255)
         pack_mask(f"wall_shadow:{material}:post", mask, float(x0), float(y0))
 
+    # Directional water/bank drop shadows for the 3 bridge crossing axes (dir 0/3 = -55.8 deg, 1/4 = 0 deg, 2/5 = +55.8 deg).
+    bridge_axes = [
+        (0, math.radians(-55.81)),
+        (1, 0.0),
+        (2, math.radians(55.81)),
+    ]
+    b_half_len = 46.0
+    b_half_wid = 16.5
+    b_cast_x = base_dx * 0.28 + sx * 0.45
+    b_cast_y = base_dy * 0.28 + sy * 0.45 + 6.5
+    for axis_idx, rad in bridge_axes:
+        tx, ty = math.cos(rad), math.sin(rad)
+        nx, ny = -ty, tx
+        deck_pts = [
+            (tx * (-b_half_len) + nx * (-b_half_wid), ty * (-b_half_len) + ny * (-b_half_wid)),
+            (tx * b_half_len + nx * (-b_half_wid), ty * b_half_len + ny * (-b_half_wid)),
+            (tx * b_half_len + nx * b_half_wid, ty * b_half_len + ny * b_half_wid),
+            (tx * (-b_half_len) + nx * b_half_wid, ty * (-b_half_len) + ny * b_half_wid),
+        ]
+        cast_pts = [(px + b_cast_x, py + b_cast_y) for px, py in deck_pts]
+        hull_b = _convex_hull_2d(deck_pts + cast_pts)
+        xs = [p[0] for p in hull_b]
+        ys = [p[1] for p in hull_b]
+        x0 = math.floor(min(xs)) - pad
+        y0 = math.floor(min(ys)) - pad
+        x1 = math.ceil(max(xs)) + pad
+        y1 = math.ceil(max(ys)) + pad
+        cw = max(8, int(round((x1 - x0) * px_per_wu)))
+        ch = max(8, int(round((y1 - y0) * px_per_wu)))
+        mask = Image.new("L", (cw, ch), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.polygon([((px - x0) * px_per_wu, (py - y0) * px_per_wu) for px, py in hull_b], fill=255)
+        pack_mask(f"bridge_shadow:axis{axis_idx}", mask, float(x0), float(y0))
+
     return items
 
 
@@ -1208,7 +1242,7 @@ def export_infrastructure_and_clouds(
     webp_quality: int,
     extra_walls_dir: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], int]:
-    """Export walls (palisade + stone v7 + gates), shorelines, and Fog-of-War clouds."""
+    """Export walls (palisade + stone v7 + gates), painted bridges, shorelines, and Fog-of-War clouds."""
     infra_items: list[PackedItem] = []
     raw_bytes = 0
     wall_roots = [assets_dir / "walls"]
@@ -1248,6 +1282,38 @@ def export_infrastructure_and_clouds(
                         image=rgba,
                         metadata={
                             "category": "wall",
+                            "sourceSize": [src_w, src_h],
+                        },
+                        extrude=True,
+                    )
+                )
+
+    # Painted river-crossing bridges (timber + stone × 6 directions -> 320px WebP in infra atlas).
+    bridges_root = assets_dir / "bridges"
+    if bridges_root.is_dir():
+        for mat in ("timber", "stone"):
+            mat_dir = bridges_root / mat
+            if not mat_dir.is_dir():
+                continue
+            for path in sorted(mat_dir.glob("bridge_dir_*.png")):
+                raw_bytes += path.stat().st_size
+                with Image.open(path) as im:
+                    rgba = im.convert("RGBA")
+                    src_w, src_h = rgba.size
+                    max_side = 320
+                    scale = min(1.0, max_side / max(src_w, src_h))
+                    if scale < 1.0:
+                        rgba = rgba.resize(
+                            (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
+                            Image.Resampling.LANCZOS,
+                        )
+                infra_items.append(
+                    PackedItem(
+                        key=f"bridges/{mat}/{path.stem}",
+                        image=rgba,
+                        metadata={
+                            "category": "bridge",
+                            "material": mat,
                             "sourceSize": [src_w, src_h],
                         },
                         extrude=True,

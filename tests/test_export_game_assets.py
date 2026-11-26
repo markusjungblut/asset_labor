@@ -295,6 +295,32 @@ class ExportGameAssetsTest(unittest.TestCase):
             _, m_peak = m_img.getchannel("A").getextrema()
             self.assertGreaterEqual(m_peak, 248)
 
+    def test_pass8_ground_decals_nw_gate_and_painted_bridges(self) -> None:
+        assets = ROOT / "assets"
+        nc = json.loads((assets / "nature" / "nature_catalog.json").read_text(encoding="utf-8"))
+        # 8 painted ground micro-decals registered cleanly with kind=ground_decal & shadow.mode=none
+        decals = [
+            rel
+            for rel, meta in nc["entries"].items()
+            if meta.get("kind") == "ground_decal" and (assets / rel).is_file()
+        ]
+        self.assertGreaterEqual(len(decals), 8)
+        for rel in decals:
+            self.assertEqual((nc["entries"][rel].get("shadow") or {}).get("mode"), "none")
+
+        # Native NW stone gate_dir5 exists & matches exact 468x501 edge_dir5 geometry
+        gate5_path = assets / "walls" / "stone" / "gates" / "v1" / "gate_dir5.png"
+        edge5_path = assets / "walls" / "stone" / "v7" / "edge_dir5.png"
+        self.assertTrue(gate5_path.is_file())
+        with Image.open(gate5_path) as g5, Image.open(edge5_path) as e5:
+            self.assertEqual(g5.size, e5.size)
+
+        # All 12 painted stone & timber river bridges exist across all 6 hex crossing directions
+        for mat in ("stone", "timber"):
+            for d in range(6):
+                bp = assets / "bridges" / mat / f"bridge_dir_{d:02d}.png"
+                self.assertTrue(bp.is_file(), f"Missing painted bridge {bp}")
+
 
 if __name__ == "__main__":
     unittest.main()
