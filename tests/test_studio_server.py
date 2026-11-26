@@ -78,6 +78,35 @@ class WebGL2StudioServerTest(unittest.TestCase):
         # Validate without mutating on-disk file by checking validator directly.
         server.validate_nature_catalog(catalog)
 
+    def test_python38_compatibility_and_stale_pack_detector(self):
+        import ast
+
+        for rel in (
+            "server.py",
+            "scripts/export_game_assets.py",
+            "scripts/ingest_new_pngs.py",
+            "scripts/export_web_icons.py",
+        ):
+            src = (ROOT / rel).read_text(encoding="utf-8")
+            tree = ast.parse(src, filename=rel, feature_version=(3, 8))
+            has_future = any(
+                isinstance(n, ast.ImportFrom)
+                and n.module == "__future__"
+                and any(a.name == "annotations" for a in n.names)
+                for n in tree.body[:5]
+            )
+            self.assertTrue(has_future, f"{rel} must import future annotations for Python 3.8/3.9")
+
+        # Missing manifest must cleanly report stale without throwing
+        stale, reason, out_of_sync = server._detect_pack_staleness(
+            ROOT / "dist" / "__nonexistent_manifest__.json",
+            {},
+            None,
+        )
+        self.assertTrue(stale)
+        self.assertTrue(bool(reason))
+        self.assertTrue(out_of_sync)
+
 
 if __name__ == "__main__":
     unittest.main()

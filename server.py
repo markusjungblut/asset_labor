@@ -3,6 +3,8 @@
 Uses a version-specific starting port and chooses the next free local port
 when an older preview is still running. Standard library only.
 """
+from __future__ import annotations
+
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
@@ -81,7 +83,7 @@ def _manifest_to_export_status(manifest, synced_to=''):
     }
 
 
-def _detect_pack_staleness(manifest_path: Path, manifest: dict, sync_dir: Path | None) -> tuple[bool, str, bool]:
+def _detect_pack_staleness(manifest_path, manifest, sync_dir):
     """Return (stale, stale_reason, browsergame_out_of_sync) for the local WebP pack."""
     try:
         manifest_mtime = manifest_path.stat().st_mtime
