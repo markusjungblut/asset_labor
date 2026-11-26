@@ -227,11 +227,15 @@
             <button id="resetOpticsBtn" class="btn small" type="button">Optik &amp; Wald zurücksetzen</button>
           </div>
 
-          <!-- Tab 4: Mountain Shadows, Auto-Tiling & Wind/Water -->
+          <!-- Tab 4: Unified Shadows, 2.5D Self-Shading, Auto-Tiling & Wind/Water -->
           <div id="opticsTabSurface" class="optics-pane" hidden>
             <label class="check-pill">
               <input id="mtnShadowSpritesCheck" type="checkbox" checked>
-              <span>Bergschatten verdunkelt Sprites</span>
+              <span>Schatten auf Sprites (Berge, Felsen, Bäume, Mauern)</span>
+            </label>
+            <label class="field-stack">
+              <span>Eigenschatten (3D): <strong id="spriteSelfShadowVal" class="mono">68%</strong></span>
+              <input id="spriteSelfShadowRange" type="range" min="0" max="100" step="2" value="68">
             </label>
             <label class="check-pill">
               <input id="windAnimationCheck" type="checkbox" checked>
@@ -395,7 +399,7 @@
     </aside>
   </div>
 
-  <script src="vedras-map-engine.bundle.js?v=0.25.0"></script>
-  <script src="studio-app.js?v=0.25.0"></script>
+  <script src="vedras-map-engine.bundle.js?v=0.26.0"></script>
+  <script src="studio-app.js?v=0.26.0"></script>
 </body>
 </html>

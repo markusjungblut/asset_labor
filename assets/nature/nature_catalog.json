@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 1,
+  "revision": 2,
   "entries": {
     "nature/affenbrotbaum1.png": {
       "id": "existing_affenbrotbaum1",
@@ -20388,10 +20388,10 @@
         "y": 0.96
       },
       "shadow": {
-        "mode": "none",
+        "mode": "generic_small_round",
         "path": "",
-        "offsetX": -0.24,
-        "offsetY": 0,
+        "offsetX": -0.14,
+        "offsetY": 0.02,
         "widthScale": 0.7,
         "depthScale": 0.18
       },
