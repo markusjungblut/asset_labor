@@ -298,15 +298,20 @@ class ExportGameAssetsTest(unittest.TestCase):
     def test_pass8_ground_decals_nw_gate_and_painted_bridges(self) -> None:
         assets = ROOT / "assets"
         nc = json.loads((assets / "nature" / "nature_catalog.json").read_text(encoding="utf-8"))
-        # 8 painted ground micro-decals registered cleanly with kind=ground_decal & shadow.mode=none
+        # Pass 9: 17 clean irregular zero-halo ground micro-decals (no black snow pebbles!)
         decals = [
             rel
             for rel, meta in nc["entries"].items()
             if meta.get("kind") == "ground_decal" and (assets / rel).is_file()
         ]
-        self.assertGreaterEqual(len(decals), 8)
+        self.assertGreaterEqual(len(decals), 17)
+        self.assertNotIn("nature/decal_snow_drift_pebbles.png", nc["entries"])
         for rel in decals:
-            self.assertEqual((nc["entries"][rel].get("shadow") or {}).get("mode"), "none")
+            entry = nc["entries"][rel]
+            self.assertEqual((entry.get("shadow") or {}).get("mode"), "none")
+            excluded = entry.get("excludedTerrainTypes") or []
+            self.assertIn("snowfields", excluded)
+            self.assertIn("frozen_tundra", excluded)
 
         # Native NW stone gate_dir5 exists & matches exact 468x501 edge_dir5 geometry
         gate5_path = assets / "walls" / "stone" / "gates" / "v1" / "gate_dir5.png"
