@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": 12,
+  "revision": 13,
   "entries": {
     "nature/affenbrotbaum1.png": {
       "id": "existing_affenbrotbaum1",
@@ -281,13 +281,14 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "frozen_tundra",
         "snowfields"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -305,7 +306,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "alpine_snow_mountain"
       ]
     },
     "nature/berg_02.png": {
@@ -333,13 +335,14 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "frozen_tundra",
         "snowfields"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -357,7 +360,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "alpine_snow_mountain"
       ]
     },
     "nature/berg_03.png": {
@@ -385,13 +389,14 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "frozen_tundra",
         "snowfields"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -409,7 +414,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "alpine_snow_mountain"
       ]
     },
     "nature/berg_04.png": {
@@ -437,13 +443,14 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
-      ],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "frozen_tundra",
         "snowfields"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -461,7 +468,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "alpine_snow_mountain"
       ]
     },
     "nature/besenheide1.png": {
@@ -9757,9 +9765,9 @@
       "sourceReference": "Bestandsdatei: cactus_01.png",
       "family": "cacti",
       "kind": "shrub",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "logicalWidth": 52,
+      "logicalWidth": 26,
       "scaleMin": 0.92,
       "scaleMax": 1.08,
       "anchor": {
@@ -9805,7 +9813,8 @@
         "needs_art_review",
         "cacti",
         "user_supplied",
-        "needs_visual_qa"
+        "needs_visual_qa",
+        "round_cactus"
       ],
       "targetHeight": 49
     },
@@ -10258,9 +10267,9 @@
       "sourceReference": "Bestandsdatei: cactus_02.png",
       "family": "cacti",
       "kind": "shrub",
-      "sizeClass": "medium",
+      "sizeClass": "small",
       "sizeMode": "class",
-      "logicalWidth": 52,
+      "logicalWidth": 26,
       "scaleMin": 0.85,
       "scaleMax": 1.15,
       "anchor": {
@@ -10305,7 +10314,8 @@
         "existing",
         "needs_art_review",
         "user_supplied",
-        "needs_visual_qa"
+        "needs_visual_qa",
+        "round_cactus"
       ],
       "targetHeight": 49
     },
@@ -14154,12 +14164,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14178,7 +14197,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_06.png": {
@@ -14206,12 +14226,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14230,7 +14259,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_07.png": {
@@ -14258,12 +14288,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14282,7 +14321,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_08.png": {
@@ -14310,12 +14350,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14334,7 +14383,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_09.png": {
@@ -14362,12 +14412,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14386,7 +14445,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_10.png": {
@@ -14414,12 +14474,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14438,7 +14507,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_11.png": {
@@ -14466,12 +14536,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14490,7 +14569,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_12.png": {
@@ -14518,12 +14598,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14542,7 +14631,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/berg_13.png": {
@@ -14570,12 +14660,21 @@
         "depthScale": 0.18
       },
       "terrainPresetId": "",
-      "allowedTerrainCategories": [
-        "cold_regions"
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "highland",
+        "tundra",
+        "grassland",
+        "pasture",
+        "sparse_pasture",
+        "forest_floor",
+        "moor",
+        "marshland",
+        "swamp"
       ],
-      "allowedTerrainTypes": [],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -14594,7 +14693,8 @@
       "tags": [
         "existing",
         "needs_art_review",
-        "needs_species_review"
+        "needs_species_review",
+        "snow_tipped_mountain"
       ]
     },
     "nature/boulder_01.png": {
@@ -17029,7 +17129,7 @@
       "id": "existing_berg_14",
       "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: berg_14.png",
-      "family": "mountains",
+      "family": "snow_mountains",
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
@@ -17050,10 +17150,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
-        "snowfields"
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17072,7 +17175,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "snowfields_mountain"
+        "snowfields_mountain",
+        "arctic_snow_mountain"
       ],
       "targetHeight": 310
     },
@@ -17080,7 +17184,7 @@
       "id": "existing_berg_15",
       "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: berg_15.png",
-      "family": "mountains",
+      "family": "snow_mountains",
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
@@ -17101,10 +17205,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
-        "snowfields"
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17123,7 +17230,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "snowfields_mountain"
+        "snowfields_mountain",
+        "arctic_snow_mountain"
       ],
       "targetHeight": 310
     },
@@ -17131,7 +17239,7 @@
       "id": "existing_berg_16",
       "description": "Schneefeldberg – vorhandene Grafik; Biomfreigaben/Größen bleiben im Labor veränderbar.",
       "sourceReference": "Bestandsdatei: berg_16.png",
-      "family": "mountains",
+      "family": "snow_mountains",
       "kind": "mountain",
       "sizeClass": "giant",
       "sizeMode": "manual",
@@ -17152,10 +17260,13 @@
       },
       "terrainPresetId": "",
       "allowedTerrainCategories": [],
-      "allowedTerrainTypes": [],
-      "excludedTerrainTypes": [
-        "snowfields"
+      "allowedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
+      "excludedTerrainTypes": [],
       "placement": {
         "weight": 1,
         "density": 0,
@@ -17174,7 +17285,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "snowfields_mountain"
+        "snowfields_mountain",
+        "arctic_snow_mountain"
       ],
       "targetHeight": 310
     },
@@ -17207,12 +17319,28 @@
         "grassland",
         "pasture",
         "sparse_pasture",
+        "forest_floor",
         "moor",
         "marshland",
-        "swamp"
+        "swamp",
+        "highland",
+        "jungle",
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
       ],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -17232,7 +17360,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "temperate_mountain"
+        "temperate_mountain",
+        "neutral_rock_mountain"
       ],
       "targetHeight": 310
     },
@@ -17265,12 +17394,28 @@
         "grassland",
         "pasture",
         "sparse_pasture",
+        "forest_floor",
         "moor",
         "marshland",
-        "swamp"
+        "swamp",
+        "highland",
+        "jungle",
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
       ],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -17290,7 +17435,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "temperate_mountain"
+        "temperate_mountain",
+        "neutral_rock_mountain"
       ],
       "targetHeight": 310
     },
@@ -17323,12 +17469,28 @@
         "grassland",
         "pasture",
         "sparse_pasture",
+        "forest_floor",
         "moor",
         "marshland",
-        "swamp"
+        "swamp",
+        "highland",
+        "jungle",
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
       ],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -17348,7 +17510,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "temperate_mountain"
+        "temperate_mountain",
+        "neutral_rock_mountain"
       ],
       "targetHeight": 310
     },
@@ -17381,12 +17544,28 @@
         "grassland",
         "pasture",
         "sparse_pasture",
+        "forest_floor",
         "moor",
         "marshland",
-        "swamp"
+        "swamp",
+        "highland",
+        "jungle",
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
       ],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -17406,7 +17585,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "temperate_mountain"
+        "temperate_mountain",
+        "neutral_rock_mountain"
       ],
       "targetHeight": 310
     },
@@ -18536,12 +18716,28 @@
         "grassland",
         "pasture",
         "sparse_pasture",
+        "forest_floor",
         "moor",
         "marshland",
-        "swamp"
+        "swamp",
+        "highland",
+        "jungle",
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
       ],
       "excludedTerrainTypes": [
-        "snowfields"
+        "snowfields",
+        "frozen_tundra"
       ],
       "placement": {
         "weight": 1,
@@ -18561,7 +18757,8 @@
         "existing",
         "needs_art_review",
         "needs_species_review",
-        "temperate_mountain"
+        "temperate_mountain",
+        "neutral_rock_mountain"
       ],
       "targetHeight": 310
     },
@@ -22834,7 +23031,7 @@
       "id": "snow_mountain_01",
       "name": "Snow Mountain 01",
       "kind": "mountain",
-      "family": "mountains",
+      "family": "snow_mountains",
       "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 345,
@@ -22858,7 +23055,9 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -22872,7 +23071,8 @@
       "tags": [
         "mountain",
         "snow_mountain",
-        "arctic"
+        "arctic",
+        "arctic_snow_mountain"
       ],
       "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
       "sourceReference": "Pass 10 Roadmap B.9"
@@ -22881,7 +23081,7 @@
       "id": "snow_mountain_02",
       "name": "Snow Mountain 02",
       "kind": "mountain",
-      "family": "mountains",
+      "family": "snow_mountains",
       "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 375,
@@ -22905,7 +23105,9 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -22919,7 +23121,8 @@
       "tags": [
         "mountain",
         "snow_mountain",
-        "arctic"
+        "arctic",
+        "arctic_snow_mountain"
       ],
       "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
       "sourceReference": "Pass 10 Roadmap B.9"
@@ -22928,7 +23131,7 @@
       "id": "snow_mountain_03",
       "name": "Snow Mountain 03",
       "kind": "mountain",
-      "family": "mountains",
+      "family": "snow_mountains",
       "sizeClass": "giant",
       "sizeMode": "manual",
       "logicalWidth": 355,
@@ -22952,7 +23155,9 @@
       "allowedTerrainCategories": [],
       "allowedTerrainTypes": [
         "snowfields",
-        "frozen_tundra"
+        "frozen_tundra",
+        "tundra",
+        "highland"
       ],
       "excludedTerrainTypes": [],
       "placement": {
@@ -22966,10 +23171,197 @@
       "tags": [
         "mountain",
         "snow_mountain",
-        "arctic"
+        "arctic",
+        "arctic_snow_mountain"
       ],
       "description": "Arctic glacier snow mountain peak without green moss for snowfields and frozen tundra.",
       "sourceReference": "Pass 10 Roadmap B.9"
+    },
+    "nature/desert_mountain_01.png": {
+      "id": "desert_mountain_01",
+      "name": "Desert Mountain 01",
+      "kind": "mountain",
+      "family": "desert_mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 355,
+      "scaleMin": 0.88,
+      "scaleMax": 1.14,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.42,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "desert_mountain",
+        "sandstone_mountain",
+        "pass11"
+      ],
+      "description": "Sandstein-Wüstenberg 1 – schroffer rot-ockerfarbener Wüstengipfel ohne Schnee",
+      "sourceReference": "Pass 11 Desert Sandstone Mountains"
+    },
+    "nature/desert_mountain_02.png": {
+      "id": "desert_mountain_02",
+      "name": "Desert Mountain 02",
+      "kind": "mountain",
+      "family": "desert_mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 360,
+      "scaleMin": 0.88,
+      "scaleMax": 1.14,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.42,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "desert_mountain",
+        "sandstone_mountain",
+        "pass11"
+      ],
+      "description": "Sandstein-Wüstenberg 2 – gestufte ockerfarbene Badlands-Felsformation ohne Schnee",
+      "sourceReference": "Pass 11 Desert Sandstone Mountains"
+    },
+    "nature/desert_mountain_03.png": {
+      "id": "desert_mountain_03",
+      "name": "Desert Mountain 03",
+      "kind": "mountain",
+      "family": "desert_mountains",
+      "sizeClass": "giant",
+      "sizeMode": "manual",
+      "logicalWidth": 345,
+      "scaleMin": 0.88,
+      "scaleMax": 1.14,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.67
+      },
+      "shadow": {
+        "mode": "none",
+        "path": ""
+      },
+      "mountain": {
+        "radius": 1,
+        "coreRadius": 0,
+        "shadowOpacity": 0.42,
+        "flatten": false
+      },
+      "terrainPresetId": "",
+      "allowedTerrainCategories": [],
+      "allowedTerrainTypes": [
+        "desert",
+        "sandy_desert",
+        "rocky_desert",
+        "sandy_rocky_desert",
+        "clay_desert",
+        "badlands",
+        "sandy_badlands",
+        "rocky_badlands",
+        "semi_desert",
+        "wasteland",
+        "savanna",
+        "dry_ground"
+      ],
+      "excludedTerrainTypes": [
+        "snowfields",
+        "frozen_tundra",
+        "tundra"
+      ],
+      "placement": {
+        "weight": 2.4,
+        "density": 0.95,
+        "minSpacing": 96,
+        "canCluster": true,
+        "edgeMargin": 20
+      },
+      "artStatus": "approved",
+      "tags": [
+        "mountain",
+        "desert_mountain",
+        "sandstone_mountain",
+        "pass11"
+      ],
+      "description": "Sandstein-Wüstenberg 3 – steile Terrakotta-Felsnadel für Wüsten & Badlands ohne Schnee",
+      "sourceReference": "Pass 11 Desert Sandstone Mountains"
     }
   }
 }

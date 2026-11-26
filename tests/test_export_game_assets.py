@@ -366,7 +366,19 @@ class ExportGameAssetsTest(unittest.TestCase):
             _, peak = item.image.getchannel("A").getextrema()
             self.assertGreaterEqual(peak, 240)
 
-        # 3. All 3 Arctic Snow Mountains exist, allow snowfields/frozen_tundra, and green temperate mountains exclude snowfields
+        # 3. All 3 Arctic Snow Mountains exist, allow snowfields/frozen_tundra, and green-slope / desert mountains exclude snowfields
+        snow_capable_mountains = {
+            "nature/snow_mountain_01.png",
+            "nature/snow_mountain_02.png",
+            "nature/snow_mountain_03.png",
+            "nature/berg_01.png",
+            "nature/berg_02.png",
+            "nature/berg_03.png",
+            "nature/berg_04.png",
+            "nature/berg_14.png",
+            "nature/berg_15.png",
+            "nature/berg_16.png",
+        }
         for i in (1, 2, 3):
             rel = f"nature/snow_mountain_0{i}.png"
             self.assertTrue((assets / rel).is_file(), f"Missing {rel}")
@@ -376,12 +388,47 @@ class ExportGameAssetsTest(unittest.TestCase):
             self.assertIn("snowfields", entry.get("allowedTerrainTypes") or [])
             self.assertIn("frozen_tundra", entry.get("allowedTerrainTypes") or [])
         for rel, entry in nc["entries"].items():
-            if entry.get("kind") == "mountain" and not rel.startswith("nature/snow_mountain_"):
+            if entry.get("kind") == "mountain" and rel not in snow_capable_mountains:
                 self.assertIn(
                     "snowfields",
                     entry.get("excludedTerrainTypes") or [],
-                    f"Temperate mountain {rel} must exclude pure snowfields",
+                    f"Non-arctic mountain {rel} must exclude pure snowfields",
                 )
+
+    def test_pass11_desert_mountains_biome_tiers_and_smaller_round_cacti(self) -> None:
+        assets = ROOT / "assets"
+        nc = json.loads((assets / "nature" / "nature_catalog.json").read_text(encoding="utf-8"))
+        entries = nc["entries"]
+
+        # 1. All 3 painted sandstone desert mountains exist, are RGBA with transparent corners, and target arid biomes only
+        for i in (1, 2, 3):
+            rel = f"nature/desert_mountain_0{i}.png"
+            p = assets / rel
+            self.assertTrue(p.is_file(), f"Missing {rel}")
+            with Image.open(p) as im:
+                self.assertEqual(im.mode, "RGBA")
+                self.assertEqual(im.getpixel((0, 0))[3], 0, f"Opaque top-left corner in {rel}")
+            entry = entries.get(rel)
+            self.assertIsNotNone(entry)
+            self.assertEqual(entry.get("kind"), "mountain")
+            allowed = set(entry.get("allowedTerrainTypes") or [])
+            self.assertIn("desert", allowed)
+            self.assertIn("badlands", allowed)
+            self.assertNotIn("snowfields", allowed)
+            self.assertNotIn("grassland", allowed)
+
+        # 2. Snow mountains must NEVER list desert or badlands as allowed terrain
+        for snow_rel in ("nature/snow_mountain_01.png", "nature/snow_mountain_02.png", "nature/snow_mountain_03.png", "nature/berg_14.png", "nature/berg_01.png"):
+            allowed = set(entries[snow_rel].get("allowedTerrainTypes") or [])
+            self.assertIn("highland", allowed)
+            self.assertNotIn("desert", allowed)
+            self.assertNotIn("sandy_desert", allowed)
+            self.assertNotIn("badlands", allowed)
+
+        # 3. Round barrel cacti (cactus_01 & cactus_02) are exactly 50% smaller (logicalWidth=26 vs 52 for tall cacti)
+        self.assertEqual(entries["nature/cactus_01.png"]["logicalWidth"], 26)
+        self.assertEqual(entries["nature/cactus_02.png"]["logicalWidth"], 26)
+        self.assertEqual(entries["nature/cactus_04.png"]["logicalWidth"], 52)
 
     def test_c_matrix_polish_and_atomic_staging_on_failure(self) -> None:
         # C-accelerated polish_terrain_rgb must match exact Rec.709 formula within +/-1 LSB
