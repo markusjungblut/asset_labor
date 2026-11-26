@@ -383,6 +383,32 @@ class ExportGameAssetsTest(unittest.TestCase):
                     f"Temperate mountain {rel} must exclude pure snowfields",
                 )
 
+    def test_c_matrix_polish_and_atomic_staging_on_failure(self) -> None:
+        # C-accelerated polish_terrain_rgb must match exact Rec.709 formula within +/-1 LSB
+        im = Image.new("RGB", (8, 8), (180, 120, 60))
+        polished = exporter.polish_terrain_rgb(im, "ground", "grassland", amount=0.35)
+        r, g, b = polished.getpixel((0, 0))
+        y = 0.2126 * 180 + 0.7152 * 120 + 0.0722 * 60
+        s, c = 1.0 - 0.14 * 0.35, 1.0 - 0.12 * 0.35
+        self.assertLessEqual(abs(r - round((y + (180 - y) * s - 128.0) * c + 128.0)), 1)
+        self.assertLessEqual(abs(g - round((y + (120 - y) * s - 128.0) * c + 128.0)), 1)
+        self.assertLessEqual(abs(b - round((y + (60 - y) * s - 128.0) * c + 128.0)), 1)
+        # Snowfields stay untouched
+        snow = exporter.polish_terrain_rgb(im, "ground", "snowfields", amount=0.35)
+        self.assertEqual(snow.getpixel((0, 0)), (180, 120, 60))
+
+        # Failed export must NOT destroy an existing valid out_dir (atomic staging guarantee!)
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            out_dir = base / "dist" / "game-assets"
+            out_dir.mkdir(parents=True)
+            sentinel = out_dir / "manifest.json"
+            sentinel.write_text('{"sentinel": true}\n', encoding="utf-8")
+            with self.assertRaises(Exception):
+                exporter.export_all(assets_dir=base / "missing_assets", out_dir=out_dir)
+            self.assertTrue(sentinel.is_file())
+            self.assertIn("sentinel", sentinel.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

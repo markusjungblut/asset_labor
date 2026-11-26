@@ -13,12 +13,14 @@ import os
 from static_terrain_store import store as store_tile, load as load_tile, index as tile_index, MAX_REQUEST as MAX_TERRAIN_POST
 import shutil
 import re
+import sys
+import traceback
 import webbrowser
 import threading
 import time
 from datetime import datetime
 
-VERSION = '0.23.0-webgl2'
+VERSION = '0.31.0-webgl2'
 BASE = Path(__file__).resolve().parent
 ASSETS = BASE / 'assets'
 DIST_GAME_ASSETS = BASE / 'dist' / 'game-assets'
@@ -36,6 +38,9 @@ EXPORT_LOCK = threading.Lock()
 EXPORT_STATUS = {
     'state': 'idle',
     'error': '',
+    'progress': 0,
+    'stage': '',
+    'startedAt': 0.0,
     'contentHash': '',
     'rawMb': 0.0,
     'exportedMb': 0.0,
@@ -123,6 +128,11 @@ def _detect_pack_staleness(manifest_path, manifest, sync_dir):
 def get_game_asset_export_status():
     with EXPORT_LOCK:
         info = EXPORT_STATUS.copy()
+    if info['state'] == 'building':
+        started_at = float(info.get('startedAt') or 0.0)
+        if started_at > 0.0:
+            info['elapsedSeconds'] = round(max(0.0, time.time() - started_at), 1)
+        return info
     if info['state'] == 'idle':
         manifest_path = DIST_GAME_ASSETS / 'manifest.json'
         if manifest_path.is_file():
@@ -131,6 +141,8 @@ def get_game_asset_export_status():
                 sync_dir = detect_browsergame_sync_dir()
                 synced = sync_dir if (sync_dir and (sync_dir / 'manifest.json').is_file()) else ''
                 info = _manifest_to_export_status(manifest, synced)
+                info['progress'] = 100
+                info['stage'] = 'Bereit'
                 stale, stale_reason, out_of_sync = _detect_pack_staleness(manifest_path, manifest, sync_dir)
                 info['stale'] = stale
                 info['staleReason'] = stale_reason
@@ -147,28 +159,72 @@ def schedule_game_asset_export():
     with EXPORT_LOCK:
         if EXPORT_STATUS['state'] == 'building':
             return False
-        EXPORT_STATUS.update(state='building', error='')
+        EXPORT_STATUS.update(
+            state='building',
+            error='',
+            progress=1,
+            stage='Initialisiere WebP-Exporter …',
+            startedAt=time.time(),
+            elapsedSeconds=0.0,
+            stale=False,
+            staleReason='',
+            browsergameOutOfSync=False,
+        )
+
+    def _on_progress(pct, stage):
+        with EXPORT_LOCK:
+            EXPORT_STATUS['progress'] = int(pct)
+            EXPORT_STATUS['stage'] = str(stage)
+            started_at = float(EXPORT_STATUS.get('startedAt') or 0.0)
+            if started_at > 0.0:
+                EXPORT_STATUS['elapsedSeconds'] = round(max(0.0, time.time() - started_at), 1)
+        print(f'[WebP-Export {int(pct):3d}%] {stage}', flush=True)
 
     def task():
         try:
+            base_str = str(BASE)
+            if base_str not in sys.path:
+                sys.path.insert(0, base_str)
             from scripts.export_game_assets import export_all
             sync_dir = detect_browsergame_sync_dir()
+            print('[WebP-Export] Starte Export in Hintergrund-Thread …', flush=True)
             manifest = export_all(
                 assets_dir=ASSETS,
                 out_dir=DIST_GAME_ASSETS,
                 sync_to=sync_dir,
+                on_progress=_on_progress,
+            )
+            ready_info = _manifest_to_export_status(manifest, sync_dir or '')
+            ready_info.update(
+                progress=100,
+                stage='Fertig',
+                stale=False,
+                staleReason='',
+                browsergameOutOfSync=False,
             )
             with EXPORT_LOCK:
-                EXPORT_STATUS.update(_manifest_to_export_status(manifest, sync_dir or ''))
-        except ImportError:
+                EXPORT_STATUS.update(ready_info)
+            print(
+                f"[WebP-Export] Fertig in {ready_info['elapsedSeconds']}s -> "
+                f"{ready_info['exportedMb']} MB WebP (#{ready_info['contentHash']})",
+                flush=True,
+            )
+        except ImportError as exc:
+            msg = str(exc)
+            if 'PIL' in msg or 'Pillow' in msg:
+                msg = 'Pillow fehlt — bitte im Windows-Terminal ausführen: py -3 -m pip install Pillow'
+            else:
+                msg = f'Python-Importfehler: {msg}'
+            print(f'[WebP-Export FEHLER] {msg}', flush=True)
+            traceback.print_exc()
             with EXPORT_LOCK:
-                EXPORT_STATUS.update(
-                    state='error',
-                    error='Pillow fehlt: python -m pip install Pillow',
-                )
+                EXPORT_STATUS.update(state='error', error=msg[:300], stage='Fehler')
         except Exception as exc:
+            msg = f'{type(exc).__name__}: {exc}'
+            print(f'[WebP-Export FEHLER] {msg}', flush=True)
+            traceback.print_exc()
             with EXPORT_LOCK:
-                EXPORT_STATUS.update(state='error', error=str(exc)[:240])
+                EXPORT_STATUS.update(state='error', error=msg[:300], stage='Fehler')
 
     threading.Thread(target=task, name='export-game-assets-webp', daemon=True).start()
     return True
@@ -396,7 +452,12 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         endpoint = urlparse(self.path).path
-        if self.headers.get('Origin') not in (None, f'http://{HOST}:{self.server.server_port}'):
+        allowed_origins = (
+            None,
+            f'http://{HOST}:{self.server.server_port}',
+            f'http://localhost:{self.server.server_port}',
+        )
+        if self.headers.get('Origin') not in allowed_origins:
             self._failure(403, 'Fremde Browser-Herkunft nicht erlaubt')
             return
         if endpoint == '/api/build-atlases':
@@ -588,6 +649,18 @@ if __name__ == '__main__':
     entry_page = 'index.html' if os.environ.get('VEDRAS_LEGACY_UI') == '1' else 'studio.html'
     url = f'http://{HOST}:{port}/{entry_page}?v={VERSION.replace(".", "-")}'
     print(f'VEDRAS ASSET-LABOR v{VERSION} (Decision 0123 WebGL2 Studio)', flush=True)
+    print(f'Python       : {sys.version.split()[0]}', flush=True)
+    try:
+        from PIL import __version__ as _pil_ver, features as _pil_features
+        _webp_ok = bool(_pil_features.check('webp'))
+        print(
+            f'Pillow/WebP  : {_pil_ver} (WebP OK)'
+            if _webp_ok
+            else f'Pillow/WebP  : {_pil_ver} OHNE WebP -> py -3 -m pip install --upgrade Pillow',
+            flush=True,
+        )
+    except ImportError:
+        print('Pillow/WebP  : FEHLT -> bitte einmalig ausfuehren: py -3 -m pip install Pillow', flush=True)
     print(f'Projektordner: {BASE}', flush=True)
     print(f'WebGL2 Studio: http://{HOST}:{port}/studio.html', flush=True)
     print(f'Geografie-Lab: http://{HOST}:{port}/geography-lab.html', flush=True)

@@ -823,31 +823,44 @@
   }
 
   /* ---------------- 1-Click WebP Export & Live Reload ---------------- */
-  async function runWebpExport() {
+  async function pollWebpExport() {
     el.exportAssetsBtn.disabled = true;
     el.bootBuildBtn.disabled = true;
-    el.exportAssetsBtn.textContent = "⏳ Baue WebP-Atlanten …";
-    showToast("WebP-Export & Schatten-Bake gestartet (läuft im Hintergrund) …");
-
+    const isInitialBoot = !state.engine;
+    if (isInitialBoot) {
+      el.bootOverlay.hidden = false;
+      el.bootTitle.textContent = "WebP-Atlanten werden gebaut …";
+      el.bootBuildBtn.hidden = false;
+      el.bootBuildBtn.textContent = "⏳ Export läuft …";
+    }
     try {
-      const startRes = await fetch("/api/export-game-assets", { method: "POST" });
-      if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${startRes.status}`);
-      }
       while (true) {
-        await new Promise((r) => setTimeout(r, 1200));
-        const stRes = await fetch("/api/export-game-assets/status");
+        const stRes = await fetch("/api/export-game-assets/status", { cache: "no-store" });
+        if (!stRes.ok) {
+          throw new Error(`Status-Abfrage fehlgeschlagen (HTTP ${stRes.status})`);
+        }
         const st = await stRes.json();
         state.exportStatus = st;
         if (st.state === "building") {
-          el.bootMessage.textContent = "Exportiere Terrain, 377 Natur-Sprites, 376 Schatten & Mauern/Tore in WebP …";
+          const pct = Math.max(2, Math.min(99, Number(st.progress) || 5));
+          const elapsed = typeof st.elapsedSeconds === "number" ? `${st.elapsedSeconds.toFixed(0)} s` : "";
+          const stage = st.stage || "Exportiere Terrain, Natur-Sprites, Schatten & Gebäude in WebP …";
+          el.exportAssetsBtn.textContent = `⏳ Baue WebP (${pct}%${elapsed ? ` · ${elapsed}` : ""})`;
+          if (isInitialBoot) {
+            el.bootBar.style.width = `${pct}%`;
+            el.bootMessage.textContent = elapsed ? `${stage} (${pct}% · ${elapsed})` : `${stage} (${pct}%)`;
+          }
+          await new Promise((r) => setTimeout(r, 900));
           continue;
         }
         if (st.state === "error") {
-          throw new Error(st.error || "WebP-Export fehlgeschlagen");
+          throw new Error(st.error || "WebP-Export fehlgeschlagen (siehe Konsolenfenster)");
         }
         if (st.state === "ready") {
+          if (isInitialBoot) {
+            el.bootBar.style.width = "100%";
+            el.bootMessage.textContent = `Export fertig (${st.elapsedSeconds}s) — lade WebGL2-Engine …`;
+          }
           updatePackHud(st);
           if (state.engine) {
             await state.engine.reloadAssets("/dist/game-assets");
@@ -862,15 +875,69 @@
           );
           break;
         }
-        break;
+        throw new Error(`Unerwarteter Export-Status: ${st.state || "unbekannt"}`);
       }
     } catch (err) {
-      showToast(`Export-Fehler: ${err.message}`, true);
+      const msg = String(err?.message || err || "Unbekannter Fehler");
+      showToast(`Export-Fehler: ${msg}`, true);
+      if (!state.engine) {
+        el.bootOverlay.hidden = false;
+        el.bootTitle.textContent = "WebP-Export fehlgeschlagen";
+        el.bootMessage.textContent = msg;
+        el.bootBar.style.width = "0%";
+        el.bootBuildBtn.hidden = false;
+        el.bootBuildBtn.textContent = "↻ WebP-Export erneut versuchen";
+      }
     } finally {
       el.exportAssetsBtn.disabled = false;
       el.bootBuildBtn.disabled = false;
-      el.exportAssetsBtn.textContent = "⚡ WebP-Atlanten bauen & syncen";
+      if (state.exportStatus && state.exportStatus.state === "ready") {
+        updatePackHud(state.exportStatus);
+      } else {
+        el.exportAssetsBtn.textContent = "⚡ WebP-Atlanten bauen & syncen";
+        if (!state.engine && el.bootBuildBtn.textContent === "⏳ Export läuft …") {
+          el.bootBuildBtn.textContent = "⚡ WebP-Atlanten jetzt erstmalig bauen & syncen";
+        }
+      }
     }
+  }
+
+  async function runWebpExport() {
+    el.exportAssetsBtn.disabled = true;
+    el.bootBuildBtn.disabled = true;
+    el.exportAssetsBtn.textContent = "⏳ Starte WebP-Export …";
+    if (!state.engine) {
+      el.bootOverlay.hidden = false;
+      el.bootTitle.textContent = "WebP-Atlanten werden gebaut …";
+      el.bootMessage.textContent = "Starte Export-Worker im lokalen Server …";
+      el.bootBar.style.width = "3%";
+      el.bootBuildBtn.textContent = "⏳ Export läuft …";
+    }
+    showToast("WebP-Export & Schatten-Bake gestartet …");
+
+    try {
+      const startRes = await fetch("/api/export-game-assets", { method: "POST" });
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${startRes.status}`);
+      }
+    } catch (err) {
+      const msg = String(err?.message || err || "Server nicht erreichbar");
+      showToast(`Export-Start fehlgeschlagen: ${msg}`, true);
+      if (!state.engine) {
+        el.bootTitle.textContent = "WebP-Export konnte nicht gestartet werden";
+        el.bootMessage.textContent = msg;
+        el.bootBar.style.width = "0%";
+        el.bootBuildBtn.hidden = false;
+        el.bootBuildBtn.textContent = "↻ Erneut versuchen";
+      }
+      el.exportAssetsBtn.disabled = false;
+      el.bootBuildBtn.disabled = false;
+      el.exportAssetsBtn.textContent = "⚡ WebP-Atlanten bauen & syncen";
+      return;
+    }
+
+    await pollWebpExport();
   }
 
   function updatePackHud(st) {
@@ -1478,9 +1545,25 @@
         el.bootOverlay.hidden = false;
         el.bootTitle.textContent = "WebP-Atlanten noch nicht gebaut";
         el.bootMessage.textContent =
-          "Auf diesem Rechner existieren noch keine exportierten WebP-Atlanten unter dist/game-assets/. Einmalig bauen (~40 s), danach startet das Studio in < 1 Sekunde mit 60 FPS.";
+          "Auf diesem Rechner existieren noch keine exportierten WebP-Atlanten unter dist/game-assets/. Einmalig bauen (~25–60 s), danach startet das Studio in < 1 Sekunde mit 60 FPS.";
         el.bootBar.style.width = "0%";
         el.bootBuildBtn.hidden = false;
+        return;
+      }
+
+      if (state.exportStatus.state === "building") {
+        await pollWebpExport();
+        return;
+      }
+
+      if (state.exportStatus.state === "error") {
+        el.bootOverlay.hidden = false;
+        el.bootTitle.textContent = "WebP-Export fehlgeschlagen";
+        el.bootMessage.textContent =
+          state.exportStatus.error || "Unbekannter Fehler beim Export (Details im Konsolenfenster).";
+        el.bootBar.style.width = "0%";
+        el.bootBuildBtn.hidden = false;
+        el.bootBuildBtn.textContent = "↻ WebP-Export erneut versuchen";
         return;
       }
 
