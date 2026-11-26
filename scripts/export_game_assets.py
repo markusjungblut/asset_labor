@@ -345,17 +345,18 @@ def bake_mountain_shadow(
     aspect = trimmed.height / max(1, trimmed.width)
     ref_h = ref_width * aspect
 
-    # Exact global game sun angle (142 deg = light from screen-right, shadow cast left/down-left)
+    # Exact global game sun angle (142 deg = light from screen-right, shadow cast left/down-left).
+    # Because mountains are wide (x in [-0.50, +0.50]) with peak at ay ~0.67, reach=1.38 projects
+    # each peak's unique jagged silhouette ~0.35-0.45x cleanly past the western rocky foot!
     angle = 142.0
     rad = math.radians(angle)
-    # Compact, realistic mountain cast reach (0.46x sprite width -> cohesive with trees/walls/hills!)
-    length_f = 0.46
-    width_f = 0.94
+    length_f = 1.38
+    width_f = 0.92
     reach = ref_width * length_f
     cast_x = reach * math.cos(rad)
-    cast_y = reach * math.sin(rad) * 0.28
-    ox = -ref_width * 0.06
-    oy = ref_width * 0.02
+    cast_y = reach * math.sin(rad) * 0.24
+    ox = -ref_width * 0.14
+    oy = ref_width * 0.03
     slant = 0.03
 
     # Forward affine transform from mountain-local (lx, ly) to anchor-relative ground (px, py)
