@@ -81,6 +81,43 @@ def _manifest_to_export_status(manifest, synced_to=''):
     }
 
 
+def _detect_pack_staleness(manifest_path: Path, manifest: dict, sync_dir: Path | None) -> tuple[bool, str, bool]:
+    """Return (stale, stale_reason, browsergame_out_of_sync) for the local WebP pack."""
+    try:
+        manifest_mtime = manifest_path.stat().st_mtime
+    except OSError:
+        return True, 'manifest.json fehlt', True
+    watched = [
+        ('nature_catalog.json', ASSETS / 'nature' / 'nature_catalog.json'),
+        ('sprite_shadow_profiles.json', ASSETS / 'shadows' / 'sprite_shadow_profiles.json'),
+        ('terrain_catalog.json', ASSETS / 'terrain' / 'terrain_catalog.json'),
+        ('export_game_assets.py', BASE / 'scripts' / 'export_game_assets.py'),
+    ]
+    newest_name = ''
+    newest_mtime = manifest_mtime
+    for label, p in watched:
+        try:
+            mt = p.stat().st_mtime
+        except OSError:
+            continue
+        if mt > newest_mtime + 1.0:
+            newest_mtime = mt
+            newest_name = label
+    out_of_sync = False
+    if sync_dir:
+        sync_manifest = sync_dir / 'manifest.json'
+        if not sync_manifest.is_file():
+            out_of_sync = True
+        else:
+            try:
+                other = json.loads(sync_manifest.read_text('utf-8'))
+                if other.get('contentHash') != manifest.get('contentHash'):
+                    out_of_sync = True
+            except (OSError, ValueError):
+                out_of_sync = True
+    return bool(newest_name), newest_name, out_of_sync
+
+
 def get_game_asset_export_status():
     with EXPORT_LOCK:
         info = EXPORT_STATUS.copy()
@@ -92,6 +129,10 @@ def get_game_asset_export_status():
                 sync_dir = detect_browsergame_sync_dir()
                 synced = sync_dir if (sync_dir and (sync_dir / 'manifest.json').is_file()) else ''
                 info = _manifest_to_export_status(manifest, synced)
+                stale, stale_reason, out_of_sync = _detect_pack_staleness(manifest_path, manifest, sync_dir)
+                info['stale'] = stale
+                info['staleReason'] = stale_reason
+                info['browsergameOutOfSync'] = out_of_sync
             except (OSError, ValueError):
                 pass
         else:

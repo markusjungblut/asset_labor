@@ -281,6 +281,20 @@ class ExportGameAssetsTest(unittest.TestCase):
             _, peak = sh_img.getchannel("A").getextrema()
             self.assertGreaterEqual(peak, 248)
 
+            # Pass 7: Mountain shadows must project visibly PAST the western base (x < -0.72), never hide underneath!
+            mp = Path(tmp) / "peak.png"
+            _make_mountain_png(mp)
+            m_res = exporter.bake_mountain_shadow(
+                trimmed=Image.open(mp).convert("RGBA"),
+                meta={"kind": "mountain", "anchor": {"x": 0.5, "y": 0.67}},
+            )
+            self.assertIsNotNone(m_res)
+            m_img, m_bounds, m_mode = m_res
+            self.assertEqual(m_mode, "mountain_field")
+            self.assertLess(m_bounds[0], -0.72)
+            _, m_peak = m_img.getchannel("A").getextrema()
+            self.assertGreaterEqual(m_peak, 248)
+
 
 if __name__ == "__main__":
     unittest.main()

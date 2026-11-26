@@ -875,7 +875,20 @@
 
   function updatePackHud(st) {
     if (!st || st.state !== "ready") return;
-    el.hudPack.textContent = `WebP ${st.exportedMb} MB · #${st.contentHash} · ${st.infraSprites} Infra`;
+    const isStale = Boolean(st.stale || st.browsergameOutOfSync);
+    if (isStale) {
+      const reason = st.staleReason ? ` (${st.staleReason} neuer)` : " (Sync offen)";
+      el.hudPack.textContent = `⚠ WebP veraltet${reason} · #${st.contentHash}`;
+      el.hudPack.style.color = "#f6c453";
+      el.exportAssetsBtn.textContent = "⚠ WebP veraltet — neu bauen & syncen";
+      showToast(
+        `Lokale WebP-Atlanten sind älter als ${st.staleReason || "browsergame"} — bitte oben „WebP neu bauen & syncen“ klicken!`,
+      );
+    } else {
+      el.hudPack.textContent = `WebP ${st.exportedMb} MB · #${st.contentHash} · ${st.infraSprites} Infra`;
+      el.hudPack.style.color = "";
+      el.exportAssetsBtn.textContent = "⚡ WebP-Atlanten bauen & syncen";
+    }
   }
 
   /* ---------------- Save Nature Catalog ---------------- */
