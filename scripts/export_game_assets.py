@@ -1066,6 +1066,7 @@ def export_nature_and_shadows(
         )
 
     shadow_items.extend(bake_wall_shadows(global_shadow))
+    shadow_items.extend(bake_building_shadows(assets_dir, global_shadow))
 
     atlases_dir = out_dir / "atlases"
     nature_pages, nature_entries = pack_atlas_group(
@@ -1277,6 +1278,67 @@ def bake_wall_shadows(global_cfg: dict[str, Any]) -> list[PackedItem]:
     return items
 
 
+BUILDING_SHADOW_ANCHORS: dict[str, tuple[float, float]] = {
+    "buildings/tier1/watchtower": (0.5, 0.87),
+    "buildings/tier1/quarry": (0.5, 0.68),
+    "buildings/tier1/farm": (0.5, 0.70),
+    "buildings/centers/capital_t1": (0.5, 0.74),
+    "buildings/tier1/fortress": (0.5, 0.74),
+}
+
+
+def bake_building_shadows(
+    assets_dir: Path,
+    global_cfg: dict[str, Any],
+) -> list[PackedItem]:
+    """Pre-bake unified 142-deg soft ground shadows for all painted settlement centers & buildings."""
+    bldg_root = assets_dir / "buildings"
+    if not bldg_root.is_dir():
+        return []
+    items: list[PackedItem] = []
+    for path in sorted(bldg_root.rglob("*.png")):
+        rel = path.relative_to(bldg_root).as_posix()
+        logical_key = f"buildings/{rel.rsplit('.', 1)[0]}"
+        ax, ay = BUILDING_SHADOW_ANCHORS.get(logical_key, (0.5, 0.72))
+        with Image.open(path) as im:
+            rgba = im.convert("RGBA")
+            x0, y0, x1, y1 = trim_alpha_bbox(rgba, threshold=12)
+            trimmed = rgba.crop((x0, y0, x1, y1))
+        is_tall = logical_key.endswith("watchtower") or logical_key.endswith("capital_t1")
+        meta = {
+            "kind": "building",
+            "anchor": {"x": ax, "y": ay},
+            "shadow": {"mode": "generic_large_round"},
+        }
+        profile = {
+            "angle": 142.0,
+            "length": 0.78 if is_tall else 0.56,
+            "width": 0.86 if is_tall else 0.92,
+            "softness": 5.2,
+            "offsetX": -0.10,
+            "offsetY": -0.02,
+            "contact": 0.45,
+        }
+        baked = bake_sprite_shadow(
+            trimmed, meta, profile, global_cfg, world_w=210.0, ref_width=120.0
+        )
+        if baked is None:
+            continue
+        shadow_img, shadow_bounds, _ = baked
+        items.append(
+            PackedItem(
+                key=f"building_shadow:{logical_key}",
+                image=shadow_img,
+                metadata={
+                    "mode": "building_cast",
+                    "boundsInSpriteWidth": shadow_bounds,
+                },
+                extrude=False,
+            )
+        )
+    return items
+
+
 def export_infrastructure_and_clouds(
     assets_dir: Path,
     out_dir: Path,
@@ -1284,7 +1346,7 @@ def export_infrastructure_and_clouds(
     webp_quality: int,
     extra_walls_dir: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], int]:
-    """Export walls (palisade + stone v7 + gates), painted bridges, shorelines, and Fog-of-War clouds."""
+    """Export walls (palisade + stone v7 + gates), painted bridges, buildings, shorelines, and Fog-of-War clouds."""
     infra_items: list[PackedItem] = []
     raw_bytes = 0
     wall_roots = [assets_dir / "walls"]
@@ -1361,6 +1423,37 @@ def export_infrastructure_and_clouds(
                         extrude=True,
                     )
                 )
+
+    # Painted P0 Settlement Centers & Tier-1..4 Buildings (`assets/buildings/**/*.png` -> 384-448px WebP in infra atlas).
+    bldg_root = assets_dir / "buildings"
+    if bldg_root.is_dir():
+        for path in sorted(bldg_root.rglob("*.png")):
+            rel = path.relative_to(bldg_root).as_posix()
+            logical_key = f"buildings/{rel.rsplit('.', 1)[0]}"
+            raw_bytes += path.stat().st_size
+            with Image.open(path) as im:
+                rgba = im.convert("RGBA")
+                x0, y0, x1, y1 = trim_alpha_bbox(rgba, threshold=12)
+                trimmed = rgba.crop((x0, y0, x1, y1))
+                src_w, src_h = trimmed.size
+                max_side = 448 if "/centers/" in logical_key else 384
+                scale = min(1.0, max_side / max(src_w, src_h))
+                if scale < 1.0:
+                    trimmed = trimmed.resize(
+                        (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
+                        Image.Resampling.LANCZOS,
+                    )
+            infra_items.append(
+                PackedItem(
+                    key=logical_key,
+                    image=trimmed,
+                    metadata={
+                        "category": "building",
+                        "sourceSize": [src_w, src_h],
+                    },
+                    extrude=True,
+                )
+            )
 
     # Shorelines (6 directional overlays -> 512px WebP in infra atlas).
     shore_dir = assets_dir / "shorelines"
