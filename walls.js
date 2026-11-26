@@ -11,8 +11,8 @@ window.VedrasWalls=(()=>{
  const kinds=[...materials,'stone_gate','palisade_gate'];
  const isGate=kind=>kind==='stone_gate'||kind==='palisade_gate';
  const gateSides=[0,1,2,3,4,5];
- const gateSourceSide=side=>side===5?2:side;
- const gateAssetSides=[0,1,2,3,4];
+ const gateSourceSide=side=>side;
+ const gateAssetSides=[0,1,2,3,4,5];
  const materialOf=kind=>kind==='stone_gate'?'stone':kind==='palisade_gate'?'palisade':kind;
  const point=p=>Array.isArray(p)?{q:p[0],r:p[1]}:{q:p?.q,r:p?.r};
  const key=p=>p.q+','+p.r;

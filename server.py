@@ -229,7 +229,7 @@ def validate_nature_catalog(c):
         raise ValueError('Ungültiger Nature-Katalog v1')
     if not isinstance(c.get('revision', 0), int) or c.get('revision', 0) < 0:
         raise ValueError('Ungültige Revision')
-    kinds = {'ground_cover', 'shrub', 'cluster', 'tree', 'rock', 'special', 'mountain'}
+    kinds = {'ground_cover', 'ground_decal', 'shrub', 'cluster', 'tree', 'rock', 'special', 'mountain'}
     sizes = {'tiny', 'small', 'medium', 'large', 'giant'}
     shadows = {'none', 'generic_small_round', 'generic_small_wide', 'generic_medium_round', 'generic_medium_wide', 'custom'}
     terrains = set()

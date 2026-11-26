@@ -558,7 +558,9 @@ def ingest_batch(
         dest_file = dest_dir / filename
         entry_meta: dict[str, Any] | None = None
 
-        if register_nature_catalog and target_subdir == "nature":
+        if register_nature_catalog and (
+            target_subdir == "nature" or target_subdir.startswith("nature/")
+        ):
             entry_meta = build_nature_catalog_entry(
                 slug=audit.slug,
                 filename=filename,
