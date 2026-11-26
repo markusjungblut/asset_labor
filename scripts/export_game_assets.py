@@ -379,7 +379,7 @@ def bake_mountain_shadow(
     proj_x.extend([-ref_width * ax * 0.96, ref_width * (1.0 - ax) * 0.72])
     proj_y.extend([-ref_width * 0.10, ref_width * 0.16])
 
-    blur_px = 5.2
+    blur_px = 3.8
     pad = int(math.ceil(blur_px * 3.0)) + 6
     x0 = int(math.floor(min(proj_x))) - pad
     y0 = int(math.floor(min(proj_y))) - pad
@@ -450,8 +450,8 @@ def bake_mountain_shadow(
     final_mask = Image.frombytes("L", (cw, ch), merged_bytes)
     lo_hi = final_mask.getextrema()
     peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
-    if 32 < peak < 240:
-        gain = min(1.8, 240.0 / peak)
+    if 32 < peak < 252:
+        gain = min(2.0, 252.0 / peak)
         final_mask = final_mask.point(lambda v: min(255, int(round(v * gain))))
 
     bbox = final_mask.point(lambda v: 255 if v > 3 else 0).getbbox()
@@ -480,6 +480,8 @@ def bake_sprite_shadow(
 ) -> tuple[Image.Image, list[float], str] | None:
     """Offline pre-baked soft alpha shadow for manual polygons or auto directional casts."""
     kind = str(meta.get("kind") or "")
+    if kind == "ground_decal":
+        return None
     if kind == "mountain":
         return bake_mountain_shadow(trimmed, meta, ref_width=144.0)
 
@@ -499,9 +501,10 @@ def bake_sprite_shadow(
     if float(merged.get("opacity", 0.5)) <= 0:
         return None
 
-    softness = clamp(float(merged.get("softness", 4.5)), 0.0, 30.0)
+    # Harmonize penumbra softness across all sprites (eliminates harsh 1px edges & washed blurs).
+    softness = clamp(float(merged.get("softness", 4.5)), 2.8, 6.2)
     # Screen-consistent softness (do NOT blow up blur 3x on small 52px sprites like cacti!).
-    blur_px = clamp(softness * 0.55, 0.6, 7.5)
+    blur_px = clamp(softness * 0.55, 1.4, 5.2)
     pad = int(math.ceil(blur_px * 3.0)) + 4
     offset_x = float(merged.get("offsetX", -0.12))
     offset_y = float(merged.get("offsetY", -0.03))
@@ -540,12 +543,12 @@ def bake_sprite_shadow(
                 continue
             pts = [((pt[0] * ref_width - x0) * scale, (pt[1] * ref_width - y0) * scale) for pt in poly]
             draw.polygon(pts, fill=255)
-        mask = mask.filter(ImageFilter.GaussianBlur(radius=clamp(blur_px * 0.72 * scale, 0.5, 4.5)))
-        # Normalize blurred peak so slender polygons (e.g. columnar cacti) match full-peak union shadows!
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=clamp(blur_px * 0.72 * scale, 1.1, 4.5)))
+        # Normalize blurred peak so every shadow matches one unified neutral gray/black tone!
         lo_hi = mask.getextrema()
         peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
-        if 24 < peak < 248:
-            gain = min(2.4, 250.0 / peak)
+        if 24 < peak < 252:
+            gain = min(2.4, 252.0 / peak)
             mask = mask.point(lambda v: min(255, int(round(v * gain))))
         bbox = mask.point(lambda v: 255 if v > 3 else 0).getbbox()
         if not bbox:
@@ -571,9 +574,16 @@ def bake_sprite_shadow(
     aspect = trimmed.height / max(1, trimmed.width)
     ref_h = ref_width * aspect
 
-    angle = float(merged.get("angle", 142.0))
-    length_f = float(merged.get("length", 0.72))
-    width_f = clamp(float(merged.get("width", 0.91)), 0.2, 1.8)
+    # Harmonize auto-cast sun direction around global 142 deg & clamp outlier shadow lengths by kind!
+    angle = clamp(float(merged.get("angle", 142.0)), 136.0, 148.0)
+    raw_len = float(merged.get("length", 0.72))
+    if kind == "tree":
+        length_f = clamp(raw_len, 0.58, 1.15)
+    elif kind == "ground_cover":
+        length_f = clamp(raw_len, 0.42, 0.72)
+    else:
+        length_f = clamp(raw_len, 0.50, 0.96)
+    width_f = clamp(float(merged.get("width", 0.91)), 0.35, 1.35)
     rad = math.radians(angle)
     reach = ref_width * length_f
     cast_x = reach * math.cos(rad)
@@ -650,7 +660,7 @@ def bake_sprite_shadow(
     # Normalize alpha silhouette to crisp solid shape before applying Gaussian softness
     # (matches shadow-tone.js withMaskPass() full-opacity union mask before single composite).
     cast_mask = cast_mask.point(lambda v: 255 if v > 32 else int(v * 255 / 32))
-    eff_blur = clamp(blur_px * 0.65 * scale, 0.6, 8.0)
+    eff_blur = clamp(blur_px * 0.65 * scale, 1.0, 5.5)
     cast_mask = cast_mask.filter(ImageFilter.GaussianBlur(radius=eff_blur))
 
     if contact > 0:
@@ -662,13 +672,19 @@ def bake_sprite_shadow(
         ery = max(1.0, c_ry * scale)
         cdraw.ellipse([ecx - erx, ecy - ery, ecx + erx, ecy + ery], fill=255)
         contact_mask = contact_mask.filter(
-            ImageFilter.GaussianBlur(radius=max(0.5, eff_blur * 0.65))
+            ImageFilter.GaussianBlur(radius=max(0.8, eff_blur * 0.65))
         )
         # Union max(cast, contact) so contact grounds the foot without over-darkening.
         cb = cast_mask.tobytes()
         kb = contact_mask.tobytes()
         merged_bytes = bytes(a if a >= b else b for a, b in zip(cb, kb))
         cast_mask = Image.frombytes("L", (cw, ch), merged_bytes)
+
+    lo_hi = cast_mask.getextrema()
+    peak = lo_hi[1] if isinstance(lo_hi, tuple) else 0
+    if 24 < peak < 252:
+        gain = min(2.2, 252.0 / peak)
+        cast_mask = cast_mask.point(lambda v: min(255, int(round(v * gain))))
 
     bbox = cast_mask.point(lambda v: 255 if v > 3 else 0).getbbox()
     if not bbox:

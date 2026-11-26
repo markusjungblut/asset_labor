@@ -101,6 +101,7 @@
         edgeBand: 28,
         waterSampling: "hex",
         mountainShadowOnSprites: true,
+        spriteSelfShadow: 0.68,
         windAnimation: true,
       }),
     },
@@ -198,6 +199,8 @@
     spriteContrastVal: $("spriteContrastVal"),
     resetOpticsBtn: $("resetOpticsBtn"),
     mtnShadowSpritesCheck: $("mtnShadowSpritesCheck"),
+    spriteSelfShadowRange: $("spriteSelfShadowRange"),
+    spriteSelfShadowVal: $("spriteSelfShadowVal"),
     windAnimationCheck: $("windAnimationCheck"),
     edgeBandRange: $("edgeBandRange"),
     edgeBandVal: $("edgeBandVal"),
@@ -992,6 +995,11 @@
     el.spriteContrastVal.textContent = `${conPct}%`;
 
     el.mtnShadowSpritesCheck.checked = Boolean(state.visualConfig.mountainShadowOnSprites);
+    if (el.spriteSelfShadowRange && el.spriteSelfShadowVal) {
+      const selfPct = Math.round((state.visualConfig.spriteSelfShadow ?? 0.68) * 100);
+      el.spriteSelfShadowRange.value = String(selfPct);
+      el.spriteSelfShadowVal.textContent = `${selfPct}%`;
+    }
     if (el.windAnimationCheck) {
       el.windAnimationCheck.checked = state.visualConfig.windAnimation !== false;
     }
@@ -1160,11 +1168,19 @@
       showToast("Welt-, Wald- & Sprite-Optik auf Standard zurückgesetzt.");
     });
 
-    // Mountain Shadows, Wind/Water & Auto-Tiling controls (0 ms GPU uniforms)
+    // Unified Cross-Sprite Shadows, 2.5D Self-Shading, Wind/Water & Auto-Tiling controls (0 ms GPU uniforms)
     el.mtnShadowSpritesCheck.addEventListener("change", () => {
       state.visualConfig.mountainShadowOnSprites = el.mtnShadowSpritesCheck.checked;
       state.engine?.setVisualConfig({
         mountainShadowOnSprites: state.visualConfig.mountainShadowOnSprites,
+      });
+    });
+    el.spriteSelfShadowRange?.addEventListener("input", () => {
+      const pct = Number(el.spriteSelfShadowRange.value);
+      state.visualConfig.spriteSelfShadow = pct / 100;
+      if (el.spriteSelfShadowVal) el.spriteSelfShadowVal.textContent = `${pct}%`;
+      state.engine?.setVisualConfig({
+        spriteSelfShadow: state.visualConfig.spriteSelfShadow,
       });
     });
     el.windAnimationCheck?.addEventListener("change", () => {

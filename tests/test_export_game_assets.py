@@ -241,6 +241,46 @@ class ExportGameAssetsTest(unittest.TestCase):
         self.assertEqual(missing_t, [])
         self.assertEqual(missing_n, [])
 
+    def test_pass6_no_missing_nature_shadows_and_harmonized_peaks(self) -> None:
+        assets = ROOT / "assets"
+        nc = json.loads((assets / "nature" / "nature_catalog.json").read_text(encoding="utf-8"))
+        sp = json.loads((assets / "shadows" / "sprite_shadow_profiles.json").read_text(encoding="utf-8"))
+        profiles = sp.get("profiles") or {}
+        dp08 = nc["entries"].get("nature/dry_patch_08.png", {})
+        self.assertNotEqual((dp08.get("shadow") or {}).get("mode", "none"), "none")
+        # Every non-decal nature sprite must have EITHER a non-'none' catalog shadow mode OR an explicit shadow profile
+        missing_shadow_cfg = [
+            rel
+            for rel, meta in nc["entries"].items()
+            if meta.get("kind") not in ("mountain", "ground_decal")
+            and "micro_decal" not in (meta.get("tags") or [])
+            and (meta.get("shadow") or {}).get("mode") == "none"
+            and f"assets/{rel}" not in profiles
+            and rel not in profiles
+        ]
+        self.assertEqual(missing_shadow_cfg, [])
+
+        # Harmonizer clamps extreme auto_cast outlier length/angle/softness and normalizes peak to 252
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "outlier_tree.png"
+            _make_tree_png(p)
+            src = Image.open(p).convert("RGBA")
+            res = exporter.bake_sprite_shadow(
+                trimmed=src,
+                meta={"kind": "tree", "anchor": {"x": 0.5, "y": 0.96}, "shadow": {"mode": "generic_large_round"}},
+                profile={"angle": 115.0, "length": 2.4, "softness": 0.5, "width": 0.9},
+                global_cfg={"angle": 142.0, "length": 0.72, "softness": 4.5, "width": 0.91},
+                world_w=120.0,
+            )
+            self.assertIsNotNone(res)
+            sh_img, bounds, mode = res
+            self.assertEqual(mode, "auto_cast")
+            # Clamped length keeps left shadow extent well within reasonable range (not 2.4x!)
+            self.assertGreater(bounds[0], -1.65)
+            # Peak alpha normalized cleanly around 252
+            _, peak = sh_img.getchannel("A").getextrema()
+            self.assertGreaterEqual(peak, 248)
+
 
 if __name__ == "__main__":
     unittest.main()
