@@ -1,25 +1,20 @@
-# Generated test previews and transient files
-/previews/
+# Transient local files & editor clutter
 __pycache__/
 *.pyc
 *.log
 *.zip
+*.bak
 .DS_Store
 Thumbs.db
-# Never commit personal catalog backups
-*.bak
-# Avoid environment/editor clutter
 .venv/
 .env
 .vscode/
-# Neue lokale Grafikdateien nicht versehentlich öffentlich committen.
 
-# Rebuildable outputs: atlas CI artifact, web exports, and per-scene caches
+# Rebuildable local exports & QA sheets (never commit transient dumps)
+/dist/
 /atlases/
 /precomputed/
-/dist/
-
-# Local acceptance and diagnostic dumps (never commit transient PNG/JSON dumps)
+/previews/
 /artifacts/
 /test-artifacts/
 /assets/_inbox/_qa_*.png
