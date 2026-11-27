@@ -708,13 +708,13 @@ body {
 
 .optics-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
 }
 
 .optics-tabs .chip {
-  padding: 4px 4px;
-  font-size: 11px;
+  padding: 4px 2px;
+  font-size: 10.5px;
 }
 
 .optics-pane {
