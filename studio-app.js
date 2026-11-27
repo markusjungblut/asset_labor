@@ -105,6 +105,7 @@
         windAnimation: true,
         showGroundDecals: true,
         showAmbientVfx: true,
+        showStrategicCartography: true,
       }),
       // Pass-12 M22 placeholders default OFF in Studio until replaced via ChatGPT Art-Kit!
       showProvisionalSites: false,
@@ -208,6 +209,7 @@
     windAnimationCheck: $("windAnimationCheck"),
     showGroundDecalsCheck: $("showGroundDecalsCheck"),
     showAmbientVfxCheck: $("showAmbientVfxCheck"),
+    showStrategicCartographyCheck: $("showStrategicCartographyCheck"),
     showProvisionalSitesCheck: $("showProvisionalSitesCheck"),
     edgeBandRange: $("edgeBandRange"),
     edgeBandVal: $("edgeBandVal"),
@@ -1140,6 +1142,10 @@
     if (el.showAmbientVfxCheck) {
       el.showAmbientVfxCheck.checked = state.visualConfig.showAmbientVfx !== false;
     }
+    if (el.showStrategicCartographyCheck) {
+      el.showStrategicCartographyCheck.checked =
+        state.visualConfig.showStrategicCartography !== false;
+    }
     if (el.showProvisionalSitesCheck) {
       el.showProvisionalSitesCheck.checked = Boolean(state.visualConfig.showProvisionalSites);
     }
@@ -1342,6 +1348,13 @@
       state.visualConfig.showAmbientVfx = el.showAmbientVfxCheck.checked;
       state.engine?.setVisualConfig({
         showAmbientVfx: state.visualConfig.showAmbientVfx,
+      });
+    });
+    el.showStrategicCartographyCheck?.addEventListener("change", () => {
+      state.visualConfig.showStrategicCartography =
+        el.showStrategicCartographyCheck.checked;
+      state.engine?.setVisualConfig({
+        showStrategicCartography: state.visualConfig.showStrategicCartography,
       });
     });
     el.showProvisionalSitesCheck?.addEventListener("change", () => {
