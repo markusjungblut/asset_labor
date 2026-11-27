@@ -154,6 +154,7 @@ class PngAuditResult:
     opaque_border_ratio: float
     clipped_edge_ratio: float
     fringe_ratio: float
+    light_bias: float = 0.0
     issues: list[AuditIssue] = field(default_factory=list)
 
     @property
@@ -165,8 +166,72 @@ class PngAuditResult:
         return "PASS"
 
 
-def audit_png(path: Path) -> PngAuditResult:
-    """Inspect a candidate PNG for alpha cutout cleanliness, white halos, edge clipping & foot anchor."""
+def key_solid_background_rgba(img: Image.Image, tolerance: float = 28.0) -> Image.Image:
+    """Pure-CPU corner flood-fill solid backdrop removal with soft alpha feathering + defringe.
+
+    Rescues ChatGPT/AI exports that accidentally render on a solid white/cream backdrop
+    instead of native transparent PNG.
+    """
+    from collections import deque
+
+    rgba = img.convert("RGBA")
+    w, h = rgba.size
+    if w < 4 or h < 4:
+        return rgba
+    px = rgba.load()
+
+    corners = [px[0, 0], px[w - 1, 0], px[0, h - 1], px[w - 1, h - 1]]
+    bg_r = sum(c[0] for c in corners) / 4.0
+    bg_g = sum(c[1] for c in corners) / 4.0
+    bg_b = sum(c[2] for c in corners) / 4.0
+
+    def color_dist(r: int, g: int, b: int) -> float:
+        dr = r - bg_r
+        dg = g - bg_g
+        db = b - bg_b
+        return (dr * dr + dg * dg + db * db) ** 0.5
+
+    hard_tol = max(10.0, tolerance)
+    soft_tol = hard_tol * 2.2
+    visited = bytearray(w * h)
+    q: deque[tuple[int, int]] = deque()
+    for x in range(w):
+        for y in (0, h - 1):
+            r, g, b, a = px[x, y]
+            if a > 12 and color_dist(r, g, b) <= soft_tol:
+                visited[y * w + x] = 1
+                q.append((x, y))
+    for y in range(1, h - 1):
+        for x in (0, w - 1):
+            r, g, b, a = px[x, y]
+            if a > 12 and color_dist(r, g, b) <= soft_tol:
+                visited[y * w + x] = 1
+                q.append((x, y))
+
+    while q:
+        x, y = q.popleft()
+        r, g, b, a = px[x, y]
+        d = color_dist(r, g, b)
+        if d <= hard_tol:
+            px[x, y] = (r, g, b, 0)
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                if 0 <= nx < w and 0 <= ny < h:
+                    idx = ny * w + nx
+                    if not visited[idx]:
+                        nr, ng, nb, na = px[nx, ny]
+                        if na > 12 and color_dist(nr, ng, nb) <= soft_tol:
+                            visited[idx] = 1
+                            q.append((nx, ny))
+        else:
+            t = max(0.0, min(1.0, (d - hard_tol) / max(1.0, soft_tol - hard_tol)))
+            new_a = int(round(a * t * t))
+            px[x, y] = (r, g, b, new_a)
+
+    return defringe_rgba(rgba, passes=4)
+
+
+def audit_png(path: Path, *, check_light_direction: bool = True) -> PngAuditResult:
+    """Inspect a candidate PNG for alpha cutout cleanliness, white halos, edge clipping, right-side light & foot anchor."""
     slug = slugify_filename(path.stem)
     with Image.open(path) as raw:
         rgba = raw.convert("RGBA")
@@ -183,7 +248,7 @@ def audit_png(path: Path) -> PngAuditResult:
 
         if bbox is None:
             issues.append(AuditIssue("error", "empty_image", "Keine sichtbaren Pixel (Alpha komplett 0)"))
-            return PngAuditResult(path, slug, w, h, None, 0.5, 0.0, 0.0, 0.0, issues)
+            return PngAuditResult(path, slug, w, h, None, 0.5, 0.0, 0.0, 0.0, 0.0, issues)
 
         # 1. Border check: detect opaque un-keyed background AND sprite edge clipping
         border_total = max(1, 2 * w + 2 * h - 4)
@@ -211,7 +276,7 @@ def audit_png(path: Path) -> PngAuditResult:
                 AuditIssue(
                     "error",
                     "opaque_background",
-                    f"Kein freigestellter Hintergrund ({opaque_ratio * 100:.0f}% opaker Bildrand)",
+                    f"Kein freigestellter Hintergrund ({opaque_ratio * 100:.0f}% opaker Bildrand); --auto-key-bg oder echtes Transparent-PNG nutzen",
                 )
             )
         elif clipped_ratio > 0.025:
@@ -223,20 +288,35 @@ def audit_png(path: Path) -> PngAuditResult:
                 )
             )
 
-        # 2. Semi-transparent bright matte halo check (white fringe detector)
+        # 2. Semi-transparent bright matte halo check + Right-vs-Left Sun Luminance Audit (Vedras sun = right / 142 deg!)
         tx0, ty0, tx1, ty1 = bbox
         semi_count = 0
         bright_semi = 0
         opaque_luma_sum = 0.0
         opaque_count = 0
+        left_luma_sum = 0.0
+        left_count = 0
+        right_luma_sum = 0.0
+        right_count = 0
+        mid_x = (tx0 + tx1) * 0.5
+        # Focus upper 78% of silhouette for sun-side luminance (excludes ground base shadow if any)
+        light_y1 = ty0 + max(2, int((ty1 - ty0) * 0.78))
         # Subsample large images for <15ms audit speed
         step = max(1, max(tx1 - tx0, ty1 - ty0) // 256)
         for y in range(ty0, ty1, step):
             for x in range(tx0, tx1, step):
                 r, g, b, a = px[x, y]
                 if a >= 235:
-                    opaque_luma_sum += 0.299 * r + 0.587 * g + 0.114 * b
+                    luma = 0.299 * r + 0.587 * g + 0.114 * b
+                    opaque_luma_sum += luma
                     opaque_count += 1
+                    if y < light_y1:
+                        if x >= mid_x:
+                            right_luma_sum += luma
+                            right_count += 1
+                        else:
+                            left_luma_sum += luma
+                            left_count += 1
                 elif 12 < a < 215:
                     semi_count += 1
                     if r > 224 and g > 224 and b > 224:
@@ -252,6 +332,20 @@ def audit_png(path: Path) -> PngAuditResult:
                     f"Heller weißer Freistell-Saum erkannt ({fringe_ratio * 100:.0f}% der Randpixel >224); --auto-defringe empfohlen",
                 )
             )
+
+        light_bias = 0.0
+        if left_count >= 20 and right_count >= 20:
+            light_bias = round(
+                (right_luma_sum / right_count) - (left_luma_sum / left_count), 2
+            )
+            if check_light_direction and opaque_ratio <= 0.80 and light_bias < -7.5:
+                issues.append(
+                    AuditIssue(
+                        "warning",
+                        "left_lit",
+                        f"Licht scheint von LINKS zu kommen (Rechts-Links-Helligkeit {light_bias:+.1f}); --auto-flip-light spiegelt automatisch auf Vedras-Rechtslicht",
+                    )
+                )
 
         # 3. Estimate ground anchor X from bottom 12% foot silhouette
         foot_y0 = max(ty0, ty1 - max(2, int((ty1 - ty0) * 0.12)))
@@ -277,6 +371,7 @@ def audit_png(path: Path) -> PngAuditResult:
             opaque_border_ratio=opaque_ratio,
             clipped_edge_ratio=clipped_ratio,
             fringe_ratio=fringe_ratio,
+            light_bias=light_bias,
             issues=issues,
         )
 
@@ -506,6 +601,11 @@ def collect_input_pngs(inputs: list[Path]) -> list[Path]:
     return found
 
 
+def _flip_horizontal(img: Image.Image) -> Image.Image:
+    transpose_enum = getattr(Image, "Transpose", Image)
+    return img.transpose(transpose_enum.FLIP_LEFT_RIGHT)
+
+
 def ingest_batch(
     *,
     inputs: list[Path],
@@ -521,6 +621,9 @@ def ingest_batch(
     target_subdir: str = "nature",
     register_nature_catalog: bool = True,
     auto_defringe: bool = False,
+    auto_key_bg: bool = False,
+    auto_flip_light: bool = False,
+    check_light_direction: bool = True,
     overwrite: bool = False,
     dry_run: bool = False,
     contact_sheet: Path | None = None,
@@ -549,9 +652,30 @@ def ingest_batch(
     skipped_count = 0
 
     for src in pngs:
-        audit = audit_png(src)
+        audit = audit_png(src, check_light_direction=check_light_direction)
+        modified = False
+        auto_flipped = False
+        auto_keyed = False
+
         with Image.open(src) as raw_img:
-            img = defringe_rgba(raw_img) if auto_defringe else raw_img.convert("RGBA")
+            img = raw_img.convert("RGBA")
+            if auto_key_bg and audit.opaque_border_ratio > 0.80:
+                img = key_solid_background_rgba(img)
+                auto_keyed = True
+                modified = True
+                # Clear opaque_background error after successful CPU keying
+                audit.issues = [i for i in audit.issues if i.code != "opaque_background"]
+            elif auto_defringe:
+                img = defringe_rgba(img)
+                modified = True
+
+            if auto_flip_light and check_light_direction and audit.light_bias < -7.5:
+                img = _flip_horizontal(img)
+                audit.estimated_anchor_x = round(1.0 - audit.estimated_anchor_x, 3)
+                audit.light_bias = round(-audit.light_bias, 2)
+                audit.issues = [i for i in audit.issues if i.code != "left_lit"]
+                auto_flipped = True
+                modified = True
 
         filename = f"{audit.slug}.png"
         rel_key = f"{target_subdir}/{filename}"
@@ -585,6 +709,7 @@ def ingest_batch(
                     "slug": audit.slug,
                     "status": "FAIL",
                     "action": "rejected",
+                    "light_bias": audit.light_bias,
                     "issues": [i.__dict__ for i in audit.issues],
                 }
             )
@@ -599,6 +724,7 @@ def ingest_batch(
                     "status": audit.status,
                     "action": "skipped_exists",
                     "dest": str(dest_file),
+                    "light_bias": audit.light_bias,
                     "issues": [i.__dict__ for i in audit.issues],
                 }
             )
@@ -606,7 +732,7 @@ def ingest_batch(
 
         if not dry_run:
             dest_dir.mkdir(parents=True, exist_ok=True)
-            if auto_defringe:
+            if modified:
                 img.save(dest_file, format="PNG")
             elif src.resolve() != dest_file.resolve():
                 shutil.copy2(src, dest_file)
@@ -623,6 +749,9 @@ def ingest_batch(
                 "dest": str(dest_file),
                 "catalog_key": rel_key if entry_meta else None,
                 "anchor_x": audit.estimated_anchor_x,
+                "light_bias": audit.light_bias,
+                "auto_flipped_light": auto_flipped,
+                "auto_keyed_bg": auto_keyed,
                 "issues": [i.__dict__ for i in audit.issues],
             }
         )
@@ -658,11 +787,170 @@ def ingest_batch(
     }
 
 
+def ingest_inbox(
+    *,
+    repo_root: Path = ROOT,
+    inbox_dir: Path | None = None,
+    auto_defringe: bool = True,
+    auto_key_bg: bool = True,
+    auto_flip_light: bool = True,
+    overwrite: bool = True,
+    dry_run: bool = False,
+    run_export: bool = False,
+    sync_to: Path | None = None,
+) -> dict[str, Any]:
+    """One-click CPU inbox processor for ChatGPT Plus / RigForge / Ludo.ai exports.
+
+    Routes PNGs placed under `assets/_inbox/`:
+      - `sites/<family>/*.png`      -> `assets/sites/<family>/` (right-light QA + flip + defringe)
+      - `buildings/<group>/*.png`   -> `assets/buildings/<group>/` (right-light QA + flip + defringe)
+      - `decals/*.png`              -> `assets/nature/` registered as `ground_decal`
+      - `nature/*.png`              -> `assets/nature/` registered as `shrub` (editable in Studio)
+      - `actors/<group>/*.png`      -> `assets/actors/<group>/` (strips: NO light flip!)
+    """
+    base = (inbox_dir or (repo_root / "assets" / "_inbox")).resolve()
+    if not base.exists():
+        return {
+            "inbox": str(base),
+            "total_scanned": 0,
+            "ingested": 0,
+            "skipped": 0,
+            "failed": 0,
+            "batches": [],
+            "message": "Inbox-Ordner existiert noch nicht.",
+        }
+
+    batches: list[dict[str, Any]] = []
+    total_scanned = total_ingested = total_skipped = total_failed = 0
+
+    def _run_sub(
+        label: str,
+        files: list[Path],
+        target_subdir: str,
+        *,
+        kind: str = "shrub",
+        register_catalog: bool = False,
+        tags: list[str] | None = None,
+        check_light: bool = True,
+    ) -> None:
+        nonlocal total_scanned, total_ingested, total_skipped, total_failed
+        if not files:
+            return
+        res = ingest_batch(
+            inputs=files,
+            repo_root=repo_root,
+            kind=kind,
+            target_subdir=target_subdir,
+            register_nature_catalog=register_catalog,
+            tags=tags,
+            auto_defringe=auto_defringe,
+            auto_key_bg=auto_key_bg,
+            auto_flip_light=auto_flip_light and check_light,
+            check_light_direction=check_light,
+            overwrite=overwrite,
+            dry_run=dry_run,
+            contact_sheet=base / f"_qa_{slugify_filename(label)}.png",
+            run_export=False,
+        )
+        total_scanned += res["total_scanned"]
+        total_ingested += res["ingested"]
+        total_skipped += res["skipped"]
+        total_failed += res["failed"]
+        batches.append({"group": label, "target": target_subdir, **res})
+
+    # 1. M22 Special Sites (`_inbox/sites/<family>/*.png`)
+    sites_root = base / "sites"
+    if sites_root.is_dir():
+        for fam_dir in sorted(p for p in sites_root.iterdir() if p.is_dir()):
+            pngs = sorted(p for p in fam_dir.glob("*.png") if not p.name.startswith("_qa_"))
+            _run_sub(
+                f"sites_{fam_dir.name}",
+                pngs,
+                f"sites/{fam_dir.name}",
+                register_catalog=False,
+                check_light=True,
+            )
+
+    # 2. Buildings (`_inbox/buildings/<group>/*.png`, e.g. centers, tier1, tier2)
+    bldg_root = base / "buildings"
+    if bldg_root.is_dir():
+        for grp_dir in sorted(p for p in bldg_root.iterdir() if p.is_dir()):
+            pngs = sorted(p for p in grp_dir.glob("*.png") if not p.name.startswith("_qa_"))
+            _run_sub(
+                f"buildings_{grp_dir.name}",
+                pngs,
+                f"buildings/{grp_dir.name}",
+                register_catalog=False,
+                check_light=True,
+            )
+
+    # 3. Ground Decals (`_inbox/decals/*.png`)
+    decals_root = base / "decals"
+    if decals_root.is_dir():
+        pngs = sorted(p for p in decals_root.glob("*.png") if not p.name.startswith("_qa_"))
+        _run_sub(
+            "decals",
+            pngs,
+            "nature",
+            kind="ground_decal",
+            register_catalog=True,
+            tags=["micro_decal", "chatgpt_art_kit"],
+            check_light=True,
+        )
+
+    # 4. General Nature (`_inbox/nature/*.png`)
+    nature_root = base / "nature"
+    if nature_root.is_dir():
+        pngs = sorted(p for p in nature_root.glob("*.png") if not p.name.startswith("_qa_"))
+        _run_sub(
+            "nature",
+            pngs,
+            "nature",
+            kind="shrub",
+            register_catalog=True,
+            tags=["chatgpt_art_kit"],
+            check_light=True,
+        )
+
+    # 5. Animated Actor Strips (`_inbox/actors/<group>/*.png` -> never auto-flip horizontal frame order!)
+    actors_root = base / "actors"
+    if actors_root.is_dir():
+        for grp_dir in sorted(p for p in actors_root.iterdir() if p.is_dir()):
+            pngs = sorted(p for p in grp_dir.glob("*.png") if not p.name.startswith("_qa_"))
+            _run_sub(
+                f"actors_{grp_dir.name}",
+                pngs,
+                f"actors/{grp_dir.name}",
+                register_catalog=False,
+                check_light=False,
+            )
+
+    export_summary: dict[str, Any] | None = None
+    if run_export and not dry_run and total_ingested > 0:
+        export_summary = export_game_assets.export_game_assets(
+            repo_root=repo_root,
+            out_dir=repo_root / "dist" / "game-assets",
+            sync_to=sync_to,
+        )
+
+    return {
+        "inbox": str(base),
+        "total_scanned": total_scanned,
+        "ingested": total_ingested,
+        "skipped": total_skipped,
+        "failed": total_failed,
+        "dry_run": dry_run,
+        "exported_pack_hash": export_summary.get("packHash") if export_summary else None,
+        "batches": batches,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Batch-audit, defringe, register, contact-sheet & WebP-export new Vedras PNGs."
+        description="Batch-audit, light-check, defringe, register, contact-sheet & WebP-export new Vedras PNGs."
     )
-    parser.add_argument("inputs", nargs="+", type=Path, help="PNG file(s) or inbox directory")
+    parser.add_argument("inputs", nargs="*", type=Path, help="PNG file(s) or directory (omit when using --inbox)")
+    parser.add_argument("--inbox", action="store_true", help="Process assets/_inbox/<sites|buildings|decals|nature|actors>/ in 1 click")
     parser.add_argument("--repo-root", type=Path, default=ROOT)
     parser.add_argument("--kind", choices=sorted(KIND_DEFAULTS.keys()), default="shrub")
     parser.add_argument("--decal", action="store_true", help="Shortcut for --kind ground_decal")
@@ -676,12 +964,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target-subdir", default="nature", help="Subdir under assets/ (default: nature)")
     parser.add_argument("--no-catalog", action="store_true", help="Copy files only, do not update nature_catalog.json")
     parser.add_argument("--auto-defringe", action="store_true", help="Clean white halo pixels on alpha edges")
+    parser.add_argument("--auto-key-bg", action="store_true", help="Rescue solid white/uniform backdrop via pure-CPU flood-fill alpha keying")
+    parser.add_argument("--auto-flip-light", action="store_true", help="Automatically mirror sprites horizontally when light comes from the left")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Audit & contact sheet only, no repo writes")
     parser.add_argument("--contact-sheet", type=Path, default=None, help="Output PNG path for visual contact sheet")
     parser.add_argument("--export", action="store_true", help="Rebuild WebP atlases via export_game_assets.py")
     parser.add_argument("--sync-to", type=Path, default=None, help="Sync exported WebP pack to browsergame/public/game-assets")
     args = parser.parse_args(argv)
+
+    if args.inbox:
+        summary = ingest_inbox(
+            repo_root=args.repo_root.resolve(),
+            auto_defringe=True if args.auto_defringe or not args.inputs else args.auto_defringe,
+            auto_key_bg=args.auto_key_bg,
+            auto_flip_light=args.auto_flip_light,
+            overwrite=args.overwrite,
+            dry_run=args.dry_run,
+            run_export=args.export,
+            sync_to=args.sync_to.resolve() if args.sync_to else None,
+        )
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return 1 if summary["failed"] > 0 and summary["ingested"] == 0 else 0
+
+    if not args.inputs:
+        parser.error("Bitte entweder Dateien/Ordner angeben oder --inbox verwenden.")
 
     kind = "ground_decal" if args.decal else args.kind
     biomes = [b.strip() for b in args.biomes.split(",") if b.strip()]
@@ -702,6 +1009,8 @@ def main(argv: list[str] | None = None) -> int:
         target_subdir=args.target_subdir,
         register_nature_catalog=not args.no_catalog,
         auto_defringe=args.auto_defringe,
+        auto_key_bg=args.auto_key_bg,
+        auto_flip_light=args.auto_flip_light,
         overwrite=args.overwrite,
         dry_run=args.dry_run,
         contact_sheet=args.contact_sheet.resolve() if args.contact_sheet else None,

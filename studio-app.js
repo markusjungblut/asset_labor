@@ -103,7 +103,11 @@
         mountainShadowOnSprites: true,
         spriteSelfShadow: 0.68,
         windAnimation: true,
+        showGroundDecals: true,
+        showAmbientVfx: true,
       }),
+      // Pass-12 M22 placeholders default OFF in Studio until replaced via ChatGPT Art-Kit!
+      showProvisionalSites: false,
     },
 
     /** Map<hexKey, Partial<MapHexCell>> for live terrain/relief/forest painting */
@@ -203,6 +207,8 @@
     spriteSelfShadowVal: $("spriteSelfShadowVal"),
     windAnimationCheck: $("windAnimationCheck"),
     showGroundDecalsCheck: $("showGroundDecalsCheck"),
+    showAmbientVfxCheck: $("showAmbientVfxCheck"),
+    showProvisionalSitesCheck: $("showProvisionalSitesCheck"),
     edgeBandRange: $("edgeBandRange"),
     edgeBandVal: $("edgeBandVal"),
     waterSamplingRow: $("waterSamplingRow"),
@@ -1131,6 +1137,12 @@
     if (el.showGroundDecalsCheck) {
       el.showGroundDecalsCheck.checked = state.visualConfig.showGroundDecals !== false;
     }
+    if (el.showAmbientVfxCheck) {
+      el.showAmbientVfxCheck.checked = state.visualConfig.showAmbientVfx !== false;
+    }
+    if (el.showProvisionalSitesCheck) {
+      el.showProvisionalSitesCheck.checked = Boolean(state.visualConfig.showProvisionalSites);
+    }
     el.edgeBandRange.value = String(Math.round(state.visualConfig.edgeBand));
     el.edgeBandVal.textContent = `${Math.round(state.visualConfig.edgeBand)} px`;
     for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
@@ -1288,7 +1300,10 @@
     el.resetOpticsBtn.addEventListener("click", () => {
       state.forestConfig = { ...(DEFAULT_FOREST_CONFIG || state.forestConfig) };
       state.reliefConfig = { ...(DEFAULT_RELIEF_CONFIG || state.reliefConfig) };
-      state.visualConfig = { ...(DEFAULT_VISUAL_CONFIG || state.visualConfig) };
+      state.visualConfig = {
+        ...(DEFAULT_VISUAL_CONFIG || state.visualConfig),
+        showProvisionalSites: false,
+      };
       syncOpticsUi();
       state.engine?.setForestConfig(state.forestConfig);
       state.engine?.setReliefConfig(state.reliefConfig);
@@ -1321,6 +1336,18 @@
       state.visualConfig.showGroundDecals = el.showGroundDecalsCheck.checked;
       state.engine?.setVisualConfig({
         showGroundDecals: state.visualConfig.showGroundDecals,
+      });
+    });
+    el.showAmbientVfxCheck?.addEventListener("change", () => {
+      state.visualConfig.showAmbientVfx = el.showAmbientVfxCheck.checked;
+      state.engine?.setVisualConfig({
+        showAmbientVfx: state.visualConfig.showAmbientVfx,
+      });
+    });
+    el.showProvisionalSitesCheck?.addEventListener("change", () => {
+      state.visualConfig.showProvisionalSites = el.showProvisionalSitesCheck.checked;
+      state.engine?.setVisualConfig({
+        showProvisionalSites: state.visualConfig.showProvisionalSites,
       });
     });
     el.edgeBandRange.addEventListener("input", () => {

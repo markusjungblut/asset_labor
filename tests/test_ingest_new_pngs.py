@@ -110,6 +110,68 @@ class IngestNewPngsTest(unittest.TestCase):
             self.assertEqual(entry["shadow"]["mode"], "none")
             self.assertEqual(entry["allowedTerrainTypes"], ["grassland", "pasture"])
 
+    def test_chatgpt_inbox_light_flip_cpu_keying_and_routing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "assets" / "nature").mkdir(parents=True)
+            (root / "assets" / "nature" / "nature_catalog.json").write_text(
+                json.dumps({"schemaVersion": 1, "revision": 1, "entries": {}}, indent=2),
+                encoding="utf-8",
+            )
+            inbox = root / "assets" / "_inbox"
+            (inbox / "sites" / "watchtower_ruin").mkdir(parents=True)
+            (inbox / "decals").mkdir(parents=True)
+            (inbox / "actors" / "fauna").mkdir(parents=True)
+
+            # 1. Left-lit site PNG (left half bright 220, right half dark 60 -> light_bias << -7.5!)
+            left_lit = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+            d = ImageDraw.Draw(left_lit)
+            d.rectangle([24, 24, 63, 108], fill=(220, 210, 190, 255))
+            d.rectangle([64, 24, 104, 108], fill=(60, 58, 54, 255))
+            left_lit_p = inbox / "sites" / "watchtower_ruin" / "watchtower_ruin_01.png"
+            left_lit.save(left_lit_p)
+
+            pre_audit = ingest_new_pngs.audit_png(left_lit_p)
+            self.assertLess(pre_audit.light_bias, -20.0)
+            self.assertTrue(any(i.code == "left_lit" for i in pre_audit.issues))
+
+            # 2. Accidental solid-white background decal -> rescued by CPU --auto-key-bg
+            _make_opaque_bg_sprite(inbox / "decals" / "pebbles_02.png")
+
+            # 3. Left-lit animated fauna strip -> MUST NOT be horizontally flipped!
+            left_lit.save(inbox / "actors" / "fauna" / "deer.png")
+
+            summary = ingest_new_pngs.ingest_inbox(
+                repo_root=root,
+                auto_defringe=True,
+                auto_key_bg=True,
+                auto_flip_light=True,
+                overwrite=True,
+                run_export=False,
+            )
+
+            self.assertEqual(summary["total_scanned"], 3)
+            self.assertEqual(summary["ingested"], 3)
+            self.assertEqual(summary["failed"], 0)
+
+            # Site PNG is now right-lit (positive light_bias)!
+            site_out = root / "assets" / "sites" / "watchtower_ruin" / "watchtower_ruin_01.png"
+            self.assertTrue(site_out.is_file())
+            post_site_audit = ingest_new_pngs.audit_png(site_out)
+            self.assertGreater(post_site_audit.light_bias, 20.0)
+
+            # Decal PNG was rescued from solid white to clean transparent alpha
+            decal_out = root / "assets" / "nature" / "pebbles_02.png"
+            self.assertTrue(decal_out.is_file())
+            post_decal_audit = ingest_new_pngs.audit_png(decal_out)
+            self.assertLess(post_decal_audit.opaque_border_ratio, 0.05)
+
+            # Fauna strip kept original horizontal orientation (not mirrored!)
+            fauna_out = root / "assets" / "actors" / "fauna" / "deer.png"
+            self.assertTrue(fauna_out.is_file())
+            post_fauna_audit = ingest_new_pngs.audit_png(fauna_out, check_light_direction=True)
+            self.assertLess(post_fauna_audit.light_bias, -20.0)
+
 
 if __name__ == "__main__":
     unittest.main()
