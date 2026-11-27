@@ -22,3 +22,4 @@ Thumbs.db
 # Local acceptance and diagnostic dumps (never commit transient PNG/JSON dumps)
 /artifacts/
 /test-artifacts/
+/assets/_inbox/_qa_*.png
