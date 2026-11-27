@@ -151,6 +151,7 @@
             <button type="button" class="chip" data-optics-tab="forest">Wald</button>
             <button type="button" class="chip" data-optics-tab="colors">Farben</button>
             <button type="button" class="chip" data-optics-tab="surface">Schatten</button>
+            <button type="button" class="chip" data-optics-tab="atmosphere">Licht</button>
           </div>
 
           <!-- Tab 1: 2.5D Relief & Quick-Jump Regions -->
@@ -266,6 +267,30 @@
               <button type="button" class="chip active" data-water-sampling="hex">Hex-Motiv</button>
               <button type="button" class="chip" data-water-sampling="repeat">Repeat</button>
             </div>
+          </div>
+
+          <!-- Tab 5: Time-of-Day & Weather Atmosphere Presets + Dynamic Night Lanterns -->
+          <div id="opticsTabAtmosphere" class="optics-pane" hidden>
+            <div class="sub-label">Tageszeit</div>
+            <div class="radio-row" id="timeOfDayRow">
+              <button type="button" class="chip" data-time-of-day="morning">🌅 Morgen</button>
+              <button type="button" class="chip active" data-time-of-day="day">☀ Mittag</button>
+              <button type="button" class="chip" data-time-of-day="dusk">🌇 Abend</button>
+              <button type="button" class="chip" data-time-of-day="night">🌙 Nacht</button>
+            </div>
+            <div class="sub-label">Wetter</div>
+            <div class="radio-row" id="weatherRow">
+              <button type="button" class="chip active" data-weather="clear">☀ Klar</button>
+              <button type="button" class="chip" data-weather="mist">🌫 Nebel</button>
+              <button type="button" class="chip" data-weather="rain">🌧 Regen</button>
+            </div>
+            <label class="check-pill">
+              <input id="showNightLightsCheck" type="checkbox" checked>
+              <span>Fackel- &amp; Laternenlicht (Abend/Nacht)</span>
+            </label>
+            <p class="help-text">
+              Abend &amp; Nacht aktivieren dynamische Siedlungs-/Tor-Laternen (FoW-sicher), Glühwürmchen und einen kerzenbeleuchteten Strategie-Atlas.
+            </p>
           </div>
         </div>
       </details>

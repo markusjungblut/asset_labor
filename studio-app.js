@@ -106,6 +106,9 @@
         showGroundDecals: true,
         showAmbientVfx: true,
         showStrategicCartography: true,
+        timeOfDay: "day",
+        weather: "clear",
+        showNightLights: true,
       }),
       // Pass-12 M22 placeholders default OFF in Studio until replaced via ChatGPT Art-Kit!
       showProvisionalSites: false,
@@ -177,6 +180,10 @@
     opticsTabForest: $("opticsTabForest"),
     opticsTabColors: $("opticsTabColors"),
     opticsTabSurface: $("opticsTabSurface"),
+    opticsTabAtmosphere: $("opticsTabAtmosphere"),
+    timeOfDayRow: $("timeOfDayRow"),
+    weatherRow: $("weatherRow"),
+    showNightLightsCheck: $("showNightLightsCheck"),
     reliefEnabledCheck: $("reliefEnabledCheck"),
     reliefLightingCheck: $("reliefLightingCheck"),
     reliefStyleRow: $("reliefStyleRow"),
@@ -1154,6 +1161,21 @@
     for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
       c.classList.toggle("active", c.dataset.waterSampling === state.visualConfig.waterSampling);
     }
+    const curTod = state.visualConfig.timeOfDay || "day";
+    if (el.timeOfDayRow) {
+      for (const c of el.timeOfDayRow.querySelectorAll("[data-time-of-day]")) {
+        c.classList.toggle("active", c.dataset.timeOfDay === curTod);
+      }
+    }
+    const curWeather = state.visualConfig.weather || "clear";
+    if (el.weatherRow) {
+      for (const c of el.weatherRow.querySelectorAll("[data-weather]")) {
+        c.classList.toggle("active", c.dataset.weather === curWeather);
+      }
+    }
+    if (el.showNightLightsCheck) {
+      el.showNightLightsCheck.checked = state.visualConfig.showNightLights !== false;
+    }
   }
 
   /* ---------------- Wire UI Events ---------------- */
@@ -1204,6 +1226,9 @@
       el.opticsTabForest.hidden = target !== "forest";
       el.opticsTabColors.hidden = target !== "colors";
       el.opticsTabSurface.hidden = target !== "surface";
+      if (el.opticsTabAtmosphere) {
+        el.opticsTabAtmosphere.hidden = target !== "atmosphere";
+      }
     });
 
     // Relief live controls
@@ -1377,6 +1402,33 @@
         c.classList.toggle("active", c === chip);
       }
       state.engine?.setVisualConfig({ waterSampling: state.visualConfig.waterSampling });
+    });
+
+    el.timeOfDayRow?.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-time-of-day]");
+      if (!chip) return;
+      state.visualConfig.timeOfDay = chip.dataset.timeOfDay;
+      for (const c of el.timeOfDayRow.querySelectorAll("[data-time-of-day]")) {
+        c.classList.toggle("active", c === chip);
+      }
+      state.engine?.setVisualConfig({ timeOfDay: state.visualConfig.timeOfDay });
+    });
+
+    el.weatherRow?.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-weather]");
+      if (!chip) return;
+      state.visualConfig.weather = chip.dataset.weather;
+      for (const c of el.weatherRow.querySelectorAll("[data-weather]")) {
+        c.classList.toggle("active", c === chip);
+      }
+      state.engine?.setVisualConfig({ weather: state.visualConfig.weather });
+    });
+
+    el.showNightLightsCheck?.addEventListener("change", () => {
+      state.visualConfig.showNightLights = el.showNightLightsCheck.checked;
+      state.engine?.setVisualConfig({
+        showNightLights: state.visualConfig.showNightLights,
+      });
     });
 
     el.roadToolBox.addEventListener("click", (e) => {
