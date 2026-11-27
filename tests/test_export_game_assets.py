@@ -456,6 +456,59 @@ class ExportGameAssetsTest(unittest.TestCase):
             self.assertTrue(sentinel.is_file())
             self.assertIn("sentinel", sentinel.read_text(encoding="utf-8"))
 
+    def test_pass12_m22_sites_and_animated_fauna_strips(self) -> None:
+        assets = ROOT / "assets"
+        site_families = (
+            "watchtower_ruin",
+            "forgotten_iron_mine",
+            "abandoned_house",
+            "dilapidated_barn",
+            "waterhole",
+            "oasis",
+            "obelisk",
+            "stone_circle",
+            "iron_deposit",
+        )
+        # 1. All 9 M22 site families x 5 variants = 45 clean RGBA PNGs with transparent corners
+        for fam in site_families:
+            for idx in range(1, 6):
+                p = assets / "sites" / fam / f"{fam}_{idx:02d}.png"
+                self.assertTrue(p.is_file(), f"Missing M22 site variant {p}")
+                with Image.open(p) as im:
+                    self.assertEqual(im.mode, "RGBA")
+                    self.assertEqual(im.getpixel((0, 0))[3], 0, f"Opaque top-left in {p}")
+                    self.assertEqual(im.getpixel((im.width - 1, 0))[3], 0, f"Opaque top-right in {p}")
+
+        # 2. Site shadow baker produces valid 142-deg shadows for all 45 M22 site variants
+        site_shadows = {
+            item.key: item
+            for item in exporter.bake_site_shadows(assets, {"angle": 142.0, "softness": 4.5})
+        }
+        self.assertEqual(len(site_shadows), 45)
+        for fam in site_families:
+            for idx in range(1, 6):
+                key = f"site_shadow:sites/{fam}/{fam}_{idx:02d}"
+                self.assertIn(key, site_shadows)
+                item = site_shadows[key]
+                self.assertEqual(item.metadata.get("mode"), "site_cast")
+                bounds = item.metadata.get("boundsInSpriteWidth")
+                self.assertLess(bounds[0], bounds[2])
+                self.assertLess(bounds[1], bounds[3])
+
+        # 3. Civ-style animated fauna 4-frame strips (deer & horse) are exact 4:1 RGBA strips with 4 populated frames
+        for species in ("deer", "horse"):
+            p = assets / "actors" / "fauna" / f"{species}.png"
+            self.assertTrue(p.is_file(), f"Missing animated fauna strip {p}")
+            with Image.open(p) as im:
+                self.assertEqual(im.mode, "RGBA")
+                self.assertEqual(im.width, im.height * 4)
+                self.assertEqual(im.getpixel((0, 0))[3], 0)
+                fw = im.width // 4
+                for fi in range(4):
+                    cell = im.crop((fi * fw, 0, (fi + 1) * fw, im.height))
+                    bbox = cell.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
+                    self.assertIsNotNone(bbox, f"Empty animation frame {fi} in {species}.png")
+
 
 if __name__ == "__main__":
     unittest.main()
