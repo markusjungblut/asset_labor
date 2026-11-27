@@ -1089,9 +1089,10 @@ def export_nature_and_shadows(
             on_progress(pct, f"Natur-Sprites & Schatten ({idx}/{total_entries}) …")
 
     if on_progress:
-        on_progress(70, "Backe Mauer- & Gebäudeschatten …")
+        on_progress(70, "Backe Mauer-, Fundort- & Gebäudeschatten …")
     shadow_items.extend(bake_wall_shadows(global_shadow))
     shadow_items.extend(bake_building_shadows(assets_dir, global_shadow))
+    shadow_items.extend(bake_site_shadows(assets_dir, global_shadow))
 
     atlases_dir = out_dir / "atlases"
     if on_progress:
@@ -1368,6 +1369,75 @@ def bake_building_shadows(
     return items
 
 
+SITE_SHADOW_PROFILES: dict[str, tuple[tuple[float, float], float, float, float]] = {
+    # family: ((anchorX, anchorY), length, width, contact)
+    "watchtower_ruin": ((0.5, 0.79), 0.84, 0.82, 0.48),
+    "forgotten_iron_mine": ((0.5, 0.74), 0.56, 0.90, 0.46),
+    "abandoned_house": ((0.5, 0.75), 0.58, 0.90, 0.45),
+    "dilapidated_barn": ((0.5, 0.74), 0.58, 0.92, 0.45),
+    "waterhole": ((0.5, 0.56), 0.14, 0.95, 0.24),
+    "oasis": ((0.5, 0.67), 0.52, 0.88, 0.36),
+    "obelisk": ((0.5, 0.85), 0.94, 0.78, 0.48),
+    "stone_circle": ((0.5, 0.66), 0.58, 0.88, 0.42),
+    "iron_deposit": ((0.5, 0.75), 0.54, 0.88, 0.48),
+}
+
+
+def bake_site_shadows(
+    assets_dir: Path,
+    global_cfg: dict[str, Any],
+) -> list[PackedItem]:
+    """Pre-bake unified 142-deg soft ground shadows for all 9x5 M22 special site sprites."""
+    sites_root = assets_dir / "sites"
+    if not sites_root.is_dir():
+        return []
+    items: list[PackedItem] = []
+    for path in sorted(sites_root.rglob("*.png")):
+        rel = path.relative_to(sites_root).as_posix()
+        parts = rel.split("/")
+        family = parts[0] if len(parts) >= 2 else ""
+        logical_key = f"sites/{rel.rsplit('.', 1)[0]}"
+        (ax, ay), sh_len, sh_w, sh_contact = SITE_SHADOW_PROFILES.get(
+            family, ((0.5, 0.74), 0.54, 0.88, 0.42)
+        )
+        with Image.open(path) as im:
+            rgba = im.convert("RGBA")
+            x0, y0, x1, y1 = trim_alpha_bbox(rgba, threshold=12)
+            trimmed = rgba.crop((x0, y0, x1, y1))
+        meta = {
+            "kind": "site",
+            "anchor": {"x": ax, "y": ay},
+            "shadow": {"mode": "generic_large_round"},
+        }
+        profile = {
+            "angle": 142.0,
+            "length": sh_len,
+            "width": sh_w,
+            "softness": 4.8 if family != "waterhole" else 6.0,
+            "offsetX": -0.09 if family != "waterhole" else -0.03,
+            "offsetY": -0.02,
+            "contact": sh_contact,
+        }
+        baked = bake_sprite_shadow(
+            trimmed, meta, profile, global_cfg, world_w=176.0, ref_width=112.0
+        )
+        if baked is None:
+            continue
+        shadow_img, shadow_bounds, _ = baked
+        items.append(
+            PackedItem(
+                key=f"site_shadow:{logical_key}",
+                image=shadow_img,
+                metadata={
+                    "mode": "site_cast",
+                    "boundsInSpriteWidth": shadow_bounds,
+                },
+                extrude=False,
+            )
+        )
+    return items
+
+
 def export_infrastructure_and_clouds(
     assets_dir: Path,
     out_dir: Path,
@@ -1375,7 +1445,7 @@ def export_infrastructure_and_clouds(
     webp_quality: int,
     extra_walls_dir: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], int]:
-    """Export walls (palisade + stone v7 + gates), painted bridges, buildings, shorelines, and Fog-of-War clouds."""
+    """Export walls (palisade + stone v7 + gates), painted bridges, buildings, M22 sites, animated actors, shorelines, and Fog-of-War clouds."""
     infra_items: list[PackedItem] = []
     raw_bytes = 0
     wall_roots = [assets_dir / "walls"]
@@ -1481,6 +1551,72 @@ def export_infrastructure_and_clouds(
                         "sourceSize": [src_w, src_h],
                     },
                     extrude=True,
+                )
+            )
+
+    # Painted M22 Special Sites (`assets/sites/<family>/<family>_01..05.png` -> 360px WebP in infra atlas).
+    sites_root = assets_dir / "sites"
+    if sites_root.is_dir():
+        for path in sorted(sites_root.rglob("*.png")):
+            rel = path.relative_to(sites_root).as_posix()
+            logical_key = f"sites/{rel.rsplit('.', 1)[0]}"
+            raw_bytes += path.stat().st_size
+            with Image.open(path) as im:
+                rgba = im.convert("RGBA")
+                x0, y0, x1, y1 = trim_alpha_bbox(rgba, threshold=12)
+                trimmed = rgba.crop((x0, y0, x1, y1))
+                src_w, src_h = trimmed.size
+                max_side = 360
+                scale = min(1.0, max_side / max(src_w, src_h))
+                if scale < 1.0:
+                    trimmed = trimmed.resize(
+                        (max(1, round(src_w * scale)), max(1, round(src_h * scale))),
+                        _RESAMPLE_LANCZOS,
+                    )
+            infra_items.append(
+                PackedItem(
+                    key=logical_key,
+                    image=trimmed,
+                    metadata={
+                        "category": "site",
+                        "sourceSize": [src_w, src_h],
+                    },
+                    extrude=True,
+                )
+            )
+
+    # Animated Actors horizontal 4-frame strips (`assets/actors/fauna/*.png` -> exact untrimmed strip!).
+    actors_root = assets_dir / "actors"
+    if actors_root.is_dir():
+        for path in sorted(actors_root.rglob("*.png")):
+            rel = path.relative_to(actors_root).as_posix()
+            logical_key = f"actors/{rel.rsplit('.', 1)[0]}"
+            raw_bytes += path.stat().st_size
+            with Image.open(path) as im:
+                rgba = im.convert("RGBA")
+                src_w, src_h = rgba.size
+                # Keep horizontal frame strip strictly untrimmed so frameIndex/frameCount UV slicing is pixel-exact!
+                frame_count = max(1, round(src_w / max(1, src_h))) if src_w >= src_h * 2 else 1
+                frame_w = max(1, src_w // frame_count)
+                frame_h = src_h
+                max_strip_w = 896
+                if src_w > max_strip_w:
+                    scale = max_strip_w / src_w
+                    rgba = rgba.resize(
+                        (max(frame_count, round(src_w * scale)), max(1, round(src_h * scale))),
+                        _RESAMPLE_LANCZOS,
+                    )
+            infra_items.append(
+                PackedItem(
+                    key=logical_key,
+                    image=rgba,
+                    metadata={
+                        "category": "actor",
+                        "sourceSize": [src_w, src_h],
+                        "frameCount": frame_count,
+                        "frameSize": [frame_w, frame_h],
+                    },
+                    extrude=False,
                 )
             )
 

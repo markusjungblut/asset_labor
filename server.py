@@ -100,6 +100,10 @@ def _detect_pack_staleness(manifest_path, manifest, sync_dir):
         ('terrain_catalog.json', ASSETS / 'terrain' / 'terrain_catalog.json'),
         ('export_game_assets.py', BASE / 'scripts' / 'export_game_assets.py'),
     ]
+    for label, sub in (('sites/*.png', ASSETS / 'sites'), ('actors/*.png', ASSETS / 'actors')):
+        if sub.is_dir():
+            for png in sub.rglob('*.png'):
+                watched.append((label, png))
     newest_name = ''
     newest_mtime = manifest_mtime
     for label, p in watched:

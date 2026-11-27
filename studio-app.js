@@ -202,6 +202,7 @@
     spriteSelfShadowRange: $("spriteSelfShadowRange"),
     spriteSelfShadowVal: $("spriteSelfShadowVal"),
     windAnimationCheck: $("windAnimationCheck"),
+    showGroundDecalsCheck: $("showGroundDecalsCheck"),
     edgeBandRange: $("edgeBandRange"),
     edgeBandVal: $("edgeBandVal"),
     waterSamplingRow: $("waterSamplingRow"),
@@ -385,6 +386,20 @@
 
     if (tool === "road") {
       if (!state.roadStartHex) {
+        const startCell = state.engine?.lookupHex(hex.q, hex.r);
+        if (
+          startCell &&
+          (lib.placementRules?.isWaterTerrainId(startCell.terrainId) ||
+            startCell.reliefClass === "mountain")
+        ) {
+          showToast(
+            startCell.reliefClass === "mountain"
+              ? "Straßen können nicht auf Gebirge starten."
+              : "Straßen können nicht auf Wasser starten.",
+            true,
+          );
+          return;
+        }
         state.roadStartHex = hex;
         showToast(`Straßen-Start (${hex.q}, ${hex.r}) — jetzt angrenzendes Hex klicken.`);
         pushScene();
@@ -395,6 +410,16 @@
         state.roadStartHex = hex;
         showToast(`Neuer Straßen-Start (${hex.q}, ${hex.r}) — Nachbar-Hex anklicken.`);
         pushScene();
+        return;
+      }
+      const roadCheck = state.engine?.validateRoadPlacement?.(
+        state.roadStartHex.q,
+        state.roadStartHex.r,
+        hex.q,
+        hex.r,
+      );
+      if (roadCheck && !roadCheck.ok) {
+        showToast(roadCheck.reason || "Straße auf dieser Kante nicht zulässig.", true);
         return;
       }
       const pair = hexMath.canonicalEdgePair(
@@ -441,6 +466,17 @@
       ) {
         state.scene.walls.splice(idx, 1);
       } else {
+        const wallCheck = state.engine?.validateWallPlacement?.(
+          pair.q1,
+          pair.r1,
+          pair.q2,
+          pair.r2,
+          state.paintWallIsGate,
+        );
+        if (wallCheck && !wallCheck.ok) {
+          showToast(wallCheck.reason || "Mauer auf dieser Kante nicht zulässig.", true);
+          return;
+        }
         const wallObj = {
           q1: pair.q1,
           r1: pair.r1,
@@ -467,7 +503,16 @@
       if (idx >= 0) {
         state.scene.rivers.splice(idx, 1);
       } else {
-        state.scene.rivers.push({ q: pair.q1, r: pair.r1, dir: edge.dir });
+        const riverCheck = state.engine?.validateRiverPlacement?.(
+          edge.q1,
+          edge.r1,
+          edge.dir,
+        );
+        if (riverCheck && !riverCheck.ok) {
+          showToast(riverCheck.reason || "Flusskante hier nicht zulässig.", true);
+          return;
+        }
+        state.scene.rivers.push({ q: edge.q1, r: edge.r1, dir: edge.dir });
       }
       pushScene();
       return;
@@ -1083,6 +1128,9 @@
     if (el.windAnimationCheck) {
       el.windAnimationCheck.checked = state.visualConfig.windAnimation !== false;
     }
+    if (el.showGroundDecalsCheck) {
+      el.showGroundDecalsCheck.checked = state.visualConfig.showGroundDecals !== false;
+    }
     el.edgeBandRange.value = String(Math.round(state.visualConfig.edgeBand));
     el.edgeBandVal.textContent = `${Math.round(state.visualConfig.edgeBand)} px`;
     for (const c of el.waterSamplingRow.querySelectorAll("[data-water-sampling]")) {
@@ -1267,6 +1315,12 @@
       state.visualConfig.windAnimation = el.windAnimationCheck.checked;
       state.engine?.setVisualConfig({
         windAnimation: state.visualConfig.windAnimation,
+      });
+    });
+    el.showGroundDecalsCheck?.addEventListener("change", () => {
+      state.visualConfig.showGroundDecals = el.showGroundDecalsCheck.checked;
+      state.engine?.setVisualConfig({
+        showGroundDecals: state.visualConfig.showGroundDecals,
       });
     });
     el.edgeBandRange.addEventListener("input", () => {
